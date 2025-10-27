@@ -4,7 +4,23 @@ const db = require('../config/database');
 const requirePermission = (permission) => {
   return async (req, res, next) => {
     try {
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
       const userId = req.user.userId;
+      
+      // Validate userId
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid user token'
+        });
+      }
       
       // Get user's role and permissions
       const userPermissions = await db('users as u')
@@ -65,8 +81,24 @@ const requireRole = (roles) => {
 const requireChapterAccess = () => {
   return async (req, res, next) => {
     try {
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
       const userId = req.user.userId;
       const targetChapterId = req.params.chapterId || req.body.chapter_id;
+      
+      // Validate userId
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid user token'
+        });
+      }
       
       if (!targetChapterId) {
         return next();

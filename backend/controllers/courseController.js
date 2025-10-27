@@ -1,15 +1,24 @@
 const db = require('../config/database');
 
 const courseController = {
-  // Get all courses for the logged-in teacher
+  // Get all courses for the logged-in teacher with statistics
   async getTeacherCourses(req, res) {
     try {
       const teacherId = req.user.userId;
       
-      const courses = await db('courses')
-        .where({ teacher_id: teacherId })
-        .select('*')
-        .orderBy('created_at', 'desc');
+      // Get courses with lesson counts and student counts
+      const courses = await db('courses as c')
+        .leftJoin('lessons as l', 'c.id', 'l.course_id')
+        .leftJoin('user_lesson_progress as ulp', 'l.id', 'ulp.lesson_id')
+        .where({ 'c.created_by': teacherId })
+        .groupBy('c.id')
+        .select(
+          'c.*',
+          db.raw('COUNT(DISTINCT l.id) as lesson_count'),
+          db.raw('COUNT(DISTINCT ulp.user_id) as student_count'),
+          db.raw('SUM(l.duration) as total_duration')
+        )
+        .orderBy('c.created_at', 'desc');
 
       res.json({
         success: true,
@@ -37,14 +46,15 @@ const courseController = {
         });
       }
 
-      const [courseId] = await db('courses').insert({
+      const courseIdResult = await db('courses').insert({
         title,
         description,
         category,
-        teacher_id: teacherId,
+        created_by: teacherId,
         created_at: new Date(),
         updated_at: new Date()
-      });
+      }).returning('id');
+      const courseId = courseIdResult[0].id;
 
       const course = await db('courses').where({ id: courseId }).first();
 
@@ -71,7 +81,7 @@ const courseController = {
 
       // Verify the course belongs to the teacher
       const course = await db('courses')
-        .where({ id: courseId, teacher_id: teacherId })
+        .where({ id: courseId, created_by: teacherId })
         .first();
 
       if (!course) {
@@ -81,14 +91,15 @@ const courseController = {
         });
       }
 
-      const [lessonId] = await db('lessons').insert({
+      const lessonIdResult = await db('lessons').insert({
         title,
         description,
         order_number: order || 0,
         course_id: courseId,
         created_at: new Date(),
         updated_at: new Date()
-      });
+      }).returning('id');
+      const lessonId = lessonIdResult[0].id;
 
       const lesson = await db('lessons').where({ id: lessonId }).first();
 
