@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, MapPin, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
+import { chaptersApi } from '../../services/api/chapters';
 
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -19,7 +20,7 @@ const RegisterForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [chapters, setChapters] = useState<{id: string, name: string}[]>([]);
+  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
@@ -39,23 +40,20 @@ const RegisterForm: React.FC = () => {
   useEffect(() => {
     const fetchChapters = async () => {
       try {
-        // For now, we'll use static chapters but in a real implementation,
-        // this would fetch from an API endpoint
-        const staticChapters = [
-          { id: 'addis-ababa', name: 'Addis Ababa' },
-          { id: 'toronto', name: 'Toronto' },
-          { id: 'washington', name: 'Washington DC' },
-          { id: 'london', name: 'London' },
-        ];
-        setChapters(staticChapters);
+        const response = await chaptersApi.getAllChapters();
+        if (response.success) {
+          setChapters(response.data.chapters);
+        } else {
+          throw new Error('Failed to fetch chapters');
+        }
       } catch (err) {
         console.error('Failed to fetch chapters:', err);
         // Fallback to static chapters
         setChapters([
-          { id: 'addis-ababa', name: 'Addis Ababa' },
-          { id: 'toronto', name: 'Toronto' },
-          { id: 'washington', name: 'Washington DC' },
-          { id: 'london', name: 'London' },
+          { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
+          { id: 2, name: 'toronto', location: 'Toronto, Canada' },
+          { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
+          { id: 4, name: 'london', location: 'London, UK' },
         ]);
       } finally {
         setLoadingChapters(false);
@@ -119,7 +117,7 @@ const RegisterForm: React.FC = () => {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        chapter: formData.chapter,
+        chapter: formData.chapter, // This will now be the chapter ID (integer)
         role: formData.role
       });
       
@@ -279,7 +277,7 @@ const RegisterForm: React.FC = () => {
             <option value="">Select your chapter</option>
             {chapters.map(chapter => (
               <option key={chapter.id} value={chapter.id}>
-                {chapter.name}
+                {chapter.name} ({chapter.location})
               </option>
             ))}
           </select>
@@ -299,39 +297,6 @@ const RegisterForm: React.FC = () => {
         )}
       </div>
 
-      {/* Role Selection - Only show student option for public registration */}
-      <div>
-        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-          Role
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <User className="h-5 w-5 text-gray-400" />
-          </div>
-          <select
-            id="role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white appearance-none"
-            disabled
-          >
-            <option value="student">Student</option>
-            <option value="teacher">Teacher (Admin Assignment Only)</option>
-            <option value="chapter_admin">Chapter Admin (Admin Assignment Only)</option>
-            <option value="platform_admin">Platform Admin (Admin Assignment Only)</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-        <p className="mt-1 text-sm text-gray-500">
-          Teachers and administrators must be assigned by existing admins.
-        </p>
-      </div>
-
       {/* Password Input */}
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
@@ -344,11 +309,11 @@ const RegisterForm: React.FC = () => {
           <input
             id="password"
             name="password"
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             required
             value={formData.password}
             onChange={handleChange}
-            className={`block w-full pl-10 pr-12 py-3 border rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white ${
+            className={`block w-full pl-10 pr-10 py-3 border rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white ${
               validationErrors.password ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Create a password"
@@ -357,9 +322,8 @@ const RegisterForm: React.FC = () => {
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
             onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -387,11 +351,11 @@ const RegisterForm: React.FC = () => {
           <input
             id="confirmPassword"
             name="confirmPassword"
-            type={showConfirmPassword ? 'text' : 'password'}
+            type={showConfirmPassword ? "text" : "password"}
             required
             value={formData.confirmPassword}
             onChange={handleChange}
-            className={`block w-full pl-10 pr-12 py-3 border rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white ${
+            className={`block w-full pl-10 pr-10 py-3 border rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white ${
               validationErrors.confirmPassword ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Confirm your password"
@@ -400,9 +364,8 @@ const RegisterForm: React.FC = () => {
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
           >
             {showConfirmPassword ? (
               <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -422,27 +385,43 @@ const RegisterForm: React.FC = () => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition duration-200 ease-in-out transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
       >
         {isLoading ? (
-          <div className="flex items-center">
-            <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
-            Creating account...
-          </div>
+          <>
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Creating Account...
+          </>
         ) : (
-          'Create your account'
+          'Create Account'
         )}
       </button>
 
-      {/* Social Login Buttons */}
-      <SocialLoginButtons />
+      {/* Social Login */}
+      <div className="mt-6">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">
+              Or continue with
+            </span>
+          </div>
+        </div>
 
-      {/* Sign in link */}
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
+        <SocialLoginButtons />
+      </div>
+
+      {/* Login Link */}
+      <div className="text-center mt-6">
+        <p className="text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
-            Sign in here
+          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            Sign in
           </Link>
         </p>
       </div>

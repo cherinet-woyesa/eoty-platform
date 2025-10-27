@@ -17,6 +17,21 @@ const aiController = {
       // Moderate the query
       const moderationResult = await aiService.moderateQuery(question, userId);
 
+      // If moderation provides guidance, return it directly
+      if (moderationResult.guidance && moderationResult.guidance.length > 0 && !moderationResult.needsModeration) {
+        return res.json({
+          success: true,
+          data: {
+            answer: moderationResult.guidance[0],
+            relevantContent: [],
+            sources: [],
+            moderation: moderationResult,
+            sessionId,
+            guidanceProvided: true
+          }
+        });
+      }
+
       // Get conversation history for context
       const conversationHistory = await aiService.getConversationHistory(userId, sessionId);
 
@@ -45,13 +60,19 @@ const aiController = {
           relevantContent: aiResponse.relevantContent,
           sources: aiResponse.sources,
           moderation: moderationResult,
-          sessionId
+          sessionId,
+          detectedLanguage: aiResponse.detectedLanguage
         }
       };
 
       // If needs moderation, include warning
       if (moderationResult.needsModeration) {
         response.data.moderationWarning = 'This question has been flagged for moderator review due to sensitive content.';
+      }
+
+      // If guidance was provided, include it
+      if (moderationResult.guidance && moderationResult.guidance.length > 0) {
+        response.data.guidance = moderationResult.guidance;
       }
 
       res.json(response);

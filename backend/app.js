@@ -13,6 +13,7 @@ const resourceRoutes = require('./routes/resources');
 const forumRoutes = require('./routes/forums');
 const achievementRoutes = require('./routes/achievements');
 const adminRoutes = require('./routes/admin');
+const chapterRoutes = require('./routes/chapters');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/chapters', chapterRoutes);
 
 // Admin routes
 app.use('/api/admin', adminRoutes);

@@ -7,6 +7,7 @@ interface Message {
   content: string;
   timestamp: Date;
   metadata?: any;
+  detectedLanguage?: string;
 }
 
 interface UseAIChatReturn {
@@ -53,8 +54,11 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
           metadata: {
             relevantContent: response.data.relevantContent,
             sources: response.data.sources,
-            moderation: response.data.moderation
-          }
+            moderation: response.data.moderation,
+            guidance: response.data.guidance,
+            guidanceProvided: response.data.guidanceProvided
+          },
+          detectedLanguage: response.data.detectedLanguage
         };
 
         setMessages(prev => [...prev, aiMessage]);
@@ -62,6 +66,11 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
         // Show moderation warning if needed
         if (response.data.moderation?.needsModeration) {
           console.warn('Question flagged for moderation:', response.data.moderationWarning);
+        }
+        
+        // Show guidance if provided
+        if (response.data.guidance && response.data.guidance.length > 0) {
+          console.info('Guidance provided:', response.data.guidance);
         }
       } else {
         throw new Error(response.message || 'Failed to get AI response');

@@ -5,7 +5,7 @@ import { speechToText } from '../../services/speechToText';
 import { 
   Send, Bot, User, Trash2, AlertTriangle, 
   BookOpen, Loader, Mic, MicOff,
-  Volume2, VolumeX
+  Volume2, VolumeX, Globe
 } from 'lucide-react';
 
 interface AIChatInterfaceProps {
@@ -33,7 +33,9 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
     audioUrl,
     startRecording,
     stopRecording,
-    error: audioError
+    error: audioError,
+    detectedLanguage,
+    setDetectedLanguage
   } = useAudioRecorder();
 
   // Auto-scroll to bottom
@@ -59,25 +61,40 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
     setIsUsingAudio(true);
     try {
       let transcription: string;
+      let confidence: number = 0;
       
-      // Try browser-native recognition first
+      // Try browser-native recognition first with language detection
       if (speechToText.isBrowserSupported()) {
-        transcription = await speechToText.startBrowserRecognition();
+        const result = await speechToText.startEnhancedBrowserRecognition();
+        transcription = result.transcript;
+        confidence = result.confidence;
+        setDetectedLanguage(result.language);
+        
+        // Show confidence level to user
+        if (confidence < 0.7) {
+          setInput(`${transcription} (Low confidence - please verify)`);
+        } else {
+          setInput(transcription);
+        }
       } else {
         // Fallback to placeholder
         transcription = await speechToText.transcribeAudio(audioBlob);
+        setInput(transcription);
       }
-      
-      setInput(transcription);
       
       // Auto-submit after short delay
       setTimeout(() => {
         handleSubmitWithText(transcription);
       }, 500);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('Transcription error:', err);
-      setInput('Error transcribing audio. Please type your question instead.');
+      // Check if it's a language support issue
+      if (err.message && err.message.includes('language')) {
+        setInput('Unsupported language. Please try speaking in English or check your browser language settings.');
+      } else {
+        setInput('Error transcribing audio. Please type your question instead.');
+      }
     } finally {
       setIsUsingAudio(false);
     }
@@ -107,6 +124,7 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
       stopRecording();
     } else {
       setInput(''); // Clear input when starting recording
+      setDetectedLanguage(null); // Reset language detection
       await startRecording();
     }
   };
@@ -205,6 +223,16 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
                   </div>
                 )}
 
+                {/* Guidance Message */}
+                {message.role === 'assistant' && message.metadata?.guidance && message.metadata.guidance.length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-2">
+                    <Bot className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <strong>Helpful Tip:</strong> {message.metadata.guidance[0]}
+                    </div>
+                  </div>
+                )}
+
                 {/* Relevant Sources */}
                 {message.role === 'assistant' && message.metadata?.sources && message.metadata.sources.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
@@ -219,6 +247,17 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
                     </div>
                   </div>
                 )}
+                
+                {/* Language Information */}
+                {message.role === 'assistant' && message.detectedLanguage && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <Globe className="h-3 w-3" />
+                      <span>Response in {message.detectedLanguage}</span>
+                    </div>
+                  </div>
+                )}
+
               </div>
               
               {/* Timestamp */}
@@ -261,6 +300,12 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
                 <span className="font-medium">Recording... Click to stop</span>
                 <Volume2 className="h-4 w-4" />
               </div>
+              {detectedLanguage && (
+                <div className="text-xs text-red-600 mt-1 flex items-center">
+                  <Globe className="h-3 w-3 mr-1" />
+                  {speechToText.supportedLanguages[detectedLanguage as keyof typeof speechToText.supportedLanguages] || detectedLanguage}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -356,6 +401,13 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
         {!speechToText.isBrowserSupported() && (
           <div className="mt-2 text-xs text-yellow-600 text-center">
             Voice recording available but transcription limited in this browser. For better voice support, use Chrome or Edge.
+          </div>
+        )}
+        
+        {/* Language Support Information */}
+        {speechToText.isBrowserSupported() && (
+          <div className="mt-2 text-xs text-gray-500 text-center">
+            Supported languages: English, Amharic, Tigrigna, Oromo, Somali
           </div>
         )}
       </div>

@@ -3,11 +3,12 @@ import { useAuth } from '../../context/AuthContext';
 import UserManagement from '../admin/UserManagement';
 import ContentManager from '../admin/ContentManager';
 import ModerationTools from '../admin/ModerationTools';
+import { AIModerationTools } from '../admin/AIModerationTools';
 import AnalyticsDashboard from '../admin/AnalyticsDashboard';
 import TagManager from '../admin/TagManager';
 import MetricsCard from '../admin/MetricsCard';
 import SystemAlerts from '../admin/SystemAlerts';
-import { Users, BookOpen, CheckCircle, BarChart2 } from 'lucide-react';
+import { Users, BookOpen, CheckCircle, BarChart2, Shield } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -64,6 +65,16 @@ const AdminDashboard: React.FC = () => {
             }`}
           >
             Moderation
+          </button>
+          <button
+            onClick={() => setActiveTab('ai-moderation')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeTab === 'ai-moderation'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            AI Moderation
           </button>
           <button
             onClick={() => setActiveTab('tags')}
@@ -136,6 +147,7 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'users' && <UserManagement />}
       {activeTab === 'content' && <ContentManager />}
       {activeTab === 'moderation' && <ModerationTools />}
+      {activeTab === 'ai-moderation' && <AIModerationTools />}
       {activeTab === 'tags' && <TagManager />}
       {activeTab === 'analytics' && <AnalyticsDashboard />}
     </div>

@@ -125,3 +125,10 @@ export interface CreatePostRequest {
   content: string;
   parentId?: number;
 }
+
+export interface Chapter {
+  id: number;
+  name: string;
+  location: string;
+  description: string;
+}

@@ -778,6 +778,187 @@ const adminController = {
     }
   },
 
+  // Get pending AI moderation items
+  async getPendingAIModeration(req, res) {
+    try {
+      const { page = 1, limit = 20 } = req.query;
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      // Get pending moderation items from the new moderation service
+      const pendingItems = await db('moderated_content')
+        .where('status', 'pending')
+        .orderBy('created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset((parseInt(page) - 1) * parseInt(limit))
+        .select('*');
+
+      // Get total count for pagination
+      const totalCount = await db('moderated_content')
+        .where('status', 'pending')
+        .count('id as count')
+        .first();
+
+      res.json({
+        success: true,
+        data: {
+          items: pendingItems,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: parseInt(totalCount.count)
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get pending AI moderation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch pending moderation items'
+      });
+    }
+  },
+
+  // Review AI moderation item
+  async reviewAIModeration(req, res) {
+    try {
+      const { itemId } = req.params;
+      const { action, notes } = req.body;
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const item = await db('moderated_content')
+        .where({ id: itemId })
+        .first();
+
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          message: 'Moderation item not found'
+        });
+      }
+
+      let newStatus;
+      switch (action) {
+        case 'approve':
+          newStatus = 'approved';
+          break;
+        case 'reject':
+          newStatus = 'rejected';
+          break;
+        case 'escalate':
+          newStatus = 'escalated';
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid action. Use approve, reject, or escalate.'
+          });
+      }
+
+      await db('moderated_content')
+        .where({ id: itemId })
+        .update({
+          status: newStatus,
+          moderated_by: userId,
+          moderation_notes: notes,
+          updated_at: new Date()
+        });
+
+      // Log audit
+      await AdminAudit.logAction(
+        userId,
+        'ai_moderation_review',
+        'moderated_content',
+        itemId,
+        `Reviewed AI moderation item: ${action}`,
+        { status: item.status },
+        { status: newStatus }
+      );
+
+      res.json({
+        success: true,
+        message: `Moderation item ${action}d successfully`
+      });
+    } catch (error) {
+      console.error('Review AI moderation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to review moderation item'
+      });
+    }
+  },
+
+  // Get moderation statistics
+  async getModerationStats(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      // Get statistics
+      const stats = await db('moderated_content')
+        .select(
+          db.raw("COUNT(*) FILTER (WHERE status = 'pending') as pending"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'approved') as approved"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'rejected') as rejected"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'escalated') as escalated"),
+          db.raw("COUNT(*) FILTER (WHERE faith_alignment_score >= 2) as high_faith_alignment"),
+          db.raw("COUNT(*) FILTER (WHERE faith_alignment_score < 2) as low_faith_alignment")
+        )
+        .first();
+
+      // Get recent moderation activity
+      const recentActivity = await db('moderated_content')
+        .where('created_at', '>=', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+        .groupByRaw('DATE(created_at)')
+        .select(
+          db.raw('DATE(created_at) as date'),
+          db.raw("COUNT(*) FILTER (WHERE status = 'pending') as pending"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'approved') as approved"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'rejected') as rejected")
+        )
+        .orderBy('date', 'asc');
+
+      res.json({
+        success: true,
+        data: {
+          stats,
+          recent_activity: recentActivity
+        }
+      });
+    } catch (error) {
+      console.error('Get moderation stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch moderation statistics'
+      });
+    }
+  },
+
   // Audit logs
   async getAuditLogs(req, res) {
     try {

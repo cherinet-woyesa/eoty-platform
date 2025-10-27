@@ -48,6 +48,23 @@ const authController = {
         });
       }
 
+      // Validate chapter ID exists in database
+      const chapterId = parseInt(chapter);
+      if (isNaN(chapterId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid chapter selection'
+        });
+      }
+
+      const validChapter = await db('chapters').where({ id: chapterId, is_active: true }).first();
+      if (!validChapter) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected chapter is not valid or active'
+        });
+      }
+
       // Hash password
       const saltRounds = authConfig.bcryptRounds;
       const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -59,7 +76,7 @@ const authController = {
         email: email.toLowerCase(),
         password_hash: passwordHash,
         role: userRole,
-        chapter_id: chapter,
+        chapter_id: chapterId, // Use validated chapter ID
         is_active: true,
         created_at: new Date(),
         updated_at: new Date()
@@ -79,7 +96,7 @@ const authController = {
           role: userRole,
           firstName,
           lastName,
-          chapter
+          chapter: chapterId // Include chapter ID in token
         },
         authConfig.jwtSecret,
         { expiresIn: authConfig.jwtExpiresIn }
@@ -122,6 +139,7 @@ const authController = {
       const { email, password } = req.body;
 
       console.log('Login attempt for:', email);
+      console.log('Request body:', req.body);
 
       // Validate required fields
       if (!email || !password) {
@@ -152,8 +170,18 @@ const authController = {
         });
       }
 
+      console.log('User found in database:', {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      });
+
       // Verify password
+      console.log('Password verification - comparing with hash:', user.password_hash);
+      console.log('Password provided:', password);
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      console.log('Password validation result:', isValidPassword);
+      
       if (!isValidPassword) {
         console.log('Invalid password for:', email);
         return res.status(401).json({
@@ -245,6 +273,19 @@ const authController = {
       
       // If user doesn't exist at all, create a new user
       if (!user) {
+        // Get default chapter (first active chapter) for new users
+        const defaultChapter = await db('chapters')
+          .where({ is_active: true })
+          .orderBy('id', 'asc')
+          .first();
+
+        if (!defaultChapter) {
+          return res.status(500).json({
+            success: false,
+            message: 'No active chapters found. Please contact administrator.'
+          });
+        }
+
         const userData = {
           first_name: firstName,
           last_name: lastName,
@@ -252,7 +293,7 @@ const authController = {
           google_id: googleId,
           profile_picture: profilePicture,
           role: 'student', // Default role for Google signups
-          chapter_id: 'addis-ababa', // Default chapter, should be configurable
+          chapter_id: defaultChapter.id, // Use valid chapter ID
           is_active: true,
           created_at: new Date(),
           updated_at: new Date()

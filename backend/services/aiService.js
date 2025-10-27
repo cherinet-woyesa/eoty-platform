@@ -1,4 +1,6 @@
 const { openai, pinecone, aiConfig } = require('../config/aiConfig');
+const languageService = require('./languageService');
+const moderationService = require('./moderationService');
 const db = require('../config/database');
 
 class AIService {
@@ -68,51 +70,37 @@ class AIService {
     }
   }
 
-  // Moderate query for sensitive content
+  // Moderate query for sensitive content with enhanced moderation
   async moderateQuery(query, userId) {
-    const sensitiveTopics = [
-      'controversy', 'heresy', 'schism', 'political', 'ecumenical',
-      'protestant', 'catholic', 'islam', 'jewish', 'other faiths',
-      'social issues', 'modern society', 'traditional vs modern'
-    ];
-
-    const queryLower = query.toLowerCase();
-    const flags = [];
-
-    // Check for sensitive topics
-    sensitiveTopics.forEach(topic => {
-      if (queryLower.includes(topic)) {
-        flags.push(`contains_${topic}`);
-      }
-    });
-
-    // Check for potentially problematic phrases
-    const problematicPhrases = [
-      'what about', 'why not', 'is it wrong', 'is it sin',
-      'compare to', 'different from', 'orthodox view on'
-    ];
-
-    problematicPhrases.forEach(phrase => {
-      if (queryLower.includes(phrase)) {
-        flags.push(`questioning_${phrase.replace(/\s+/g, '_')}`);
-      }
-    });
-
-    // If flags found, log for moderation
-    if (flags.length > 0) {
-      await db('moderated_queries').insert({
-        user_id: userId,
-        original_query: query,
-        moderation_reason: flags.join(', '),
-        status: 'pending'
-      });
-      return { needsModeration: true, flags };
+    // First, check if it's a vague or off-topic question that needs guidance
+    const guidanceResponse = moderationService.handleVagueQuestion(query);
+    if (guidanceResponse) {
+      return {
+        needsModeration: false,
+        flags: ['guidance_needed'],
+        guidance: [guidanceResponse.response],
+        faithAlignmentScore: 0
+      };
     }
 
-    return { needsModeration: false, flags: [] };
+    // Use comprehensive moderation
+    const moderationResult = await moderationService.moderateContent(query, userId, 'question');
+    
+    // If it needs escalation, log it
+    if (moderationResult.needsModeration && moderationResult.flags.some(flag => 
+      flag.includes('sensitive_topic') || flag.includes('problematic_phrase'))) {
+      await moderationService.escalateForReview(
+        query, 
+        userId, 
+        `Auto-flagged: ${moderationResult.flags.join(', ')}`, 
+        'question'
+      );
+    }
+
+    return moderationResult;
   }
 
-  // Generate faith-aligned response
+  // Generate faith-aligned response with language support
   async generateResponse(userQuery, context = {}, conversationHistory = []) {
     if (!openai) {
       return {
@@ -123,6 +111,9 @@ class AIService {
     }
     
     try {
+      // Detect language of the query
+      const detectedLanguage = await languageService.detectLanguage(userQuery);
+      
       // Search for relevant content
       const relevantContent = await this.searchRelevantContent(userQuery, context);
       
@@ -138,14 +129,51 @@ class AIService {
         .map(msg => `${msg.role}: ${msg.content}`)
         .join('\n');
 
+      // Enhanced context building with lesson-specific information
+      let enhancedContext = '';
+      
+      // Add current lesson context if available
+      if (context.courseId && context.lessonId) {
+        const lessonInfo = await db('lessons')
+          .where({ id: context.lessonId })
+          .select('title', 'description')
+          .first();
+          
+        if (lessonInfo) {
+          enhancedContext += `\nCURRENT LESSON CONTEXT:
+Title: ${lessonInfo.title}
+Description: ${lessonInfo.description}`;
+        }
+      }
+      
+      // Add chapter context
+      if (context.chapterId) {
+        const chapterInfo = await db('chapters')
+          .where({ id: context.chapterId })
+          .select('name', 'region')
+          .first();
+          
+        if (chapterInfo) {
+          enhancedContext += `\nCHAPTER CONTEXT:
+Name: ${chapterInfo.name}
+Region: ${chapterInfo.region}`;
+        }
+      }
+
+      // Get language-specific prompt
+      const languagePrompt = languageService.getLanguagePrompt(detectedLanguage);
+
       // Construct the faith-aligned system prompt
       const systemPrompt = `${aiConfig.faithContext}
+
+${languagePrompt}
 
 RELEVANT CONTEXT:
 ${contextText}
 
 ${conversationHistory.length > 0 ? `CONVERSATION HISTORY:\n${historyContext}\n\n` : ''}
 CURRENT CONTEXT: ${JSON.stringify(context)}
+${enhancedContext}
 
 INSTRUCTIONS:
 1. Provide accurate, faith-aligned answers based on Ethiopian Orthodox teachings
@@ -154,6 +182,8 @@ INSTRUCTIONS:
 4. Be educational and encouraging in tone
 5. If you don't know, admit it and suggest resources for learning more
 6. Keep responses clear and accessible for youth understanding
+7. Reference the current lesson context when relevant to provide more targeted answers
+8. Respond in the same language as the user's question
 
 Current user question: ${userQuery}`;
 
@@ -171,14 +201,16 @@ Current user question: ${userQuery}`;
       return {
         response: completion.choices[0].message.content,
         relevantContent: relevantContent.slice(0, 3),
-        sources: relevantContent.map(item => item.source)
+        sources: relevantContent.map(item => item.source),
+        detectedLanguage: detectedLanguage
       };
     } catch (error) {
       console.error('AI response generation error:', error);
       return {
         response: "I'm sorry, but I encountered an error while processing your question. Please try again later.",
         relevantContent: [],
-        sources: []
+        sources: [],
+        detectedLanguage: 'en-US'
       };
     }
   }
@@ -331,7 +363,7 @@ FORMAT YOUR RESPONSE AS JSON:
     };
   }
 
-  // Store conversation in database
+  // Store conversation with enhanced metadata
   async storeConversation(userId, sessionId, userMessage, aiResponse, context, needsModeration = false) {
     const trx = await db.transaction();
     
@@ -351,22 +383,32 @@ FORMAT YOUR RESPONSE AS JSON:
           .returning('*');
       }
 
-      // Store messages
+      // Store messages with enhanced metadata
+      const userMetadata = {
+        needsModeration,
+        timestamp: new Date().toISOString(),
+        context: context
+      };
+
+      const aiMetadata = { 
+        relevantContent: aiResponse.relevantContent,
+        sources: aiResponse.sources,
+        timestamp: new Date().toISOString(),
+        context: context
+      };
+
       await trx('ai_messages').insert([
         {
           conversation_id: conversation.id,
           role: 'user',
           content: userMessage,
-          metadata: JSON.stringify({ needsModeration })
+          metadata: JSON.stringify(userMetadata)
         },
         {
           conversation_id: conversation.id,
           role: 'assistant',
           content: aiResponse.response,
-          metadata: JSON.stringify({ 
-            relevantContent: aiResponse.relevantContent,
-            sources: aiResponse.sources
-          })
+          metadata: JSON.stringify(aiMetadata)
         }
       ]);
 

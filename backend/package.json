@@ -18,6 +18,8 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
+    "@pinecone-database/pinecone": "^2.0.3",
+    "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -32,7 +34,6 @@
     "nodemailer": "^6.9.7",
     "openai": "^4.20.1",
     "pg": "^8.11.3",
-    "@pinecone-database/pinecone": "^2.0.3",
     "socket.io": "^4.7.4",
     "uuid": "^9.0.1"
   },

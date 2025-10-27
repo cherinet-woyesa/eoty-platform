@@ -21,6 +21,11 @@ router.post('/uploads/:uploadId/review', adminController.approveContent);
 router.get('/moderation/flagged', adminController.getFlaggedContent);
 router.post('/moderation/flagged/:flagId/review', adminController.reviewFlaggedContent);
 
+// AI Content Moderation
+router.get('/moderation/ai/pending', adminController.getPendingAIModeration);
+router.post('/moderation/ai/:itemId/review', adminController.reviewAIModeration);
+router.get('/moderation/ai/stats', adminController.getModerationStats);
+
 // Analytics Dashboard
 router.get('/analytics', adminController.getAnalytics);
 

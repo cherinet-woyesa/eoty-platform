@@ -9,7 +9,10 @@ import type{
   UploadQueueResponse,
   FlaggedContentResponse,
   CreateUploadRequest,
-  ReviewFlagRequest
+  ReviewFlagRequest,
+  AIModerationItem,
+  AIModerationStats,
+  RecentActivity
 } from '../../types/admin';
 
 export const adminApi = {
@@ -142,6 +145,26 @@ export const adminApi = {
     if (endDate) params.append('endDate', endDate);
 
     const response = await apiClient.get(`/admin/export?${params}`);
+    return response.data;
+  },
+
+  // AI Moderation Tools
+  getPendingAIModeration: async (page: number = 1, limit: number = 20) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    const response = await apiClient.get(`/admin/moderation/ai/pending?${params}`);
+    return response.data;
+  },
+
+  reviewAIModeration: async (itemId: number, reviewData: { action: string; notes?: string }) => {
+    const response = await apiClient.post(`/admin/moderation/ai/${itemId}/review`, reviewData);
+    return response.data;
+  },
+
+  getModerationStats: async () => {
+    const response = await apiClient.get('/admin/moderation/ai/stats');
     return response.data;
   }
 };

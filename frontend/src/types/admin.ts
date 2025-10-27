@@ -164,3 +164,30 @@ export interface ReviewFlagRequest {
   notes?: string;
   moderationAction?: string;
 }
+
+export interface AIModerationItem {
+  id: number;
+  user_id: number;
+  content: string;
+  content_type: string;
+  moderation_flags: string;
+  faith_alignment_score: number;
+  status: string;
+  created_at: string;
+}
+
+export interface AIModerationStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+  escalated: number;
+  high_faith_alignment: number;
+  low_faith_alignment: number;
+}
+
+export interface RecentActivity {
+  date: string;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
