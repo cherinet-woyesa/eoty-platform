@@ -1,0 +1,366 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useAIChat } from '../../hooks/useAIChat';
+import { useAudioRecorder } from '../../hooks/useAudioRecorder';
+import { speechToText } from '../../services/speechToText';
+import { 
+  Send, Bot, User, Trash2, AlertTriangle, 
+  BookOpen, Loader, Mic, MicOff,
+  Volume2, VolumeX
+} from 'lucide-react';
+
+interface AIChatInterfaceProps {
+  context?: any;
+  onClose?: () => void;
+}
+
+const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) => {
+  const [input, setInput] = useState('');
+  const [isUsingAudio, setIsUsingAudio] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    messages,
+    isProcessing,
+    error,
+    askQuestion,
+    clearConversation,
+    loadConversationHistory
+  } = useAIChat();
+
+  const {
+    isRecording,
+    audioBlob,
+    audioUrl,
+    startRecording,
+    stopRecording,
+    error: audioError
+  } = useAudioRecorder();
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Load conversation history on mount
+  useEffect(() => {
+    loadConversationHistory();
+  }, [loadConversationHistory]);
+
+  // Handle audio recording complete
+  useEffect(() => {
+    if (audioBlob && !isRecording) {
+      transcribeAudio();
+    }
+  }, [audioBlob, isRecording]);
+
+  const transcribeAudio = async () => {
+    if (!audioBlob) return;
+
+    setIsUsingAudio(true);
+    try {
+      let transcription: string;
+      
+      // Try browser-native recognition first
+      if (speechToText.isBrowserSupported()) {
+        transcription = await speechToText.startBrowserRecognition();
+      } else {
+        // Fallback to placeholder
+        transcription = await speechToText.transcribeAudio(audioBlob);
+      }
+      
+      setInput(transcription);
+      
+      // Auto-submit after short delay
+      setTimeout(() => {
+        handleSubmitWithText(transcription);
+      }, 500);
+      
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setInput('Error transcribing audio. Please type your question instead.');
+    } finally {
+      setIsUsingAudio(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isProcessing) return;
+
+    await handleSubmitWithText(input.trim());
+    setInput('');
+  };
+
+  const handleSubmitWithText = async (text: string) => {
+    await askQuestion(text, context);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      setInput(''); // Clear input when starting recording
+      await startRecording();
+    }
+  };
+
+  const formatTimestamp = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-200">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-600 rounded-xl">
+            <Bot className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Faith Assistant</h3>
+            <p className="text-sm text-gray-600">Ask questions about Orthodox teachings</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={clearConversation}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors duration-150"
+            title="Clear conversation"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors duration-150"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <Bot className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">Welcome to Faith Assistant</h4>
+            <p className="text-gray-600 max-w-sm mx-auto">
+              Ask me anything about Orthodox Christianity, church teachings, or your current lesson.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-500">
+              <p>• "What is the significance of the Holy Trinity?"</p>
+              <p>• "Explain the Ethiopian Orthodox liturgy"</p>
+              <p>• "Help me understand this lesson about prayer"</p>
+            </div>
+          </div>
+        )}
+
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex space-x-3 ${
+              message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+            }`}
+          >
+            {/* Avatar */}
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+              message.role === 'user' 
+                ? 'bg-blue-600' 
+                : 'bg-gradient-to-r from-blue-500 to-purple-600'
+            }`}>
+              {message.role === 'user' ? (
+                <User className="h-4 w-4 text-white" />
+              ) : (
+                <Bot className="h-4 w-4 text-white" />
+              )}
+            </div>
+
+            {/* Message Content */}
+            <div className={`flex-1 max-w-[80%] ${
+              message.role === 'user' ? 'text-right' : ''
+            }`}>
+              <div className={`inline-block px-4 py-2 rounded-2xl ${
+                message.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white border border-gray-200 text-gray-900'
+              }`}>
+                <p className="whitespace-pre-wrap">{message.content}</p>
+                
+                {/* Moderation Warning */}
+                {message.role === 'assistant' && message.metadata?.moderation?.needsModeration && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-yellow-800">
+                      <strong>Note:</strong> This question has been flagged for moderator review to ensure doctrinal accuracy.
+                    </div>
+                  </div>
+                )}
+
+                {/* Relevant Sources */}
+                {message.role === 'assistant' && message.metadata?.sources && message.metadata.sources.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
+                      <BookOpen className="h-3 w-3" />
+                      <span>Based on:</span>
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      {message.metadata.sources.slice(0, 2).map((source: string, index: number) => (
+                        <div key={index}>• {source}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Timestamp */}
+              <div className={`text-xs text-gray-500 mt-1 ${
+                message.role === 'user' ? 'text-right' : ''
+              }`}>
+                {formatTimestamp(message.timestamp)}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <div className="flex space-x-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+              <Bot className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 max-w-[80%]">
+              <div className="inline-block px-4 py-2 rounded-2xl bg-white border border-gray-200">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Loader className="h-4 w-4 animate-spin" />
+                  <span>Thinking...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Audio Recording Indicator */}
+        {isRecording && (
+          <div className="flex justify-center">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 max-w-md">
+              <div className="flex items-center space-x-3 text-red-800">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+                <span className="font-medium">Recording... Click to stop</span>
+                <Volume2 className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Audio Transcription Indicator */}
+        {isUsingAudio && (
+          <div className="flex justify-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 max-w-md">
+              <div className="flex items-center space-x-2 text-blue-800">
+                <Loader className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Transcribing audio...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Messages */}
+        {error && (
+          <div className="flex justify-center">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 max-w-md">
+              <div className="flex items-center space-x-2 text-red-800">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm">{error}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {audioError && (
+          <div className="flex justify-center">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 max-w-md">
+              <div className="flex items-center space-x-2 text-red-800">
+                <VolumeX className="h-4 w-4" />
+                <span className="text-sm">{audioError}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 border-t border-gray-200 bg-white">
+        <form onSubmit={handleSubmit} className="flex space-x-3">
+          <div className="flex-1 relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about Orthodox teachings, scripture, or your current lesson..."
+              className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              rows={1}
+              style={{ minHeight: '48px', maxHeight: '120px' }}
+              disabled={isRecording}
+            />
+            
+            {/* Audio Recording Button */}
+            <button
+              type="button"
+              onClick={toggleRecording}
+              disabled={isProcessing || isUsingAudio}
+              className={`absolute right-12 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-150 ${
+                isRecording 
+                  ? 'text-white bg-red-600 hover:bg-red-700 animate-pulse' 
+                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={isRecording ? 'Stop recording' : 'Start voice recording'}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+            
+            {/* Character Count */}
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+              {input.length}/500
+            </div>
+          </div>
+          
+          <button
+            type="submit"
+            disabled={!input.trim() || isProcessing || isRecording || isUsingAudio}
+            className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 flex items-center justify-center min-w-[60px]"
+          >
+            {isProcessing ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
+        </form>
+        
+        {/* Browser Support Warning */}
+        {!speechToText.isBrowserSupported() && (
+          <div className="mt-2 text-xs text-yellow-600 text-center">
+            Voice recording available but transcription limited in this browser. For better voice support, use Chrome or Edge.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AIChatInterface;

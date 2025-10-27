@@ -1,0 +1,110 @@
+const db = require('../config/database');
+
+const courseController = {
+  // Get all courses for the logged-in teacher
+  async getTeacherCourses(req, res) {
+    try {
+      const teacherId = req.user.userId;
+      
+      const courses = await db('courses')
+        .where({ teacher_id: teacherId })
+        .select('*')
+        .orderBy('created_at', 'desc');
+
+      res.json({
+        success: true,
+        data: { courses }
+      });
+    } catch (error) {
+      console.error('Get courses error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch courses'
+      });
+    }
+  },
+
+  // Create a new course
+  async createCourse(req, res) {
+    try {
+      const teacherId = req.user.userId;
+      const { title, description, category } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Course title is required'
+        });
+      }
+
+      const [courseId] = await db('courses').insert({
+        title,
+        description,
+        category,
+        teacher_id: teacherId,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      const course = await db('courses').where({ id: courseId }).first();
+
+      res.status(201).json({
+        success: true,
+        message: 'Course created successfully',
+        data: { course }
+      });
+    } catch (error) {
+      console.error('Create course error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create course'
+      });
+    }
+  },
+
+  // Create a new lesson in a course
+  async createLesson(req, res) {
+    try {
+      const teacherId = req.user.userId;
+      const { courseId } = req.params;
+      const { title, description, order } = req.body;
+
+      // Verify the course belongs to the teacher
+      const course = await db('courses')
+        .where({ id: courseId, teacher_id: teacherId })
+        .first();
+
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: 'Course not found'
+        });
+      }
+
+      const [lessonId] = await db('lessons').insert({
+        title,
+        description,
+        order_number: order || 0,
+        course_id: courseId,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      const lesson = await db('lessons').where({ id: lessonId }).first();
+
+      res.status(201).json({
+        success: true,
+        message: 'Lesson created successfully',
+        data: { lesson }
+      });
+    } catch (error) {
+      console.error('Create lesson error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create lesson'
+      });
+    }
+  }
+};
+
+module.exports = courseController;
