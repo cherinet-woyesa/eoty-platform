@@ -1,385 +1,261 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, BookOpen, CheckCircle, Award, TrendingUp } from 'lucide-react';
-import { interactiveApi } from '../../services/api';
+import { 
+  CheckCircle, Clock, Award, Target, 
+  TrendingUp, BarChart3, Calendar,
+  PlayCircle, BookOpen, Star,
+  Loader2, AlertCircle, RefreshCw
+} from 'lucide-react';
+import { progressApi, LessonProgress, UserProgressStats } from '../../services/api/progress';
 
-interface LessonProgress {
-  id: string;
-  title: string;
-  progress: number;
-  is_completed: boolean;
-  completed_at: string | null;
-  last_accessed_at: string;
-  duration: number; // in minutes
+interface ProgressTrackerProps {
+  lessonId: number;
+  courseId?: number;
+  onProgressUpdate?: (progress: LessonProgress) => void;
+  showDetailed?: boolean;
 }
 
-interface QuizProgress {
-  id: string;
-  title: string;
-  score: number;
-  max_score: number;
-  is_completed: boolean;
-  completed_at: string;
-  attempts: number;
-}
-
-interface CourseProgress {
-  course_id: string;
-  course_title: string;
-  overall_progress: number;
-  total_lessons: number;
-  completed_lessons: number;
-  total_quizzes: number;
-  completed_quizzes: number;
-  average_quiz_score: number;
-  time_spent: number; // in minutes
-  last_accessed: string;
-}
-
-const ProgressTracker: React.FC = () => {
-  const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([]);
-  const [lessonProgress, setLessonProgress] = useState<LessonProgress[]>([]);
-  const [quizProgress, setQuizProgress] = useState<QuizProgress[]>([]);
+const ProgressTracker: React.FC<ProgressTrackerProps> = ({ 
+  lessonId, 
+  courseId,
+  onProgressUpdate,
+  showDetailed = false 
+}) => {
+  const [progress, setProgress] = useState<LessonProgress | null>(null);
+  const [stats, setStats] = useState<UserProgressStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'courses' | 'lessons' | 'quizzes'>('courses');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProgressData();
-  }, []);
+    loadProgress();
+  }, [lessonId]);
 
-  const loadProgressData = async () => {
+  const loadProgress = async () => {
     try {
-      // In a real implementation, we would fetch this data from the backend
-      // For now, we'll simulate the data structure
-      const mockCourseProgress: CourseProgress[] = [
-        {
-          course_id: '1',
-          course_title: 'Introduction to Orthodox Faith',
-          overall_progress: 0.75,
-          total_lessons: 12,
-          completed_lessons: 9,
-          total_quizzes: 8,
-          completed_quizzes: 6,
-          average_quiz_score: 85,
-          time_spent: 120,
-          last_accessed: '2023-05-15T14:30:00Z'
-        },
-        {
-          course_id: '2',
-          course_title: 'Church History Fundamentals',
-          overall_progress: 0.45,
-          total_lessons: 15,
-          completed_lessons: 7,
-          total_quizzes: 10,
-          completed_quizzes: 4,
-          average_quiz_score: 78,
-          time_spent: 85,
-          last_accessed: '2023-05-14T10:15:00Z'
-        }
-      ];
+      setLoading(true);
+      setError(null);
 
-      const mockLessonProgress: LessonProgress[] = [
-        {
-          id: '1',
-          title: 'The Nature of God',
-          progress: 1,
-          is_completed: true,
-          completed_at: '2023-05-10T14:30:00Z',
-          last_accessed_at: '2023-05-10T14:30:00Z',
-          duration: 25
-        },
-        {
-          id: '2',
-          title: 'The Trinity',
-          progress: 0.75,
-          is_completed: false,
-          completed_at: null,
-          last_accessed_at: '2023-05-12T16:45:00Z',
-          duration: 30
-        },
-        {
-          id: '3',
-          title: 'The Incarnation',
-          progress: 0.3,
-          is_completed: false,
-          completed_at: null,
-          last_accessed_at: '2023-05-15T14:30:00Z',
-          duration: 35
-        }
-      ];
+      const [progressRes, statsRes] = await Promise.all([
+        progressApi.getLessonProgress(lessonId),
+        progressApi.getUserProgressStats()
+      ]);
 
-      const mockQuizProgress: QuizProgress[] = [
-        {
-          id: '1',
-          title: 'Orthodox Beliefs Quiz',
-          score: 18,
-          max_score: 20,
-          is_completed: true,
-          completed_at: '2023-05-10T15:30:00Z',
-          attempts: 1
-        },
-        {
-          id: '2',
-          title: 'Trinity Concepts Quiz',
-          score: 15,
-          max_score: 20,
-          is_completed: true,
-          completed_at: '2023-05-12T17:45:00Z',
-          attempts: 2
-        }
-      ];
+      setProgress(progressRes.data.progress);
+      setStats(statsRes.data);
+      onProgressUpdate?.(progressRes.data.progress);
 
-      setCourseProgress(mockCourseProgress);
-      setLessonProgress(mockLessonProgress);
-      setQuizProgress(mockQuizProgress);
-    } catch (error) {
-      console.error('Failed to load progress data:', error);
+    } catch (err) {
+      console.error('Failed to load progress:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load progress');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatTime = (minutes: number) => {
-    if (minutes < 60) {
-      return `${minutes} min`;
+  const updateProgress = async (type: 'video' | 'quiz', progressValue: number) => {
+    try {
+      const response = await progressApi.updateLessonProgress(lessonId, {
+        type,
+        progress: progressValue,
+        is_completed: progressValue >= 100
+      });
+
+      setProgress(response.data.progress);
+      onProgressUpdate?.(response.data.progress);
+
+    } catch (err) {
+      console.error('Failed to update progress:', err);
     }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.floor(minutes % 60);
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 100) return 'text-green-600';
+    if (percentage >= 75) return 'text-blue-600';
+    if (percentage >= 50) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+
+  const getProgressBarColor = (percentage: number) => {
+    if (percentage >= 100) return 'bg-green-500';
+    if (percentage >= 75) return 'bg-blue-500';
+    if (percentage >= 50) return 'bg-yellow-500';
+    return 'bg-gray-400';
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-gray-100 rounded"></div>
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 text-blue-500 animate-spin mr-2" />
+        <span className="text-gray-600">Loading progress...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-4">
+        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+        <p className="text-red-600 text-sm mb-2">{error}</p>
+        <button
+          onClick={loadProgress}
+          className="text-blue-600 hover:text-blue-700 text-sm flex items-center mx-auto"
+        >
+          <RefreshCw className="h-4 w-4 mr-1" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!progress) {
+    return (
+      <div className="text-center p-4 text-gray-500">
+        <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">No progress data available</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="border-b border-gray-200">
-        <nav className="flex -mb-px">
-          <button
-            onClick={() => setActiveTab('courses')}
-            className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-              activeTab === 'courses'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Courses
-          </button>
-          <button
-            onClick={() => setActiveTab('lessons')}
-            className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-              activeTab === 'lessons'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Lessons
-          </button>
-          <button
-            onClick={() => setActiveTab('quizzes')}
-            className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-              activeTab === 'quizzes'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Quizzes
-          </button>
-        </nav>
+    <div className="space-y-4">
+      {/* Lesson Progress */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <Target className="h-4 w-4 mr-2 text-blue-600" />
+            Lesson Progress
+          </h3>
+          <span className={`text-sm font-medium ${getProgressColor(progress.overall_progress)}`}>
+            {Math.round(progress.overall_progress)}%
+          </span>
+        </div>
+
+        {/* Overall Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div 
+            className={`h-2 rounded-full transition-all duration-500 ${getProgressBarColor(progress.overall_progress)}`}
+            style={{ width: `${progress.overall_progress}%` }}
+          />
+        </div>
+
+        {/* Detailed Progress */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600 flex items-center">
+              <PlayCircle className="h-4 w-4 mr-1" />
+              Video
+            </span>
+            <span className={`font-medium ${getProgressColor(progress.video_progress)}`}>
+              {Math.round(progress.video_progress)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600 flex items-center">
+              <Award className="h-4 w-4 mr-1" />
+              Quiz
+            </span>
+            <span className={`font-medium ${getProgressColor(progress.quiz_progress)}`}>
+              {Math.round(progress.quiz_progress)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Completion Status */}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {progress.is_video_completed && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Video Complete
+              </div>
+            )}
+            {progress.is_quiz_completed && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Quiz Complete
+              </div>
+            )}
+          </div>
+          {progress.is_lesson_completed && (
+            <div className="flex items-center text-green-600 font-semibold">
+              <Award className="h-4 w-4 mr-1" />
+              Lesson Complete!
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="p-6">
-        {activeTab === 'courses' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <BookOpen className="h-5 w-5 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-800">Total Courses</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-900 mt-1">{courseProgress.length}</p>
-              </div>
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                  <span className="text-sm font-medium text-green-800">Completed Lessons</span>
-                </div>
-                <p className="text-2xl font-bold text-green-900 mt-1">
-                  {courseProgress.reduce((sum, course) => sum + course.completed_lessons, 0)}
-                </p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <Award className="h-5 w-5 text-purple-600 mr-2" />
-                  <span className="text-sm font-medium text-purple-800">Avg Quiz Score</span>
-                </div>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
-                  {Math.round(courseProgress.reduce((sum, course) => sum + course.average_quiz_score, 0) / courseProgress.length || 0)}%
-                </p>
-              </div>
+      {/* User Stats (if detailed view) */}
+      {showDetailed && stats && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+            <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
+            Your Learning Stats
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 flex items-center">
+                <BookOpen className="h-4 w-4 mr-1" />
+                Courses
+              </span>
+              <span className="font-semibold text-blue-700">
+                {stats.total_courses_enrolled}
+              </span>
             </div>
-
-            <div className="space-y-4">
-              {courseProgress.map((course) => (
-                <div key={course.course_id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{course.course_title}</h3>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>{formatTime(course.time_spent)} spent</span>
-                        <span className="mx-2">•</span>
-                        <span>Last accessed {formatDate(course.last_accessed)}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {Math.round(course.overall_progress * 100)}% Complete
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${Math.round(course.overall_progress * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
-                    <div>
-                      <div className="text-gray-500">Lessons</div>
-                      <div className="font-medium">{course.completed_lessons}/{course.total_lessons}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Quizzes</div>
-                      <div className="font-medium">{course.completed_quizzes}/{course.total_quizzes}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Avg Score</div>
-                      <div className="font-medium">{Math.round(course.average_quiz_score)}%</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Time</div>
-                      <div className="font-medium">{formatTime(course.time_spent)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 flex items-center">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Lessons
+              </span>
+              <span className="font-semibold text-blue-700">
+                {stats.total_lessons_completed}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                Watch Time
+              </span>
+              <span className="font-semibold text-blue-700">
+                {formatTime(stats.total_video_watch_time)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 flex items-center">
+                <Star className="h-4 w-4 mr-1" />
+                Level
+              </span>
+              <span className="font-semibold text-blue-700">
+                {stats.level}
+              </span>
             </div>
           </div>
-        )}
 
-        {activeTab === 'lessons' && (
-          <div className="space-y-4">
-            {lessonProgress.map((lesson) => (
-              <div key={lesson.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{lesson.title}</h3>
-                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>{lesson.duration} min</span>
-                      {lesson.completed_at && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span>Completed {formatDate(lesson.completed_at)}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    {lesson.is_completed ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Completed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        In Progress
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mt-3">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-medium">{Math.round(lesson.progress * 100)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${Math.round(lesson.progress * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          {/* Level Progress */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+              <span>Level {stats.level} Progress</span>
+              <span>{stats.total_points_earned} / {stats.next_level_points} points</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${(stats.total_points_earned / stats.next_level_points) * 100}%` }}
+              />
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'quizzes' && (
-          <div className="space-y-4">
-            {quizProgress.map((quiz) => (
-              <div key={quiz.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{quiz.title}</h3>
-                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                      <span>{quiz.attempts} attempt{quiz.attempts !== 1 ? 's' : ''}</span>
-                      <span className="mx-2">•</span>
-                      <span>Completed {formatDate(quiz.completed_at)}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
-                      {quiz.score}/{quiz.max_score}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {Math.round((quiz.score / quiz.max_score) * 100)}%
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-3">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    (quiz.score / quiz.max_score) >= 0.8 
-                      ? 'bg-green-100 text-green-800' 
-                      : (quiz.score / quiz.max_score) >= 0.6 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-red-100 text-red-800'
-                  }`}>
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    {Math.round((quiz.score / quiz.max_score) * 100)}% Score
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Last Accessed */}
+      <div className="text-xs text-gray-500 text-center">
+        Last accessed: {new Date(progress.last_accessed_at).toLocaleDateString()}
       </div>
     </div>
   );

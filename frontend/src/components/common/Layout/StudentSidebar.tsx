@@ -13,7 +13,9 @@ import {
   Clock,
   Star,
   Target,
-  Zap
+  Zap,
+  Brain,
+  MessageCircle
 } from 'lucide-react';
 
 interface StudentSidebarProps {
@@ -91,6 +93,30 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
       badge: null,
       description: 'Get support',
       color: 'text-gray-600'
+    },
+    {
+      name: 'Quiz Demo',
+      href: '/quiz-demo',
+      icon: Brain,
+      badge: 'New!',
+      description: 'Test interactive quizzes',
+      color: 'text-purple-600'
+    },
+    {
+      name: 'My Progress',
+      href: '/progress',
+      icon: Target,
+      badge: null,
+      description: 'Track your learning',
+      color: 'text-green-600'
+    },
+    {
+      name: 'Discussion Demo',
+      href: '/discussion-demo',
+      icon: MessageCircle,
+      badge: 'New!',
+      description: 'Test lesson discussions',
+      color: 'text-indigo-600'
     }
   ];
 

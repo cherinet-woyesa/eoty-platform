@@ -30,6 +30,9 @@ import Header from './components/common/Layout/Header';
 import Sidebar from './components/common/Layout/Sidebar';
 import ResourceLibrary from './pages/resources/ResourceLibrary';
 import ResourceView from './pages/resources/ResourceView';
+import QuizDemo from './pages/courses/QuizDemo';
+import ProgressPage from './pages/courses/ProgressPage';
+import DiscussionDemo from './pages/courses/DiscussionDemo';
 import './i18n/config';
 
 // Define types
@@ -376,28 +379,64 @@ function AppContent() {
               } 
             />
 
-            {/* Resource Routes */}
-            <Route 
-              path="/resources" 
-              element={
-                <StudentRoute>
-                  <DashboardLayout>
-                    <ResourceLibrary />
-                  </DashboardLayout>
-                </StudentRoute>
-              } 
-            />
+                    {/* Resource Routes */}
+                    <Route 
+                      path="/resources" 
+                      element={
+                        <StudentRoute>
+                          <DashboardLayout>
+                            <ResourceLibrary />
+                          </DashboardLayout>
+                        </StudentRoute>
+                      } 
+                    />
 
-            <Route 
-              path="/resources/:id" 
-              element={
-                <StudentRoute>
-                  <DashboardLayout>
-                    <ResourceView />
-                  </DashboardLayout>
-                </StudentRoute>
-              } 
-            />
+                    <Route 
+                      path="/resources/:id" 
+                      element={
+                        <StudentRoute>
+                          <DashboardLayout>
+                            <ResourceView />
+                          </DashboardLayout>
+                        </StudentRoute>
+                      } 
+                    />
+
+                    {/* Quiz Demo Route */}
+                    <Route 
+                      path="/quiz-demo" 
+                      element={
+                        <StudentRoute>
+                          <DashboardLayout>
+                            <QuizDemo />
+                          </DashboardLayout>
+                        </StudentRoute>
+                      } 
+                    />
+
+                    {/* Progress Route */}
+                    <Route 
+                      path="/progress" 
+                      element={
+                        <StudentRoute>
+                          <DashboardLayout>
+                            <ProgressPage />
+                          </DashboardLayout>
+                        </StudentRoute>
+                      } 
+                    />
+
+                    {/* Discussion Demo Route */}
+                    <Route 
+                      path="/discussion-demo" 
+                      element={
+                        <StudentRoute>
+                          <DashboardLayout>
+                            <DiscussionDemo />
+                          </DashboardLayout>
+                        </StudentRoute>
+                      } 
+                    />
 
             {/* Default rout */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

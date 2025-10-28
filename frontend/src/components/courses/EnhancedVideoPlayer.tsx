@@ -12,8 +12,7 @@ import {
 } from 'lucide-react';
 import { interactiveApi } from '../../services/api';
 import { videoApi } from '../../services/api/videos';
-import QuizTakingInterface from './QuizTakingInterface';
-import QuizResults from './QuizResults';
+import QuizInterface from './QuizInterface';
 
 interface EnhancedVideoPlayerProps {
   videoUrl: string;
@@ -526,9 +525,6 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   
   // Quiz states
   const [showQuizTaking, setShowQuizTaking] = React.useState(false);
-  const [selectedQuiz, setSelectedQuiz] = React.useState<string | null>(null);
-  const [showQuizResults, setShowQuizResults] = React.useState(false);
-  const [quizAttemptId, setQuizAttemptId] = React.useState<string | null>(null);
   const [quizResults, setQuizResults] = React.useState<any>(null);
 
   // Modal states
@@ -775,33 +771,19 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   };
 
   // Quiz functions
-  const handleStartQuiz = (quizId: string) => {
-    setSelectedQuiz(quizId);
+  const handleStartQuiz = () => {
     setShowQuizTaking(true);
     setShowQuiz(false);
   };
 
-  const handleQuizComplete = async (attemptId: string) => {
+  const handleQuizComplete = (results: any) => {
     setShowQuizTaking(false);
-    setQuizAttemptId(attemptId);
-    
-    try {
-      const response = await interactiveApi.getQuizResults(attemptId);
-      if (response.success) {
-        setQuizResults(response.data.attempt);
-        setShowQuizResults(true);
-      }
-    } catch (error) {
-      console.error('Failed to load quiz results:', error);
-    }
+    setQuizResults(results);
   };
 
-  const handleRetakeQuiz = () => {
-    setShowQuizResults(false);
+  const handleCloseQuiz = () => {
+    setShowQuizTaking(false);
     setQuizResults(null);
-    if (selectedQuiz) {
-      setShowQuizTaking(true);
-    }
   };
 
   // Video control functions

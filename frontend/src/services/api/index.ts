@@ -2,6 +2,9 @@ import axios from 'axios';
 import { forumsApi, achievementsApi } from './community';
 import { adminApi } from './admin';
 import { dashboardApi } from './dashboard';
+import { quizApi } from './quiz'; // Added this import
+import { progressApi } from './progress'; // Added this import
+import { discussionsApi } from './discussions'; // Added this import
 import { apiClient } from './apiClient'; // Import apiClient from the new file
 
 const API_BASE = 'http://localhost:5000/api';
@@ -338,6 +341,9 @@ export default {
   auth: authApi,
   courses: coursesApi,
   video: videoApi,
+  quiz: quizApi, // Added quiz API
+  progress: progressApi, // Added progress API
+  discussions: discussionsApi, // Added discussions API
   ai: aiApi,
   interactive: interactiveApi,
   resources: resourcesApi,
