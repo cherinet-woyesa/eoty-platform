@@ -11,7 +11,7 @@ interface Lesson {
   video_url: string;
   order_number: number;
   created_at: string;
-  duration?: number;
+  duration?: number; // Added back since we're now providing it from the database
 }
 
 const CourseDetails: React.FC = () => {

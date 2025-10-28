@@ -12,7 +12,7 @@ interface CourseCardProps {
     created_at: string;
     lesson_count?: number;
     student_count?: number;
-    total_duration?: number;
+    total_duration?: number; // Added back since we're now providing it from the backend
   };
 }
 
