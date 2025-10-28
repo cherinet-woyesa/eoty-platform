@@ -22,4 +22,7 @@ router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailabi
 router.post('/lessons/:lessonId/notify', videoController.notifyVideoAvailable); // New endpoint
 router.get('/notifications', videoController.getUserVideoNotifications); // New endpoint
 
+// Course lessons route
+router.get('/courses/:courseId/lessons', videoController.getCourseLessons);
+
 module.exports = router;
