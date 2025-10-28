@@ -9,7 +9,7 @@ interface Lesson {
   title: string;
   description: string;
   video_url: string;
-  order_number: number;
+  order: number;
   created_at: string;
   duration?: number; // Added back since we're now providing it from the database
 }
@@ -191,7 +191,7 @@ const CourseDetails: React.FC = () => {
                         <span>{formatDuration(selectedLesson.duration || 0)}</span>
                       </div>
                       <span>•</span>
-                      <span>Lesson {selectedLesson.order_number + 1} of {lessons.length}</span>
+                      <span>Lesson {selectedLesson.order + 1} of {lessons.length}</span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

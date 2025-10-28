@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import { useLocation } from 'react-router-dom';
+import Header from './Header';
 import Sidebar from './Sidebar';
+import AdminSidebar from '../../admin/AdminSidebar';
 import StudentSidebar from './StudentSidebar';
 import TeacherSidebar from './TeacherSidebar';
-import Header from './Header';
-import AdminSidebar from '../../admin/AdminSidebar';
-import { useAuth } from '../../../context/AuthContext';
 import { useOnboarding } from '../../../context/OnboardingContext';
-import OnboardingModal from '../../onboarding/OnboardingModal';
 import WelcomeMessage from '../../onboarding/WelcomeMessage';
 
 interface DashboardLayoutProps {
@@ -16,39 +15,40 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user } = useAuth();
-  const { hasOnboarding, isCompleted, progress } = useOnboarding();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const { hasOnboarding, isCompleted } = useOnboarding();
   const location = useLocation();
-  
-  const isAdminRoute = location.pathname.startsWith('/admin');
-  const isAdminUser = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Determine user roles
+  const isAdminUser = user?.role === 'platform_admin' || user?.role === 'chapter_admin';
   const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin';
   const isStudent = user?.role === 'student';
+  
+  // Check if current route is admin route
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
-  useEffect(() => {
-    // Show welcome message for new users who haven't completed onboarding
-    if (user && hasOnboarding && !isCompleted && progress?.progress === 0) {
-      setShowWelcome(true);
-    }
-  }, [user, hasOnboarding, isCompleted, progress]);
-
-  const handleStartOnboarding = () => {
-    setShowOnboarding(true);
-  };
+  // Show welcome message for new users
+  const showWelcome = hasOnboarding && !isCompleted;
 
   const handleDismissWelcome = () => {
     // User dismissed the welcome message, but we can show it again later
   };
 
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
-      {/* Sidebar - Collapsible on mobile */}
+    <div className="flex h-screen w-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+      {/* Sidebar - Dynamic width based on collapse state */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 
+        fixed inset-y-0 left-0 z-40 
         lg:static lg:z-auto
-        transform transition-transform duration-300 ease-in-out
-        w-64
+        transform transition-all duration-300 ease-in-out
+        ${sidebarCollapsed ? 'w-16' : 'w-64'}
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        flex-shrink-0
       `}>
         {isAdminRoute && isAdminUser ? (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
@@ -56,11 +56,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
         ) : isTeacher ? (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-            <TeacherSidebar />
+            <TeacherSidebar 
+              isCollapsed={sidebarCollapsed} 
+              onToggleCollapse={handleToggleSidebar} 
+            />
           </div>
         ) : isStudent ? (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-            <StudentSidebar />
+            <StudentSidebar 
+              isCollapsed={sidebarCollapsed} 
+              onToggleCollapse={handleToggleSidebar} 
+            />
           </div>
         ) : (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
@@ -69,40 +75,36 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         )}
       </div>
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main content area - Takes remaining space */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Sticky header */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200/60">
-          <Header />
-        </div>
+        <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         
-        {/* Main content with smooth scrolling */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 lg:p-8 w-full">
-            {/* Animated page transition container - Added max-w-7xl for appropriate content width */}
-            <div className="animate-fade-in-up max-w-7xl mx-auto">
-              {children}
-            </div>
+        {/* Main content - Full width with proper scrolling */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          {/* Content container - Full width, no max-width constraints */}
+          <div className="w-full min-h-full">
+            {children}
           </div>
         </main>
       </div>
 
-      {/* Mobile overlay */}
-      <div className="lg:hidden fixed inset-0 bg-black/20 z-40 backdrop-blur-sm" />
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/20 z-30 backdrop-blur-sm" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Onboarding Components */}
       {showWelcome && user && (
         <WelcomeMessage 
           userName={user.firstName}
           onDismiss={handleDismissWelcome}
-          onStartOnboarding={handleStartOnboarding}
+          onStartOnboarding={() => {}}
         />
       )}
-      
-      <OnboardingModal 
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
-      />
     </div>
   );
 };

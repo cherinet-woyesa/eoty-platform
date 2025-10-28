@@ -177,11 +177,10 @@ function AppContent() {
   }
 
   return (
-    <div className="App">
+    <div className="App w-full h-full">
       {/* Show sidebar and header only for authenticated users */}
       {user ? (
-        <div className="flex h-screen bg-gray-50">
-          <Routes>
+        <Routes>
             {/* Dashboard - Accessible to all authenticated users */}
             <Route 
               path="/dashboard" 
@@ -422,7 +421,6 @@ function AppContent() {
               } 
             />
           </Routes>
-        </div>
       ) : (
         /* Public routes without sidebar and header */
         <Routes>
