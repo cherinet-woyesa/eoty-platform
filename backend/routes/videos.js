@@ -3,7 +3,7 @@ const router = express.Router();
 const videoController = require('../controllers/videoController');
 const { authenticateToken } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/rbac');
-const { upload } = require('../middleware/upload');
+const upload = require('../middleware/upload');
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);

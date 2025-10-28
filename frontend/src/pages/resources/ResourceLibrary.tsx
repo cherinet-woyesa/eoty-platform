@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { resourcesApi } from '../../services/api/resources';
-import { Resource, ResourceFilters, FilterOptions } from '../../types/resources';
+import type{ Resource, ResourceFilters, FilterOptions } from '../../types/resources';
 import { Search, Filter, BookOpen, FileText, Image, Tag, Calendar, User } from 'lucide-react';
 
 const ResourceLibrary: React.FC = () => {

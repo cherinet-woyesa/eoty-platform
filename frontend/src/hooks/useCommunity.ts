@@ -1,162 +1,82 @@
 import { useState, useEffect } from 'react';
 import { forumsApi, achievementsApi } from '../services/api';
+
+// Types
 import type { Forum, ForumTopic, ForumPost, UserBadge, LeaderboardEntry } from '../types/community';
 
+// Forum hooks
 export const useForums = () => {
   const [forums, setForums] = useState<Forum[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchForums = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await forumsApi.getForums();
-      
-      if (response.success) {
-        setForums(response.data.forums);
-      } else {
-        setError('Failed to fetch forums');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch forums');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchForums();
   }, []);
 
-  return {
-    forums,
-    loading,
-    error,
-    refetch: fetchForums
+  const fetchForums = async () => {
+    try {
+      setLoading(true);
+      const response = await forumsApi.getForums();
+      setForums(response.data.forums);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch forums');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  return { forums, loading, error, refetch: fetchForums };
 };
 
 export const useForumTopics = (forumId: number) => {
   const [topics, setTopics] = useState<ForumTopic[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
 
-  const fetchTopics = async (newPage: number = 1) => {
-    if (loading) return;
-    
-    setLoading(true);
-    setError(null);
-    
+  useEffect(() => {
+    if (forumId) {
+      fetchTopics();
+    }
+  }, [forumId]);
+
+  const fetchTopics = async (pageNum = 1) => {
     try {
-      const response = await forumsApi.getTopics(forumId, newPage, 20);
-      
-      if (response.success) {
-        if (newPage === 1) {
-          setTopics(response.data.topics);
-        } else {
-          setTopics(prev => [...prev, ...response.data.topics]);
-        }
-        
-        setHasMore(response.data.topics.length === 20);
-        setPage(newPage);
+      setLoading(true);
+      const response = await forumsApi.getTopics(forumId, pageNum);
+      if (pageNum === 1) {
+        setTopics(response.data.topics);
       } else {
-        setError('Failed to fetch topics');
+        setTopics(prev => [...prev, ...response.data.topics]);
       }
+      setHasMore(response.data.topics.length === 20); // Assuming 20 per page
+      setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch topics');
+      setError(err.message || 'Failed to fetch topics');
     } finally {
       setLoading(false);
     }
   };
 
   const loadMore = () => {
-    if (hasMore && !loading) {
-      fetchTopics(page + 1);
+    if (hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchTopics(nextPage);
     }
   };
 
-  useEffect(() => {
-    if (forumId) {
-      fetchTopics(1);
-    }
-  }, [forumId]);
-
-  return {
-    topics,
-    loading,
-    error,
-    hasMore,
-    fetchTopics,
-    loadMore,
-    refetch: () => fetchTopics(1)
-  };
+  return { topics, loading, error, hasMore, loadMore };
 };
 
 export const useForumTopic = (topicId: number) => {
   const [topic, setTopic] = useState<ForumTopic | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchTopic = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await forumsApi.getTopic(topicId);
-      
-      if (response.success) {
-        setTopic(response.data.topic);
-        setPosts(response.data.posts);
-      } else {
-        setError('Failed to fetch topic');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch topic');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addPost = async (content: string, parentId?: number) => {
-    try {
-      const response = await forumsApi.createPost({
-        topicId,
-        content,
-        parentId
-      });
-
-      if (response.success) {
-        await fetchTopic(); // Refresh topic and posts
-        return response.data.post;
-      }
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to create post');
-    }
-  };
-
-  const likePost = async (postId: number) => {
-    try {
-      const response = await forumsApi.likePost(postId);
-      
-      if (response.success) {
-        // Update local state
-        setPosts(prevPosts => 
-          prevPosts.map(post => 
-            post.id === postId 
-              ? { ...post, like_count: post.like_count + 1 }
-              : post
-          )
-        );
-      }
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to like post');
-    }
-  };
 
   useEffect(() => {
     if (topicId) {
@@ -164,80 +84,70 @@ export const useForumTopic = (topicId: number) => {
     }
   }, [topicId]);
 
-  return {
-    topic,
-    posts,
-    loading,
-    error,
-    addPost,
-    likePost,
-    refetch: fetchTopic
-  };
-};
-
-export const useAchievements = () => {
-  const [badges, setBadges] = useState<UserBadge[]>([]);
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchBadges = async () => {
-    setLoading(true);
-    setError(null);
-    
+  const fetchTopic = async () => {
     try {
-      const response = await achievementsApi.getUserBadges();
-      
-      if (response.success) {
-        setBadges(response.data.badges);
-        setTotalPoints(response.data.total_points);
-      } else {
-        setError('Failed to fetch badges');
-      }
+      setLoading(true);
+      const response = await forumsApi.getTopic(topicId);
+      setTopic(response.data.topic);
+      setPosts(response.data.posts);
+      setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch badges');
+      setError(err.message || 'Failed to fetch topic');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchBadges();
-  }, []);
-
-  return {
-    badges,
-    totalPoints,
-    loading,
-    error,
-    refetch: fetchBadges
-  };
+  return { topic, posts, loading, error, refetch: fetchTopic };
 };
 
-export const useLeaderboard = (type: string = 'chapter', period: string = 'current') => {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userRank, setUserRank] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+// Achievement hooks
+export const useAchievements = () => {
+  const [badges, setBadges] = useState<UserBadge[]>([]);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeaderboard = async (newType?: string, newPeriod?: string) => {
-    setLoading(true);
-    setError(null);
-    
+  useEffect(() => {
+    fetchAchievements();
+  }, []);
+
+  const fetchAchievements = async () => {
     try {
-      const currentType = newType || type;
-      const currentPeriod = newPeriod || period;
-      
-      const response = await achievementsApi.getLeaderboard(currentType, currentPeriod);
-      
-      if (response.success) {
-        setLeaderboard(response.data.leaderboard);
-        setUserRank(response.data.user_rank);
-      } else {
-        setError('Failed to fetch leaderboard');
-      }
+      setLoading(true);
+      const response = await achievementsApi.getUserBadges();
+      setBadges(response.data.badges);
+      setTotalPoints(response.data.total_points);
+      setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch leaderboard');
+      setError(err.message || 'Failed to fetch achievements');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { badges, totalPoints, loading, error, refetch: fetchAchievements };
+};
+
+export const useLeaderboard = (type: 'chapter' | 'global' = 'chapter', period: 'current' | 'weekly' | 'monthly' = 'current') => {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [type, period]);
+
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true);
+      const response = await achievementsApi.getLeaderboard(type, period);
+      setLeaderboard(response.data.leaderboard);
+      setUserRank(response.data.user_rank);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch leaderboard');
     } finally {
       setLoading(false);
     }
@@ -245,27 +155,12 @@ export const useLeaderboard = (type: string = 'chapter', period: string = 'curre
 
   const updateAnonymity = async (isAnonymous: boolean) => {
     try {
-      const response = await achievementsApi.updateAnonymity(isAnonymous);
-      
-      if (response.success) {
-        await fetchLeaderboard(); // Refresh leaderboard
-      }
+      await achievementsApi.updateAnonymity(isAnonymous);
+      fetchLeaderboard(); // Refresh leaderboard
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to update anonymity');
+      setError(err.message || 'Failed to update anonymity setting');
     }
   };
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [type, period]);
-
-  return {
-    leaderboard,
-    userRank,
-    loading,
-    error,
-    fetchLeaderboard,
-    updateAnonymity,
-    refetch: () => fetchLeaderboard()
-  };
+  return { leaderboard, userRank, loading, error, updateAnonymity, refetch: fetchLeaderboard };
 };

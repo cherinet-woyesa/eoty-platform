@@ -117,7 +117,7 @@ const RegisterForm: React.FC = () => {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        chapter: formData.chapter, // This will now be the chapter ID (integer)
+        chapter: parseInt(formData.chapter), // Convert to integer
         role: formData.role
       });
       

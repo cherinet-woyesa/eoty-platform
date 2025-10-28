@@ -64,6 +64,9 @@ export interface Badge {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  rarity?: string;
+  icon_color?: string;
+  is_featured?: boolean;
 }
 
 export interface UserBadge {
@@ -79,6 +82,8 @@ export interface UserBadge {
   icon_url: string;
   badge_type: string;
   points: number;
+  rarity?: string;
+  icon_color?: string;
 }
 
 export interface LeaderboardEntry {

@@ -15,6 +15,19 @@ import type{
   RecentActivity
 } from '../../types/admin';
 
+// Define the quota type
+export interface ContentQuota {
+  id: number;
+  chapter_id: string;
+  content_type: string;
+  monthly_limit: number;
+  current_usage: number;
+  period_start: string;
+  period_end: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const adminApi = {
   // Create a new user with specific role
   createUser: async (userData: {
@@ -38,6 +51,12 @@ export const adminApi = {
   // Update user role
   updateUserRole: async (userId: string, newRole: string) => {
     const response = await apiClient.put('/admin/users/role', { userId, newRole });
+    return response.data;
+  },
+
+  // Update user status (activate/deactivate)
+  updateUserStatus: async (userId: string, isActive: boolean) => {
+    const response = await apiClient.put('/admin/users/status', { userId, isActive });
     return response.data;
   },
 
@@ -66,6 +85,31 @@ export const adminApi = {
     const response = await apiClient.post('/admin/uploads', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+    return response.data;
+  },
+
+  // Chunked upload functions for large files
+  initializeChunkedUpload: async (fileName: string, fileSize: number, chunkSize: number): Promise<{ uploadId: string; chunks: number }> => {
+    const response = await apiClient.post('/admin/uploads/chunked/init', {
+      fileName,
+      fileSize,
+      chunkSize
+    });
+    return response.data;
+  },
+
+  uploadChunk: async (uploadId: string, chunkIndex: number, chunk: Blob): Promise<{ success: boolean }> => {
+    const formData = new FormData();
+    formData.append('chunk', chunk);
+    
+    const response = await apiClient.post(`/admin/uploads/chunked/${uploadId}/chunk/${chunkIndex}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  finalizeChunkedUpload: async (uploadId: string, uploadData: Omit<CreateUploadRequest, 'file'>): Promise<{ success: boolean; data: { upload: ContentUpload } }> => {
+    const response = await apiClient.post(`/admin/uploads/chunked/${uploadId}/finalize`, uploadData);
     return response.data;
   },
 
@@ -165,6 +209,25 @@ export const adminApi = {
 
   getModerationStats: async () => {
     const response = await apiClient.get('/admin/moderation/ai/stats');
+    return response.data;
+  },
+
+  // Quota Management
+  getQuotas: async (chapterId?: string): Promise<{ success: boolean; data: { quotas: ContentQuota[] } }> => {
+    const params = new URLSearchParams();
+    if (chapterId) params.append('chapterId', chapterId);
+
+    const response = await apiClient.get(`/admin/quotas?${params}`);
+    return response.data;
+  },
+
+  updateQuota: async (quotaId: number, monthlyLimit: number): Promise<{ success: boolean; data: { quota: ContentQuota } }> => {
+    const response = await apiClient.put(`/admin/quotas/${quotaId}`, { monthlyLimit });
+    return response.data;
+  },
+
+  resetQuota: async (quotaId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/admin/quotas/${quotaId}/reset`);
     return response.data;
   }
 };

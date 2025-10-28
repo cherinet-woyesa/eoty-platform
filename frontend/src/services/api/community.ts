@@ -48,6 +48,12 @@ export const forumsApi = {
     return response.data;
   },
 
+  // Report a post
+  reportPost: async (postId: number, reason: string, details: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/forums/posts/${postId}/report`, { reason, details });
+    return response.data;
+  },
+
   // Lock topic (admin only)
   lockTopic: async (topicId: number): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/forums/topics/${topicId}/lock`);
@@ -68,6 +74,12 @@ export const achievementsApi = {
     return response.data;
   },
 
+  // Get featured badges
+  getFeaturedBadges: async (): Promise<{ success: boolean; data: { badges: Badge[] } }> => {
+    const response = await apiClient.get('/achievements/badges/featured');
+    return response.data;
+  },
+
   // Check badge eligibility
   checkEligibility: async (badgeId: number): Promise<{ success: boolean; data: { eligible: boolean; badge: Badge; progress: BadgeProgress } }> => {
     const response = await apiClient.get(`/achievements/badges/${badgeId}/eligibility`);
@@ -83,6 +95,12 @@ export const achievementsApi = {
   // Update anonymity preference
   updateAnonymity: async (isAnonymous: boolean): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.put('/achievements/anonymity', { isAnonymous });
+    return response.data;
+  },
+
+  // Mark badge notification as read
+  markNotificationAsRead: async (notificationId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/achievements/notifications/${notificationId}/read`);
     return response.data;
   }
 };

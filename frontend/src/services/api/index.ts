@@ -235,6 +235,17 @@ export const interactiveApi = {
   getLessonProgress: async (lessonId: string) => {
     const response = await apiClient.get(`/interactive/lessons/${lessonId}/progress`);
     return response.data;
+  },
+
+  // System validation methods
+  runAcceptanceValidation: async () => {
+    const response = await apiClient.post(`/interactive/system/validate`);
+    return response.data;
+  },
+
+  getValidationHistory: async () => {
+    const response = await apiClient.get(`/interactive/system/validation-history`);
+    return response.data;
   }
 };
 
@@ -295,6 +306,27 @@ export const resourcesApi = {
   }
 };
 
+// NEW: Moderation API for FR4 - Forum and Achievements
+export const moderationApi = {
+  // Get moderation dashboard data
+  getDashboard: async () => {
+    const response = await apiClient.get('/moderation/dashboard');
+    return response.data;
+  },
+
+  // Moderate a post
+  moderatePost: async (postId: number, action: 'delete' | 'hide' | 'warn' | 'approve', reason: string) => {
+    const response = await apiClient.post(`/moderation/posts/${postId}`, { action, reason });
+    return response.data;
+  },
+
+  // Get user moderation history
+  getUserHistory: async (userId: number) => {
+    const response = await apiClient.get(`/moderation/users/${userId}/history`);
+    return response.data;
+  }
+};
+
 // Admin API
 export { adminApi };
 
@@ -309,5 +341,6 @@ export default {
   resources: resourcesApi,
   forums: forumsApi,        // NEW
   achievements: achievementsApi, 
+  moderation: moderationApi, // NEW
   admin: adminApi
 };

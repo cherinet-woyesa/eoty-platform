@@ -17,9 +17,11 @@ import Forums from './pages/social/Forums';
 import ForumTopics from './pages/social/ForumTopics';
 import Achievements from './pages/social/Achievements';
 import Leaderboards from './pages/social/Leaderboards';
+import CommunityHub from './pages/social/CommunityHub';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import ContentManagement from './pages/admin/ContentManagement';
 import { UserProvider } from './context/UserContext';
+import { OnboardingProvider } from './context/OnboardingContext';
 import ContentManager from './components/admin/ContentManager';
 import ModerationTools from './components/admin/ModerationTools';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
@@ -179,242 +181,247 @@ function AppContent() {
       {/* Show sidebar and header only for authenticated users */}
       {user ? (
         <div className="flex h-screen bg-gray-50">
-          <Sidebar />
-          <div className="flex-1 overflow-auto">
-            <Header />
-            <main className="p-6">
-              <Routes>
-                {/* Dashboard - Accessible to all authenticated users */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <DashboardLayout>
-                        <DynamicDashboard />
-                      </DashboardLayout>
-                    </ProtectedRoute>
-                  } 
-                />
+          <Routes>
+            {/* Dashboard - Accessible to all authenticated users */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DynamicDashboard />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } 
+            />
 
-                {/* Courses - Accessible to all authenticated users */}
-                <Route 
-                  path="/courses" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <MyCourses />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            {/* Courses - Accessible to all authenticated users */}
+            <Route 
+              path="/courses" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <MyCourses />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* Course Details - Accessible to all authenticated users */}
-                <Route 
-                  path="/courses/:courseId" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <CourseDetails />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            {/* Course Details - Accessible to all authenticated users */}
+            <Route 
+              path="/courses/:courseId" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <CourseDetails />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* Create Course - Only for teachers and above */}
-                <Route 
-                  path="/courses/new" 
-                  element={
-                    <TeacherRoute requiredPermission="course:create">
-                      <DashboardLayout>
-                        <CreateCourse />
-                      </DashboardLayout>
-                    </TeacherRoute>
-                  } 
-                />
+            {/* Create Course - Only for teachers and above */}
+            <Route 
+              path="/courses/new" 
+              element={
+                <TeacherRoute requiredPermission="course:create">
+                  <DashboardLayout>
+                    <CreateCourse />
+                  </DashboardLayout>
+                </TeacherRoute>
+              } 
+            />
 
-                {/* Record Video - Only for teachers and above with video upload permission */}
-                <Route 
-                  path="/record" 
-                  element={
-                    <TeacherRoute requiredPermission="video:upload">
-                      <DashboardLayout>
-                        <RecordVideo />
-                      </DashboardLayout>
-                    </TeacherRoute>
-                  } 
-                />
+            {/* Record Video - Only for teachers and above with video upload permission */}
+            <Route 
+              path="/record" 
+              element={
+                <TeacherRoute requiredPermission="video:upload">
+                  <DashboardLayout>
+                    <RecordVideo />
+                  </DashboardLayout>
+                </TeacherRoute>
+              } 
+            />
 
-                {/* AI Assistant - Accessible to all authenticated users */}
-                <Route 
-                  path="/ai-assistant" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <AIAssistant />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            {/* AI Assistant - Accessible to all authenticated users */}
+            <Route 
+              path="/ai-assistant" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <AIAssistant />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* Admin Routes */}
-                <Route 
-                  path="/admin" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <AdminDashboard />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            {/* Admin Routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <AdminDashboard />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                <Route 
-                  path="/admin/dashboard" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <AdminDashboard />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <AdminDashboard />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                <Route 
-                  path="/admin/content" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <ContentManagement />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            <Route 
+              path="/admin/content" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <ContentManagement />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                <Route 
-                  path="/admin/moderation" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <ModerationTools />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            <Route 
+              path="/admin/moderation" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <ModerationTools />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                <Route 
-                  path="/admin/analytics" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <AnalyticsDashboard />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            <Route 
+              path="/admin/analytics" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <AnalyticsDashboard />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                <Route 
-                  path="/admin/tags" 
-                  element={
-                    <AdminRoute>
-                      <DashboardLayout>
-                        <TagManager />
-                      </DashboardLayout>
-                    </AdminRoute>
-                  } 
-                />
+            <Route 
+              path="/admin/tags" 
+              element={
+                <AdminRoute>
+                  <DashboardLayout>
+                    <TagManager />
+                  </DashboardLayout>
+                </AdminRoute>
+              } 
+            />
 
-                {/* Social Features */}
-                <Route 
-                  path="/forums" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <Forums />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            {/* Social Features */}
+            <Route 
+              path="/forums" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <Forums />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                <Route 
-                  path="/forums/:forumId" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <ForumTopics />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            <Route 
+              path="/forums/:forumId" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <ForumTopics />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                <Route 
-                  path="/achievements" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <Achievements />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            <Route 
+              path="/achievements" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <Achievements />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                <Route 
-                  path="/leaderboards" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <Leaderboards />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            <Route 
+              path="/leaderboards" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <Leaderboards />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* Resource Routes */}
-                <Route 
-                  path="/resources" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <ResourceLibrary />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            <Route 
+              path="/community" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <CommunityHub />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                <Route 
-                  path="/resources/:id" 
-                  element={
-                    <StudentRoute>
-                      <DashboardLayout>
-                        <ResourceView />
-                      </DashboardLayout>
-                    </StudentRoute>
-                  } 
-                />
+            {/* Resource Routes */}
+            <Route 
+              path="/resources" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <ResourceLibrary />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* Default route */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route 
+              path="/resources/:id" 
+              element={
+                <StudentRoute>
+                  <DashboardLayout>
+                    <ResourceView />
+                  </DashboardLayout>
+                </StudentRoute>
+              } 
+            />
 
-                {/* 404 Route */}
-                <Route 
-                  path="*" 
-                  element={
-                    <div className="flex items-center justify-center min-h-screen">
-                      <div className="text-center">
-                        <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-                        <p className="text-gray-600">Page not found</p>
-                        <button 
-                          onClick={() => window.location.href = '/dashboard'}
-                          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Go to Dashboard
-                        </button>
-                      </div>
-                    </div>
-                  } 
-                />
-              </Routes>
-            </main>
-          </div>
+            {/* Default route */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+            {/* 404 Route */}
+            <Route 
+              path="*" 
+              element={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="text-center">
+                    <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+                    <p className="text-gray-600">Page not found</p>
+                    <button 
+                      onClick={() => window.location.href = '/dashboard'}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Go to Dashboard
+                    </button>
+                  </div>
+                </div>
+              } 
+            />
+          </Routes>
         </div>
       ) : (
         /* Public routes without sidebar and header */
@@ -452,7 +459,9 @@ function App() {
     <Router>
       <AuthProvider>
         <UserProvider>
-          <AppContent />
+          <OnboardingProvider>
+            <AppContent />
+          </OnboardingProvider>
         </UserProvider>
       </AuthProvider>
     </Router>

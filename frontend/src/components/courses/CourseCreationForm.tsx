@@ -1,47 +1,71 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
-import { BookOpen, Upload, ArrowLeft, CheckCircle } from 'lucide-react';
+import { 
+  BookOpen, 
+  Upload, 
+  ArrowLeft, 
+  CheckCircle, 
+  Sparkles, 
+  Target,
+  Users,
+  Lock,
+  Globe,
+  Zap,
+  Award,
+  Clock
+} from 'lucide-react';
 
 const CourseCreationForm: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'faith',
     level: 'beginner',
-    isPublic: true
+    isPublic: true,
+    estimatedDuration: '',
+    learningObjectives: [''],
+    prerequisites: ''
   });
 
   const categories = [
-    { value: 'faith', label: 'Faith & Doctrine' },
-    { value: 'history', label: 'Church History' },
-    { value: 'spiritual', label: 'Spiritual Development' },
-    { value: 'bible', label: 'Bible Study' },
-    { value: 'liturgical', label: 'Liturgical Studies' },
-    { value: 'youth', label: 'Youth Ministry' }
+    { value: 'faith', label: 'Faith & Doctrine', icon: BookOpen, color: 'blue' },
+    { value: 'history', label: 'Church History', icon: Clock, color: 'amber' },
+    { value: 'spiritual', label: 'Spiritual Development', icon: Sparkles, color: 'purple' },
+    { value: 'bible', label: 'Bible Study', icon: BookOpen, color: 'green' },
+    { value: 'liturgical', label: 'Liturgical Studies', icon: Award, color: 'red' },
+    { value: 'youth', label: 'Youth Ministry', icon: Users, color: 'pink' }
   ];
 
   const levels = [
-    { value: 'beginner', label: 'Beginner' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'advanced', label: 'Advanced' }
+    { value: 'beginner', label: 'Beginner', description: 'No prior knowledge required', color: 'green' },
+    { value: 'intermediate', label: 'Intermediate', description: 'Basic understanding recommended', color: 'blue' },
+    { value: 'advanced', label: 'Advanced', description: 'For experienced learners', color: 'purple' }
+  ];
+
+  const durations = [
+    { value: '1-2', label: '1-2 weeks', description: 'Short course' },
+    { value: '3-4', label: '3-4 weeks', description: 'Standard course' },
+    { value: '5-8', label: '5-8 weeks', description: 'Comprehensive course' },
+    { value: '9+', label: '9+ weeks', description: 'Extended program' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
       await coursesApi.createCourse(formData);
       setSuccess(true);
-      
-      // Redirect to courses page after success
-      setTimeout(() => {
-        navigate('/courses');
-      }, 1500);
+      setTimeout(() => navigate('/courses'), 2000);
     } catch (error) {
       console.error('Failed to create course:', error);
       alert('Failed to create course. Please try again.');
@@ -58,25 +82,54 @@ const CourseCreationForm: React.FC = () => {
     }));
   };
 
+  const addLearningObjective = () => {
+    setFormData(prev => ({
+      ...prev,
+      learningObjectives: [...prev.learningObjectives, '']
+    }));
+  };
+
+  const updateLearningObjective = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      learningObjectives: prev.learningObjectives.map((obj, i) => i === index ? value : obj)
+    }));
+  };
+
+  const removeLearningObjective = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      learningObjectives: prev.learningObjectives.filter((_, i) => i !== index)
+    }));
+  };
+
+  const getLevelColor = (level: string) => {
+    const levelConfig = levels.find(l => l.value === level);
+    return levelConfig?.color || 'gray';
+  };
+
   if (success) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-8 text-center">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <CheckCircle className="h-10 w-10 text-green-600" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Course Created Successfully!</h3>
-        <p className="text-gray-600 mb-6">Your new course has been created and is ready for lessons.</p>
-        <div className="flex space-x-3 justify-center">
+        <h3 className="text-3xl font-bold text-gray-900 mb-3">Course Created Successfully! 🎉</h3>
+        <p className="text-gray-600 text-lg mb-2">Your new course "<span className="font-semibold text-gray-900">{formData.title}</span>" is ready!</p>
+        <p className="text-gray-500 mb-8">You can now start adding lessons and content to your course.</p>
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center">
           <button
             onClick={() => navigate('/courses')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
           >
+            <BookOpen className="mr-2 h-5 w-5" />
             View My Courses
           </button>
           <button
             onClick={() => navigate('/record')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm"
           >
+            <Upload className="mr-2 h-5 w-5" />
             Record First Lesson
           </button>
         </div>
@@ -85,129 +138,353 @@ const CourseCreationForm: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Create New Course</h2>
-          <p className="text-gray-600 mt-1">Set up your course structure before adding lessons</p>
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-700 px-8 py-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl lg:text-3xl font-bold mb-2 flex items-center">
+              <Sparkles className="h-7 w-7 mr-3" />
+              Create New Course
+            </h2>
+            <p className="text-blue-100 opacity-90">
+              Build engaging learning experiences for your students
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/courses')}
+            className="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-xl text-white bg-white/10 hover:bg-white/20 transition-all duration-200"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Courses
+          </button>
         </div>
-        <button
-          onClick={() => navigate('/courses')}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Courses
-        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Course Title */}
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-            Course Title *
-          </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            required
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="e.g., Introduction to Orthodox Christianity"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-          />
+      {/* Progress Steps */}
+      <div className="px-8 pt-6">
+        <div className="flex items-center justify-between mb-8">
+          {[1, 2, 3].map(step => (
+            <div key={step} className="flex items-center flex-1">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-semibold transition-all duration-300 ${
+                step === currentStep
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/50'
+                  : step < currentStep
+                  ? 'bg-green-500 border-green-500 text-white'
+                  : 'bg-white border-gray-300 text-gray-400'
+              }`}>
+                {step < currentStep ? <CheckCircle className="h-5 w-5" /> : step}
+              </div>
+              {step < 3 && (
+                <div className={`flex-1 h-1 mx-2 transition-all duration-300 ${
+                  step < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                }`} />
+              )}
+            </div>
+          ))}
         </div>
-
-        {/* Description */}
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Course Description
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={4}
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Describe what students will learn in this course..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
-          />
+        <div className="grid grid-cols-3 gap-4 text-center text-sm font-medium text-gray-600 mb-2">
+          <div className={currentStep === 1 ? 'text-blue-600 font-semibold' : ''}>Basic Info</div>
+          <div className={currentStep === 2 ? 'text-blue-600 font-semibold' : ''}>Course Details</div>
+          <div className={currentStep === 3 ? 'text-blue-600 font-semibold' : ''}>Finalize</div>
         </div>
+      </div>
 
-        {/* Category and Level */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-              Category *
-            </label>
-            <select
-              id="category"
-              name="category"
-              required
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            >
-              {categories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
+      <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        {/* Step 1: Basic Information */}
+        {currentStep === 1 && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
+                Course Foundation
+              </h3>
+              <p className="text-gray-600">Start with the basic information that describes your course.</p>
+            </div>
+
+            {/* Course Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+                Course Title *
+                {formData.title && (
+                  <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    {formData.title.length}/60 characters
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                required
+                maxLength={60}
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g., Introduction to Orthodox Christianity: Foundations of Faith"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg font-medium"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-3">
+                Course Description
+                <span className="text-gray-400 text-xs ml-2">(What will students learn?)</span>
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Describe the key topics, learning outcomes, and value students will gain from this course. Be specific about what makes your course unique..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
+              />
+            </div>
           </div>
+        )}
 
-          <div>
-            <label htmlFor="level" className="block text-sm font-medium text-gray-700 mb-2">
-              Difficulty Level *
-            </label>
-            <select
-              id="level"
-              name="level"
-              required
-              value={formData.level}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            >
-              {levels.map(level => (
-                <option key={level.value} value={level.value}>
-                  {level.label}
-                </option>
-              ))}
-            </select>
+        {/* Step 2: Course Details */}
+        {currentStep === 2 && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                <Target className="h-5 w-5 mr-2 text-green-600" />
+                Course Structure
+              </h3>
+              <p className="text-gray-600">Define the course category, level, and learning objectives.</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Category *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {categories.map(category => {
+                    const Icon = category.icon;
+                    return (
+                      <button
+                        key={category.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, category: category.value }))}
+                        className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                          formData.category === category.value
+                            ? `border-${category.color}-500 bg-${category.color}-50 shadow-sm`
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className={`h-5 w-5 mb-2 text-${category.color}-600`} />
+                        <div className="font-medium text-gray-900 text-sm">{category.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Level and Duration */}
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Difficulty Level *
+                  </label>
+                  <div className="space-y-3">
+                    {levels.map(level => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, level: level.value }))}
+                        className={`w-full p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+                          formData.level === level.value
+                            ? `border-${level.color}-500 bg-${level.color}-50 shadow-sm`
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900">{level.label}</div>
+                        <div className="text-sm text-gray-600 mt-1">{level.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Estimated Duration
+                  </label>
+                  <select
+                    name="estimatedDuration"
+                    value={formData.estimatedDuration}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Select duration</option>
+                    {durations.map(duration => (
+                      <option key={duration.value} value={duration.value}>
+                        {duration.label} • {duration.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Learning Objectives */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+                <Zap className="h-4 w-4 mr-2 text-amber-600" />
+                Learning Objectives
+                <span className="text-gray-400 text-xs ml-2">(What specific skills will students gain?)</span>
+              </label>
+              <div className="space-y-3">
+                {formData.learningObjectives.map((objective, index) => (
+                  <div key={index} className="flex space-x-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={objective}
+                        onChange={(e) => updateLearningObjective(index, e.target.value)}
+                        placeholder={`Learning objective ${index + 1}...`}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      />
+                    </div>
+                    {formData.learningObjectives.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLearningObjective(index)}
+                        className="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addLearningObjective}
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                >
+                  + Add another learning objective
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Privacy Setting */}
-        <div className="flex items-center">
-          <input
-            id="isPublic"
-            name="isPublic"
-            type="checkbox"
-            checked={formData.isPublic}
-            onChange={handleChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
-            Make this course publicly visible to students
-          </label>
-        </div>
+        {/* Step 3: Finalize */}
+        {currentStep === 3 && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                <Award className="h-5 w-5 mr-2 text-purple-600" />
+                Finalize Course
+              </h3>
+              <p className="text-gray-600">Review your course details and set visibility preferences.</p>
+            </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-6 border-t border-gray-200">
+            {/* Course Preview */}
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <h4 className="font-semibold text-gray-900 mb-4">Course Preview</h4>
+              <div className="space-y-4">
+                <div>
+                  <span className="text-sm text-gray-600">Title:</span>
+                  <p className="font-semibold text-gray-900 text-lg">{formData.title}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Category:</span>
+                  <p className="font-medium text-gray-900">
+                    {categories.find(c => c.value === formData.category)?.label}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Level:</span>
+                  <p className="font-medium text-gray-900">
+                    {levels.find(l => l.value === formData.level)?.label}
+                  </p>
+                </div>
+                {formData.description && (
+                  <div>
+                    <span className="text-sm text-gray-600">Description:</span>
+                    <p className="text-gray-700 mt-1">{formData.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Privacy Setting */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-start space-x-4">
+                <div className={`p-3 rounded-lg ${formData.isPublic ? 'bg-green-100' : 'bg-blue-100'}`}>
+                  {formData.isPublic ? (
+                    <Globe className="h-6 w-6 text-green-600" />
+                  ) : (
+                    <Lock className="h-6 w-6 text-blue-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">
+                        {formData.isPublic ? 'Public Course' : 'Private Course'}
+                      </h4>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {formData.isPublic 
+                          ? 'This course will be visible to all students in the platform'
+                          : 'This course will only be visible to students you explicitly invite'
+                        }
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        formData.isPublic ? 'bg-green-600' : 'bg-blue-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.isPublic ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(prev => prev - 1)}
+            disabled={currentStep === 1}
+            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            <ArrowLeft className="mr-2 h-5 w-5" />
+            Previous
+          </button>
+
           <button
             type="submit"
             disabled={isSubmitting || !formData.title.trim()}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+            className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/25"
           >
             {isSubmitting ? (
               <>
                 <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
                 Creating Course...
               </>
-            ) : (
+            ) : currentStep === 3 ? (
               <>
                 <BookOpen className="mr-2 h-5 w-5" />
                 Create Course
+              </>
+            ) : (
+              <>
+                Continue
+                <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
               </>
             )}
           </button>

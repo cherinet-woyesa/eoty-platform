@@ -96,6 +96,7 @@ const courseController = {
         description,
         order_number: order || 0,
         course_id: courseId,
+        duration: 0, // Set default duration to 0
         created_at: new Date(),
         updated_at: new Date()
       }).returning('id');

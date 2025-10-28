@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, Medal, Trophy, User } from 'lucide-react';
+import { Crown, User, Shield } from 'lucide-react';
 import type { LeaderboardEntry } from '../../types/community';
 
 interface LeaderboardTableProps {
@@ -11,106 +11,93 @@ interface LeaderboardTableProps {
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ 
   entries, 
   currentUserId,
-  showChapter = false 
+  showChapter = false
 }) => {
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-orange-500" />;
-    return <span className="text-sm font-medium text-gray-500">#{rank}</span>;
-  };
-
-  const getRowStyle = (entry: LeaderboardEntry) => {
-    const isCurrentUser = entry.user_id === currentUserId;
-    const baseStyle = "transition-colors duration-200";
-    
-    if (isCurrentUser) {
-      return `${baseStyle} bg-blue-50 border-l-4 border-l-blue-500`;
-    }
-    
-    if (entry.rank <= 3) {
-      return `${baseStyle} bg-gradient-to-r from-white to-gray-50`;
-    }
-    
-    return baseStyle;
+    if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500 fill-current" />;
+    if (rank === 2) return <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-700">2</div>;
+    if (rank === 3) return <div className="w-5 h-5 rounded-full bg-amber-800 flex items-center justify-center text-xs font-bold text-white">3</div>;
+    return <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">{rank}</div>;
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Rank
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
               {showChapter && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Chapter
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chapter</th>
               )}
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Points
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {entries.map((entry) => (
-              <tr key={entry.id} className={getRowStyle(entry)}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    {getRankIcon(entry.rank)}
-                  </div>
-                </td>
-                
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {entry.is_anonymous 
-                          ? 'Anonymous User'
-                          : `${entry.first_name} ${entry.last_name}`
-                        }
-                      </p>
-                      
-                      {entry.user_id === currentUserId && (
-                        <p className="text-xs text-blue-600 font-medium">You</p>
+            {entries.map((entry) => {
+              const isCurrentUser = entry.user_id === currentUserId;
+              const isAnonymous = entry.is_anonymous;
+              
+              return (
+                <tr 
+                  key={entry.id} 
+                  className={isCurrentUser ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      {getRankIcon(entry.rank)}
+                      {isCurrentUser && (
+                        <span className="ml-2 text-xs text-blue-600 font-medium">(You)</span>
                       )}
                     </div>
-                  </div>
-                </td>
-                
-                {showChapter && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {entry.chapter_id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </td>
-                )}
-                
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
-                  {entry.points.toLocaleString()} pts
-                </td>
-              </tr>
-            ))}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          {isAnonymous ? (
+                            <Shield className="h-5 w-5 text-gray-600" />
+                          ) : (
+                            <User className="h-5 w-5 text-gray-600" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        {isAnonymous ? (
+                          <div className="text-sm font-medium text-gray-900">Anonymous User</div>
+                        ) : (
+                          <>
+                            <div className="text-sm font-medium text-gray-900">
+                              {entry.first_name} {entry.last_name}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  {showChapter && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {entry.chapter_id}
+                    </td>
+                  )}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 font-semibold">
+                      {entry.points.toLocaleString()}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       
       {entries.length === 0 && (
         <div className="text-center py-12">
-          <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No leaderboard data yet</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Start participating in the community to earn points!
-          </p>
+          <Crown className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No leaderboard data</h3>
+          <p className="mt-1 text-sm text-gray-500">Start participating to appear on the leaderboard.</p>
         </div>
       )}
     </div>

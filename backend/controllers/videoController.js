@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const { upload } = require('../middleware/upload');
+const upload = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs');
 const { notifyVideoAvailable } = require('../services/notificationService');

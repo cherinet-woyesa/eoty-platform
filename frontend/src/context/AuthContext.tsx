@@ -69,32 +69,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authApi.login(email, password);
+      console.log('AuthContext: Attempting login with:', { email });
       
-      if (response.success) {
-        const { token, user } = response.data;
-        
-        setToken(token);
-        setUser(user);
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        // Load permissions after login
-        await loadPermissions();
-        
-        return;
+      const response = await authApi.login(email, password);
+      console.log('AuthContext: Raw API response:', response);
+
+      // FIXED: Handle the correct response format from backend
+      let token, user;
+
+      if (response.success && response.data) {
+        // Your backend format: { success: true, data: { user, token } }
+        token = response.data.token;
+        user = response.data.user;
       } else {
-        throw new Error(response.message || 'Login failed');
+        console.error('AuthContext: Unexpected response format:', response);
+        throw new Error('Unexpected response format from server');
       }
+
+      // Validate required fields
+      if (!token || !user) {
+        console.error('AuthContext: Missing token or user in response:', response);
+        throw new Error('Invalid response from server: missing token or user data');
+      }
+
+      console.log('AuthContext: Login successful', { token, user });
+      
+      setToken(token);
+      setUser(user);
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Load permissions after login
+      await loadPermissions();
+      
     } catch (error: any) {
-      // Handle specific error cases
-      if (error.response?.status === 401) {
-        throw new Error('Invalid email or password');
-      } else if (error.response?.status === 403) {
-        throw new Error('Account is deactivated. Please contact administrator.');
+      console.error('AuthContext: Login error:', error);
+      
+      let errorMessage = 'Login failed';
+
+      // Extract error message from different response formats
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      throw error;
+
+      // Handle specific status codes
+      if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Account is deactivated. Please contact administrator.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Validation error. Please check your input.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+
+      throw new Error(errorMessage);
     }
   };
 
@@ -102,7 +136,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authApi.register(userData);
       
-      if (response.success) {
+      // FIXED: Use the same response format handling
+      if (response.success && response.data) {
         const { token, user } = response.data;
         
         setToken(token);
@@ -131,7 +166,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authApi.googleLogin(googleData);
       
-      if (response.success) {
+      // FIXED: Use the same response format handling
+      if (response.success && response.data) {
         const { token, user } = response.data;
         
         setToken(token);
