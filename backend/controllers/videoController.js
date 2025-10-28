@@ -529,7 +529,7 @@ const videoController = {
       const lessons = await db('lessons')
         .where({ course_id: courseId })
         .select('*')
-        .orderBy('order_number', 'asc');
+        .orderBy('order', 'asc');
 
       res.json({
         success: true,

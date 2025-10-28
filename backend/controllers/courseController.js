@@ -94,9 +94,10 @@ const courseController = {
       const lessonIdResult = await db('lessons').insert({
         title,
         description,
-        order_number: order || 0,
+        order: order || 0,
         course_id: courseId,
         duration: 0, // Set default duration to 0
+        created_by: teacherId,
         created_at: new Date(),
         updated_at: new Date()
       }).returning('id');
