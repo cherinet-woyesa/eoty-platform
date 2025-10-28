@@ -400,7 +400,7 @@ function AppContent() {
               } 
             />
 
-            {/* Default route */}
+            {/* Default rout */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
             {/* 404 Route */}

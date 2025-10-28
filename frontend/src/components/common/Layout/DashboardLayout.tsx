@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import StudentSidebar from './StudentSidebar';
+import TeacherSidebar from './TeacherSidebar';
 import Header from './Header';
 import AdminSidebar from '../../admin/AdminSidebar';
 import { useAuth } from '../../../context/AuthContext';
@@ -21,6 +23,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isAdminUser = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  const isStudent = user?.role === 'student';
 
   useEffect(() => {
     // Show welcome message for new users who haven't completed onboarding
@@ -44,11 +48,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         fixed inset-y-0 left-0 z-50 
         lg:static lg:z-auto
         transform transition-transform duration-300 ease-in-out
-        ${isAdminRoute && isAdminUser ? 'w-64' : 'w-64'}
+        w-64
       `}>
         {isAdminRoute && isAdminUser ? (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
             <AdminSidebar />
+          </div>
+        ) : isTeacher ? (
+          <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
+            <TeacherSidebar />
+          </div>
+        ) : isStudent ? (
+          <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
+            <StudentSidebar />
           </div>
         ) : (
           <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
@@ -66,9 +78,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         
         {/* Main content with smooth scrolling */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-            {/* Animated page transition container */}
-            <div className="animate-fade-in-up">
+          <div className="p-4 md:p-6 lg:p-8 w-full">
+            {/* Animated page transition container - Added max-w-7xl for appropriate content width */}
+            <div className="animate-fade-in-up max-w-7xl mx-auto">
               {children}
             </div>
           </div>

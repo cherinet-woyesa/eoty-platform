@@ -76,9 +76,9 @@ const ResourceLibrary: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Resource Library</h1>
+        <h1 className="text-33xl font-bold text-gray-900 mb-2">Resource Library</h1>
         <p className="text-gray-600">Search and explore faith-based resources</p>
       </div>
 
