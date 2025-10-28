@@ -119,6 +119,26 @@ export const videoApi = {
       responseType: 'blob'
     });
     return response.data;
+  },
+  
+  // Get video metadata including subtitles
+  getVideoMetadata: async (lessonId: string) => {
+    const response = await apiClient.get(`/videos/lessons/${lessonId}/metadata`);
+    return response.data;
+  },
+
+  // Upload subtitle file
+  uploadSubtitle: async (subtitleBlob: Blob, lessonId: string, languageCode: string, languageName: string) => {
+    const formData = new FormData();
+    formData.append('subtitle', subtitleBlob);
+    formData.append('lessonId', lessonId);
+    formData.append('languageCode', languageCode);
+    formData.append('languageName', languageName);
+
+    const response = await apiClient.post('/videos/subtitles/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
   }
 };
 

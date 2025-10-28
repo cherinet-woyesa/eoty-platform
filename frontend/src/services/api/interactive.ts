@@ -64,6 +64,38 @@ export const interactiveApi = {
     return response.data;
   },
 
+  // Moderation methods
+  moderateDiscussionPost: async (postId: string, action: 'approve' | 'reject' | 'pin' | 'unpin') => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/interactive/discussions/moderate`, {
+      postId,
+      action
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  getFlaggedPosts: async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE}/interactive/discussions/flagged`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // Community reporting method
+  reportDiscussionPost: async (postId: string, reason: 'inappropriate' | 'spam' | 'harassment' | 'offensive' | 'other') => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/interactive/discussions/report`, {
+      postId,
+      reason
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
   // Progress methods
   updateLessonProgress: async (lessonId: string, data: any) => {
     const token = localStorage.getItem('token');
@@ -79,5 +111,51 @@ export const interactiveApi = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  getUserProgress: async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE}/interactive/progress`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // Notification methods
+  getUserNotifications: async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE}/interactive/notifications`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  markNotificationAsRead: async (notificationId: string) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/interactive/notifications/read`, {
+      notificationId
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // System validation methods
+  runAcceptanceValidation: async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/interactive/system/validate`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  getValidationHistory: async () => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE}/interactive/system/validation-history`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };
+
+export default interactiveApi;

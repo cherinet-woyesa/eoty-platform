@@ -1,5 +1,5 @@
-import React from 'react';
-import { Award, CheckCircle, XCircle, BookOpen, ArrowLeft } from 'lucide-react';
+import * as React from 'react';
+import { Award, CheckCircle, XCircle, BookOpen, ArrowLeft, Check, X } from 'lucide-react';
 
 interface QuizResult {
   question_id: string;
@@ -8,6 +8,9 @@ interface QuizResult {
   is_correct: boolean;
   explanation: string;
   question_text: string;
+  feedback: string;
+  points: number;
+  earned_points: number;
 }
 
 interface QuizResultsProps {
@@ -37,6 +40,13 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, onClose, onRetake })
     if (percentage >= 80) return 'Good Job!';
     if (percentage >= 70) return 'Not Bad!';
     return 'Keep Practicing!';
+  };
+
+  const getGradeBg = (percentage: number) => {
+    if (percentage >= 90) return 'bg-green-100';
+    if (percentage >= 80) return 'bg-blue-100';
+    if (percentage >= 70) return 'bg-yellow-100';
+    return 'bg-red-100';
   };
 
   return (
@@ -103,35 +113,48 @@ const QuizResults: React.FC<QuizResultsProps> = ({ results, onClose, onRetake })
                   result.is_correct ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
                 }`}
               >
-                <div className="flex items-start space-x-3 mb-3">
-                  {result.is_correct ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  )}
+                <div className="flex items-start space-x-3">
+                  <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                    result.is_correct ? 'bg-green-500' : 'bg-red-500'
+                  }`}>
+                    {result.is_correct ? (
+                      <Check className="h-4 w-4 text-white" />
+                    ) : (
+                      <X className="h-4 w-4 text-white" />
+                    )}
+                  </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">
                       {index + 1}. {result.question_text}
                     </h4>
-                    <div className="mt-2 space-y-1 text-sm">
-                      <div className="flex items-center space-x-2">
+                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
                         <span className="font-medium text-gray-700">Your answer:</span>
-                        <span className={result.is_correct ? 'text-green-700' : 'text-red-700'}>
+                        <span className={`ml-2 ${result.is_correct ? 'text-green-700' : 'text-red-700'}`}>
                           {result.user_answer || 'No answer'}
                         </span>
                       </div>
                       {!result.is_correct && (
-                        <div className="flex items-center space-x-2">
+                        <div>
                           <span className="font-medium text-gray-700">Correct answer:</span>
-                          <span className="text-green-700">{result.correct_answer}</span>
+                          <span className="ml-2 text-green-700">{result.correct_answer}</span>
                         </div>
                       )}
+                      <div>
+                        <span className="font-medium text-gray-700">Points:</span>
+                        <span className="ml-2">
+                          {result.earned_points}/{result.points}
+                        </span>
+                      </div>
                     </div>
                     {result.explanation && (
-                      <div className="mt-2 p-2 bg-white rounded border">
-                        <p className="text-sm text-gray-700">{result.explanation}</p>
+                      <div className="mt-2 p-2 bg-white rounded border text-sm text-gray-700">
+                        <span className="font-medium">Explanation:</span> {result.explanation}
                       </div>
                     )}
+                    <div className="mt-2 text-sm text-gray-600">
+                      {result.feedback}
+                    </div>
                   </div>
                 </div>
               </div>

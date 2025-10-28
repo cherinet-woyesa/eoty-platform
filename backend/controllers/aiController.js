@@ -3,6 +3,8 @@ const db = require('../config/database');
 
 const aiController = {
   async askQuestion(req, res) {
+    const startTime = Date.now();
+    
     try {
       const { question, sessionId = 'default', context = {} } = req.body;
       const userId = req.user.userId;
@@ -25,6 +27,7 @@ const aiController = {
             answer: moderationResult.guidance[0],
             relevantContent: [],
             sources: [],
+            relatedResources: [],
             moderation: moderationResult,
             sessionId,
             guidanceProvided: true
@@ -35,14 +38,17 @@ const aiController = {
       // Get conversation history for context
       const conversationHistory = await aiService.getConversationHistory(userId, sessionId);
 
-      // Generate AI response
+      // Generate AI response with performance monitoring
+      const aiResponseStartTime = Date.now();
       const aiResponse = await aiService.generateResponse(
         question, 
         context, 
         conversationHistory
       );
+      const aiResponseTime = Date.now() - aiResponseStartTime;
 
       // Store conversation
+      const storeStartTime = Date.now();
       await aiService.storeConversation(
         userId, 
         sessionId, 
@@ -51,6 +57,7 @@ const aiController = {
         context,
         moderationResult.needsModeration
       );
+      const storeTime = Date.now() - storeStartTime;
 
       // Prepare response
       const response = {
@@ -59,6 +66,7 @@ const aiController = {
           answer: aiResponse.response,
           relevantContent: aiResponse.relevantContent,
           sources: aiResponse.sources,
+          relatedResources: aiResponse.relatedResources,
           moderation: moderationResult,
           sessionId,
           detectedLanguage: aiResponse.detectedLanguage
@@ -75,13 +83,29 @@ const aiController = {
         response.data.guidance = moderationResult.guidance;
       }
 
+      // Add detailed response time metrics
+      const totalTime = Date.now() - startTime;
+      response.data.performanceMetrics = {
+        totalTimeMs: totalTime,
+        aiResponseTimeMs: aiResponseTime,
+        storeTimeMs: storeTime,
+        responseTimeMs: totalTime // For backward compatibility
+      };
+      
+      // Log if response time is too slow
+      if (totalTime > aiService.performanceSettings.maxResponseTimeMs) {
+        console.warn(`Slow AI response: ${totalTime}ms for question: ${question.substring(0, 50)}...`);
+        console.warn(`Breakdown - AI: ${aiResponseTime}ms, Store: ${storeTime}ms`);
+      }
+
       res.json(response);
 
     } catch (error) {
       console.error('AI question error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to process your question. Please try again.'
+        message: 'Failed to process your question. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },

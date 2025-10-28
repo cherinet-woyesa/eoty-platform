@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { aiApi } from '../services/api';
 
 interface Message {
@@ -8,6 +8,13 @@ interface Message {
   timestamp: Date;
   metadata?: any;
   detectedLanguage?: string;
+}
+
+interface PerformanceMetrics {
+  totalTimeMs?: number;
+  aiResponseTimeMs?: number;
+  storeTimeMs?: number;
+  responseTimeMs?: number;
 }
 
 interface UseAIChatReturn {
@@ -25,6 +32,9 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId] = useState(initialSessionId);
+  
+  // For real-time streaming responses
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const askQuestion = useCallback(async (question: string, context: any = {}) => {
     if (!question.trim()) return;
@@ -43,6 +53,9 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
     setMessages(prev => [...prev, userMessage]);
 
     try {
+      // Create abort controller for cancellation
+      abortControllerRef.current = new AbortController();
+      
       const response = await aiApi.askQuestion(question, sessionId, context);
       
       if (response.success) {
@@ -54,9 +67,12 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
           metadata: {
             relevantContent: response.data.relevantContent,
             sources: response.data.sources,
+            relatedResources: response.data.relatedResources,
             moderation: response.data.moderation,
             guidance: response.data.guidance,
-            guidanceProvided: response.data.guidanceProvided
+            guidanceProvided: response.data.guidanceProvided,
+            responseTimeMs: response.data.responseTimeMs,
+            performanceMetrics: response.data.performanceMetrics
           },
           detectedLanguage: response.data.detectedLanguage
         };
@@ -72,14 +88,28 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
         if (response.data.guidance && response.data.guidance.length > 0) {
           console.info('Guidance provided:', response.data.guidance);
         }
+        
+        // Log slow responses with detailed metrics
+        const perfMetrics: PerformanceMetrics = response.data.performanceMetrics || {};
+        if (perfMetrics.totalTimeMs && perfMetrics.totalTimeMs > 3000) {
+          console.warn(`Slow response time: ${perfMetrics.totalTimeMs}ms`, {
+            aiResponseTime: perfMetrics.aiResponseTimeMs,
+            storeTime: perfMetrics.storeTimeMs
+          });
+        }
       } else {
         throw new Error(response.message || 'Failed to get AI response');
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // Request was cancelled, which is expected behavior
+        return;
+      }
       setError(err.message || 'An error occurred while processing your question');
       console.error('AI question error:', err);
     } finally {
       setIsProcessing(false);
+      abortControllerRef.current = null;
     }
   }, [sessionId]);
 

@@ -50,17 +50,17 @@ const TeacherDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">Welcome back, Teacher!</h1>
-            <p className="text-blue-100 text-lg max-w-2xl">
+            <p className="text-blue-100 text-lg max-w-2xl leading-relaxed">
               Continue inspiring the youth with your teachings. You have 3 new student submissions waiting for review.
             </p>
           </div>
           <Link
             to="/record"
-            className="mt-4 lg:mt-0 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-blue-600 bg-white hover:bg-blue-50 transition-all duration-200 transform hover:scale-105 shadow-lg"
+            className="mt-4 lg:mt-0 inline-flex items-center px-6 py-3 border border-transparent text-base font-semibold rounded-xl text-blue-600 bg-white hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-xl"
           >
             <Video className="mr-2 h-5 w-5" />
             Record New Lesson
@@ -69,26 +69,26 @@ const TeacherDashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.name}
-              className="bg-white overflow-hidden rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200"
+              className="bg-gradient-to-br from-white to-blue-50 overflow-hidden rounded-2xl border border-gray-200 p-5 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
             >
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="p-3 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl">
-                    <Icon className="h-6 w-6 text-blue-600" />
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-sm">
+                    <Icon className="h-6 w-6 text-white" />
                   </div>
                 </div>
-                <div className="ml-4 w-0 flex-1">
+                <div className="ml-3 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                      <div className={`ml-2 flex items-baseline text-sm font-semibold ${
+                    <dt className="text-sm font-semibold text-gray-700 truncate">{stat.name}</dt>
+                    <dd className="flex items-baseline mt-1">
+                      <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                      <div className={`ml-2 flex items-baseline text-xs font-bold ${
                         stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {stat.change}
@@ -104,28 +104,28 @@ const TeacherDashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-5">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
               <div
                 key={action.title}
-                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color}`}>
+                <div className="flex items-center justify-between mb-5">
+                  <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color} shadow-md`}>
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{action.title}</h3>
-                <p className="text-gray-600 mb-4">{action.description}</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{action.title}</h3>
+                <p className="text-gray-600 mb-5 leading-relaxed">{action.description}</p>
                 <Link
                   to={action.href}
-                  className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500 group"
+                  className="inline-flex items-center text-base font-semibold text-blue-600 hover:text-blue-700 group"
                 >
                   {action.buttonText}
-                  <ArrowRight className="ml-1 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
             );
@@ -134,53 +134,53 @@ const TeacherDashboard: React.FC = () => {
       </div>
 
       {/* Recent Courses */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Courses</h2>
+      <div className="bg-gradient-to-b from-white to-gray-50 rounded-2xl border border-gray-200 overflow-hidden shadow-md">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <h2 className="text-xl font-bold text-gray-900">Recent Courses</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {recentCourses.map((course) => (
-            <div key={course.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <PlayCircle className="h-5 w-5 text-blue-600" />
+            <div key={course.id} className="px-6 py-5 hover:bg-blue-50 transition-all duration-200">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center mb-3 md:mb-0">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
+                    <PlayCircle className="h-5 w-5 text-white" />
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900">{course.title}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="text-lg font-bold text-gray-900">{course.title}</h3>
+                    <p className="text-gray-600 text-sm mt-1">
                       {course.students} students • Updated {course.lastUpdated}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{course.progress}% Complete</p>
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-5">
+                  <div className="">
+                    <p className="text-base font-semibold text-gray-900 text-center md:text-right">{course.progress}% Complete</p>
+                    <div className="w-32 bg-gray-200 rounded-full h-2.5 mt-1.5">
                       <div 
-                        className="bg-green-600 h-2 rounded-full" 
+                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2.5 rounded-full" 
                         style={{ width: `${course.progress}%` }}
                       />
                     </div>
                   </div>
                   <Link
                     to={`/courses/${course.id}`}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150"
+                    className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md"
                   >
-                    View
+                    View Course
                   </Link>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-blue-50 border-t border-gray-200 rounded-b-2xl">
           <Link
             to="/courses"
-            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
+            className="inline-flex items-center text-base font-semibold text-blue-600 hover:text-blue-700 group"
           >
             View all courses
-            <ArrowRight className="ml-1 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </div>

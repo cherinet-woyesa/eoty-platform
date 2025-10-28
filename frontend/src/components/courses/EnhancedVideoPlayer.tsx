@@ -1,11 +1,12 @@
-import React, { useRef, useState, useEffect } from 'react';
+import * as React from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, 
   RotateCcw, Bookmark, MessageCircle, PenTool,
   CheckCircle, X, AlertCircle, Clock, Send,
-  Loader, BookOpen
+  Loader, BookOpen, Subtitles, Settings, WifiOff, Info
 } from 'lucide-react';
 import { interactiveApi } from '../../services/api';
+import { videoApi } from '../../services/api/videos';
 import QuizTakingInterface from './QuizTakingInterface';
 import QuizResults from './QuizResults';
 
@@ -60,6 +61,13 @@ interface Quiz {
   user_attempt: any;
 }
 
+interface Subtitle {
+  id: string;
+  language_code: string;
+  language_name: string;
+  subtitle_url: string;
+}
+
 const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({ 
   videoUrl, 
   title, 
@@ -67,57 +75,108 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   autoPlay = false,
   onTimestampClick 
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [showAnnotations, setShowAnnotations] = useState(true);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [activeTab, setActiveTab] = useState<'discussions' | 'annotations' | 'quiz'>('discussions');
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = React.useState(autoPlay);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const [volume, setVolume] = React.useState(1);
+  const [isMuted, setIsMuted] = React.useState(false);
+  const [playbackRate, setPlaybackRate] = React.useState(1);
+  const [videoQuality, setVideoQuality] = React.useState('hd'); // hd, sd, mobile
+  const [showAnnotations, setShowAnnotations] = React.useState(true);
+  const [showQuiz, setShowQuiz] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<'discussions' | 'annotations' | 'quiz'>('discussions');
   
   // Real data states
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [loading, setLoading] = useState({
+  const [annotations, setAnnotations] = React.useState<Annotation[]>([]);
+  const [discussions, setDiscussions] = React.useState<Discussion[]>([]);
+  const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
+  const [subtitles, setSubtitles] = React.useState<Subtitle[]>([]);
+  const [selectedSubtitle, setSelectedSubtitle] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState({
     annotations: false,
     discussions: false,
-    quizzes: false
+    quizzes: false,
+    subtitles: false
   });
-  const [newDiscussion, setNewDiscussion] = useState('');
-  const [newReply, setNewReply] = useState<{ [key: string]: string }>({});
+  const [newDiscussion, setNewDiscussion] = React.useState('');
+  const [newReply, setNewReply] = React.useState<{ [key: string]: string }>({});
+  const [networkError, setNetworkError] = React.useState(false);
+  const [retryCount, setRetryCount] = React.useState(0);
 
   // Quiz states
-  const [showQuizTaking, setShowQuizTaking] = useState(false);
-  const [selectedQuiz, setSelectedQuiz] = useState<string | null>(null);
-  const [showQuizResults, setShowQuizResults] = useState(false);
-  const [quizAttemptId, setQuizAttemptId] = useState<string | null>(null);
-  const [quizResults, setQuizResults] = useState<any>(null);
+  const [showQuizTaking, setShowQuizTaking] = React.useState(false);
+  const [selectedQuiz, setSelectedQuiz] = React.useState<string | null>(null);
+  const [showQuizResults, setShowQuizResults] = React.useState(false);
+  const [quizAttemptId, setQuizAttemptId] = React.useState<string | null>(null);
+  const [quizResults, setQuizResults] = React.useState<any>(null);
+
+  // New state for annotation creation
+  const [showAnnotationModal, setShowAnnotationModal] = React.useState(false);
+  const [annotationType, setAnnotationType] = React.useState<'highlight' | 'comment' | 'bookmark'>('comment');
+  const [annotationContent, setAnnotationContent] = React.useState('');
+
+  // Add user role state (in a real app, this would come from context or props)
+  const userRole: 'student' | 'teacher' | 'admin' = 'student'; // This would be dynamically determined
+  const currentUserId = 'current-user-id'; // This would come from auth context
+
+  // Add network status state
+  const [networkStatus, setNetworkStatus] = React.useState<'online' | 'offline' | 'reconnecting'>('online');
+  const [retryAttempts, setRetryAttempts] = React.useState(0);
+  const maxRetryAttempts = 3;
+
+  // Report modal state
+  const [showReportModal, setShowReportModal] = React.useState(false);
+  const [reportPostId, setReportPostId] = React.useState<string | null>(null);
+  const [reportReason, setReportReason] = React.useState<'inappropriate' | 'spam' | 'harassment' | 'offensive' | 'other'>('inappropriate');
 
   // Load data from backend
-  useEffect(() => {
+  React.useEffect(() => {
     loadAnnotations();
     loadDiscussions();
     loadQuizzes();
+    loadVideoMetadata();
   }, [lessonId]);
 
   // Auto-save progress
-  useEffect(() => {
+  React.useEffect(() => {
     const interval = setInterval(() => {
       if (duration > 0 && currentTime > 0) {
         const progress = currentTime / duration;
         interactiveApi.updateLessonProgress(lessonId, {
           progress,
-          lastWatchedTimestamp: currentTime
+          lastWatchedTimestamp: currentTime,
+          isCompleted: progress >= 0.95 // Mark as completed when 95% watched
         }).catch(console.error);
       }
     }, 30000); // Save every 30 seconds
 
-    return () => clearInterval(interval);
+    // Also save progress when component unmounts
+    return () => {
+      clearInterval(interval);
+      if (duration > 0 && currentTime > 0) {
+        const progress = currentTime / duration;
+        interactiveApi.updateLessonProgress(lessonId, {
+          progress,
+          lastWatchedTimestamp: currentTime,
+          isCompleted: progress >= 0.95
+        }).catch(console.error);
+      }
+    };
   }, [currentTime, duration, lessonId]);
+
+  const loadVideoMetadata = async () => {
+    setLoading(prev => ({ ...prev, subtitles: true }));
+    try {
+      // Since we don't have the getVideoMetadata function yet, we'll simulate it
+      console.log('Loading video metadata for lesson:', lessonId);
+      // In a real implementation, this would fetch actual subtitle data
+    } catch (error) {
+      console.error('Failed to load video metadata:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, subtitles: false }));
+    }
+  };
 
   const loadAnnotations = async () => {
     setLoading(prev => ({ ...prev, annotations: true }));
@@ -161,20 +220,25 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     }
   };
 
-  const createAnnotation = async (type: 'highlight' | 'comment' | 'bookmark') => {
-    const content = prompt(`Enter your ${type}:`);
-    if (!content) return;
+  const createAnnotation = async (type: 'highlight' | 'comment' | 'bookmark', content: string = '') => {
+    // For bookmarks, we don't need content
+    if (type !== 'bookmark' && !content.trim()) {
+      alert('Please enter content for your annotation');
+      return;
+    }
 
     try {
       await interactiveApi.createAnnotation({
         lessonId,
         timestamp: currentTime,
-        content,
+        content: content || `Bookmark at ${formatTime(currentTime)}`,
         type,
         metadata: { color: getAnnotationColor(type) },
         isPublic: type !== 'bookmark'
       });
       loadAnnotations(); // Reload annotations
+      setShowAnnotationModal(false);
+      setAnnotationContent('');
     } catch (error) {
       console.error('Failed to create annotation:', error);
       alert('Failed to create annotation. Please try again.');
@@ -215,6 +279,39 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     }
   };
 
+  // New function for reporting inappropriate content
+  const reportDiscussionPost = async (postId: string, reason: 'inappropriate' | 'spam' | 'harassment' | 'offensive' | 'other') => {
+    try {
+      const response = await interactiveApi.reportDiscussionPost(postId, reason);
+      if (response.success) {
+        alert('Post reported successfully. Our moderators will review it.');
+        // Optionally reload discussions to remove the reported post
+        // loadDiscussions();
+      } else {
+        alert('Failed to report post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to report post:', error);
+      alert('Failed to report post. Please try again.');
+    }
+  };
+
+  // Function to open report modal
+  const openReportModal = (postId: string) => {
+    setReportPostId(postId);
+    setShowReportModal(true);
+  };
+
+  // Function to submit report
+  const submitReport = async () => {
+    if (reportPostId) {
+      await reportDiscussionPost(reportPostId, reportReason);
+      setShowReportModal(false);
+      setReportPostId(null);
+      setReportReason('inappropriate');
+    }
+  };
+
   // Quiz functions
   const handleStartQuiz = (quizId: string) => {
     setSelectedQuiz(quizId);
@@ -248,10 +345,10 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
   const getAnnotationColor = (type: string) => {
     switch (type) {
-      case 'highlight': return '#3B82F6';
-      case 'comment': return '#10B981';
-      case 'bookmark': return '#8B5CF6';
-      default: return '#6B7280';
+      case 'highlight': return '#3B82F6'; // Blue
+      case 'comment': return '#10B981';  // Green
+      case 'bookmark': return '#8B5CF6'; // Purple
+      default: return '#6B7280';        // Gray
     }
   };
 
@@ -260,33 +357,70 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   };
 
   // Video control functions
-  useEffect(() => {
+  React.useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const updateTime = () => setCurrentTime(video.currentTime);
     const updateDuration = () => setDuration(video.duration);
     const handleEnd = () => setIsPlaying(false);
+    const handleError = () => {
+      setNetworkError(true);
+      setNetworkStatus('offline');
+      console.error('Video streaming error');
+    };
+
+    // Add network status event listeners
+    const handleOnline = () => {
+      setNetworkStatus('online');
+      if (networkError) {
+        handleRetry();
+      }
+    };
+
+    const handleOffline = () => {
+      setNetworkStatus('offline');
+      setNetworkError(true);
+    };
 
     video.addEventListener('timeupdate', updateTime);
     video.addEventListener('loadedmetadata', updateDuration);
     video.addEventListener('ended', handleEnd);
+    video.addEventListener('error', handleError);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
       video.removeEventListener('timeupdate', updateTime);
       video.removeEventListener('loadedmetadata', updateDuration);
       video.removeEventListener('ended', handleEnd);
+      video.removeEventListener('error', handleError);
+      
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [networkError]);
 
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
 
+    if (networkStatus === 'offline') {
+      alert('You are currently offline. Please check your network connection.');
+      return;
+    }
+
     if (isPlaying) {
       video.pause();
     } else {
-      video.play();
+      video.play().catch(error => {
+        console.error('Error playing video:', error);
+        if (error.name === 'NotAllowedError') {
+          // Autoplay was prevented, show a message to the user
+          alert('Please interact with the page to enable video playback.');
+        }
+      });
     }
     setIsPlaying(!isPlaying);
   };
@@ -331,6 +465,17 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     setPlaybackRate(newRate);
   };
 
+  const handleVideoQuality = () => {
+    const qualities = ['hd', 'sd', 'mobile'];
+    const currentIndex = qualities.indexOf(videoQuality);
+    const nextIndex = (currentIndex + 1) % qualities.length;
+    const newQuality = qualities[nextIndex];
+    
+    setVideoQuality(newQuality);
+    // In a real implementation, this would reload the video with the new quality
+    alert(`Video quality changed to ${newQuality.toUpperCase()}. In a production environment, this would switch to a different stream.`);
+  };
+
   const toggleFullscreen = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -360,6 +505,53 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     onTimestampClick?.(timestamp);
   };
 
+  const handleRetry = () => {
+    if (retryAttempts >= maxRetryAttempts) {
+      alert('Maximum retry attempts reached. Please check your network connection and try again later.');
+      return;
+    }
+
+    setNetworkStatus('reconnecting');
+    setRetryAttempts(prev => prev + 1);
+    
+    // Reload the video
+    if (videoRef.current) {
+      // Store current time to resume from the same position
+      const currentTime = videoRef.current.currentTime;
+      
+      // Reload the video source
+      videoRef.current.load();
+      
+      // Attempt to resume from the previous position after a short delay
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = currentTime;
+          videoRef.current.play().catch(() => {
+            // If autoplay fails, that's okay - user can click play
+            setIsPlaying(false);
+          });
+        }
+      }, 1000);
+    }
+    
+    // Reset network error state after a delay to allow for reconnection
+    setTimeout(() => {
+      setNetworkError(false);
+      setNetworkStatus('online');
+    }, 3000);
+  };
+
+  const handleSubtitleSelect = (subtitleId: string | null) => {
+    setSelectedSubtitle(subtitleId);
+    // In a real implementation, this would load the subtitle track
+    if (subtitleId) {
+      const subtitle = subtitles.find(s => s.id === subtitleId);
+      if (subtitle) {
+        alert(`Subtitle selected: ${subtitle.language_name}. In a production environment, this would load the subtitle track.`);
+      }
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-4">
@@ -369,11 +561,42 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
             {/* Video Element */}
             <video
               ref={videoRef}
-              src={videoUrl}
+              src={`${videoUrl}?quality=${videoQuality}&retry=${retryCount}`}
               className="w-full aspect-video bg-black"
               autoPlay={autoPlay}
               onClick={togglePlay}
             />
+
+            {/* Network Error Overlay */}
+            {networkError && (
+              <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                <div className="text-center text-white p-6">
+                  <WifiOff className="h-12 w-12 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    {networkStatus === 'reconnecting' ? 'Reconnecting...' : 'Network Error'}
+                  </h3>
+                  <p className="mb-4">
+                    {networkStatus === 'reconnecting' 
+                      ? 'Attempting to reconnect...' 
+                      : 'Unable to stream video. Check your connection and try again.'}
+                  </p>
+                  {networkStatus !== 'reconnecting' && (
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleRetry}
+                        disabled={retryAttempts >= maxRetryAttempts}
+                        className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-150 disabled:opacity-50"
+                      >
+                        {retryAttempts >= maxRetryAttempts ? 'Max Retries Reached' : `Retry (${retryAttempts}/${maxRetryAttempts})`}
+                      </button>
+                      <p className="text-sm text-gray-300">
+                        {navigator.onLine ? 'Network appears to be online' : 'Network is offline'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Annotation Markers on Progress Bar */}
             <div className="absolute bottom-16 left-0 right-0 px-4">
@@ -400,6 +623,71 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Annotation Creation Modal */}
+            {showAnnotationModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl max-w-md w-full">
+                  <div className="border-b border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Add {annotationType === 'highlight' ? 'Highlight' : 
+                             annotationType === 'comment' ? 'Comment' : 'Bookmark'}
+                      </h3>
+                      <button
+                        onClick={() => setShowAnnotationModal(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="mt-2 flex items-center text-sm text-gray-600">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>At {formatTime(currentTime)}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {annotationType !== 'bookmark' ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {annotationType === 'highlight' ? 'Highlight Note' : 'Comment'}
+                        </label>
+                        <textarea
+                          value={annotationContent}
+                          onChange={(e) => setAnnotationContent(e.target.value)}
+                          placeholder={annotationType === 'highlight' ? 'Add a note about this highlight...' : 'Enter your comment...'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows={4}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <Bookmark className="h-12 w-12 text-purple-500 mx-auto mb-3" />
+                        <p className="text-gray-600">
+                          Create a bookmark at {formatTime(currentTime)} to easily return to this point later.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        onClick={() => setShowAnnotationModal(false)}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => createAnnotation(annotationType, annotationContent)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        {annotationType === 'bookmark' ? 'Create Bookmark' : 'Add Annotation'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Enhanced Controls */}
             <div className="p-4 bg-gray-900">
@@ -467,29 +755,78 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                     {playbackRate}x
                   </button>
 
+                  {/* Video Quality */}
+                  <button
+                    onClick={handleVideoQuality}
+                    className="text-white hover:text-gray-300 transition-colors duration-150 text-sm font-medium"
+                  >
+                    {videoQuality.toUpperCase()}
+                  </button>
+
+                  {/* Subtitles */}
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        if (subtitles.length > 0) {
+                          // Toggle subtitle selection
+                          const nextIndex = selectedSubtitle 
+                            ? (subtitles.findIndex(s => s.id === selectedSubtitle) + 1) % (subtitles.length + 1)
+                            : 0;
+                          handleSubtitleSelect(nextIndex < subtitles.length ? subtitles[nextIndex].id : null);
+                        }
+                      }}
+                      className="text-white hover:text-gray-300 transition-colors duration-150"
+                      title="Subtitles"
+                    >
+                      <Subtitles className="h-5 w-5" />
+                    </button>
+                    {selectedSubtitle && (
+                      <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {subtitles.find(s => s.id === selectedSubtitle)?.language_code.substring(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Annotation Tools */}
                   <div className="flex items-center space-x-2 border-l border-gray-600 pl-4">
-                    <button
-                      onClick={() => createAnnotation('bookmark')}
-                      className="text-white hover:text-yellow-400 transition-colors duration-150"
-                      title="Add Bookmark"
-                    >
-                      <Bookmark className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => createAnnotation('highlight')}
-                      className="text-white hover:text-blue-400 transition-colors duration-150"
-                      title="Add Highlight"
-                    >
-                      <PenTool className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => createAnnotation('comment')}
-                      className="text-white hover:text-green-400 transition-colors duration-150"
-                      title="Add Comment"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setAnnotationType('bookmark');
+                          setShowAnnotationModal(true);
+                        }}
+                        className="text-white hover:text-yellow-400 transition-colors duration-150"
+                        title="Add Bookmark"
+                      >
+                        <Bookmark className="h-4 w-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setAnnotationType('highlight');
+                          setShowAnnotationModal(true);
+                        }}
+                        className="text-white hover:text-blue-400 transition-colors duration-150"
+                        title="Add Highlight"
+                      >
+                        <PenTool className="h-4 w-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setAnnotationType('comment');
+                          setShowAnnotationModal(true);
+                        }}
+                        className="text-white hover:text-green-400 transition-colors duration-150"
+                        title="Add Comment"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -651,32 +988,76 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                             {getUserInitials(discussion)}
                           </div>
                           <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium text-sm">
-                                {discussion.first_name} {discussion.last_name}
-                              </span>
-                              {discussion.video_timestamp && (
-                                <button
-                                  onClick={() => handleAnnotationClick(discussion.video_timestamp!)}
-                                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-sm">
+                                  {discussion.first_name} {discussion.last_name}
+                                </span>
+                                {discussion.is_pinned && (
+                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                                    Pinned
+                                  </span>
+                                )}
+                                {discussion.video_timestamp && (
+                                  <button
+                                    onClick={() => handleAnnotationClick(discussion.video_timestamp!)}
+                                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                                  >
+                                    <Clock className="h-3 w-3" />
+                                    <span>{formatTime(discussion.video_timestamp)}</span>
+                                  </button>
+                                )}
+                              </div>
+                              {/* Moderation controls - only show for teachers/admins */}
+                              {(discussion.user_id === currentUserId || userRole === 'teacher' || userRole === 'admin') && (
+                                <div className="relative">
+                                  <button className="text-gray-500 hover:text-gray-700">
+                                    <Settings className="h-4 w-4" />
+                                  </button>
+                                  {/* TODO: Implement dropdown menu for moderation actions */}
+                                </div>
+                              )}
+                              {/* Report button for all users (except own posts) */}
+                              {discussion.user_id !== currentUserId && (
+                                <button 
+                                  onClick={() => openReportModal(discussion.id)}
+                                  className="text-gray-500 hover:text-red-500"
+                                  title="Report inappropriate content"
                                 >
-                                  <Clock className="h-3 w-3" />
-                                  <span>{formatTime(discussion.video_timestamp)}</span>
+                                  <AlertCircle className="h-4 w-4" />
                                 </button>
                               )}
                             </div>
                             <p className="text-sm text-gray-700 mt-1">{discussion.content}</p>
                             
                             {/* Replies */}
-                            {discussion.replies.map(reply => (
+                            {discussion.replies && discussion.replies.map((reply: Discussion) => (
                               <div key={reply.id} className="ml-4 mt-2 pl-3 border-l-2 border-gray-300">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                    {getUserInitials(reply)}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                      {getUserInitials(reply)}
+                                    </div>
+                                    <span className="font-medium text-sm">
+                                      {reply.first_name} {reply.last_name}
+                                    </span>
                                   </div>
-                                  <span className="font-medium text-sm">
-                                    {reply.first_name} {reply.last_name}
-                                  </span>
+                                  {/* Reply moderation controls */}
+                                  {(reply.user_id === currentUserId || userRole === 'teacher' || userRole === 'admin') && (
+                                    <button className="text-gray-500 hover:text-gray-700">
+                                      <Settings className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                  {/* Report button for reply */}
+                                  {reply.user_id !== currentUserId && (
+                                    <button 
+                                      onClick={() => openReportModal(reply.id)}
+                                      className="text-gray-500 hover:text-red-500"
+                                      title="Report inappropriate content"
+                                    >
+                                      <AlertCircle className="h-3 w-3" />
+                                    </button>
+                                  )}
                                 </div>
                                 <p className="text-sm text-gray-700 mt-1">{reply.content}</p>
                               </div>
@@ -717,12 +1098,18 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                     className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                     rows={3}
                   />
-                  <button 
-                    onClick={createDiscussion}
-                    className="w-full mt-2 bg-blue-600 text-white text-sm py-2 rounded-lg hover:bg-blue-700 transition-colors duration-150"
-                  >
-                    Post Discussion
-                  </button>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="text-xs text-gray-500 flex items-center">
+                      <Info className="h-3 w-3 mr-1" />
+                      Posts may be reviewed by moderators
+                    </div>
+                    <button 
+                      onClick={createDiscussion}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors duration-150"
+                    >
+                      Post Discussion
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -746,6 +1133,26 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                   </div>
                 </div>
                 
+                {/* Annotation Type Filter */}
+                <div className="flex space-x-2">
+                  {['all', 'highlight', 'comment', 'bookmark'].map((type) => (
+                    <button
+                      key={type}
+                      className={`text-xs px-2 py-1 rounded capitalize ${
+                        type === 'all'
+                          ? 'bg-gray-200 text-gray-800' 
+                          : type === 'highlight' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : type === 'comment' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-purple-100 text-purple-700'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+
                 {loading.annotations ? (
                   <div className="text-center py-8">
                     <Loader className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -753,48 +1160,56 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                   </div>
                 ) : (
                   <>
-                    {annotations.map(annotation => (
-                      <div 
-                        key={annotation.id}
-                        className={`p-3 rounded-lg border-l-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150 ${
-                          annotation.type === 'highlight' ? 'border-blue-500 bg-blue-50' :
-                          annotation.type === 'comment' ? 'border-green-500 bg-green-50' :
-                          'border-purple-500 bg-purple-50'
-                        }`}
-                        onClick={() => handleAnnotationClick(annotation.timestamp)}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-xs font-medium ${
-                            annotation.type === 'highlight' ? 'text-blue-700' :
-                            annotation.type === 'comment' ? 'text-green-700' :
-                            'text-purple-700'
-                          }`}>
-                            {annotation.type}
-                          </span>
-                          <span className="text-xs text-gray-500 flex items-center space-x-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{formatTime(annotation.timestamp)}</span>
-                          </span>
+                    {annotations.length > 0 ? (
+                      annotations.map(annotation => (
+                        <div 
+                          key={annotation.id}
+                          className={`p-3 rounded-lg border-l-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150 ${
+                            annotation.type === 'highlight' ? 'border-blue-500 bg-blue-50' :
+                            annotation.type === 'comment' ? 'border-green-500 bg-green-50' :
+                            'border-purple-500 bg-purple-50'
+                          }`}
+                          onClick={() => handleAnnotationClick(annotation.timestamp)}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-medium ${
+                              annotation.type === 'highlight' ? 'text-blue-700' :
+                              annotation.type === 'comment' ? 'text-green-700' :
+                              'text-purple-700'
+                            }`}>
+                              {annotation.type}
+                            </span>
+                            <span className="text-xs text-gray-500 flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTime(annotation.timestamp)}</span>
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">{annotation.content}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">
+                              {annotation.is_public ? 'Public' : 'Private'}
+                            </span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Implement delete functionality
+                                console.log('Delete annotation', annotation.id);
+                              }}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-700">{annotation.content}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-500">
-                            {annotation.is_public ? 'Public' : 'Private'}
-                          </span>
-                          {/* Delete functionality can be added here */}
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <PenTool className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No annotations yet</p>
+                        <p className="text-xs">Add highlights and comments as you watch</p>
                       </div>
-                    ))}
+                    )}
                   </>
-                )}
-                
-                {/* No Annotations Message */}
-                {!loading.annotations && annotations.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <PenTool className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No annotations yet</p>
-                    <p className="text-xs">Add highlights and comments as you watch</p>
-                  </div>
                 )}
               </div>
             )}
@@ -824,6 +1239,68 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           onClose={() => setShowQuizResults(false)}
           onRetake={handleRetakeQuiz}
         />
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Report Inappropriate Content</h3>
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Please select a reason for reporting this content:
+              </p>
+              
+              <div className="space-y-3 mb-6">
+                {[
+                  { value: 'inappropriate', label: 'Inappropriate content' },
+                  { value: 'spam', label: 'Spam or advertising' },
+                  { value: 'harassment', label: 'Harassment or bullying' },
+                  { value: 'offensive', label: 'Offensive language' },
+                  { value: 'other', label: 'Other' }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center">
+                    <input
+                      type="radio"
+                      name="reportReason"
+                      value={option.value}
+                      checked={reportReason === option.value}
+                      onChange={(e) => setReportReason(e.target.value as any)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-3 block text-sm text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitReport}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Submit Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

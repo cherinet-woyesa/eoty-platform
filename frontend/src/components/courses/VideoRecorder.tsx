@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import type { FC } from 'react';
 import { useVideoRecorder } from '../../hooks/useVideoRecorder';
 import { videoApi, coursesApi } from '../../services/api';
 import { 
@@ -6,12 +7,14 @@ import {
   Upload, RotateCcw, Camera, BookOpen,
   CheckCircle, X, Loader
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface VideoRecorderProps {
   onRecordingComplete?: (videoUrl: string) => void;
 }
 
-const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) => {
+const VideoRecorder: FC<VideoRecorderProps> = ({ onRecordingComplete }) => {
+  const { t } = useTranslation();
   const {
     isRecording,
     recordedVideo,
@@ -57,13 +60,15 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
 
   // Recording timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isRecording && !isPaused) {
       interval = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isRecording, isPaused]);
 
   const handleStartRecording = async () => {
@@ -104,7 +109,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
 
   const handleUpload = async () => {
     if (!videoBlob || !selectedCourse || !lessonTitle) {
-      alert('Please select a course and enter a lesson title');
+      alert(t('video_recorder.select_course_lesson_title'));
       return;
     }
 
@@ -114,7 +119,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
       // First create the lesson
       const lessonResponse = await coursesApi.createLesson(selectedCourse, {
         title: lessonTitle,
-        description: 'Video lesson recorded from browser',
+        description: t('video_recorder.video_lesson_description'),
         order: 0
       });
 
@@ -133,7 +138,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
 
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Failed to upload video. Please try again.');
+      alert(t('video_recorder.upload_failed'));
     } finally {
       setUploading(false);
     }
@@ -145,14 +150,14 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Camera className="h-8 w-8 text-red-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Camera Access Required</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('video_recorder.camera_access_required')}</h3>
         <p className="text-gray-600 mb-4">{error}</p>
         <button
           onClick={handleReset}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          Try Again
+          {t('video_recorder.try_again')}
         </button>
       </div>
     );
@@ -184,7 +189,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
             <span className="text-white font-medium">{formatTime(recordingTime)}</span>
             {isPaused && (
-              <span className="text-yellow-300 font-medium">PAUSED</span>
+              <span className="text-yellow-300 font-medium">{t('video_recorder.paused')}</span>
             )}
           </div>
         )}
@@ -198,7 +203,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
                 className="flex items-center space-x-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors duration-200"
               >
                 <Circle className="h-5 w-5" />
-                <span>Start Recording</span>
+                <span>{t('video_recorder.start_recording')}</span>
               </button>
             ) : (
               <div className="flex items-center space-x-3">
@@ -223,20 +228,20 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
       {/* Lesson Form */}
       {showLessonForm && recordedVideo && (
         <div className="p-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Save Your Recording</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('video_recorder.save_recording')}</h3>
           
           <div className="space-y-4">
             {/* Course Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Course
+                {t('video_recorder.select_course')}
               </label>
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Choose a course...</option>
+                <option value="">{t('video_recorder.choose_course')}</option>
                 {courses.map(course => (
                   <option key={course.id} value={course.id}>
                     {course.title}
@@ -248,13 +253,13 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
             {/* Lesson Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lesson Title
+                {t('video_recorder.lesson_title')}
               </label>
               <input
                 type="text"
                 value={lessonTitle}
                 onChange={(e) => setLessonTitle(e.target.value)}
-                placeholder="Enter lesson title..."
+                placeholder={t('video_recorder.enter_lesson_title')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -266,7 +271,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Record Again
+                {t('video_recorder.record_again')}
               </button>
               
               <button
@@ -277,17 +282,17 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
                 {uploading ? (
                   <>
                     <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
+                    {t('video_recorder.uploading')}
                   </>
                 ) : uploadSuccess ? (
                   <>
                     <CheckCircle className="mr-2 h-4 w-4" />
-                    Uploaded!
+                    {t('video_recorder.uploaded')}
                   </>
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Save Lesson
+                    {t('video_recorder.save_lesson')}
                   </>
                 )}
               </button>
@@ -302,9 +307,9 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
           <div className="flex items-start space-x-3">
             <Camera className="h-5 w-5 text-gray-400 mt-0.5" />
             <div>
-              <h4 className="text-sm font-medium text-gray-900">Ready to Record</h4>
+              <h4 className="text-sm font-medium text-gray-900">{t('video_recorder.ready_to_record')}</h4>
               <p className="text-sm text-gray-600 mt-1">
-                Click "Start Recording" to begin your video lesson. Make sure you have good lighting and audio quality.
+                {t('video_recorder.camera_access_instructions')}
               </p>
             </div>
           </div>

@@ -39,7 +39,7 @@ declare global {
 }
 
 export const speechToText = {
-  // Supported languages for the platform
+  // Supported languages for the platform with enhanced information
   supportedLanguages: {
     'en-US': 'English (US)',
     'en-CA': 'English (Canada)',
@@ -79,7 +79,7 @@ export const speechToText = {
     return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
   },
 
-  // Browser-native speech recognition with multi-language support
+  // Browser-native speech recognition with multi-language support and improved error handling
   startBrowserRecognition: (language?: string): Promise<{transcript: string, confidence: number}> => {
     return new Promise((resolve, reject) => {
       if (!speechToText.isBrowserSupported()) {
@@ -102,6 +102,7 @@ export const speechToText = {
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error, event.message);
         reject(new Error(`Speech recognition error: ${event.error} - ${event.message}`));
       };
 
@@ -109,11 +110,15 @@ export const speechToText = {
         // Recognition ended
       };
 
-      recognition.start();
+      try {
+        recognition.start();
+      } catch (error) {
+        reject(new Error(`Failed to start speech recognition: ${error}`));
+      }
     });
   },
 
-  // Enhanced browser recognition with better error handling
+  // Enhanced browser recognition with better error handling and language fallback
   startEnhancedBrowserRecognition: async (language?: string): Promise<{transcript: string, confidence: number, language: string}> => {
     try {
       const lang = language || speechToText.getUserLanguage();
@@ -123,6 +128,8 @@ export const speechToText = {
         language: lang
       };
     } catch (error) {
+      console.warn('Primary language recognition failed:', error);
+      
       // Fallback to English if language-specific recognition fails
       if (language && language !== 'en-US') {
         try {
@@ -132,9 +139,25 @@ export const speechToText = {
             language: 'en-US'
           };
         } catch (fallbackError) {
+          console.error('Fallback language recognition also failed:', fallbackError);
           throw error; // Throw original error if fallback also fails
         }
       }
+      
+      // Try with user's browser language as last resort
+      try {
+        const browserLang = speechToText.getUserLanguage();
+        if (browserLang !== language && browserLang !== 'en-US') {
+          const result = await speechToText.startBrowserRecognition(browserLang);
+          return {
+            ...result,
+            language: browserLang
+          };
+        }
+      } catch (browserLangError) {
+        console.error('Browser language recognition failed:', browserLangError);
+      }
+      
       throw error;
     }
   },
@@ -152,5 +175,10 @@ export const speechToText = {
     } catch (e) {
       return false;
     }
+  },
+  
+  // Get list of supported languages
+  getSupportedLanguages(): string[] {
+    return Object.keys(this.supportedLanguages);
   }
 };

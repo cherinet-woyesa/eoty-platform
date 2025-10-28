@@ -1,5 +1,5 @@
-import { apiClient } from '../index';
-import { 
+import { apiClient } from './index';
+import type { 
   Resource, 
   UserNote, 
   AISummary, 
@@ -7,7 +7,7 @@ import {
   ResourceResponse, 
   FilterOptions,
   CreateNoteRequest 
-} from '../../../types/resources';
+} from '../../types/resources';
 
 export const resourcesApi = {
   // Get resources with filtering

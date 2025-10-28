@@ -68,6 +68,7 @@ exports.seed = function(knex) {
         { role: 'student', permission_id: 24 }, // chapter:view
         
         // Teacher permissions (includes all student permissions + more)
+        { role: 'teacher', permission_id: 1 }, // course:view
         { role: 'teacher', permission_id: 2 }, // course:create
         { role: 'teacher', permission_id: 3 }, // course:edit_own
         { role: 'teacher', permission_id: 5 }, // course:delete_own

@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { speechToText } from '../../services/speechToText';
 import { 
   Send, Bot, User, Trash2, AlertTriangle, 
   BookOpen, Loader, Mic, MicOff,
-  Volume2, VolumeX, Globe
+  Volume2, VolumeX, Globe, Clock, CheckCircle, FileText
 } from 'lucide-react';
 
 interface AIChatInterfaceProps {
@@ -14,8 +15,8 @@ interface AIChatInterfaceProps {
 }
 
 const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) => {
-  const [input, setInput] = useState('');
-  const [isUsingAudio, setIsUsingAudio] = useState(false);
+  const [input, setInput] = useState<string>('');
+  const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -85,7 +86,7 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
       // Auto-submit after short delay
       setTimeout(() => {
         handleSubmitWithText(transcription);
-      }, 500);
+      }, 300);
       
     } catch (err: any) {
       console.error('Transcription error:', err);
@@ -133,6 +134,36 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Calculate response time for performance monitoring
+  const calculateResponseTime = (messages: any[]) => {
+    if (messages.length < 2) return null;
+    
+    const lastUserMessage = messages[messages.length - 2];
+    const lastAiMessage = messages[messages.length - 1];
+    
+    if (lastUserMessage.role === 'user' && lastAiMessage.role === 'assistant') {
+      const timeDiff = lastAiMessage.timestamp.getTime() - lastUserMessage.timestamp.getTime();
+      return Math.round(timeDiff / 1000); // in seconds
+    }
+    
+    return null;
+  };
+
+  // Get detailed performance metrics
+  const getPerformanceMetrics = (messages: any[]) => {
+    if (messages.length < 2) return null;
+    
+    const lastAiMessage = messages[messages.length - 1];
+    if (lastAiMessage.role === 'assistant' && lastAiMessage.metadata?.performanceMetrics) {
+      return lastAiMessage.metadata.performanceMetrics;
+    }
+    
+    return null;
+  };
+
+  const responseTime = calculateResponseTime(messages);
+  const performanceMetrics = getPerformanceMetrics(messages);
+
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-200">
       {/* Header */}
@@ -147,6 +178,23 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {responseTime !== null && responseTime < 3 && (
+            <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <Clock className="h-3 w-3 mr-1" />
+              {responseTime}s response
+            </div>
+          )}
+          {performanceMetrics && performanceMetrics.totalTimeMs && performanceMetrics.totalTimeMs < 3000 ? (
+            <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {performanceMetrics.totalTimeMs}ms
+            </div>
+          ) : performanceMetrics && performanceMetrics.totalTimeMs ? (
+            <div className="flex items-center text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {performanceMetrics.totalTimeMs}ms
+            </div>
+          ) : null}
           <button
             onClick={clearConversation}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors duration-150"
@@ -248,12 +296,30 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
                   </div>
                 )}
                 
+                {/* Related Resources */}
+                {message.role === 'assistant' && message.metadata?.relatedResources && message.metadata.relatedResources.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
+                      <FileText className="h-3 w-3" />
+                      <span>Related Resources:</span>
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      {message.metadata.relatedResources.slice(0, 3).map((resource: any, index: number) => (
+                        <div key={index} className="flex items-start">
+                          <FileText className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                          <span>{resource.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Language Information */}
                 {message.role === 'assistant' && message.detectedLanguage && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="flex items-center space-x-1 text-xs text-gray-500">
                       <Globe className="h-3 w-3" />
-                      <span>Response in {message.detectedLanguage}</span>
+                      <span>Response in {speechToText.supportedLanguages[message.detectedLanguage as keyof typeof speechToText.supportedLanguages] || message.detectedLanguage}</span>
                     </div>
                   </div>
                 )}
@@ -404,12 +470,34 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
           </div>
         )}
         
-        {/* Language Support Information */}
-        {speechToText.isBrowserSupported() && (
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            Supported languages: English, Amharic, Tigrigna, Oromo, Somali
+        {/* Enhanced Language Support Information */}
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="flex items-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+              English
+            </span>
+            <span className="flex items-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+              Amharic
+            </span>
+            <span className="flex items-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+              Tigrigna
+            </span>
+            <span className="flex items-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+              Oromo
+            </span>
+            <span className="flex items-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+              Somali
+            </span>
           </div>
-        )}
+          <div className="mt-1">
+            Supported in Chrome, Edge, and Safari
+          </div>
+        </div>
       </div>
     </div>
   );

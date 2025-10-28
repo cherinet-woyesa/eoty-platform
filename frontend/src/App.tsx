@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -19,18 +19,37 @@ import Achievements from './pages/social/Achievements';
 import Leaderboards from './pages/social/Leaderboards';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import ContentManagement from './pages/admin/ContentManagement';
-import { UserProvider } from './context/UserContext'; // Import UserProvider
+import { UserProvider } from './context/UserContext';
 import ContentManager from './components/admin/ContentManager';
 import ModerationTools from './components/admin/ModerationTools';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import TagManager from './components/admin/TagManager';
+import Header from './components/common/Layout/Header';
+import Sidebar from './components/common/Layout/Sidebar';
+import ResourceLibrary from './pages/resources/ResourceLibrary';
+import ResourceView from './pages/resources/ResourceView';
+import './i18n/config';
 
-// Enhanced ProtectedRoute component with role support
-const ProtectedRoute: React.FC<{ 
-  children: React.ReactNode;
+// Define types
+type ReactNode = React.ReactNode;
+
+interface ProtectedRouteProps {
+  children: ReactNode;
   requiredRole?: string | string[];
   requiredPermission?: string;
-}> = ({ children, requiredRole, requiredPermission }) => {
+}
+
+interface RouteProps {
+  children: ReactNode;
+  requiredPermission?: string;
+}
+
+interface PublicRouteProps {
+  children: ReactNode;
+}
+
+// Enhanced ProtectedRoute component with role support
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole, requiredPermission }) => {
   const { isAuthenticated, user, hasPermission, hasRole, isLoading } = useAuth();
   
   // Show loading spinner while checking authentication
@@ -80,10 +99,7 @@ const ProtectedRoute: React.FC<{
 };
 
 // Role-specific route components
-const StudentRoute: React.FC<{ 
-  children: React.ReactNode;
-  requiredPermission?: string;
-}> = ({ children, requiredPermission }) => (
+const StudentRoute: React.FC<RouteProps> = ({ children, requiredPermission }) => (
   <ProtectedRoute 
     requiredRole={['student', 'teacher', 'chapter_admin', 'platform_admin']}
     requiredPermission={requiredPermission}
@@ -92,10 +108,7 @@ const StudentRoute: React.FC<{
   </ProtectedRoute>
 );
 
-const TeacherRoute: React.FC<{ 
-  children: React.ReactNode;
-  requiredPermission?: string;
-}> = ({ children, requiredPermission }) => (
+const TeacherRoute: React.FC<RouteProps> = ({ children, requiredPermission }) => (
   <ProtectedRoute 
     requiredRole={['teacher', 'chapter_admin', 'platform_admin']}
     requiredPermission={requiredPermission}
@@ -104,10 +117,7 @@ const TeacherRoute: React.FC<{
   </ProtectedRoute>
 );
 
-const AdminRoute: React.FC<{ 
-  children: React.ReactNode;
-  requiredPermission?: string;
-}> = ({ children, requiredPermission }) => (
+const AdminRoute: React.FC<RouteProps> = ({ children, requiredPermission }) => (
   <ProtectedRoute 
     requiredRole={['chapter_admin', 'platform_admin']}
     requiredPermission={requiredPermission}
@@ -117,7 +127,7 @@ const AdminRoute: React.FC<{
 );
 
 // Public route component (redirects authenticated users away from login/register)
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   // Show loading spinner while checking authentication
@@ -148,7 +158,7 @@ const DynamicDashboard: React.FC = () => {
   return <TeacherDashboard />;
 };
 
-// Main app content with routing
+// Main App Content that uses the auth context
 function AppContent() {
   const { user, isLoading } = useAuth();
 
@@ -165,10 +175,250 @@ function AppContent() {
   }
 
   return (
-    <Router>
-      <div className="App">
+    <div className="App">
+      {/* Show sidebar and header only for authenticated users */}
+      {user ? (
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar />
+          <div className="flex-1 overflow-auto">
+            <Header />
+            <main className="p-6">
+              <Routes>
+                {/* Dashboard - Accessible to all authenticated users */}
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <DynamicDashboard />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Courses - Accessible to all authenticated users */}
+                <Route 
+                  path="/courses" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <MyCourses />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                {/* Course Details - Accessible to all authenticated users */}
+                <Route 
+                  path="/courses/:courseId" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <CourseDetails />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                {/* Create Course - Only for teachers and above */}
+                <Route 
+                  path="/courses/new" 
+                  element={
+                    <TeacherRoute requiredPermission="course:create">
+                      <DashboardLayout>
+                        <CreateCourse />
+                      </DashboardLayout>
+                    </TeacherRoute>
+                  } 
+                />
+
+                {/* Record Video - Only for teachers and above with video upload permission */}
+                <Route 
+                  path="/record" 
+                  element={
+                    <TeacherRoute requiredPermission="video:upload">
+                      <DashboardLayout>
+                        <RecordVideo />
+                      </DashboardLayout>
+                    </TeacherRoute>
+                  } 
+                />
+
+                {/* AI Assistant - Accessible to all authenticated users */}
+                <Route 
+                  path="/ai-assistant" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <AIAssistant />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                {/* Admin Routes */}
+                <Route 
+                  path="/admin" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <AdminDashboard />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/admin/dashboard" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <AdminDashboard />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/admin/content" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <ContentManagement />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/admin/moderation" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <ModerationTools />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/admin/analytics" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <AnalyticsDashboard />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/admin/tags" 
+                  element={
+                    <AdminRoute>
+                      <DashboardLayout>
+                        <TagManager />
+                      </DashboardLayout>
+                    </AdminRoute>
+                  } 
+                />
+
+                {/* Social Features */}
+                <Route 
+                  path="/forums" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <Forums />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/forums/:forumId" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <ForumTopics />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/achievements" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <Achievements />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/leaderboards" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <Leaderboards />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                {/* Resource Routes */}
+                <Route 
+                  path="/resources" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <ResourceLibrary />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/resources/:id" 
+                  element={
+                    <StudentRoute>
+                      <DashboardLayout>
+                        <ResourceView />
+                      </DashboardLayout>
+                    </StudentRoute>
+                  } 
+                />
+
+                {/* Default route */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                {/* 404 Route */}
+                <Route 
+                  path="*" 
+                  element={
+                    <div className="flex items-center justify-center min-h-screen">
+                      <div className="text-center">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+                        <p className="text-gray-600">Page not found</p>
+                        <button 
+                          onClick={() => window.location.href = '/dashboard'}
+                          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          Go to Dashboard
+                        </button>
+                      </div>
+                    </div>
+                  } 
+                />
+              </Routes>
+            </main>
+          </div>
+        </div>
+      ) : (
+        /* Public routes without sidebar and header */
         <Routes>
-          {/* Public Routes */}
           <Route 
             path="/login" 
             element={
@@ -185,227 +435,27 @@ function AppContent() {
               </PublicRoute>
             } 
           />
-
-          {/* Protected Routes - Role Based */}
-          
-          {/* Dashboard - Accessible to all authenticated users */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <DynamicDashboard />
-                </DashboardLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* Courses - Accessible to all authenticated users */}
-          <Route 
-            path="/courses" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <MyCourses />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          <Route 
-            path="/admin/dashboard" 
-            element={
-              <AdminRoute>
-                <DashboardLayout>
-                  <AdminDashboard />
-                </DashboardLayout>
-              </AdminRoute>
-            } 
-          />
-
-          <Route 
-            path="/admin/content" 
-            element={
-              <AdminRoute>
-                <ContentManagement />
-              </AdminRoute>
-            } 
-          />
-
-          <Route 
-            path="/admin/moderation" 
-            element={
-              <AdminRoute>
-                <DashboardLayout>
-                  <ModerationTools />
-                </DashboardLayout>
-              </AdminRoute>
-            } 
-          />
-
-          <Route 
-            path="/admin/analytics" 
-            element={
-              <AdminRoute>
-                <DashboardLayout>
-                  <AnalyticsDashboard />
-                </DashboardLayout>
-              </AdminRoute>
-            } 
-          />
-
-          <Route 
-            path="/admin/tags" 
-            element={
-              <AdminRoute>
-                <DashboardLayout>
-                  <TagManager />
-                </DashboardLayout>
-              </AdminRoute>
-            } 
-          />
-
-          <Route 
-            path="/forums" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <Forums />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          <Route 
-            path="/forums/:forumId" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <ForumTopics />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          <Route 
-            path="/achievements" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <Achievements />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          <Route 
-            path="/leaderboards" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <Leaderboards />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          {/* Course Details - Accessible to all authenticated users */}
-          <Route 
-            path="/courses/:courseId" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <CourseDetails />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          {/* Create Course - Only for teachers and above */}
-          <Route 
-            path="/courses/new" 
-            element={
-              <TeacherRoute requiredPermission="course:create">
-                <DashboardLayout>
-                  <CreateCourse />
-                </DashboardLayout>
-              </TeacherRoute>
-            } 
-          />
-
-          {/* Record Video - Only for teachers and above with video upload permission */}
-          <Route 
-            path="/record" 
-            element={
-              <TeacherRoute requiredPermission="video:upload">
-                <DashboardLayout>
-                  <RecordVideo />
-                </DashboardLayout>
-              </TeacherRoute>
-            } 
-          />
-
-          {/* AI Assistant - Accessible to all authenticated users */}
-          <Route 
-            path="/ai-assistant" 
-            element={
-              <StudentRoute>
-                <DashboardLayout>
-                  <AIAssistant />
-                </DashboardLayout>
-              </StudentRoute>
-            } 
-          />
-
-          {/* Admin Routes - Main admin dashboard */}
-          <Route 
-            path="/admin" 
-            element={
-              <AdminRoute>
-                <DashboardLayout>
-                  <AdminDashboard />
-                </DashboardLayout>
-              </AdminRoute>
-            } 
-          />
-
-          {/* Default route */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-          {/* 404 Route */}
-          <Route 
-            path="*" 
-            element={
-              <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                  <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-                  <p className="text-gray-600">Page not found</p>
-                  <button 
-                    onClick={() => window.location.href = '/dashboard'}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Go to Dashboard
-                  </button>
-                </div>
-              </div>
-            } 
-          />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-        
-        {/* Floating AI Chat - Only show for authenticated users */}
-        {user && <FloatingAIChat />}
-      </div>
-    </Router>
+      )}
+      
+      {/* Floating AI Chat - Only show for authenticated users */}
+      {user && <FloatingAIChat />}
+    </div>
   );
 }
 
+// Main App component that provides the context
 function App() {
   return (
-    <AuthProvider>
-      <UserProvider>
-        <AppContent />
-      </UserProvider>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <UserProvider>
+          <AppContent />
+        </UserProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

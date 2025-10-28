@@ -3,9 +3,12 @@ const path = require('path');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { v4: uuidv4 } = require('uuid');
 
-// For now, we'll store videos locally. Later we'll integrate AWS S3
+// Configure storage
+const storage = multer.memoryStorage();
+
+// Create upload middleware
 const upload = multer({
-  dest: 'uploads/videos/temp/',
+  storage: storage,
   fileFilter: (req, file, cb) => {
     // Check if file is video
     if (file.mimetype.startsWith('video/')) {

@@ -20,13 +20,14 @@ exports.up = async function(knex) {
     table.index(['faith_alignment_score']);
   });
 
-  // Moderation escalations table
+  // Moderation escalations table with priority levels
   await knex.schema.createTable('moderation_escalations', (table) => {
     table.increments('id').primary();
     table.integer('user_id').unsigned().notNullable();
     table.text('content').notNullable();
     table.string('content_type').notNullable();
     table.text('reason').notNullable();
+    table.string('priority').defaultTo('medium'); // low, medium, high
     table.string('status').defaultTo('pending'); // pending, reviewed, resolved
     table.integer('reviewed_by').unsigned();
     table.text('resolution_notes');
@@ -36,6 +37,7 @@ exports.up = async function(knex) {
     table.foreign('reviewed_by').references('id').inTable('users');
     table.index(['status', 'created_at']);
     table.index(['user_id']);
+    table.index(['priority']);
   });
 
   // Moderation statistics table
