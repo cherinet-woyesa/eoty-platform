@@ -4,22 +4,73 @@ import {
   Video, BookOpen, Users, BarChart, 
   Plus, ArrowRight, PlayCircle, TrendingUp,
   Clock, Eye, Star, Zap, Target, Award,
-  ChevronRight, Activity, Bookmark, MessageCircle
+  ChevronRight, Activity, Bookmark, MessageCircle,
+  Loader2, AlertCircle, CheckCircle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { dashboardApi, CourseStats, DashboardStats, RecentActivity, Notification } from '../../services/api/dashboard';
 
 const TeacherDashboard: React.FC = () => {
+  const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [courses, setCourses] = useState<CourseStats[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Mock data with more realistic numbers
-  const stats = [
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all dashboard data in parallel
+        const [statsResponse, coursesResponse, activityResponse, notificationsResponse] = await Promise.all([
+          dashboardApi.getTeacherStats(),
+          dashboardApi.getTeacherCourses(),
+          dashboardApi.getRecentActivity(),
+          dashboardApi.getNotifications()
+        ]);
+
+        if (statsResponse.success) {
+          setDashboardStats(statsResponse.data);
+        }
+
+        if (coursesResponse.success) {
+          setCourses(coursesResponse.data.courses);
+        }
+
+        if (activityResponse.success) {
+          setRecentActivity(activityResponse.data);
+        }
+
+        if (notificationsResponse.success) {
+          setNotifications(notificationsResponse.data);
+        }
+
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Convert real data to stats format
+  const stats = dashboardStats ? [
     { 
       name: 'Active Courses', 
-      value: '8', 
+      value: dashboardStats.totalCourses.toString(), 
       icon: BookOpen, 
       change: '+2', 
       changeType: 'positive',
@@ -28,7 +79,7 @@ const TeacherDashboard: React.FC = () => {
     },
     { 
       name: 'Total Students', 
-      value: '247', 
+      value: dashboardStats.totalStudents.toString(), 
       icon: Users, 
       change: '+12', 
       changeType: 'positive',
@@ -36,103 +87,101 @@ const TeacherDashboard: React.FC = () => {
       bgColor: 'from-green-50 to-green-100'
     },
     { 
-      name: 'Videos Created', 
-      value: '34', 
+      name: 'Video Lessons', 
+      value: dashboardStats.totalLessons.toString(), 
       icon: Video, 
-      change: '+5', 
+      change: '+8', 
       changeType: 'positive',
       color: 'from-purple-500 to-purple-600',
       bgColor: 'from-purple-50 to-purple-100'
     },
     { 
-      name: 'Avg. Rating', 
-      value: '4.8', 
-      icon: Star, 
-      change: '+0.2', 
+      name: 'Hours Taught', 
+      value: dashboardStats.totalHours.toString(), 
+      icon: Clock, 
+      change: '+15', 
       changeType: 'positive',
-      color: 'from-yellow-500 to-orange-500',
-      bgColor: 'from-yellow-50 to-orange-100'
-    },
-  ];
+      color: 'from-orange-500 to-orange-600',
+      bgColor: 'from-orange-50 to-orange-100'
+    }
+  ] : [];
 
-  const recentCourses = [
-    { 
-      id: 1, 
-      title: 'Introduction to Orthodox Faith', 
-      students: 45, 
-      progress: 89, 
-      lastUpdated: '2 hours ago',
-      rating: 4.9,
-      duration: '2h 30m',
-      lessons: 12
-    },
-    { 
-      id: 2, 
-      title: 'Church History Fundamentals', 
-      students: 32, 
-      progress: 76, 
-      lastUpdated: '1 day ago',
-      rating: 4.7,
-      duration: '1h 45m',
-      lessons: 8
-    },
-    { 
-      id: 3, 
-      title: 'Spiritual Development', 
-      students: 28, 
-      progress: 92, 
-      lastUpdated: '3 days ago',
-      rating: 4.8,
-      duration: '3h 15m',
-      lessons: 15
-    },
-  ];
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
 
-  const quickActions = [
-    {
-      title: 'Record Video',
-      description: 'Create engaging video lessons',
-      icon: Video,
-      href: '/record-video',
-      color: 'from-red-500 to-pink-600',
-      bgColor: 'from-red-50 to-pink-50',
-      buttonText: 'Start Recording'
-    },
-    {
-      title: 'Create Course',
-      description: 'Organize lessons into courses',
-      icon: BookOpen,
-      href: '/courses/new',
-      color: 'from-blue-500 to-indigo-600',
-      bgColor: 'from-blue-50 to-indigo-50',
-      buttonText: 'New Course'
-    },
-    {
-      title: 'View Analytics',
-      description: 'Track student progress',
-      icon: BarChart,
-      href: '/analytics',
-      color: 'from-green-500 to-emerald-600',
-      bgColor: 'from-green-50 to-emerald-50',
-      buttonText: 'View Reports'
-    },
-    {
-      title: 'Manage Students',
-      description: 'Connect with your learners',
-      icon: Users,
-      href: '/students',
-      color: 'from-purple-500 to-violet-600',
-      bgColor: 'from-purple-50 to-violet-50',
-      buttonText: 'View Students'
-    },
-  ];
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
 
-  const recentActivity = [
-    { action: 'New video uploaded', course: 'Orthodox Faith', time: '2 hours ago', type: 'video' },
-    { action: 'Student completed lesson', course: 'Church History', time: '4 hours ago', type: 'completion' },
-    { action: 'Course published', course: 'Spiritual Development', time: '1 day ago', type: 'publish' },
-    { action: 'New student enrolled', course: 'Introduction to Orthodox Faith', time: '2 days ago', type: 'enrollment' },
-  ];
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'course_created':
+        return <BookOpen className="h-4 w-4 text-blue-500" />;
+      case 'lesson_uploaded':
+        return <Video className="h-4 w-4 text-purple-500" />;
+      case 'student_enrolled':
+        return <Users className="h-4 w-4 text-green-500" />;
+      case 'course_completed':
+        return <CheckCircle className="h-4 w-4 text-yellow-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'warning':
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <MessageCircle className="h-4 w-4 text-blue-500" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
@@ -142,185 +191,216 @@ const TeacherDashboard: React.FC = () => {
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
               <h1 className="text-xl sm:text-2xl font-bold">Welcome back!</h1>
-              <div className="hidden sm:flex items-center space-x-1 text-blue-100 text-sm">
-                <Clock className="h-3 w-3" />
-                <span>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <div className="hidden sm:flex items-center space-x-2 text-blue-100">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm">{formatTime(currentTime)}</span>
               </div>
             </div>
-            <p className="text-blue-100 text-sm sm:text-base max-w-2xl leading-relaxed">
-              Continue inspiring the youth with your teachings. You have 3 new student submissions waiting for review.
+            <p className="text-blue-100 text-sm sm:text-base">
+              {user?.firstName} {user?.lastName} • {formatDate(currentTime)}
+            </p>
+            <p className="text-blue-200 text-xs sm:text-sm mt-1">
+              Ready to inspire and educate your students today?
             </p>
           </div>
-          <Link
-            to="/record-video"
-            className="mt-4 lg:mt-0 inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-blue-600 bg-white hover:bg-blue-50 transition-all duration-200 transform hover:scale-105 shadow-lg"
-          >
-            <Video className="mr-2 h-4 w-4" />
-            Record New Lesson
-          </Link>
+          <div className="mt-4 lg:mt-0 lg:ml-6">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                to="/record"
+                className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+              >
+                <Video className="h-4 w-4 mr-2" />
+                Record Video
+              </Link>
+              <Link
+                to="/courses/new"
+                className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Course
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Stats Grid - Compact Cards */}
+      {/* Stats Grid - Compact and Responsive */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.name}
-              className={`bg-gradient-to-br ${stat.bgColor} overflow-hidden rounded-lg border border-gray-200/60 p-3 sm:p-4 hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-600 truncate">{stat.name}</p>
-                  <div className="flex items-baseline mt-1">
-                    <p className="text-lg sm:text-xl font-bold text-gray-900">{stat.value}</p>
-                    <span className={`ml-2 text-xs font-semibold ${
-                      stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {stat.change}
-                    </span>
-                  </div>
-                </div>
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color} shadow-sm`}>
-                  <Icon className="h-4 w-4 text-white" />
+        {stats.map((stat, index) => (
+          <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-xl p-3 sm:p-4 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} shadow-sm`}>
+                <stat.icon className="h-4 w-4 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center space-x-1">
+                  <TrendingUp className="h-3 w-3 text-green-600" />
+                  <span className="text-xs font-medium text-green-700">{stat.change}</span>
                 </div>
               </div>
             </div>
-          );
-        })}
+            <div>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">{stat.name}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Quick Actions - Responsive Grid */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Quick Actions</h2>
-          <div className="flex items-center space-x-1 text-sm text-gray-500">
-            <Zap className="h-3 w-3" />
-            <span>Get started</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Recent Courses - 2/3 width on large screens */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Zap className="h-5 w-5 mr-2 text-yellow-500" />
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Link
-                key={action.title}
-                to={action.href}
-                className={`bg-gradient-to-br ${action.bgColor} rounded-lg border border-gray-200/60 p-4 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 group`}
+                to="/record"
+                className="flex flex-col items-center p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors group"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${action.color} shadow-sm`}>
-                    <Icon className="h-4 w-4 text-white" />
-                  </div>
-                  <ChevronRight className="h-3 w-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">{action.title}</h3>
-                <p className="text-xs text-gray-600 mb-3 leading-relaxed">{action.description}</p>
-                <span className="text-xs font-semibold text-blue-600 group-hover:text-blue-700">
-                  {action.buttonText}
-                </span>
+                <Video className="h-6 w-6 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-medium text-blue-800">Record Video</span>
               </Link>
-            );
-          })}
-        </div>
-      </div>
+              <Link
+                to="/courses/new"
+                className="flex flex-col items-center p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors group"
+              >
+                <Plus className="h-6 w-6 text-green-600 mb-2 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-medium text-green-800">New Course</span>
+              </Link>
+              <Link
+                to="/courses"
+                className="flex flex-col items-center p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors group"
+              >
+                <BookOpen className="h-6 w-6 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-medium text-purple-800">My Courses</span>
+              </Link>
+              <Link
+                to="/analytics"
+                className="flex flex-col items-center p-3 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors group"
+              >
+                <BarChart className="h-6 w-6 text-orange-600 mb-2 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-medium text-orange-800">Analytics</span>
+              </Link>
+            </div>
+          </div>
 
-      {/* Recent Courses - Compact Table Style */}
-      <div className="bg-white rounded-lg border border-gray-200/60 overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Recent Courses</h2>
-            <Link
-              to="/courses"
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center"
-            >
-              View all
-              <ArrowRight className="ml-1 h-3 w-3" />
-            </Link>
+          {/* Recent Courses */}
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <BookOpen className="h-5 w-5 mr-2 text-blue-500" />
+                Recent Courses ({courses.length})
+              </h3>
+              <Link
+                to="/courses"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+              >
+                View All
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+            
+            {courses.length > 0 ? (
+              <div className="space-y-3">
+                {courses.slice(0, 4).map((course) => (
+                  <div key={course.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">{course.title}</h4>
+                      <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+                        <div className="flex items-center space-x-1">
+                          <Video className="h-3 w-3" />
+                          <span>{course.lesson_count} lessons</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Users className="h-3 w-3" />
+                          <span>{course.student_count} students</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{Math.round((course.total_duration || 0) / 60)}h</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <Link
+                        to={`/courses/${course.id}`}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No courses yet</p>
+                <Link
+                  to="/courses/new"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Course
+                </Link>
+              </div>
+            )}
           </div>
         </div>
-        <div className="divide-y divide-gray-200">
-          {recentCourses.map((course) => (
-            <div key={course.id} className="px-4 py-3 hover:bg-gray-50/50 transition-colors duration-150">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
-                    <PlayCircle className="h-4 w-4 text-white" />
+
+        {/* Sidebar - 1/3 width on large screens */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Activity className="h-5 w-5 mr-2 text-green-500" />
+              Recent Activity
+            </h3>
+            <div className="space-y-3">
+              {recentActivity.slice(0, 5).map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-1">
+                    {getActivityIcon(activity.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold text-gray-900 truncate">{course.title}</h3>
-                    <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">
-                      <span className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {course.students} students
-                      </span>
-                      <span className="flex items-center">
-                        <Star className="h-3 w-3 mr-1" />
-                        {course.rating}
-                      </span>
-                      <span className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {course.duration}
-                      </span>
-                    </div>
+                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{activity.description}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(activity.timestamp).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">{course.progress}%</p>
-                    <div className="w-20 bg-gray-200 rounded-full h-1.5 mt-1">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-green-500 h-1.5 rounded-full transition-all duration-300" 
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <Link
-                    to={`/courses/${course.id}`}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-semibold rounded-md text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    View
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity - Compact Feed */}
-      <div className="bg-white rounded-lg border border-gray-200/60 overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-green-50/50">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
-            <div className="flex items-center space-x-1 text-sm text-gray-500">
-              <Activity className="h-3 w-3" />
-              <span>Live updates</span>
+              ))}
             </div>
           </div>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="px-4 py-3 hover:bg-gray-50/50 transition-colors duration-150">
-              <div className="flex items-start space-x-3">
-                <div className={`p-1.5 rounded-full ${
-                  activity.type === 'video' ? 'bg-red-100' :
-                  activity.type === 'completion' ? 'bg-green-100' :
-                  activity.type === 'publish' ? 'bg-blue-100' : 'bg-purple-100'
-                }`}>
-                  {activity.type === 'video' && <Video className="h-3 w-3 text-red-600" />}
-                  {activity.type === 'completion' && <Award className="h-3 w-3 text-green-600" />}
-                  {activity.type === 'publish' && <BookOpen className="h-3 w-3 text-blue-600" />}
-                  {activity.type === 'enrollment' && <Users className="h-3 w-3 text-purple-600" />}
+
+          {/* Notifications */}
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <MessageCircle className="h-5 w-5 mr-2 text-blue-500" />
+              Notifications
+            </h3>
+            <div className="space-y-3">
+              {notifications.slice(0, 3).map((notification) => (
+                <div key={notification.id} className={`flex items-start space-x-3 p-2 rounded-lg ${!notification.isRead ? 'bg-blue-50' : ''}`}>
+                  <div className="flex-shrink-0 mt-1">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                    <p className="text-xs text-gray-500">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notification.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{activity.action}</p>
-                  <p className="text-xs text-gray-500">{activity.course} • {activity.time}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

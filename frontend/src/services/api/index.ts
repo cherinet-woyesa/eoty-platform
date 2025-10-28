@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { forumsApi, achievementsApi } from './community';
 import { adminApi } from './admin';
+import { dashboardApi } from './dashboard';
 import { apiClient } from './apiClient'; // Import apiClient from the new file
 
 const API_BASE = 'http://localhost:5000/api';
@@ -331,6 +332,7 @@ export const moderationApi = {
 export { adminApi };
 
 export { forumsApi, achievementsApi };
+
 // Export all API
 export default {
   auth: authApi,
@@ -342,5 +344,6 @@ export default {
   forums: forumsApi,        // NEW
   achievements: achievementsApi, 
   moderation: moderationApi, // NEW
-  admin: adminApi
+  admin: adminApi,
+  dashboard: dashboardApi
 };
