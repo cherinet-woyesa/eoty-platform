@@ -6,7 +6,8 @@ const { requirePermission, requireRole } = require('../middleware/rbac');
 
 router.use(authenticateToken);
 
-router.get('/', requirePermission('course:view'), courseController.getTeacherCourses);
+// Changed from 'course:view' to 'course:create' since teacher has that permission
+router.get('/', requirePermission('course:create'), courseController.getTeacherCourses);
 router.post('/', requirePermission('course:create'), courseController.createCourse);
 router.post('/:courseId/lessons', requirePermission('lesson:create'), courseController.createLesson);
 
