@@ -8,7 +8,8 @@ import {
   Loader2, AlertCircle, CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { dashboardApi, CourseStats, DashboardStats, RecentActivity, Notification } from '../../services/api/dashboard';
+import { dashboardApi } from '../../services/api/dashboard';
+import type { CourseStats, DashboardStats, RecentActivity, Notification } from '../../services/api/dashboard';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -190,14 +191,14 @@ const TeacherDashboard: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-xl sm:text-2xl font-bold">Welcome back!</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">Welcome back, {user?.firstName || 'Teacher'}!</h1>
               <div className="hidden sm:flex items-center space-x-2 text-blue-100">
                 <Clock className="h-4 w-4" />
                 <span className="text-sm">{formatTime(currentTime)}</span>
               </div>
             </div>
             <p className="text-blue-100 text-sm sm:text-base">
-              {user?.firstName} {user?.lastName} • {formatDate(currentTime)}
+              {formatDate(currentTime)}
             </p>
             <p className="text-blue-200 text-xs sm:text-sm mt-1">
               Ready to inspire and educate your students today?

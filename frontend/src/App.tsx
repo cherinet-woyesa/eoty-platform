@@ -256,6 +256,18 @@ function AppContent() {
               } 
             />
 
+            {/* Teacher Analytics - Only for teachers and above */}
+            <Route 
+              path="/analytics" 
+              element={
+                <TeacherRoute>
+                  <DashboardLayout>
+                    <AnalyticsDashboard />
+                  </DashboardLayout>
+                </TeacherRoute>
+              } 
+            />
+
             {/* Admin Routes */}
             <Route 
               path="/admin" 

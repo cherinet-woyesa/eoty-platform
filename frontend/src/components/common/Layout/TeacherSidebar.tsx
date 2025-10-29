@@ -57,7 +57,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     },
     {
       name: 'Record Video',
-      href: '/record-video',
+      href: '/record',
       icon: Video,
       badge: null,
       description: 'Create lessons',
@@ -73,7 +73,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     },
     {
       name: 'Students',
-      href: '/students',
+      href: '/community', // Using community hub as it's the closest to student management
       icon: Users,
       badge: '247',
       description: 'Manage learners',
@@ -81,7 +81,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     },
     {
       name: 'Analytics',
-      href: '/analytics',
+      href: '/analytics', // Changed from '/admin/analytics' to '/analytics' to use the teacher-specific route
       icon: BarChart2,
       badge: null,
       description: 'View reports',
@@ -89,7 +89,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     },
     {
       name: 'Discussions',
-      href: '/discussions',
+      href: '/forums',
       icon: MessageSquare,
       badge: '12',
       description: 'Student chats',
