@@ -7,6 +7,8 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courses');
 const videoRoutes = require('./routes/videos');
+const quizRoutes = require('./routes/quizzes');
+const discussionRoutes = require('./routes/discussions');
 const aiRoutes = require('./routes/ai');
 const interactiveRoutes = require('./routes/interactive');
 const resourceRoutes = require('./routes/resources');
@@ -52,6 +54,8 @@ app.use('/api/admin', adminRoutes);
 // Protected routes
 app.use('/api/courses', authenticateToken, courseRoutes);
 app.use('/api/videos', authenticateToken, videoRoutes);
+app.use('/api/quizzes', authenticateToken, quizRoutes);
+app.use('/api/discussions', authenticateToken, discussionRoutes);
 app.use('/api/ai', authenticateToken, aiRoutes);
 app.use('/api/interactive', authenticateToken, interactiveRoutes);
 app.use('/api/resources', authenticateToken, resourceRoutes);
