@@ -128,3 +128,7 @@ exports.seed = async function(knex) {
   console.log('Quiz and discussion data seeded successfully!');
 };
 
+
+
+
+

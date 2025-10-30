@@ -6,12 +6,16 @@ router.use(authenticateToken);
 
 // GET /api/onboarding/progress
 router.get('/progress', (req, res) => {
-  // For now, return completed onboarding
+  // Return structure expected by the frontend
   res.json({
     success: true,
-    progress: [],
-    completed: true,
-    currentStep: null
+    data: {
+      has_onboarding: false,
+      flow: null,
+      progress: null,
+      is_completed: true,
+      message: 'Onboarding completed'
+    }
   });
 });
 

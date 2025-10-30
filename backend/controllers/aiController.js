@@ -160,6 +160,74 @@ const aiController = {
         message: 'Failed to clear conversation history'
       });
     }
+  },
+
+  // NEW: Report/escalate an AI question for moderation
+  async reportQuestion(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { question, sessionId = 'default', context = {}, moderation = {} } = req.body || {};
+
+      if (!question || question.trim().length === 0) {
+        return res.status(400).json({ success: false, message: 'Question is required' });
+      }
+
+      // Store in moderated_queries for review
+      await db('moderated_queries').insert({
+        original_query: question,
+        moderated_query: null,
+        moderation_action: 'escalated_by_user',
+        moderation_reasons: JSON.stringify({ moderation, context, sessionId }),
+        user_id: userId
+      });
+
+      // Also log an entry in system_logs for quick visibility
+      await db('system_logs').insert({
+        log_type: 'ai_report',
+        message: JSON.stringify({ userId, sessionId, context, reportedAt: new Date().toISOString() })
+      });
+
+      return res.json({ success: true, message: 'Reported for moderation' });
+    } catch (error) {
+      console.error('AI reportQuestion error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to report question' });
+    }
+  },
+
+  // NEW: Receive client-side telemetry for response times
+  async telemetry(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { sessionId = 'default', context = {}, totalTimeMs = 0, success = false, errorMessage } = req.body || {};
+
+      await db('system_logs').insert({
+        log_type: 'ai_telemetry',
+        message: JSON.stringify({ userId, sessionId, context, totalTimeMs, success, errorMessage, ts: new Date().toISOString() })
+      });
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('AI telemetry error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to record telemetry' });
+    }
+  },
+
+  // NEW: Privacy-safe conversation summary logging (lengths/flags only)
+  async summary(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { sessionId = 'default', language, route, questionLength = 0, answerLength = 0, flagged = false } = req.body || {};
+
+      await db('system_logs').insert({
+        log_type: 'ai_summary',
+        message: JSON.stringify({ userId, sessionId, language, route, questionLength, answerLength, flagged, ts: new Date().toISOString() })
+      });
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('AI summary error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to record summary' });
+    }
   }
 };
 
