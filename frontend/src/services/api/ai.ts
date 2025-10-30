@@ -35,5 +35,50 @@ export const aiApi = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  // Report or escalate an AI interaction for moderation
+  reportQuestion: async (payload: {
+    question: string;
+    sessionId?: string;
+    context?: any;
+    moderation?: any;
+  }) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/ai/report`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // Telemetry for performance and acceptance criteria
+  sendTelemetry: async (payload: {
+    sessionId?: string;
+    context?: any;
+    totalTimeMs: number;
+    success: boolean;
+    errorMessage?: string;
+  }) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/ai/telemetry`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // Privacy-safe conversation summary logging
+  logSummary: async (payload: {
+    sessionId?: string;
+    language?: string;
+    route?: string;
+    questionLength: number;
+    answerLength?: number;
+    flagged?: boolean;
+  }) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_BASE}/ai/summary`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };

@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { speechToText } from '../../services/speechToText';
@@ -8,6 +11,7 @@ import {
   BookOpen, Loader, Mic, MicOff,
   Volume2, VolumeX, Globe, Clock, CheckCircle, FileText
 } from 'lucide-react';
+import { aiApi } from '../../services/api';
 
 interface AIChatInterfaceProps {
   context?: any;
@@ -17,7 +21,12 @@ interface AIChatInterfaceProps {
 const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) => {
   const [input, setInput] = useState<string>('');
   const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
+  const [isSlowResponse, setIsSlowResponse] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const params = useParams();
+  const { user } = useAuth();
+  const { i18n } = useTranslation();
   
   const {
     messages,
@@ -110,7 +119,16 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
   };
 
   const handleSubmitWithText = async (text: string) => {
-    await askQuestion(text, context);
+    const derivedContext = {
+      route: location.pathname,
+      params,
+      userRole: user?.role,
+      userId: user?.id,
+      language: i18n.language,
+      detectedLanguage: detectedLanguage || undefined,
+    };
+    const finalContext = context ? { ...derivedContext, ...context } : derivedContext;
+    await askQuestion(text, finalContext);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -164,6 +182,27 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
   const responseTime = calculateResponseTime(messages);
   const performanceMetrics = getPerformanceMetrics(messages);
 
+  // Slow response detector (5s)
+  useEffect(() => {
+    let timer: any;
+    if (isProcessing) {
+      setIsSlowResponse(false);
+      timer = setTimeout(() => setIsSlowResponse(true), 5000);
+    } else {
+      setIsSlowResponse(false);
+    }
+    return () => timer && clearTimeout(timer);
+  }, [isProcessing]);
+
+  // Heuristic for vague input
+  const isVague = (text: string) => {
+    if (!text) return false;
+    const trimmed = text.trim();
+    if (trimmed.length < 8) return true;
+    const vagueTokens = ['help', 'explain', 'idk', 'don\'t know', 'what', 'why'];
+    return vagueTokens.some(v => trimmed.toLowerCase() === v || trimmed.toLowerCase().startsWith(v + ' '));
+  };
+
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-200">
       {/* Header */}
@@ -173,15 +212,15 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
             <Bot className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Faith Assistant</h3>
-            <p className="text-sm text-gray-600">Ask questions about Orthodox teachings</p>
+            <h3 className="font-semibold text-gray-900">{i18n.t('ai.headerTitle', 'Faith Assistant')}</h3>
+            <p className="text-sm text-gray-600">{i18n.t('ai.headerSubtitle', 'Ask questions about Orthodox teachings')}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           {responseTime !== null && responseTime < 3 && (
             <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
               <Clock className="h-3 w-3 mr-1" />
-              {responseTime}s response
+              {i18n.t('ai.responseTime', '{{seconds}}s response', { seconds: responseTime })}
             </div>
           )}
           {performanceMetrics && performanceMetrics.totalTimeMs && performanceMetrics.totalTimeMs < 3000 ? (
@@ -195,10 +234,16 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
               {performanceMetrics.totalTimeMs}ms
             </div>
           ) : null}
+          {isSlowResponse && (
+            <div className="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded-full">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {i18n.t('ai.slowResponse', 'Taking longer than usual')}
+            </div>
+          )}
           <button
             onClick={clearConversation}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors duration-150"
-            title="Clear conversation"
+            title={i18n.t('ai.clearConversation', 'Clear conversation')}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -218,15 +263,20 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
         {messages.length === 0 && (
           <div className="text-center py-8">
             <Bot className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">Welcome to Faith Assistant</h4>
-            <p className="text-gray-600 max-w-sm mx-auto">
-              Ask me anything about Orthodox Christianity, church teachings, or your current lesson.
-            </p>
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">{i18n.t('ai.welcomeTitle', 'Welcome to Faith Assistant')}</h4>
+            <p className="text-gray-600 max-w-sm mx-auto">{i18n.t('ai.welcomeSubtitle', 'Ask me anything about Orthodox Christianity, church teachings, or your current lesson.')}</p>
             <div className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-500">
-              <p>• "What is the significance of the Holy Trinity?"</p>
-              <p>• "Explain the Ethiopian Orthodox liturgy"</p>
-              <p>• "Help me understand this lesson about prayer"</p>
+              <p>• {i18n.t('ai.example1', 'What is the significance of the Holy Trinity?')}</p>
+              <p>• {i18n.t('ai.example2', 'Explain the Ethiopian Orthodox liturgy')}</p>
+              <p>• {i18n.t('ai.example3', 'Help me understand this lesson about prayer')}</p>
             </div>
+          </div>
+        )}
+
+        {/* Guidance when input is vague */}
+        {isVague(input) && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+            {i18n.t('ai.vagueGuidance', 'For better results, add details. Example: "Explain the significance of fasting during [season]" or "How does this chapter relate to [topic]?"')}
           </div>
         )}
 
@@ -265,8 +315,28 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ context, onClose }) =
                 {message.role === 'assistant' && message.metadata?.moderation?.needsModeration && (
                   <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-2">
                     <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-yellow-800">
-                      <strong>Note:</strong> This question has been flagged for moderator review to ensure doctrinal accuracy.
+                    <div className="flex-1 text-sm text-yellow-800">
+                      <div><strong>{i18n.t('ai.note', 'Note')}:</strong> {i18n.t('ai.flaggedMessage', 'This question has been flagged for moderator review to ensure doctrinal accuracy.')}</div>
+                      <div className="mt-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await aiApi.reportQuestion({
+                                question: (messages.find(m => m.role === 'user')?.content) || '',
+                                sessionId: message.id, // Assuming message.id is the sessionId
+                                context: { route: location.pathname, params, userRole: user?.role, userId: user?.id, language: i18n.language },
+                                moderation: message.metadata?.moderation
+                              });
+                              alert(i18n.t('ai.escalated', 'Escalated to moderators. Thank you.'));
+                            } catch (e) {
+                              alert(i18n.t('ai.escalateFailed', 'Failed to escalate. Please try again later.'));
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-yellow-600 text-white hover:bg-yellow-700"
+                        >
+                          {i18n.t('ai.escalate', 'Escalate to moderators')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

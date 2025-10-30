@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -20,7 +20,9 @@ import {
   Star,
   HelpCircle,
   Zap,
-  Target
+  Target,
+  DollarSign,
+  School
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -38,11 +40,11 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
 
   const isChapterAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
   
-  const navigationItems = [
+  const navigationItems = useMemo(() => [
     {
       name: 'Dashboard',
       href: '/dashboard',
-      icon: LayoutDashboard,
+      icon: <LayoutDashboard className="h-4 w-4" />,
       badge: null,
       description: 'Teaching overview',
       color: 'text-blue-600'
@@ -50,7 +52,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     {
       name: 'My Courses',
       href: '/courses',
-      icon: BookOpen,
+      icon: <BookOpen className="h-4 w-4" />,
       badge: '8',
       description: 'Manage courses',
       color: 'text-green-600'
@@ -58,7 +60,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     {
       name: 'Record Video',
       href: '/record',
-      icon: Video,
+      icon: <Video className="h-4 w-4" />,
       badge: null,
       description: 'Create lessons',
       color: 'text-red-600'
@@ -66,23 +68,23 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     {
       name: 'Create Course',
       href: '/courses/new',
-      icon: Sparkles,
+      icon: <Sparkles className="h-4 w-4" />,
       badge: null,
       description: 'New course',
       color: 'text-purple-600'
     },
     {
       name: 'Students',
-      href: '/community', // Using community hub as it's the closest to student management
-      icon: Users,
+      href: '/students',
+      icon: <Users className="h-4 w-4" />,
       badge: '247',
       description: 'Manage learners',
       color: 'text-indigo-600'
     },
     {
       name: 'Analytics',
-      href: '/analytics', // Changed from '/admin/analytics' to '/analytics' to use the teacher-specific route
-      icon: BarChart2,
+      href: '/analytics',
+      icon: <BarChart2 className="h-4 w-4" />,
       badge: null,
       description: 'View reports',
       color: 'text-orange-600'
@@ -90,47 +92,86 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     {
       name: 'Discussions',
       href: '/forums',
-      icon: MessageSquare,
+      icon: <MessageSquare className="h-4 w-4" />,
       badge: '12',
       description: 'Student chats',
       color: 'text-pink-600'
     },
     {
-      name: 'AI Assistant',
-      href: '/ai-assistant',
-      icon: Bot,
-      badge: null,
-      description: 'Get help',
-      color: 'text-cyan-600'
+      name: 'Assignments',
+      href: '/assignments',
+      icon: <FileText className="h-4 w-4" />,
+      badge: '5',
+      description: 'Grade work',
+      color: 'text-amber-600'
     },
     {
       name: 'Resources',
       href: '/resources',
-      icon: FileText,
+      icon: <Upload className="h-4 w-4" />,
       badge: null,
       description: 'Upload files',
       color: 'text-emerald-600'
     },
     {
+      name: 'AI Assistant',
+      href: '/ai-assistant',
+      icon: <Bot className="h-4 w-4" />,
+      badge: null,
+      description: 'Get help',
+      color: 'text-cyan-600'
+    },
+    {
       name: 'Achievements',
       href: '/achievements',
-      icon: Trophy,
+      icon: <Award className="h-4 w-4" />,
       badge: null,
       description: 'View badges',
       color: 'text-yellow-600'
     }
-  ];
+  ], []);
 
-  const adminItems = [
+  const adminItems = useMemo(() => [
     {
       name: 'Admin Panel',
       href: '/admin',
-      icon: Settings,
+      icon: <Settings className="h-4 w-4" />,
       badge: null,
       description: 'System management',
       color: 'text-gray-600'
+    },
+    {
+      name: 'Revenue',
+      href: '/revenue',
+      icon: <DollarSign className="h-4 w-4" />,
+      badge: null,
+      description: 'Earnings & payments',
+      color: 'text-green-600'
     }
-  ];
+  ], []);
+
+//   const quickStats = useMemo(() => [
+//     {
+//       label: 'Active Students',
+//       value: '247',
+//       change: '+12'
+//     },
+//     {
+//       label: 'Courses',
+//       value: '8',
+//       change: '+2'
+//     },
+//     {
+//       label: 'Rating',
+//       value: '4.8',
+//       change: '+0.2'
+//     },
+//     {
+//       label: 'Completion',
+//       value: '78%',
+//       change: '+5%'
+//     }
+//   ], []);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -140,15 +181,17 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-64'
+    }`}>
       {/* Header - Compact */}
       <div className="flex items-center justify-between h-12 px-3 border-b border-blue-200/50 bg-gradient-to-r from-blue-600 to-indigo-700">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
+              <School className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-white">EOTY</h1>
+            <h1 className="text-sm font-bold text-white">Teacher Portal</h1>
           </div>
         )}
         <button
@@ -163,11 +206,25 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
         </button>
       </div>
       
+      {/* Quick Stats - Only when expanded
+      {!isCollapsed && (
+        <div className="p-3 border-b border-gray-200/50 bg-white/50">
+          <div className="grid grid-cols-2 gap-2">
+            {quickStats.map((stat, index) => (
+              <div key={index} className="text-center p-2 bg-white rounded-lg border border-gray-100 shadow-sm">
+                <div className="text-lg font-bold text-gray-900">{stat.value}</div>
+                <div className="text-xs text-gray-500">{stat.label}</div>
+                <div className="text-xs text-green-600 font-medium">{stat.change}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )} */}
+
       {/* Navigation - Compact */}
       <div className="flex-1 overflow-y-auto py-2">
         <nav className="space-y-1 px-2">
           {navigationItems.map((item) => {
-            const Icon = item.icon;
             const active = isActive(item.href);
             
             return (
@@ -176,7 +233,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 to={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-blue-100 text-blue-700 shadow-sm'
+                    ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
                 title={isCollapsed ? item.description : undefined}
@@ -184,7 +241,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <Icon className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
+                  <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
+                    {item.icon}
+                  </div>
                 </div>
                 
                 {!isCollapsed && (
@@ -208,12 +267,16 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
         {/* Admin Section */}
         {isChapterAdmin && (
           <>
-            <div className="px-2 py-2">
+            <div className="px-2 py-4">
               <div className="border-t border-gray-200"></div>
+            </div>
+            <div className="px-3 mb-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Administration
+              </h3>
             </div>
             <nav className="space-y-1 px-2">
               {adminItems.map((item) => {
-                const Icon = item.icon;
                 const active = isActive(item.href);
                 
                 return (
@@ -222,7 +285,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                     to={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
-                        ? 'bg-gray-100 text-gray-700 shadow-sm'
+                        ? 'bg-gray-100 text-gray-700 shadow-sm border border-gray-200/50'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }`}
                     title={isCollapsed ? item.description : undefined}
@@ -230,7 +293,9 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                     <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                       active ? 'bg-gray-200' : 'bg-gray-100 group-hover:bg-gray-200'
                     } transition-colors duration-200`}>
-                      <Icon className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
+                      <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
+                        {item.icon}
+                      </div>
                     </div>
                     
                     {!isCollapsed && (
@@ -273,6 +338,13 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 <span className="font-semibold text-gray-900">4.8</span>
               </div>
             </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Revenue</span>
+              <div className="flex items-center space-x-1">
+                <DollarSign className="h-3 w-3 text-green-500" />
+                <span className="font-semibold text-gray-900">$12.5K</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -280,4 +352,4 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   );
 };
 
-export default TeacherSidebar;
+export default React.memo(TeacherSidebar);

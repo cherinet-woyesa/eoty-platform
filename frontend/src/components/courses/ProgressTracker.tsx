@@ -5,7 +5,7 @@ import {
   PlayCircle, BookOpen, Star,
   Loader2, AlertCircle, RefreshCw
 } from 'lucide-react';
-import { progressApi, LessonProgress, UserProgressStats } from '../../services/api/progress';
+import { progressApi, type LessonProgress, type UserProgressStats } from '../../services/api/progress';
 
 interface ProgressTrackerProps {
   lessonId: number;

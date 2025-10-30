@@ -98,134 +98,29 @@ const RecordVideo: React.FC = () => {
 
           {/* Sidebar - 1/4 width */}
           <div className="space-y-6">
-            {/* Course Selection */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <BookOpen className="mr-2 h-5 w-5 text-blue-600" />
-                Select Course
-              </h3>
-              {loading ? (
-                <div className="animate-pulse space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
-                >
-                  <option value="">Choose a course...</option>
-                  {courses.map(course => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
-              )}
-              
-              {selectedCourseData && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                  <h4 className="font-medium text-blue-900">{selectedCourseData.title}</h4>
-                  {selectedCourseData.description && (
-                    <p className="text-sm text-blue-700 mt-1">{selectedCourseData.description}</p>
-                  )}
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-blue-600">
-                    <span className="flex items-center">
-                      <Users className="h-3 w-3 mr-1" />
-                      {selectedCourseData.student_count || 0} students
-                    </span>
-                    <span className="flex items-center">
-                      <Star className="h-3 w-3 mr-1" />
-                      {selectedCourseData.rating || 0}/5
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/** Course Selection card removed as redundant per request **/}
 
-            {/* Recording Tips */}
+            {/* Recording Tips - temporarily disabled */}
+            {/**
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6">
               <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
                 <Video className="mr-2 h-5 w-5" />
                 Recording Tips
               </h3>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-blue-600">1</span>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">Good Lighting</h4>
-                    <p className="text-xs text-blue-700">Face a window or use a ring light for best results</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-blue-600">2</span>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">Clear Audio</h4>
-                    <p className="text-xs text-blue-700">Use a quiet environment and speak clearly</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-blue-600">3</span>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">Eye Contact</h4>
-                    <p className="text-xs text-blue-700">Look directly at the camera, not the screen</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-semibold text-blue-600">4</span>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">Keep it Focused</h4>
-                    <p className="text-xs text-blue-700">One main topic per video works best</p>
-                  </div>
-                </div>
-              </div>
+              ...
             </div>
+            **/}
 
-            {/* Best Practices */}
+            {/* Best Practices - temporarily disabled */}
+            {/**
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Zap className="mr-2 h-5 w-5 text-yellow-500" />
                 Best Practices
               </h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Play className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Structure Your Content</h4>
-                    <p className="text-xs text-gray-600 mt-1">Start with intro, cover main points, then summarize</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Engage Students</h4>
-                    <p className="text-xs text-gray-600 mt-1">Ask questions and encourage participation</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Optimal Length</h4>
-                    <p className="text-xs text-gray-600 mt-1">Keep videos under 15 minutes for better retention</p>
-                  </div>
-                </div>
-              </div>
+              ...
             </div>
+            **/}
 
             {/* Your Progress */}
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white">

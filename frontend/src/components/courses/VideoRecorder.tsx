@@ -39,7 +39,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     resumeRecording,
     resetRecording,
     error,
-    stream
+    stream,
+    options,
+    setOptions,
+    devices
   } = useVideoRecorder();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,6 +58,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [micLevel, setMicLevel] = useState(0);
+  const audioAnalyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const [showTeleprompter, setShowTeleprompter] = useState(false);
+  const [teleprompterText, setTeleprompterText] = useState('');
+  const [teleprompterSpeed, setTeleprompterSpeed] = useState(1);
   
   // Course/Lesson State
   const [courses, setCourses] = useState<Course[]>([]);
@@ -89,6 +99,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
+    // Setup mic analyser for level meter
+    if (stream) {
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        audioAnalyserRef.current = analyser;
+        audioContextRef.current = audioCtx;
+      } catch {}
+    }
+    return () => {
+      audioAnalyserRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    };
   }, [stream]);
 
   // Recording timer
@@ -104,6 +133,30 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [isRecording, isPaused]);
 
+  // Mic level polling
+  useEffect(() => {
+    let raf: number;
+    const tick = () => {
+      const analyser = audioAnalyserRef.current;
+      if (analyser) {
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+        // Compute RMS
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const v = (dataArray[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        setMicLevel(Math.min(1, rms * 2));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   // Auto-show lesson form when recording stops
   useEffect(() => {
     if (recordedVideo && !showLessonForm) {
@@ -118,6 +171,21 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setUploadSuccess(false);
       setErrorMessage(null);
       setSuccessMessage(null);
+      // Countdown UX
+      setCountdown(3);
+      await new Promise<void>((resolve) => {
+        let n = 3;
+        const id = setInterval(() => {
+          n -= 1;
+          if (n <= 0) {
+            clearInterval(id);
+            setCountdown(null);
+            resolve();
+          } else {
+            setCountdown(n);
+          }
+        }, 700);
+      });
       await startRecording();
     } catch (error) {
       setErrorMessage('Failed to start recording. Please check camera permissions.');
@@ -287,6 +355,98 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       </div>
 
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Camera</label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                value={options.videoDeviceId || ''}
+                onChange={(e) => setOptions({ videoDeviceId: e.target.value || undefined })}
+              >
+                <option value="">Default</option>
+                {devices.cameras.map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || 'Camera'}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Microphone</label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                value={options.audioDeviceId || ''}
+                onChange={(e) => setOptions({ audioDeviceId: e.target.value || undefined })}
+              >
+                <option value="">Default</option>
+                {devices.microphones.map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || 'Microphone'}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Quality</label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                value={options.resolution || '720p'}
+                onChange={(e) => setOptions({ resolution: e.target.value as any })}
+              >
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center space-x-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  className="rounded"
+                  checked={!!options.screen}
+                  onChange={(e) => setOptions({ screen: e.target.checked })}
+                />
+                <span>Screen + Mic</span>
+              </label>
+              {/* Mic level meter */}
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-500">Mic</span>
+                <div className="w-24 h-2 bg-gray-200 rounded">
+                  <div className="h-2 bg-green-500 rounded" style={{ width: `${Math.round(micLevel * 100)}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              onClick={resetRecording}
+              className="text-xs text-gray-600 hover:text-gray-800 underline"
+            >
+              Reinitialize devices
+            </button>
+            <button
+              onClick={() => setShowTeleprompter(v => !v)}
+              className="text-xs text-blue-600 hover:text-blue-700 underline"
+            >
+              {showTeleprompter ? 'Hide Teleprompter' : 'Show Teleprompter'}
+            </button>
+          </div>
+          {showTeleprompter && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-6 gap-3">
+              <textarea
+                className="md:col-span-5 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                rows={3}
+                placeholder="Paste or write your script here..."
+                value={teleprompterText}
+                onChange={(e) => setTeleprompterText(e.target.value)}
+              />
+              <div className="md:col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Scroll speed</label>
+                <input type="range" min={0.5} max={3} step={0.25} value={teleprompterSpeed} onChange={(e) => setTeleprompterSpeed(parseFloat(e.target.value))} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Video Preview/Recording Area */}
       <div className="relative bg-black aspect-video">
         {!recordedVideo ? (
@@ -323,6 +483,31 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Teleprompter Overlay */}
+        {showTeleprompter && !recordedVideo && teleprompterText && (
+          <div className="absolute inset-0 pointer-events-none p-8 flex items-end">
+            <div
+              className="w-full text-white text-2xl leading-relaxed opacity-80"
+              style={{
+                maskImage: 'linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.1))',
+                WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.1))',
+                animation: `scrollUp ${Math.max(10, teleprompterText.length / teleprompterSpeed)}s linear infinite`
+              }}
+            >
+              {teleprompterText}
+            </div>
+          </div>
+        )}
+
+        {/* Countdown Overlay */}
+        {countdown !== null && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="w-24 h-24 rounded-full bg-white/20 border border-white flex items-center justify-center text-white text-4xl font-bold">
+              {countdown}
+            </div>
           </div>
         )}
 

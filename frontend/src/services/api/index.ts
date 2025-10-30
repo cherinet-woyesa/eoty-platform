@@ -139,7 +139,7 @@ export const videoApi = {
     formData.append('languageCode', languageCode);
     formData.append('languageName', languageName);
 
-    const response = await apiClient.post('/videos/subtitles/upload', formData, {
+    const response = await apiClient.post('/videos/subtitles', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;

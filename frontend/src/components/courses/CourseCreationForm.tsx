@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
 import { 
@@ -21,6 +21,7 @@ const CourseCreationForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<{ title?: string; category?: string }>({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -31,6 +32,7 @@ const CourseCreationForm: React.FC = () => {
     learningObjectives: [''],
     prerequisites: ''
   });
+  const [coverImage, setCoverImage] = useState<string | null>(null);
 
   const categories = [
     { value: 'faith', label: 'Faith & Doctrine', icon: BookOpen, color: 'blue' },
@@ -54,16 +56,34 @@ const CourseCreationForm: React.FC = () => {
     { value: '9+', label: '9+ weeks', description: 'Extended program' }
   ];
 
+  const validateStep = (step: number) => {
+    const stepErrors: typeof errors = {};
+    if (step === 1) {
+      if (!formData.title.trim()) stepErrors.title = 'Course title is required.';
+    }
+    if (step === 2) {
+      if (!formData.category) stepErrors.category = 'Please choose a category.';
+    }
+    setErrors(stepErrors);
+    return Object.keys(stepErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentStep < 3) {
+      if (!validateStep(currentStep)) return;
       setCurrentStep(currentStep + 1);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await coursesApi.createCourse(formData);
+      // Send only backend-supported fields for now
+      await coursesApi.createCourse({
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category
+      });
       setSuccess(true);
       setTimeout(() => navigate('/courses'), 2000);
     } catch (error) {
@@ -80,6 +100,17 @@ const CourseCreationForm: React.FC = () => {
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCoverImage(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const addLearningObjective = () => {
@@ -107,6 +138,35 @@ const CourseCreationForm: React.FC = () => {
     const levelConfig = levels.find(l => l.value === level);
     return levelConfig?.color || 'gray';
   };
+
+  // Autosave draft to localStorage
+  useEffect(() => {
+    const key = 'create-course-draft';
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setFormData(prev => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const key = 'create-course-draft';
+    const toSave = {
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      level: formData.level,
+      isPublic: formData.isPublic,
+      estimatedDuration: formData.estimatedDuration,
+      learningObjectives: formData.learningObjectives,
+      prerequisites: formData.prerequisites
+    };
+    try {
+      localStorage.setItem(key, JSON.stringify(toSave));
+    } catch {}
+  }, [formData]);
 
   if (success) {
     return (
@@ -138,35 +198,35 @@ const CourseCreationForm: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-700 px-8 py-6 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-700 px-4 sm:px-6 py-4 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl lg:text-3xl font-bold mb-2 flex items-center">
-              <Sparkles className="h-7 w-7 mr-3" />
+            <h2 className="text-xl lg:text-2xl font-bold mb-1.5 flex items-center">
+              <Sparkles className="h-6 w-6 mr-2" />
               Create New Course
             </h2>
-            <p className="text-blue-100 opacity-90">
+            <p className="text-blue-100 opacity-90 text-sm">
               Build engaging learning experiences for your students
             </p>
           </div>
           <button
             onClick={() => navigate('/courses')}
-            className="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-xl text-white bg-white/10 hover:bg-white/20 transition-all duration-200"
+            className="inline-flex items-center px-3 py-1.5 border border-white/30 text-xs font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
             Back to Courses
           </button>
         </div>
       </div>
 
       {/* Progress Steps */}
-      <div className="px-8 pt-6">
+      <div className="px-4 sm:px-6 pt-4">
         <div className="flex items-center justify-between mb-8">
           {[1, 2, 3].map(step => (
             <div key={step} className="flex items-center flex-1">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-semibold transition-all duration-300 ${
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 font-semibold text-sm transition-all duration-300 ${
                 step === currentStep
                   ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/50'
                   : step < currentStep
@@ -176,21 +236,21 @@ const CourseCreationForm: React.FC = () => {
                 {step < currentStep ? <CheckCircle className="h-5 w-5" /> : step}
               </div>
               {step < 3 && (
-                <div className={`flex-1 h-1 mx-2 transition-all duration-300 ${
+                <div className={`flex-1 h-1 mx-1.5 transition-all duration-300 ${
                   step < currentStep ? 'bg-green-500' : 'bg-gray-200'
                 }`} />
               )}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-4 text-center text-sm font-medium text-gray-600 mb-2">
+        <div className="grid grid-cols-3 gap-4 text-center text-xs font-medium text-gray-600 mb-2">
           <div className={currentStep === 1 ? 'text-blue-600 font-semibold' : ''}>Basic Info</div>
           <div className={currentStep === 2 ? 'text-blue-600 font-semibold' : ''}>Course Details</div>
           <div className={currentStep === 3 ? 'text-blue-600 font-semibold' : ''}>Finalize</div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-8 space-y-8">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
         {/* Step 1: Basic Information */}
         {currentStep === 1 && (
           <div className="space-y-6 animate-fade-in">
@@ -223,6 +283,7 @@ const CourseCreationForm: React.FC = () => {
                 placeholder="e.g., Introduction to Orthodox Christianity: Foundations of Faith"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg font-medium"
               />
+              {errors.title && <p className="mt-2 text-sm text-red-600">{errors.title}</p>}
             </div>
 
             {/* Description */}
@@ -240,6 +301,21 @@ const CourseCreationForm: React.FC = () => {
                 placeholder="Describe the key topics, learning outcomes, and value students will gain from this course. Be specific about what makes your course unique..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
               />
+            </div>
+
+            {/* Cover Image (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Cover Image (optional)</label>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                  Upload Image
+                </label>
+                {coverImage && (
+                  <img src={coverImage} alt="Cover preview" className="h-16 w-28 object-cover rounded-lg border" />
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Recommended 1280x720 or larger. PNG or JPG.</p>
             </div>
           </div>
         )}
@@ -281,6 +357,7 @@ const CourseCreationForm: React.FC = () => {
                     );
                   })}
                 </div>
+                {errors.category && <p className="mt-2 text-sm text-red-600">{errors.category}</p>}
               </div>
 
               {/* Level and Duration */}
@@ -386,6 +463,14 @@ const CourseCreationForm: React.FC = () => {
             <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
               <h4 className="font-semibold text-gray-900 mb-4">Course Preview</h4>
               <div className="space-y-4">
+                {coverImage && (
+                  <div>
+                    <span className="text-sm text-gray-600">Cover:</span>
+                    <div className="mt-2">
+                      <img src={coverImage} alt="Cover" className="w-full max-w-md h-40 object-cover rounded-lg border" />
+                    </div>
+                  </div>
+                )}
                 <div>
                   <span className="text-sm text-gray-600">Title:</span>
                   <p className="font-semibold text-gray-900 text-lg">{formData.title}</p>

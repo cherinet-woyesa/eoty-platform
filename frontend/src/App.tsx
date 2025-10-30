@@ -2,9 +2,9 @@ import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import TeacherDashboard from './pages/dashboard/TeacherDashboard';
-import StudentDashboard from './pages/dashboard/StudentDashboard';
-import DashboardLayout from './components/common/Layout/DashboardLayout';
+import TeacherDashboard from './components/dashboard/TeacherDashboard/TeacherDashboard';
+import StudentDashboard from './components/dashboard/StudentDashboard/StudentDashboard';
+import DashboardLayout from './components/layout/DashboardLayout';
 import './styles/globals.css';
 import RecordVideo from './pages/courses/RecordVideo';
 import MyCourses from './pages/courses/MyCourses';
@@ -18,7 +18,7 @@ import ForumTopics from './pages/social/ForumTopics';
 import Achievements from './pages/social/Achievements';
 import Leaderboards from './pages/social/Leaderboards';
 import CommunityHub from './pages/social/CommunityHub';
-import AdminDashboard from './components/dashboard/AdminDashboard';
+import AdminDashboard from './components/dashboard/AdminDashboard/AdminDashboard';
 import ContentManagement from './pages/admin/ContentManagement';
 import { UserProvider } from './context/UserContext';
 import { OnboardingProvider } from './context/OnboardingContext';
@@ -26,13 +26,12 @@ import ContentManager from './components/admin/ContentManager';
 import ModerationTools from './components/admin/ModerationTools';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import TagManager from './components/admin/TagManager';
-import Header from './components/common/Layout/Header';
-import Sidebar from './components/common/Layout/Sidebar';
 import ResourceLibrary from './pages/resources/ResourceLibrary';
 import ResourceView from './pages/resources/ResourceView';
 import QuizDemo from './pages/courses/QuizDemo';
 import ProgressPage from './pages/courses/ProgressPage';
 import DiscussionDemo from './pages/courses/DiscussionDemo';
+import Students from './pages/students/Students';
 import './i18n/config';
 
 // Define types
@@ -205,6 +204,18 @@ function AppContent() {
                     <MyCourses />
                   </DashboardLayout>
                 </StudentRoute>
+              } 
+            />
+
+            {/* Students - Teachers and above */}
+            <Route 
+              path="/students" 
+              element={
+                <TeacherRoute>
+                  <DashboardLayout>
+                    <Students />
+                  </DashboardLayout>
+                </TeacherRoute>
               } 
             />
 

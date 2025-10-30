@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Award,
+  PlayCircle,
   MessageSquare,
   HelpCircle,
   Clock,
@@ -15,7 +16,10 @@ import {
   Target,
   Zap,
   Brain,
-  MessageCircle
+  MessageCircle,
+  Users,
+  BarChart3,
+  FileText
 } from 'lucide-react';
 
 interface StudentSidebarProps {
@@ -29,11 +33,11 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
 }) => {
   const location = useLocation();
   
-  const navigationItems = [
+  const navigationItems = useMemo(() => [
     {
       name: 'Dashboard',
       href: '/dashboard',
-      icon: LayoutDashboard,
+      icon: <LayoutDashboard className="h-4 w-4" />,
       badge: null,
       description: 'Learning overview',
       color: 'text-blue-600'
@@ -41,15 +45,23 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     {
       name: 'My Courses',
       href: '/courses',
-      icon: BookOpen,
+      icon: <BookOpen className="h-4 w-4" />,
       badge: '5',
       description: 'Continue learning',
       color: 'text-green-600'
     },
     {
+      name: 'Study Paths',
+      href: '/learning-paths',
+      icon: <Target className="h-4 w-4" />,
+      badge: '3',
+      description: 'Structured learning',
+      color: 'text-purple-600'
+    },
+    {
       name: 'Bookmarks',
       href: '/bookmarks',
-      icon: Bookmark,
+      icon: <Bookmark className="h-4 w-4" />,
       badge: '12',
       description: 'Saved lessons',
       color: 'text-yellow-600'
@@ -57,68 +69,89 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
     {
       name: 'Study Schedule',
       href: '/schedule',
-      icon: Calendar,
+      icon: <Calendar className="h-4 w-4" />,
       badge: null,
       description: 'Plan your study',
-      color: 'text-purple-600'
+      color: 'text-indigo-600'
     },
     {
       name: 'Progress',
       href: '/progress',
-      icon: Target,
+      icon: <BarChart3 className="h-4 w-4" />,
       badge: null,
       description: 'Track learning',
-      color: 'text-indigo-600'
+      color: 'text-orange-600'
     },
     {
       name: 'Discussions',
-      href: '/discussions',
-      icon: MessageSquare,
+      href: '/forums',
+      icon: <MessageSquare className="h-4 w-4" />,
       badge: '3',
       description: 'Ask questions',
       color: 'text-pink-600'
     },
     {
+      name: 'Study Groups',
+      href: '/study-groups',
+      icon: <Users className="h-4 w-4" />,
+      badge: '2',
+      description: 'Collaborate with peers',
+      color: 'text-cyan-600'
+    },
+    {
       name: 'Achievements',
       href: '/achievements',
-      icon: Award,
+      icon: <Award className="h-4 w-4" />,
       badge: '7',
       description: 'View badges',
-      color: 'text-orange-600'
+      color: 'text-amber-600'
+    },
+    {
+      name: 'AI Assistant',
+      href: '/ai-assistant',
+      icon: <Brain className="h-4 w-4" />,
+      badge: 'AI',
+      description: 'Get help',
+      color: 'text-emerald-600'
+    },
+    {
+      name: 'Resources',
+      href: '/resources',
+      icon: <FileText className="h-4 w-4" />,
+      badge: null,
+      description: 'Study materials',
+      color: 'text-gray-600'
     },
     {
       name: 'Help Center',
       href: '/help',
-      icon: HelpCircle,
+      icon: <HelpCircle className="h-4 w-4" />,
       badge: null,
       description: 'Get support',
-      color: 'text-gray-600'
-    },
-    {
-      name: 'Quiz Demo',
-      href: '/quiz-demo',
-      icon: Brain,
-      badge: 'New!',
-      description: 'Test interactive quizzes',
-      color: 'text-purple-600'
-    },
-    {
-      name: 'My Progress',
-      href: '/progress',
-      icon: Target,
-      badge: null,
-      description: 'Track your learning',
-      color: 'text-green-600'
-    },
-    {
-      name: 'Discussion Demo',
-      href: '/discussion-demo',
-      icon: MessageCircle,
-      badge: 'New!',
-      description: 'Test lesson discussions',
-      color: 'text-indigo-600'
+      color: 'text-red-600'
     }
-  ];
+  ], []);
+
+  const quickActions = useMemo(() => [
+    {
+      name: 'Continue Learning',
+      href: '/continue',
+      icon: <PlayCircle className="h-3 w-3" />,
+      description: 'Last course: Theology 101'
+    },
+    {
+      name: 'Due Soon',
+      href: '/due',
+      icon: <Clock className="h-3 w-3" />,
+      description: '2 assignments due'
+    },
+    {
+      name: 'Recommended',
+      href: '/recommended',
+      icon: <Star className="h-3 w-3" />,
+      description: 'New courses for you'
+    }
+  ], []);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -128,7 +161,9 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-64'
+    }`}>
       {/* Header - Compact */}
       <div className="flex items-center justify-between h-12 px-3 border-b border-blue-200/50 bg-gradient-to-r from-blue-600 to-indigo-700">
         {!isCollapsed && (
@@ -136,7 +171,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-white">EOTY</h1>
+            <h1 className="text-sm font-bold text-white">Student Portal</h1>
           </div>
         )}
         <button
@@ -151,11 +186,34 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </button>
       </div>
       
+      {/* Quick Actions - Only when expanded */}
+      {!isCollapsed && (
+        <div className="p-3 border-b border-gray-200/50 bg-white/50">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Quick Access
+          </h3>
+          <div className="space-y-1">
+            {quickActions.map((action, index) => (
+              <Link
+                key={index}
+                to={action.href}
+                className="flex items-center space-x-2 p-2 text-xs rounded-lg hover:bg-white hover:shadow-sm transition-all duration-150"
+              >
+                <div className="text-blue-600">{action.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900">{action.name}</div>
+                  <div className="text-gray-500 truncate">{action.description}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Navigation - Compact */}
       <div className="flex-1 overflow-y-auto py-2">
         <nav className="space-y-1 px-2">
           {navigationItems.map((item) => {
-            const Icon = item.icon;
             const active = isActive(item.href);
             
             return (
@@ -164,7 +222,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                 to={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-blue-100 text-blue-700 shadow-sm'
+                    ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
                 title={isCollapsed ? item.description : undefined}
@@ -172,7 +230,9 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <Icon className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
+                  <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
+                    {item.icon}
+                  </div>
                 </div>
                 
                 {!isCollapsed && (
@@ -194,7 +254,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer - Learning Stats */}
+      {/* Study Stats - Only when expanded */}
       {!isCollapsed && (
         <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
           <div className="space-y-2">
@@ -227,4 +287,4 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
   );
 };
 
-export default StudentSidebar;
+export default React.memo(StudentSidebar);

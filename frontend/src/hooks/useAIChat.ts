@@ -55,6 +55,7 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
     try {
       // Create abort controller for cancellation
       abortControllerRef.current = new AbortController();
+      const start = performance.now();
       
       const response = await aiApi.askQuestion(question, sessionId, context);
       
@@ -97,6 +98,27 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
             storeTime: perfMetrics.storeTimeMs
           });
         }
+
+        // Telemetry & summary logging (no PII)
+        const totalTimeMs = Math.round(performance.now() - start);
+        try {
+          await aiApi.sendTelemetry({
+            sessionId,
+            context: { route: context?.route, language: context?.language },
+            totalTimeMs,
+            success: true
+          });
+        } catch {}
+        try {
+          await aiApi.logSummary({
+            sessionId,
+            language: context?.language,
+            route: context?.route,
+            questionLength: question.length,
+            answerLength: typeof response.data.answer === 'string' ? response.data.answer.length : 0,
+            flagged: !!response.data.moderation?.needsModeration
+          });
+        } catch {}
       } else {
         throw new Error(response.message || 'Failed to get AI response');
       }
@@ -105,6 +127,16 @@ export const useAIChat = (initialSessionId = 'default'): UseAIChatReturn => {
         // Request was cancelled, which is expected behavior
         return;
       }
+      // Attempt telemetry for failures too
+      try {
+        await aiApi.sendTelemetry({
+          sessionId,
+          context: { route: context?.route, language: context?.language },
+          totalTimeMs: 0,
+          success: false,
+          errorMessage: err?.message
+        });
+      } catch {}
       setError(err.message || 'An error occurred while processing your question');
       console.error('AI question error:', err);
     } finally {
