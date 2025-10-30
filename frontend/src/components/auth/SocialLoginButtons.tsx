@@ -138,11 +138,11 @@ const SocialLoginButtons: React.FC = () => {
       </div>
 
       {/* Additional Info */}
-      <div className="mt-4 text-center">
+      {/* <div className="mt-4 text-center">
         <p className="text-xs text-gray-500">
           Social login provides quick and secure access to your account
         </p>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -245,7 +245,7 @@ const LoginForm: React.FC = () => {
           </p>
         ) : (
           <p id="email-help" className="text-xs text-gray-500">
-            We'll never share your email with anyone else
+            
           </p>
         )}
       </div>
@@ -312,7 +312,7 @@ const LoginForm: React.FC = () => {
           </p>
         ) : (
           <p id="password-help" className="text-xs text-gray-500">
-            Minimum 6 characters required
+            
           </p>
         )}
       </div>
@@ -362,9 +362,9 @@ const LoginForm: React.FC = () => {
           </>
         )}
       </button>
-      <p id="submit-help" className="text-xs text-gray-500 text-center">
+      {/* <p id="submit-help" className="text-xs text-gray-500 text-center">
         {isLoading ? 'Please wait while we sign you in...' : 'Click to access your spiritual learning journey'}
-      </p>
+      </p> */}
 
       {/* Social Login Buttons */}
       <SocialLoginButtons />
