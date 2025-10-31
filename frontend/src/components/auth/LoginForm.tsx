@@ -95,10 +95,8 @@ const LoginForm: React.FC = () => {
       await login(formData.email, formData.password);
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
-      // Small delay to show success message
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+      // No explicit navigation here, PublicRoute will handle redirection to /dashboard
+      // based on isAuthenticated status.
     } catch (err: any) {
       console.error('Login error:', err);
       

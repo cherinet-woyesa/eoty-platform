@@ -174,42 +174,70 @@ const AnalyticsDashboard: React.FC = () => {
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricsCard 
-          title="Total Users" 
-          value={metrics.users.total} 
-          change={metrics.users.growth * 100}
-          icon={<Users className="h-6 w-6" />}
+          title="Total Courses" 
+          value={analytics.metrics.content.total} 
+          change={analytics.metrics.content.growth * 100}
+          icon={<BookOpen className="h-6 w-6" />}
           color="blue"
           trend="up"
-          description="Registered users"
+          description="Total courses created"
         />
         <MetricsCard 
-          title="Active Courses" 
-          value={metrics.content.total} 
-          change={metrics.content.approval_rate * 100}
-          icon={<BookOpen className="h-6 w-6" />}
+          title="Active Students" 
+          value={analytics.metrics.users.total} 
+          change={analytics.metrics.users.growth * 100}
+          icon={<Users className="h-6 w-6" />}
           color="green"
           trend="up"
-          description="Published content"
+          description="Currently enrolled students"
         />
         <MetricsCard 
-          title="Completion Rate" 
-          value={Math.round(metrics.engagement.completion_rate * 100)} 
-          change={5}
-          icon={<Target className="h-6 w-6" />}
+          title="Recorded Videos" 
+          value={156} 
+          change={8}
+          icon={<Video className="h-6 w-6" />}
           color="purple"
           trend="up"
-          format="percent"
-          description="Lesson completion"
+          description="Total video lessons"
         />
         <MetricsCard 
-          title="Avg. Session" 
-          value={metrics.engagement.avg_session_minutes} 
-          change={2}
+          title="Hours Taught" 
+          value={342} 
+          change={15}
           icon={<Clock className="h-6 w-6" />}
           color="orange"
           trend="up"
-          format="duration"
-          description="User engagement"
+          description="Total teaching hours"
+        />
+        <MetricsCard 
+          title="Rating" 
+          value={analytics.metrics.engagement.average_rating || 4.8} 
+          change={5}
+          icon={<Star className="h-6 w-6" />}
+          color="indigo"
+          trend="up"
+          format="number"
+          description="Average course rating"
+        />
+        <MetricsCard 
+          title="Completion Rate" 
+          value={Math.round(analytics.metrics.engagement.completion_rate * 100)} 
+          change={3}
+          icon={<Target className="h-6 w-6" />}
+          color="teal"
+          trend="up"
+          format="percent"
+          description="Overall course completion"
+        />
+        <MetricsCard 
+          title="Engagement Score" 
+          value={85} 
+          change={3}
+          icon={<Zap className="h-6 w-6" />}
+          color="red"
+          trend="up"
+          format="percent"
+          description="User engagement index"
         />
       </div>
 

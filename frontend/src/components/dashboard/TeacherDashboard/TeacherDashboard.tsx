@@ -136,13 +136,11 @@ const TeacherDashboard: React.FC = () => {
             <TeacherMetrics stats={{ ...teacherData?.stats, averageRating: 4.8, completionRate: 78, engagementScore: 85 }} />
             
             {/* Quick Actions & Upcoming Tasks */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+              <div>
                 <QuickActions />
               </div>
-              <div>
-                <UpcomingTasks tasks={teacherData?.upcomingTasks || []} />
-              </div>
+
             </div>
 
             {/* Course Management & Student Performance */}

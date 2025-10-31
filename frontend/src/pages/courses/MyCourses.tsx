@@ -28,9 +28,9 @@ interface Course {
 
 interface CourseStats {
   totalCourses: number;
-  totalLessons: number;
-  totalStudents: number;
-  totalHours: number;
+  activeStudents: number;
+  recordedVideos: number;
+  hoursTaught: number;
   publishedCourses: number;
   averageRating: number;
   completionRate: number;
@@ -92,9 +92,9 @@ const MyCourses: React.FC = () => {
         // Calculate stats
         const courseStats: CourseStats = {
           totalCourses: coursesData.length,
-          totalLessons: coursesData.reduce((sum: number, course: Course) => sum + course.lesson_count, 0),
-          totalStudents: coursesData.reduce((sum: number, course: Course) => sum + course.student_count, 0),
-          totalHours: Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.total_duration || 0), 0) / 60),
+          activeStudents: coursesData.reduce((sum: number, course: Course) => sum + course.student_count, 0),
+          recordedVideos: coursesData.reduce((sum: number, course: Course) => sum + course.lesson_count, 0),
+          hoursTaught: Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.total_duration || 0), 0) / 60),
           publishedCourses: coursesData.filter((course: Course) => course.is_published).length,
           averageRating: 4.8, // Mock data - would come from ratings system
           completionRate: 87 // Mock data - would come from progress tracking
@@ -260,26 +260,26 @@ const MyCourses: React.FC = () => {
               bgColor: 'from-blue-50 to-blue-100'
             },
             { 
-              name: 'Total Lessons', 
-              value: stats.totalLessons.toString(), 
-              icon: Video, 
+              name: 'Active Students', 
+              value: stats.activeStudents.toString(), 
+              icon: Users, 
               change: '+8', 
               changeType: 'positive',
               color: 'from-green-500 to-green-600',
               bgColor: 'from-green-50 to-green-100'
             },
             { 
-              name: 'Total Students', 
-              value: stats.totalStudents.toString(), 
-              icon: Users, 
+              name: 'Recorded Videos', 
+              value: stats.recordedVideos.toString(), 
+              icon: Video, 
               change: '+12', 
               changeType: 'positive',
               color: 'from-purple-500 to-purple-600',
               bgColor: 'from-purple-50 to-purple-100'
             },
             { 
-              name: 'Hours Content', 
-              value: stats.totalHours.toString(), 
+              name: 'Hours Taught', 
+              value: stats.hoursTaught.toString(), 
               icon: Clock, 
               change: '+15', 
               changeType: 'positive',
