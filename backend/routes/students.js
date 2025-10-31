@@ -22,6 +22,9 @@ router.get('/stream', sseTokenAuth, studentsController.streamUpdates);
 
 router.use(authenticateToken);
 
+// GET /api/students/dashboard
+router.get('/dashboard', studentsController.getStudentDashboard);
+
 // GET /api/students?q=&status=&sort=&order=
 router.get('/', studentsController.listStudents);
 

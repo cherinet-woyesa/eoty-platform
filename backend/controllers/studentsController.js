@@ -66,6 +66,64 @@ const studentsController = {
     }
   }
   ,
+  async getStudentDashboard(req, res) {
+    try {
+      const teacherId = req.user.userId;
+
+      // Fetch all students associated with the teacher's courses
+      const students = await db('users as u')
+        .join('user_lesson_progress as ulp', 'u.id', 'ulp.user_id')
+        .join('lessons as l', 'ulp.lesson_id', 'l.id')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .groupBy('u.id')
+        .select(
+          'u.id',
+          db.raw('COUNT(DISTINCT c.id) as enrolled_courses'),
+          db.raw('ROUND(AVG(ulp.progress)::numeric, 0) as progress_percent'),
+          db.raw('MAX(ulp.last_accessed_at) as last_active_at')
+        );
+
+      const now = Date.now();
+      let totalProgress = 0;
+      let totalEnrolledCourses = 0;
+      let activeTodayCount = 0;
+
+      students.forEach(student => {
+        totalProgress += parseInt(student.progress_percent, 10);
+        totalEnrolledCourses += parseInt(student.enrolled_courses, 10);
+        const lastActive = student.last_active_at ? new Date(student.last_active_at).getTime() : 0;
+        const hoursDiff = (now - lastActive) / (1000 * 60 * 60);
+        if (hoursDiff <= 24) {
+          activeTodayCount++;
+        }
+      });
+
+      const totalStudents = students.length;
+      const avgProgress = totalStudents > 0 ? Math.round(totalProgress / totalStudents) : 0;
+      const avgEnrolledCourses = totalStudents > 0 ? (totalEnrolledCourses / totalStudents).toFixed(1) : 0;
+
+      res.json({
+        success: true,
+        data: {
+          totalStudents,
+          avgProgress,
+          avgEnrolledCourses,
+          activeTodayCount,
+          students: students.map(s => ({ // Return a simplified list of students if needed by frontend
+            id: s.id,
+            enrolled_courses: s.enrolled_courses,
+            progress_percent: s.progress_percent,
+            last_active_at: s.last_active_at
+          }))
+        }
+      });
+
+    } catch (error) {
+      console.error('Get student dashboard error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch student dashboard data' });
+    }
+  },
   async streamUpdates(req, res) {
     try {
       const teacherId = req.user.userId;

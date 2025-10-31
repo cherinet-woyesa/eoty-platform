@@ -31,10 +31,15 @@ exports.up = async function(knex) {
     { permission_key: 'lesson:delete', description: 'Delete lessons' },
     { permission_key: 'user:manage', description: 'Manage users' },
     { permission_key: 'analytics:view', description: 'View analytics' },
+    { permission_key: 'course:view', description: 'View courses' },
+    { permission_key: 'system:admin', description: 'Full system administration access' },
   ]);
 
   // Assign permissions to roles
   await knex('role_permissions').insert([
+    // Student permissions
+    { role: 'student', permission_id: 9 }, // course:view
+
     // Teacher permissions
     { role: 'teacher', permission_id: 1 }, // course:create
     { role: 'teacher', permission_id: 2 }, // course:edit
@@ -43,6 +48,7 @@ exports.up = async function(knex) {
     { role: 'teacher', permission_id: 5 }, // lesson:edit
     { role: 'teacher', permission_id: 6 }, // lesson:delete
     { role: 'teacher', permission_id: 8 }, // analytics:view
+    { role: 'teacher', permission_id: 9 }, // course:view
     
     // Admin permissions (all)
     { role: 'admin', permission_id: 1 },
@@ -53,6 +59,8 @@ exports.up = async function(knex) {
     { role: 'admin', permission_id: 6 },
     { role: 'admin', permission_id: 7 }, // user:manage
     { role: 'admin', permission_id: 8 },
+    { role: 'admin', permission_id: 9 }, // course:view
+    { role: 'admin', permission_id: 10 }, // system:admin
   ]);
 };
 

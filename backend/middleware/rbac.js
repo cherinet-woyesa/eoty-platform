@@ -4,8 +4,10 @@ const db = require('../config/database');
 const requirePermission = (permission) => {
   return async (req, res, next) => {
     try {
+      console.log(`[RBAC] Checking permission: ${permission} for user: ${req.user?.email}`);
       // Check if user is authenticated
       if (!req.user) {
+        console.log('[RBAC] Authentication required: req.user is null');
         return res.status(401).json({
           success: false,
           message: 'Authentication required'
@@ -13,35 +15,40 @@ const requirePermission = (permission) => {
       }
       
       const userId = req.user.userId;
+      const userRole = req.user.role; // Get role from authenticated user object
       
       // Validate userId
       if (!userId) {
+        console.log('[RBAC] Invalid user token: userId is null');
         return res.status(401).json({
           success: false,
           message: 'Invalid user token'
         });
       }
       
-      // Get user's role and permissions
-      const userPermissions = await db('users as u')
-        .join('role_permissions as rp', 'u.role', 'rp.role')
+      // Get user's permissions based on their role
+      const userPermissions = await db('role_permissions as rp')
         .join('user_permissions as up', 'rp.permission_id', 'up.id')
-        .where('u.id', userId)
+        .where('rp.role', userRole)
         .select('up.permission_key');
       
       const userPermissionKeys = userPermissions.map(p => p.permission_key);
+      console.log(`[RBAC] User ${req.user.email} (ID: ${userId}, Role: ${userRole}) has permissions: ${userPermissionKeys.join(', ')}`);
       
       // Check if user has the required permission or system admin
       if (userPermissionKeys.includes(permission) || userPermissionKeys.includes('system:admin')) {
+        console.log(`[RBAC] Permission ${permission} GRANTED for user ${req.user.email}`);
         return next();
       }
       
       // For chapter-specific permissions, check if user is chapter admin
       if (req.user.chapter_id && userPermissionKeys.includes(`${permission.split(':')[0]}:any`)) {
+        console.log(`[RBAC] Chapter-specific permission ${permission} GRANTED for user ${req.user.email}`);
         // Additional chapter-based checks can be added here
         return next();
       }
       
+      console.log(`[RBAC] Permission ${permission} DENIED for user ${req.user.email}`);
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions to access this resource'

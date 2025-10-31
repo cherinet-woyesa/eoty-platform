@@ -53,50 +53,89 @@ exports.seed = function(knex) {
         
         // System permissions
         { permission_key: 'system:admin', description: 'Full system access' }
-      ]);
+      ]).then(() => console.log('[SEED] user_permissions inserted.'));
     })
-    .then(() => {
+    .then(async () => {
+      // Fetch permission IDs dynamically
+      const getPermissionId = async (key) => {
+        const permission = await knex('user_permissions').where({ permission_key: key }).first();
+        console.log(`[SEED] Fetched permission ID for ${key}: ${permission?.id}`);
+        return permission ? permission.id : null;
+      };
+
+      const courseViewId = await getPermissionId('course:view');
+      const courseCreateId = await getPermissionId('course:create');
+      const courseEditOwnId = await getPermissionId('course:edit_own');
+      const courseEditAnyId = await getPermissionId('course:edit_any');
+      const courseDeleteOwnId = await getPermissionId('course:delete_own');
+      const courseDeleteAnyId = await getPermissionId('course:delete_any');
+      const lessonViewId = await getPermissionId('lesson:view');
+      const lessonCreateId = await getPermissionId('lesson:create');
+      const lessonEditOwnId = await getPermissionId('lesson:edit_own');
+      const lessonEditAnyId = await getPermissionId('lesson:edit_any');
+      const lessonDeleteOwnId = await getPermissionId('lesson:delete_own');
+      const lessonDeleteAnyId = await getPermissionId('lesson:delete_any');
+      const videoUploadId = await getPermissionId('video:upload');
+      const videoDeleteOwnId = await getPermissionId('video:delete_own');
+      const videoDeleteAnyId = await getPermissionId('video:delete_any');
+      const quizTakeId = await getPermissionId('quiz:take');
+      const quizCreateId = await getPermissionId('quiz:create');
+      const quizEditOwnId = await getPermissionId('quiz:edit_own');
+      const quizEditAnyId = await getPermissionId('quiz:edit_any');
+      const discussionViewId = await getPermissionId('discussion:view');
+      const discussionCreateId = await getPermissionId('discussion:create');
+      const discussionModerateId = await getPermissionId('discussion:moderate');
+      const discussionDeleteAnyId = await getPermissionId('discussion:delete_any');
+      const userViewId = await getPermissionId('user:view');
+      const userEditOwnId = await getPermissionId('user:edit_own');
+      const userEditAnyId = await getPermissionId('user:edit_any');
+      const userManageRolesId = await getPermissionId('user:manage_roles');
+      const chapterViewId = await getPermissionId('chapter:view');
+      const chapterManageId = await getPermissionId('chapter:manage');
+      const analyticsViewId = await getPermissionId('analytics:view');
+      const systemAdminId = await getPermissionId('system:admin');
+
       // Map permissions to roles
       return knex('role_permissions').insert([
         // Student permissions
-        { role: 'student', permission_id: 1 }, // course:view
-        { role: 'student', permission_id: 7 }, // lesson:view
-        { role: 'student', permission_id: 13 }, // quiz:take
-        { role: 'student', permission_id: 16 }, // discussion:view
-        { role: 'student', permission_id: 17 }, // discussion:create
-        { role: 'student', permission_id: 21 }, // user:edit_own
-        { role: 'student', permission_id: 24 }, // chapter:view
+        { role: 'student', permission_id: courseViewId },
+        { role: 'student', permission_id: lessonViewId },
+        { role: 'student', permission_id: quizTakeId },
+        { role: 'student', permission_id: discussionViewId },
+        { role: 'student', permission_id: discussionCreateId },
+        { role: 'student', permission_id: userEditOwnId },
+        { role: 'student', permission_id: chapterViewId },
         
         // Teacher permissions (includes all student permissions + more)
-        { role: 'teacher', permission_id: 1 }, // course:view
-        { role: 'teacher', permission_id: 2 }, // course:create
-        { role: 'teacher', permission_id: 3 }, // course:edit_own
-        { role: 'teacher', permission_id: 5 }, // course:delete_own
-        { role: 'teacher', permission_id: 8 }, // lesson:create
-        { role: 'teacher', permission_id: 9 }, // lesson:edit_own
-        { role: 'teacher', permission_id: 11 }, // lesson:delete_own
-        { role: 'teacher', permission_id: 12 }, // video:upload
-        { role: 'teacher', permission_id: 13 }, // video:delete_own
-        { role: 'teacher', permission_id: 14 }, // quiz:create
-        { role: 'teacher', permission_id: 15 }, // quiz:edit_own
+        { role: 'teacher', permission_id: courseViewId },
+        { role: 'teacher', permission_id: courseCreateId },
+        { role: 'teacher', permission_id: courseEditOwnId },
+        { role: 'teacher', permission_id: courseDeleteOwnId },
+        { role: 'teacher', permission_id: lessonCreateId },
+        { role: 'teacher', permission_id: lessonEditOwnId },
+        { role: 'teacher', permission_id: lessonDeleteOwnId },
+        { role: 'teacher', permission_id: videoUploadId },
+        { role: 'teacher', permission_id: videoDeleteOwnId },
+        { role: 'teacher', permission_id: quizCreateId },
+        { role: 'teacher', permission_id: quizEditOwnId },
         
         // Chapter Admin permissions (includes all teacher permissions + more)
-        { role: 'chapter_admin', permission_id: 4 }, // course:edit_any (in chapter)
-        { role: 'chapter_admin', permission_id: 6 }, // course:delete_any (in chapter)
-        { role: 'chapter_admin', permission_id: 10 }, // lesson:edit_any (in chapter)
-        { role: 'chapter_admin', permission_id: 12 }, // lesson:delete_any (in chapter)
-        { role: 'chapter_admin', permission_id: 14 }, // video:delete_any (in chapter)
-        { role: 'chapter_admin', permission_id: 16 }, // quiz:edit_any (in chapter)
-        { role: 'chapter_admin', permission_id: 18 }, // discussion:moderate
-        { role: 'chapter_admin', permission_id: 19 }, // discussion:delete_any
-        { role: 'chapter_admin', permission_id: 20 }, // user:view
-        { role: 'chapter_admin', permission_id: 22 }, // user:edit_any (in chapter)
-        { role: 'chapter_admin', permission_id: 25 }, // chapter:manage (own chapter)
-        { role: 'chapter_admin', permission_id: 26 }, // analytics:view (chapter)
+        { role: 'chapter_admin', permission_id: courseEditAnyId },
+        { role: 'chapter_admin', permission_id: courseDeleteAnyId },
+        { role: 'chapter_admin', permission_id: lessonEditAnyId },
+        { role: 'chapter_admin', permission_id: lessonDeleteAnyId },
+        { role: 'chapter_admin', permission_id: videoDeleteAnyId },
+        { role: 'chapter_admin', permission_id: quizEditAnyId },
+        { role: 'chapter_admin', permission_id: discussionModerateId },
+        { role: 'chapter_admin', permission_id: discussionDeleteAnyId },
+        { role: 'chapter_admin', permission_id: userViewId },
+        { role: 'chapter_admin', permission_id: userEditAnyId },
+        { role: 'chapter_admin', permission_id: chapterManageId },
+        { role: 'chapter_admin', permission_id: analyticsViewId },
         
         // Platform Admin permissions (full access)
-        { role: 'platform_admin', permission_id: 23 }, // user:manage_roles
-        { role: 'platform_admin', permission_id: 27 }  // system:admin
+        { role: 'platform_admin', permission_id: userManageRolesId },
+        { role: 'platform_admin', permission_id: systemAdminId }
       ]);
     });
 };

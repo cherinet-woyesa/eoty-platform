@@ -2,15 +2,14 @@ const db = require('../config/database');
 
 const courseController = {
   // Get all courses for the logged-in teacher with statistics
-  async getTeacherCourses(req, res) {
+  async getUserCourses(req, res) {
     try {
-      const teacherId = req.user.userId;
-      
-      // Get courses with lesson counts and student counts
-      const courses = await db('courses as c')
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+
+      let coursesQuery = db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
         .leftJoin('user_lesson_progress as ulp', 'l.id', 'ulp.lesson_id')
-        .where({ 'c.created_by': teacherId })
         .groupBy('c.id')
         .select(
           'c.*',
@@ -20,12 +19,24 @@ const courseController = {
         )
         .orderBy('c.created_at', 'desc');
 
+      if (userRole === 'student') {
+        coursesQuery = coursesQuery
+          .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
+          .where('uce.user_id', userId);
+      } else if (userRole === 'teacher') {
+        coursesQuery = coursesQuery.where('c.created_by', userId);
+      } else if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+        // Admins can see all courses, no additional where clause needed
+      }
+
+      const courses = await coursesQuery;
+
       res.json({
         success: true,
         data: { courses }
       });
     } catch (error) {
-      console.error('Get courses error:', error);
+      console.error('Get user courses error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch courses'
