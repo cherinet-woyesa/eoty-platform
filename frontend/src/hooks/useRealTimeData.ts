@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiClient } from '../services/api/apiClient';
 
 export function useRealTimeData<T>(endpoint: string, initialData: T) {
   const [data, setData] = useState<T>(initialData);
@@ -10,14 +11,8 @@ export function useRealTimeData<T>(endpoint: string, initialData: T) {
       setIsLoading(true);
       setError(null);
       
-      // Simulate API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In real implementation, this would be:
-      // const response = await api.get(endpoint);
-      // setData(response.data);
-      
-      setData(initialData);
+      const response = await apiClient.get(endpoint);
+      setData(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {

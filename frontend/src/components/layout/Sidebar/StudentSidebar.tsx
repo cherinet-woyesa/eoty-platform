@@ -186,29 +186,8 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </button>
       </div>
       
-      {/* Quick Actions - Only when expanded */}
-      {!isCollapsed && (
-        <div className="p-3 border-b border-gray-200/50 bg-white/50">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Quick Access
-          </h3>
-          <div className="space-y-1">
-            {quickActions.map((action, index) => (
-              <Link
-                key={index}
-                to={action.href}
-                className="flex items-center space-x-2 p-2 text-xs rounded-lg hover:bg-white hover:shadow-sm transition-all duration-150"
-              >
-                <div className="text-blue-600">{action.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900">{action.name}</div>
-                  <div className="text-gray-500 truncate">{action.description}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+    
+     
 
       {/* Navigation - Compact */}
       <div className="flex-1 overflow-y-auto py-2">

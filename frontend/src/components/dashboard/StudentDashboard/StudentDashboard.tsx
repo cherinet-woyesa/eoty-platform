@@ -19,28 +19,30 @@ import { useWebSocket } from '../../../hooks/useWebSocket';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import ErrorBoundary from '../../common/ErrorBoundary';
 
+const initialStudentData = {
+  progress: {
+    totalCourses: 5,
+    completedCourses: 2,
+    totalLessons: 48,
+    completedLessons: 23,
+    studyStreak: 7,
+    totalPoints: 1250,
+    nextGoal: 'Complete 5 more lessons',
+    weeklyGoal: 10,
+    weeklyProgress: 7
+  },
+  enrolledCourses: [],
+  recentActivity: [],
+  recommendations: []
+};
+
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeView, setActiveView] = useState('overview');
 
   // Real-time student data
-  const { data: studentData, error, isLoading, refetch } = useRealTimeData('/student/dashboard', {
-    progress: {
-      totalCourses: 5,
-      completedCourses: 2,
-      totalLessons: 48,
-      completedLessons: 23,
-      studyStreak: 7,
-      totalPoints: 1250,
-      nextGoal: 'Complete 5 more lessons',
-      weeklyGoal: 10,
-      weeklyProgress: 7
-    },
-    enrolledCourses: [],
-    recentActivity: [],
-    recommendations: []
-  });
+  const { data: studentData, error, isLoading, refetch } = useRealTimeData('/students/dashboard', initialStudentData);
 
   // WebSocket for live updates (new messages, course updates, etc.)
   const { lastMessage } = useWebSocket('/student/updates');

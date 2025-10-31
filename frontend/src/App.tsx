@@ -483,7 +483,7 @@ function AppContent() {
 
         {/* Catch-all 404 route */}
         <Route 
-          path="*" 
+          path="/*" 
           element={
             <div className="flex items-center justify-center min-h-screen">
               <div className="text-center">
