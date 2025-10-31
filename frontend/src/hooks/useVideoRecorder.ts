@@ -21,6 +21,9 @@ interface UseVideoRecorderReturn {
   options: RecorderOptions;
   setOptions: (opts: Partial<RecorderOptions>) => void;
   devices: { cameras: MediaDeviceInfo[]; microphones: MediaDeviceInfo[] };
+  initializeCamera: () => Promise<void>;
+  closeCamera: () => void;
+  cameraInitialized: boolean;
 }
 
 export const useVideoRecorder = (): UseVideoRecorderReturn => {
@@ -29,61 +32,53 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [options, setOptionsState] = useState<RecorderOptions>({ resolution: '720p', screen: false });
-  const [devices, setDevices] = useState<{ cameras: MediaDeviceInfo[]; microphones: MediaDeviceInfo[] }>({ cameras: [], microphones: [] });
+  const [options, setOptionsState] = useState<RecorderOptions>({
+    resolution: '720p',
+    screen: false
+  });
+  const [devices, setDevices] = useState<{
+    cameras: MediaDeviceInfo[];
+    microphones: MediaDeviceInfo[]
+  }>({ cameras: [], microphones: [] });
+  const [cameraInitialized, setCameraInitialized] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
-  const initStream = useCallback(async () => {
+  const cleanupStreams = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setCameraInitialized(false);
+  }, [stream]);
+
+  const initializeCamera = useCallback(async () => {
     try {
       setError(null);
-      let videoConstraints: MediaTrackConstraints | boolean = true;
-      if (options.screen) {
-        // Use display media for screen capture then add mic if selected
-        // @ts-ignore
-        const display: MediaStream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: false });
-        let mixedStream = display;
-        if (options.audioDeviceId) {
-          const mic = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: options.audioDeviceId ? { exact: options.audioDeviceId } : undefined } });
-          mic.getAudioTracks().forEach(t => mixedStream.addTrack(t));
-        } else {
-          const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mic.getAudioTracks().forEach(t => mixedStream.addTrack(t));
-        }
-        setStream(mixedStream);
-        return mixedStream;
-      } else {
-        const res = options.resolution === '1080p' ? { width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1280 }, height: { ideal: 720 } };
-        videoConstraints = {
-          ...res,
-          frameRate: { ideal: 30 },
-          deviceId: options.videoDeviceId ? { exact: options.videoDeviceId } : undefined
-        };
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraints,
-          audio: options.audioDeviceId ? { deviceId: { exact: options.audioDeviceId } } : true
-        });
-        setStream(mediaStream);
-        return mediaStream;
-      }
-    } catch (err) {
-      setError('Failed to access media devices. Please check permissions.');
-      console.error('Error initializing stream:', err);
-      throw err;
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      setStream(mediaStream);
+      setCameraInitialized(true);
+    } catch (err: any) {
+      setError('Failed to initialize camera. Please check permissions.');
+      console.error('Error initializing camera:', err);
     }
-  }, [options]);
+  }, []);
 
   const startRecording = useCallback(async () => {
+    if (!stream) {
+      setError('Camera not initialized');
+      return;
+    }
+
     try {
-      const mediaStream = stream ?? (await initStream());
-
-      const mediaRecorder = new MediaRecorder(mediaStream, {
-        mimeType: 'video/webm;codecs=vp9,opus'
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
+      setError(null);
       recordedChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -93,28 +88,29 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const videoUrl = URL.createObjectURL(blob);
-        setRecordedVideo(videoUrl);
+        const url = URL.createObjectURL(blob);
+        setRecordedVideo(url);
         setVideoBlob(blob);
         setIsRecording(false);
       };
 
-      mediaRecorder.start(1000); // Collect data every second
-      setIsRecording(true);
-    } catch (err) {
-      if (!error) setError('Failed to start recording. Please check permissions.');
+      mediaRecorder.onstart = () => {
+        setIsRecording(true);
+      };
+
+      mediaRecorder.start();
+
+    } catch (err: any) {
+      setError('Failed to start recording.');
       console.error('Error starting recording:', err);
     }
-  }, [initStream, stream, error]);
+  }, [stream]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
     }
-  }, [isRecording, stream]);
+  }, [isRecording]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -123,42 +119,38 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   }, [isRecording]);
 
   const resumeRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.resume();
     }
-  }, []);
+  }, [isRecording]);
 
   const resetRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-    }
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+    if (isRecording) {
+      stopRecording();
     }
     setRecordedVideo(null);
     setVideoBlob(null);
-    setError(null);
-    setStream(null);
-    setIsRecording(false);
-  }, [isRecording, stream]);
+    recordedChunksRef.current = [];
+    cleanupStreams();
+  }, [isRecording, stopRecording, cleanupStreams]);
 
-  const setOptions = useCallback((opts: Partial<RecorderOptions>) => {
-    setOptionsState(prev => ({ ...prev, ...opts }));
-  }, []);
+  const closeCamera = useCallback(() => {
+    cleanupStreams();
+  }, [cleanupStreams]);
 
   useEffect(() => {
-    // Enumerate devices for settings UI
-    (async () => {
+    const enumerateDevices = async () => {
       try {
-        const list = await navigator.mediaDevices.enumerateDevices();
+        const deviceList = await navigator.mediaDevices.enumerateDevices();
         setDevices({
-          cameras: list.filter(d => d.kind === 'videoinput'),
-          microphones: list.filter(d => d.kind === 'audioinput')
+          cameras: deviceList.filter(d => d.kind === 'videoinput'),
+          microphones: deviceList.filter(d => d.kind === 'audioinput')
         });
-      } catch (e) {
-        // ignore
+      } catch (err) {
+        console.warn('Device enumeration failed:', err);
       }
-    })();
+    };
+    enumerateDevices();
   }, []);
 
   return {
@@ -173,7 +165,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     error,
     stream,
     options,
-    setOptions,
-    devices
+    setOptions: setOptionsState,
+    devices,
+    initializeCamera,
+    closeCamera,
+    cameraInitialized
   };
 };

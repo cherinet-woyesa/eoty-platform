@@ -2,10 +2,10 @@ import axios from 'axios';
 import { forumsApi, achievementsApi } from './community';
 import { adminApi } from './admin';
 import { dashboardApi } from './dashboard';
-import { quizApi } from './quiz'; // Added this import
-import { progressApi } from './progress'; // Added this import
-import { discussionsApi } from './discussions'; // Added this import
-import { apiClient } from './apiClient'; // Import apiClient from the new file
+import { quizApi } from './quiz';
+import { progressApi } from './progress';
+import { discussionsApi } from './discussions';
+import { apiClient } from './apiClient';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -100,27 +100,73 @@ export const coursesApi = {
   getLessons: async (courseId: string) => {
     const response = await apiClient.get(`/videos/courses/${courseId}/lessons`);
     return response.data;
+  },
+
+  // Update lesson
+  updateLesson: async (lessonId: string, lessonData: any) => {
+    const response = await apiClient.put(`/courses/lessons/${lessonId}`, lessonData);
+    return response.data;
+  },
+
+  // Delete lesson
+  deleteLesson: async (lessonId: string) => {
+    const response = await apiClient.delete(`/courses/lessons/${lessonId}`);
+    return response.data;
   }
 };
 
-// Video API
+// Enhanced Video API with progress tracking and retry logic
 export const videoApi = {
-  // Upload recorded video
-  uploadVideo: async (videoBlob: Blob, lessonId: string) => {
+  // Upload recorded video with progress tracking
+  uploadVideo: async (videoBlob: Blob, lessonId: string, onProgress?: (progress: number) => void) => {
+    // Convert Blob to File for proper handling
+    const videoFile = new File([videoBlob], `lesson-${lessonId}-${Date.now()}.webm`, {
+      type: videoBlob.type
+    });
+
     const formData = new FormData();
-    formData.append('video', videoBlob, `lesson-${lessonId}-${Date.now()}.webm`);
+    formData.append('video', videoFile);
     formData.append('lessonId', lessonId);
 
     const response = await apiClient.post('/videos/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+      timeout: 300000, // 5 minutes timeout
     });
     return response.data;
   },
 
-  // Stream video
-  streamVideo: async (filename: string) => {
+  // Upload pre-recorded video file
+  uploadVideoFile: async (file: File, lessonId: string, onProgress?: (progress: number) => void) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    formData.append('lessonId', lessonId);
+
+    const response = await apiClient.post('/videos/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+      timeout: 300000,
+    });
+    return response.data;
+  },
+
+  // Stream video with range support
+  streamVideo: async (filename: string, range?: string) => {
+    const headers = range ? { Range: range } : {};
     const response = await apiClient.get(`/videos/stream/${filename}`, {
-      responseType: 'blob'
+      headers,
+      responseType: 'blob',
+      timeout: 0, // No timeout for streaming
     });
     return response.data;
   },
@@ -131,10 +177,20 @@ export const videoApi = {
     return response.data;
   },
 
+  // Check video availability with retry logic
+  checkVideoAvailability: async (lessonId: string) => {
+    const response = await apiClient.get(`/videos/lessons/${lessonId}/availability`);
+    return response.data;
+  },
+
   // Upload subtitle file
   uploadSubtitle: async (subtitleBlob: Blob, lessonId: string, languageCode: string, languageName: string) => {
+    const subtitleFile = new File([subtitleBlob], `subtitle-${lessonId}-${languageCode}.vtt`, {
+      type: 'text/vtt'
+    });
+
     const formData = new FormData();
-    formData.append('subtitle', subtitleBlob);
+    formData.append('subtitle', subtitleFile);
     formData.append('lessonId', lessonId);
     formData.append('languageCode', languageCode);
     formData.append('languageName', languageName);
@@ -142,6 +198,18 @@ export const videoApi = {
     const response = await apiClient.post('/videos/subtitles', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+    return response.data;
+  },
+
+  // Subscribe to video notifications
+  notifyVideoAvailable: async (lessonId: string) => {
+    const response = await apiClient.post(`/videos/lessons/${lessonId}/notify`, {});
+    return response.data;
+  },
+
+  // Get video notifications
+  getUserVideoNotifications: async () => {
+    const response = await apiClient.get('/videos/notifications');
     return response.data;
   }
 };
@@ -341,15 +409,15 @@ export default {
   auth: authApi,
   courses: coursesApi,
   video: videoApi,
-  quiz: quizApi, // Added quiz API
-  progress: progressApi, // Added progress API
-  discussions: discussionsApi, // Added discussions API
+  quiz: quizApi,
+  progress: progressApi,
+  discussions: discussionsApi,
   ai: aiApi,
   interactive: interactiveApi,
   resources: resourcesApi,
-  forums: forumsApi,        // NEW
-  achievements: achievementsApi, 
-  moderation: moderationApi, // NEW
+  forums: forumsApi,
+  achievements: achievementsApi,
+  moderation: moderationApi,
   admin: adminApi,
   dashboard: dashboardApi
 };

@@ -35,11 +35,8 @@ const TeacherDashboard: React.FC = () => {
       totalCourses: 8,
       totalStudents: 247,
       totalLessons: 156,
-      totalHours: 342,
-      averageRating: 4.8,
-      completionRate: 78,
-      engagementScore: 85,
-      revenue: 12500
+      totalHours: 342
+  
     },
     courses: [],
     recentActivity: [],
@@ -136,7 +133,7 @@ const TeacherDashboard: React.FC = () => {
         return (
           <div className="space-y-6">
             {/* Teacher Metrics - Now only shows first 4 metrics */}
-            <TeacherMetrics stats={teacherData?.stats} />
+            <TeacherMetrics stats={{ ...teacherData?.stats, averageRating: 4.8, completionRate: 78, engagementScore: 85 }} />
             
             {/* Quick Actions & Upcoming Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
