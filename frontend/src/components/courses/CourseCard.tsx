@@ -20,6 +20,7 @@ interface CourseCardProps {
     total_duration: number;
     is_published: boolean;
     published_at?: string;
+    coverImage?: string;
   };
   viewMode?: 'grid' | 'list';
   onDelete?: (courseId: number) => void;
@@ -107,6 +108,9 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
+                {course.coverImage && (
+                  <img src={course.coverImage} alt={course.title} className="w-24 h-16 object-cover rounded-md mr-4 float-left" />
+                )}
                 <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                   {course.title}
                 </h3>
@@ -208,6 +212,9 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 group">
+      {course.coverImage && (
+        <img src={course.coverImage} alt={course.title} className="w-full h-32 object-cover" />
+      )}
       {/* Course Header - Compact */}
       <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-3 text-white relative`}>
         <div className="flex items-start justify-between">

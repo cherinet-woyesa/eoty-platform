@@ -130,6 +130,13 @@ const CourseDetails: React.FC = () => {
         </Link>
       </div>
 
+      {/* Cover Image */}
+      {course.coverImage && (
+        <div className="w-full h-64 bg-gray-200 rounded-2xl overflow-hidden shadow-lg">
+          <img src={course.coverImage} alt={course.title} className="w-full h-full object-cover" />
+        </div>
+      )}
+
       {/* Course Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-6">

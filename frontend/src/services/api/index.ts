@@ -85,7 +85,7 @@ export const coursesApi = {
   },
 
   // Create new course
-  createCourse: async (courseData: { title: string; description?: string; category?: string }) => {
+  createCourse: async (courseData: { title: string; description?: string; category?: string; coverImage?: string }) => {
     const response = await apiClient.post('/courses', courseData);
     return response.data;
   },

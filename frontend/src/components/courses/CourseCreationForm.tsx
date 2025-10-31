@@ -82,7 +82,8 @@ const CourseCreationForm: React.FC = () => {
       await coursesApi.createCourse({
         title: formData.title.trim(),
         description: formData.description.trim(),
-        category: formData.category
+        category: formData.category,
+        coverImage: coverImage || undefined
       });
       setSuccess(true);
       setTimeout(() => navigate('/courses'), 2000);

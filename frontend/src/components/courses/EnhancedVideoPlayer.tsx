@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { 
-  Play, Pause, Volume2, VolumeX, Maximize, 
+import {
+  Play, Pause, Volume2, VolumeX, Maximize,
   RotateCcw, Bookmark, MessageCircle, PenTool,
   CheckCircle, X, AlertCircle, Clock, Send,
   Loader, BookOpen, Subtitles, Settings, WifiOff, Info,
@@ -86,9 +86,9 @@ const EnhancedDiscussionPost: React.FC<{
   currentUserId: string;
   userRole: string;
   openReportModal: (postId: string) => void;
-}> = ({ 
-  discussion, newReply, setNewReply, createReply, handleAnnotationClick, 
-  formatTime, getUserInitials, currentUserId, userRole, openReportModal 
+}> = ({
+  discussion, newReply, setNewReply, createReply, handleAnnotationClick,
+  formatTime, getUserInitials, currentUserId, userRole, openReportModal
 }) => {
   const [showReplies, setShowReplies] = React.useState(true);
   const [likes, setLikes] = React.useState(12);
@@ -155,7 +155,7 @@ const EnhancedDiscussionPost: React.FC<{
       {/* Engagement Bar */}
       <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
         <div className="flex items-center space-x-4">
-          <button 
+          <button
             onClick={handleLike}
             className={`flex items-center space-x-1 transition-colors ${
               userLiked ? 'text-red-500' : 'hover:text-red-400'
@@ -164,8 +164,8 @@ const EnhancedDiscussionPost: React.FC<{
             <Heart className={`h-4 w-4 ${userLiked ? 'fill-current' : ''}`} />
             <span>{likes}</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setShowReplies(!showReplies)}
             className="flex items-center space-x-1 hover:text-blue-400 transition-colors"
           >
@@ -176,7 +176,7 @@ const EnhancedDiscussionPost: React.FC<{
 
         {/* Report Button */}
         {discussion.user_id !== currentUserId && (
-          <button 
+          <button
             onClick={() => openReportModal(discussion.id)}
             className="text-gray-400 hover:text-red-400 transition-colors flex items-center space-x-1"
             title="Report inappropriate content"
@@ -204,9 +204,9 @@ const EnhancedDiscussionPost: React.FC<{
                     {new Date(reply.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                
+
                 {reply.user_id !== currentUserId && (
-                  <button 
+                  <button
                     onClick={() => openReportModal(reply.id)}
                     className="text-gray-400 hover:text-red-400 transition-colors"
                     title="Report"
@@ -227,9 +227,9 @@ const EnhancedDiscussionPost: React.FC<{
           type="text"
           placeholder="Write a reply..."
           value={newReply[discussion.id] || ''}
-          onChange={(e) => setNewReply(prev => ({ 
-            ...prev, 
-            [discussion.id]: e.target.value 
+          onChange={(e) => setNewReply(prev => ({
+            ...prev,
+            [discussion.id]: e.target.value
           }))}
           className="flex-1 bg-gray-600 text-white text-sm border border-gray-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
           onKeyPress={(e) => {
@@ -238,7 +238,7 @@ const EnhancedDiscussionPost: React.FC<{
             }
           }}
         />
-        <button 
+        <button
           onClick={() => createReply(discussion.id, newReply[discussion.id] || '')}
           disabled={!newReply[discussion.id]?.trim()}
           className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center space-x-1"
@@ -262,7 +262,7 @@ const EnhancedAnnotationsTab: React.FC<{
 }> = ({ annotations, loading, showAnnotations, setShowAnnotations, handleAnnotationClick, formatTime }) => {
   const [filter, setFilter] = React.useState<'all' | 'highlight' | 'comment' | 'bookmark'>('all');
 
-  const filteredAnnotations = annotations.filter(annotation => 
+  const filteredAnnotations = annotations.filter(annotation =>
     filter === 'all' || annotation.type === filter
   );
 
@@ -336,7 +336,7 @@ const EnhancedAnnotationsTab: React.FC<{
       ) : filteredAnnotations.length > 0 ? (
         <div className="space-y-3">
           {filteredAnnotations.map(annotation => (
-            <div 
+            <div
               key={annotation.id}
               className={`p-3 rounded-lg border-l-4 cursor-pointer hover:bg-gray-700 transition-all duration-200 group ${
                 annotation.type === 'highlight' ? 'border-blue-400' :
@@ -367,7 +367,7 @@ const EnhancedAnnotationsTab: React.FC<{
                     <Clock className="h-3 w-3" />
                     <span>{formatTime(annotation.timestamp)}</span>
                   </span>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       console.log('Delete annotation', annotation.id);
@@ -465,9 +465,9 @@ const EnhancedResourcesTab: React.FC = () => {
   );
 };
 
-const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({ 
-  videoUrl, 
-  title, 
+const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
+  videoUrl,
+  title,
   lessonId,
   autoPlay = false,
   onTimestampClick,
@@ -485,7 +485,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [showAnnotations, setShowAnnotations] = React.useState(true);
   const [showQuiz, setShowQuiz] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'discussions' | 'annotations' | 'resources'>('discussions');
-  
+
   // Real data states
   const [annotations, setAnnotations] = React.useState<Annotation[]>([]);
   const [discussions, setDiscussions] = React.useState<Discussion[]>([]);
@@ -500,7 +500,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   });
   const [newDiscussion, setNewDiscussion] = React.useState('');
   const [newReply, setNewReply] = React.useState<{ [key: string]: string }>({});
-  
+
   // Enhanced states
   const [networkStatus, setNetworkStatus] = React.useState<{
     status: 'online' | 'offline' | 'reconnecting' | 'degraded';
@@ -508,7 +508,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   }>({ status: 'online' });
   const [retryAttempts, setRetryAttempts] = React.useState(0);
   const maxRetryAttempts = 3;
-  
+
   const [showAdvancedControls, setShowAdvancedControls] = React.useState(false);
   const [videoStats] = React.useState({
     views: 1247,
@@ -522,7 +522,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [showShareMenu, setShowShareMenu] = React.useState(false);
   const [playbackHistory, setPlaybackHistory] = React.useState<number[]>([]);
   const [showHeatmap, setShowHeatmap] = React.useState(false);
-  
+
   // Quiz states
   const [showQuizTaking, setShowQuizTaking] = React.useState(false);
   const [quizResults, setQuizResults] = React.useState<any>(null);
@@ -810,7 +810,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     video.addEventListener('loadedmetadata', updateDuration);
     video.addEventListener('ended', handleEnd);
     video.addEventListener('error', handleError);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -819,7 +819,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       video.removeEventListener('loadedmetadata', updateDuration);
       video.removeEventListener('ended', handleEnd);
       video.removeEventListener('error', handleError);
-      
+
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -889,7 +889,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     const currentIndex = rates.indexOf(playbackRate);
     const nextIndex = (currentIndex + 1) % rates.length;
     const newRate = rates[nextIndex];
-    
+
     video.playbackRate = newRate;
     setPlaybackRate(newRate);
   };
@@ -899,7 +899,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     const currentIndex = qualities.indexOf(videoQuality);
     const nextIndex = (currentIndex + 1) % qualities.length;
     const newQuality = qualities[nextIndex];
-    
+
     setVideoQuality(newQuality);
   };
 
@@ -938,7 +938,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
   const toggleSubtitles = () => {
     if (subtitles.length > 0) {
-      const nextIndex = selectedSubtitle 
+      const nextIndex = selectedSubtitle
         ? (subtitles.findIndex(s => s.id === selectedSubtitle) + 1) % (subtitles.length + 1)
         : 0;
       handleSubtitleSelect(nextIndex < subtitles.length ? subtitles[nextIndex].id : null);
@@ -990,11 +990,11 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
     setNetworkStatus({ status: 'reconnecting' });
     setRetryAttempts(prev => prev + 1);
-    
+
     if (videoRef.current) {
       const currentTime = videoRef.current.currentTime;
       videoRef.current.load();
-      
+
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.currentTime = currentTime;
@@ -1004,7 +1004,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
         }
       }, 1000);
     }
-    
+
     setTimeout(() => {
       setNetworkStatus({ status: 'online' });
     }, 3000);
@@ -1050,17 +1050,343 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // ... (Rest of the component JSX from the previous response would continue here)
-  // Due to length constraints, I'm showing the enhanced structure
-  // The complete JSX would include all the enhanced UI components
-
   return (
     <div className={`bg-gray-900 rounded-2xl overflow-hidden transition-all duration-300 ${
       theaterMode ? 'fixed inset-0 z-50 rounded-none' : 'border border-gray-700'
     }`}>
-      {/* Enhanced Video Player UI */}
-      {/* This would contain the complete enhanced interface */}
-      <div>Enhanced Video Player Interface</div>
+
+      <div className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+          onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+          onClick={togglePlay}
+          className="absolute top-0 left-0 w-full h-full object-contain bg-black"
+        >
+          {subtitles.map(sub => (
+            <track
+              key={sub.id}
+              kind="subtitles"
+              src={sub.subtitle_url}
+              srcLang={sub.language_code}
+              label={sub.language_name}
+              default={selectedSubtitle === sub.id}
+            />
+          ))}
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Play/Pause Overlay */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+            <button onClick={togglePlay} className="p-4 rounded-full bg-white bg-opacity-30 hover:bg-opacity-50 transition-all duration-200">
+              <Play className="h-10 w-10 text-white" />
+            </button>
+          </div>
+        )}
+
+        {/* Top Controls (Title, Share) */}
+        <div className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/70 to-transparent">
+          <h3 className="text-white text-lg font-semibold line-clamp-1">{title}</h3>
+          <div className="relative">
+            <button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+              title="Share"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
+            {showShareMenu && (
+              <div className="absolute right-0 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl z-30">
+                <button onClick={() => handleShare('copy')} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
+                  Copy Link
+                </button>
+                {navigator.share && (
+                  <button onClick={() => handleShare()} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
+                    Share via...
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Controls */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-20 bg-gradient-to-t from-black/70 to-transparent">
+          {/* Progress Bar */}
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-1 bg-blue-500 rounded-lg appearance-none cursor-pointer"
+            style={{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${progress}%, #6B7280 ${progress}%, #6B7280 100%)` }}
+          />
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center space-x-3">
+              <button onClick={togglePlay} className="text-white hover:text-gray-300" title={isPlaying ? 'Pause' : 'Play'}>
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+              </button>
+              <div className="flex items-center space-x-1">
+                <button onClick={toggleMute} className="text-white hover:text-gray-300" title={isMuted ? 'Unmute' : 'Mute'}>
+                  {isMuted || volume === 0 ? <VolumeX className="h-5 w-5" /> : volume < 0.5 ? <Volume1 className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="w-20 h-1 bg-gray-500 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              <span className="text-white text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              {subtitles.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={toggleSubtitles}
+                    className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+                    title="Subtitles"
+                  >
+                    <Subtitles className="h-5 w-5" />
+                  </button>
+                  {/* Subtitle selection menu could go here */}
+                </div>
+              )}
+              <button onClick={handlePlaybackRate} className="text-white text-sm px-2 py-1 rounded hover:bg-white/20 transition-colors" title="Playback Speed">
+                {playbackRate}x
+              </button>
+              <button onClick={toggleFullscreen} className="text-white hover:text-gray-300" title="Fullscreen">
+                <Maximize className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Network Status / Error Overlay */}
+        {networkStatus.status !== 'online' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+            <div className="text-center text-white">
+              {networkStatus.status === 'offline' && (
+                <>
+                  <WifiOff className="h-12 w-12 mx-auto mb-4 text-red-400" />
+                  <h3 className="text-xl font-semibold mb-2">Offline</h3>
+                  <p className="mb-4">Please check your internet connection.</p>
+                  <button onClick={handleRetry} className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700">
+                    {networkStatus.status === 'reconnecting' ? 'Reconnecting...' : 'Retry'}
+                  </button>
+                </>
+              )}
+              {networkStatus.status === 'reconnecting' && (
+                <>
+                  <Loader className="h-12 w-12 mx-auto mb-4 animate-spin text-blue-400" />
+                  <h3 className="text-xl font-semibold mb-2">Reconnecting...</h3>
+                  <p>Attempt {retryAttempts} of {maxRetryAttempts}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs for Discussions, Annotations, Resources */}
+      <div className="bg-gray-800 p-4">
+        <div className="flex border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab('discussions')}
+            className={`py-2 px-4 text-sm font-medium ${activeTab === 'discussions' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Discussions ({discussions.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('annotations')}
+            className={`py-2 px-4 text-sm font-medium ${activeTab === 'annotations' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Annotations ({annotations.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`py-2 px-4 text-sm font-medium ${activeTab === 'resources' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Resources
+          </button>
+          {quizzes.length > 0 && (
+            <button
+              onClick={() => setShowQuiz(true)}
+              className="ml-auto py-2 px-4 text-sm font-medium text-purple-400 hover:text-purple-200 flex items-center"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Take Quiz
+            </button>
+          )}
+        </div>
+
+        <div className="mt-4">
+          {activeTab === 'discussions' && (
+            <div className="space-y-4">
+              {discussions.length > 0 ? (
+                discussions.map(discussion => (
+                  <EnhancedDiscussionPost
+                    key={discussion.id}
+                    discussion={discussion}
+                    newReply={newReply}
+                    setNewReply={setNewReply}
+                    createReply={createReply}
+                    handleAnnotationClick={handleAnnotationClick}
+                    formatTime={formatTime}
+                    getUserInitials={getUserInitials}
+                    currentUserId={currentUserId}
+                    userRole={userRole}
+                    openReportModal={openReportModal}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium mb-1">No discussions yet</p>
+                  <p className="text-xs">Be the first to start a discussion!</p>
+                </div>
+              )}
+              <div className="mt-4 flex space-x-2">
+                <input
+                  type="text"
+                  placeholder="Start a new discussion..."
+                  value={newDiscussion}
+                  onChange={(e) => setNewDiscussion(e.target.value)}
+                  className="flex-1 bg-gray-700 text-white text-sm border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && newDiscussion.trim()) {
+                      createDiscussion();
+                    }
+                  }}
+                />
+                <button
+                  onClick={createDiscussion}
+                  disabled={!newDiscussion.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center space-x-1"
+                >
+                  <Send className="h-4 w-4" />
+                  <span>Post</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'annotations' && (
+            <EnhancedAnnotationsTab
+              annotations={annotations}
+              loading={loading.annotations}
+              showAnnotations={showAnnotations}
+              setShowAnnotations={setShowAnnotations}
+              handleAnnotationClick={handleAnnotationClick}
+              formatTime={formatTime}
+            />
+          )}
+
+          {activeTab === 'resources' && (
+            <EnhancedResourcesTab />
+          )}
+        </div>
+      </div>
+
+      {/* Quiz Modal */}
+      {showQuiz && quizzes.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-2xl relative">
+            <button
+              onClick={() => setShowQuiz(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <h3 className="text-2xl font-bold text-white mb-4">Lesson Quiz: {quizzes[0].title}</h3>
+            <p className="text-gray-300 mb-6">{quizzes[0].description}</p>
+            <button
+              onClick={handleStartQuiz}
+              className="w-full py-3 bg-purple-600 text-white rounded-xl text-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Start Quiz
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Taking Interface */}
+      {showQuizTaking && quizzes.length > 0 && (
+        <QuizInterface
+          quizId={quizzes[0].id}
+          onComplete={handleQuizComplete}
+          onClose={handleCloseQuiz}
+        />
+      )}
+
+      {/* Annotation Modal */}
+      {showAnnotationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md relative">
+            <button
+              onClick={() => setShowAnnotationModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <h3 className="text-2xl font-bold text-white mb-4">Add {annotationType}</h3>
+            {annotationType !== 'bookmark' && (
+              <textarea
+                value={annotationContent}
+                onChange={(e) => setAnnotationContent(e.target.value)}
+                placeholder={`Enter your ${annotationType} here...`}
+                rows={4}
+                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
+            <button
+              onClick={() => createAnnotation(annotationType, annotationContent)}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Add {annotationType}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md relative">
+            <button
+              onClick={() => setShowReportModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <h3 className="text-2xl font-bold text-white mb-4">Report Content</h3>
+            <p className="text-gray-300 mb-4">Please select a reason for reporting this post:</p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value as any)}
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <option value="inappropriate">Inappropriate Content</option>
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="offensive">Offensive Language</option>
+              <option value="other">Other</option>
+            </select>
+            <button
+              onClick={submitReport}
+              className="w-full py-3 bg-red-600 text-white rounded-xl text-lg font-semibold hover:bg-red-700 transition-colors"
+            >
+              Submit Report
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

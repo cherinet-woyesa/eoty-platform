@@ -13,7 +13,7 @@ export const coursesApi = {
   },
 
   // Create new course
-  createCourse: async (courseData: { title: string; description?: string; category?: string }) => {
+  createCourse: async (courseData: { title: string; description?: string; category?: string; coverImage?: string }) => {
     const token = localStorage.getItem('token');
     const response = await axios.post(`${API_BASE}/courses`, courseData, {
       headers: { Authorization: `Bearer ${token}` }

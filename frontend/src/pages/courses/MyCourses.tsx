@@ -24,6 +24,7 @@ interface Course {
   total_duration: number;
   is_published: boolean;
   published_at?: string;
+  coverImage?: string;
 }
 
 interface CourseStats {
@@ -548,6 +549,13 @@ const MyCourses: React.FC = () => {
               {viewMode === 'grid' ? (
                 // Grid View
                 <>
+                  {course.coverImage && (
+                    <img 
+                      src={course.coverImage} 
+                      alt={`Cover for ${course.title}`}
+                      className="w-full h-32 object-cover mb-4 rounded-t-lg"
+                    />
+                  )}
                   {/* Course Header */}
                   <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white`}>
                     <div className="flex items-start justify-between">
@@ -628,9 +636,17 @@ const MyCourses: React.FC = () => {
               ) : (
                 // List View
                 <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${getCategoryColor(course.category)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
-                    {course.title.charAt(0)}
-                  </div>
+                  {course.coverImage ? (
+                    <img 
+                      src={course.coverImage} 
+                      alt={`Cover for ${course.title}`}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className={`w-16 h-16 bg-gradient-to-r ${getCategoryColor(course.category)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
+                      {course.title.charAt(0)}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900 truncate">{course.title}</h3>
                     <p className="text-sm text-gray-500 truncate">{course.description || 'No description'}</p>
