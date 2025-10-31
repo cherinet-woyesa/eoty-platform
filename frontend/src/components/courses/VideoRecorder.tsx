@@ -880,7 +880,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
 
         {/* Recording Controls */}
-        {activeTab === 'record' && (
+        {activeTab === 'record' && !recordedVideo && (
           <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
             {!isRecording ? (
               <button
