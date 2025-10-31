@@ -34,7 +34,13 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "warning": "Warning"
+    "warning": "Warning",
+    "live_updates": "Live Updates",
+    "inspiring_students": "Inspiring {{students}} students across {{courses}} courses",
+    "try_again": "Try Again",
+    "engagement": "Engagement",
+    "manage_students": "Manage Students",
+    "discussions": "Discussions"
   },
   "dashboard": {
     "teacher": {
@@ -47,7 +53,14 @@
       "total_courses": "Total Courses",
       "total_lessons": "Total Lessons",
       "active_students": "Active Students",
-      "completion_rate": "Completion Rate"
+      "completion_rate": "Completion Rate",
+      "inspiring_students": "Inspiring {{students}} students across {{courses}} courses",
+      "view_student_progress": "View student progress",
+      "view_course_analytics": "View course analytics",
+      "average_rating": "Rating",
+      "total_hours_taught": "Hours Taught",
+      "engagement_score": "Engagement Score",
+      "revenue": "Revenue"
     },
     "student": {
       "title": "Student Dashboard",
@@ -62,6 +75,10 @@
     "title": "Courses",
     "my_courses": "My Courses",
     "create_new": "Create New Course",
+    "create_new_lesson": "Create a new lesson",
+    "start_new_course": "Start a new course",
+    "upload_materials": "Upload materials",
+    "answer_questions": "Answer questions",
     "course_title": "Course Title",
     "description": "Description",
     "category": "Category",

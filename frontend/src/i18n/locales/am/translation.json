@@ -34,7 +34,13 @@
     "loading": "በመጫን ላይ...",
     "error": "ስህተት",
     "success": "ተሳክቷል",
-    "warning": "ማስጠንቀቂያ"
+    "warning": "ማስጠንቀቂያ",
+    "live_updates": "ቀጥታ ዝመናዎች",
+    "inspiring_students": "{{students}} ተማሪዎችን በ {{courses}} ኮርስዎች ላይ ማስደስት",
+    "try_again": "እንደገና ይሞክሩ",
+    "engagement": "አበርታችነት",
+    "manage_students": "ተማሪዎችን አስተዳድር",
+    "discussions": "የውይይት መድረኮች"
   },
   "dashboard": {
     "teacher": {
@@ -47,7 +53,14 @@
       "total_courses": "ጠቅላላ ኮርስዎች",
       "total_lessons": "ጠቅላላ ትምህርቶች",
       "active_students": "እንቅስቃሴ ያለው ተማሪዎች",
-      "completion_rate": "የተጠናቀቀ መጠን"
+      "completion_rate": "የተጠናቀቀ መጠን",
+      "inspiring_students": "{{students}} ተማሪዎችን በ {{courses}} ኮርስዎች ላይ ማስደስት",
+      "view_student_progress": "የተማሪ እድገት መመልከት",
+      "view_course_analytics": "የኮርስ አናሊቲክስ መመልከት",
+      "average_rating": "ደረጃ",
+      "total_hours_taught": "የተማሩ ሰዓታት",
+      "engagement_score": "የአበርታችነት ውጤት",
+      "revenue": "ገቢ"
     },
     "student": {
       "title": "የተማሪ ዳሽቦርድ",
@@ -62,6 +75,10 @@
     "title": "ኮርስዎች",
     "my_courses": "የኔ ኮርስዎች",
     "create_new": "አዲስ ኮርስ ፍጠር",
+    "create_new_lesson": "አዲስ ትምህርት ፍጠር",
+    "start_new_course": "አዲስ ኮርስ ጀምር",
+    "upload_materials": "መረጃዎችን ይስቀሉ",
+    "answer_questions": "ጥያቄዎችን መልስ",
     "course_title": "የኮርስ ርዕስ",
     "description": "መግለጫ",
     "category": "ምድብ",

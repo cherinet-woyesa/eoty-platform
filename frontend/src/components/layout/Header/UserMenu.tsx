@@ -18,48 +18,67 @@ const UserMenu: React.FC = () => {
     setIsProfileOpen(prev => !prev);
   }, []);
 
+  const handleCloseProfile = useCallback(() => {
+    setIsProfileOpen(false);
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
+        handleCloseProfile();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [handleCloseProfile]);
 
   const menuItems = [
     {
       icon: User,
       label: 'Profile',
-      onClick: () => console.log('Navigate to profile'),
+      onClick: () => {
+        console.log('Navigate to profile');
+        handleCloseProfile();
+      },
       description: 'View and edit your profile'
     },
     {
       icon: Settings,
       label: 'Settings',
-      onClick: () => console.log('Navigate to settings'),
+      onClick: () => {
+        console.log('Navigate to settings');
+        handleCloseProfile();
+      },
       description: 'Account preferences'
     },
     {
       icon: Mail,
       label: 'Messages',
-      onClick: () => console.log('Navigate to messages'),
+      onClick: () => {
+        console.log('Navigate to messages');
+        handleCloseProfile();
+      },
       description: 'Check your inbox',
       badge: '3'
     },
     {
       icon: CreditCard,
       label: 'Billing',
-      onClick: () => console.log('Navigate to billing'),
+      onClick: () => {
+        console.log('Navigate to billing');
+        handleCloseProfile();
+      },
       description: 'Manage subscription'
     },
     {
       icon: HelpCircle,
       label: 'Help & Support',
-      onClick: () => console.log('Navigate to help'),
+      onClick: () => {
+        console.log('Navigate to help');
+        handleCloseProfile();
+      },
       description: 'Get assistance'
     }
   ];
@@ -68,12 +87,15 @@ const UserMenu: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleToggleProfile}
-        className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        className="flex items-center space-x-2 p-1.5 rounded-lg transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         aria-label="User menu"
         aria-expanded={isProfileOpen}
+        aria-haspopup="true"
       >
-        <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-          <User className="h-3.5 w-3.5 text-white" />
+        <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+          <span className="text-white text-xs font-semibold">
+            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+          </span>
         </div>
         <div className="hidden sm:block text-left">
           <p className="text-xs font-semibold text-gray-900 leading-tight">
@@ -117,10 +139,10 @@ const UserMenu: React.FC = () => {
               <button
                 key={index}
                 onClick={item.onClick}
-                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 group"
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 transition-colors duration-150 group focus:outline-none focus:bg-gray-50"
               >
                 <div className="flex items-center flex-1 min-w-0">
-                  <item.icon className="mr-3 h-4 w-4 text-gray-500 group-hover:text-gray-700" />
+                  <item.icon className="mr-3 h-4 w-4 text-gray-500" />
                   <div className="flex-1 min-w-0 text-left">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{item.label}</span>
@@ -140,8 +162,11 @@ const UserMenu: React.FC = () => {
           {/* Theme toggle */}
           <div className="px-4 py-2 border-t border-gray-100">
             <button
-              onClick={toggleTheme}
-              className="flex items-center w-full px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
+              onClick={() => {
+                toggleTheme();
+                handleCloseProfile();
+              }}
+              className="flex items-center w-full px-2 py-2 text-sm text-gray-700 rounded-lg transition-colors duration-150 focus:outline-none focus:bg-gray-50"
             >
               {theme === 'dark' ? (
                 <Sun className="mr-3 h-4 w-4 text-gray-500" />
@@ -156,7 +181,7 @@ const UserMenu: React.FC = () => {
           <div className="px-4 py-2 border-t border-gray-100">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
+              className="flex items-center w-full px-2 py-2 text-sm text-red-600 rounded-lg transition-colors duration-150 focus:outline-none focus:bg-red-50"
             >
               <LogOut className="mr-3 h-4 w-4" />
               Sign out

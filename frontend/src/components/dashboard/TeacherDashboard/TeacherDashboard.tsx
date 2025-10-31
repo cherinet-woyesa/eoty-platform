@@ -20,8 +20,10 @@ import { useRealTimeData } from '../../../hooks/useRealTimeData';
 import { useWebSocket } from '../../../hooks/useWebSocket';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import ErrorBoundary from '../../common/ErrorBoundary';
+import { useTranslation } from 'react-i18next'; // Added translation hook
 
 const TeacherDashboard: React.FC = () => {
+  const { t } = useTranslation(); // Added translation hook
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeView, setActiveView] = useState('overview');
@@ -66,13 +68,13 @@ const TeacherDashboard: React.FC = () => {
   }, [lastMessage]);
 
   const views = useMemo(() => [
-    { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'courses', name: 'My Courses', icon: '📚' },
-    { id: 'students', name: 'Students', icon: '👥' },
-    { id: 'analytics', name: 'Analytics', icon: '📈' },
-    { id: 'engagement', name: 'Engagement', icon: '🎯' },
-    { id: 'content', name: 'Content', icon: '🎥' }
-  ], []);
+    { id: 'overview', name: t('dashboard.teacher.title'), icon: '📊' }, 
+    { id: 'courses', name: t('common.my_courses'), icon: '📚' }, 
+    { id: 'students', name: t('common.community'), icon: '👥' }, 
+    { id: 'analytics', name: t('dashboard.teacher.view_analytics'), icon: '📈' }, 
+    { id: 'engagement', name: t('common.engagement'), icon: '🎯' },
+    { id: 'content', name: t('common.resources'), icon: '🎥' } 
+  ], [t]); // Added t to dependency array
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -104,7 +106,7 @@ const TeacherDashboard: React.FC = () => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading your teaching dashboard..." />
+          <LoadingSpinner size="lg" text={t('common.loading')} /> 
         </div>
       );
     }
@@ -126,14 +128,14 @@ const TeacherDashboard: React.FC = () => {
       case 'content':
         return (
           <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Content Management</h2>
-            <p className="text-gray-600">Manage your course content, videos, and resources.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('common.resources')}</h2> 
+            <p className="text-gray-600">{t('courses.manage_organize')}</p> 
           </div>
         );
       default:
         return (
           <div className="space-y-6">
-            {/* Teacher Metrics */}
+            {/* Teacher Metrics - Now only shows first 4 metrics */}
             <TeacherMetrics stats={teacherData?.stats} />
             
             {/* Quick Actions & Upcoming Tasks */}
@@ -172,12 +174,12 @@ const TeacherDashboard: React.FC = () => {
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">Failed to load dashboard data</p>
+            <p className="text-red-600 text-lg mb-4">{t('common.error')}</p> 
             <button 
               onClick={handleRetry}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              {t('common.try_again')} 
             </button>
           </div>
         </div>
@@ -193,19 +195,22 @@ const TeacherDashboard: React.FC = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-xl sm:text-2xl font-bold">Teaching Dashboard</h1>
+                <h1 className="text-xl sm:text-2xl font-bold">{t('dashboard.teacher.title')}</h1> 
                 {lastMessage && (
                   <div className="flex items-center space-x-2 text-blue-100">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">Live Updates</span>
+                    <span className="text-sm">{t('common.live_updates')}</span> 
                   </div>
                 )}
               </div>
               <p className="text-blue-100 text-sm sm:text-base">
-                Welcome back, {user?.firstName}! {formatDate(currentTime)} • {formatTime(currentTime)}
+                {t('common.welcome')}, {user?.firstName}! {formatDate(currentTime)} • {formatTime(currentTime)} 
               </p>
               <p className="text-blue-200 text-xs sm:text-sm mt-1">
-                Inspiring {teacherData?.stats?.totalStudents || 0} students across {teacherData?.stats?.totalCourses || 0} courses
+                {t('dashboard.teacher.inspiring_students', 'Inspiring {{students}} students across {{courses}} courses', { // Updated to use translation
+                  students: teacherData?.stats?.totalStudents || 0,
+                  courses: teacherData?.stats?.totalCourses || 0
+                })}
               </p>
             </div>
             <div className="mt-4 lg:mt-0 lg:ml-6">
@@ -215,14 +220,14 @@ const TeacherDashboard: React.FC = () => {
                   className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
                 >
                   <Video className="h-4 w-4 mr-2" />
-                  Record Video
+                  {t('dashboard.teacher.record_new_video')} 
                 </Link>
                 <Link
                   to="/courses/new"
                   className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  New Course
+                  {t('dashboard.teacher.create_course')} 
                 </Link>
               </div>
             </div>

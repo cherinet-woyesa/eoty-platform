@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { BookOpen, Users, Video, Clock, Star, Target, TrendingUp, DollarSign } from 'lucide-react';
 import MetricsCard from '../AdminDashboard/MetricsCard';
+import { useTranslation } from 'react-i18next'; // Added translation hook
 
 interface TeacherMetricsProps {
   stats?: {
@@ -15,10 +16,24 @@ interface TeacherMetricsProps {
   };
 }
 
+// Define the metric item interface
+interface MetricItem {
+  title: string;
+  value: number;
+  change: number;
+  icon: React.ReactNode;
+  color: string;
+  trend: 'up' | 'down';
+  format?: 'number' | 'percent' | 'currency';
+  decimal?: number;
+}
+
 const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
-  const metrics = useMemo(() => [
+  const { t } = useTranslation(); // Added translation hook
+
+  const metrics = useMemo<MetricItem[]>(() => [
     {
-      title: 'Active Courses',
+      title: t('dashboard.teacher.total_courses'), // Updated to use translation
       value: stats?.totalCourses || 0,
       change: 2,
       icon: <BookOpen className="h-6 w-6" />,
@@ -26,7 +41,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: 'Total Students',
+      title: t('dashboard.teacher.active_students'), // Updated to use translation
       value: stats?.totalStudents || 0,
       change: 12,
       icon: <Users className="h-6 w-6" />,
@@ -34,7 +49,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: 'Video Lessons',
+      title: t('common.record_video'), // Updated to use translation
       value: stats?.totalLessons || 0,
       change: 8,
       icon: <Video className="h-6 w-6" />,
@@ -42,7 +57,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: 'Hours Taught',
+      title: t('dashboard.teacher.total_hours_taught', 'Hours Taught'), 
       value: stats?.totalHours || 0,
       change: 15,
       icon: <Clock className="h-6 w-6" />,
@@ -50,7 +65,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: 'Average Rating',
+      title: t('dashboard.teacher.average_rating'), 
       value: stats?.averageRating || 0,
       change: 0.2,
       format: 'number' as const,
@@ -60,7 +75,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       decimal: 1
     },
     {
-      title: 'Completion Rate',
+      title: t('dashboard.teacher.completion_rate'), 
       value: stats?.completionRate || 0,
       change: 5,
       format: 'percent' as const,
@@ -69,7 +84,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: 'Engagement Score',
+      title: t('dashboard.teacher.engagement_score', 'Engagement Score'), 
       value: stats?.engagementScore || 0,
       change: 3,
       format: 'percent' as const,
@@ -78,7 +93,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     ...(stats?.revenue ? [{
-      title: 'Revenue',
+      title: t('dashboard.teacher.revenue', 'Revenue'), // Updated to use translation
       value: stats.revenue,
       change: 8,
       format: 'currency' as const,
@@ -86,7 +101,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       color: 'from-emerald-500 to-emerald-600',
       trend: 'up' as const
     }] : [])
-  ], [stats]);
+  ], [stats, t]); // Added t to dependency array
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">

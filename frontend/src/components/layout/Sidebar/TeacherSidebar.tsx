@@ -192,6 +192,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
               <School className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-sm font-bold text-white">Teacher Portal</h1>
+            
           </div>
         )}
         <button

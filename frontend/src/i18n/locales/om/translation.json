@@ -34,7 +34,13 @@
     "loading": "Ol ka'aa jira...",
     "error": "Dogoggora",
     "success": "Milkii",
-    "warning": "Eegumsa"
+    "warning": "Eegumsa",
+    "live_updates": "Ogeessaa Dhugaa",
+    "inspiring_students": "Barattoota {{students}} irraa {{courses}} koorsoota irratti",
+    "try_again": "Irra Deebi'in Yaali",
+    "engagement": "Hirmaannaa",
+    "manage_students": "Barattoota Tali",
+    "discussions": "Waa'ee Qoodaa"
   },
   "dashboard": {
     "teacher": {
@@ -47,7 +53,14 @@
       "total_courses": "Koorsoota Waliigalaa",
       "total_lessons": "Barattoota Waliigalaa",
       "active_students": "Barattoota Ka'aa",
-      "completion_rate": "Madaalla Xumuramaa"
+      "completion_rate": "Madaalla Xumuramaa",
+      "inspiring_students": "Barattoota {{students}} irraa {{courses}} koorsoota irratti",
+      "view_student_progress": "Ogeessaa barattoo ilali",
+      "view_course_analytics": "Anaaliitiksii koorsoo ilali",
+      "average_rating": "Sadarkaa",
+      "total_hours_taught": "Sa'aatawwan Barataman",
+      "engagement_score": "Madaalla Hirmaannaa",
+      "revenue": "Gatii"
     },
     "student": {
       "title": "Daashiboodii Barattoo",
@@ -62,6 +75,10 @@
     "title": "Koorsoota",
     "my_courses": "Koorsoota Kiyya",
     "create_new": "Koorsoo Haaraa Uumi",
+    "create_new_lesson": "Barattoo haaraa uumi",
+    "start_new_course": "Koorsoo haaraa jalqabi",
+    "upload_materials": "Qaamaalee olka'i",
+    "answer_questions": "Gaaffii deebisii",
     "course_title": "Mataduree Koorsoo",
     "description": "Ibsa",
     "category": "Garee",

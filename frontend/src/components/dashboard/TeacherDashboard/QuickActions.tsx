@@ -1,53 +1,56 @@
 import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Video, BookOpen, Users, Zap, BarChart, Plus, FileText, MessageCircle, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Added translation hook
 
 const QuickActions: React.FC = () => {
+  const { t } = useTranslation(); // Added translation hook
+
   const actions = [
     {
       icon: <Video className="h-5 w-5" />,
-      label: 'Record Video',
-      description: 'Create a new lesson',
+      label: t('dashboard.teacher.record_new_video'), // Updated to use translation
+      description: t('courses.create_new_lesson', 'Create a new lesson'), // Updated to use translation
       href: '/record',
       color: 'from-red-500 to-pink-600',
       bgColor: 'bg-red-50'
     },
     {
       icon: <BookOpen className="h-5 w-5" />,
-      label: 'New Course',
-      description: 'Start a new course',
+      label: t('dashboard.teacher.create_course'), // Updated to use translation
+      description: t('courses.start_new_course', 'Start a new course'), // Updated to use translation
       href: '/courses/new',
       color: 'from-blue-500 to-cyan-600',
       bgColor: 'bg-blue-50'
     },
     {
       icon: <Users className="h-5 w-5" />,
-      label: 'Manage Students',
-      description: 'View student progress',
+      label: t('common.manage_students'), // Updated to use translation
+      description: t('dashboard.teacher.view_student_progress', 'View student progress'), // Updated to use translation
       href: '/students',
       color: 'from-green-500 to-emerald-600',
       bgColor: 'bg-green-50'
     },
     {
       icon: <BarChart className="h-5 w-5" />,
-      label: 'Analytics',
-      description: 'View course analytics',
+      label: t('dashboard.teacher.view_analytics'), // Updated to use translation
+      description: t('dashboard.teacher.view_course_analytics', 'View course analytics'), // Updated to use translation
       href: '/analytics',
       color: 'from-purple-500 to-indigo-600',
       bgColor: 'bg-purple-50'
     },
     {
       icon: <FileText className="h-5 w-5" />,
-      label: 'Resources',
-      description: 'Upload materials',
+      label: t('common.resources'), // Updated to use translation
+      description: t('courses.upload_materials', 'Upload materials'), // Updated to use translation
       href: '/resources',
       color: 'from-orange-500 to-amber-600',
       bgColor: 'bg-orange-50'
     },
     {
       icon: <MessageCircle className="h-5 w-5" />,
-      label: 'Discussions',
-      description: 'Answer questions',
+      label: t('common.discussions'), // Updated to use translation
+      description: t('courses.answer_questions', 'Answer questions'), // Updated to use translation
       href: '/forums',
       color: 'from-pink-500 to-rose-600',
       bgColor: 'bg-pink-50'
@@ -63,7 +66,7 @@ const QuickActions: React.FC = () => {
     <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
         <Zap className="h-5 w-5 mr-2 text-yellow-500" />
-        Quick Actions
+        {t('dashboard.teacher.quick_actions')} {/* Updated to use translation */}
       </h3>
       
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -96,19 +99,19 @@ const QuickActions: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-lg font-bold text-gray-900">8</div>
-            <div className="text-xs text-gray-500">Courses</div>
+            <div className="text-xs text-gray-500">{t('dashboard.teacher.total_courses')}</div> {/* Updated to use translation */}
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900">247</div>
-            <div className="text-xs text-gray-500">Students</div>
+            <div className="text-xs text-gray-500">{t('dashboard.teacher.active_students')}</div> {/* Updated to use translation */}
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900">4.8</div>
-            <div className="text-xs text-gray-500">Rating</div>
+            <div className="text-xs text-gray-500">{t('dashboard.teacher.average_rating', 'Rating')}</div> {/* Updated to use translation */}
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900">156</div>
-            <div className="text-xs text-gray-500">Lessons</div>
+            <div className="text-xs text-gray-500">{t('dashboard.teacher.total_lessons')}</div> {/* Updated to use translation */}
           </div>
         </div>
       </div>
