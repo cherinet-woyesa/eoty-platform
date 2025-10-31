@@ -18,9 +18,11 @@ router.get('/subtitles/:filename', videoController.streamSubtitle);
 
 // Video metadata and availability routes
 router.get('/lessons/:lessonId/metadata', videoController.getVideoMetadata);
-router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability); // New endpoint
-router.post('/lessons/:lessonId/notify', videoController.notifyVideoAvailable); // New endpoint
-router.get('/notifications', videoController.getUserVideoNotifications); // New endpoint
+router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability);
+
+// Notification routes
+router.post('/lessons/:lessonId/notify', videoController.notifyVideoAvailable);
+router.get('/notifications', videoController.getUserVideoNotifications);
 
 // Course lessons route
 router.get('/courses/:courseId/lessons', videoController.getCourseLessons);

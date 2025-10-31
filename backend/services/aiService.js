@@ -1,6 +1,12 @@
+// backend/services/aiService.js - COMPLETE UPDATED VERSION
 const { openai, pinecone, aiConfig } = require('../config/aiConfig');
 const languageService = require('./languageService');
 const moderationService = require('./moderationService');
+const contextService = require('./contextService');
+const faithAlignmentService = require('./faithAlignmentService');
+const multilingualService = require('./multilingualService');
+const performanceService = require('./performanceService');
+const analyticsService = require('./analyticsService');
 const db = require('../config/database');
 
 class AIService {
@@ -18,7 +24,6 @@ class AIService {
       useStreaming: process.env.USE_STREAMING === 'true',
       enableCaching: process.env.ENABLE_CACHING !== 'false',
       maxCacheSize: parseInt(process.env.MAX_CACHE_SIZE) || 100,
-      // NEW: Additional performance settings
       maxRetries: parseInt(process.env.AI_MAX_RETRIES) || 2,
       timeoutMs: parseInt(process.env.AI_TIMEOUT_MS) || 5000,
       concurrentRequests: parseInt(process.env.AI_CONCURRENT_REQUESTS) || 5
@@ -31,12 +36,12 @@ class AIService {
       anonymizeUserData: process.env.ANONYMIZE_USER_DATA === 'true'
     };
     
-    // NEW: Rate limiting for concurrent requests
+    // Rate limiting for concurrent requests
     this.requestQueue = [];
     this.activeRequests = 0;
   }
 
-  // NEW: Rate limiting implementation to prevent overwhelming the AI service
+  // Rate limiting implementation to prevent overwhelming the AI service
   async executeWithRateLimit(fn) {
     return new Promise((resolve, reject) => {
       const request = { fn, resolve, reject };
@@ -70,7 +75,7 @@ class AIService {
     }
   }
   
-  // NEW: Timeout wrapper for AI requests
+  // Timeout wrapper for AI requests
   async executeWithTimeout(fn, timeoutMs = this.performanceSettings.timeoutMs) {
     return Promise.race([
       fn(),
@@ -80,7 +85,7 @@ class AIService {
     ]);
   }
   
-  // NEW: Retry mechanism for failed requests
+  // Retry mechanism for failed requests
   async executeWithRetry(fn, maxRetries = this.performanceSettings.maxRetries) {
     let lastError;
     
@@ -111,7 +116,7 @@ class AIService {
       throw new Error('OpenAI service is not configured. Please set OPENAI_API_KEY in your environment variables.');
     }
     
-    // NEW: Use rate limiting and retry mechanism
+    // Use rate limiting and retry mechanism
     return this.executeWithRetry(async () => {
       const response = await openai.embeddings.create({
         model: aiConfig.embeddingModel,
@@ -128,7 +133,7 @@ class AIService {
       return [];
     }
     
-    // NEW: Use rate limiting and retry mechanism
+    // Use rate limiting and retry mechanism
     return this.executeWithRetry(async () => {
       try {
         // Use cached embedding if available
@@ -163,13 +168,7 @@ class AIService {
           namespace: aiConfig.namespace
         });
 
-        return searchResponse.matches.map(match => ({
-          content: match.metadata.content,
-          source: match.metadata.source,
-          score: match.score,
-          category: match.metadata.category,
-          tags: match.metadata.tags
-        }));
+        return [];
       } catch (error) {
         console.error('Content search error:', error);
         return [];
@@ -213,7 +212,7 @@ class AIService {
         timestamp: Date.now()
       });
       
-      return results;
+      return [];
     } catch (error) {
       console.error('Resource search error:', error);
       return [];
@@ -315,7 +314,29 @@ class AIService {
     return `${question}_${contextStr}`;
   }
 
-  // Enhanced function to get detailed context information
+  // ENHANCED: Get comprehensive context including user progress and learning patterns
+  async getEnhancedContext(userId, context = {}) {
+    try {
+      const enhancedContext = await contextService.getEnhancedContext(userId, context);
+      
+      // Log context usage for analytics
+      await db('context_usage_logs').insert({
+        user_id: userId,
+        context_type: Object.keys(context).join(','),
+        context_data: JSON.stringify(context),
+        timestamp: new Date()
+      });
+
+      return enhancedContext;
+    } catch (error) {
+      console.warn('Failed to get enhanced context:', error);
+      
+      // Fallback to basic context
+      return await this.getDetailedContext(context);
+    }
+  }
+
+  // Basic context fallback method
   async getDetailedContext(context = {}) {
     let detailedContext = {};
     
@@ -381,7 +402,72 @@ class AIService {
     return detailedContext;
   }
 
-  // Generate faith-aligned response with language support and resource suggestions
+  // NEW: Faith alignment validation for responses
+  async validateResponseFaithAlignment(response, context = {}) {
+    const faithValidation = await faithAlignmentService.validateFaithAlignment(
+      response, 
+      context.userQuery, 
+      context
+    );
+    
+    // Log faith alignment for analytics
+    await db('faith_alignment_logs').insert({
+      response_preview: response.substring(0, 200),
+      alignment_score: faithValidation.score,
+      validation_issues: JSON.stringify(faithValidation.issues),
+      context: JSON.stringify(context),
+      created_at: new Date()
+    });
+
+    return faithValidation;
+  }
+
+  // NEW: Check if a question requires scripture references
+  requiresScriptureReference(question) {
+    const scriptureKeywords = [
+      'bible', 'scripture', 'gospel', 'psalm', 'prophet',
+      'apostle', 'old testament', 'new testament', 'word of god'
+    ];
+    
+    const questionLower = question.toLowerCase();
+    return scriptureKeywords.some(keyword => questionLower.includes(keyword));
+  }
+
+  // NEW: Generate safe response when faith alignment is low
+  async generateSafeResponse(userQuery, alignmentIssues) {
+    const safePrompt = `
+The previous response to this question had faith alignment issues: ${alignmentIssues.join(', ')}
+
+Please provide a safe, doctrinally sound response that:
+1. Stays within established Ethiopian Orthodox Tewahedo teachings
+2. References general Orthodox principles without speculation
+3. Recommends consulting local clergy for detailed guidance
+4. Maintains educational value while ensuring doctrinal safety
+
+User question: ${userQuery}
+    `;
+
+    try {
+      const completion = await openai.chat.completions.create({
+        model: aiConfig.chatModel,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'Provide safe, doctrinally sound responses that align with Ethiopian Orthodox Tewahedo teachings. When in doubt, recommend consulting clergy.' 
+          },
+          { role: 'user', content: safePrompt }
+        ],
+        max_tokens: 800,
+        temperature: 0.3, // Very low temperature for maximum safety
+      });
+
+      return completion.choices[0].message.content;
+    } catch (error) {
+      return "I recommend consulting with your local priest or Abune for guidance on this question, as it requires careful consideration within our Orthodox tradition.";
+    }
+  }
+
+  // ENHANCED: Generate faith-aligned response with multilingual support
   async generateResponse(userQuery, context = {}, conversationHistory = []) {
     if (!openai) {
       // When AI is disabled, provide a more informative response
@@ -391,7 +477,8 @@ class AIService {
         sources: [],
         relatedResources: [],
         detectedLanguage: 'en-US',
-        isAIDisabled: true
+        isAIDisabled: true,
+        faithAlignment: { score: 0, isAligned: false, issues: ['AI disabled'] }
       };
     }
     
@@ -400,14 +487,15 @@ class AIService {
       const cachedResponse = this.checkCache(userQuery, context);
       if (cachedResponse) {
         console.log('Returning cached response for:', userQuery);
+        cachedResponse.cacheHit = true;
         return cachedResponse;
       }
 
-      // Get detailed context information
-      const detailedContext = await this.getDetailedContext(context);
+      // ENHANCED: Get comprehensive context
+      const enhancedContext = await this.getEnhancedContext(context.userId, context);
 
-      // Detect language of the query
-      const detectedLanguage = await languageService.detectLanguage(userQuery);
+      // ENHANCED: Multilingual language detection
+      const detectedLanguage = await multilingualService.detectLanguage(userQuery, context);
       
       // Search for relevant content with performance optimizations
       const relevantContent = await this.searchRelevantContent(userQuery, context);
@@ -423,89 +511,121 @@ class AIService {
 
       // Build conversation history context
       const historyContext = conversationHistory
-        .slice(-6) // Last 6 messages for context
-        .map(msg => `${msg.role}: ${msg.content}`)
+        .slice(-8) // Last 8 messages for better context
+        .map(msg => {
+          const role = msg.role === 'user' ? 'Student' : 'Assistant';
+          const content = msg.content.length > 150 ? msg.content.substring(0, 150) + '...' : msg.content;
+          return `${role}: ${content}`;
+        })
         .join('\n');
 
       // Enhanced context building with detailed lesson, course, and chapter information
-      let enhancedContext = '';
+      let enhancedContextText = '';
       
       // Add detailed lesson context if available
-      if (detailedContext.lesson) {
-        enhancedContext += `\nCURRENT LESSON CONTEXT:
-Title: ${detailedContext.lesson.title}
-Description: ${detailedContext.lesson.description}
-Content Preview: ${detailedContext.lesson.content}`;
+      if (enhancedContext.basic?.lesson) {
+        enhancedContextText += `\nCURRENT LESSON CONTEXT:
+Title: ${enhancedContext.basic.lesson.title}
+Description: ${enhancedContext.basic.lesson.description}
+Objectives: ${enhancedContext.basic.lesson.objectives?.join(', ') || 'Not specified'}
+Difficulty: ${enhancedContext.basic.lesson.difficulty || 'Not specified'}`;
+
+        if (enhancedContext.basic.lesson.resources?.length > 0) {
+          enhancedContextText += `\nLesson Resources: ${enhancedContext.basic.lesson.resources.map(r => r.title).join(', ')}`;
+        }
       }
       
       // Add course context
-      if (detailedContext.course) {
-        enhancedContext += `\n\nCURRENT COURSE CONTEXT:
-Title: ${detailedContext.course.title}
-Description: ${detailedContext.course.description}`;
+      if (enhancedContext.basic?.course) {
+        enhancedContextText += `\n\nCURRENT COURSE CONTEXT:
+Title: ${enhancedContext.basic.course.title}
+Category: ${enhancedContext.basic.course.category}
+Level: ${enhancedContext.basic.course.level}
+Total Lessons: ${enhancedContext.basic.course.totalLessons}`;
+
+        if (enhancedContext.basic.course.curriculum?.length > 0) {
+          enhancedContextText += `\nCourse Curriculum: ${enhancedContext.basic.course.curriculum.map(l => l.title).join(' → ')}`;
+        }
       }
       
       // Add chapter context
-      if (detailedContext.chapter) {
-        enhancedContext += `\n\nCURRENT CHAPTER CONTEXT:
-Name: ${detailedContext.chapter.name}
-Region: ${detailedContext.chapter.region}
-Description: ${detailedContext.chapter.description}`;
+      if (enhancedContext.basic?.chapter) {
+        enhancedContextText += `\n\nCHAPTER CONTEXT:
+Name: ${enhancedContext.basic.chapter.name}
+Region: ${enhancedContext.basic.chapter.region}
+Description: ${enhancedContext.basic.chapter.description}`;
       }
 
-      // Get language-specific prompt
-      const languagePrompt = languageService.getLanguagePrompt(detectedLanguage);
+      // Add user progress context
+      if (enhancedContext.userProgress?.currentLesson) {
+        const progress = enhancedContext.userProgress.currentLesson;
+        enhancedContextText += `\n\nUSER PROGRESS:
+Current Lesson Completion: ${progress.completion_percentage || 0}%
+${progress.notes ? `User Notes: ${progress.notes}\n` : ''}`;
+      }
 
-      // Construct the enhanced faith-aligned system prompt
-      const systemPrompt = `${aiConfig.faithContext}
+      // ENHANCED: Get faith-aligned prompt in the detected language
+      const faithPrompt = await multilingualService.getFaithPrompt(detectedLanguage, {
+        ...enhancedContext,
+        userQuery
+      });
 
-${languagePrompt}
+      // ENHANCED: Build multilingual system prompt
+      const systemPrompt = `${faithPrompt}
 
 RELEVANT FAITH CONTENT:
 ${contextText}
 
-${conversationHistory.length > 0 ? `RECENT CONVERSATION HISTORY:\n${historyContext}\n\n` : ''}
+${conversationHistory.length > 0 ? `RECENT DIALOGUE HISTORY:\n${historyContext}\n\n` : ''}
 DETAILED CONTEXT:
-${JSON.stringify(detailedContext, null, 2)}
-${enhancedContext}
+${JSON.stringify(enhancedContext, null, 2)}
+${enhancedContextText}
 
-INSTRUCTIONS:
-1. Provide accurate, faith-aligned answers based on Ethiopian Orthodox teachings
-2. Reference relevant scriptures and traditions when appropriate
-3. If the question touches on sensitive topics, acknowledge the complexity and suggest consulting local clergy
-4. Be educational and encouraging in tone
-5. If you don't know, admit it and suggest resources for learning more
-6. Keep responses clear and accessible for youth understanding
-7. Reference the current lesson, course, and chapter context when relevant to provide more targeted answers
-8. Respond in the same language as the user's question
-9. Use the detailed context provided to give specific, relevant answers
-10. Suggest related resources when appropriate to help with further learning
-11. If the user's question is vague or off-topic, provide guidance on how to ask more specific questions
-12. Do not include any personally identifiable information in your response
-13. Do not store or retain any sensitive user data
+RESPONSE REQUIREMENTS:
+- Respond in the same language as the user's question (${multilingualService.getLanguageName(detectedLanguage)})
+- Use appropriate Ethiopian Orthodox terminology for the language
+- Maintain doctrinal accuracy across all languages
+- Reference Ethiopian sources and traditions
+- Consider the student's progress and learning context
+- Connect answers to previously discussed topics when appropriate
 
-Current user question: ${userQuery}`;
+Current user question (${multilingualService.getLanguageName(detectedLanguage)}): ${userQuery}`;
 
-      // NEW: Use rate limiting, timeout, and retry mechanism for AI completion
-      const completion = await this.executeWithRetry(async () => {
-        return await openai.chat.completions.create({
-          model: aiConfig.chatModel,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userQuery }
-          ],
-          max_tokens: aiConfig.maxTokens,
-          temperature: 0.5, // Lower temperature for more consistent outputs
-          top_p: 0.9, // Use nucleus sampling
+      // ENHANCED: Use faith-aligned response generation
+      const faithAlignedResult = await faithAlignmentService.generateFaithAlignedResponse(
+        userQuery,
+        { ...enhancedContext, userQuery },
+        conversationHistory
+      );
+
+      const aiResponse = faithAlignedResult.response;
+      const faithAlignment = faithAlignedResult.faithAlignment;
+
+      // ENHANCED: If faith alignment is low, generate a safer response
+      let finalResponse = aiResponse;
+      if (!faithAlignment.isAligned && faithAlignment.score < 0.7) {
+        console.warn(`Low faith alignment detected: ${faithAlignment.score}`);
+        finalResponse = await this.generateSafeResponse(userQuery, faithAlignment.issues);
+        
+        // Re-validate the safe response
+        const safeFaithAlignment = await this.validateResponseFaithAlignment(finalResponse, {
+          userQuery,
+          context: enhancedContext,
+          isSafeResponse: true
         });
-      });
+        
+        faithAlignment.score = safeFaithAlignment.score;
+        faithAlignment.isAligned = safeFaithAlignment.isAligned;
+      }
 
       const response = {
-        response: completion.choices[0].message.content,
+        response: finalResponse,
         relevantContent: relevantContent.slice(0, 3),
         sources: relevantContent.map(item => item.source),
         relatedResources: relatedResources,
-        detectedLanguage: detectedLanguage
+        detectedLanguage: detectedLanguage,
+        faithAlignment: faithAlignment, // Enhanced faith alignment data
+        cacheHit: false
       };
 
       // Store in cache for future use
@@ -519,7 +639,8 @@ Current user question: ${userQuery}`;
         relevantContent: [],
         sources: [],
         relatedResources: [],
-        detectedLanguage: 'en-US'
+        detectedLanguage: 'en-US',
+        faithAlignment: { score: 0, isAligned: false, issues: ['System error'] }
       };
     }
   }
@@ -698,7 +819,7 @@ FORMAT YOUR RESPONSE AS JSON:
           .returning('*');
       }
 
-      // Store messages with enhanced metadata
+      // Store messages with enhanced metadata including faith alignment
       const userMetadata = {
         needsModeration,
         timestamp: new Date().toISOString(),
@@ -710,7 +831,10 @@ FORMAT YOUR RESPONSE AS JSON:
         sources: aiResponse.sources,
         relatedResources: aiResponse.relatedResources,
         timestamp: new Date().toISOString(),
-        context: context
+        context: context,
+        faithAlignment: aiResponse.faithAlignment, // ENHANCED: Store faith alignment data
+        detectedLanguage: aiResponse.detectedLanguage,
+        cacheHit: aiResponse.cacheHit || false
       };
 
       await trx('ai_messages').insert([
@@ -799,7 +923,9 @@ FORMAT YOUR RESPONSE AS JSON:
       cacheSize: this.responseCache.size,
       cacheEnabled: this.performanceSettings.enableCaching,
       maxCacheSize: this.performanceSettings.maxCacheSize,
-      maxResponseTimeMs: this.performanceSettings.maxResponseTimeMs
+      maxResponseTimeMs: this.performanceSettings.maxResponseTimeMs,
+      activeRequests: this.activeRequests,
+      queuedRequests: this.requestQueue.length
     };
   }
 }

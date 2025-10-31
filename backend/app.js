@@ -18,6 +18,7 @@ const achievementRoutes = require('./routes/achievements');
 const adminRoutes = require('./routes/admin');
 const chapterRoutes = require('./routes/chapters');
 const onboardingRoutes = require('./routes/onboarding');
+const translationRoutes = require('./routes/translation');
 
 
 // Import middleware
@@ -66,6 +67,7 @@ app.use('/api/resources', authenticateToken, resourceRoutes);
 app.use('/api/forums', authenticateToken, forumRoutes);
 app.use('/api/achievements', authenticateToken, achievementRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/translation', translationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
