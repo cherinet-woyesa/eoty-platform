@@ -6,6 +6,7 @@ const API_BASE = 'http://localhost:5000/api';
 export const apiClient = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
+  withCredentials: true, // Important for CORS with cookies/auth
 });
 
 // Request interceptor to add auth token
@@ -15,6 +16,10 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add CORS headers for all requests
+    config.headers['Content-Type'] = 'application/json';
+    
     return config;
   },
   (error) => {
@@ -32,6 +37,12 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    // Handle CORS errors
+    if (error.code === 'ERR_NETWORK') {
+      console.error('Network error - check CORS configuration');
+    }
+    
     return Promise.reject(error);
   }
 );

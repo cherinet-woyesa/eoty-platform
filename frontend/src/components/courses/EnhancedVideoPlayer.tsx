@@ -539,6 +539,16 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const userRole: 'student' | 'teacher' | 'admin' = 'student';
   const currentUserId = 'current-user-id';
 
+  // Resolve video URL with CORS fix
+  const resolvedVideoUrl = React.useMemo(() => {
+    try {
+      return videoApi.resolveVideoUrl(videoUrl);
+    } catch (error) {
+      console.error('Error resolving video URL:', error);
+      return videoUrl;
+    }
+  }, [videoUrl]);
+
   // Load data from backend
   React.useEffect(() => {
     loadAnnotations();
@@ -635,6 +645,12 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     setLoading(prev => ({ ...prev, subtitles: true }));
     try {
       console.log('Loading video metadata for lesson:', lessonId);
+      console.log('Resolved video URL:', resolvedVideoUrl);
+      
+      // Test if video URL is accessible
+      const isAccessible = await videoApi.validateVideoUrl(videoUrl);
+      console.log('Video URL accessible:', isAccessible);
+      
     } catch (error) {
       console.error('Failed to load video metadata:', error);
     } finally {
@@ -792,9 +808,20 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     if (!video) return;
 
     const updateTime = () => setCurrentTime(video.currentTime);
-    const updateDuration = () => setDuration(video.duration);
+    const updateDuration = () => {
+      const newDuration = video.duration || 0;
+      setDuration(newDuration);
+    };
     const handleEnd = () => setIsPlaying(false);
-    const handleError = () => {
+    const handleError = (e: Event) => {
+      console.error('Video error event:', e);
+      const videoElement = e.target as HTMLVideoElement;
+      console.error('Video error details:', {
+        error: videoElement.error,
+        networkState: videoElement.networkState,
+        readyState: videoElement.readyState,
+        src: videoElement.src
+      });
       setNetworkStatus({ status: 'offline' });
     };
 
@@ -810,6 +837,14 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     video.addEventListener('loadedmetadata', updateDuration);
     video.addEventListener('ended', handleEnd);
     video.addEventListener('error', handleError);
+    video.addEventListener('canplay', () => {
+      console.log('Video can play - ready to start');
+      setNetworkStatus({ status: 'online' });
+    });
+    video.addEventListener('waiting', () => {
+      console.log('Video waiting - buffering');
+      setNetworkStatus({ status: 'degraded' });
+    });
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -819,6 +854,8 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       video.removeEventListener('loadedmetadata', updateDuration);
       video.removeEventListener('ended', handleEnd);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('canplay', () => {});
+      video.removeEventListener('waiting', () => {});
 
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -836,15 +873,21 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
     if (isPlaying) {
       video.pause();
+      setIsPlaying(false);
     } else {
       video.play().catch(error => {
         console.error('Error playing video:', error);
         if (error.name === 'NotAllowedError') {
           alert('Please interact with the page to enable video playback.');
+        } else if (error.name === 'NotSupportedError') {
+          alert('Video format not supported by your browser.');
+        } else {
+          alert('Failed to play video. Please check the video URL and try again.');
         }
+        setIsPlaying(false);
       });
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1058,17 +1101,47 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       <div className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
         <video
           ref={videoRef}
-          src={videoUrl}
+          src={resolvedVideoUrl}
           onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-          onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+          onLoadedMetadata={() => {
+            const duration = videoRef.current?.duration || 0;
+            setDuration(duration);
+            console.log('Video metadata loaded - Duration:', duration);
+          }}
+          onError={(e) => {
+            console.error('Video error:', e);
+            const videoElement = e.target as HTMLVideoElement;
+            console.error('Video error details:', {
+              error: videoElement.error,
+              networkState: videoElement.networkState,
+              readyState: videoElement.readyState,
+              src: videoElement.src
+            });
+            setNetworkStatus({ status: 'offline' });
+          }}
+          onLoadStart={() => {
+            console.log('Video load started');
+            setNetworkStatus({ status: 'online' });
+          }}
+          onCanPlay={() => {
+            console.log('Video can play');
+            setNetworkStatus({ status: 'online' });
+          }}
+          onStalled={() => {
+            console.log('Video stalled - buffering');
+            setNetworkStatus({ status: 'degraded' });
+          }}
           onClick={togglePlay}
           className="absolute top-0 left-0 w-full h-full object-contain bg-black"
+          crossOrigin="anonymous"  // CRITICAL: Add this for CORS
+          controls={false}
+          preload="metadata"
         >
           {subtitles.map(sub => (
             <track
               key={sub.id}
               kind="subtitles"
-              src={sub.subtitle_url}
+              src={videoApi.resolveVideoUrl(sub.subtitle_url)}
               srcLang={sub.language_code}
               label={sub.language_name}
               default={selectedSubtitle === sub.id}
