@@ -70,17 +70,68 @@ const validateFileType = (buffer, expectedMime) => {
   return true;
 };
 
+// Helper function to get file info
+const getFileInfo = (filePath) => {
+  try {
+    const stat = fs.statSync(filePath);
+    return {
+      exists: true,
+      size: stat.size,
+      created: stat.birthtime,
+      modified: stat.mtime,
+      isFile: stat.isFile()
+    };
+  } catch (error) {
+    return {
+      exists: false,
+      error: error.message
+    };
+  }
+};
+
 const videoController = {
-  // Upload video for a lesson with enhanced security
+  // FIXED: Upload video for a lesson with enhanced debugging and error handling
   async uploadVideo(req, res) {
     try {
       const teacherId = req.user.userId;
       const { lessonId } = req.body;
 
+      console.log('=== VIDEO UPLOAD REQUEST START ===');
+      console.log('Upload request details:', {
+        teacherId,
+        lessonId,
+        hasFile: !!req.file,
+        fileSize: req.file?.size,
+        fileType: req.file?.mimetype,
+        fileName: req.file?.originalname,
+        bodyFields: Object.keys(req.body),
+        headers: req.headers['content-type']
+      });
+
+      // Debug: Log all request properties
+      console.log('Full request debug:', {
+        files: req.files,
+        file: req.file,
+        body: req.body,
+        headers: {
+          'content-type': req.headers['content-type'],
+          'content-length': req.headers['content-length']
+        }
+      });
+
+      // FIXED: Enhanced file presence check
       if (!req.file) {
+        console.log('ERROR: No file received in req.file');
+        console.log('Available in req.files:', req.files);
+        console.log('Request body keys:', Object.keys(req.body));
+        console.log('Request headers:', {
+          'content-type': req.headers['content-type'],
+          'content-length': req.headers['content-length']
+        });
+        
         return res.status(400).json({
           success: false,
-          message: 'No video file provided'
+          message: 'No video file received by server. The file may be too large, in wrong format, or the upload was interrupted.'
         });
       }
 
@@ -93,6 +144,7 @@ const videoController = {
 
       // Security: Validate file type
       if (!ALLOWED_VIDEO_TYPES.includes(req.file.mimetype)) {
+        console.log('Invalid file type:', req.file.mimetype);
         return res.status(400).json({
           success: false,
           message: 'Invalid video format. Supported formats: MP4, WebM, OGG, MOV, AVI, MPEG'
@@ -131,14 +183,17 @@ const videoController = {
         });
       }
 
-      // Security: Generate safe filename
-      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      // Security: Generate safe filename with proper extension
+      const originalExtension = path.extname(req.file.originalname).toLowerCase();
+      const fileExtension = originalExtension || '.webm'; // Default to .webm for recordings
+      
       const safeFileName = sanitizeFilename(`video_${lessonId}_${Date.now()}${fileExtension}`);
       const filePath = path.join('uploads/videos', safeFileName);
 
       // Security: Ensure uploads directory exists with proper permissions
       const uploadsDir = path.join('uploads', 'videos');
       if (!fs.existsSync(uploadsDir)) {
+        console.log('Creating uploads directory:', uploadsDir);
         fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
       }
 
@@ -152,26 +207,57 @@ const videoController = {
         });
       }
 
-      // Save file with error handling
+      // Save file with enhanced error handling
       try {
+        console.log('Saving video file to:', filePath);
+        console.log('File buffer size:', req.file.buffer.length);
+        
         fs.writeFileSync(filePath, req.file.buffer);
+        console.log('Video file saved successfully');
       } catch (fileError) {
         console.error('File write error:', fileError);
         return res.status(500).json({
           success: false,
-          message: 'Failed to save video file'
+          message: 'Failed to save video file to server storage'
         });
       }
 
-      // Update lesson with video URL
+      // Verify the file was saved
+      const fileInfo = getFileInfo(filePath);
+      if (!fileInfo.exists) {
+        console.error('File verification failed:', fileInfo);
+        return res.status(500).json({
+          success: false,
+          message: 'Video file was not saved correctly to server'
+        });
+      }
+
+      console.log('File saved successfully:', {
+        path: filePath,
+        size: fileInfo.size,
+        saved: fileInfo.exists
+      });
+
+      // Insert video record into 'videos' table
       const videoUrl = `/api/videos/stream/${safeFileName}`;
+      const insertedVideo = await db('videos').insert({
+        lesson_id: lessonId,
+        uploader_id: teacherId,
+        storage_url: videoUrl,
+        size_bytes: req.file.size,
+        status: 'ready',
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).returning('id');
+      const videoId = insertedVideo[0].id;
+
+      // Update lesson with video_id and video_url
       await db('lessons')
         .where({ id: lessonId })
         .update({
+          video_id: videoId,
           video_url: videoUrl,
           updated_at: new Date(),
-          video_size: req.file.size,
-          video_duration: null // Can be extracted later with FFmpeg
         });
 
       // Notify subscribed users that the video is now available
@@ -182,29 +268,256 @@ const videoController = {
         // Continue even if notification fails
       }
 
+      console.log('=== VIDEO UPLOAD SUCCESS ===');
+      console.log('Upload completed:', {
+        videoId,
+        videoUrl,
+        fileSize: req.file.size,
+        fileName: safeFileName
+      });
+
       res.json({
         success: true,
         message: 'Video uploaded successfully',
         data: {
+          videoId,
           videoUrl,
           fileSize: req.file.size,
+          fileName: safeFileName,
+          filePath: videoUrl,
           lesson: {
             ...lesson,
-            video_url: videoUrl
+            video_id: videoId,
           }
         }
       });
+
     } catch (error) {
+      console.error('=== VIDEO UPLOAD ERROR ===');
       console.error('Video upload error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to upload video'
+        message: 'Failed to upload video due to server error'
       });
     }
   },
 
-  // Stream video file with enhanced security and performance
+  // Stream video file with enhanced security and CORS
   async streamVideo(req, res) {
+    try {
+      const { filename } = req.params;
+      const { quality } = req.query;
+      
+      console.log('Stream request:', { filename, quality });
+
+      // Security: Validate and sanitize filename
+      const safeFilename = sanitizeFilename(filename);
+      const filePath = path.join('uploads/videos', safeFilename);
+
+      // Security: Check if file path is within intended directory
+      const resolvedPath = path.resolve(filePath);
+      const uploadsBasePath = path.resolve('uploads/videos');
+      if (!resolvedPath.startsWith(uploadsBasePath)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file path'
+        });
+      }
+
+      // Check if file exists
+      const fileInfo = getFileInfo(filePath);
+      if (!fileInfo.exists) {
+        console.error('Video file not found:', filePath);
+        return res.status(404).json({
+          success: false,
+          message: 'Video not found'
+        });
+      }
+
+      const fileSize = fileInfo.size;
+      const range = req.headers.range;
+
+      console.log('Streaming video:', {
+        filename: safeFilename,
+        size: fileSize,
+        range: range,
+        quality: quality
+      });
+
+      // Security: Set appropriate content type
+      const ext = path.extname(safeFilename).toLowerCase();
+      const contentType = EXTENSION_TO_MIME[ext] || 'video/mp4';
+
+      // CRITICAL FIX: Enhanced CORS headers for video streaming
+      res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGINS || 'http://localhost:3000');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Content-Type');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      
+      // Handle preflight requests
+      if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+      }
+
+      // Performance: Cache headers
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('ETag', `"${fileInfo.modified.getTime()}_${fileSize}"`);
+
+      // Adaptive streaming based on quality
+      let bitrate = 5000000; // 5Mbps default for HD
+      let videoQuality = 'hd';
+      
+      if (quality === 'sd') {
+        bitrate = 2000000; // 2Mbps for SD
+        videoQuality = 'sd';
+      } else if (quality === 'mobile') {
+        bitrate = 1000000; // 1Mbps for mobile
+        videoQuality = 'mobile';
+      } else if (quality === 'auto') {
+        // Auto-detect based on file size and type
+        bitrate = Math.min(5000000, Math.max(1000000, fileSize / 60));
+        videoQuality = 'auto';
+      }
+
+      res.setHeader('X-Video-Quality', videoQuality);
+      res.setHeader('X-Estimated-Bitrate', bitrate);
+
+      if (range) {
+        // Handle range requests for video streaming
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        
+        // Security: Validate range
+        if (start >= fileSize || end >= fileSize || start > end) {
+          res.setHeader('Content-Range', `bytes */${fileSize}`);
+          return res.status(416).json({
+            success: false,
+            message: 'Requested range not satisfiable'
+          });
+        }
+
+        const chunksize = (end - start) + 1;
+        
+        const head = {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': chunksize,
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=31536000',
+          'X-Video-Quality': videoQuality
+        };
+        
+        res.writeHead(206, head);
+        const fileStream = fs.createReadStream(filePath, { start, end });
+        fileStream.pipe(res);
+        
+        fileStream.on('error', (err) => {
+          console.error('Video stream error:', err);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              message: 'Stream error occurred'
+            });
+          }
+        });
+
+        console.log('Streaming range:', { start, end, chunksize });
+
+      } else {
+        // Full file streaming
+        const head = {
+          'Content-Length': fileSize,
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=31536000',
+          'X-Video-Quality': videoQuality
+        };
+        
+        res.writeHead(200, head);
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+        fileStream.on('error', (err) => {
+          console.error('Video stream error:', err);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              message: 'Stream error occurred'
+            });
+          }
+        });
+
+        console.log('Streaming full file');
+      }
+    } catch (error) {
+      console.error('Video stream error:', error);
+      
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to stream video'
+        });
+      }
+    }
+  },
+
+  // Get video file information
+  async getVideoInfo(req, res) {
+    try {
+      const { filename } = req.params;
+      
+      // Security: Validate and sanitize filename
+      const safeFilename = sanitizeFilename(filename);
+      const filePath = path.join('uploads/videos', safeFilename);
+
+      // Security: Check if file path is within intended directory
+      const resolvedPath = path.resolve(filePath);
+      const uploadsBasePath = path.resolve('uploads/videos');
+      if (!resolvedPath.startsWith(uploadsBasePath)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file path'
+        });
+      }
+
+      const fileInfo = getFileInfo(filePath);
+      
+      if (!fileInfo.exists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Video file not found'
+        });
+      }
+
+      // Get video metadata from database
+      const video = await db('videos')
+        .where('storage_url', 'like', `%${safeFilename}`)
+        .select('*')
+        .first();
+
+      res.json({
+        success: true,
+        data: {
+          filename: safeFilename,
+          fileInfo,
+          videoMetadata: video,
+          streamingUrl: `/api/videos/stream/${safeFilename}`
+        }
+      });
+    } catch (error) {
+      console.error('Get video info error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get video information'
+      });
+    }
+  },
+
+  // Download video file
+  async downloadVideo(req, res) {
     try {
       const { filename } = req.params;
       
@@ -225,113 +538,37 @@ const videoController = {
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({
           success: false,
-          message: 'Video not found'
+          message: 'Video file not found'
         });
       }
 
-      const stat = fs.statSync(filePath);
-      const fileSize = stat.size;
-      const range = req.headers.range;
-
-      // Security: Set appropriate content type
+      const fileInfo = getFileInfo(filePath);
       const ext = path.extname(safeFilename).toLowerCase();
       const contentType = EXTENSION_TO_MIME[ext] || 'video/mp4';
 
-      // Performance: Adaptive streaming based on quality parameter
-      const quality = req.query.quality || 'hd';
-      let bitrate = 5000000; // 5Mbps default for HD
-      
-      if (quality === 'sd') {
-        bitrate = 2000000; // 2Mbps for SD
-      } else if (quality === 'mobile') {
-        bitrate = 1000000; // 1Mbps for mobile
-      } else if (quality === 'auto') {
-        // Auto-detect based on file size and type
-        bitrate = Math.min(5000000, Math.max(1000000, fileSize / 60)); // Estimate based on duration
-      }
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+      res.setHeader('Content-Length', fileInfo.size);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
 
-      // Performance: Cache headers for better CDN performance
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      res.setHeader('ETag', `"${stat.mtime.getTime()}_${stat.size}"`);
-      res.setHeader('Accept-Ranges', 'bytes');
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
       
-      // Security: CORS headers for video streaming
-      res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGINS || '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
-      res.setHeader('Access-Control-Allow-Headers', 'Range');
-
-      if (range) {
-        // Handle range requests for video streaming
-        const parts = range.replace(/bytes=/, "").split("-");
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        
-        // Security: Validate range
-        if (start >= fileSize || end >= fileSize || start > end) {
-          res.setHeader('Content-Range', `bytes */${fileSize}`);
-          return res.status(416).json({
+      fileStream.on('error', (err) => {
+        console.error('Video download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
             success: false,
-            message: 'Requested range not satisfiable'
+            message: 'Download error occurred'
           });
         }
-
-        const chunksize = (end - start) + 1;
-        
-        const file = fs.createReadStream(filePath, { start, end });
-        const head = {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-          'Content-Length': chunksize,
-          'Content-Type': contentType,
-          'X-Video-Quality': quality,
-          'X-Estimated-Bitrate': bitrate,
-        };
-        
-        res.writeHead(206, head);
-        file.pipe(res);
-        
-        // Handle stream errors
-        file.on('error', (err) => {
-          console.error('Video stream error:', err);
-          if (!res.headersSent) {
-            res.status(500).json({
-              success: false,
-              message: 'Stream error occurred'
-            });
-          }
-        });
-      } else {
-        // Full file streaming
-        const head = {
-          'Content-Length': fileSize,
-          'Content-Type': contentType,
-          'X-Video-Quality': quality,
-          'X-Estimated-Bitrate': bitrate,
-        };
-        
-        res.writeHead(200, head);
-        const file = fs.createReadStream(filePath);
-        file.pipe(res);
-        
-        // Handle stream errors
-        file.on('error', (err) => {
-          console.error('Video stream error:', err);
-          if (!res.headersSent) {
-            res.status(500).json({
-              success: false,
-              message: 'Stream error occurred'
-            });
-          }
-        });
-      }
+      });
     } catch (error) {
-      console.error('Video stream error:', error);
-      
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: 'Failed to stream video'
-        });
-      }
+      console.error('Download video error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download video'
+      });
     }
   },
 
@@ -368,38 +605,33 @@ const videoController = {
       const safeFilename = sanitizeFilename(filename);
       const filePath = path.join('uploads/videos', safeFilename);
 
-      // Check if file exists
-      const fileExists = fs.existsSync(filePath);
+      // Check if file exists and get detailed info
+      const fileInfo = getFileInfo(filePath);
       
-      if (!fileExists) {
+      if (!fileInfo.exists) {
         return res.json({
           success: true,
           data: {
             available: false,
             message: 'Video file not found on server',
-            lesson
+            lesson,
+            fileInfo
           }
         });
       }
 
-      // Get file stats
-      const stat = fs.statSync(filePath);
-      
       res.json({
         success: true,
         data: {
           available: true,
           message: 'Video is available for streaming',
           lesson,
-          fileInfo: {
-            size: stat.size,
-            lastModified: stat.mtime,
-            created: stat.birthtime || stat.ctime
-          },
+          fileInfo,
           streamingInfo: {
             supportsRange: true,
             qualities: ['hd', 'sd', 'mobile', 'auto'],
-            recommendedQuality: 'auto'
+            recommendedQuality: 'auto',
+            streamingUrl: lesson.video_url
           }
         }
       });
@@ -412,7 +644,7 @@ const videoController = {
     }
   },
 
-  // Notify when video becomes available (IMPORTANT FUNCTION RESTORED)
+  // Notify when video becomes available
   async notifyVideoAvailable(req, res) {
     try {
       const { lessonId } = req.params;
@@ -463,7 +695,7 @@ const videoController = {
     }
   },
 
-  // Get user's video notifications (IMPORTANT FUNCTION RESTORED)
+  // Get user's video notifications
   async getUserVideoNotifications(req, res) {
     try {
       const userId = req.user.userId;
@@ -523,11 +755,21 @@ const videoController = {
         .select('id', 'language_code', 'language_name', 'subtitle_url')
         .orderBy('language_code', 'asc');
 
+      // Get video file info if available
+      let fileInfo = null;
+      if (lesson.video_url) {
+        const filename = lesson.video_url.split('/').pop();
+        const safeFilename = sanitizeFilename(filename);
+        const filePath = path.join('uploads/videos', safeFilename);
+        fileInfo = getFileInfo(filePath);
+      }
+
       res.json({
         success: true,
         data: {
           lesson,
           subtitles,
+          fileInfo,
           streamingInfo: {
             supportsAdaptive: true,
             availableQualities: ['hd', 'sd', 'mobile', 'auto'],
@@ -697,7 +939,7 @@ const videoController = {
       }
 
       // Security: CORS headers
-      res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGINS || '*');
+      res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGINS || 'http://localhost:3000');
       res.setHeader('Cache-Control', 'public, max-age=3600');
 
       res.setHeader('Content-Type', contentType);
@@ -711,7 +953,7 @@ const videoController = {
     }
   },
 
-  // Get lessons for a course (IMPORTANT FUNCTION RESTORED)
+  // Get lessons for a course
   async getCourseLessons(req, res) {
     try {
       const teacherId = req.user.userId;
@@ -730,9 +972,10 @@ const videoController = {
       }
 
       const lessons = await db('lessons')
-        .where({ course_id: courseId })
-        .select('*')
-        .orderBy('order', 'asc');
+        .leftJoin('videos', 'lessons.video_id', 'videos.id')
+        .where({ 'lessons.course_id': courseId })
+        .select('lessons.*', 'videos.storage_url as video_url')
+        .orderBy('lessons.order', 'asc');
 
       res.json({
         success: true,
@@ -743,6 +986,163 @@ const videoController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch lessons'
+      });
+    }
+  },
+
+  // Delete video
+  async deleteVideo(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+
+      // Verify the lesson belongs to the teacher
+      const lesson = await db('lessons')
+        .join('courses', 'lessons.course_id', 'courses.id')
+        .where('lessons.id', lessonId)
+        .where('courses.created_by', userId)
+        .select('lessons.*')
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found or access denied'
+        });
+      }
+
+      // Get video information
+      const video = await db('videos')
+        .where({ lesson_id: lessonId })
+        .first();
+
+      if (video) {
+        // Delete physical file
+        const filename = video.storage_url.split('/').pop();
+        const safeFilename = sanitizeFilename(filename);
+        const filePath = path.join('uploads/videos', safeFilename);
+
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log('Deleted video file:', filePath);
+        }
+
+        // Delete video record
+        await db('videos').where({ id: video.id }).delete();
+      }
+
+      // Update lesson to remove video reference
+      await db('lessons')
+        .where({ id: lessonId })
+        .update({
+          video_id: null,
+          video_url: null,
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: 'Video deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete video error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete video'
+      });
+    }
+  },
+
+  // Get video analytics
+  async getVideoAnalytics(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+
+      // Verify the lesson belongs to the teacher
+      const lesson = await db('lessons')
+        .join('courses', 'lessons.course_id', 'courses.id')
+        .where('lessons.id', lessonId)
+        .where('courses.created_by', userId)
+        .select('lessons.*')
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found or access denied'
+        });
+      }
+
+      // Get video analytics data
+      const analytics = await db('video_analytics')
+        .where({ lesson_id: lessonId })
+        .select('*')
+        .orderBy('created_at', 'desc')
+        .limit(100);
+
+      // Calculate summary statistics
+      const totalViews = analytics.length;
+      const averageWatchTime = analytics.reduce((sum, item) => sum + (item.watch_time || 0), 0) / totalViews || 0;
+      const completionRate = (analytics.filter(item => item.completed).length / totalViews) * 100 || 0;
+
+      res.json({
+        success: true,
+        data: {
+          lesson,
+          analytics: {
+            totalViews,
+            averageWatchTime: Math.round(averageWatchTime),
+            completionRate: Math.round(completionRate),
+            recentViews: analytics.slice(0, 10)
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get video analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch video analytics'
+      });
+    }
+  },
+
+  // NEW: Health check endpoint for videos
+  async healthCheck(req, res) {
+    try {
+      const uploadsDir = path.join('uploads', 'videos');
+      const exists = fs.existsSync(uploadsDir);
+      const writable = exists ? true : false;
+      
+      // Try to create directory if it doesn't exist
+      if (!exists) {
+        try {
+          fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
+          writable = true;
+        } catch (error) {
+          console.error('Cannot create uploads directory:', error);
+          writable = false;
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          service: 'Video Controller',
+          status: 'operational',
+          uploadsDirectory: {
+            exists,
+            writable,
+            path: uploadsDir
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Health check error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Health check failed'
       });
     }
   }

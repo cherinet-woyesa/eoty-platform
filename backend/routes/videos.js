@@ -5,20 +5,20 @@ const { authenticateToken } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/rbac');
 const upload = require('../middleware/upload');
 
-// Apply authentication middleware to all routes
+// Public Video streaming routes (no authentication required for streaming)
+router.get('/stream/:filename', videoController.streamVideo);
+router.get('/subtitles/:filename', videoController.streamSubtitle);
+
+// Public Video metadata and availability routes (no authentication required for metadata)
+router.get('/lessons/:lessonId/metadata', videoController.getVideoMetadata);
+router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability);
+
+// Apply authentication middleware to remaining routes
 router.use(authenticateToken);
 
 // Video upload routes (teacher/admin only)
 router.post('/upload', requirePermission('video:upload'), upload.single('video'), videoController.uploadVideo);
 router.post('/subtitles', requirePermission('video:upload'), upload.single('subtitle'), videoController.uploadSubtitle);
-
-// Video streaming routes
-router.get('/stream/:filename', videoController.streamVideo);
-router.get('/subtitles/:filename', videoController.streamSubtitle);
-
-// Video metadata and availability routes
-router.get('/lessons/:lessonId/metadata', videoController.getVideoMetadata);
-router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability);
 
 // Notification routes
 router.post('/lessons/:lessonId/notify', videoController.notifyVideoAvailable);
