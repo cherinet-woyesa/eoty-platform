@@ -129,7 +129,6 @@ export const videoApi = {
     formData.append('lessonId', lessonId);
 
     const response = await apiClient.post('/videos/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -148,7 +147,6 @@ export const videoApi = {
     formData.append('lessonId', lessonId);
 
     const response = await apiClient.post('/videos/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);

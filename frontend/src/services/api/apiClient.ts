@@ -17,8 +17,11 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Add CORS headers for all requests
-    config.headers['Content-Type'] = 'application/json';
+    // Set Content-Type header based on data type
+    // If data is FormData, let Axios set the Content-Type with the correct boundary
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
     
     return config;
   },
