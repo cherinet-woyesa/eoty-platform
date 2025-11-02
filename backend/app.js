@@ -75,13 +75,18 @@ app.use(cors(corsOptions)); // Use enhanced CORS configuration
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting - exclude video streaming from rate limits
+// Rate limiting - exclude video streaming, health checks, and all /api/admin/* routes from rate limits
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   skip: (req) => {
-    // Skip rate limiting for video streaming and health checks
-    return req.path.includes('/videos/stream/') || req.path === '/api/health' || req.path === '/api/videos/upload';
+    // Skip rate limiting for video streaming, health checks, and all /api/admin/* routes
+    return (
+      req.path.includes('/videos/stream/') ||
+      req.path === '/api/health' ||
+      req.path === '/api/videos/upload' ||
+      req.path.startsWith('/api/admin')
+    );
   }
 });
 app.use(limiter);
