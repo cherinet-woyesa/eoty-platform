@@ -160,15 +160,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Header */}
-      <div className="flex items-center justify-between h-12 px-3 border-b border-blue-700/50 bg-gradient-to-r from-blue-800 to-purple-900">
+      <div className="flex items-center justify-between h-14 px-4 border-b border-blue-700/50 bg-gradient-to-r from-blue-800 to-purple-900">
         {!isCollapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg">
-              <Crown className="h-3 w-3 text-white" />
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg">
+              <Crown className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white">Admin Panel</h1>
-              <p className="text-xs text-blue-200 capitalize">
+              <h1 className="text-base font-bold text-white tracking-tight">Admin Panel</h1>
+              <p className="text-xs text-blue-200 capitalize leading-tight">
                 {user?.role?.replace('_', ' ')}
               </p>
             </div>
@@ -176,12 +176,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         )}
         <button
           onClick={onToggleCollapse}
-          className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
         >
           {isCollapsed ? (
-            <ChevronRight className="h-3 w-3 text-blue-200" />
+            <ChevronRight className="h-4 w-4 text-blue-200" />
           ) : (
-            <ChevronLeft className="h-3 w-3 text-blue-200" />
+            <ChevronLeft className="h-4 w-4 text-blue-200" />
           )}
         </button>
       </div>
@@ -205,25 +205,25 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 }`}
                 title={isCollapsed ? item.description : undefined}
               >
-                <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-500' : 'bg-blue-700/50 group-hover:bg-blue-600/50'
                 } transition-colors duration-200`}>
                   <div className={active ? 'text-white' : 'text-blue-300 group-hover:text-white'}>
-                    {item.icon}
+                    {React.cloneElement(item.icon, { className: 'h-5 w-5' })}
                   </div>
                 </div>
                 
                 {!isCollapsed && (
                   <div className="ml-3 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="truncate font-semibold">{item.name}</span>
+                      <span className="truncate font-semibold text-base">{item.name}</span>
                       {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500 text-white">
                           {item.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-blue-300/70 truncate">{item.description}</p>
+                    <p className="text-xs text-blue-300/80 truncate">{item.description}</p>
                   </div>
                 )}
               </Link>
@@ -257,20 +257,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     }`}
                     title={isCollapsed ? item.description : undefined}
                   >
-                    <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                    <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
                       active ? 'bg-purple-500' : 'bg-purple-700/50 group-hover:bg-purple-600/50'
                     } transition-colors duration-200`}>
                       <div className={active ? 'text-white' : 'text-purple-300 group-hover:text-white'}>
-                        {item.icon}
+                        {React.cloneElement(item.icon, { className: 'h-5 w-5' })}
                       </div>
                     </div>
                     
                     {!isCollapsed && (
                       <div className="ml-3 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="truncate font-semibold">{item.name}</span>
+                          <span className="truncate font-semibold text-base">{item.name}</span>
                           {item.badge && (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white">
                               {item.badge}
                             </span>
                           )}
@@ -288,14 +288,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Quick Actions - Only when expanded */}
       {!isCollapsed && (
-        <div className="p-3 border-t border-blue-700/30 bg-blue-800/20">
-          <div className="space-y-2">
-            <button className="w-full flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors">
-              <CheckCircle className="h-3 w-3 mr-2" />
+        <div className="p-4 border-t border-blue-700/30 bg-blue-800/20">
+          <div className="space-y-3">
+            <button className="w-full flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
+              <CheckCircle className="h-4 w-4 mr-2" />
               Approve All
             </button>
-            <button className="w-full flex items-center justify-center px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors">
-              <Shield className="h-3 w-3 mr-2" />
+            <button className="w-full flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors">
+              <Shield className="h-4 w-4 mr-2" />
               Moderate
             </button>
           </div>
@@ -303,20 +303,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       )}
 
       {/* User Profile */}
-      <div className="border-t border-blue-700/30 p-3 bg-blue-800/20 backdrop-blur-sm">
+      <div className="border-t border-blue-700/30 p-4 bg-blue-800/20 backdrop-blur-sm">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
           <div className="flex-shrink-0 relative">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-2 ring-amber-200/50">
-              <span className="text-white text-xs font-bold">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-2 ring-amber-200/50">
+              <span className="text-white text-base font-bold">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </span>
             </div>
             {/* Online indicator */}
-            <div className="absolute -bottom-1 -right-1 h-2 w-2 bg-green-400 rounded-full border-2 border-blue-900"></div>
+            <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 bg-green-400 rounded-full border-2 border-blue-900"></div>
           </div>
           {!isCollapsed && (
-            <div className="ml-3 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">
+            <div className="ml-4 min-w-0">
+              <p className="text-base font-semibold text-white truncate">
                 {user?.firstName} {user?.lastName}
               </p>
               <p className="text-xs text-blue-300 capitalize truncate">

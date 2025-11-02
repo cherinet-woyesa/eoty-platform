@@ -82,9 +82,7 @@ export const adminApi = {
     if (uploadData.category) formData.append('category', uploadData.category);
     if (uploadData.tags.length > 0) formData.append('tags', JSON.stringify(uploadData.tags));
 
-    const response = await apiClient.post('/admin/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await apiClient.post('/admin/uploads', formData);
     return response.data;
   },
 
