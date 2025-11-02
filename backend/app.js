@@ -81,7 +81,7 @@ const limiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
   skip: (req) => {
     // Skip rate limiting for video streaming and health checks
-    return req.path.includes('/videos/stream/') || req.path === '/api/health';
+    return req.path.includes('/videos/stream/') || req.path === '/api/health' || req.path === '/api/videos/upload';
   }
 });
 app.use(limiter);

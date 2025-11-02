@@ -60,8 +60,37 @@ const adminController = {
         });
       }
 
+      // Get chapter ID - handle both string (chapter name) and integer (chapter_id)
+      let chapterId;
+      if (typeof chapter === 'string') {
+        // Look up chapter by name
+        const chapterRecord = await db('chapters').where({ name: chapter, is_active: true }).first();
+        if (!chapterRecord) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid chapter specified'
+          });
+        }
+        chapterId = chapterRecord.id;
+      } else if (typeof chapter === 'number' || !isNaN(parseInt(chapter))) {
+        // It's already a chapter ID
+        chapterId = parseInt(chapter);
+        const chapterRecord = await db('chapters').where({ id: chapterId, is_active: true }).first();
+        if (!chapterRecord) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid chapter ID specified'
+          });
+        }
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid chapter format'
+        });
+      }
+
       // Chapter admin can only create users in their own chapter
-      if (requestingUserRole === 'chapter_admin' && chapter !== req.user.chapter_id) {
+      if (requestingUserRole === 'chapter_admin' && chapterId !== req.user.chapter_id) {
         return res.status(403).json({
           success: false,
           message: 'Chapter admins can only create users in their own chapter'
@@ -88,7 +117,7 @@ const adminController = {
         email: email.toLowerCase(),
         password_hash: passwordHash,
         role: role,
-        chapter_id: chapter,
+        chapter_id: chapterId,
         is_active: true,
         created_at: new Date(),
         updated_at: new Date()
@@ -143,14 +172,27 @@ const adminController = {
         });
       }
 
-      let query = db('users').select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'created_at');
+      let query = db('users')
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
+        .select(
+          'users.id', 
+          'users.first_name', 
+          'users.last_name', 
+          'users.email', 
+          'users.role', 
+          'users.chapter_id', 
+          'users.is_active', 
+          'users.created_at', 
+          'users.last_login_at',
+          'chapters.name as chapter_name'
+        );
 
       // Chapter admin can only see users in their own chapter
       if (requestingUserRole === 'chapter_admin') {
-        query = query.where('chapter_id', req.user.chapter_id);
+        query = query.where('users.chapter_id', req.user.chapter_id);
       }
 
-      const users = await query.orderBy('created_at', 'desc');
+      const users = await query.orderBy('users.created_at', 'desc');
 
       res.json({
         success: true,
@@ -161,9 +203,11 @@ const adminController = {
             lastName: user.last_name,
             email: user.email,
             role: user.role,
-            chapter: user.chapter_id,
+            chapter: user.chapter_name || user.chapter_id || 'N/A',
+            chapterId: user.chapter_id,
             isActive: user.is_active,
-            createdAt: user.created_at
+            createdAt: user.created_at,
+            lastLogin: user.last_login_at || null
           }))
         }
       });
@@ -260,6 +304,81 @@ const adminController = {
     }
   },
 
+  // Update user status (activate/deactivate) (admin only)
+  async updateUserStatus(req, res) {
+    try {
+      const { userId, isActive } = req.body;
+      const requestingUserRole = req.user.role;
+
+      // Check if requesting user is an admin
+      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to update user status'
+        });
+      }
+
+      // Validate input
+      if (!userId || typeof isActive !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'userId and isActive (boolean) are required'
+        });
+      }
+
+      // Get the user to update
+      const userToUpdate = await db('users').where({ id: userId }).first();
+      if (!userToUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Chapter admin can only update users in their own chapter
+      if (requestingUserRole === 'chapter_admin' && userToUpdate.chapter_id !== req.user.chapter_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Chapter admins can only update users in their own chapter'
+        });
+      }
+
+      // Prevent users from deactivating themselves
+      if (userId === req.user.userId && !isActive) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot deactivate your own account'
+        });
+      }
+
+      // Update the user's status
+      await db('users')
+        .where({ id: userId })
+        .update({ 
+          is_active: isActive,
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+        data: {
+          user: {
+            id: userId,
+            isActive: isActive
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Update user status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
   // Upload management
   async getUploadQueue(req, res) {
     try {
@@ -308,9 +427,38 @@ const adminController = {
         });
       }
 
+      // Get chapter ID - handle both string (chapter name) and integer (chapter_id)
+      let resolvedChapterId;
+      if (typeof chapterId === 'string' && !/^\d+$/.test(chapterId)) {
+        // Look up chapter by name
+        const chapterRecord = await db('chapters').where({ name: chapterId, is_active: true }).first();
+        if (!chapterRecord) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid chapter specified'
+          });
+        }
+        resolvedChapterId = chapterRecord.id;
+      } else if (typeof chapterId === 'number' || !isNaN(parseInt(chapterId))) {
+        // It's already a chapter ID
+        resolvedChapterId = parseInt(chapterId);
+        const chapterRecord = await db('chapters').where({ id: resolvedChapterId, is_active: true }).first();
+        if (!chapterRecord) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid chapter ID specified'
+          });
+        }
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid chapter format'
+        });
+      }
+
       // Check quota
       const fileType = file.mimetype.split('/')[0]; // video, image, etc.
-      const quota = await ContentUpload.checkQuota(chapterId, fileType);
+      const quota = await ContentUpload.checkQuota(resolvedChapterId, fileType);
       
       if (quota.monthly_limit > 0 && quota.current_usage >= quota.monthly_limit) {
         return res.status(400).json({
@@ -329,7 +477,7 @@ const adminController = {
         file_size: file.size,
         mime_type: file.mimetype,
         uploaded_by: userId,
-        chapter_id: chapterId,
+        chapter_id: resolvedChapterId,
         tags: tags ? JSON.parse(tags) : [],
         category,
         status: 'pending',
@@ -342,7 +490,7 @@ const adminController = {
       });
 
       // Increment quota
-      await ContentUpload.incrementQuota(chapterId, fileType);
+      await ContentUpload.incrementQuota(resolvedChapterId, fileType);
 
       // Log audit
       await AdminAudit.logAction(
@@ -1093,6 +1241,139 @@ const adminController = {
       .orderBy('created_at', 'asc');
 
     return userData;
+  },
+
+  // Get admin statistics for dashboard
+  async getStats(req, res) {
+    try {
+      const requestingUserRole = req.user.role;
+      const requestingUserId = req.user.userId;
+
+      // Check if requesting user is an admin
+      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to view admin statistics'
+        });
+      }
+
+      // Get user's chapter if chapter admin
+      let chapterFilter = {};
+      if (requestingUserRole === 'chapter_admin') {
+        const user = await db('users').where({ id: requestingUserId }).select('chapter_id').first();
+        chapterFilter = { chapter_id: user.chapter_id };
+      }
+
+      // Total users
+      let usersQuery = db('users');
+      if (chapterFilter.chapter_id) {
+        usersQuery = usersQuery.where('chapter_id', chapterFilter.chapter_id);
+      }
+      const totalUsers = await usersQuery.count('id as count').first();
+
+      // Active users (logged in within last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      let activeUsersQuery = db('users').where('last_login_at', '>=', thirtyDaysAgo);
+      if (chapterFilter.chapter_id) {
+        activeUsersQuery = activeUsersQuery.where('chapter_id', chapterFilter.chapter_id);
+      }
+      const activeUsers = await activeUsersQuery.count('id as count').first();
+
+      // New registrations (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      let newRegistrationsQuery = db('users').where('created_at', '>=', sevenDaysAgo);
+      if (chapterFilter.chapter_id) {
+        newRegistrationsQuery = newRegistrationsQuery.where('chapter_id', chapterFilter.chapter_id);
+      }
+      const newRegistrations = await newRegistrationsQuery.count('id as count').first();
+
+      // Active courses
+      let coursesQuery = db('courses').where('is_published', true);
+      // Note: courses table might not have chapter_id, skip filtering if not available
+      const activeCourses = await coursesQuery.count('id as count').first();
+
+      // Completed lessons
+      let completedLessons = { count: 0 };
+      try {
+        let lessonsQuery = db('user_lesson_progress').where(function() {
+          this.where('progress', 100).orWhere('is_completed', true);
+        });
+        if (chapterFilter.chapter_id) {
+          lessonsQuery = lessonsQuery
+            .join('users', 'user_lesson_progress.user_id', 'users.id')
+            .where('users.chapter_id', chapterFilter.chapter_id);
+        }
+        const completedLessonsResult = await lessonsQuery.count('user_lesson_progress.id as count').first();
+        completedLessons = completedLessonsResult || { count: 0 };
+      } catch (err) {
+        console.warn('Error querying completed lessons:', err.message);
+      }
+
+      // Pending approvals (from content uploads) - wrap in try-catch in case table doesn't exist
+      let pendingApprovals = { count: 0 };
+      try {
+        let pendingApprovalsQuery = db('content_uploads').where('status', 'pending');
+        if (chapterFilter.chapter_id) {
+          pendingApprovalsQuery = pendingApprovalsQuery.where('chapter_id', chapterFilter.chapter_id);
+        }
+        pendingApprovals = await pendingApprovalsQuery.count('id as count').first() || { count: 0 };
+      } catch (err) {
+        console.warn('content_uploads table may not exist:', err.message);
+      }
+
+      // Flagged content (pending review) - wrap in try-catch
+      let flaggedContent = { count: 0 };
+      try {
+        const flaggedContentQuery = db('flagged_content').where('status', 'pending');
+        flaggedContent = await flaggedContentQuery.count('id as count').first() || { count: 0 };
+      } catch (err) {
+        console.warn('flagged_content table may not exist:', err.message);
+      }
+
+      // Average engagement (completion rate) - use enrollment_status not completion_status
+      let avgEngagement = 0;
+      try {
+        let totalEnrollmentsQuery = db('user_course_enrollments');
+        const totalEnrollments = await totalEnrollmentsQuery.count('id as count').first() || { count: 0 };
+        
+        let completedEnrollmentsQuery = db('user_course_enrollments')
+          .where('enrollment_status', 'completed');
+        if (chapterFilter.chapter_id) {
+          completedEnrollmentsQuery = completedEnrollmentsQuery
+            .join('users', 'user_course_enrollments.user_id', 'users.id')
+            .where('users.chapter_id', chapterFilter.chapter_id);
+        }
+        const completedEnrollments = await completedEnrollmentsQuery.count('id as count').first() || { count: 0 };
+        
+        avgEngagement = totalEnrollments.count > 0
+          ? Math.round((completedEnrollments.count / totalEnrollments.count) * 100)
+          : 0;
+      } catch (err) {
+        console.warn('user_course_enrollments table may not exist:', err.message);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          totalUsers: parseInt(totalUsers.count) || 0,
+          activeUsers: parseInt(activeUsers.count) || 0,
+          activeCourses: parseInt(activeCourses.count) || 0,
+          completedLessons: parseInt(completedLessons.count) || 0,
+          avgEngagement: avgEngagement,
+          pendingApprovals: parseInt(pendingApprovals.count) || 0,
+          flaggedContent: parseInt(flaggedContent.count) || 0,
+          newRegistrations: parseInt(newRegistrations.count) || 0
+        }
+      });
+    } catch (error) {
+      console.error('Get admin stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch admin statistics'
+      });
+    }
   }
 };
 

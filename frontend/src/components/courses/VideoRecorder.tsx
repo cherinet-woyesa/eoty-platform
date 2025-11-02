@@ -1,7 +1,11 @@
+// frontend/src/components/courses/VideoRecorder.tsx
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useVideoRecorder } from '../../hooks/useVideoRecorder';
 import { videoApi, coursesApi } from '../../services/api';
+import VideoTimelineEditor from './VideoTimelineEditor';
+import SlideManager from './SlideManager';
+import VideoProcessingStatus from './VideoProcessingStatus';
 import {
   Video, Circle, Square, Pause, Play,
   Upload, RotateCcw, Camera, FileVideo,
@@ -10,7 +14,13 @@ import {
   PlayCircle, Volume2, VolumeX, Cloud,
   Mic, MicOff, VideoIcon, Timer,
   Zap, Shield, Clock, Download,
-  Lightbulb, Sparkles, Users, Star
+  Lightbulb, Sparkles, Users, Star,
+  Monitor, PictureInPicture, Layout,
+  Split, Save, FolderOpen, Scissors,
+  Pipette, Grid3X3, SquareStack,
+  FileText, // Added for slides
+  Share2, // Added for sharing
+  Edit3 // Added for editing
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -27,10 +37,23 @@ interface Course {
   category?: string;
 }
 
-// Utility function to convert Blob to File with proper error handling and mimetype preservation
+interface RecordingSession {
+  id: string;
+  name: string;
+  timestamp: Date;
+  duration: number;
+  videoBlob?: Blob;
+  videoUrl?: string;
+  slides?: any[];
+  layout: string;
+  sources: {
+    camera: boolean;
+    screen: boolean;
+  };
+}
+
 const blobToFile = (blob: Blob, fileName: string): File => {
   try {
-    // Ensure blob is valid
     if (!blob || blob.size === 0) {
       throw new Error('Invalid or empty blob');
     }
@@ -41,18 +64,12 @@ const blobToFile = (blob: Blob, fileName: string): File => {
       isBlob: blob instanceof Blob
     });
 
-    // Clean up the mimetype - remove codecs information for the file type
-    const cleanMimeType = blob.type.split(';')[0]; // Remove everything after semicolon
-    
-    // Use the cleaned mimetype
+    const cleanMimeType = blob.type.split(';')[0];
     const fileType = cleanMimeType && cleanMimeType.startsWith('video/') 
       ? cleanMimeType 
       : 'video/webm';
 
-    // Ensure the file extension matches the cleaned mimetype
     const extension = fileType.split('/')[1] || 'webm';
-    
-    // Clean the filename - remove any existing extension and add the proper one
     const baseName = fileName.split('.')[0];
     const finalFileName = `${baseName}.${extension}`;
 
@@ -82,6 +99,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   onUploadComplete,
   courseId
 }) => {
+  // Enhanced video recorder hook with production features
   const {
     isRecording,
     recordedVideo,
@@ -98,16 +116,46 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     devices,
     initializeCamera,
     closeCamera,
-    cameraInitialized
+    cameraInitialized,
+    recordingSources,
+    currentLayout,
+    setLayout,
+    startScreenShare,
+    stopScreenShare,
+    isScreenSharing,
+    currentSession,
+    isPaused,
+    recordingTime,
+    setRecordingTime: setRecordingTimeState,
+    saveSession,
+    loadSession,
+    getSavedSessions,
+    // NEW: Enhanced features
+    recordingStats,
+    setRecordingStats,
+    networkStatus,
+    retryRecording,
+    exportSession,
+    mergeSessions,
+    // NEW: Slide integration
+    currentSlideIndex,
+    slides,
+    slideTimestamps,
+    advanceSlide,
+    startRecordingWithSlides,
+    // NEW: Editing capabilities
+    editRecording,
+    trimRecording,
+    addWatermark
   } = useVideoRecorder();
 
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const recordedVideoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // UI State
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
+  // Core UI State
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -127,43 +175,65 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [lessonDescription, setLessonDescription] = useState('');
   const [showLessonForm, setShowLessonForm] = useState(false);
   
-  // Error State
+  // Error/Success State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // New state for pre-recorded video upload
+  // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'record' | 'upload'>('record');
   const [coursesLoading, setCoursesLoading] = useState(false);
 
-  // Enhanced features state
+  // Enhanced recording state
   const [recordingQuality, setRecordingQuality] = useState<'480p' | '720p' | '1080p'>('720p');
   const [enableAudio, setEnableAudio] = useState(true);
   const [recordingTips, setRecordingTips] = useState<string[]>([]);
-  const [autoStopTimer, setAutoStopTimer] = useState<number>(0); // in minutes
-  const [recordingDuration, setRecordingDuration] = useState<number>(0); // in seconds
+  const [autoStopTimer, setAutoStopTimer] = useState<number>(0);
+  const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  
+  // Session management state
+  const [savedSessions, setSavedSessions] = useState<RecordingSession[]>([]);
+  const [showSessionMenu, setShowSessionMenu] = useState(false);
+
+  // NEW: Integrated Features State
+  const [showTimelineEditor, setShowTimelineEditor] = useState(false);
+  const [showSlideManager, setShowSlideManager] = useState(false);
+  const [showProcessingStatus, setShowProcessingStatus] = useState(false);
+  const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
+  const [currentSlides, setCurrentSlides] = useState<any[]>([]);
+
+  // NEW: Enhanced state for production features
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
 
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldStartAfterInit = useRef(false);
   const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingStatsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // FIX: Camera cleanup on component unmount
+  // Initialize sessions on component mount
+  useEffect(() => {
+    const sessions = getSavedSessions();
+    setSavedSessions(sessions);
+  }, [getSavedSessions]);
+
+  // Enhanced cleanup
   useEffect(() => {
     return () => {
-      console.log('VideoRecorder unmounting - cleaning up camera');
+      console.log('VideoRecorder unmounting - cleaning up');
       closeCamera();
       
-      // Clean up all intervals and timeouts
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
       if (autoStopTimerRef.current) {
         clearTimeout(autoStopTimerRef.current);
       }
+      if (recordingStatsIntervalRef.current) {
+        clearInterval(recordingStatsIntervalRef.current);
+      }
       
-      // Clean up file preview URLs
       if (filePreview) {
         URL.revokeObjectURL(filePreview);
       }
@@ -182,14 +252,155 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       "Keep your background professional",
       "Test your microphone before recording",
       "Use a tripod or stable surface",
-      "Speak clearly and at a moderate pace"
+      "Speak clearly and at a moderate pace",
+      "Close unnecessary applications before screen sharing",
+      "Check your internet connection for stable recording",
+      "Use the countdown timer to prepare",
+      "Enable screen sharing for presentation mode",
+      "Use the slide manager for structured content"
     ];
     setRecordingTips(tips);
   }, []);
 
+  // Update video elements when streams change
+  useEffect(() => {
+    if (videoRef.current && recordingSources.camera) {
+      videoRef.current.srcObject = recordingSources.camera;
+    }
+    
+    if (screenVideoRef.current && recordingSources.screen) {
+      screenVideoRef.current.srcObject = recordingSources.screen;
+    }
+    
+    // Audio analysis setup
+    if (stream && enableAudio) {
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        audioAnalyserRef.current = analyser;
+        audioContextRef.current = audioCtx;
+
+        // Update mic level periodically
+        const updateMicLevel = () => {
+          if (audioAnalyserRef.current) {
+            const dataArray = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
+            audioAnalyserRef.current.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            setMicLevel(average / 255);
+          }
+        };
+
+        const micInterval = setInterval(updateMicLevel, 100);
+        return () => clearInterval(micInterval);
+      } catch (error) {
+        console.warn('Audio context not supported:', error);
+      }
+    }
+    
+    return () => {
+      audioAnalyserRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(console.error);
+        audioContextRef.current = null;
+      }
+    };
+  }, [stream, recordingSources, enableAudio]);
+
+  // NEW: Recording stats monitoring
+  useEffect(() => {
+    if (isRecording && !isPaused) {
+      recordingStatsIntervalRef.current = setInterval(() => {
+        // Simulate recording stats (in real app, get from MediaRecorder)
+        setRecordingStats(prev => ({
+          ...prev,
+          fileSize: prev.fileSize + (1024 * 1024), // Simulate 1MB per second
+          bitrate: Math.random() * 2000000 + 1000000, // 1-3 Mbps
+          framesDropped: prev.framesDropped + (Math.random() > 0.9 ? 1 : 0),
+          networkQuality: Math.random() > 0.8 ? 'poor' : Math.random() > 0.5 ? 'fair' : 'good'
+        }));
+      }, 1000);
+    } else {
+      if (recordingStatsIntervalRef.current) {
+        clearInterval(recordingStatsIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (recordingStatsIntervalRef.current) {
+        clearInterval(recordingStatsIntervalRef.current);
+      }
+    };
+  }, [isRecording, isPaused]);
+
+  // NEW: Layout class mapping
+  const getLayoutClass = () => {
+    switch (currentLayout) {
+      case 'picture-in-picture':
+        return 'pip-layout';
+      case 'side-by-side':
+        return 'side-by-side-layout';
+      case 'screen-only':
+        return 'screen-only-layout';
+      case 'camera-only':
+        return 'camera-only-layout';
+      default:
+        return 'pip-layout';
+    }
+  };
+
+  // NEW: Slide management functions
+  const handleSlidesChange = (newSlides: any[]) => {
+    setCurrentSlides(newSlides);
+    // Update the hook's slides state if available
+    if (slides) {
+      // This would typically be handled by the hook
+      console.log('Slides updated:', newSlides);
+    }
+  };
+
+  const handleSlideAdvance = (slideIndex: number) => {
+    setCurrentSlideIndex(slideIndex);
+    if (advanceSlide) {
+      advanceSlide(slideIndex);
+    }
+    console.log(`Advanced to slide ${slideIndex + 1}`);
+  };
+
+  // NEW: Enhanced video editing functions
+  const handleEditComplete = async (editedBlob: Blob) => {
+    try {
+      setRecordingStatus('processing');
+      
+      // Update the video blob with edited version
+      if (editRecording) {
+        await editRecording(editedBlob);
+      }
+      
+      // Create new URLs for the edited video
+      const newVideoUrl = URL.createObjectURL(editedBlob);
+      
+      setSuccessMessage('Video edited successfully!');
+      setShowTimelineEditor(false);
+      setRecordingStatus('idle');
+      
+      // Update preview if needed
+      if (recordedVideoRef.current) {
+        recordedVideoRef.current.src = newVideoUrl;
+      }
+    } catch (error) {
+      console.error('Video editing failed:', error);
+      setErrorMessage('Failed to apply edits. Please try again.');
+      setRecordingStatus('idle');
+    }
+  };
+
+  // NEW: Enhanced recording with multi-source support
   const startCountdownAndRecording = useCallback(async () => {
     try {
-      // Countdown UX
+      setRecordingStatus('countdown');
       setCountdown(3);
       
       await new Promise<void>((resolve) => {
@@ -209,6 +420,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         }, 1000);
       });
       
+      setRecordingStatus('recording');
       await startRecording();
       
       // Start auto-stop timer if set
@@ -223,6 +435,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     } catch (error: any) {
       console.error('Error during countdown or recording start:', error);
       setErrorMessage(error.message || 'Failed to start recording.');
+      setRecordingStatus('idle');
       resetRecording();
     }
   }, [startRecording, resetRecording, autoStopTimer, isRecording]);
@@ -234,7 +447,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   }, [stream, startCountdownAndRecording]);
 
-  // Load teacher's courses with proper error handling
+  // Load teacher's courses
   useEffect(() => {
     let isMounted = true;
     
@@ -269,97 +482,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [courseId]);
 
-  // Update video element when stream changes
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-    
-    if (stream && enableAudio) {
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        audioAnalyserRef.current = analyser;
-        audioContextRef.current = audioCtx;
-      } catch (error) {
-        console.warn('Audio context not supported:', error);
-      }
-    }
-    
-    return () => {
-      audioAnalyserRef.current = null;
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(console.error);
-        audioContextRef.current = null;
-      }
-    };
-  }, [stream, enableAudio]);
-
-  // Recording timer with cleanup
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    
-    if (isRecording && !isPaused) {
-      interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRecording, isPaused]);
-
-  // Mic level polling with cleanup
-  useEffect(() => {
-    let raf: number;
-    let isActive = true;
-
-    const tick = () => {
-      if (!isActive) return;
-      
-      const analyser = audioAnalyserRef.current;
-      if (analyser && enableAudio) {
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteTimeDomainData(dataArray);
-        
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          const v = (dataArray[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / bufferLength);
-        setMicLevel(Math.min(1, rms * 2));
-      }
-      
-      if (isActive) {
-        raf = requestAnimationFrame(tick);
-      }
-    };
-    
-    if (stream && enableAudio) {
-      raf = requestAnimationFrame(tick);
-    }
-
-    return () => {
-      isActive = false;
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [stream, enableAudio]);
-
-  // Auto-show lesson form when recording stops or file is selected
-  useEffect(() => {
-    if ((recordedVideo || selectedFile) && !showLessonForm) {
-      setShowLessonForm(true);
-      setShowPreview(true);
-    }
-  }, [recordedVideo, selectedFile, showLessonForm]);
-
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -368,8 +490,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         return;
       }
       
-      if (file.size > 1024 * 1024 * 1024) {
-        setErrorMessage('Video file must be less than 1GB.');
+      if (file.size > 2 * 1024 * 1024 * 1024) { // 2GB
+        setErrorMessage('Video file must be less than 2GB.');
         return;
       }
 
@@ -385,15 +507,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   }, [filePreview]);
 
+  // Enhanced: Start recording with multi-source initialization
   const handleStartRecording = async () => {
     try {
-      setRecordingTime(0);
+      setRecordingTimeState(0);
       setRecordingDuration(0);
       setUploadSuccess(false);
       setErrorMessage(null);
       setSuccessMessage(null);
+      setRecordingStats({
+        fileSize: 0,
+        bitrate: 0,
+        framesDropped: 0,
+        networkQuality: 'good'
+      });
       
-      if (!stream) {
+      if (!recordingSources.camera && !recordingSources.screen) {
         shouldStartAfterInit.current = true;
         await initializeCamera();
       } else {
@@ -402,28 +531,78 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     } catch (error: any) {
       console.error('Error starting recording:', error);
       setErrorMessage(error.message || 'Failed to start recording.');
+      setRecordingStatus('idle');
       resetRecording();
     }
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     if (autoStopTimerRef.current) {
       clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = null;
     }
-    stopRecording();
+    
+    setRecordingStatus('processing');
+    try {
+      await stopRecording();
+      setRecordingStatus('idle');
+      setShowPreview(true);
+      setShowLessonForm(true);
+      setRecordingDuration(recordingTime);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setErrorMessage('Failed to stop recording.');
+      setRecordingStatus('idle');
+    }
   };
 
-  const handlePauseRecording = () => {
-    pauseRecording();
-    setIsPaused(true);
+  // NEW: Enhanced session management
+  const handleSaveSession = () => {
+    if (currentSession && videoBlob) {
+      const sessionName = `Session_${new Date().toLocaleString()}`;
+      const session: RecordingSession = {
+        id: Date.now().toString(),
+        name: sessionName,
+        timestamp: new Date(),
+        duration: recordingTime,
+        videoBlob: videoBlob,
+        videoUrl: recordedVideo || '',
+        slides: currentSlides,
+        layout: currentLayout,
+        sources: {
+          camera: !!recordingSources.camera,
+          screen: !!recordingSources.screen
+        }
+      };
+      
+      saveSession(session);
+      setSavedSessions(getSavedSessions());
+      setSuccessMessage('Recording session saved successfully');
+    }
   };
 
-  const handleResumeRecording = () => {
-    resumeRecording();
-    setIsPaused(false);
+  // NEW: Load saved session
+  const handleLoadSession = (sessionId: string) => {
+    const session = loadSession(sessionId);
+    if (session) {
+      setCurrentSlides(session.slides || []);
+      setSuccessMessage('Session loaded successfully');
+      setShowSessionMenu(false);
+      setShowPreview(true);
+    } else {
+      setErrorMessage('Failed to load session');
+    }
   };
 
+  // NEW: Export session
+  const handleExportSession = () => {
+    if (exportSession && currentSession) {
+      exportSession(currentSession);
+      setSuccessMessage('Session exported successfully');
+    }
+  };
+
+  // Enhanced reset function
   const handleReset = useCallback(() => {
     console.log('Resetting recorder state');
     
@@ -433,9 +612,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
     
     resetRecording();
-    setRecordingTime(0);
+    setRecordingTimeState(0);
     setRecordingDuration(0);
-    setIsPaused(false);
     setShowLessonForm(false);
     setShowPreview(false);
     setLessonTitle('');
@@ -447,6 +625,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setSuccessMessage(null);
     setSelectedFile(null);
     setAutoStopTimer(0);
+    setRecordingStatus('idle');
+    setShowTimelineEditor(false);
+    setShowSlideManager(false);
+    setShowProcessingStatus(false);
+    setProcessingLessonId(null);
+    setCurrentSlides([]);
+    setCurrentSlideIndex(0);
+    setRecordingStats({
+      fileSize: 0,
+      bitrate: 0,
+      framesDropped: 0,
+      networkQuality: 'good'
+    });
     
     if (filePreview) {
       URL.revokeObjectURL(filePreview);
@@ -482,7 +673,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
-  // FIXED: Proper upload handling with blob validation and mimetype preservation
+  // Enhanced upload function with processing status
   const handleUpload = async () => {
     if (!selectedCourse || !lessonTitle.trim()) {
       setErrorMessage('Please select a course and enter a lesson title.');
@@ -493,8 +684,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setUploading(true);
       setUploadProgress(0);
       setErrorMessage(null);
+      setShowProcessingStatus(true);
 
-      // Validate video content before creating lesson
       if (activeTab === 'record' && (!videoBlob || videoBlob.size === 0)) {
         throw new Error('Recorded video is empty or invalid. Please record again.');
       }
@@ -511,71 +702,30 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       });
 
       const newLessonId = lessonResponse.data.lesson.id;
-      setUploadProgress(50);
+      setProcessingLessonId(newLessonId);
+      setUploadProgress(30);
 
       let uploadResponse;
       
       if (activeTab === 'record' && videoBlob) {
         console.log('Uploading recorded video blob for lesson:', newLessonId);
-        console.log('Video Blob validation:', {
-          size: videoBlob.size,
-          type: videoBlob.type,
-          isBlob: videoBlob instanceof Blob
-        });
-
-        // Convert blob to file with proper error handling and mimetype
+        
         const videoFile = blobToFile(videoBlob, `lesson-${newLessonId}-${Date.now()}`);
         
         console.log('Final file details for upload:', {
           name: videoFile.name,
           size: videoFile.size,
-          type: videoFile.type,
-          lastModified: videoFile.lastModified
+          type: videoFile.type
         });
 
-        // Temporary debug - add this right before the upload call
-        const debugFormData = new FormData();
-        debugFormData.append('video', videoFile);
-        debugFormData.append('lessonId', newLessonId);
-
-        console.log('DEBUG - FormData contents:');
-        for (let [key, value] of debugFormData.entries()) {
-          if (value instanceof File) {
-            console.log(`${key}:`, {
-              name: value.name,
-              size: value.size,
-              type: value.type,
-              lastModified: value.lastModified
-            });
-          } else {
-            console.log(`${key}:`, value);
-          }
-        }
-
-        // Double-check the mimetype before upload
-        if (!videoFile.type.startsWith('video/')) {
-          console.warn('File does not have video mimetype, forcing video/webm');
-          // Create a new File with correct mimetype if needed
-          const correctedFile = new File([videoFile], videoFile.name, {
-            type: 'video/webm',
-            lastModified: videoFile.lastModified
-          });
-          uploadResponse = await videoApi.uploadVideo(
-            correctedFile, 
-            newLessonId, 
-            (progress) => setUploadProgress(50 + (progress / 2))
-          );
-        } else {
-          uploadResponse = await videoApi.uploadVideo(
-            videoFile, 
-            newLessonId, 
-            (progress) => setUploadProgress(50 + (progress / 2))
-          );
-        }
+        uploadResponse = await videoApi.uploadVideo(
+          videoFile, 
+          newLessonId, 
+          (progress) => setUploadProgress(30 + (progress * 0.7)) // 30-100%
+        );
       } else if (activeTab === 'upload' && selectedFile) {
         console.log('Uploading selected file for lesson:', newLessonId);
         
-        // Validate selected file mimetype
         if (!selectedFile.type.startsWith('video/')) {
           throw new Error('Selected file is not a valid video format');
         }
@@ -583,7 +733,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         uploadResponse = await videoApi.uploadVideo(
           selectedFile, 
           newLessonId, 
-          (progress) => setUploadProgress(50 + (progress / 2))
+          (progress) => setUploadProgress(30 + (progress * 0.7)) // 30-100%
         );
       } else {
         throw new Error('No valid video content to upload');
@@ -591,24 +741,29 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       setUploadProgress(100);
       setUploadSuccess(true);
-      setSuccessMessage('Video uploaded successfully!');
       
-      // Get the proper video URL from the upload response
       const videoUrl = uploadResponse.data.videoUrl;
       console.log('Upload successful. Video URL:', videoUrl);
       
       onRecordingComplete?.(videoUrl);
       onUploadComplete?.(newLessonId, videoUrl);
 
-      setTimeout(() => {
-        handleReset();
-      }, 3000);
-
     } catch (error: any) {
       console.error('Upload failed:', error);
       setErrorMessage(error.response?.data?.message || error.message || 'Upload failed. Please try again.');
       setUploading(false);
+      setShowProcessingStatus(false);
+      setProcessingLessonId(null);
     }
+  };
+
+  // NEW: Handle processing completion
+  const handleProcessingComplete = () => {
+    setShowProcessingStatus(false);
+    setSuccessMessage('Video processing completed! Your video is now available.');
+    setTimeout(() => {
+      handleReset();
+    }, 3000);
   };
 
   const handleDeleteRecording = () => {
@@ -627,6 +782,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setSuccessMessage('Recording downloaded successfully');
     }
   };
 
@@ -638,42 +794,156 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // FIX: Handle tab change - close camera when switching to upload tab
   const handleTabChange = (tab: 'record' | 'upload') => {
     if (activeTab === 'record' && tab === 'upload') {
-      // Close camera when switching to upload tab
       closeCamera();
+      setShowSlideManager(false);
     }
     setActiveTab(tab);
   };
 
-  if (coursesLoading) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-lg">
-        <Loader className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900">Loading Courses</h3>
-      </div>
-    );
-  }
+  // NEW: Enhanced recording stats display
+  const renderRecordingStats = () => {
+    if (!isRecording) return null;
 
-  if (error) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-lg">
-        <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900">Error</h3>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <button
-          onClick={handleReset}
-          className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Try Again
-        </button>
+      <div className="absolute top-4 right-4 bg-black/70 text-white p-3 rounded-lg text-xs space-y-1 z-20">
+        <div className="flex items-center space-x-2">
+          <div className={`w-2 h-2 rounded-full ${
+            recordingStats.networkQuality === 'good' ? 'bg-green-500' :
+            recordingStats.networkQuality === 'fair' ? 'bg-yellow-500' : 'bg-red-500'
+          }`} />
+          <span>Network: {recordingStats.networkQuality}</span>
+        </div>
+        <div>Size: {getFileSize(recordingStats.fileSize)}</div>
+        <div>Bitrate: {(recordingStats.bitrate / 1000000).toFixed(1)} Mbps</div>
+        {recordingStats.framesDropped > 0 && (
+          <div className="text-yellow-400">
+            Dropped frames: {recordingStats.framesDropped}
+          </div>
+        )}
       </div>
     );
-  }
+  };
+
+  // NEW: Enhanced preview rendering with slide support
+  const renderPreview = () => {
+    if (activeTab === 'record') {
+      if (recordedVideo) {
+        return (
+          <div className="relative w-full h-full">
+            <video
+              ref={recordedVideoRef}
+              src={recordedVideo}
+              className="w-full h-full object-cover"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+            />
+            {showPreview && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <button onClick={handlePreviewPlay} className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                  {isPlaying ? <Pause className="h-8 w-8 text-white" /> : <PlayCircle className="h-8 w-8 text-white" />}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      } else {
+        return (
+          <div className={`w-full h-full relative ${getLayoutClass()}`}>
+            {/* Camera Preview */}
+            {recordingSources.camera && (
+              <div className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  Camera {micLevel > 0.1 && (
+                    <div className="flex items-center space-x-1">
+                      <Mic className="h-3 w-3" />
+                      <div className="w-12 h-1 bg-gray-600 rounded">
+                        <div 
+                          className="h-1 bg-green-500 rounded transition-all"
+                          style={{ width: `${micLevel * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Screen Share Preview */}
+            {recordingSources.screen && (
+              <div className={`screen-preview ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
+                <video
+                  ref={screenVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  Screen
+                </div>
+              </div>
+            )}
+            
+            {/* No sources message */}
+            {!recordingSources.camera && !recordingSources.screen && (
+              <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                <div className="text-center text-white">
+                  <Camera className="h-16 w-16 mx-auto mb-4" />
+                  <p>Click "Start Recording" to begin</p>
+                  {!enableAudio && (
+                    <div className="mt-2 flex items-center justify-center space-x-1 text-yellow-400">
+                      <MicOff className="h-4 w-4" />
+                      <span className="text-sm">Audio disabled</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Recording Stats */}
+            {renderRecordingStats()}
+          </div>
+        );
+      }
+    } else {
+      return (
+        <div className="w-full h-full flex items-center justify-center">
+          {filePreview ? (
+            <video src={filePreview} className="w-full h-full object-cover" controls />
+          ) : (
+            <div className="text-center p-8">
+              <Cloud className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Video File</h3>
+              <p className="text-gray-600 text-sm mb-4">Supported formats: MP4, WebM, MOV, AVI, MPEG</p>
+              <p className="text-gray-500 text-xs mb-4">Maximum file size: 2GB</p>
+              <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden" />
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Choose Video File</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
+      {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -681,6 +951,35 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <h3 className="text-lg font-bold text-gray-900">Create Video Lesson</h3>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Session Management Button */}
+            {savedSessions.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowSessionMenu(!showSessionMenu)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                  title="Saved Sessions"
+                >
+                  <FolderOpen className="h-5 w-5" />
+                </button>
+                {showSessionMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                    <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
+                      Saved Sessions
+                    </div>
+                    {savedSessions.map(session => (
+                      <button
+                        key={session.id}
+                        onClick={() => handleLoadSession(session.id)}
+                        className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        {session.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <button
               onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
               className="p-2 text-gray-400 hover:text-gray-600"
@@ -697,6 +996,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             </button>
           </div>
         </div>
+        
+        {/* Enhanced Tab Navigation */}
         <div className="flex space-x-1 mt-4 bg-white rounded-xl p-1 border">
           <button
             onClick={() => handleTabChange('record')}
@@ -717,13 +1018,86 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       </div>
 
+      {/* NEW: Multi-source Controls */}
+      {activeTab === 'record' && !recordedVideo && (
+        <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Sources:</span>
+              
+              {/* Camera Toggle */}
+              <button
+                onClick={() => recordingSources.camera ? closeCamera() : initializeCamera()}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  recordingSources.camera 
+                    ? 'bg-green-100 text-green-700 border border-green-300' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Camera className="h-4 w-4 inline mr-1" />
+                Camera
+              </button>
+              
+              {/* Screen Share Toggle */}
+              <button
+                onClick={() => isScreenSharing ? stopScreenShare() : startScreenShare()}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  isScreenSharing 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Monitor className="h-4 w-4 inline mr-1" />
+                Screen
+              </button>
+
+              {/* NEW: Slide Manager Toggle */}
+              <button
+                onClick={() => setShowSlideManager(!showSlideManager)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  showSlideManager 
+                    ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <FileText className="h-4 w-4 inline mr-1" />
+                Slides
+              </button>
+            </div>
+            
+            {/* Layout Selector */}
+            <div className="flex items-center space-x-1">
+              <span className="text-sm text-gray-600 mr-2">Layout:</span>
+              {(['picture-in-picture', 'side-by-side', 'screen-only', 'camera-only'] as const).map(layout => (
+                <button
+                  key={layout}
+                  onClick={() => setLayout(layout)}
+                  className={`p-1 rounded transition-colors ${
+                    currentLayout === layout 
+                      ? 'bg-blue-100 text-blue-600' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                  title={layout.replace('-', ' ')}
+                >
+                  {layout === 'picture-in-picture' && <PictureInPicture className="h-4 w-4" />}
+                  {layout === 'side-by-side' && <Split className="h-4 w-4" />}
+                  {layout === 'screen-only' && <Monitor className="h-4 w-4" />}
+                  {layout === 'camera-only' && <Camera className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Settings Panel */}
       {showAdvancedSettings && (
         <div className="px-6 py-4 border-b border-gray-200 bg-yellow-50">
           <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
             <Zap className="h-4 w-4 mr-2" />
-            Advanced Settings
+            Advanced Recording Settings
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Recording Quality
@@ -733,9 +1107,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 onChange={(e) => setRecordingQuality(e.target.value as any)}
                 className="w-full p-2 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="480p">480p (SD)</option>
-                <option value="720p">720p (HD)</option>
-                <option value="1080p">1080p (Full HD)</option>
+                <option value="480p">480p (SD) - Faster processing</option>
+                <option value="720p">720p (HD) - Recommended</option>
+                <option value="1080p">1080p (Full HD) - Best quality</option>
               </select>
             </div>
             <div>
@@ -768,6 +1142,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Recording Tips */}
       {showSettings && (
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h4 className="font-semibold text-gray-900 mb-3">Recording Tips</h4>
@@ -782,76 +1157,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Main Preview Area */}
       <div className="relative bg-black aspect-video">
-        {activeTab === 'record' ? (
-          stream && !recordedVideo ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
-          ) : !recordedVideo ? (
-            <div className="w-full h-full flex items-center justify-center bg-gray-900">
-              <div className="text-center text-white">
-                <Camera className="h-16 w-16 mx-auto mb-4" />
-                <p>Click "Start Recording" to begin</p>
-                {!enableAudio && (
-                  <div className="mt-2 flex items-center justify-center space-x-1 text-yellow-400">
-                    <MicOff className="h-4 w-4" />
-                    <span className="text-sm">Audio disabled</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="relative w-full h-full">
-              <video
-                ref={recordedVideoRef}
-                src={recordedVideo}
-                className="w-full h-full object-cover"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => setIsPlaying(false)}
-              />
-              {showPreview && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <button onClick={handlePreviewPlay} className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    {isPlaying ? <Pause className="h-8 w-8 text-white" /> : <PlayCircle className="h-8 w-8 text-white" />}
-                  </button>
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            {filePreview ? (
-              <video src={filePreview} className="w-full h-full object-cover" controls />
-            ) : (
-              <div className="text-center p-8">
-                <Cloud className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Video File</h3>
-                <p className="text-gray-600 text-sm mb-4">Supported formats: MP4, WebM, MOV</p>
-                <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden" />
-                <button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>Choose Video File</span>
-                </button>
-              </div>
-            )}
+        {renderPreview()}
+
+        {/* NEW: Slide Indicator */}
+        {currentSlides.length > 0 && activeTab === 'record' && (
+          <div className="absolute top-4 left-4 z-30 bg-purple-600 text-white px-3 py-1 rounded-full text-sm">
+            Slide {currentSlideIndex + 1}/{currentSlides.length}
           </div>
         )}
 
+        {/* Countdown Overlay */}
         {countdown !== null && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
             <div className="text-white text-6xl font-bold">{countdown}</div>
           </div>
         )}
 
+        {/* Recording Status */}
         {isRecording && activeTab === 'record' && (
           <div className="absolute top-4 left-4 flex items-center space-x-3">
             <div className="flex items-center space-x-2 bg-red-600 text-white px-3 py-1 rounded-full">
@@ -871,27 +1195,33 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
         )}
 
-        {/* Audio Level Indicator */}
-        {isRecording && enableAudio && (
-          <div className="absolute top-4 right-4 bg-black/50 rounded-full p-2">
-            <div className="flex items-center space-x-1">
-              <Mic className={`h-4 w-4 ${micLevel > 0.1 ? 'text-green-400' : 'text-gray-400'}`} />
-              <div className="w-20 h-2 bg-gray-600 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-green-400 transition-all duration-100"
-                  style={{ width: `${micLevel * 100}%` }}
-                />
-              </div>
-            </div>
+        {/* NEW: Enhanced Action Buttons (shown after recording) */}
+        {activeTab === 'record' && recordedVideo && (
+          <div className="absolute top-4 right-4 z-30 flex space-x-2">
+            <button
+              onClick={() => setShowTimelineEditor(true)}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center space-x-2"
+            >
+              <Scissors className="h-4 w-4" />
+              <span>Edit Video</span>
+            </button>
+            <button
+              onClick={handleExportSession}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center space-x-2"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export</span>
+            </button>
           </div>
         )}
 
+        {/* Recording Controls */}
         {activeTab === 'record' && !recordedVideo && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             {!isRecording ? (
               <button 
                 onClick={handleStartRecording} 
-                disabled={countdown !== null}
+                disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
                 className="flex items-center space-x-3 px-8 py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 transition-all"
               >
                 <Circle className="h-6 w-6" />
@@ -901,12 +1231,24 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </button>
             ) : (
               <div className="flex items-center space-x-4">
+                {/* Session Save Button */}
                 <button 
-                  onClick={isPaused ? handleResumeRecording : handlePauseRecording} 
+                  onClick={handleSaveSession}
+                  className="p-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors"
+                  title="Save Session"
+                >
+                  <Save className="h-6 w-6" />
+                </button>
+                
+                {/* Pause/Resume Button */}
+                <button 
+                  onClick={isPaused ? resumeRecording : pauseRecording} 
                   className="p-4 bg-yellow-500 text-white rounded-2xl hover:bg-yellow-600 transition-colors"
                 >
                   {isPaused ? <Play className="h-6 w-6" /> : <Pause className="h-6 w-6" />}
                 </button>
+                
+                {/* Stop Button */}
                 <button 
                   onClick={handleStopRecording} 
                   className="p-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors"
@@ -918,6 +1260,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
         )}
 
+        {/* Enhanced Preview Controls */}
         {activeTab === 'record' && recordedVideo && showPreview && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-4">
             <button onClick={handlePreviewPlay} className="p-3 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-colors">
@@ -936,6 +1279,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
       </div>
 
+      {/* NEW: Slide Manager */}
+      {showSlideManager && (
+        <div className="absolute top-4 right-4 z-40 w-96">
+          <SlideManager
+            onSlidesChange={handleSlidesChange}
+            onSlideAdvance={handleSlideAdvance}
+          />
+        </div>
+      )}
+
       {/* Recording Stats */}
       {activeTab === 'record' && recordedVideo && videoBlob && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
@@ -944,6 +1297,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <span>Duration: {formatTime(recordingDuration)}</span>
               <span>Size: {getFileSize(videoBlob.size)}</span>
               <span>Quality: {recordingQuality}</span>
+              <span>Layout: {currentLayout}</span>
+              <span>Sources: {[
+                ...(recordingSources.camera ? ['Camera'] : []),
+                ...(recordingSources.screen ? ['Screen'] : [])
+              ].join(' + ')}</span>
+              {currentSlides.length > 0 && (
+                <span>Slides: {currentSlides.length}</span>
+              )}
             </div>
             {!enableAudio && (
               <div className="flex items-center space-x-1 text-orange-600">
@@ -955,6 +1316,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Success/Error Messages */}
       {successMessage && (
         <div className="p-3 bg-green-100 border-l-4 border-green-400 text-green-700 flex items-center space-x-2">
           <CheckCircle className="h-4 w-4" />
@@ -969,6 +1331,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Upload Progress */}
       {uploading && (
         <div className="p-4 bg-blue-50">
           <div className="flex justify-between mb-1 text-sm text-blue-700">
@@ -984,6 +1347,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Lesson Form */}
       {showLessonForm && (recordedVideo || selectedFile) && (
         <div className="p-6 border-t">
           <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
@@ -1061,6 +1425,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* NEW: Video Timeline Editor Modal */}
+      {showTimelineEditor && videoBlob && recordedVideo && (
+        <VideoTimelineEditor
+          videoBlob={videoBlob}
+          videoUrl={recordedVideo}
+          onEditComplete={handleEditComplete}
+          onCancel={() => setShowTimelineEditor(false)}
+        />
+      )}
+
+      {/* NEW: Video Processing Status */}
+      {showProcessingStatus && processingLessonId && (
+        <VideoProcessingStatus
+          lessonId={processingLessonId}
+          isOpen={showProcessingStatus}
+          onClose={() => setShowProcessingStatus(false)}
+          onProcessingComplete={handleProcessingComplete}
+        />
       )}
     </div>
   );

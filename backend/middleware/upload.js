@@ -22,7 +22,8 @@ const createFileFilter = (allowedTypes, fileType) => {
   return (req, file, cb) => {
     try {
       // Check MIME type
-      if (allowedTypes.includes(file.mimetype)) {
+      const baseMimeType = file.mimetype.split(';')[0];
+      if (allowedTypes.includes(baseMimeType)) {
         cb(null, true);
       } else {
         cb(new Error(`Invalid ${fileType} format. Supported formats: ${allowedTypes.map(t => t.split('/')[1]).join(', ')}`), false);

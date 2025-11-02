@@ -1,4 +1,6 @@
+// frontend/src/components/courses/EnhancedVideoPlayer.tsx
 import * as React from 'react';
+import Hls from 'hls.js';
 import {
   Play, Pause, Volume2, VolumeX, Maximize,
   RotateCcw, Bookmark, MessageCircle, PenTool,
@@ -8,7 +10,12 @@ import {
   Download, Share2, Heart, Flag, MoreVertical,
   ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
   Award, Crown, Star, TrendingUp, BarChart3,
-  PictureInPicture, Volume1, ChevronRight
+  PictureInPicture, Volume1, ChevronRight,
+  // NEW: Added icons for enhanced features
+  Monitor, Cast, Wifi, Gauge, Scissors,
+  Edit3, Users2, BarChart, FileText,
+  SkipBack, SkipForward, FastForward, Rewind,
+  Grid, List, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { interactiveApi } from '../../services/api';
 import { videoApi } from '../../services/api/videos';
@@ -22,6 +29,12 @@ interface EnhancedVideoPlayerProps {
   onTimestampClick?: (timestamp: number) => void;
   courseTitle?: string;
   chapterTitle?: string;
+  // NEW: Enhanced props
+  onQualityChange?: (quality: string) => void;
+  onPlaybackRateChange?: (rate: number) => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
+  onError?: (error: Error) => void;
+  onLoad?: (metadata: any) => void;
 }
 
 interface Annotation {
@@ -72,6 +85,24 @@ interface Subtitle {
   language_code: string;
   language_name: string;
   subtitle_url: string;
+}
+
+// NEW: Enhanced video quality interface
+interface VideoQuality {
+  name: string;
+  label: string;
+  bitrate: number;
+  resolution: string;
+  url?: string;
+}
+
+// NEW: Video statistics interface
+interface VideoStats {
+  buffered: number;
+  droppedFrames: number;
+  networkActivity: number;
+  currentBitrate: number;
+  averageBitrate: number;
 }
 
 // Enhanced Discussion Post Component
@@ -465,6 +496,52 @@ const EnhancedResourcesTab: React.FC = () => {
   );
 };
 
+// NEW: Enhanced Video Statistics Component
+const VideoStatistics: React.FC<{
+  stats: VideoStats;
+  isVisible: boolean;
+}> = ({ stats, isVisible }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div className="absolute top-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs space-y-1 z-30">
+      <div className="font-semibold mb-2">Video Stats</div>
+      <div>Buffered: {stats.buffered.toFixed(1)}s</div>
+      <div>Current Bitrate: {(stats.currentBitrate / 1000000).toFixed(1)} Mbps</div>
+      <div>Avg Bitrate: {(stats.averageBitrate / 1000000).toFixed(1)} Mbps</div>
+      <div>Dropped Frames: {stats.droppedFrames}</div>
+      <div>Network Activity: {stats.networkActivity}%</div>
+    </div>
+  );
+};
+
+// NEW: Enhanced Quality Selector Component
+const QualitySelector: React.FC<{
+  qualities: VideoQuality[];
+  currentQuality: string;
+  onQualityChange: (quality: string) => void;
+  isVisible: boolean;
+}> = ({ qualities, currentQuality, onQualityChange, isVisible }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div className="absolute bottom-16 right-4 bg-black/90 text-white p-3 rounded-lg z-30 min-w-32">
+      <div className="font-semibold mb-2 text-sm">Quality</div>
+      {qualities.map(quality => (
+        <button
+          key={quality.name}
+          onClick={() => onQualityChange(quality.name)}
+          className={`block w-full text-left px-2 py-1 text-sm rounded hover:bg-white/20 transition-colors ${
+            currentQuality === quality.name ? 'text-blue-400 font-medium' : 'text-gray-300'
+          }`}
+        >
+          {quality.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   videoUrl,
   title,
@@ -472,16 +549,26 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   autoPlay = false,
   onTimestampClick,
   courseTitle,
-  chapterTitle
+  chapterTitle,
+  // NEW: Enhanced props
+  onQualityChange,
+  onPlaybackRateChange,
+  onFullscreenChange,
+  onError,
+  onLoad
 }) => {
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const hlsRef = React.useRef<Hls | null>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  
+  // Core video states
   const [isPlaying, setIsPlaying] = React.useState(autoPlay);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
   const [volume, setVolume] = React.useState(1);
   const [isMuted, setIsMuted] = React.useState(false);
   const [playbackRate, setPlaybackRate] = React.useState(1);
-  const [videoQuality, setVideoQuality] = React.useState('hd');
+  const [videoQuality, setVideoQuality] = React.useState('auto');
   const [showAnnotations, setShowAnnotations] = React.useState(true);
   const [showQuiz, setShowQuiz] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'discussions' | 'annotations' | 'resources'>('discussions');
@@ -501,27 +588,39 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [newDiscussion, setNewDiscussion] = React.useState('');
   const [newReply, setNewReply] = React.useState<{ [key: string]: string }>({});
 
-  // Enhanced states
+  // NEW: Enhanced states for production features
   const [networkStatus, setNetworkStatus] = React.useState<{
     status: 'online' | 'offline' | 'reconnecting' | 'degraded';
     speed?: number;
-  }>({ status: 'online' });
-  const [retryAttempts, setRetryAttempts] = React.useState(0);
-  const maxRetryAttempts = 3;
+    retryCount: number;
+  }>({ status: 'online', retryCount: 0 });
+  
+  const [videoStats, setVideoStats] = React.useState<VideoStats>({
+    buffered: 0,
+    droppedFrames: 0,
+    networkActivity: 0,
+    currentBitrate: 0,
+    averageBitrate: 0
+  });
+
+  const [availableQualities, setAvailableQualities] = React.useState<VideoQuality[]>([
+    { name: 'auto', label: 'Auto', bitrate: 0, resolution: 'Auto' },
+    { name: '1080p', label: '1080p', bitrate: 5000000, resolution: '1920x1080' },
+    { name: '720p', label: '720p', bitrate: 2500000, resolution: '1280x720' },
+    { name: '480p', label: '480p', bitrate: 1000000, resolution: '854x480' },
+    { name: '360p', label: '360p', bitrate: 600000, resolution: '640x360' }
+  ]);
 
   const [showAdvancedControls, setShowAdvancedControls] = React.useState(false);
-  const [videoStats] = React.useState({
-    views: 1247,
-    likes: 89,
-    completionRate: 72,
-    averageWatchTime: '12:34'
-  });
-  const [showStats, setShowStats] = React.useState(false);
+  const [showVideoStats, setShowVideoStats] = React.useState(false);
+  const [showQualitySelector, setShowQualitySelector] = React.useState(false);
   const [theaterMode, setTheaterMode] = React.useState(false);
   const [pictureInPicture, setPictureInPicture] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [showShareMenu, setShowShareMenu] = React.useState(false);
   const [playbackHistory, setPlaybackHistory] = React.useState<number[]>([]);
   const [showHeatmap, setShowHeatmap] = React.useState(false);
+  const [videoError, setVideoError] = React.useState<string | null>(null);
 
   // Quiz states
   const [showQuizTaking, setShowQuizTaking] = React.useState(false);
@@ -539,39 +638,280 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const userRole: 'student' | 'teacher' | 'admin' = 'student';
   const currentUserId = 'current-user-id';
 
-  // Resolve video URL with CORS fix
-  const resolvedVideoUrl = React.useMemo(() => {
+  // NEW: Enhanced video URL resolution with signed URLs
+  const [resolvedVideoUrl, setResolvedVideoUrl] = React.useState(videoUrl);
+  const [isHls, setIsHls] = React.useState(false);
+
+  // NEW: Enhanced HLS.js integration with error handling
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const initializeVideo = async () => {
+      try {
+        // Fetch video metadata to get signed URL and processing status
+        const metadata = await videoApi.getLessonMetadata(lessonId);
+        
+        if (metadata.success && metadata.data?.lesson) {
+          const lesson = metadata.data.lesson;
+          
+          // Use signed URL if available, otherwise fallback
+          const finalUrl = lesson.signedStreamUrl || lesson.video_url || videoUrl;
+          setResolvedVideoUrl(finalUrl);
+          setIsHls(finalUrl.includes('.m3u8'));
+
+          // Call onLoad callback with metadata
+          onLoad?.(metadata.data);
+        } else {
+          setResolvedVideoUrl(videoUrl);
+          setIsHls(videoUrl.includes('.m3u8'));
+        }
+      } catch (error) {
+        console.error('Failed to fetch video metadata:', error);
+        setResolvedVideoUrl(videoUrl);
+        setIsHls(videoUrl.includes('.m3u8'));
+      }
+    };
+
+    initializeVideo();
+  }, [lessonId, videoUrl, onLoad]);
+
+  // NEW: Enhanced HLS.js integration with robust error handling
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !resolvedVideoUrl) return;
+
+    let hls: Hls | null = null;
+
+    const setupHls = () => {
+      if (isHls) {
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 90,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 600,
+            maxBufferSize: 60 * 1000 * 1000, // 60MB
+            maxBufferHole: 0.5,
+            maxFragLookUpTolerance: 0.2,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            // Enhanced error handling
+            debug: false,
+            enableSoftwareAES: true,
+            startLevel: -1, // Auto quality
+          });
+
+          hls.loadSource(resolvedVideoUrl);
+          hls.attachMedia(video);
+
+          // Enhanced HLS event handling
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            console.log('HLS manifest parsed successfully');
+            setNetworkStatus({ status: 'online', retryCount: 0 });
+          });
+
+          hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+            const level = data.level;
+            setVideoStats(prev => ({
+              ...prev,
+              currentBitrate: level.bitrate,
+              averageBitrate: (prev.averageBitrate + level.bitrate) / 2
+            }));
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.error('HLS error:', data);
+            
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.log('Network error encountered, trying to recover...');
+                  hls?.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.log('Media error encountered, trying to recover...');
+                  hls?.recoverMediaError();
+                  break;
+                default:
+                  console.log('Fatal HLS error, cannot recover');
+                  handleVideoError(new Error('Fatal HLS error: ' + data.details));
+                  break;
+              }
+            }
+          });
+
+          hlsRef.current = hls;
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native HLS support (Safari)
+          video.src = resolvedVideoUrl;
+        } else {
+          throw new Error('HLS is not supported in this browser');
+        }
+      } else {
+        // Standard video source
+        video.src = resolvedVideoUrl;
+      }
+    };
+
+    const handleVideoError = (error: Error) => {
+      console.error('Video error:', error);
+      setVideoError(error.message);
+      setNetworkStatus(prev => ({
+        status: 'offline',
+        retryCount: prev.retryCount + 1
+      }));
+      onError?.(error);
+    };
+
     try {
-      return videoApi.resolveVideoUrl(videoUrl);
+      setupHls();
     } catch (error) {
-      console.error('Error resolving video URL:', error);
-      return videoUrl;
+      handleVideoError(error as Error);
     }
-  }, [videoUrl]);
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [resolvedVideoUrl, isHls, onError]);
+
+  // NEW: Enhanced video event handlers
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const updateTime = () => setCurrentTime(video.currentTime);
+    const updateDuration = () => {
+      const newDuration = video.duration || 0;
+      setDuration(newDuration);
+    };
+    
+    const handleEnd = () => setIsPlaying(false);
+    
+    const handleError = (e: Event) => {
+      const videoElement = e.target as HTMLVideoElement;
+      const error = videoElement.error;
+      let errorMessage = 'Unknown video error';
+      
+      if (error) {
+        switch (error.code) {
+          case error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Video playback was aborted';
+            break;
+          case error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error occurred while loading video';
+            break;
+          case error.MEDIA_ERR_DECODE:
+            errorMessage = 'Video decoding error';
+            break;
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Video format not supported';
+            break;
+        }
+      }
+      
+      setVideoError(errorMessage);
+      onError?.(new Error(errorMessage));
+    };
+
+    const handleLoadStart = () => {
+      setNetworkStatus({ status: 'online', retryCount: 0 });
+      setVideoError(null);
+    };
+
+    const handleCanPlay = () => {
+      setNetworkStatus({ status: 'online', retryCount: 0 });
+    };
+
+    const handleWaiting = () => {
+      setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
+    };
+
+    const handleProgress = () => {
+      if (video.buffered.length > 0) {
+        const buffered = video.buffered.end(video.buffered.length - 1) - video.currentTime;
+        setVideoStats(prev => ({ ...prev, buffered }));
+      }
+    };
+
+    // Enhanced event listeners
+    video.addEventListener('timeupdate', updateTime);
+    video.addEventListener('loadedmetadata', updateDuration);
+    video.addEventListener('ended', handleEnd);
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('progress', handleProgress);
+
+    return () => {
+      video.removeEventListener('timeupdate', updateTime);
+      video.removeEventListener('loadedmetadata', updateDuration);
+      video.removeEventListener('ended', handleEnd);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('progress', handleProgress);
+    };
+  }, [onError]);
+
+  // NEW: Enhanced network status monitoring
+  React.useEffect(() => {
+    const handleOnline = () => {
+      setNetworkStatus(prev => ({ ...prev, status: 'online' }));
+    };
+
+    const handleOffline = () => {
+      setNetworkStatus(prev => ({ ...prev, status: 'offline' }));
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Load data from backend
   React.useEffect(() => {
     loadAnnotations();
     loadDiscussions();
     loadQuizzes();
-    loadVideoMetadata();
+    loadSubtitles();
   }, [lessonId]);
 
-  // Auto-save progress
+  // NEW: Enhanced progress tracking with analytics
   React.useEffect(() => {
     const interval = setInterval(() => {
       if (duration > 0 && currentTime > 0) {
         const progress = currentTime / duration;
+        
+        // Update playback history for heatmap
+        setPlaybackHistory(prev => {
+          const newHistory = [...prev, currentTime];
+          // Keep only last 1000 points for performance
+          return newHistory.slice(-1000);
+        });
+
+        // Auto-save progress
         interactiveApi.updateLessonProgress(lessonId, {
           progress,
           lastWatchedTimestamp: currentTime,
           isCompleted: progress >= 0.95
         }).catch(console.error);
       }
-    }, 30000);
+    }, 10000); // Save every 10 seconds
 
     return () => {
       clearInterval(interval);
+      // Final save on unmount
       if (duration > 0 && currentTime > 0) {
         const progress = currentTime / duration;
         interactiveApi.updateLessonProgress(lessonId, {
@@ -583,10 +923,10 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     };
   }, [currentTime, duration, lessonId]);
 
-  // Keyboard shortcuts
+  // NEW: Enhanced keyboard shortcuts
   React.useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!videoRef.current) return;
+      if (!videoRef.current || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       switch (e.key) {
         case ' ':
@@ -604,11 +944,11 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          seekRelative(-10);
+          seekRelative(-5);
           break;
         case 'ArrowRight':
           e.preventDefault();
-          seekRelative(10);
+          seekRelative(5);
           break;
         case 'j':
           e.preventDefault();
@@ -626,33 +966,49 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           e.preventDefault();
           setTheaterMode(!theaterMode);
           break;
+        case 'i':
+          e.preventDefault();
+          togglePictureInPicture();
+          break;
+        case 's':
+          e.preventDefault();
+          setShowVideoStats(!showVideoStats);
+          break;
+        case 'q':
+          e.preventDefault();
+          setShowQualitySelector(!showQualitySelector);
+          break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+          e.preventDefault();
+          const percentage = parseInt(e.key) / 10;
+          seekTo(percentage * duration);
+          break;
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, theaterMode]);
+  }, [isPlaying, theaterMode, duration]);
 
-  // Enhanced progress tracking
-  React.useEffect(() => {
-    if (currentTime > 0) {
-      setPlaybackHistory(prev => [...prev, currentTime]);
-    }
-  }, [currentTime]);
-
-  // API functions
-  const loadVideoMetadata = async () => {
+  // NEW: Enhanced API functions with error handling
+  const loadSubtitles = async () => {
     setLoading(prev => ({ ...prev, subtitles: true }));
     try {
-      console.log('Loading video metadata for lesson:', lessonId);
-      console.log('Resolved video URL:', resolvedVideoUrl);
-      
-      // Test if video URL is accessible
-      const isAccessible = await videoApi.validateVideoUrl(videoUrl);
-      console.log('Video URL accessible:', isAccessible);
-      
+      const response = await videoApi.getLessonMetadata(lessonId);
+      if (response.success) {
+        setSubtitles(response.data.subtitles || []);
+      }
     } catch (error) {
-      console.error('Failed to load video metadata:', error);
+      console.error('Failed to load subtitles:', error);
     } finally {
       setLoading(prev => ({ ...prev, subtitles: false }));
     }
@@ -700,6 +1056,206 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     }
   };
 
+  // NEW: Enhanced video control functions
+  const togglePlay = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (videoError) {
+      await handleRetry();
+      return;
+    }
+
+    try {
+      if (isPlaying) {
+        video.pause();
+        setIsPlaying(false);
+      } else {
+        await video.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Play/pause error:', error);
+      setVideoError('Failed to play video');
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const newTime = parseFloat(e.target.value);
+    video.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const seekRelative = (seconds: number) => {
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime += seconds;
+      setCurrentTime(video.currentTime);
+    }
+  };
+
+  const seekTo = (time: number) => {
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const newVolume = parseFloat(e.target.value);
+    video.volume = newVolume;
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  };
+
+  const handlePlaybackRate = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % rates.length;
+    const newRate = rates[nextIndex];
+
+    video.playbackRate = newRate;
+    setPlaybackRate(newRate);
+    onPlaybackRateChange?.(newRate);
+  };
+
+  const handleQualityChange = (quality: string) => {
+    setVideoQuality(quality);
+    setShowQualitySelector(false);
+    onQualityChange?.(quality);
+
+    // If using HLS.js, change quality level
+    if (hlsRef.current && isHls) {
+      const levels = hlsRef.current.levels;
+      const levelIndex = levels.findIndex(level => 
+        quality === 'auto' ? true : level.height === parseInt(quality)
+      );
+      
+      if (levelIndex !== -1) {
+        hlsRef.current.currentLevel = quality === 'auto' ? -1 : levelIndex;
+      }
+    }
+  };
+
+  const toggleFullscreen = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        onFullscreenChange?.(true);
+      }).catch(console.error);
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+        onFullscreenChange?.(false);
+      }).catch(console.error);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setPictureInPicture(false);
+      } else {
+        await video.requestPictureInPicture();
+        setPictureInPicture(true);
+      }
+    } catch (error) {
+      console.error('Picture-in-Picture failed:', error);
+    }
+  };
+
+  const toggleTheaterMode = () => {
+    setTheaterMode(!theaterMode);
+  };
+
+  const toggleSubtitles = () => {
+    if (subtitles.length > 0) {
+      const nextIndex = selectedSubtitle
+        ? (subtitles.findIndex(s => s.id === selectedSubtitle) + 1) % (subtitles.length + 1)
+        : 0;
+      handleSubtitleSelect(nextIndex < subtitles.length ? subtitles[nextIndex].id : null);
+    }
+  };
+
+  const handleSubtitleSelect = (subtitleId: string | null) => {
+    setSelectedSubtitle(subtitleId);
+    // Implementation would depend on your video player setup
+  };
+
+  // NEW: Enhanced error recovery
+  const handleRetry = async () => {
+    setNetworkStatus(prev => ({ ...prev, status: 'reconnecting' }));
+    
+    try {
+      // Reload video source
+      const video = videoRef.current;
+      if (video) {
+        video.load();
+        await video.play();
+        setVideoError(null);
+        setNetworkStatus({ status: 'online', retryCount: 0 });
+      }
+    } catch (error) {
+      console.error('Retry failed:', error);
+      setNetworkStatus(prev => ({ ...prev, status: 'offline' }));
+    }
+  };
+
+  // NEW: Enhanced sharing
+  const handleShare = async (platform?: string) => {
+    const shareUrl = window.location.href;
+    const shareText = `Watch "${title}" on EOTY Platform`;
+
+    try {
+      if (platform === 'copy') {
+        await navigator.clipboard.writeText(shareUrl);
+        // Show success message
+        return;
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        // Show success message
+      }
+    } catch (error) {
+      console.log('Sharing cancelled or failed:', error);
+    } finally {
+      setShowShareMenu(false);
+    }
+  };
+
+  // Existing annotation and discussion functions (keep your current implementation)
   const createAnnotation = async (type: 'highlight' | 'comment' | 'bookmark', content: string = '') => {
     if (type !== 'bookmark' && !content.trim()) {
       alert('Please enter content for your annotation');
@@ -802,268 +1358,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     setQuizResults(null);
   };
 
-  // Video control functions
-  React.useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateTime = () => setCurrentTime(video.currentTime);
-    const updateDuration = () => {
-      const newDuration = video.duration || 0;
-      setDuration(newDuration);
-    };
-    const handleEnd = () => setIsPlaying(false);
-    const handleError = (e: Event) => {
-      console.error('Video error event:', e);
-      const videoElement = e.target as HTMLVideoElement;
-      console.error('Video error details:', {
-        error: videoElement.error,
-        networkState: videoElement.networkState,
-        readyState: videoElement.readyState,
-        src: videoElement.src
-      });
-      setNetworkStatus({ status: 'offline' });
-    };
-
-    const handleOnline = () => {
-      setNetworkStatus({ status: 'online' });
-    };
-
-    const handleOffline = () => {
-      setNetworkStatus({ status: 'offline' });
-    };
-
-    video.addEventListener('timeupdate', updateTime);
-    video.addEventListener('loadedmetadata', updateDuration);
-    video.addEventListener('ended', handleEnd);
-    video.addEventListener('error', handleError);
-    video.addEventListener('canplay', () => {
-      console.log('Video can play - ready to start');
-      setNetworkStatus({ status: 'online' });
-    });
-    video.addEventListener('waiting', () => {
-      console.log('Video waiting - buffering');
-      setNetworkStatus({ status: 'degraded' });
-    });
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      video.removeEventListener('timeupdate', updateTime);
-      video.removeEventListener('loadedmetadata', updateDuration);
-      video.removeEventListener('ended', handleEnd);
-      video.removeEventListener('error', handleError);
-      video.removeEventListener('canplay', () => {});
-      video.removeEventListener('waiting', () => {});
-
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (networkStatus.status === 'offline') {
-      alert('You are currently offline. Please check your network connection.');
-      return;
-    }
-
-    if (isPlaying) {
-      video.pause();
-      setIsPlaying(false);
-    } else {
-      video.play().catch(error => {
-        console.error('Error playing video:', error);
-        if (error.name === 'NotAllowedError') {
-          alert('Please interact with the page to enable video playback.');
-        } else if (error.name === 'NotSupportedError') {
-          alert('Video format not supported by your browser.');
-        } else {
-          alert('Failed to play video. Please check the video URL and try again.');
-        }
-        setIsPlaying(false);
-      });
-      setIsPlaying(true);
-    }
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const newTime = parseFloat(e.target.value);
-    video.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
-  const seekRelative = (seconds: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime += seconds;
-      setCurrentTime(videoRef.current.currentTime);
-    }
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const newVolume = parseFloat(e.target.value);
-    video.volume = newVolume;
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-  };
-
-  const toggleMute = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
-  };
-
-  const handlePlaybackRate = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const rates = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    const currentIndex = rates.indexOf(playbackRate);
-    const nextIndex = (currentIndex + 1) % rates.length;
-    const newRate = rates[nextIndex];
-
-    video.playbackRate = newRate;
-    setPlaybackRate(newRate);
-  };
-
-  const handleVideoQuality = () => {
-    const qualities = ['hd', 'sd', 'mobile'];
-    const currentIndex = qualities.indexOf(videoQuality);
-    const nextIndex = (currentIndex + 1) % qualities.length;
-    const newQuality = qualities[nextIndex];
-
-    setVideoQuality(newQuality);
-  };
-
-  const toggleFullscreen = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (!document.fullscreenElement) {
-      video.requestFullscreen().catch(err => {
-        console.log(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  const togglePictureInPicture = async () => {
-    if (!videoRef.current) return;
-
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setPictureInPicture(false);
-      } else {
-        await videoRef.current.requestPictureInPicture();
-        setPictureInPicture(true);
-      }
-    } catch (error) {
-      console.error('Picture-in-Picture failed:', error);
-    }
-  };
-
-  const toggleTheaterMode = () => {
-    setTheaterMode(!theaterMode);
-  };
-
-  const toggleSubtitles = () => {
-    if (subtitles.length > 0) {
-      const nextIndex = selectedSubtitle
-        ? (subtitles.findIndex(s => s.id === selectedSubtitle) + 1) % (subtitles.length + 1)
-        : 0;
-      handleSubtitleSelect(nextIndex < subtitles.length ? subtitles[nextIndex].id : null);
-    }
-  };
-
-  const handleSubtitleSelect = (subtitleId: string | null) => {
-    setSelectedSubtitle(subtitleId);
-    if (subtitleId) {
-      const subtitle = subtitles.find(s => s.id === subtitleId);
-      if (subtitle) {
-        console.log(`Subtitle selected: ${subtitle.language_name}`);
-      }
-    }
-  };
-
-  const handleShare = async (platform?: string) => {
-    const shareUrl = window.location.href;
-    const shareText = `Watch "${title}" on EOTY Platform`;
-
-    if (platform === 'copy') {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Link copied to clipboard!');
-      return;
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: title,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (error) {
-        console.log('Sharing cancelled');
-      }
-    } else {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Link copied to clipboard!');
-    }
-    setShowShareMenu(false);
-  };
-
-  const handleRetry = () => {
-    if (retryAttempts >= maxRetryAttempts) {
-      alert('Maximum retry attempts reached. Please check your network connection and try again later.');
-      return;
-    }
-
-    setNetworkStatus({ status: 'reconnecting' });
-    setRetryAttempts(prev => prev + 1);
-
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      videoRef.current.load();
-
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.currentTime = currentTime;
-          videoRef.current.play().catch(() => {
-            setIsPlaying(false);
-          });
-        }
-      }, 1000);
-    }
-
-    setTimeout(() => {
-      setNetworkStatus({ status: 'online' });
-    }, 3000);
-  };
-
-  const generateHeatmap = () => {
-    const heatmap = new Array(Math.ceil(duration)).fill(0);
-    playbackHistory.forEach(time => {
-      const index = Math.floor(time);
-      if (index < heatmap.length) {
-        heatmap[index]++;
-      }
-    });
-    return heatmap;
-  };
-
+  // Utility functions
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -1084,58 +1379,40 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   };
 
   const handleAnnotationClick = (timestamp: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = timestamp;
-      setCurrentTime(timestamp);
-    }
+    seekTo(timestamp);
     onTimestampClick?.(timestamp);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  return (
-    <div className={`bg-gray-900 rounded-2xl overflow-hidden transition-all duration-300 ${
-      theaterMode ? 'fixed inset-0 z-50 rounded-none' : 'border border-gray-700'
-    }`}>
+  // NEW: Generate heatmap data
+  const generateHeatmap = () => {
+    const heatmap = new Array(Math.ceil(duration)).fill(0);
+    playbackHistory.forEach(time => {
+      const index = Math.floor(time);
+      if (index < heatmap.length) {
+        heatmap[index]++;
+      }
+    });
+    return heatmap;
+  };
 
-      <div className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
+  return (
+    <div 
+      ref={containerRef}
+      className={`bg-gray-900 rounded-2xl overflow-hidden transition-all duration-300 ${
+        theaterMode ? 'fixed inset-0 z-50 rounded-none' : 'border border-gray-700'
+      }`}
+    >
+      <div className="relative w-full" style={{ paddingTop: theaterMode ? '0' : '56.25%' }}>
         <video
           ref={videoRef}
-          src={resolvedVideoUrl}
-          onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-          onLoadedMetadata={() => {
-            const duration = videoRef.current?.duration || 0;
-            setDuration(duration);
-            console.log('Video metadata loaded - Duration:', duration);
-          }}
-          onError={(e) => {
-            console.error('Video error:', e);
-            const videoElement = e.target as HTMLVideoElement;
-            console.error('Video error details:', {
-              error: videoElement.error,
-              networkState: videoElement.networkState,
-              readyState: videoElement.readyState,
-              src: videoElement.src
-            });
-            setNetworkStatus({ status: 'offline' });
-          }}
-          onLoadStart={() => {
-            console.log('Video load started');
-            setNetworkStatus({ status: 'online' });
-          }}
-          onCanPlay={() => {
-            console.log('Video can play');
-            setNetworkStatus({ status: 'online' });
-          }}
-          onStalled={() => {
-            console.log('Video stalled - buffering');
-            setNetworkStatus({ status: 'degraded' });
-          }}
-          onClick={togglePlay}
           className="absolute top-0 left-0 w-full h-full object-contain bg-black"
-          crossOrigin="anonymous"  // CRITICAL: Add this for CORS
+          crossOrigin="anonymous"
           controls={false}
           preload="metadata"
+          playsInline
+          webkit-playsinline
         >
           {subtitles.map(sub => (
             <track
@@ -1150,8 +1427,19 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           Your browser does not support the video tag.
         </video>
 
+        {/* NEW: Enhanced Video Statistics */}
+        <VideoStatistics stats={videoStats} isVisible={showVideoStats} />
+
+        {/* NEW: Quality Selector */}
+        <QualitySelector
+          qualities={availableQualities}
+          currentQuality={videoQuality}
+          onQualityChange={handleQualityChange}
+          isVisible={showQualitySelector}
+        />
+
         {/* Play/Pause Overlay */}
-        {!isPlaying && (
+        {!isPlaying && !videoError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
             <button onClick={togglePlay} className="p-4 rounded-full bg-white bg-opacity-30 hover:bg-opacity-50 transition-all duration-200">
               <Play className="h-10 w-10 text-white" />
@@ -1161,47 +1449,96 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
         {/* Top Controls (Title, Share) */}
         <div className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/70 to-transparent">
-          <h3 className="text-white text-lg font-semibold line-clamp-1">{title}</h3>
-          <div className="relative">
-            <button
-              onClick={() => setShowShareMenu(!showShareMenu)}
-              className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
-              title="Share"
-            >
-              <Share2 className="h-5 w-5" />
-            </button>
-            {showShareMenu && (
-              <div className="absolute right-0 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl z-30">
-                <button onClick={() => handleShare('copy')} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
-                  Copy Link
-                </button>
-                {navigator.share && (
-                  <button onClick={() => handleShare()} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
-                    Share via...
-                  </button>
-                )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white text-lg font-semibold line-clamp-1">{title}</h3>
+            {(courseTitle || chapterTitle) && (
+              <div className="text-gray-300 text-sm line-clamp-1">
+                {courseTitle && <span>{courseTitle}</span>}
+                {chapterTitle && <span> • {chapterTitle}</span>}
               </div>
             )}
           </div>
+          <div className="flex items-center space-x-2">
+            {/* NEW: Stats Toggle */}
+            <button
+              onClick={() => setShowVideoStats(!showVideoStats)}
+              className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+              title="Show Statistics"
+            >
+              <BarChart className="h-5 w-5" />
+            </button>
+
+            {/* NEW: Quality Toggle */}
+            <button
+              onClick={() => setShowQualitySelector(!showQualitySelector)}
+              className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+              title="Quality Settings"
+            >
+              <Gauge className="h-5 w-5" />
+            </button>
+
+            {/* Share Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="p-2 rounded-full text-white hover:bg-white/20 transition-colors"
+                title="Share"
+              >
+                <Share2 className="h-5 w-5" />
+              </button>
+              {showShareMenu && (
+                <div className="absolute right-0 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl z-30">
+                  <button onClick={() => handleShare('copy')} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
+                    Copy Link
+                  </button>
+                  {navigator.share && (
+                    <button onClick={() => handleShare()} className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700">
+                      Share via...
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Bottom Controls */}
+        {/* Enhanced Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 z-20 bg-gradient-to-t from-black/70 to-transparent">
           {/* Progress Bar */}
-          <input
-            type="range"
-            min="0"
-            max={duration}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1 bg-blue-500 rounded-lg appearance-none cursor-pointer"
-            style={{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${progress}%, #6B7280 ${progress}%, #6B7280 100%)` }}
-          />
-          <div className="flex justify-between items-center mt-2">
+          <div className="relative mb-3">
+            <input
+              type="range"
+              min="0"
+              max={duration}
+              value={currentTime}
+              onChange={handleSeek}
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              style={{ 
+                background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${progress}%, #6B7280 ${progress}%, #6B7280 100%)` 
+              }}
+            />
+            {showHeatmap && playbackHistory.length > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 flex">
+                {generateHeatmap().map((intensity, index) => (
+                  <div
+                    key={index}
+                    className="flex-1"
+                    style={{
+                      backgroundColor: `rgba(59, 130, 246, ${intensity / Math.max(...generateHeatmap())})`,
+                      height: '2px'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
               <button onClick={togglePlay} className="text-white hover:text-gray-300" title={isPlaying ? 'Pause' : 'Play'}>
                 {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
               </button>
+              
               <div className="flex items-center space-x-1">
                 <button onClick={toggleMute} className="text-white hover:text-gray-300" title={isMuted ? 'Unmute' : 'Mute'}>
                   {isMuted || volume === 0 ? <VolumeX className="h-5 w-5" /> : volume < 0.5 ? <Volume1 className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
@@ -1216,9 +1553,24 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                   className="w-20 h-1 bg-gray-500 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
+              
               <span className="text-white text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
+              
+              {/* NEW: Skip buttons */}
+              <button onClick={() => seekRelative(-10)} className="text-white hover:text-gray-300" title="Rewind 10s">
+                <Rewind className="h-4 w-4" />
+              </button>
+              <button onClick={() => seekRelative(10)} className="text-white hover:text-gray-300" title="Forward 10s">
+                <FastForward className="h-4 w-4" />
+              </button>
             </div>
+            
             <div className="flex items-center space-x-3">
+              {/* NEW: Theater mode */}
+              <button onClick={toggleTheaterMode} className="text-white hover:text-gray-300" title="Theater Mode">
+                <Monitor className="h-5 w-5" />
+              </button>
+
               {subtitles.length > 0 && (
                 <div className="relative">
                   <button
@@ -1228,12 +1580,17 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                   >
                     <Subtitles className="h-5 w-5" />
                   </button>
-                  {/* Subtitle selection menu could go here */}
                 </div>
               )}
+              
               <button onClick={handlePlaybackRate} className="text-white text-sm px-2 py-1 rounded hover:bg-white/20 transition-colors" title="Playback Speed">
                 {playbackRate}x
               </button>
+              
+              <button onClick={togglePictureInPicture} className="text-white hover:text-gray-300" title="Picture in Picture">
+                <PictureInPicture className="h-5 w-5" />
+              </button>
+              
               <button onClick={toggleFullscreen} className="text-white hover:text-gray-300" title="Fullscreen">
                 <Maximize className="h-6 w-6" />
               </button>
@@ -1241,31 +1598,50 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           </div>
         </div>
 
-        {/* Network Status / Error Overlay */}
+        {/* NEW: Enhanced Network Status / Error Overlay */}
         {networkStatus.status !== 'online' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-            <div className="text-center text-white">
+            <div className="text-center text-white p-6 max-w-md">
               {networkStatus.status === 'offline' && (
                 <>
                   <WifiOff className="h-12 w-12 mx-auto mb-4 text-red-400" />
-                  <h3 className="text-xl font-semibold mb-2">Offline</h3>
-                  <p className="mb-4">Please check your internet connection.</p>
-                  <button onClick={handleRetry} className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700">
-                    {networkStatus.status === 'reconnecting' ? 'Reconnecting...' : 'Retry'}
-                  </button>
+                  <h3 className="text-xl font-semibold mb-2">Connection Lost</h3>
+                  <p className="mb-4 text-gray-300">Please check your internet connection and try again.</p>
+                  <div className="flex space-x-3 justify-center">
+                    <button onClick={handleRetry} className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                      Retry
+                    </button>
+                    <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors">
+                      Reload Page
+                    </button>
+                  </div>
                 </>
               )}
               {networkStatus.status === 'reconnecting' && (
                 <>
                   <Loader className="h-12 w-12 mx-auto mb-4 animate-spin text-blue-400" />
                   <h3 className="text-xl font-semibold mb-2">Reconnecting...</h3>
-                  <p>Attempt {retryAttempts} of {maxRetryAttempts}</p>
+                  <p className="text-gray-300">Attempt {networkStatus.retryCount}</p>
+                </>
+              )}
+              {videoError && (
+                <>
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+                  <h3 className="text-xl font-semibold mb-2">Playback Error</h3>
+                  <p className="mb-4 text-gray-300">{videoError}</p>
+                  <button onClick={handleRetry} className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                    Try Again
+                  </button>
                 </>
               )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Rest of your existing UI components (Tabs, Discussions, Annotations, Resources, Modals) */}
+      {/* ... Keep your existing tab structure and modal components ... */}
+      {/* The tab structure and modal components from your original code remain the same */}
 
       {/* Tabs for Discussions, Annotations, Resources */}
       <div className="bg-gray-800 p-4">
@@ -1388,8 +1764,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           </div>
         </div>
       )}
-
-      {/* Quiz Taking Interface */}
+{/* Quiz Taking Interface */}
       {showQuizTaking && quizzes.length > 0 && (
         <QuizInterface
           quizId={quizzes[0].id}
@@ -1398,7 +1773,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
         />
       )}
 
-      {/* Annotation Modal */}
+{/* Annotation Modal */}
       {showAnnotationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md relative">
@@ -1419,47 +1794,47 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
               />
             )}
             <button
-              onClick={() => createAnnotation(annotationType, annotationContent)}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Add {annotationType}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md relative">
-            <button
-              onClick={() => setShowReportModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <h3 className="text-2xl font-bold text-white mb-4">Report Content</h3>
-            <p className="text-gray-300 mb-4">Please select a reason for reporting this post:</p>
-            <select
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value as any)}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              <option value="inappropriate">Inappropriate Content</option>
-              <option value="spam">Spam</option>
-              <option value="harassment">Harassment</option>
-              <option value="offensive">Offensive Language</option>
-              <option value="other">Other</option>
-            </select>
-            <button
-              onClick={submitReport}
-              className="w-full py-3 bg-red-600 text-white rounded-xl text-lg font-semibold hover:bg-red-700 transition-colors"
-            >
-              Submit Report
-            </button>
-          </div>
-        </div>
-      )}
+                          onClick={() => createAnnotation(annotationType, annotationContent)}
+                          className="w-full py-3 bg-blue-600 text-white rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                          Add {annotationType}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* Report Modal */}
+                        {showReportModal && (
+                          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md relative">
+                              <button
+                                onClick={() => setShowReportModal(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                              >
+                                <X className="h-6 w-6" />
+                              </button>
+                              <h3 className="text-2xl font-bold text-white mb-4">Report Content</h3>
+                              <p className="text-gray-300 mb-4">Please select a reason for reporting this post:</p>
+                              <select
+                                value={reportReason}
+                                onChange={(e) => setReportReason(e.target.value as any)}
+                                className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              >
+                                <option value="inappropriate">Inappropriate Content</option>
+                                <option value="spam">Spam</option>
+                                <option value="harassment">Harassment</option>
+                                <option value="offensive">Offensive Language</option>
+                                <option value="other">Other</option>
+                              </select>
+                              <button
+                                            onClick={submitReport}
+                                            className="w-full py-3 bg-red-600 text-white rounded-xl text-lg font-semibold hover:bg-red-700 transition-colors"
+                                          >
+                                            Submit Report
+                                          </button>
+                                        </div>
+                                             
+                                                </div>
+                                              )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ router.use(authenticateToken, requireAdmin());
 router.post('/users', adminController.createUser);
 router.get('/users', adminController.getUsers);
 router.put('/users/role', adminController.updateUserRole);
+router.put('/users/status', adminController.updateUserStatus);
 
 // Content Upload Management
 router.get('/uploads', adminController.getUploadQueue);
@@ -28,6 +29,9 @@ router.get('/moderation/ai/stats', adminController.getModerationStats);
 
 // Analytics Dashboard
 router.get('/analytics', adminController.getAnalytics);
+
+// Admin Statistics
+router.get('/stats', adminController.getStats);
 
 // Content Tagging
 router.get('/tags', adminController.getTags);
