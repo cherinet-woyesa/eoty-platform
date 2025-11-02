@@ -90,7 +90,7 @@ interface UseVideoRecorderReturn {
   currentSession: RecordingSession | null;
   isPaused: boolean;
   recordingTime: number;
-  setRecordingTime: (time: number) => void; // FIX: Added this missing function
+  setRecordingTime: (time: number) => void;
   saveSession: (sessionId: string) => void;
   loadSession: (sessionId: string) => boolean;
   getSavedSessions: () => string[];
@@ -102,7 +102,7 @@ interface UseVideoRecorderReturn {
   
   // NEW: Production features
   recordingStats: RecordingStats;
-  setRecordingStats: React.Dispatch<React.SetStateAction<RecordingStats>>; // Added setter
+  setRecordingStats: React.Dispatch<React.SetStateAction<RecordingStats>>;
   networkStatus: NetworkStatus;
   retryRecording: () => Promise<void>;
   exportSession: (session: RecordingSession) => void;
@@ -153,7 +153,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentLayout, setCurrentLayout] = useState<RecorderOptions['layout']>('picture-in-picture');
   const [isPaused, setIsPaused] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0); // FIX: This is the state
+  const [recordingTime, setRecordingTime] = useState(0);
   const [currentSession, setCurrentSession] = useState<RecordingSession | null>(null);
 
   // NEW: Production state
@@ -593,7 +593,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     return currentSession?.metadata.slides?.current || 0;
   }, [currentSession]);
 
-  // NEW: Enhanced recording with production features
+  // NEW: Enhanced recording with production features - FIXED MIME TYPE ISSUE
   const startRecording = useCallback(async () => {
     const combinedStream = createCombinedStream();
     if (!combinedStream) return;
@@ -632,19 +632,31 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setCurrentSession(newSession);
       sessionStartTimeRef.current = Date.now();
 
-      // Enhanced MIME type detection with fallbacks
+      // FIXED: Enhanced MIME type detection with VP8 priority for better compatibility
       const mimeTypes = [
-        'video/mp4; codecs=h264,aac',
-        'video/mp4',
-        'video/webm',
-        'video/webm; codecs=vp9,opus',
-        'video/webm; codecs=vp8,opus',
-        'video/webm; codecs=h264,opus'
+        'video/webm; codecs=vp8,opus',  // Prioritize VP8 for better compatibility
+        'video/webm; codecs=vp9,opus',  // Fallback to VP9
+        'video/webm',                   // Basic WebM
+        'video/mp4; codecs=avc1.42E01E,mp4a.40.2', // MP4 fallback
+        'video/mp4',                    // Basic MP4
       ];
 
-      const supportedMimeType = mimeTypes.find(type => 
-        MediaRecorder.isTypeSupported(type)
-      ) || 'video/webm';
+      let supportedMimeType = 'video/webm; codecs=vp8,opus'; // Default to VP8
+
+      // Try to find a supported type
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          supportedMimeType = type;
+          console.log('Using MIME type:', type);
+          break;
+        }
+      }
+
+      // Always use VP8 if available for better compatibility
+      if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8,opus')) {
+        supportedMimeType = 'video/webm; codecs=vp8,opus';
+        console.log('Forcing VP8 for better compatibility and server acceptance');
+      }
 
       console.log('Starting enhanced recording with:', {
         mimeType: supportedMimeType,
@@ -658,16 +670,17 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         mimeType: supportedMimeType
       };
 
+      // Use lower bitrate for more reliable recording
       switch (options.quality) {
         case 'high':
-          recorderOptions.videoBitsPerSecond = 5000000; // 5 Mbps
+          recorderOptions.videoBitsPerSecond = 3000000; // 3 Mbps (reduced from 5)
           break;
         case 'medium':
-          recorderOptions.videoBitsPerSecond = 2500000; // 2.5 Mbps
+          recorderOptions.videoBitsPerSecond = 1500000; // 1.5 Mbps (reduced from 2.5)
           break;
         case 'low':
         default:
-          recorderOptions.videoBitsPerSecond = 1000000; // 1 Mbps
+          recorderOptions.videoBitsPerSecond = 750000; // 750 kbps (reduced from 1M)
           break;
       }
 
@@ -711,7 +724,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         console.log('Recording stopped', {
           chunks: recordedChunksRef.current.length,
           totalSize: recordedChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0),
-          duration: finalDuration
+          duration: finalDuration,
+          mimeType: recordedChunksRef.current[0]?.type || 'unknown'
         });
         
         if (recordedChunksRef.current.length > 0) {
@@ -780,7 +794,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setIsRecording(false);
       cleanupLocalStreams();
     }
-  }, [createCombinedStream, currentLayout, recordingSources, options, recordingStats.duration, cleanupLocalStreams]);
+  }, [createCombinedStream, currentLayout, recordingSources, options, cleanupLocalStreams]);
 
   // Enhanced stop recording
   const stopRecording = useCallback(() => {
@@ -1089,7 +1103,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     currentSession,
     isPaused,
     recordingTime,
-    setRecordingTime: setRecordingTimeState, // FIX: Added the missing function
+    setRecordingTime: setRecordingTimeState,
     saveSession,
     loadSession,
     getSavedSessions,

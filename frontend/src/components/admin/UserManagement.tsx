@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Users, 
   UserPlus, 
@@ -34,6 +35,8 @@ interface User {
 }
 
 const UserManagement: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const isPlatformAdmin = currentUser?.role === 'platform_admin';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -430,6 +433,7 @@ const UserManagement: React.FC = () => {
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
                   <option value="chapter_admin">Chapter Admin</option>
+                  {isPlatformAdmin && <option value="platform_admin">Platform Admin</option>}
                 </select>
               </div>
             </div>
@@ -501,18 +505,20 @@ const UserManagement: React.FC = () => {
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      disabled={actionLoading === user.id}
+                      disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
                       className={`text-sm px-3 py-1 rounded-full border ${getRoleColor(user.role)} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50`}
                     >
                       <option value="student">Student</option>
                       <option value="teacher">Teacher</option>
                       <option value="chapter_admin">Chapter Admin</option>
-                      <option value="platform_admin">Platform Admin</option>
+                      {isPlatformAdmin && <option value="platform_admin">Platform Admin</option>}
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 capitalize">
-                      {user.chapter.replace('-', ' ')}
+                      {typeof user.chapter === 'string' 
+                        ? user.chapter.replace(/-/g, ' ') 
+                        : user.chapter || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

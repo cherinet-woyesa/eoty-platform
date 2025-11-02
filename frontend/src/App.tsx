@@ -26,6 +26,8 @@ import ContentManager from './components/admin/ContentManager';
 import ModerationTools from './components/admin/ModerationTools';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import TagManager from './components/admin/TagManager';
+import UserManagement from './components/admin/UserManagement';
+import UploadManager from './components/admin/UploadManager';
 import ResourceLibrary from './pages/resources/ResourceLibrary';
 import ResourceView from './pages/resources/ResourceView';
 import QuizDemo from './pages/courses/QuizDemo';
@@ -132,7 +134,7 @@ const AdminRoute: React.FC<RouteProps> = ({ children, requiredPermission }) => (
 
 // Public route component (redirects authenticated users away from login/register)
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -144,6 +146,10 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   }
   
   if (isAuthenticated) {
+    // Redirect admins to admin dashboard, others to regular dashboard
+    if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -154,11 +160,16 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 const DynamicDashboard: React.FC = () => {
   const { user } = useAuth();
   
+  // Redirect admins to admin dashboard
+  if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
   if (user?.role === 'student') {
     return <StudentDashboard />;
   }
   
-  // Teachers, chapter admins, and platform admins see teacher dashboard
+  // Teachers see teacher dashboard
   return <TeacherDashboard />;
 };
 
@@ -358,6 +369,28 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <TagManager />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/users" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <UserManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/uploads" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <UploadManager />
               </DashboardLayout>
             </AdminRoute>
           } 
