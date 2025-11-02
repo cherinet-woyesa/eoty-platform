@@ -141,32 +141,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   ], []);
 
-  const adminStats = useMemo(() => [
-    {
-      label: 'Pending',
-      value: '5',
-      icon: <Clock className="h-3 w-3" />,
-      color: 'text-amber-500'
-    },
-    {
-      label: 'Flagged',
-      value: '3',
-      icon: <AlertTriangle className="h-3 w-3" />,
-      color: 'text-red-500'
-    },
-    {
-      label: 'Active',
-      value: '1.2K',
-      icon: <Users className="h-3 w-3" />,
-      color: 'text-green-500'
-    },
-    {
-      label: 'New',
-      value: '12',
-      icon: <Zap className="h-3 w-3" />,
-      color: 'text-purple-500'
-    }
-  ], []);
+  
 
   const filteredItems = navigationItems.filter(item => 
     item.roles.includes(user?.role || '')
@@ -211,22 +186,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </button>
       </div>
       
-      {/* Quick Stats - Only show when expanded */}
-      {!isCollapsed && (
-        <div className="p-3 border-b border-blue-700/30 bg-blue-800/20">
-          <div className="grid grid-cols-2 gap-3 text-center">
-            {adminStats.map((stat, index) => (
-              <div key={index} className="bg-blue-700/30 rounded-lg p-2">
-                <div className="flex items-center justify-center space-x-1 mb-1">
-                  <div className={stat.color}>{stat.icon}</div>
-                  <span className="text-xs font-semibold text-white">{stat.value}</span>
-                </div>
-                <div className="text-xs text-blue-200">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-2">

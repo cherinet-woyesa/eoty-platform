@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../services/api';
+import { chaptersApi } from '../../services/api/chapters';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Users, 
@@ -54,9 +55,12 @@ const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
+  const [loadingChapters, setLoadingChapters] = useState(true);
 
   useEffect(() => {
     fetchUsers();
+    fetchChapters();
   }, []);
 
   const fetchUsers = async () => {
@@ -70,6 +74,27 @@ const UserManagement: React.FC = () => {
       setError('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChapters = async () => {
+    try {
+      setLoadingChapters(true);
+      const response = await chaptersApi.getAllChapters();
+      if (response.success) {
+        setChapters(response.data.chapters);
+      } else {
+        throw new Error('Failed to fetch chapters');
+      }
+    } catch (err) {
+      setChapters([
+        { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
+        { id: 2, name: 'toronto', location: 'Toronto, Canada' },
+        { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
+        { id: 4, name: 'london', location: 'London, UK' },
+      ]);
+    } finally {
+      setLoadingChapters(false);
     }
   };
 
@@ -416,10 +441,9 @@ const UserManagement: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
-                  <option value="addis-ababa">Addis Ababa</option>
-                  <option value="toronto">Toronto</option>
-                  <option value="washington">Washington DC</option>
-                  <option value="london">London</option>
+                  {chapters.map((ch) => (
+                    <option key={ch.id} value={ch.name}>{ch.location} ({ch.name.replace(/-/g, ' ')})</option>
+                  ))}
                 </select>
               </div>
               <div>
