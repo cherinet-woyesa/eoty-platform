@@ -47,25 +47,28 @@ class VideoProcessingService {
         this.getMimeType(originalFilename)
       );
 
-      // Insert video record with processing status
-      const [videoId] = await transaction('videos').insert({
+
+      // Insert video record and get the inserted ID (PostgreSQL compatible)
+      const [videoRow] = await transaction('videos').insert({
         lesson_id: lessonId,
         uploader_id: userId,
-        storage_url: uploadResult.storageUrl,
+        storage_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl,
         s3_key: uploadResult.s3Key,
         size_bytes: fileBuffer.length,
         status: 'processing',
         content_hash: this.generateContentHash(fileBuffer),
         created_at: new Date(),
         updated_at: new Date(),
-      });
+      }).returning(['id']);
+
+      const videoId = videoRow.id;
 
       // Update lesson with video reference
       await transaction('lessons')
         .where({ id: lessonId })
         .update({
           video_id: videoId,
-          video_url: uploadResult.storageUrl, // Temporary URL
+          video_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl, // Temporary URL
           updated_at: new Date(),
         });
 
@@ -91,7 +94,7 @@ class VideoProcessingService {
         success: true,
         videoId,
         s3Key: uploadResult.s3Key,
-        videoUrl: uploadResult.storageUrl,
+        videoUrl: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl,
         fileSize: fileBuffer.length,
         contentType: this.getMimeType(originalFilename),
         processingStatus: 'processing',
@@ -454,16 +457,19 @@ class VideoProcessingService {
         this.getSubtitleContentType(originalFilename)
       );
 
-      // Store subtitle info in database
-      const [subtitleId] = await transaction('video_subtitles').insert({
+      // Store subtitle info in database - FIXED INSERT OPERATION
+      const subtitleInsertResult = await transaction('video_subtitles').insert({
         lesson_id: lessonId,
         language_code: languageCode,
         language_name: languageName || languageCode,
-        subtitle_url: uploadResult.storageUrl,
+        subtitle_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl,
         file_size: fileBuffer.length,
         created_by: userId,
         created_at: new Date()
       });
+
+      // Handle different database responses
+      const subtitleId = Array.isArray(subtitleInsertResult) ? subtitleInsertResult[0] : subtitleInsertResult;
 
       await transaction.commit();
 
@@ -472,7 +478,7 @@ class VideoProcessingService {
       return {
         success: true,
         subtitleId,
-        subtitleUrl: uploadResult.storageUrl,
+        subtitleUrl: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl,
         fileSize: fileBuffer.length,
         languageCode,
         languageName: languageName || languageCode

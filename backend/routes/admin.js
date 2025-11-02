@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const upload = require('../middleware/upload');
 const { authenticateToken } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/rbac');
 
@@ -15,7 +16,7 @@ router.put('/users/status', adminController.updateUserStatus);
 
 // Content Upload Management
 router.get('/uploads', adminController.getUploadQueue);
-router.post('/uploads', adminController.uploadContent);
+router.post('/uploads', upload.single('file'), adminController.uploadContent);
 router.post('/uploads/:uploadId/review', adminController.approveContent);
 
 // Content Moderation

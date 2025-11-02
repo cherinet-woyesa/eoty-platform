@@ -1,5 +1,5 @@
 // backend/services/cloudStorageService.js
-const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { getSignedUrl: getSignedCloudFrontUrl } = require('@aws-sdk/cloudfront-signer');
 
@@ -60,7 +60,7 @@ class CloudStorageService {
     });
   }
 
-  // Enhanced upload with progress tracking and metadata
+  // Enhanced upload with progress tracking and metadata - ACL REMOVED
   async uploadVideo(fileBuffer, fileName, contentType, metadata = {}) {
     const key = `videos/${this.sanitizeKey(fileName)}`;
     
@@ -77,7 +77,7 @@ class CloudStorageService {
         Key: key,
         Body: fileBuffer,
         ContentType: contentType,
-        ACL: 'public-read',
+        // ACL: 'public-read', // REMOVED - Bucket doesn't allow ACLs
         Metadata: {
           uploadedAt: new Date().toISOString(),
           fileSize: fileBuffer.length.toString(),
@@ -110,7 +110,7 @@ class CloudStorageService {
     }
   }
 
-  // Enhanced HLS files upload with directory support
+  // Enhanced HLS files upload with directory support - ACL REMOVED
   async uploadHLSFiles(hlsFiles, outputPrefix) {
     try {
       console.log('Uploading HLS files:', {
@@ -130,7 +130,7 @@ class CloudStorageService {
           Key: key,
           Body: file.content,
           ContentType: contentType,
-          ACL: 'public-read',
+          // ACL: 'public-read', // REMOVED - Bucket doesn't allow ACLs
           CacheControl: 'max-age=31536000'
         });
 
@@ -342,14 +342,14 @@ class CloudStorageService {
     }
   }
 
-  // Enhanced file copy operation
+  // Enhanced file copy operation - ACL REMOVED
   async copyFile(sourceKey, destinationKey) {
     try {
       const command = new CopyObjectCommand({
         Bucket: this.bucket,
         CopySource: `/${this.bucket}/${sourceKey}`,
         Key: destinationKey,
-        ACL: 'public-read',
+        // ACL: 'public-read', // REMOVED - Bucket doesn't allow ACLs
         CacheControl: 'max-age=31536000'
       });
 
@@ -368,7 +368,7 @@ class CloudStorageService {
     }
   }
 
-  // Enhanced upload for subtitles
+  // Enhanced upload for subtitles - ACL REMOVED
   async uploadSubtitle(fileBuffer, fileName, languageCode, lessonId) {
     const key = `subtitles/${lessonId}/${languageCode}/${this.sanitizeKey(fileName)}`;
     
@@ -378,7 +378,7 @@ class CloudStorageService {
         Key: key,
         Body: fileBuffer,
         ContentType: this.getSubtitleContentType(fileName),
-        ACL: 'public-read',
+        // ACL: 'public-read', // REMOVED - Bucket doesn't allow ACLs
         Metadata: {
           languageCode,
           lessonId,
@@ -411,7 +411,7 @@ class CloudStorageService {
     return types[extension] || 'text/plain';
   }
 
-  // Enhanced batch operations for multiple files
+  // Enhanced batch operations for multiple files - ACLs REMOVED
   async uploadMultipleFiles(files) {
     try {
       const uploadPromises = files.map(file =>
@@ -440,9 +440,42 @@ class CloudStorageService {
       throw new Error(`Failed to upload multiple files: ${error.message}`);
     }
   }
-}
 
-// Note: You'll need to add this import at the top if using CopyObjectCommand
-// const { CopyObjectCommand } = require('@aws-sdk/client-s3');
+  // NEW METHOD: Check if bucket is publicly accessible (for troubleshooting)
+  async checkBucketPublicAccess() {
+    try {
+      // Try to upload a small test file and then access it publicly
+      const testKey = `test-access-${Date.now()}.txt`;
+      const testContent = 'test file for public access check';
+      
+      const uploadCommand = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: testKey,
+        Body: testContent,
+        ContentType: 'text/plain',
+        CacheControl: 'max-age=300' // 5 minutes
+      });
+
+      await this.s3Client.send(uploadCommand);
+      
+      // Try to access it publicly
+      const publicUrl = this.getStorageUrl(testKey);
+      
+      // Clean up test file
+      await this.deleteVideo(testKey);
+      
+      return {
+        publicAccess: true,
+        message: 'Bucket allows public access via URLs'
+      };
+      
+    } catch (error) {
+      return {
+        publicAccess: false,
+        message: `Bucket may not allow public access: ${error.message}`
+      };
+    }
+  }
+}
 
 module.exports = new CloudStorageService();
