@@ -17,7 +17,7 @@ import {
   Lightbulb, Sparkles, Star,
   Monitor, PictureInPicture,
   Split, Save, FolderOpen, Scissors,
-  FileText
+  FileText, Clock
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -403,7 +403,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setSavedSessions(sessions);
   }, [getSavedSessions]);
 
-  // Enhanced cleanup
+  // Enhanced cleanup - ONLY runs on actual component unmount
   useEffect(() => {
     return () => {
       console.log('VideoRecorder unmounting - cleaning up');
@@ -426,7 +426,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         URL.revokeObjectURL(recordedVideo);
       }
     };
-  }, [closeCamera, filePreview, recordedVideo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount/unmount
 
   // Recording tips
   useEffect(() => {
@@ -675,9 +676,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       setSelectedFile(file);
       setFilePreview(URL.createObjectURL(file));
-      setShowLessonForm(true);
+      setShowPreview(true);
+      setShowLessonForm(false); // Show preview first, not the form
+      setRecordingDuration(0); // Will be calculated from video metadata
       setErrorMessage(null);
       setActiveTab('upload');
+      setSuccessMessage('Video file selected! Preview it before uploading.');
     }
   }, [filePreview]);
 
@@ -724,13 +728,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       return;
     }
     
+    // IMPORTANT: Capture the recording time BEFORE stopping (as stopRecording may reset it)
+    const capturedDuration = recordingTime;
+    console.log('Stopping recording with duration:', capturedDuration);
+    
     setRecordingStatus('processing');
     try {
       await stopRecording();
       setRecordingStatus('idle');
       setShowPreview(true);
-      setShowLessonForm(true);
-      setRecordingDuration(recordingTime);
+      setShowLessonForm(false); // Don't show form immediately, let user preview first
+      setRecordingDuration(capturedDuration); // Use captured value
+      setSuccessMessage('Recording completed! Preview your video before uploading.');
     } catch (error) {
       console.error('Error stopping recording:', error);
       setErrorMessage('Failed to stop recording.');
@@ -1546,6 +1555,94 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
               style={{ width: `${uploadProgress}%` }} 
             />
+          </div>
+        </div>
+      )}
+
+      {/* Preview Section - Enhanced */}
+      {showPreview && (recordedVideo || selectedFile) && !uploading && !uploadSuccess && (
+        <div className="p-6 border-t bg-gradient-to-br from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <PlayCircle className="h-5 w-5 text-blue-600" />
+              <span>Preview Your {activeTab === 'record' ? 'Recording' : 'Video'}</span>
+            </h3>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Clock className="h-4 w-4" />
+              <span>{formatTime(recordingDuration)}</span>
+              {videoBlob && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span>{getFileSize(videoBlob.size)}</span>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Preview Video Player */}
+          <div className="relative bg-black rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
+            {(recordedVideo || filePreview) ? (
+              <video
+                ref={recordedVideoRef}
+                src={(recordedVideo || filePreview) || undefined}
+                className="w-full h-full object-contain"
+                controls
+                controlsList="nodownload"
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                onLoadedMetadata={(e) => {
+                  const video = e.currentTarget;
+                  // Update duration from video metadata if not already set or if it's 0
+                  if (video.duration && video.duration > 0 && (!recordingDuration || recordingDuration === 0)) {
+                    const duration = Math.floor(video.duration);
+                    console.log('Video metadata loaded, duration:', duration);
+                    setRecordingDuration(duration);
+                  }
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="text-center">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-2 text-red-400" />
+                  <p>No video available to preview</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Preview Actions */}
+          <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
+            <div className="flex items-center space-x-3">
+              {activeTab === 'record' && videoBlob && (
+                <button 
+                  onClick={downloadRecording}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  title="Download Recording"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={handleReset}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>{activeTab === 'record' ? 'Record Again' : 'Choose Different File'}</span>
+              </button>
+              <button 
+                onClick={() => setShowLessonForm(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>Looks Good, Continue</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

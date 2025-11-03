@@ -845,9 +845,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     if (mediaRecorderRef.current && isRecording) {
       console.log('Stopping enhanced recording...');
       mediaRecorderRef.current.stop();
-      cleanupLocalStreams();
+      // DON'T call cleanupLocalStreams here - let onstop handler do it
+      // This preserves recordingTime for the component to read
     }
-  }, [isRecording, cleanupLocalStreams]);
+  }, [isRecording]);
 
   // Enhanced pause recording
   const pauseRecording = useCallback(() => {
