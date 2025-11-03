@@ -123,23 +123,21 @@ class VideoProcessingService {
       await this.updateVideoStatus(videoId, 'processing', 'Starting HLS transcoding');
 
       // Pre-validate video file before processing (skip for WebM files from MediaRecorder)
-      try {
-        const validationResult = await this.validateVideoStreams(s3Key);
-        if (!validationResult.isValid) {
-          console.warn(`Video validation warning: ${validationResult.error}`);
-          // Don't throw error for WebM files - let FFmpeg handle them
-          if (!s3Key.toLowerCase().endsWith('.webm')) {
+      // WebM files from browser MediaRecorder often have non-standard structures that FFprobe can't parse
+      // but are still valid for playback in browsers
+      if (!s3Key.toLowerCase().endsWith('.webm')) {
+        try {
+          const validationResult = await this.validateVideoStreams(s3Key);
+          if (!validationResult.isValid) {
             throw new Error(`Video validation failed: ${validationResult.error}`);
           }
-        } else {
           console.log('Video validation passed:', validationResult);
-        }
-      } catch (error) {
-        console.warn('Video validation failed, proceeding anyway:', error.message);
-        // For WebM files, continue processing even if validation fails
-        if (!s3Key.toLowerCase().endsWith('.webm')) {
+        } catch (error) {
+          console.error('Video validation failed:', error.message);
           throw error;
         }
+      } else {
+        console.log('Skipping FFprobe validation for WebM file (browser-generated files often have non-standard structures)');
       }
 
       const outputPrefix = `hls/${s3Key.replace('videos/', '').split('.')[0]}`;
