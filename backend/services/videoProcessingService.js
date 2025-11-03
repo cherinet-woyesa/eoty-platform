@@ -146,20 +146,22 @@ class VideoProcessingService {
       
       websocketService.sendProgress(lessonId, { type: 'progress', progress: 30, currentStep: 'Transcoding video' });
 
-      // TEMPORARY: Skip HLS transcoding for WebM files with stream issues
+      // Handle different video formats appropriately
       let hlsUrl;
       if (s3Key.toLowerCase().endsWith('.webm')) {
         console.log('Skipping HLS transcoding for WebM file, using original video');
-        // Use the original S3 URL as fallback
+        // Use the original S3 URL as fallback for WebM files (due to stream issues)
         hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400); // 24 hours
         console.log('Using original WebM file as video URL:', hlsUrl);
       } else {
-        // Start HLS transcoding for other formats
+        console.log('Starting HLS transcoding for', s3Key);
+        // Start HLS transcoding for MP4 and other formats
         hlsUrl = await transcodeToHLS({
           s3Bucket: cloudStorageService.bucket, // Pass the S3 bucket name
           s3Key: s3Key,
           outputPrefix: outputPrefix,
         });
+        console.log('HLS transcoding completed, URL:', hlsUrl);
       }
 
       websocketService.sendProgress(lessonId, { type: 'progress', progress: 70, currentStep: 'Finalizing video' });
@@ -373,27 +375,97 @@ class VideoProcessingService {
 
     // Format validation
     const fileExtension = filename.split('.').pop()?.toLowerCase();
+    console.log('File validation:', { filename, fileExtension, supportedFormats: this.supportedFormats });
+    
     if (!fileExtension || !this.supportedFormats.includes(fileExtension)) {
       throw new Error(`Unsupported video format: ${fileExtension}. Supported formats: ${this.supportedFormats.join(', ')}`);
     }
 
-    // Magic number validation
-    if (!this.validateMagicNumbers(fileBuffer, fileExtension)) {
-      throw new Error('Invalid video file: file signature does not match expected format');
+    // Magic number validation with smart detection
+    const detectedFormat = this.detectActualFormat(fileBuffer);
+    console.log('Format detection:', { 
+      fileExtension, 
+      detectedFormat, 
+      headerMatch: fileExtension === detectedFormat 
+    });
+    
+    // If extension doesn't match detected format, use detected format for validation
+    const formatToValidate = detectedFormat || fileExtension;
+    
+    if (!this.validateMagicNumbers(fileBuffer, formatToValidate)) {
+      throw new Error(`Invalid video file: file signature does not match expected format. Expected: ${fileExtension}, Detected: ${detectedFormat}`);
     }
 
     return true;
+  }
+
+  // Detect actual video format based on file signature
+  detectActualFormat(buffer) {
+    if (buffer.length < 8) return null;
+    
+    // Check for MP4 signature (ftyp at offset 4)
+    if (buffer.length >= 8) {
+      const ftyp = [0x66, 0x74, 0x79, 0x70]; // 'ftyp'
+      let matches = true;
+      for (let i = 0; i < 4; i++) {
+        if (buffer[4 + i] !== ftyp[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return 'mp4';
+    }
+    
+    // Check for WebM/EBML signatures
+    const webmSignatures = [
+      [0x1A, 0x45, 0xDF, 0xA3], // Standard EBML
+      [0x43, 0xC3, 0x82, 0x03], // Chrome/Edge MediaRecorder
+      [0x43, 0xB6, 0x75, 0x01], // Alternative MediaRecorder
+      [0x42, 0x82, 0x84, 0x77], // Firefox MediaRecorder
+    ];
+    
+    for (const signature of webmSignatures) {
+      let matches = true;
+      for (let i = 0; i < signature.length && i < buffer.length; i++) {
+        if (buffer[i] !== signature[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return 'webm';
+    }
+    
+    // Check for AVI signature
+    const aviSignature = [0x52, 0x49, 0x46, 0x46]; // 'RIFF'
+    if (buffer.length >= 4) {
+      let matches = true;
+      for (let i = 0; i < 4; i++) {
+        if (buffer[i] !== aviSignature[i]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return 'avi';
+    }
+    
+    return null; // Unknown format
   }
 
   // Magic number validation for common video formats
   validateMagicNumbers(buffer, extension) {
     // Ensure buffer is long enough for basic validation
     if (buffer.length < 8) {
+      console.log('Buffer too short for validation:', buffer.length);
       return false;
     }
 
+    console.log('Validating file format:', extension);
+    console.log('File header (first 12 bytes):', Array.from(buffer.slice(0, 12))
+      .map(b => b.toString(16).padStart(2, '0')).join(' '));
+
     // MP4 validation - supports both regular and fragmented MP4
     if (extension === 'mp4') {
+      console.log('Validating MP4 file...');
       // MP4 files can start with various box types:
       // - 'ftyp' at offset 4: standard MP4 file
       // - 'moof' at offset 4 or 0: fragmented MP4 (fMP4) - movie fragment box
@@ -410,6 +482,7 @@ class VideoProcessingService {
           }
         }
         if (matches) {
+          console.log('MP4 validation successful: found ftyp at offset 4');
           return true;
         }
       }
@@ -449,6 +522,8 @@ class VideoProcessingService {
       }
       
       console.log('MP4 file does not have expected magic numbers. Rejecting for processing.');
+      console.log('Expected ftyp (66 74 79 70) at offset 4, got:', 
+        Array.from(buffer.slice(4, 8)).map(b => b.toString(16).padStart(2, '0')).join(' '));
       return false;
     }
 
