@@ -1,6 +1,6 @@
 // frontend/src/components/courses/VideoProcessingStatus.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader, CheckCircle, XCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { Loader, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { io, Socket } from 'socket.io-client'; // Import io and Socket type
 
 interface VideoProcessingStatusProps {
@@ -215,9 +215,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           
           const steps = [
             'Upload complete',
-            'Transcoding video',
-            'Generating HLS streams', 
-            'Uploading to CDN',
+            'Validating video',
             'Finalizing'
           ];
           
@@ -297,139 +295,89 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center space-x-4 mb-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+        {/* Simplified UI - Just show icon and message */}
+        <div className="flex flex-col items-center text-center space-y-4">
           {getStatusIcon()}
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">
+          
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
               {getStatusText()}
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-gray-600">
               {processingState.currentStep}
             </p>
-            {retryCount > 0 && processingState.status !== 'completed' && (
-              <p className="text-xs text-yellow-600 mt-1">
-                Connection attempts: {retryCount}/5
+          </div>
+
+          {/* Simple Progress Bar */}
+          {processingState.status === 'processing' && (
+            <div className="w-full">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="h-2 rounded-full transition-all duration-300 bg-blue-600"
+                  style={{ width: `${processingState.progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{processingState.progress}%</p>
+            </div>
+          )}
+
+          {/* Error Message - Simplified */}
+          {processingState.error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 w-full">
+              <div className="flex items-center space-x-2 justify-center">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <p className="text-red-800 text-sm">{processingState.error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Success Message for WebM */}
+          {processingState.status === 'completed' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 w-full">
+              <p className="text-green-800 text-center font-medium">
+                ✅ Your video is ready and available for viewing!
               </p>
+            </div>
+          )}
+
+          {/* Simplified Action Buttons */}
+          <div className="flex justify-center space-x-3 w-full mt-4">
+            {processingState.status === 'failed' && (
+              <>
+                <button
+                  onClick={handleRetry}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={handleManualClose}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </>
             )}
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Progress</span>
-            <span>{processingState.progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all duration-300 ${
-                processingState.status === 'failed' ? 'bg-red-500' : 
-                processingState.status === 'completed' ? 'bg-green-500' : 'bg-blue-600'
-              }`}
-              style={{ width: `${processingState.progress}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {processingState.error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-red-800 text-sm">{processingState.error}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Processing Steps */}
-        <div className="space-y-2 text-sm text-gray-600 mb-4">
-          <div className={`flex items-center space-x-2 ${
-            processingState.progress >= 20 ? 'text-green-600 font-medium' : ''
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              processingState.progress >= 20 ? 'bg-green-500' : 'bg-gray-300'
-            }`} />
-            <span>Upload complete</span>
-          </div>
-          
-          <div className={`flex items-center space-x-2 ${
-            processingState.progress >= 40 ? 'text-green-600 font-medium' : ''
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              processingState.progress >= 40 ? 'bg-green-500' : 'bg-gray-300'
-            }`} />
-            <span>Transcoding video</span>
-          </div>
-          
-          <div className={`flex items-center space-x-2 ${
-            processingState.progress >= 70 ? 'text-green-600 font-medium' : ''
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              processingState.progress >= 70 ? 'bg-green-500' : 'bg-gray-300'
-            }`} />
-            <span>Generating HLS streams</span>
-          </div>
-          
-          <div className={`flex items-center space-x-2 ${
-            processingState.progress >= 90 ? 'text-green-600 font-medium' : ''
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              processingState.progress >= 90 ? 'bg-green-500' : 'bg-gray-300'
-            }`} />
-            <span>Uploading to CDN</span>
-          </div>
-        </div>
-
-        {/* Connection Status */}
-        {processingState.status === 'processing' && retryCount > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-              <p className="text-yellow-800 text-sm">
-                Using fallback mode - reconnection attempts: {retryCount}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3">
-          {processingState.status === 'failed' && (
-            <>
-              <button
-                onClick={handleRetry}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Retry</span>
-              </button>
+            
+            {processingState.status === 'completed' && (
               <button
                 onClick={handleManualClose}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium text-lg"
+              >
+                Done
+              </button>
+            )}
+            
+            {(processingState.status === 'queued' || processingState.status === 'processing') && (
+              <button
+                onClick={handleManualClose}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
               >
                 Close
               </button>
-            </>
-          )}
-          
-          {processingState.status === 'completed' && (
-            <button
-              onClick={handleManualClose}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              View Video
-            </button>
-          )}
-          
-          {(processingState.status === 'queued' || processingState.status === 'processing') && (
-            <button
-              onClick={handleManualClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              {processingState.status === 'processing' ? 'Close (Background)' : 'Close'}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

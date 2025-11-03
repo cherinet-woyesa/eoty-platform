@@ -181,7 +181,7 @@ const CourseDetails: React.FC = () => {
             <div className="space-y-6">
               {/* Enhanced Video Player */}
               <EnhancedVideoPlayer 
-                videoUrl={`http://localhost:5000${selectedLesson.video_url}`}
+                videoUrl={selectedLesson.video_url}
                 title={selectedLesson.title}
                 lessonId={selectedLesson.id}
                 onTimestampClick={handleTimestampClick}

@@ -269,7 +269,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     };
   }, [options.enableAudio]);
 
-  // NEW: Enhanced screen sharing with error handling
+  // NEW: Enhanced screen sharing with dynamic track switching during recording
   const startScreenShare = useCallback(async () => {
     try {
       setError(null);
@@ -309,9 +309,16 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       }));
       setIsScreenSharing(true);
 
+      // IMPORTANT: If recording is active, automatically switch layout to screen-only
+      if (isRecording) {
+        console.log('Recording is active - switching layout to screen-only');
+        setCurrentLayout('screen-only');
+      }
+
       console.log('Screen sharing started successfully', {
         videoTracks: screenStream.getVideoTracks().length,
-        audioTracks: screenStream.getAudioTracks().length
+        audioTracks: screenStream.getAudioTracks().length,
+        duringRecording: isRecording
       });
 
     } catch (err: any) {
@@ -329,15 +336,24 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setError(errorMessage);
       setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
     }
-  }, [options.enableAudio, options.frameRate]);
+  }, [options.enableAudio, options.frameRate, isRecording]);
 
-  // NEW: Enhanced screen share cleanup
-  const stopScreenShare = useCallback(() => {
+  // NEW: Enhanced screen share cleanup with dynamic track switching
+  const stopScreenShare = useCallback(async () => {
     if (recordingSources.screen) {
       // Remove from active streams
       activeScreenStreams.delete(recordingSources.screen);
       
-      // Stop all tracks
+      // IMPORTANT: If recording is active, switch layout back to picture-in-picture
+      if (isRecording && recordingSources.camera) {
+        console.log('Recording is active - switching layout back to picture-in-picture');
+        setCurrentLayout('picture-in-picture');
+      } else if (isRecording) {
+        // If no camera, switch to camera-only (will show nothing until camera is enabled)
+        setCurrentLayout('camera-only');
+      }
+      
+      // Stop all screen tracks
       recordingSources.screen.getTracks().forEach(track => {
         track.stop();
         track.dispatchEvent(new Event('ended')); // Trigger ended event
@@ -350,7 +366,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setIsScreenSharing(false);
       console.log('Screen sharing stopped and cleaned up');
     }
-  }, [recordingSources.screen]);
+  }, [recordingSources.screen, recordingSources.camera, isRecording]);
 
   // Set layout with validation
   const setLayout = useCallback((layout: RecorderOptions['layout']) => {

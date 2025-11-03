@@ -972,6 +972,32 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }, 3000);
   };
 
+  // NEW: Enhanced screen share handlers with feedback
+  const handleStartScreenShare = async () => {
+    try {
+      await startScreenShare();
+      if (isRecording) {
+        setSuccessMessage('Now recording your screen! Recording continues seamlessly.');
+      } else {
+        setSuccessMessage('Screen sharing started! Your screen is now being shared.');
+      }
+      setErrorMessage(null);
+    } catch (error) {
+      console.error('Failed to start screen share:', error);
+      setErrorMessage('Failed to start screen sharing. Please try again.');
+    }
+  };
+
+  const handleStopScreenShare = async () => {
+    await stopScreenShare();
+    if (isRecording) {
+      setSuccessMessage('Switched back to camera! Recording continues seamlessly.');
+    } else {
+      setSuccessMessage('Screen sharing stopped. You are no longer sharing your screen.');
+    }
+    setErrorMessage(null);
+  };
+
   const handleDeleteRecording = () => {
     if (confirm('Are you sure you want to delete this recording?')) {
       handleReset();
@@ -1084,7 +1110,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             )}
             
-            {/* Screen Share Preview */}
+            {/* Screen Share Preview - Enhanced */}
             {recordingSources.screen && (
               <div className={`screen-preview ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
                 <video
@@ -1094,8 +1120,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   playsInline
                   className="w-full h-full object-cover rounded-lg"
                 />
-                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                  Screen
+                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
+                  <Monitor className="h-3 w-3" />
+                  <span>Screen Sharing</span>
                 </div>
               </div>
             )}
@@ -1224,6 +1251,28 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       </div>
 
+      {/* NEW: Screen Sharing Banner - Like Google Meet */}
+      {isScreenSharing && activeTab === 'record' && !recordedVideo && (
+        <div className="px-6 py-3 border-b border-blue-200 bg-blue-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <Monitor className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-900">You are sharing your screen</span>
+              </div>
+            </div>
+            <button
+              onClick={handleStopScreenShare}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium flex items-center space-x-2"
+            >
+              <Square className="h-4 w-4" />
+              <span>Stop Sharing</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* NEW: Multi-source Controls */}
       {activeTab === 'record' && !recordedVideo && (
         <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
@@ -1244,18 +1293,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 Camera
               </button>
               
-              {/* Screen Share Toggle */}
-              <button
-                onClick={() => isScreenSharing ? stopScreenShare() : startScreenShare()}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  isScreenSharing 
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <Monitor className="h-4 w-4 inline mr-1" />
-                Screen
-              </button>
+              {/* Screen Share Toggle - Enhanced like Google Meet */}
+              {!isScreenSharing ? (
+                <button
+                  onClick={handleStartScreenShare}
+                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  title="Share your screen"
+                >
+                  <Monitor className="h-4 w-4 inline mr-1" />
+                  Share Screen
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopScreenShare}
+                  className="px-4 py-1 rounded-lg text-sm font-medium transition-colors bg-red-500 text-white hover:bg-red-600 animate-pulse"
+                  title="Stop sharing your screen"
+                >
+                  <Monitor className="h-4 w-4 inline mr-1" />
+                  Stop Sharing
+                </button>
+              )}
 
               {/* NEW: Slide Manager Toggle */}
               <button

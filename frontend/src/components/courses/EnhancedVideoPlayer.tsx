@@ -152,25 +152,50 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   // Enhanced video URL resolution
   const [resolvedVideoUrl, setResolvedVideoUrl] = React.useState(videoUrl);
   const [isHls, setIsHls] = React.useState(false);  
-// Initialize video URL
+// Initialize video URL - Fetch fresh signed URL from backend
   React.useEffect(() => {
     const initializeVideo = async () => {
       try {
-        // For now, use the provided video URL directly
-        setResolvedVideoUrl(videoUrl);
-        setIsHls(videoUrl.includes('.m3u8'));
-        onLoad?.({ lesson: { video_url: videoUrl } });
+        console.log('Fetching fresh signed URL for lesson:', lessonId);
+        
+        // Fetch fresh signed URL from backend
+        const response = await fetch(`http://localhost:5000/api/courses/lessons/${lessonId}/video-url`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to get video URL: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const freshVideoUrl = data.data.videoUrl;
+        
+        console.log('Fresh signed URL received:', freshVideoUrl);
+        
+        // Check if it's actually an HLS stream (not just a URL with query params)
+        const isActuallyHls = freshVideoUrl.includes('.m3u8');
+        
+        setResolvedVideoUrl(freshVideoUrl);
+        setIsHls(isActuallyHls);
+        
+        console.log('Video type detected:', isActuallyHls ? 'HLS' : 'Direct video file');
+        
+        onLoad?.({ lesson: { video_url: freshVideoUrl } });
       } catch (error) {
         console.error('Failed to initialize video:', error);
-        setResolvedVideoUrl(videoUrl);
-        setIsHls(videoUrl.includes('.m3u8'));
+        setVideoError(`Failed to load video: ${(error as Error).message}`);
+        setIsHls(false);
       }
     };
 
-    initializeVideo();
-  }, [lessonId, videoUrl, onLoad]);
+    if (lessonId) {
+      initializeVideo();
+    }
+  }, [lessonId, onLoad]);
 
-  // HLS.js integration
+  // HLS.js integration and direct video support
   React.useEffect(() => {
     const video = videoRef.current;
     if (!video || !resolvedVideoUrl) return;
@@ -178,7 +203,10 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     let hls: Hls | null = null;
 
     const setupHls = () => {
-      if (isHls) {
+      // Check if it's actually an HLS stream (not just a URL with query params)
+      const isActuallyHls = resolvedVideoUrl.includes('.m3u8');
+      
+      if (isActuallyHls) {
         if (Hls.isSupported()) {
           hls = new Hls({
             enableWorker: true,
@@ -494,6 +522,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     try {
       const video = videoRef.current;
       if (video) {
+        console.log('Retrying video load with URL:', resolvedVideoUrl);
         video.load();
         await video.play();
         setVideoError(null);
@@ -501,6 +530,16 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       }
     } catch (error) {
       console.error('Retry failed:', error);
+      const errorMessage = (error as Error).message;
+      
+      if (errorMessage.includes('no supported source')) {
+        setVideoError('Video format not supported or URL expired. Please refresh the page.');
+      } else if (errorMessage.includes('CORS')) {
+        setVideoError('Video access blocked. Please check CORS settings.');
+      } else {
+        setVideoError(errorMessage);
+      }
+      
       setNetworkStatus(prev => ({ ...prev, status: 'offline' }));
     }
   };  
