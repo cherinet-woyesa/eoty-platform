@@ -128,6 +128,78 @@ const courseController = {
         message: 'Failed to create lesson'
       });
     }
+  },
+
+  // NEW: Get signed video URL for a lesson with access control
+  async getSignedVideoUrl(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+
+      // Get lesson with course info
+      const lesson = await db('lessons as l')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .leftJoin('videos as v', 'l.video_id', 'v.id')
+        .where('l.id', lessonId)
+        .select('l.*', 'c.created_by as course_teacher', 'v.s3_key', 'c.id as course_id')
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // Check access: teacher owns course OR student is enrolled OR admin
+      let hasAccess = false;
+      
+      if (userRole === 'teacher' && lesson.course_teacher === userId) {
+        hasAccess = true;
+      } else if (userRole === 'student') {
+        const enrollment = await db('user_course_enrollments')
+          .where({ user_id: userId, course_id: lesson.course_id })
+          .first();
+        hasAccess = !!enrollment;
+      } else if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+        hasAccess = true;
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have access to this lesson'
+        });
+      }
+
+      // Generate fresh signed URL
+      const cloudStorageService = require('../services/cloudStorageService');
+      
+      if (!lesson.s3_key) {
+        return res.status(404).json({
+          success: false,
+          message: 'Video not available for this lesson'
+        });
+      }
+
+      const signedUrl = await cloudStorageService.getSignedStreamUrl(lesson.s3_key, 3600); // 1 hour expiry
+
+      res.json({
+        success: true,
+        data: {
+          videoUrl: signedUrl,
+          expiresIn: 3600
+        }
+      });
+
+    } catch (error) {
+      console.error('Get signed video URL error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get video URL'
+      });
+    }
   }
 };
 

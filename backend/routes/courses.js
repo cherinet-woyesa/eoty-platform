@@ -11,4 +11,7 @@ router.get('/', requirePermission('course:view'), courseController.getUserCourse
 router.post('/', requirePermission('course:create'), courseController.createCourse);
 router.post('/:courseId/lessons', requirePermission('lesson:create'), courseController.createLesson);
 
+// NEW: Get signed video URL for a lesson (with access control)
+router.get('/lessons/:lessonId/video-url', requirePermission('lesson:view'), courseController.getSignedVideoUrl);
+
 module.exports = router;

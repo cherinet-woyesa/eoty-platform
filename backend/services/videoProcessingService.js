@@ -64,12 +64,13 @@ class VideoProcessingService {
 
       const videoId = videoRow.id;
 
-      // Update lesson with video reference
+      // Update lesson with video reference and S3 key
       await transaction('lessons')
         .where({ id: lessonId })
         .update({
           video_id: videoId,
-          video_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl, // Temporary URL
+          s3_key: uploadResult.s3Key, // Store S3 key for generating signed URLs on-demand
+          video_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl, // Temporary URL (will be replaced with signed URL on access)
           updated_at: new Date(),
         });
 
@@ -174,7 +175,7 @@ class VideoProcessingService {
           updated_at: new Date(),
         });
 
-      // Update lesson with video URL
+      // Update lesson with video URL (s3_key already set during upload)
       await db('lessons')
         .where({ id: lessonId })
         .update({
