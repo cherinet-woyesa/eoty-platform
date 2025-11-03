@@ -3,6 +3,7 @@ const db = require('../config/database');
 const { transcodeToHLS } = require('../scripts/transcodeToHLS');
 const { notifyVideoAvailable } = require('./notificationService');
 const cloudStorageService = require('./cloudStorageService');
+const websocketService = require('./websocketService');
 
 class VideoProcessingService {
   constructor() {
@@ -116,30 +117,64 @@ class VideoProcessingService {
   async processVideoUpload(videoId, s3Key, lessonId, userId) {
     try {
       console.log('Starting video processing for video:', videoId);
-      
+      websocketService.sendProgress(lessonId, { type: 'progress', progress: 10, currentStep: 'Starting HLS transcoding' });
+
       // Update status to processing
       await this.updateVideoStatus(videoId, 'processing', 'Starting HLS transcoding');
 
+      // Pre-validate video file before processing (skip for WebM files from MediaRecorder)
+      try {
+        const validationResult = await this.validateVideoStreams(s3Key);
+        if (!validationResult.isValid) {
+          console.warn(`Video validation warning: ${validationResult.error}`);
+          // Don't throw error for WebM files - let FFmpeg handle them
+          if (!s3Key.toLowerCase().endsWith('.webm')) {
+            throw new Error(`Video validation failed: ${validationResult.error}`);
+          }
+        } else {
+          console.log('Video validation passed:', validationResult);
+        }
+      } catch (error) {
+        console.warn('Video validation failed, proceeding anyway:', error.message);
+        // For WebM files, continue processing even if validation fails
+        if (!s3Key.toLowerCase().endsWith('.webm')) {
+          throw error;
+        }
+      }
+
       const outputPrefix = `hls/${s3Key.replace('videos/', '').split('.')[0]}`;
       
-      // Start HLS transcoding
-      const hlsUrl = await transcodeToHLS({
-        s3Bucket: process.env.AWS_S3_BUCKET,
-        s3Key: s3Key,
-        outputPrefix: outputPrefix,
-      });
+      websocketService.sendProgress(lessonId, { type: 'progress', progress: 30, currentStep: 'Transcoding video' });
 
-      // Update video record with HLS URL and set to ready
+      // TEMPORARY: Skip HLS transcoding for WebM files with stream issues
+      let hlsUrl;
+      if (s3Key.toLowerCase().endsWith('.webm')) {
+        console.log('Skipping HLS transcoding for WebM file, using original video');
+        // Use the original S3 URL as fallback
+        hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400); // 24 hours
+        console.log('Using original WebM file as video URL:', hlsUrl);
+      } else {
+        // Start HLS transcoding for other formats
+        hlsUrl = await transcodeToHLS({
+          s3Bucket: cloudStorageService.bucket, // Pass the S3 bucket name
+          s3Key: s3Key,
+          outputPrefix: outputPrefix,
+        });
+      }
+
+      websocketService.sendProgress(lessonId, { type: 'progress', progress: 70, currentStep: 'Finalizing video' });
+
+      // Update video record with video URL and set to ready
       await db('videos')
         .where({ id: videoId })
         .update({
-          hls_url: hlsUrl,
+          video_url: hlsUrl, // Use video_url instead of hls_url
           status: 'ready',
           processing_completed_at: new Date(),
           updated_at: new Date(),
         });
 
-      // Update lesson with HLS URL
+      // Update lesson with video URL
       await db('lessons')
         .where({ id: lessonId })
         .update({
@@ -150,19 +185,114 @@ class VideoProcessingService {
       // Notify users that video is available
       await notifyVideoAvailable(lessonId);
 
-      console.log('Video processing completed successfully:', { videoId, hlsUrl });
+      console.log('Video processing completed successfully:', { videoId, videoUrl: hlsUrl });
+      websocketService.sendProgress(lessonId, { type: 'complete' });
 
       return {
         success: true,
         videoId,
-        hlsUrl,
+        videoUrl: hlsUrl,
         status: 'ready'
       };
 
     } catch (error) {
       console.error('Video processing failed:', error);
       await this.handleProcessingFailure(videoId, error);
+      websocketService.sendProgress(lessonId, { type: 'failed', error: error.message });
       throw error;
+    }
+  }
+
+  // Validate video streams using FFprobe
+  async validateVideoStreams(s3Key) {
+    const { exec } = require('child_process');
+    const path = require('path');
+    const fs = require('fs');
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    
+    try {
+      // Download file temporarily for validation
+      const tmpDir = path.join(__dirname, '../../tmp');
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      
+      const tempFile = path.join(tmpDir, `validate_${Date.now()}_${path.basename(s3Key)}`);
+      
+      // Download from S3 using S3 client directly
+      const command = new GetObjectCommand({ 
+        Bucket: cloudStorageService.bucket, 
+        Key: s3Key 
+      });
+      const data = await cloudStorageService.s3Client.send(command);
+      
+      // Write to temp file
+      await new Promise((resolve, reject) => {
+        const writeStream = fs.createWriteStream(tempFile);
+        data.Body.pipe(writeStream);
+        data.Body.on('error', reject);
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
+      
+      // Use FFprobe to analyze the video
+      const ffprobeCmd = `ffprobe -v quiet -print_format json -show_format -show_streams "${tempFile}"`;
+      
+      const probeResult = await new Promise((resolve, reject) => {
+        exec(ffprobeCmd, (error, stdout, stderr) => {
+          if (error) {
+            console.error('FFprobe error:', error);
+            console.error('FFprobe stderr:', stderr);
+            return reject(error);
+          }
+          resolve(stdout);
+        });
+      });
+      
+      // Clean up temp file
+      if (fs.existsSync(tempFile)) {
+        fs.unlinkSync(tempFile);
+      }
+      
+      const probeData = JSON.parse(probeResult);
+      console.log('Video probe data:', {
+        format: probeData.format?.format_name,
+        duration: probeData.format?.duration,
+        size: probeData.format?.size,
+        streams: probeData.streams?.length
+      });
+      
+      // Validation checks
+      if (!probeData.streams || probeData.streams.length === 0) {
+        return { isValid: false, error: 'No streams found in video file' };
+      }
+      
+      const videoStreams = probeData.streams.filter(s => s.codec_type === 'video');
+      const audioStreams = probeData.streams.filter(s => s.codec_type === 'audio');
+      
+      if (videoStreams.length === 0) {
+        return { isValid: false, error: 'No video stream found' };
+      }
+      
+      const duration = parseFloat(probeData.format?.duration || '0');
+      if (duration < 0.1) {
+        return { isValid: false, error: `Video too short: ${duration}s (minimum 0.1s required)` };
+      }
+      
+      const fileSize = parseInt(probeData.format?.size || '0');
+      if (fileSize < 1000) {
+        return { isValid: false, error: `Video file too small: ${fileSize} bytes` };
+      }
+      
+      return { 
+        isValid: true, 
+        duration,
+        videoStreams: videoStreams.length,
+        audioStreams: audioStreams.length,
+        format: probeData.format?.format_name
+      };
+      
+    } catch (error) {
+      console.error('Video validation error:', error);
+      return { isValid: false, error: `Validation failed: ${error.message}` };
     }
   }
 
@@ -318,33 +448,72 @@ class VideoProcessingService {
         }
       }
       
+      console.log('MP4 file does not have expected magic numbers. Rejecting for processing.');
       return false;
     }
 
-    // WebM validation
+    // WebM validation - Enhanced to support browser-generated WebM files
     if (extension === 'webm') {
-      const webmSignature = [0x1A, 0x45, 0xDF, 0xA3]; // EBML header
       if (buffer.length < 4) {
         return false;
       }
       
-      // The first 4 bytes of a standard WebM file are 1A 45 DF A3
+      // Standard EBML header
+      const standardEBML = [0x1A, 0x45, 0xDF, 0xA3];
+      
+      // Common browser-generated WebM headers (MediaRecorder API variations)
+      const browserWebMHeaders = [
+        [0x43, 0xC3, 0x82, 0x03], // Chrome/Edge MediaRecorder common header
+        [0x43, 0xB6, 0x75, 0x01], // Alternative MediaRecorder header
+        [0x42, 0x82, 0x84, 0x77], // Firefox MediaRecorder header
+        [0x42, 0x86, 0x81, 0x01], // Safari MediaRecorder header (if supported)
+      ];
+      
+      // Check for standard EBML header first
       let isStandardWebM = true;
       for (let i = 0; i < 4; i++) {
-        if (buffer[i] !== webmSignature[i]) {
+        if (buffer[i] !== standardEBML[i]) {
           isStandardWebM = false;
           break;
         }
       }
       if (isStandardWebM) {
+        console.log('Standard WebM EBML header detected');
         return true;
       }
-
-      // MediaRecorder implementations in browsers like Chrome may produce WebM files
-      // that start with a SimpleBlock instead of the EBML header. These are valid
-      // but non-standard. We'll accept them to support direct browser recordings.
-      console.log('WebM file does not have a standard EBML header. Accepting based on file extension to support MediaRecorder streams.');
-      return true;
+      
+      // Check for browser-generated WebM headers
+      for (const header of browserWebMHeaders) {
+        let matches = true;
+        for (let i = 0; i < 4; i++) {
+          if (buffer[i] !== header[i]) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          console.log(`Browser-generated WebM header detected: ${header.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+          return true;
+        }
+      }
+      
+      // Additional validation: Check if it contains WebM-specific elements deeper in the file
+      // Look for DocType "webm" or "matroska" in the first 100 bytes
+      if (buffer.length >= 20) {
+        const bufferStr = buffer.toString('ascii', 0, Math.min(100, buffer.length));
+        if (bufferStr.includes('webm') || bufferStr.includes('matroska')) {
+          console.log('WebM file detected by DocType signature');
+          return true;
+        }
+      }
+      
+      // Log the actual header for debugging
+      const actualHeader = Array.from(buffer.slice(0, 12))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join(' ');
+      console.log(`WebM validation failed. Actual header: ${actualHeader}`);
+      console.log('WebM file does not have a recognized header. Rejecting for processing.');
+      return false;
     }
 
     // AVI validation

@@ -48,36 +48,75 @@ async function transcodeToHLS({ s3Bucket, s3Key, outputPrefix, resolutions = ['4
     { name: '1080p', width: 1920, height: 1080, bitrate: 4000 },
   ];
   const selected = renditions.filter(r => resolutions.includes(r.name.replace('p','')));
-  const hlsDir = path.join(tmpDir, `${path.basename(s3Key, path.extname(s3Key))}_hls`);
-  if (!fs.existsSync(hlsDir)) fs.mkdirSync(hlsDir);
+  const hlsBaseDir = path.join(tmpDir, `${path.basename(s3Key, path.extname(s3Key))}_hls`);
+  if (!fs.existsSync(hlsBaseDir)) fs.mkdirSync(hlsBaseDir, { recursive: true });
 
-  // Build FFmpeg command
-  let ffmpegCmd = `ffmpeg -y -i "${inputFile}"`;
-  selected.forEach(r => {
-    ffmpegCmd += ` -vf scale=w=${r.width}:h=${r.height} -c:a aac -ar 48000 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 -g 48 -keyint_min 48 -b:v ${r.bitrate}k -maxrate ${r.bitrate}k -bufsize ${r.bitrate*2}k -hls_time 4 -hls_playlist_type vod -hls_segment_filename '${hlsDir}/${r.name}_%03d.ts' ${hlsDir}/${r.name}.m3u8`;
-  });
+  const masterPlaylistLines = ['#EXTM3U', '#EXT-X-VERSION:3'];
 
-  // For adaptive streaming, create a master playlist
-  ffmpegCmd += ` && echo '#EXTM3U' > ${hlsDir}/master.m3u8`;
-  selected.forEach(r => {
-    ffmpegCmd += ` && echo "#EXT-X-STREAM-INF:BANDWIDTH=${r.bitrate*1000},RESOLUTION=${r.width}x${r.height}" >> ${hlsDir}/master.m3u8`;
-    ffmpegCmd += ` && echo "${r.name}.m3u8" >> ${hlsDir}/master.m3u8`;
-  });
+  for (const r of selected) {
+    const qualitySubDir = path.join(hlsBaseDir, r.name);
+    if (!fs.existsSync(qualitySubDir)) fs.mkdirSync(qualitySubDir, { recursive: true });
 
-  // Run FFmpeg
-  await new Promise((resolve, reject) => {
-    exec(ffmpegCmd, (err, stdout, stderr) => {
-      if (err) return reject(err);
-      resolve();
+    const segmentFilename = path.join(qualitySubDir, `segment_%03d.ts`);
+    const playlistFilename = path.join(qualitySubDir, `playlist.m3u8`);
+
+    // Enhanced FFmpeg command with better WebM support and error recovery
+    const ffmpegCmd = `ffmpeg -y -fflags +genpts -avoid_negative_ts make_zero -i "${inputFile}" -vf scale=w=${r.width}:h=${r.height} -c:a aac -ar 48000 -ac 2 -c:v h264 -profile:v main -crf 20 -sc_threshold 0 -g 48 -keyint_min 48 -b:v ${r.bitrate}k -maxrate ${r.bitrate*2}k -bufsize ${r.bitrate*2}k -hls_time 4 -hls_playlist_type vod -hls_segment_filename "${segmentFilename}" -f hls "${playlistFilename}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(ffmpegCmd, (err, stdout, stderr) => {
+        if (err) {
+          console.error(`FFmpeg stdout for ${r.name}: ${stdout}`);
+          console.error(`FFmpeg stderr for ${r.name}: ${stderr}`);
+          
+          // Try fallback command for problematic WebM files
+          const fallbackCmd = `ffmpeg -y -err_detect ignore_err -i "${inputFile}" -vf scale=w=${r.width}:h=${r.height} -c:a aac -ar 48000 -ac 2 -c:v h264 -profile:v baseline -preset fast -crf 23 -b:v ${r.bitrate}k -hls_time 4 -hls_playlist_type vod -hls_segment_filename "${segmentFilename}" -f hls "${playlistFilename}"`;
+          
+          console.log(`Trying fallback FFmpeg command for ${r.name}`);
+          exec(fallbackCmd, (fallbackErr, fallbackStdout, fallbackStderr) => {
+            if (fallbackErr) {
+              console.error(`Fallback FFmpeg stdout for ${r.name}: ${fallbackStdout}`);
+              console.error(`Fallback FFmpeg stderr for ${r.name}: ${fallbackStderr}`);
+              return reject(fallbackErr);
+            }
+            console.log(`Fallback FFmpeg succeeded for ${r.name}`);
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      });
     });
-  });
+
+    masterPlaylistLines.push(
+      `#EXT-X-STREAM-INF:BANDWIDTH=${r.bitrate*1000},RESOLUTION=${r.width}x${r.height}`,
+      `${r.name}/playlist.m3u8`
+    );
+  }
+
+  // Write master playlist
+  const masterPlaylistPath = path.join(hlsBaseDir, 'master.m3u8');
+  fs.writeFileSync(masterPlaylistPath, masterPlaylistLines.join('\n'));
 
   // Upload HLS files to S3
-  const files = fs.readdirSync(hlsDir);
-  for (const file of files) {
-    const filePath = path.join(hlsDir, file);
-    const key = `${outputPrefix}/${file}`;
-    const contentType = file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T';
+  const allHlsFiles = [];
+  function collectFiles(dir) {
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      if (fs.statSync(filePath).isDirectory()) {
+        collectFiles(filePath);
+      } else {
+        allHlsFiles.push(filePath);
+      }
+    }
+  }
+  collectFiles(hlsBaseDir);
+
+  for (const filePath of allHlsFiles) {
+    const relativePath = path.relative(hlsBaseDir, filePath);
+    const key = `${outputPrefix}/${relativePath.replace(/\\/g, '/')}`;
+    const contentType = filePath.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T';
     await uploadToS3(s3Bucket, key, filePath, contentType);
   }
 

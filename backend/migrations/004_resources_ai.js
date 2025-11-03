@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.up = async function (knex) {
+exports.up = async function(knex) {
   // Resources table
   await knex.schema.createTable('resources', (table) => {
     table.increments('id').primary();
@@ -24,8 +24,10 @@ exports.up = async function (knex) {
     table.jsonb('tags');
     table.timestamp('published_at');
     table.timestamps(true, true);
+    
     table.index(['category', 'language']);
-    table.index('chapter_id');
+    table.index(['chapter_id', 'is_public']);
+    table.index(['uploaded_by', 'created_at']);
   });
 
   // Resource permissions
@@ -48,7 +50,9 @@ exports.up = async function (knex) {
     table.boolean('is_public').defaultTo(false);
     table.jsonb('metadata');
     table.timestamps(true, true);
+    
     table.index(['resource_id', 'user_id']);
+    table.index(['user_id', 'created_at']);
   });
 
   // AI summaries
@@ -63,7 +67,22 @@ exports.up = async function (knex) {
     table.decimal('relevance_score', 3, 2);
     table.string('model_used');
     table.timestamps(true, true);
+    
     table.unique(['resource_id', 'summary_type']);
+    table.index(['resource_id']);
+  });
+
+  // AI embeddings for semantic search
+  await knex.schema.createTable('ai_embeddings', (table) => {
+    table.increments('id').primary();
+    table.integer('resource_id').unsigned().references('id').inTable('resources').onDelete('CASCADE');
+    table.text('content').notNullable();
+    table.jsonb('embedding');
+    table.string('content_type');
+    table.timestamps(true, true);
+    
+    table.index(['resource_id']);
+    table.index(['content_type']);
   });
 
   // Resource usage analytics
@@ -74,12 +93,15 @@ exports.up = async function (knex) {
     table.string('action');
     table.jsonb('metadata');
     table.timestamps(true, true);
+    
     table.index(['resource_id', 'action']);
+    table.index(['user_id', 'created_at']);
   });
 };
 
-exports.down = async function (knex) {
+exports.down = async function(knex) {
   await knex.schema.dropTableIfExists('resource_usage');
+  await knex.schema.dropTableIfExists('ai_embeddings');
   await knex.schema.dropTableIfExists('ai_summaries');
   await knex.schema.dropTableIfExists('user_notes');
   await knex.schema.dropTableIfExists('resource_permissions');

@@ -3,7 +3,7 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
-  // Chapters
+  // Chapters - foundation of the platform
   await knex.schema.createTable('chapters', function(table) {
     table.increments('id').primary();
     table.string('name').notNullable().unique();
@@ -13,7 +13,7 @@ exports.up = async function(knex) {
     table.timestamps(true, true);
   });
 
-  // Users
+  // Users - core user management
   await knex.schema.createTable('users', function(table) {
     table.increments('id').primary();
     table.string('first_name').notNullable();
@@ -30,28 +30,36 @@ exports.up = async function(knex) {
     table.timestamp('last_login_at');
     table.text('bio');
     table.timestamps(true, true);
+    
+    table.index(['chapter_id', 'is_active']);
+    table.index(['email', 'role']);
   });
 
-  // Roles
-  await knex.schema.createTable('roles', function(table) {
+  // Google OAuth integration
+  await knex.schema.createTable('google_auth', (table) => {
     table.increments('id').primary();
-    table.string('name').notNullable().unique();
-    table.text('description');
+    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('google_id').unique().notNullable();
+    table.string('email').notNullable();
+    table.string('profile_picture');
     table.timestamps(true, true);
   });
 
-  // User Roles
-  await knex.schema.createTable('user_roles', function(table) {
+  // Onboarding system
+  await knex.schema.createTable('onboarding_steps', (table) => {
     table.increments('id').primary();
     table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
-    table.integer('role_id').unsigned().references('id').inTable('roles').onDelete('CASCADE');
-    table.unique(['user_id', 'role_id']);
+    table.string('step_name').notNullable();
+    table.boolean('completed').defaultTo(false);
+    table.timestamps(true, true);
+    
+    table.unique(['user_id', 'step_name']);
   });
 };
 
 exports.down = async function(knex) {
-  await knex.schema.dropTableIfExists('user_roles');
-  await knex.schema.dropTableIfExists('roles');
+  await knex.schema.dropTableIfExists('onboarding_steps');
+  await knex.schema.dropTableIfExists('google_auth');
   await knex.schema.dropTableIfExists('users');
   await knex.schema.dropTableIfExists('chapters');
 };

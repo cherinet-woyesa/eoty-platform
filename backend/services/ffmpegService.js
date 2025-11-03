@@ -182,6 +182,7 @@ class FfmpegService {
   buildHLSCommand(inputPath, segmentPattern, playlistPath, qualityConfig) {
     const args = [
       `"${this.ffmpegPath}"`,
+      '-f', 'webm',
       '-i', `"${inputPath}"`,
       
       // Video encoding settings

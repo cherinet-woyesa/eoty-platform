@@ -1,4 +1,6 @@
 const app = require('./app');
+const http = require('http');
+const websocketService = require('./services/websocketService');
 const fs = require('fs');
 const path = require('path');
 
@@ -27,7 +29,12 @@ const PORT = process.env.PORT || 5000;
 // Ensure upload directories exist before starting server
 ensureUploadDirs();
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = http.createServer(app);
+
+// Initialize WebSocket service
+websocketService.init(server);
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n=== EOTY Server Running ===`);
   console.log(`Mode: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Port: ${PORT}`);
@@ -35,6 +42,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Health Check: http://localhost:${PORT}/api/health`);
   console.log(`CORS Enabled: Yes`);
   console.log(`Video Streaming: Enabled`);
+  console.log(`WebSocket Server: Running`);
   console.log(`Upload Directories: Ready`);
   console.log(`===========================\n`);
 });
