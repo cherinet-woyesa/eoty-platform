@@ -8,19 +8,16 @@ import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';
 import {
   Video, Circle, Square, Pause, Play,
-  Upload, RotateCcw, Camera, FileVideo,
+  Upload, RotateCcw, Camera,
   CheckCircle, Loader, AlertCircle,
-  Settings, Eye, EyeOff, Trash2,
+  Settings, Trash2,
   PlayCircle, Volume2, VolumeX, Cloud,
   Mic, MicOff, VideoIcon, Timer,
-  Zap, Shield, Clock, Download,
-  Lightbulb, Sparkles, Users, Star,
-  Monitor, PictureInPicture, Layout,
+  Zap, Download,
+  Lightbulb, Sparkles, Star,
+  Monitor, PictureInPicture,
   Split, Save, FolderOpen, Scissors,
-  Pipette, Grid3X3, SquareStack,
-  FileText, // Added for slides
-  Share2, // Added for sharing
-  Edit3 // Added for editing
+  FileText
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -37,20 +34,7 @@ interface Course {
   category?: string;
 }
 
-interface RecordingSession {
-  id: string;
-  name: string;
-  timestamp: Date;
-  duration: number;
-  videoBlob?: Blob;
-  videoUrl?: string;
-  slides?: any[];
-  layout: string;
-  sources: {
-    camera: boolean;
-    screen: boolean;
-  };
-}
+
 
 // FIXED: Enhanced blobToFile function with forced WebM type
 const blobToFile = (blob: Blob, fileName: string): File => {
@@ -149,14 +133,18 @@ const debugBlobContent = async (blob: Blob): Promise<string> => {
     });
     
     // Check for common video file signatures
-    if (hexString.includes('1a 45 df a3')) { // WebM/EBML
+    if (hexString.includes('1a 45 df a3')) { // Standard WebM/EBML
       console.log('Detected: Standard WebM file (EBML signature)');
-    } else if (hexString.includes('43 b6 75 01')) { // Your current header
-      console.log('Detected: MediaRecorder WebM file (alternative signature)');
+    } else if (hexString.includes('43 c3 82 03')) { // Chrome/Edge MediaRecorder
+      console.log('Detected: Chrome/Edge MediaRecorder WebM file');
+    } else if (hexString.includes('43 b6 75 01')) { // Alternative MediaRecorder
+      console.log('Detected: Alternative MediaRecorder WebM file');
+    } else if (hexString.includes('42 82 84 77')) { // Firefox MediaRecorder
+      console.log('Detected: Firefox MediaRecorder WebM file');
     } else if (hexString.includes('66 74 79 70')) { // MP4
       console.log('Detected: MP4 file (ftyp signature)');
     } else {
-      console.log('Unknown file signature - but will accept it as WebM');
+      console.log('Browser-generated WebM file with non-standard header - this is normal');
     }
     
     return hexString;
@@ -166,32 +154,141 @@ const debugBlobContent = async (blob: Blob): Promise<string> => {
   }
 };
 
-// NEW: WebM header repair function
 const repairWebMHeader = async (blob: Blob): Promise<Blob> => {
-  try {
-    const arrayBuffer = await blob.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // Check if it already has a standard EBML header
+        const standardEBML = [0x1A, 0x45, 0xDF, 0xA3];
+        if (uint8Array.length >= 4 && 
+            uint8Array[0] === standardEBML[0] && 
+            uint8Array[1] === standardEBML[1] && 
+            uint8Array[2] === standardEBML[2] && 
+            uint8Array[3] === standardEBML[3]) {
+          console.log('WebM already has standard EBML header');
+          return resolve(blob);
+        }
+        
+        // For browser-generated WebM files, we need to create a proper EBML structure
+        // This is a minimal EBML header that FFmpeg can understand
+        const ebmlHeader = new Uint8Array([
+          // EBML Header
+          0x1A, 0x45, 0xDF, 0xA3, // EBML signature
+          0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F, // Header size (31 bytes)
+          
+          // EBMLVersion
+          0x42, 0x86, 0x81, 0x01,
+          
+          // EBMLReadVersion  
+          0x42, 0xF7, 0x81, 0x01,
+          
+          // EBMLMaxIDLength
+          0x42, 0xF2, 0x81, 0x04,
+          
+          // EBMLMaxSizeLength
+          0x42, 0xF3, 0x81, 0x08,
+          
+          // DocType
+          0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6D, // "webm"
+          
+          // DocTypeVersion
+          0x42, 0x87, 0x81, 0x02,
+          
+          // DocTypeReadVersion
+          0x42, 0x85, 0x81, 0x02
+        ]);
+        
+        // Find the start of actual media data by looking for Segment element (0x18, 0x53, 0x80, 0x67)
+        let segmentStart = -1;
+        for (let i = 0; i < Math.min(uint8Array.length - 4, 100); i++) {
+          if (uint8Array[i] === 0x18 && uint8Array[i + 1] === 0x53 && 
+              uint8Array[i + 2] === 0x80 && uint8Array[i + 3] === 0x67) {
+            segmentStart = i;
+            break;
+          }
+        }
+        
+        let repairedData;
+        if (segmentStart !== -1) {
+          // Found segment, combine EBML header with segment data
+          console.log(`Found Segment element at position ${segmentStart}`);
+          const segmentData = uint8Array.slice(segmentStart);
+          repairedData = new Uint8Array(ebmlHeader.length + segmentData.length);
+          repairedData.set(ebmlHeader, 0);
+          repairedData.set(segmentData, ebmlHeader.length);
+        } else {
+          // Fallback: try to find any recognizable WebM elements
+          console.log('Segment not found, looking for other WebM elements');
+          
+          // Look for common WebM elements that might indicate start of media data
+          const webmElements = [
+            [0x11, 0x4D, 0x9B, 0x74], // SeekHead
+            [0x15, 0x49, 0xA9, 0x66], // Info
+            [0x16, 0x54, 0xAE, 0x6B], // Tracks
+            [0x1C, 0x53, 0xBB, 0x6B], // Cues
+            [0x1F, 0x43, 0xB6, 0x75]  // Cluster
+          ];
+          
+          let dataStart = -1;
+          for (const element of webmElements) {
+            for (let i = 0; i < Math.min(uint8Array.length - 4, 200); i++) {
+              if (uint8Array[i] === element[0] && uint8Array[i + 1] === element[1] && 
+                  uint8Array[i + 2] === element[2] && uint8Array[i + 3] === element[3]) {
+                dataStart = i;
+                console.log(`Found WebM element at position ${i}`);
+                break;
+              }
+            }
+            if (dataStart !== -1) break;
+          }
+          
+          if (dataStart !== -1) {
+            // Create a minimal segment wrapper
+            const segmentHeader = new Uint8Array([
+              0x18, 0x53, 0x80, 0x67, // Segment ID
+              0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF // Unknown size (streaming)
+            ]);
+            
+            const mediaData = uint8Array.slice(dataStart);
+            repairedData = new Uint8Array(ebmlHeader.length + segmentHeader.length + mediaData.length);
+            repairedData.set(ebmlHeader, 0);
+            repairedData.set(segmentHeader, ebmlHeader.length);
+            repairedData.set(mediaData, ebmlHeader.length + segmentHeader.length);
+          } else {
+            // Last resort: just prepend EBML header to original data
+            console.log('No recognizable WebM elements found, using fallback approach');
+            repairedData = new Uint8Array(ebmlHeader.length + uint8Array.length);
+            repairedData.set(ebmlHeader, 0);
+            repairedData.set(uint8Array, ebmlHeader.length);
+          }
+        }
+        
+        const repairedBlob = new Blob([repairedData], { type: 'video/webm' });
+        console.log('WebM header repaired successfully', {
+          originalSize: blob.size,
+          repairedSize: repairedBlob.size,
+          headerAdded: ebmlHeader.length
+        });
+        
+        resolve(repairedBlob);
+      } catch (error) {
+        console.error('Error repairing WebM header:', error);
+        // If repair fails, return original blob
+        resolve(blob);
+      }
+    };
     
-    // Check current header
-    const currentHeader = Array.from(uint8Array.slice(0, 4))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    reader.onerror = (error) => {
+      console.error('Error reading blob for WebM repair:', error);
+      resolve(blob); // Return original blob on error
+    };
     
-    console.log('Current WebM header before repair:', currentHeader);
-    
-    // If header is not standard WebM, try to repair it
-    // MediaRecorder often produces valid WebM files with non-standard headers
-    // We'll accept them as-is since they play fine in browsers
-    if (currentHeader !== '1a45dfa3') {
-      console.log('WebM file has non-standard header, but should be valid for playback');
-      console.log('Accepting MediaRecorder WebM file as-is');
-    }
-    
-    return blob; // Return original blob - it's likely valid despite non-standard header
-  } catch (error) {
-    console.error('Error analyzing WebM header:', error);
-    return blob; // Return original if analysis fails
-  }
+    reader.readAsArrayBuffer(blob);
+  });
 };
 
 const VideoRecorder: FC<VideoRecorderProps> = ({ 
@@ -209,14 +306,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     pauseRecording,
     resumeRecording,
     resetRecording,
-    error,
     stream,
-    options,
-    setOptions,
-    devices,
     initializeCamera,
     closeCamera,
-    cameraInitialized,
     recordingSources,
     currentLayout,
     setLayout,
@@ -233,20 +325,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // NEW: Enhanced features
     recordingStats,
     setRecordingStats,
-    networkStatus,
-    retryRecording,
     exportSession,
-    mergeSessions,
     // NEW: Slide integration
-    currentSlideIndex,
-    slides,
-    slideTimestamps,
-    advanceSlide,
-    startRecordingWithSlides,
+    recordSlideChange,
     // NEW: Editing capabilities
-    editRecording,
-    trimRecording,
-    addWatermark
+    editRecording
   } = useVideoRecorder();
 
   // Refs
@@ -283,7 +366,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'record' | 'upload'>('record');
-  const [coursesLoading, setCoursesLoading] = useState(false);
 
   // Enhanced recording state
   const [recordingQuality, setRecordingQuality] = useState<'480p' | '720p' | '1080p'>('720p');
@@ -294,7 +376,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   
   // Session management state
-  const [savedSessions, setSavedSessions] = useState<RecordingSession[]>([]);
+  const [savedSessions, setSavedSessions] = useState<string[]>([]);
   const [showSessionMenu, setShowSessionMenu] = useState(false);
 
   // NEW: Integrated Features State
@@ -303,9 +385,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showProcessingStatus, setShowProcessingStatus] = useState(false);
   const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
   const [currentSlides, setCurrentSlides] = useState<any[]>([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
 
   // NEW: Enhanced state for production features
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
+
+
 
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldStartAfterInit = useRef(false);
@@ -454,18 +539,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Slide management functions
   const handleSlidesChange = (newSlides: any[]) => {
     setCurrentSlides(newSlides);
-    // Update the hook's slides state if available
-    if (slides) {
-      // This would typically be handled by the hook
-      console.log('Slides updated:', newSlides);
-    }
+    console.log('Slides updated:', newSlides);
   };
 
   const handleSlideAdvance = (slideIndex: number) => {
     setCurrentSlideIndex(slideIndex);
-    if (advanceSlide) {
-      advanceSlide(slideIndex);
-    }
+    recordSlideChange(slideIndex);
     console.log(`Advanced to slide ${slideIndex + 1}`);
   };
 
@@ -553,7 +632,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     
     const loadCourses = async () => {
       try {
-        setCoursesLoading(true);
         setErrorMessage(null);
         const response = await coursesApi.getCourses();
         
@@ -567,10 +645,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         console.error('Failed to load courses:', error);
         if (isMounted) {
           setErrorMessage('Failed to load courses. Please refresh the page.');
-        }
-      } finally {
-        if (isMounted) {
-          setCoursesLoading(false);
         }
       }
     };
@@ -619,7 +693,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         fileSize: 0,
         bitrate: 0,
         framesDropped: 0,
-        networkQuality: 'good'
+        networkQuality: 'good',
+        recordingQuality: recordingQuality,
+        duration: 0
       });
       
       if (!recordingSources.camera && !recordingSources.screen) {
@@ -642,6 +718,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       autoStopTimerRef.current = null;
     }
     
+    // Check minimum recording duration
+    if (recordingTime < 1) {
+      setErrorMessage('Recording too short. Please record for at least 1 second.');
+      return;
+    }
+    
     setRecordingStatus('processing');
     try {
       await stopRecording();
@@ -659,23 +741,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Enhanced session management
   const handleSaveSession = () => {
     if (currentSession && videoBlob) {
-      const sessionName = `Session_${new Date().toLocaleString()}`;
-      const session: RecordingSession = {
-        id: Date.now().toString(),
-        name: sessionName,
-        timestamp: new Date(),
-        duration: recordingTime,
-        videoBlob: videoBlob,
-        videoUrl: recordedVideo || '',
-        slides: currentSlides,
-        layout: currentLayout,
-        sources: {
-          camera: !!recordingSources.camera,
-          screen: !!recordingSources.screen
-        }
-      };
-      
-      saveSession(session);
+      const sessionId = Date.now().toString();
+      saveSession(sessionId);
       setSavedSessions(getSavedSessions());
       setSuccessMessage('Recording session saved successfully');
     }
@@ -683,9 +750,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Load saved session
   const handleLoadSession = (sessionId: string) => {
-    const session = loadSession(sessionId);
-    if (session) {
-      setCurrentSlides(session.slides || []);
+    const success = loadSession(sessionId);
+    if (success) {
       setSuccessMessage('Session loaded successfully');
       setShowSessionMenu(false);
       setShowPreview(true);
@@ -736,7 +802,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       fileSize: 0,
       bitrate: 0,
       framesDropped: 0,
-      networkQuality: 'good'
+      networkQuality: 'good',
+      recordingQuality: recordingQuality,
+      duration: 0
     });
     
     if (filePreview) {
@@ -790,6 +858,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         throw new Error('Recorded video is empty or invalid. Please record again.');
       }
 
+      if (activeTab === 'record' && videoBlob && videoBlob.size < 5000) {
+        throw new Error('Recorded video is too small (less than 5KB). Please record a longer video.');
+      }
+
+      if (activeTab === 'record' && recordingDuration < 1) {
+        throw new Error('Recording duration is too short. Please record for at least 1 second.');
+      }
+
       if (activeTab === 'upload' && !selectedFile) {
         throw new Error('No video file selected. Please choose a file.');
       }
@@ -813,10 +889,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         // Debug the blob content before conversion
         await debugBlobContent(videoBlob);
         
-        // Analyze and accept WebM files with non-standard headers
-        await repairWebMHeader(videoBlob);
+        // Repair WebM header for FFmpeg compatibility
+        const repairedBlob = await repairWebMHeader(videoBlob);
         
-        const videoFile = blobToFile(videoBlob, `lesson-${newLessonId}-${Date.now()}`);
+        const videoFile = blobToFile(repairedBlob, `lesson-${newLessonId}-${Date.now()}`);
         
         // Validate the file before upload
         await validateVideoFile(videoFile);
@@ -1078,13 +1154,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
                       Saved Sessions
                     </div>
-                    {savedSessions.map(session => (
+                    {savedSessions.map(sessionId => (
                       <button
-                        key={session.id}
-                        onClick={() => handleLoadSession(session.id)}
+                        key={sessionId}
+                        onClick={() => handleLoadSession(sessionId)}
                         className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       >
-                        {session.name}
+                        Session {sessionId.slice(-8)}
                       </button>
                     ))}
                   </div>
@@ -1331,42 +1407,56 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         {activeTab === 'record' && !recordedVideo && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             {!isRecording ? (
-              <button 
-                onClick={handleStartRecording} 
-                disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
-                className="flex items-center space-x-3 px-8 py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 transition-all"
-              >
-                <Circle className="h-6 w-6" />
-                <span className="font-semibold">
-                  {countdown !== null ? `Starting...` : 'Start Recording'}
-                </span>
-              </button>
+              <div className="text-center">
+                <button 
+                  onClick={handleStartRecording} 
+                  disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
+                  className="flex items-center space-x-3 px-8 py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 transition-all"
+                >
+                  <Circle className="h-6 w-6" />
+                  <span className="font-semibold">
+                    {countdown !== null ? `Starting...` : 'Start Recording'}
+                  </span>
+                </button>
+                <p className="text-white text-sm mt-2 opacity-75">
+                  Minimum recording time: 1 second
+                </p>
+              </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                {/* Session Save Button */}
-                <button 
-                  onClick={handleSaveSession}
-                  className="p-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors"
-                  title="Save Session"
-                >
-                  <Save className="h-6 w-6" />
-                </button>
-                
-                {/* Pause/Resume Button */}
-                <button 
-                  onClick={isPaused ? resumeRecording : pauseRecording} 
-                  className="p-4 bg-yellow-500 text-white rounded-2xl hover:bg-yellow-600 transition-colors"
-                >
-                  {isPaused ? <Play className="h-6 w-6" /> : <Pause className="h-6 w-6" />}
-                </button>
-                
-                {/* Stop Button */}
-                <button 
-                  onClick={handleStopRecording} 
-                  className="p-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors"
-                >
-                  <Square className="h-6 w-6" />
-                </button>
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-4 mb-2">
+                  {/* Session Save Button */}
+                  <button 
+                    onClick={handleSaveSession}
+                    className="p-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors"
+                    title="Save Session"
+                  >
+                    <Save className="h-6 w-6" />
+                  </button>
+                  
+                  {/* Pause/Resume Button */}
+                  <button 
+                    onClick={isPaused ? resumeRecording : pauseRecording} 
+                    className="p-4 bg-yellow-500 text-white rounded-2xl hover:bg-yellow-600 transition-colors"
+                  >
+                    {isPaused ? <Play className="h-6 w-6" /> : <Pause className="h-6 w-6" />}
+                  </button>
+                  
+                  {/* Stop Button */}
+                  <button 
+                    onClick={handleStopRecording} 
+                    disabled={recordingTime < 1}
+                    className="p-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={recordingTime < 1 ? 'Record for at least 1 second' : 'Stop Recording'}
+                  >
+                    <Square className="h-6 w-6" />
+                  </button>
+                </div>
+                {recordingTime < 1 && (
+                  <p className="text-yellow-300 text-sm">
+                    Record for at least 1 second to stop
+                  </p>
+                )}
               </div>
             )}
           </div>

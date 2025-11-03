@@ -176,6 +176,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const streamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debugIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionStartTimeRef = useRef<number>(0);
   const lastChunkSizeRef = useRef<number>(0);
 
@@ -204,6 +205,11 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     if (statsTimerRef.current) {
       clearInterval(statsTimerRef.current);
       statsTimerRef.current = null;
+    }
+    
+    if (debugIntervalRef.current) {
+      clearInterval(debugIntervalRef.current);
+      debugIntervalRef.current = null;
     }
     
     // Reset stats
@@ -271,10 +277,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          cursor: 'always',
-          displaySurface: 'window',
           frameRate: { ideal: options.frameRate || 30 }
-        },
+        } as MediaTrackConstraints,
         audio: options.enableAudio ? {
           echoCancellation: true,
           noiseSuppression: true,
@@ -461,16 +465,18 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
   // NEW: Enhanced combined stream creation with production features
   const createCombinedStream = useCallback((): MediaStream | null => {
-    const streams: MediaStream[] = [];
+    console.log('Creating combined stream with sources:', {
+      camera: !!recordingSources.camera,
+      screen: !!recordingSources.screen,
+      cameraVideoTracks: recordingSources.camera?.getVideoTracks().length || 0,
+      cameraAudioTracks: recordingSources.camera?.getAudioTracks().length || 0,
+      screenVideoTracks: recordingSources.screen?.getVideoTracks().length || 0,
+      screenAudioTracks: recordingSources.screen?.getAudioTracks().length || 0,
+      layout: currentLayout,
+      enableAudio: options.enableAudio
+    });
     
-    if (recordingSources.camera) {
-      streams.push(recordingSources.camera);
-    }
-    if (recordingSources.screen) {
-      streams.push(recordingSources.screen);
-    }
-    
-    if (streams.length === 0) {
+    if (!recordingSources.camera && !recordingSources.screen) {
       setError('No video sources available for recording');
       setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
       return null;
@@ -478,82 +484,66 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
     const combinedStream = new MediaStream();
     
-    // Enhanced video track selection based on layout
+    // Simplified video track selection based on layout
+    let primaryVideoSource: MediaStream | null = null;
+    
     switch (currentLayout) {
       case 'camera-only':
-        if (recordingSources.camera) {
-          recordingSources.camera.getVideoTracks().forEach(track => 
-            combinedStream.addTrack(track)
-          );
-        }
+        primaryVideoSource = recordingSources.camera;
         break;
-        
       case 'screen-only':
-        if (recordingSources.screen) {
-          recordingSources.screen.getVideoTracks().forEach(track => 
-            combinedStream.addTrack(track)
-          );
-        }
+        primaryVideoSource = recordingSources.screen;
         break;
-        
       case 'side-by-side':
-        // For side-by-side, we'd need canvas compositing
-        // For now, use screen if available, otherwise camera
-        const primarySource = recordingSources.screen || recordingSources.camera;
-        if (primarySource) {
-          primarySource.getVideoTracks().forEach(track => 
-            combinedStream.addTrack(track)
-          );
-        }
-        break;
-        
       case 'picture-in-picture':
       default:
-        // For PIP, use screen as primary, camera as secondary (handled in UI)
-        const pipSource = recordingSources.screen || recordingSources.camera;
-        if (pipSource) {
-          pipSource.getVideoTracks().forEach(track => 
-            combinedStream.addTrack(track)
-          );
-        }
+        // Prefer screen over camera for mixed layouts
+        primaryVideoSource = recordingSources.screen || recordingSources.camera;
         break;
     }
     
-    // Enhanced audio mixing
+    // Add video tracks from primary source
+    if (primaryVideoSource) {
+      primaryVideoSource.getVideoTracks().forEach(track => {
+        console.log('Adding video track:', track.label, track.readyState);
+        combinedStream.addTrack(track);
+      });
+    }
+    
+    // Simplified audio handling - just add all available audio tracks
     if (options.enableAudio) {
-      const audioContext = new AudioContext();
-      const destination = audioContext.createMediaStreamDestination();
-      
-      let hasAudio = false;
-      
+      // Add camera audio
       if (recordingSources.camera) {
         recordingSources.camera.getAudioTracks().forEach(track => {
-          const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-          source.connect(destination);
-          hasAudio = true;
+          console.log('Adding camera audio track:', track.label, track.readyState);
+          combinedStream.addTrack(track);
         });
       }
       
+      // Add screen audio (if available and different from camera)
       if (recordingSources.screen) {
         recordingSources.screen.getAudioTracks().forEach(track => {
-          const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-          source.connect(destination);
-          hasAudio = true;
+          console.log('Adding screen audio track:', track.label, track.readyState);
+          combinedStream.addTrack(track);
         });
-      }
-      
-      if (hasAudio) {
-        destination.stream.getAudioTracks().forEach(track => 
-          combinedStream.addTrack(track)
-        );
       }
     }
 
-    console.log('Created combined stream:', {
+    const finalStreamInfo = {
       videoTracks: combinedStream.getVideoTracks().length,
       audioTracks: combinedStream.getAudioTracks().length,
-      layout: currentLayout
-    });
+      layout: currentLayout,
+      totalTracks: combinedStream.getTracks().length
+    };
+    
+    console.log('Created combined stream:', finalStreamInfo);
+    
+    // Validate that we have at least one track
+    if (combinedStream.getTracks().length === 0) {
+      console.error('Combined stream has no tracks!');
+      setError('Failed to create recording stream - no media tracks available');
+      return null;
+    }
 
     return combinedStream;
   }, [recordingSources, currentLayout, options.enableAudio]);
@@ -596,7 +586,25 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   // NEW: Enhanced recording with production features - FIXED MIME TYPE ISSUE
   const startRecording = useCallback(async () => {
     const combinedStream = createCombinedStream();
-    if (!combinedStream) return;
+    if (!combinedStream) {
+      console.error('Failed to create combined stream');
+      return;
+    }
+    
+    // Validate stream has active tracks
+    const activeTracks = combinedStream.getTracks().filter(track => track.readyState === 'live');
+    if (activeTracks.length === 0) {
+      console.error('No active tracks in combined stream');
+      setError('No active media tracks available for recording');
+      return;
+    }
+    
+    console.log('Starting recording with active tracks:', {
+      total: combinedStream.getTracks().length,
+      active: activeTracks.length,
+      video: combinedStream.getVideoTracks().length,
+      audio: combinedStream.getAudioTracks().length
+    });
 
     try {
       setError(null);
@@ -728,7 +736,29 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
           mimeType: recordedChunksRef.current[0]?.type || 'unknown'
         });
         
+        // Check minimum duration
+        if (finalDuration < 0.5) {
+          console.warn('Recording too short:', finalDuration);
+          setError('Recording too short. Please record for at least 1 second.');
+          setIsRecording(false);
+          setIsPaused(false);
+          cleanupLocalStreams();
+          return;
+        }
+        
         if (recordedChunksRef.current.length > 0) {
+          const totalSize = recordedChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+          
+          // Check minimum file size
+          if (totalSize < 1000) {
+            console.warn('Recording file too small:', totalSize);
+            setError('Recording failed - file too small. Please try recording again.');
+            setIsRecording(false);
+            setIsPaused(false);
+            cleanupLocalStreams();
+            return;
+          }
+          
           const blob = new Blob(recordedChunksRef.current, { 
             type: recordedChunksRef.current[0].type || 'video/webm'
           });
@@ -786,6 +816,20 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       // Start recording with optimized timeslice
       mediaRecorder.start(1000); // Collect data every second
       console.log('Enhanced recording started successfully');
+      
+      // Debug: Log stream state periodically
+      debugIntervalRef.current = setInterval(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          console.log('Recording debug:', {
+            state: mediaRecorderRef.current.state,
+            streamActive: combinedStream.active,
+            streamTracks: combinedStream.getTracks().length,
+            videoTracks: combinedStream.getVideoTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
+            audioTracks: combinedStream.getAudioTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
+            chunksCollected: recordedChunksRef.current.length
+          });
+        }
+      }, 2000);
 
     } catch (err: any) {
       console.error('Error starting recording:', err);
@@ -879,7 +923,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       // Enhanced session serialization
       const sessionForStorage = {
         ...currentSession,
-        videoBlob: Array.from(new Uint8Array(videoBlob)), // Convert Blob to Array for storage
+        videoBlob: null, // Don't store blob in localStorage (too large)
         metadata: {
           ...currentSession.metadata,
           slides: currentSession.metadata.slides ? {
@@ -1003,7 +1047,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     return videoBlob; // Return trimmed blob
   }, [videoBlob]);
 
-  const addWatermark = useCallback(async (watermark: Blob): Promise<Blob | null> => {
+  const addWatermark = useCallback(async (_watermark: Blob): Promise<Blob | null> => {
     // Implementation for adding watermark
     console.log('Adding watermark to recording');
     return videoBlob; // Return watermarked blob

@@ -1,6 +1,7 @@
 // frontend/src/components/courses/VideoProcessingStatus.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader, CheckCircle, XCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { io, Socket } from 'socket.io-client'; // Import io and Socket type
 
 interface VideoProcessingStatusProps {
   lessonId: string;
@@ -30,7 +31,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   });
   
   const [retryCount, setRetryCount] = useState(0);
-  const websocketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null); // Change to Socket type
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isConnectingRef = useRef(false);
 
@@ -42,18 +43,22 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     
     try {
       // Close existing connection
-      if (websocketRef.current) {
-        websocketRef.current.close(1000, 'Reconnecting');
-        websocketRef.current = null;
+      if (socketRef.current) {
+        socketRef.current.disconnect(); // Use socket.io disconnect
+        socketRef.current = null;
       }
 
-      const wsUrl = `ws://localhost:5000/ws/video-progress?lessonId=${lessonId}`;
+      // Connect to the socket.io server
+      const wsUrl = `http://localhost:5000?lessonId=${lessonId}`; // Adjust URL for socket.io
       console.log('Connecting to WebSocket:', wsUrl);
       
-      const websocket = new WebSocket(wsUrl);
-      websocketRef.current = websocket;
+      const socket = io(wsUrl, {
+        transports: ['websocket'], // Force WebSocket transport
+        query: { lessonId }, // Pass lessonId as query parameter
+      });
+      socketRef.current = socket;
 
-      websocket.onopen = () => {
+      socket.on('connect', () => {
         console.log('WebSocket connected for progress updates');
         isConnectingRef.current = false;
         setProcessingState(prev => ({
@@ -62,11 +67,10 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           currentStep: 'Connected to processing server'
         }));
         setRetryCount(0); // Reset retry count on successful connection
-      };
+      });
 
-      websocket.onmessage = (event) => {
+      socket.on('progress', (data) => { // Listen for 'progress' event
         try {
-          const data = JSON.parse(event.data);
           console.log('Progress update:', data);
 
           switch (data.type) {
@@ -112,23 +116,23 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             error: 'Invalid server response'
           }));
         }
-      };
+      });
 
-      websocket.onerror = (error) => {
+      socket.on('connect_error', (error) => { // Listen for 'connect_error'
         console.error('WebSocket error:', error);
         isConnectingRef.current = false;
         setProcessingState(prev => ({
           ...prev,
           error: 'Connection error - retrying...'
         }));
-      };
+      });
 
-      websocket.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
+      socket.on('disconnect', (reason) => { // Listen for 'disconnect'
+        console.log('WebSocket disconnected:', reason);
         isConnectingRef.current = false;
         
         // Only attempt reconnect if not a normal closure and component is still open
-        if (event.code !== 1000 && isOpen && retryCount < 5) {
+        if (reason !== 'io client disconnect' && isOpen && retryCount < 5) { // Check reason
           console.log(`Attempting to reconnect... (${retryCount + 1}/5)`);
           
           setProcessingState(prev => ({
@@ -147,7 +151,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             error: 'Failed to connect to processing server after multiple attempts'
           }));
         }
-      };
+      });
 
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
@@ -169,9 +173,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       reconnectTimeoutRef.current = null;
     }
     
-    if (websocketRef.current) {
-      websocketRef.current.close(1000, 'Component unmounting');
-      websocketRef.current = null;
+    if (socketRef.current) {
+      socketRef.current.disconnect(); // Use socket.io disconnect
+      socketRef.current = null;
     }
   }, []);
 
