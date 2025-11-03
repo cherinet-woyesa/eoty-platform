@@ -918,6 +918,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         // Validate the uploaded file
         await validateVideoFile(selectedFile);
         
+        // For manual uploads, use the original file directly (don't convert to WebM)
         uploadResponse = await videoApi.uploadVideo(
           selectedFile, 
           newLessonId, 
