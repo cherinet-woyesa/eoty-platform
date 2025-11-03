@@ -388,7 +388,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
 
   // NEW: Enhanced state for production features
-  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
+  const [, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
 
 
 

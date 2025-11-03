@@ -543,7 +543,7 @@ function AppContent() {
 // Main App component that provides the context
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <UserProvider>
           <OnboardingProvider>
