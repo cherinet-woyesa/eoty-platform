@@ -735,11 +735,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setRecordingStatus('processing');
     try {
       await stopRecording();
+      
       setRecordingStatus('idle');
       setShowPreview(true);
       setShowLessonForm(false); // Don't show form immediately, let user preview first
-      setRecordingDuration(capturedDuration); // Use captured value
+      setRecordingDuration(capturedDuration); // Use captured value BEFORE closing camera
       setSuccessMessage('Recording completed! Preview your video before uploading.');
+      
+      // Close camera and screen share AFTER setting duration
+      // This provides clear feedback that recording has ended
+      // We do this last so it doesn't interfere with state updates
+      setTimeout(() => {
+        closeCamera();
+      }, 100); // Small delay to ensure state updates complete
     } catch (error) {
       console.error('Error stopping recording:', error);
       setErrorMessage('Failed to stop recording.');
