@@ -1,9 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, MapPin, AlertCircle, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, MapPin, ArrowRight, Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
 import { chaptersApi } from '../../services/api/chapters';
+import FormInput from './FormInput';
+import FormError from './FormError';
+import LoadingButton from './LoadingButton';
+import { errorMessages } from '../../utils/errorMessages';
+
+// Password strength calculation
+const calculatePasswordStrength = (password: string): number => {
+  let strength = 0;
+  if (password.length >= 6) strength += 1;
+  if (password.length >= 8) strength += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 1;
+  if (/[0-9]/.test(password)) strength += 1;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+  return Math.min(strength, 4); // Cap at 4 (0-4 scale)
+};
+
+// Password strength criteria
+interface PasswordCriteria {
+  label: string;
+  test: (password: string) => boolean;
+}
+
+const passwordCriteria: PasswordCriteria[] = [
+  { label: 'At least 6 characters', test: (p) => p.length >= 6 },
+  { label: 'Contains uppercase letter', test: (p) => /[A-Z]/.test(p) },
+  { label: 'Contains number', test: (p) => /[0-9]/.test(p) },
+  { label: 'Contains special character', test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
 
 const RegisterForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,17 +43,15 @@ const RegisterForm: React.FC = () => {
     chapter: '',
     role: 'student'
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isFormValid, setIsFormValid] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
+  const [chapterError, setChapterError] = useState(false);
   
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
@@ -40,18 +66,21 @@ const RegisterForm: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Fetch chapters
+  // Fetch chapters with error handling and fallback
   useEffect(() => {
     const fetchChapters = async () => {
       try {
         const response = await chaptersApi.getAllChapters();
         if (response.success) {
           setChapters(response.data.chapters);
+          setChapterError(false);
         } else {
           throw new Error('Failed to fetch chapters');
         }
       } catch (err) {
         console.error('Failed to fetch chapters:', err);
+        setChapterError(true);
+        // Fallback data
         setChapters([
           { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
           { id: 2, name: 'toronto', location: 'Toronto, Canada' },
@@ -65,18 +94,6 @@ const RegisterForm: React.FC = () => {
 
     fetchChapters();
   }, []);
-
-  // Password strength calculation
-  const calculatePasswordStrength = (password: string): number => {
-    let strength = 0;
-    if (password.length >= 6) strength += 1;
-    if (password.length >= 8) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-    return strength;
-  };
 
   // Validation
   const validateField = (name: string, value: string): string => {
@@ -113,34 +130,40 @@ const RegisterForm: React.FC = () => {
     const errors: Record<string, string> = {};
     
     Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key as keyof typeof formData]);
-      if (error) {
-        errors[key] = error;
+      if (key !== 'role') { // Skip role validation
+        const error = validateField(key, formData[key as keyof typeof formData]);
+        if (error) {
+          errors[key] = error;
+        }
       }
     });
     
     setValidationErrors(errors);
-    const isValid = Object.keys(errors).length === 0;
-    setIsFormValid(isValid);
-    return isValid;
+    return Object.keys(errors).length === 0;
   };
 
-  // Real-time validation
+  // Real-time validation with debouncing
   useEffect(() => {
-    if (Object.keys(touched).length > 0) {
-      validateForm();
-    }
+    const timeoutId = setTimeout(() => {
+      if (Object.keys(touched).length > 0) {
+        validateForm();
+      }
+    }, 300);
     
+    // Update password strength immediately
     if (formData.password) {
       setPasswordStrength(calculatePasswordStrength(formData.password));
     } else {
       setPasswordStrength(0);
     }
+    
+    return () => clearTimeout(timeoutId);
   }, [formData, touched]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Mark all fields as touched
     setTouched({ 
       firstName: true, 
       lastName: true, 
@@ -150,7 +173,16 @@ const RegisterForm: React.FC = () => {
       chapter: true 
     });
     
-    if (!validateForm()) return;
+    // Validate form
+    if (!validateForm()) {
+      // Auto-focus on first error field
+      const firstErrorField = Object.keys(validationErrors)[0];
+      if (firstErrorField) {
+        const element = document.getElementById(firstErrorField);
+        element?.focus();
+      }
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -168,22 +200,21 @@ const RegisterForm: React.FC = () => {
       
       setSuccessMessage('Account created successfully! Redirecting...');
       
+      // Redirect after 1 second
       setTimeout(() => {
         navigate('/dashboard');
-      }, 2000);
+      }, 1000);
     } catch (err: any) {
       console.error('Registration error:', err);
       
-      let errorMessage = 'Something went wrong. Please try again.';
+      // Map error to user-friendly message
+      let errorMessage = errorMessages.DEFAULT || 'Something went wrong. Please try again.';
       
-      if (err.response?.status === 409) {
-        errorMessage = 'An account with this email already exists. Please try logging in instead.';
-      } else if (err.response?.status === 400) {
-        errorMessage = 'Please check your information and try again.';
-      } else if (err.response?.status === 422) {
-        errorMessage = 'Please make sure all fields are filled correctly.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Our servers are temporarily unavailable. Please try again in a few minutes.';
+      if (err.response?.status) {
+        const statusCode = err.response.status.toString();
+        errorMessage = errorMessages[statusCode] || errorMessage;
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        errorMessage = errorMessages.NETWORK_ERROR;
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -211,127 +242,143 @@ const RegisterForm: React.FC = () => {
     setTouched(prev => ({ ...prev, [name]: true }));
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-      {/* Success Message */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-3 py-2 rounded-lg flex items-start text-sm">
-          <CheckCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-lg flex items-start text-sm">
-          <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle Enter key for better keyboard navigation
+    if (e.key === 'Enter' && !isLoading) {
+      const currentField = e.currentTarget.name;
+      const fieldOrder = ['firstName', 'lastName', 'email', 'chapter', 'password', 'confirmPassword'];
+      const currentIndex = fieldOrder.indexOf(currentField);
       
-      {/* Name Row */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label htmlFor="firstName" className="block text-xs font-semibold text-gray-900">
-            First Name *
-          </label>
-          <div className="relative">
-            <User className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-              validationErrors.firstName && touched.firstName ? 'text-red-400' : 'text-gray-400'
-            }`} />
-            <input
-              id="firstName"
-              name="firstName"
-              type="text"
-              autoComplete="given-name"
-              required
-              value={formData.firstName}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className={`w-full pl-7 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 ${
-                validationErrors.firstName && touched.firstName 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-              }`}
-              placeholder="First name"
-            />
-          </div>
-          {validationErrors.firstName && touched.firstName && (
-            <p className="text-xs text-red-600">{validationErrors.firstName}</p>
-          )}
-        </div>
+      if (currentIndex < fieldOrder.length - 1) {
+        e.preventDefault();
+        const nextField = fieldOrder[currentIndex + 1];
+        const nextElement = document.getElementById(nextField);
+        nextElement?.focus();
+      } else if (currentField === 'confirmPassword') {
+        // Let the form submit naturally
+        e.currentTarget.form?.requestSubmit();
+      }
+    }
+  };
 
-        <div className="space-y-1">
-          <label htmlFor="lastName" className="block text-xs font-semibold text-gray-900">
-            Last Name *
-          </label>
-          <div className="relative">
-            <User className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-              validationErrors.lastName && touched.lastName ? 'text-red-400' : 'text-gray-400'
-            }`} />
-            <input
-              id="lastName"
-              name="lastName"
-              type="text"
-              autoComplete="family-name"
-              required
-              value={formData.lastName}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className={`w-full pl-7 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 ${
-                validationErrors.lastName && touched.lastName 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-              }`}
-              placeholder="Last name"
-            />
-          </div>
-          {validationErrors.lastName && touched.lastName && (
-            <p className="text-xs text-red-600">{validationErrors.lastName}</p>
-          )}
-        </div>
-      </div>
+  // Get password strength label and color - memoized for performance
+  const strengthInfo = useMemo(() => {
+    switch (passwordStrength) {
+      case 0:
+      case 1:
+        return { label: 'Weak', color: 'bg-red-500', textColor: 'text-red-600' };
+      case 2:
+        return { label: 'Fair', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
+      case 3:
+        return { label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-600' };
+      case 4:
+        return { label: 'Strong', color: 'bg-green-500', textColor: 'text-green-600' };
+      default:
+        return { label: 'Weak', color: 'bg-gray-300', textColor: 'text-gray-600' };
+    }
+  }, [passwordStrength]);
 
-      {/* Email Input */}
-      <div className="space-y-1">
-        <label htmlFor="email" className="block text-xs font-semibold text-gray-900">
-          Email Address *
-        </label>
-        <div className="relative">
-          <Mail className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-            validationErrors.email && touched.email ? 'text-red-400' : 'text-gray-400'
-          }`} />
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={`w-full pl-7 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 ${
-              validationErrors.email && touched.email 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="email@example.com"
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate aria-label="Registration form">
+      {/* Messages Section - Prominent positioning at top */}
+      <div className="space-y-3">
+        {/* Success Message */}
+        {successMessage && (
+          <FormError
+            type="info"
+            message={successMessage}
           />
-        </div>
-        {validationErrors.email && touched.email && (
-          <p className="text-xs text-red-600">{validationErrors.email}</p>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <FormError
+            type="error"
+            message={error}
+            dismissible
+            onDismiss={() => setError(null)}
+          />
         )}
       </div>
+      
+      {/* Personal Information Section - Grouped inputs */}
+      <div className="space-y-3 sm:space-y-4">
+        <div className="hidden sm:block">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Personal Information</h3>
+        </div>
+        
+        {/* Name Row - Single column on mobile, two columns on larger screens */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <FormInput
+            id="firstName"
+            name="firstName"
+            type="text"
+            label="First Name"
+            value={formData.firstName}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            error={validationErrors.firstName}
+            touched={touched.firstName}
+            required
+            placeholder="First name"
+            icon={<User className="h-4 w-4" />}
+            autoComplete="given-name"
+            disabled={isLoading}
+          />
 
-      {/* Chapter Selection */}
-      <div className="space-y-1">
-        <label htmlFor="chapter" className="block text-xs font-semibold text-gray-900">
-          Local Chapter *
+          <FormInput
+            id="lastName"
+            name="lastName"
+            type="text"
+            label="Last Name"
+            value={formData.lastName}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            error={validationErrors.lastName}
+            touched={touched.lastName}
+            required
+            placeholder="Last name"
+            icon={<User className="h-4 w-4" />}
+            autoComplete="family-name"
+            disabled={isLoading}
+          />
+        </div>
+
+        {/* Email Input */}
+        <FormInput
+          id="email"
+          name="email"
+          type="email"
+          label="Email Address"
+          value={formData.email}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          error={validationErrors.email}
+          touched={touched.email}
+          required
+          placeholder="email@example.com"
+          icon={<Mail className="h-4 w-4" />}
+          autoComplete="email"
+          disabled={isLoading}
+        />
+
+        {/* Chapter Selection - Native select optimized for mobile */}
+        <div className="space-y-1">
+        <label htmlFor="chapter" className="block text-xs sm:text-sm font-semibold text-gray-900">
+          Local Chapter
+          <span className="text-red-500 ml-1" aria-label="required">*</span>
         </label>
-        <div className="relative">
-          <MapPin className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-            validationErrors.chapter && touched.chapter ? 'text-red-400' : 'text-gray-400'
-          }`} />
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" aria-hidden="true">
+            <MapPin className={`h-4 w-4 transition-colors duration-200 ${
+              validationErrors.chapter && touched.chapter 
+                ? 'text-red-400' 
+                : 'text-gray-400 group-focus-within:text-blue-500'
+            }`} />
+          </div>
           <select
             id="chapter"
             name="chapter"
@@ -340,133 +387,182 @@ const RegisterForm: React.FC = () => {
             value={formData.chapter}
             onChange={handleChange}
             onBlur={handleBlur}
-            className={`w-full pl-7 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 appearance-none ${
-              validationErrors.chapter && touched.chapter 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !isLoading && !loadingChapters) {
+                e.preventDefault();
+                const passwordField = document.getElementById('password');
+                passwordField?.focus();
+              }
+            }}
+            disabled={isLoading || loadingChapters}
+            className={`
+              block w-full pl-10 pr-10 py-2 sm:py-3
+              border-2 rounded-lg 
+              focus:outline-none focus:ring-2 focus:ring-blue-500/20 
+              transition-all duration-200 
+              bg-gray-50/50 focus:bg-white 
+              text-gray-900
+              text-sm sm:text-base
+              min-h-[44px]
+              appearance-none
+              ${validationErrors.chapter && touched.chapter 
+                ? 'border-red-300 focus:border-red-500' 
+                : 'border-gray-200 focus:border-blue-500'}
+              ${(isLoading || loadingChapters) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
+            `}
+            aria-invalid={!!(validationErrors.chapter && touched.chapter)}
+            aria-describedby={validationErrors.chapter && touched.chapter ? 'chapter-error' : chapterError ? 'chapter-warning' : undefined}
+            aria-required="true"
+            aria-label="Select your local chapter"
           >
-            <option value="">Select your chapter</option>
+            <option value="">
+              {loadingChapters ? 'Loading chapters...' : 'Select your chapter'}
+            </option>
             {chapters.map(chapter => (
               <option key={chapter.id} value={chapter.id}>
-                {chapter.name}
+                {chapter.name} - {chapter.location}
               </option>
             ))}
           </select>
+          {/* Custom dropdown arrow */}
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" aria-hidden="true">
+            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
         {validationErrors.chapter && touched.chapter ? (
-          <p className="text-xs text-red-600">{validationErrors.chapter}</p>
-        ) : loadingChapters && (
-          <p className="text-xs text-gray-500 flex items-center">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            Loading chapters...
+          <p id="chapter-error" className="text-xs sm:text-sm text-red-600 flex items-center" role="alert" aria-live="polite">
+            <span className="mr-1" aria-hidden="true">⚠</span>
+            {validationErrors.chapter}
           </p>
-        )}
-      </div>
-
-      {/* Password Input */}
-      <div className="space-y-1">
-        <label htmlFor="password" className="block text-xs font-semibold text-gray-900">
-          Password *
-        </label>
-        <div className="relative">
-          <Lock className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-            validationErrors.password && touched.password ? 'text-red-400' : 'text-gray-400'
-          }`} />
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={`w-full pl-7 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 ${
-              validationErrors.password && touched.password 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="Create password"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          </button>
+        ) : chapterError ? (
+          <p id="chapter-warning" className="text-xs sm:text-sm text-amber-600" role="status" aria-live="polite">
+            Using fallback chapter list. Some chapters may be unavailable.
+          </p>
+        ) : null}
         </div>
-        {validationErrors.password && touched.password && (
-          <p className="text-xs text-red-600">{validationErrors.password}</p>
-        )}
       </div>
 
-      {/* Confirm Password Input */}
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="block text-xs font-semibold text-gray-900">
-          Confirm Password *
-        </label>
-        <div className="relative">
-          <Lock className={`absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 ${
-            validationErrors.confirmPassword && touched.confirmPassword ? 'text-red-400' : 'text-gray-400'
-          }`} />
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={`w-full pl-7 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 ${
-              validationErrors.confirmPassword && touched.confirmPassword 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="Confirm password"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {showConfirmPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-          </button>
+      {/* Security Section - Grouped password inputs */}
+      <div className="space-y-3 sm:space-y-4 pt-2 border-t border-gray-100">
+        <div className="hidden sm:block">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Security</h3>
         </div>
-        {validationErrors.confirmPassword && touched.confirmPassword && (
-          <p className="text-xs text-red-600">{validationErrors.confirmPassword}</p>
+        
+        {/* Password Input with Strength Indicator */}
+        <div className="space-y-1">
+        <FormInput
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          value={formData.password}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          error={validationErrors.password}
+          touched={touched.password}
+          required
+          placeholder="Create password"
+          icon={<Lock className="h-4 w-4" />}
+          showPasswordToggle
+          autoComplete="new-password"
+          disabled={isLoading}
+        />
+        
+        {/* Password Strength Indicator */}
+        {formData.password && (
+          <div className="space-y-2 pt-1" role="status" aria-live="polite" aria-atomic="true">
+            {/* Strength Meter */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600" id="password-strength-label">Password strength:</span>
+                <span className={`text-xs font-semibold ${strengthInfo.textColor}`} aria-describedby="password-strength-label">
+                  {strengthInfo.label}
+                </span>
+              </div>
+              <div className="flex gap-1" role="progressbar" aria-valuenow={passwordStrength} aria-valuemin={0} aria-valuemax={4} aria-label={`Password strength: ${strengthInfo.label}`}>
+                {[1, 2, 3, 4].map((level) => (
+                  <div
+                    key={level}
+                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                      level <= passwordStrength ? strengthInfo.color : 'bg-gray-200'
+                    }`}
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* Criteria Checklist */}
+            <div className="space-y-1 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+              <p className="text-xs font-semibold text-gray-700 mb-1.5" id="password-requirements">Password must have:</p>
+              <ul className="space-y-1" aria-labelledby="password-requirements">
+                {passwordCriteria.map((criterion, index) => {
+                  const isMet = criterion.test(formData.password);
+                  return (
+                    <li key={index} className="flex items-center text-xs">
+                      {isMet ? (
+                        <Check className="h-3 w-3 text-green-500 mr-1.5 flex-shrink-0" aria-hidden="true" />
+                      ) : (
+                        <X className="h-3 w-3 text-gray-400 mr-1.5 flex-shrink-0" aria-hidden="true" />
+                      )}
+                      <span className={isMet ? 'text-green-700 font-medium' : 'text-gray-600'}>
+                        {criterion.label}
+                        <span className="sr-only">{isMet ? ' - met' : ' - not met'}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
         )}
+        </div>
+
+        {/* Confirm Password Input */}
+        <FormInput
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          label="Confirm Password"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          error={validationErrors.confirmPassword}
+          touched={touched.confirmPassword}
+          required
+          placeholder="Confirm password"
+          icon={<Lock className="h-4 w-4" />}
+          showPasswordToggle
+          autoComplete="new-password"
+          disabled={isLoading}
+        />
       </div>
 
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={isLoading || !isFormValid}
-        className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-            Creating Account...
-          </>
-        ) : (
-          <>
-            Create Account
-            <ArrowRight className="w-3 h-3 ml-2" />
-          </>
-        )}
-      </button>
+      {/* Primary Action Section - Prominent submit button */}
+      <div className="pt-3">
+        <LoadingButton
+          type="submit"
+          isLoading={isLoading}
+          disabled={isLoading}
+          loadingText="Creating your account..."
+          icon={<ArrowRight className="w-4 h-4 ml-2" />}
+        >
+          Create Account
+        </LoadingButton>
+      </div>
 
-      {/* Social Login */}
-      <div className="mt-4">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
+      {/* Alternative Login Section */}
+      <div className="space-y-4 pt-2">
+        <div className="relative" role="separator" aria-label="Or continue with social login">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
             <div className="w-full border-t border-gray-300"></div>
           </div>
-          <div className="relative flex justify-center text-xs">
-            
+          <div className="relative flex justify-center text-xs sm:text-sm">
+            <span className="px-3 bg-white text-gray-500 font-medium">Or continue with</span>
           </div>
         </div>
 
@@ -474,12 +570,13 @@ const RegisterForm: React.FC = () => {
       </div>
 
       {/* Login Link */}
-      <div className="text-center pt-3 border-t border-gray-200">
-        <p className="text-xs text-gray-600">
+      <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign in navigation">
+        <p className="text-xs sm:text-sm text-gray-600">
           Already have an account?{' '}
           <Link 
             to="/login" 
-            className="text-blue-600 hover:text-blue-700 font-semibold"
+            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1 py-1"
+            aria-label="Sign in to your existing account"
           >
             Sign in here
           </Link>

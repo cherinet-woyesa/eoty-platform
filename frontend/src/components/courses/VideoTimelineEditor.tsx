@@ -1,18 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Play, Pause, Scissors, RotateCcw, 
-  CheckCircle, X, ZoomIn, ZoomOut,
-  FastForward, Rewind, Download,
-  GripVertical, Clock, Save
+  Play, Pause, CheckCircle, X,
+  FastForward, Rewind, Clock, 
+  SkipBack, SkipForward, Scissors, Info
 } from 'lucide-react';
-
-interface TimelineSegment {
-  id: string;
-  start: number;
-  end: number;
-  duration: number;
-  blob: Blob;
-}
 
 interface VideoTimelineEditorProps {
   videoBlob: Blob;
@@ -28,75 +19,110 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   onCancel
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<'start' | 'end' | null>(null);
+  
+  // Video state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [segments, setSegments] = useState<TimelineSegment[]>([]);
-  const [cutPoints, setCutPoints] = useState<number[]>([]);
-  const [zoom, setZoom] = useState(1);
+  
+  // Trim state
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(0);
+  
+  // UI state
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showHelp, setShowHelp] = useState(true);
 
   // Initialize video metadata
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.addEventListener('loadedmetadata', () => {
-        setDuration(videoRef.current?.duration || 0);
-        
-        // Create initial segment covering entire video
-        const initialSegment: TimelineSegment = {
-          id: 'initial',
-          start: 0,
-          end: videoRef.current?.duration || 0,
-          duration: videoRef.current?.duration || 0,
-          blob: videoBlob
-        };
-        setSegments([initialSegment]);
+        const videoDuration = videoRef.current?.duration || 0;
+        setDuration(videoDuration);
+        setTrimEnd(videoDuration);
       });
     }
-  }, [videoBlob]);
+  }, []);
 
-  // Generate timeline preview
+  // Handle mouse/touch drag for trim handles
   useEffect(() => {
-    generateTimelinePreview();
-  }, [videoUrl, zoom]);
+    const handleMove = (clientX: number) => {
+      if (!isDraggingRef.current || !timelineRef.current || !duration || duration <= 0) return;
 
-  const generateTimelinePreview = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+      const rect = timelineRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      const time = (x / rect.width) * duration;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      if (!isFinite(time) || time < 0) return;
 
-    const video = videoRef.current;
-    const segmentCount = 10; // Number of preview frames
-    const segmentWidth = canvas.width / segmentCount;
+      if (isDraggingRef.current === 'start') {
+        const newStart = Math.min(time, trimEnd - 0.5);
+        if (isFinite(newStart) && newStart >= 0) {
+          setTrimStart(newStart);
+          if (videoRef.current) {
+            videoRef.current.currentTime = newStart;
+          }
+        }
+      } else if (isDraggingRef.current === 'end') {
+        const newEnd = Math.max(time, trimStart + 0.5);
+        if (isFinite(newEnd) && newEnd >= 0) {
+          setTrimEnd(newEnd);
+          if (videoRef.current) {
+            videoRef.current.currentTime = newEnd;
+          }
+        }
+      }
+    };
 
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      handleMove(e.clientX);
+    };
 
-    // Capture frames at intervals
-    for (let i = 0; i < segmentCount; i++) {
-      const time = (i / segmentCount) * duration;
-      video.currentTime = time;
-      
-      await new Promise(resolve => {
-        video.onseeked = () => {
-          ctx.drawImage(video, i * segmentWidth, 0, segmentWidth, canvas.height);
-          resolve(null);
-        };
-      });
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX);
+      }
+    };
+
+    const handleEnd = () => {
+      isDraggingRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    if (isDraggingRef.current) {
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
     }
 
-    // Reset video time
-    video.currentTime = currentTime;
-  };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [duration, trimStart, trimEnd]);
 
   const handlePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
+        // If at end, restart from trim start
+        if (currentTime >= trimEnd) {
+          videoRef.current.currentTime = trimStart;
+        }
         videoRef.current.play();
       }
       setIsPlaying(!isPlaying);
@@ -104,95 +130,142 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   };
 
   const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
+    if (videoRef.current && isFinite(time) && time >= 0 && duration > 0) {
+      const clampedTime = Math.min(Math.max(trimStart, time), trimEnd);
+      videoRef.current.currentTime = clampedTime;
+      setCurrentTime(clampedTime);
     }
   };
 
-  const addCutPoint = () => {
-    setCutPoints([...cutPoints, currentTime].sort((a, b) => a - b));
+  const jumpToTrimStart = () => {
+    handleSeek(trimStart);
   };
 
-  const removeCutPoint = (index: number) => {
-    const newCutPoints = [...cutPoints];
-    newCutPoints.splice(index, 1);
-    setCutPoints(newCutPoints);
+  const jumpToTrimEnd = () => {
+    handleSeek(trimEnd);
   };
 
-  const createSegment = (start: number, end: number): TimelineSegment => {
-    return {
-      id: `segment-${Date.now()}-${Math.random()}`,
-      start,
-      end,
-      duration: end - start,
-      blob: videoBlob // In real implementation, this would be the actual segment blob
-    };
-  };
-
-  const splitSegment = () => {
-    if (cutPoints.length === 0) return;
-
-    const newSegments: TimelineSegment[] = [];
-    let lastPoint = 0;
-
-    cutPoints.forEach(cutPoint => {
-      if (cutPoint > lastPoint && cutPoint < duration) {
-        newSegments.push(createSegment(lastPoint, cutPoint));
-        lastPoint = cutPoint;
-      }
-    });
-
-    // Add final segment
-    if (lastPoint < duration) {
-      newSegments.push(createSegment(lastPoint, duration));
-    }
-
-    setSegments(newSegments);
-    setCutPoints([]);
-  };
-
-  const removeSegment = (segmentId: string) => {
-    setSegments(segments.filter(segment => segment.id !== segmentId));
-  };
-
-  const exportEditedVideo = async () => {
+  const exportTrimmedVideo = async () => {
     setIsProcessing(true);
     
     try {
-      // In a real implementation, this would use FFmpeg.js or a server endpoint
-      // For now, we'll simulate the process and return the original blob
-      // In production, this would actually process the segments
-      
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing
-      
-      // For demo purposes, we'll just return the first segment's blob
-      // In reality, you'd concatenate all segments
-      const finalBlob = segments.length > 0 ? segments[0].blob : videoBlob;
-      
-      onEditComplete(finalBlob);
+      if (trimStart === 0 && trimEnd === duration) {
+        // No trimming needed
+        onEditComplete(videoBlob);
+        return;
+      }
+
+      // Process the video with trim points
+      const trimmedBlob = await processTrimmedVideo(trimStart, trimEnd);
+      onEditComplete(trimmedBlob);
     } catch (error) {
       console.error('Export failed:', error);
+      alert('Failed to export video. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const processTrimmedVideo = async (start: number, end: number): Promise<Blob> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const video = videoRef.current;
+        if (!video) {
+          reject(new Error('Video element not found'));
+          return;
+        }
+
+        // Create canvas for capturing frames
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        // Create MediaRecorder
+        const stream = canvas.captureStream(30);
+        const chunks: Blob[] = [];
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp9,opus',
+          videoBitsPerSecond: 2500000
+        });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const finalBlob = new Blob(chunks, { type: 'video/webm' });
+          resolve(finalBlob);
+        };
+
+        mediaRecorder.onerror = (error) => {
+          reject(error);
+        };
+
+        // Start recording
+        mediaRecorder.start(100);
+
+        // Seek to start and play
+        video.currentTime = start;
+        
+        await new Promise<void>((resolvePlayback) => {
+          video.onseeked = () => {
+            video.play();
+            
+            const captureFrame = () => {
+              if (video.currentTime >= end) {
+                video.pause();
+                mediaRecorder.stop();
+                resolvePlayback();
+                return;
+              }
+              
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              requestAnimationFrame(captureFrame);
+            };
+
+            captureFrame();
+          };
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const ms = Math.floor((seconds % 1) * 10);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
+  };
+
+  const getTrimmedDuration = () => {
+    return trimEnd - trimStart;
+  };
+
+  const getTimelinePosition = (time: number) => {
+    return duration > 0 ? (time / duration) * 100 : 0;
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Scissors className="h-6 w-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Video Timeline Editor</h2>
+              <Scissors className="h-6 w-6 text-orange-600" />
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Trim Your Video</h2>
+                <p className="text-sm text-gray-600">Drag the handles to select the part you want to keep</p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <button
@@ -203,9 +276,9 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                 Cancel
               </button>
               <button
-                onClick={exportEditedVideo}
-                disabled={isProcessing || segments.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={exportTrimmedVideo}
+                disabled={isProcessing}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 {isProcessing ? (
                   <>
@@ -215,7 +288,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4 inline mr-2" />
-                    Export Video
+                    Save Trimmed Video
                   </>
                 )}
               </button>
@@ -223,166 +296,203 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row h-[calc(90vh-80px)]">
+        {/* Help Banner */}
+        {showHelp && (
+          <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-start justify-between flex-shrink-0">
+            <div className="flex items-start space-x-2">
+              <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900">
+                <p className="font-medium">How to trim:</p>
+                <p>Drag the <span className="font-semibold">orange handles</span> on the timeline to select the part you want to keep. Everything outside will be removed.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Video Preview */}
-          <div className="lg:w-2/3 p-6 border-r border-gray-200">
-            <div className="bg-black rounded-lg overflow-hidden mb-4">
+          <div className="flex-1 bg-black flex items-center justify-center p-6">
+            <div className="relative w-full h-full max-w-4xl">
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-64 lg:h-96 object-contain"
-                onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+                className="w-full h-full object-contain rounded-lg"
+                onTimeUpdate={() => {
+                  const time = videoRef.current?.currentTime || 0;
+                  setCurrentTime(time);
+                  // Auto-pause at trim end
+                  if (time >= trimEnd && isPlaying) {
+                    videoRef.current?.pause();
+                    setIsPlaying(false);
+                  }
+                }}
                 onEnded={() => setIsPlaying(false)}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
               />
+              
+              {/* Time Display Overlay */}
+              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm font-mono">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </div>
             </div>
+          </div>
 
-            {/* Video Controls */}
-            <div className="flex items-center justify-center space-x-4 mb-4">
+          {/* Controls */}
+          <div className="bg-gray-50 border-t border-gray-200 p-6 flex-shrink-0">
+            {/* Playback Controls */}
+            <div className="flex items-center justify-center space-x-4 mb-6">
               <button
-                onClick={() => handleSeek(Math.max(0, currentTime - 5))}
-                className="p-2 text-gray-600 hover:text-gray-800"
+                onClick={jumpToTrimStart}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Jump to trim start"
+              >
+                <SkipBack className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => handleSeek(Math.max(trimStart, currentTime - 5))}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Rewind 5 seconds"
               >
                 <Rewind className="h-5 w-5" />
               </button>
               <button
                 onClick={handlePlayPause}
-                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700"
+                className="p-4 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors shadow-lg"
               >
-                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
               </button>
               <button
-                onClick={() => handleSeek(Math.min(duration, currentTime + 5))}
-                className="p-2 text-gray-600 hover:text-gray-800"
+                onClick={() => handleSeek(Math.min(trimEnd, currentTime + 5))}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Forward 5 seconds"
               >
                 <FastForward className="h-5 w-5" />
               </button>
               <button
-                onClick={addCutPoint}
-                className="p-2 text-red-600 hover:text-red-800"
-                title="Add cut point at current time"
+                onClick={jumpToTrimEnd}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Jump to trim end"
               >
-                <Scissors className="h-5 w-5" />
+                <SkipForward className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Current Time Display */}
-            <div className="text-center text-gray-600">
-              <Clock className="h-4 w-4 inline mr-2" />
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-          </div>
-
-          {/* Timeline & Segments */}
-          <div className="lg:w-1/3 p-6 bg-gray-50 overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Timeline Editor</h3>
-
-            {/* Cut Points */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-700">Cut Points</h4>
-                <button
-                  onClick={splitSegment}
-                  disabled={cutPoints.length === 0}
-                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Split at Points
-                </button>
-              </div>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {cutPoints.map((point, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded">
-                    <span className="text-sm text-gray-600">
-                      Cut at {formatTime(point)}
-                    </span>
-                    <button
-                      onClick={() => removeCutPoint(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                {cutPoints.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    Click the scissors icon to add cut points
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Segments */}
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Video Segments</h4>
-              <div className="space-y-2">
-                {segments.map((segment, index) => (
-                  <div
-                    key={segment.id}
-                    className="p-3 bg-white border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">Segment {index + 1}</span>
-                      {segments.length > 1 && (
-                        <button
-                          onClick={() => removeSegment(segment.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatTime(segment.start)} - {formatTime(segment.end)} 
-                      ({formatTime(segment.duration)})
-                    </div>
-                    {/* Timeline visualization */}
-                    <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{
-                          width: `${(segment.duration / duration) * 100}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Timeline Canvas */}
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-700">Timeline Preview</h4>
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
-                    className="p-1 text-gray-600 hover:text-gray-800"
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setZoom(Math.min(2, zoom + 0.25))}
-                    className="p-1 text-gray-600 hover:text-gray-800"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </button>
+            {/* Timeline */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Trimmed Duration: <span className="font-semibold text-gray-900">{formatTime(getTrimmedDuration())}</span></span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Start: {formatTime(trimStart)} • End: {formatTime(trimEnd)}
                 </div>
               </div>
-              <canvas
-                ref={canvasRef}
-                width={400}
-                height={80}
-                className="w-full h-20 bg-gray-800 rounded border border-gray-300 cursor-pointer"
+
+              {/* Visual Timeline */}
+              <div
+                ref={timelineRef}
+                className="relative h-20 bg-gray-200 rounded-lg cursor-pointer overflow-hidden select-none"
                 onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const clickX = e.clientX - rect.left;
-                  const time = (clickX / rect.width) * duration;
-                  handleSeek(time);
+                  if (!isDraggingRef.current && timelineRef.current && duration > 0) {
+                    const rect = timelineRef.current.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const time = (x / rect.width) * duration;
+                    if (isFinite(time) && time >= 0) {
+                      handleSeek(time);
+                    }
+                  }
                 }}
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              >
+                {/* Trimmed Region */}
+                <div
+                  className="absolute top-0 bottom-0 bg-orange-400/30 border-l-4 border-r-4 border-orange-600"
+                  style={{
+                    left: `${getTimelinePosition(trimStart)}%`,
+                    right: `${100 - getTimelinePosition(trimEnd)}%`
+                  }}
+                />
+
+                {/* Removed Regions */}
+                <div
+                  className="absolute top-0 bottom-0 bg-gray-400/50 backdrop-blur-sm"
+                  style={{
+                    left: 0,
+                    right: `${100 - getTimelinePosition(trimStart)}%`
+                  }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-600 font-medium">
+                    Will be removed
+                  </div>
+                </div>
+                <div
+                  className="absolute top-0 bottom-0 bg-gray-400/50 backdrop-blur-sm"
+                  style={{
+                    left: `${getTimelinePosition(trimEnd)}%`,
+                    right: 0
+                  }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-600 font-medium">
+                    Will be removed
+                  </div>
+                </div>
+
+                {/* Current Time Indicator */}
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-blue-600 z-10"
+                  style={{ left: `${getTimelinePosition(currentTime)}%` }}
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-600 rounded-full"></div>
+                </div>
+
+                {/* Trim Start Handle */}
+                <div
+                  className="absolute top-0 bottom-0 w-6 bg-orange-600 cursor-ew-resize hover:bg-orange-700 transition-colors z-20 flex items-center justify-center select-none shadow-lg touch-none"
+                  style={{ left: `${getTimelinePosition(trimStart)}%`, transform: 'translateX(-50%)' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isDraggingRef.current = 'start';
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isDraggingRef.current = 'start';
+                  }}
+                >
+                  <div className="w-1 h-10 bg-white rounded-full shadow"></div>
+                </div>
+
+                {/* Trim End Handle */}
+                <div
+                  className="absolute top-0 bottom-0 w-6 bg-orange-600 cursor-ew-resize hover:bg-orange-700 transition-colors z-20 flex items-center justify-center select-none shadow-lg touch-none"
+                  style={{ left: `${getTimelinePosition(trimEnd)}%`, transform: 'translateX(-50%)' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isDraggingRef.current = 'end';
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isDraggingRef.current = 'end';
+                  }}
+                >
+                  <div className="w-1 h-10 bg-white rounded-full shadow"></div>
+                </div>
+              </div>
+
+              {/* Time Markers */}
+              <div className="flex justify-between text-xs text-gray-500 px-1">
                 <span>0:00</span>
+                <span>{formatTime(duration / 2)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>

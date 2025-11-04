@@ -1,84 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
+import FormInput from './FormInput';
+import FormError from './FormError';
+import LoadingButton from './LoadingButton';
+import { extractErrorMessage } from '../../utils/errorMessages';
+import { useFormValidation, validationRules } from '../../hooks/useFormValidation';
+
+interface LoginFormData {
+  email: string;
+  password: string;
+}
 
 const LoginForm: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isFormValid, setIsFormValid] = useState(false);
   
-  const navigate = useNavigate();
   const { login } = useAuth();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  const submitRef = useRef<HTMLButtonElement>(null);
 
-  // Enhanced validation with better error messages
-  const validateField = (name: string, value: string): string => {
-    switch (name) {
-      case 'email':
-        if (!value.trim()) {
-          return 'Email address is required';
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return 'Please enter a valid email address';
-        }
-        return '';
-      case 'password':
-        if (!value) {
-          return 'Password is required';
-        }
-        if (value.length < 6) {
-          return 'Password must be at least 6 characters long';
-        }
-        return '';
-      default:
-        return '';
+  // Form validation configuration with debouncing
+  const {
+    errors,
+    touched,
+    isValid,
+    validateField,
+    validateForm,
+    setFieldTouched,
+    clearFieldError,
+  } = useFormValidation<LoginFormData>({
+    email: {
+      rules: [
+        validationRules.required('Email address is required'),
+        validationRules.email('Please enter a valid email address'),
+      ],
+      validateOnBlur: true,
+      debounceMs: 300,
+    },
+    password: {
+      rules: [
+        validationRules.required('Password is required'),
+        validationRules.minLength(6, 'Password must be at least 6 characters long'),
+      ],
+      validateOnBlur: true,
+      debounceMs: 300,
+    },
+  });
+
+  // Debounced validation for real-time feedback
+  const [validationTimers, setValidationTimers] = useState<Record<string, NodeJS.Timeout>>({});
+
+  const debouncedValidate = useCallback((fieldName: keyof LoginFormData, value: string) => {
+    // Clear existing timer for this field
+    if (validationTimers[fieldName]) {
+      clearTimeout(validationTimers[fieldName]);
     }
-  };
 
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-    
-    Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key as keyof typeof formData]);
-      if (error) {
-        errors[key] = error;
+    // Set new timer
+    const timer = setTimeout(() => {
+      if (touched[fieldName]) {
+        validateField(fieldName, value);
       }
-    });
-    
-    setValidationErrors(errors);
-    const isValid = Object.keys(errors).length === 0;
-    setIsFormValid(isValid);
-    return isValid;
-  };
+    }, 300);
 
-  // Real-time validation
-  useEffect(() => {
-    if (Object.keys(touched).length > 0) {
-      validateForm();
-    }
-  }, [formData, touched]);
+    setValidationTimers(prev => ({
+      ...prev,
+      [fieldName]: timer,
+    }));
+  }, [touched, validateField, validationTimers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mark all fields as touched
-    setTouched({ email: true, password: true });
+    // Validate form
+    const isFormValid = validateForm(formData);
     
-    if (!validateForm()) {
-      // Focus on first error field
-      const firstErrorField = Object.keys(validationErrors)[0];
+    if (!isFormValid) {
+      // Auto-focus on first error field
+      const firstErrorField = Object.keys(errors)[0] as keyof LoginFormData;
       if (firstErrorField === 'email' && emailRef.current) {
         emailRef.current.focus();
       } else if (firstErrorField === 'password' && passwordRef.current) {
@@ -95,29 +102,18 @@ const LoginForm: React.FC = () => {
       await login(formData.email, formData.password);
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
-      // No explicit navigation here, PublicRoute will handle redirection to /dashboard
-      // based on isAuthenticated status.
+      // Display success message for 1 second before redirect
+      setTimeout(() => {
+        // PublicRoute will handle redirection to /dashboard based on isAuthenticated status
+      }, 1000);
     } catch (err: any) {
       console.error('Login error:', err);
       
-      // Enhanced error messages that are actionable and non-technical
-      let errorMessage = 'Something went wrong. Please try again.';
-      
-      if (err.response?.status === 401) {
-        errorMessage = 'The email or password you entered is incorrect. Please check your credentials and try again.';
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Your account has been deactivated. Please contact support for assistance.';
-      } else if (err.response?.status === 429) {
-        errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Our servers are temporarily unavailable. Please try again in a few minutes.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
+      // Use error message utility to get user-friendly message
+      const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
       
-      // Focus on email field for retry
+      // Auto-focus on email field for retry
       if (emailRef.current) {
         emailRef.current.focus();
       }
@@ -128,211 +124,148 @@ const LoginForm: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const fieldName = name as keyof LoginFormData;
     
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [fieldName]: value
     }));
     
-    // Clear error when user starts typing
+    // Clear global error when user starts typing
     if (error) {
       setError(null);
     }
     if (successMessage) {
       setSuccessMessage(null);
     }
+
+    // Clear field error immediately when user starts correcting
+    if (errors[fieldName] && touched[fieldName]) {
+      clearFieldError(fieldName);
+    }
+
+    // Debounced validation for real-time feedback
+    if (touched[fieldName]) {
+      debouncedValidate(fieldName, value);
+    }
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name } = e.target;
-    setTouched(prev => ({ ...prev, [name]: true }));
+    const fieldName = name as keyof LoginFormData;
+    
+    // Mark field as touched
+    setFieldTouched(fieldName, true);
+    
+    // Validate field immediately on blur
+    validateField(fieldName, formData[fieldName]);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle Enter key for better keyboard navigation
     if (e.key === 'Enter' && !isLoading) {
-      if (e.target === emailRef.current && passwordRef.current) {
+      if (e.currentTarget.name === 'email' && passwordRef.current) {
+        e.preventDefault();
         passwordRef.current.focus();
-      } else if (e.target === passwordRef.current && submitRef.current) {
-        submitRef.current.click();
+      } else if (e.currentTarget.name === 'password') {
+        // Let the form submit naturally
+        e.currentTarget.form?.requestSubmit();
       }
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {/* Success Message */}
-      {successMessage && (
-        <div 
-          className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-start animate-in slide-in-from-top-2 duration-300"
-          role="alert"
-          aria-live="polite"
-        >
-          <CheckCircle className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">{successMessage}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div 
-          className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-start animate-in slide-in-from-top-2 duration-300"
-          role="alert"
-          aria-live="assertive"
-        >
-          <AlertCircle className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">Login Failed</p>
-            <p className="text-sm mt-1">{error}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* Email Input */}
-      <div className="space-y-1">
-        <label 
-          htmlFor="email" 
-          className="block text-sm font-semibold text-gray-900"
-        >
-          Email Address
-          <span className="text-red-500 ml-1" aria-label="required">*</span>
-        </label>
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Mail className={`h-4 w-4 transition-colors duration-200 ${
-              validationErrors.email && touched.email 
-                ? 'text-red-400' 
-                : formData.email && !validationErrors.email 
-                ? 'text-green-500' 
-                : 'text-gray-400 group-focus-within:text-blue-500'
-            }`} />
-          </div>
-          <input
-            ref={emailRef}
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className={`block w-full pl-10 pr-4 py-3 border-2 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-gray-50/50 focus:bg-white text-gray-900 ${
-              validationErrors.email && touched.email 
-                ? 'border-red-300 focus:border-red-500' 
-                : formData.email && !validationErrors.email 
-                ? 'border-green-300 focus:border-green-500' 
-                : 'border-gray-200 focus:border-blue-500'
-            }`}
-            placeholder="Enter your email address"
-            aria-invalid={!!(validationErrors.email && touched.email)}
-            aria-describedby={validationErrors.email && touched.email ? "email-error" : "email-help"}
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate aria-label="Login form">
+      {/* Messages Section - Prominent positioning at top */}
+      <div className="space-y-3">
+        {/* Success Message */}
+        {successMessage && (
+          <FormError
+            type="info"
+            message={successMessage}
           />
-          {formData.email && !validationErrors.email && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </div>
-          )}
-        </div>
-        {validationErrors.email && touched.email ? (
-          <p id="email-error" className="text-xs text-red-600 flex items-center">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            {validationErrors.email}
-          </p>
-        ) : (
-          <p id="email-help" className="text-xs text-gray-500">
-            
-          </p>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <FormError
+            type="error"
+            message={error}
+          />
         )}
       </div>
+      
+      {/* Credentials Section - Grouped inputs */}
+      <div className="space-y-4">
+        {/* Email Input */}
+        <FormInput
+          ref={emailRef}
+          id="email"
+          name="email"
+          type="email"
+          label="Email Address"
+          value={formData.email}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          error={errors.email}
+          touched={touched.email}
+          required
+          placeholder="Enter your email address"
+          icon={<Mail className="h-4 w-4" />}
+          autoComplete="email"
+          successIndicator
+          disabled={isLoading}
+        />
 
-      {/* Password Input */}
-      <div className="space-y-1">
-        <label 
-          htmlFor="password" 
-          className="block text-sm font-semibold text-gray-900"
-        >
-          Password
-          <span className="text-red-500 ml-1" aria-label="required">*</span>
-        </label>
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Lock className={`h-4 w-4 transition-colors duration-200 ${
-              validationErrors.password && touched.password 
-                ? 'text-red-400' 
-                : formData.password && !validationErrors.password 
-                ? 'text-green-500' 
-                : 'text-gray-400 group-focus-within:text-blue-500'
-            }`} />
-          </div>
-          <input
-            ref={passwordRef}
-            id="password"
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className={`block w-full pl-10 pr-12 py-3 border-2 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-gray-50/50 focus:bg-white text-gray-900 ${
-              validationErrors.password && touched.password 
-                ? 'border-red-300 focus:border-red-500' 
-                : formData.password && !validationErrors.password 
-                ? 'border-green-300 focus:border-green-500' 
-                : 'border-gray-200 focus:border-blue-500'
-            }`}
-            placeholder="Enter your password"
-            aria-invalid={!!(validationErrors.password && touched.password)}
-            aria-describedby={validationErrors.password && touched.password ? "password-error" : "password-help"}
-          />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            tabIndex={0}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors duration-200" />
-            ) : (
-              <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors duration-200" />
-            )}
-          </button>
-        </div>
-        {validationErrors.password && touched.password ? (
-          <p id="password-error" className="text-xs text-red-600 flex items-center">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            {validationErrors.password}
-          </p>
-        ) : (
-          <p id="password-help" className="text-xs text-gray-500">
-            
-          </p>
-        )}
+        {/* Password Input */}
+        <FormInput
+          ref={passwordRef}
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          value={formData.password}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.password}
+          touched={touched.password}
+          required
+          placeholder="Enter your password"
+          icon={<Lock className="h-4 w-4" />}
+          showPasswordToggle
+          autoComplete="current-password"
+          successIndicator
+          disabled={isLoading}
+        />
       </div>
 
       {/* Remember me & Forgot password */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
+      <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+        <div className="flex items-center min-h-[44px]">
           <input
             id="remember-me"
             name="remember-me"
             type="checkbox"
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors duration-200"
+            disabled={isLoading}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            aria-describedby="remember-me-description"
           />
-          <label htmlFor="remember-me" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
+          <label 
+            htmlFor="remember-me" 
+            className="ml-2 sm:ml-3 block text-xs sm:text-sm font-medium text-gray-700 cursor-pointer"
+          >
             Remember me for 30 days
           </label>
+          <span id="remember-me-description" className="sr-only">
+            Keep me signed in on this device for 30 days
+          </span>
         </div>
 
-        <div className="text-sm">
+        <div className="text-xs sm:text-sm min-h-[44px] flex items-center">
           <Link 
             to="/forgot-password" 
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-2"
             aria-label="Reset your password"
           >
             Forgot password?
@@ -340,40 +273,42 @@ const LoginForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Submit Button */}
-      <button
-        ref={submitRef}
-        type="submit"
-        disabled={isLoading || !isFormValid}
-        className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 hover:from-blue-700 hover:via-blue-800 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] hover:shadow-xl disabled:transform-none disabled:hover:shadow-lg"
-        aria-describedby="submit-help"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Signing you in...
-          </>
-        ) : (
-          <>
-            Sign in to your account
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </>
-        )}
-      </button>
-      {/* <p id="submit-help" className="text-xs text-gray-500 text-center">
-        {isLoading ? 'Please wait while we sign you in...' : 'Click to access your spiritual learning journey'}
-      </p> */}
+      {/* Primary Action Section - Prominent submit button */}
+      <div className="pt-2">
+        <LoadingButton
+          type="submit"
+          isLoading={isLoading}
+          disabled={!isValid && Object.keys(touched).length > 0}
+          loadingText="Signing you in..."
+          variant="primary"
+          size="md"
+          icon={!isLoading ? <ArrowRight className="w-4 h-4 ml-2" /> : undefined}
+        >
+          Sign in to your account
+        </LoadingButton>
+      </div>
 
-      {/* Social Login Buttons */}
-      <SocialLoginButtons />
+      {/* Alternative Login Section */}
+      <div className="space-y-4 pt-2">
+        <div className="relative" role="separator" aria-label="Or continue with social login">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-xs sm:text-sm">
+            <span className="px-3 bg-white text-gray-500 font-medium">Or continue with</span>
+          </div>
+        </div>
+
+        <SocialLoginButtons />
+      </div>
 
       {/* Sign up link */}
-      <div className="text-center pt-4 border-t border-gray-200">
-        <p className="text-sm text-gray-600">
+      <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign up navigation">
+        <p className="text-xs sm:text-sm text-gray-600">
           New to our community?{' '}
           <Link 
             to="/register" 
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Create a new account"
           >
             Create your account

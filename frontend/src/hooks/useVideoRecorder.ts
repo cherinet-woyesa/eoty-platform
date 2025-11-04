@@ -1,5 +1,14 @@
 // frontend/src/hooks/useVideoRecorder.ts
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { VideoCompositor } from '../utils/VideoCompositor';
+import type { PerformanceMetrics, LayoutType } from '../types/VideoCompositor';
+import { 
+  checkBrowserSupport, 
+  getBrowserCompatibilityMessage,
+  getBrowserSpecificBehavior,
+  logBrowserCompatibility,
+  type BrowserSupport 
+} from '../utils/BrowserCompatibility';
 
 // Extended interface for multi-source recording with slide support
 interface RecorderOptions {
@@ -82,9 +91,30 @@ interface UseVideoRecorderReturn {
   recordingSources: RecordingSources;
   currentLayout: string;
   setLayout: (layout: RecorderOptions['layout']) => void;
+  changeLayout: (layout: RecorderOptions['layout']) => void; // Task 3.5
   startScreenShare: () => Promise<void>;
   stopScreenShare: () => void;
+  addScreenShare: () => Promise<void>; // Task 3.4
+  removeScreenShare: () => Promise<void>; // Task 3.4
   isScreenSharing: boolean;
+  
+  // Compositor properties (Task 3.1)
+  compositorInstance: VideoCompositor | null;
+  isCompositing: boolean;
+  compositorLayout: LayoutType;
+  performanceMetrics: PerformanceMetrics;
+  
+  // Audio mixing controls (Task 8)
+  setAudioVolume: (sourceId: string, volume: number) => boolean;
+  setAudioMuted: (sourceId: string, muted: boolean) => boolean;
+  getAudioVolume: (sourceId: string) => number;
+  isAudioMuted: (sourceId: string) => boolean;
+  getAudioLevels: () => import('../utils/AudioMixer').AudioLevelData[];
+  startAudioLevelMonitoring: (callback: (levels: import('../utils/AudioMixer').AudioLevelData[]) => void) => void;
+  stopAudioLevelMonitoring: () => void;
+  
+  // Task 6.2: Browser compatibility
+  browserSupport: BrowserSupport | null;
   
   // Session management
   currentSession: RecordingSession | null;
@@ -156,6 +186,21 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentSession, setCurrentSession] = useState<RecordingSession | null>(null);
 
+  // Compositor state management (Task 3.1)
+  const [compositorInstance, setCompositorInstance] = useState<VideoCompositor | null>(null);
+  const [isCompositing, setIsCompositing] = useState(false);
+  const [compositorLayout, setCompositorLayout] = useState<LayoutType>('picture-in-picture');
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
+    fps: 0,
+    droppedFrames: 0,
+    averageRenderTime: 0,
+    memoryUsage: 0,
+    isPerformanceGood: true
+  });
+
+  // Task 6.2: Browser compatibility state
+  const [browserSupport, setBrowserSupport] = useState<BrowserSupport | null>(null);
+
   // NEW: Production state
   const [recordingStats, setRecordingStats] = useState<RecordingStats>({
     fileSize: 0,
@@ -185,7 +230,87 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     setRecordingTime(time);
   }, []);
 
-  // NEW: Enhanced cleanup function with production features
+  // Task 3.2: Compositor initialization logic with Task 6.2 fallback mechanisms
+  const initializeCompositor = useCallback(async (): Promise<VideoCompositor | null> => {
+    try {
+      console.log('Initializing VideoCompositor...');
+      
+      // Task 6.2: Check browser support before initializing compositor
+      // If not checked yet, check it now
+      const support = browserSupport || checkBrowserSupport();
+      if (!browserSupport) {
+        setBrowserSupport(support);
+      }
+      
+      // Task 6.2: Fallback to single-source if compositor not supported
+      if (!support.canUseCompositor) {
+        console.warn('Compositor not supported - falling back to single-source');
+        const message = getBrowserCompatibilityMessage(support);
+        setError(message);
+        return null;
+      }
+      
+      // Additional capability checks
+      if (!HTMLCanvasElement.prototype.captureStream) {
+        console.warn('Canvas captureStream not supported - falling back to single-source');
+        setError('Multi-source recording not supported in this browser');
+        return null;
+      }
+      
+      if (!support.canRecordVideo) {
+        console.warn('Video recording not supported - cannot initialize compositor');
+        setError('Video recording not fully supported in this browser');
+        return null;
+      }
+      
+      // Determine resolution for compositor canvas
+      let width = 1920;
+      let height = 1080;
+      
+      switch (options.resolution) {
+        case '1080p':
+          width = 1920;
+          height = 1080;
+          break;
+        case '720p':
+          width = 1280;
+          height = 720;
+          break;
+        case '480p':
+          width = 854;
+          height = 480;
+          break;
+      }
+      
+      // Create compositor instance with audio enabled
+      const compositor = new VideoCompositor(width, height, options.enableAudio);
+      
+      // Set up performance warning callback
+      compositor.setPerformanceWarningCallback((message: string) => {
+        console.warn('Compositor performance warning:', message);
+        setError(message);
+        
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
+      });
+      
+      console.log('VideoCompositor initialized successfully', { width, height });
+      setCompositorInstance(compositor);
+      setIsCompositing(true);
+      
+      return compositor;
+      
+    } catch (err: any) {
+      console.error('Failed to initialize compositor:', err);
+      setError('Failed to initialize video compositor: ' + err.message);
+      setIsCompositing(false);
+      return null;
+    }
+  }, [options.resolution]);
+
+  // NEW: Enhanced cleanup function with production features and compositor disposal
   const cleanupLocalStreams = useCallback(() => {
     console.log('Cleaning up local recorder state');
     
@@ -212,6 +337,14 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       debugIntervalRef.current = null;
     }
     
+    // Dispose compositor
+    if (compositorInstance) {
+      console.log('Disposing compositor');
+      compositorInstance.dispose();
+      setCompositorInstance(null);
+      setIsCompositing(false);
+    }
+    
     // Reset stats
     setRecordingStats({
       fileSize: 0,
@@ -222,8 +355,16 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       duration: 0
     });
     
+    setPerformanceMetrics({
+      fps: 0,
+      droppedFrames: 0,
+      averageRenderTime: 0,
+      memoryUsage: 0,
+      isPerformanceGood: true
+    });
+    
     lastChunkSizeRef.current = 0;
-  }, [options.resolution]);
+  }, [options.resolution, compositorInstance]);
 
   // NEW: Enhanced device constraints based on quality settings
   const getVideoConstraints = useCallback((deviceId?: string) => {
@@ -269,8 +410,53 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     };
   }, [options.enableAudio]);
 
-  // NEW: Enhanced screen sharing with dynamic track switching during recording
-  const startScreenShare = useCallback(async () => {
+  // Task 3.6: Source loss detection and handling
+  const handleSourceLoss = useCallback((sourceType: 'camera' | 'screen') => {
+    console.warn(`Source lost: ${sourceType}`);
+    
+    if (!isRecording) {
+      return;
+    }
+    
+    // Automatic layout adjustment on source loss
+    if (compositorInstance) {
+      if (sourceType === 'screen' && recordingSources.camera) {
+        // Screen lost, switch to camera-only
+        console.log('Screen lost during recording - switching to camera-only');
+        compositorInstance.removeVideoSource('screen');
+        compositorInstance.applyLayoutByType('camera-only', true);
+        setCompositorLayout('camera-only');
+        setCurrentLayout('camera-only');
+      } else if (sourceType === 'camera' && recordingSources.screen) {
+        // Camera lost, switch to screen-only
+        console.log('Camera lost during recording - switching to screen-only');
+        compositorInstance.removeVideoSource('camera');
+        compositorInstance.applyLayoutByType('screen-only', true);
+        setCompositorLayout('screen-only');
+        setCurrentLayout('screen-only');
+      } else {
+        // Both sources lost or last source lost - critical error
+        console.error('Critical: All sources lost during recording');
+        setError('Recording source lost. Saving partial recording...');
+        
+        // Save partial recording
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      }
+    }
+    
+    // Create error notification
+    setError(`${sourceType === 'camera' ? 'Camera' : 'Screen'} source lost. Layout adjusted automatically.`);
+    
+    // Clear error after 5 seconds
+    setTimeout(() => {
+      setError(null);
+    }, 5000);
+  }, [isRecording, compositorInstance, recordingSources]);
+  
+  // Task 3.4: Enhanced screen sharing with dynamic source addition during recording
+  const addScreenShare = useCallback(async () => {
     try {
       setError(null);
       setNetworkStatus(prev => ({ ...prev, status: 'online' }));
@@ -289,16 +475,18 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       // Track active screen streams for cleanup
       activeScreenStreams.add(screenStream);
 
-      // Handle when user stops screen share via browser UI
+      // Task 3.6: Handle when user stops screen share via browser UI (source loss)
       screenStream.getVideoTracks()[0].addEventListener('ended', () => {
         console.log('Screen share ended by user');
-        stopScreenShare();
+        handleSourceLoss('screen');
+        removeScreenShare();
       });
 
-      // Handle track errors
+      // Task 3.6: Handle track errors (source loss)
       screenStream.getTracks().forEach(track => {
         track.addEventListener('error', (error) => {
           console.error('Screen share track error:', error);
+          handleSourceLoss('screen');
           setError('Screen sharing encountered an error');
         });
       });
@@ -309,8 +497,25 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       }));
       setIsScreenSharing(true);
 
-      // IMPORTANT: If recording is active, automatically switch layout to screen-only
-      if (isRecording) {
+      // Dynamic source addition during recording
+      if (isRecording && compositorInstance) {
+        console.log('Adding screen share to active compositor');
+        
+        // Add screen source to compositor
+        compositorInstance.addVideoSource('screen', screenStream, {
+          visible: true,
+          opacity: 1.0
+        });
+        
+        // Automatically adjust layout to picture-in-picture (500ms transition)
+        const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
+        compositorInstance.applyLayoutByType(newLayout, true);
+        setCompositorLayout(newLayout);
+        setCurrentLayout(newLayout as RecorderOptions['layout']);
+        
+        console.log('Screen share added dynamically with smooth transition:', newLayout);
+      } else if (isRecording) {
+        // Fallback: switch layout for non-compositor recording
         console.log('Recording is active - switching layout to screen-only');
         setCurrentLayout('screen-only');
       }
@@ -318,7 +523,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       console.log('Screen sharing started successfully', {
         videoTracks: screenStream.getVideoTracks().length,
         audioTracks: screenStream.getAudioTracks().length,
-        duringRecording: isRecording
+        duringRecording: isRecording,
+        usingCompositor: !!compositorInstance
       });
 
     } catch (err: any) {
@@ -336,20 +542,34 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setError(errorMessage);
       setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
     }
-  }, [options.enableAudio, options.frameRate, isRecording]);
+  }, [options.enableAudio, options.frameRate, isRecording, compositorInstance, recordingSources.camera]);
+  
+  // Maintain backward compatibility
+  const startScreenShare = addScreenShare;
 
-  // NEW: Enhanced screen share cleanup with dynamic track switching
-  const stopScreenShare = useCallback(async () => {
+  // Task 3.4: Enhanced screen share removal with dynamic source management
+  const removeScreenShare = useCallback(async () => {
     if (recordingSources.screen) {
       // Remove from active streams
       activeScreenStreams.delete(recordingSources.screen);
       
-      // IMPORTANT: If recording is active, switch layout back to picture-in-picture
-      if (isRecording && recordingSources.camera) {
-        console.log('Recording is active - switching layout back to picture-in-picture');
-        setCurrentLayout('picture-in-picture');
-      } else if (isRecording) {
-        // If no camera, switch to camera-only (will show nothing until camera is enabled)
+      // Dynamic source removal during recording
+      if (isRecording && compositorInstance) {
+        console.log('Removing screen share from active compositor');
+        
+        // Remove screen source from compositor
+        compositorInstance.removeVideoSource('screen');
+        
+        // Automatically adjust layout (500ms transition)
+        const newLayout: LayoutType = recordingSources.camera ? 'camera-only' : 'screen-only';
+        compositorInstance.applyLayoutByType(newLayout, true);
+        setCompositorLayout(newLayout);
+        setCurrentLayout(newLayout as RecorderOptions['layout']);
+        
+        console.log('Screen share removed dynamically with smooth transition:', newLayout);
+      } else if (isRecording && recordingSources.camera) {
+        // Fallback: switch layout for non-compositor recording
+        console.log('Recording is active - switching layout back to camera-only');
         setCurrentLayout('camera-only');
       }
       
@@ -366,17 +586,44 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setIsScreenSharing(false);
       console.log('Screen sharing stopped and cleaned up');
     }
-  }, [recordingSources.screen, recordingSources.camera, isRecording]);
+  }, [recordingSources.screen, recordingSources.camera, isRecording, compositorInstance]);
+  
+  // Maintain backward compatibility
+  const stopScreenShare = removeScreenShare;
 
-  // Set layout with validation
-  const setLayout = useCallback((layout: RecorderOptions['layout']) => {
-    if (layout && ['picture-in-picture', 'side-by-side', 'screen-only', 'camera-only'].includes(layout)) {
-      setCurrentLayout(layout);
-      setOptionsState(prev => ({ ...prev, layout }));
-    } else {
+  // Task 3.5: Enhanced layout switching with real-time compositor support
+  const changeLayout = useCallback((layout: RecorderOptions['layout']) => {
+    if (!layout || !['picture-in-picture', 'side-by-side', 'screen-only', 'camera-only', 'presentation'].includes(layout)) {
       console.warn('Invalid layout:', layout);
+      return;
     }
-  }, []);
+    
+    console.log('Changing layout to:', layout, {
+      isRecording,
+      usingCompositor: !!compositorInstance
+    });
+    
+    // Update layout state
+    setCurrentLayout(layout);
+    setOptionsState(prev => ({ ...prev, layout }));
+    const layoutType = layout as LayoutType;
+    setCompositorLayout(layoutType);
+    
+    // Real-time layout change with compositor (works during recording or preview)
+    if (compositorInstance) {
+      try {
+        compositorInstance.applyLayoutByType(layoutType, true); // Enable smooth transition
+        console.log('Layout applied to compositor:', layoutType);
+      } catch (error) {
+        console.error('Failed to apply layout to compositor:', error);
+      }
+    } else {
+      console.warn('Compositor not initialized - layout will apply when compositor starts');
+    }
+  }, [isRecording, compositorInstance]);
+  
+  // Maintain backward compatibility
+  const setLayout = changeLayout;
 
   // NEW: Enhanced camera initialization with device switching support
   const initializeCamera = useCallback(async (deviceId?: string) => {
@@ -392,6 +639,15 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         setRecordingSources(prev => ({ ...prev, camera: globalStream }));
         setCameraInitialized(true);
         streamUsers++;
+        
+        // Task 3.6: Add source loss detection for reused stream
+        globalStream.getTracks().forEach(track => {
+          track.addEventListener('ended', () => {
+            console.log('Camera track ended');
+            handleSourceLoss('camera');
+          });
+        });
+        
         return;
       }
 
@@ -408,6 +664,19 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         audioTracks: mediaStream.getAudioTracks().length,
         active: mediaStream.active,
         deviceId: mediaStream.getVideoTracks()[0]?.getSettings().deviceId
+      });
+
+      // Task 3.6: Add source loss detection for camera tracks
+      mediaStream.getTracks().forEach(track => {
+        track.addEventListener('ended', () => {
+          console.log('Camera track ended');
+          handleSourceLoss('camera');
+        });
+        
+        track.addEventListener('error', (error) => {
+          console.error('Camera track error:', error);
+          handleSourceLoss('camera');
+        });
       });
 
       // Clean up previous global stream if switching devices
@@ -599,28 +868,127 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     return currentSession?.metadata.slides?.current || 0;
   }, [currentSession]);
 
-  // NEW: Enhanced recording with production features - FIXED MIME TYPE ISSUE
+  // Task 3.3: Enhanced recording with multi-source compositor support
   const startRecording = useCallback(async () => {
-    const combinedStream = createCombinedStream();
-    if (!combinedStream) {
-      console.error('Failed to create combined stream');
-      return;
-    }
+    // Detect if both camera and screen are available for compositing
+    const hasCamera = !!recordingSources.camera;
+    const hasScreen = !!recordingSources.screen;
+    const shouldUseCompositor = hasCamera && hasScreen;
     
-    // Validate stream has active tracks
-    const activeTracks = combinedStream.getTracks().filter(track => track.readyState === 'live');
-    if (activeTracks.length === 0) {
-      console.error('No active tracks in combined stream');
-      setError('No active media tracks available for recording');
-      return;
-    }
-    
-    console.log('Starting recording with active tracks:', {
-      total: combinedStream.getTracks().length,
-      active: activeTracks.length,
-      video: combinedStream.getVideoTracks().length,
-      audio: combinedStream.getAudioTracks().length
+    console.log('Starting recording...', {
+      hasCamera,
+      hasScreen,
+      shouldUseCompositor,
+      currentLayout
     });
+    
+    let recordingStream: MediaStream | null = null;
+    let compositor: VideoCompositor | null = null;
+    
+    // Multi-source compositing path
+    if (shouldUseCompositor) {
+      console.log('Using compositor for multi-source recording');
+      
+      // Initialize compositor
+      compositor = await initializeCompositor();
+      if (!compositor) {
+        console.warn('Compositor initialization failed, falling back to single-source');
+        // Fall through to single-source recording
+      } else {
+        try {
+          // Add camera source
+          if (recordingSources.camera) {
+            compositor.addVideoSource('camera', recordingSources.camera, {
+              visible: true,
+              opacity: 1.0
+            });
+            console.log('Added camera source to compositor');
+          }
+          
+          // Add screen source
+          if (recordingSources.screen) {
+            compositor.addVideoSource('screen', recordingSources.screen, {
+              visible: true,
+              opacity: 1.0
+            });
+            console.log('Added screen source to compositor');
+          }
+          
+          // Apply current layout
+          const layoutType = currentLayout as LayoutType || 'picture-in-picture';
+          compositor.applyLayoutByType(layoutType, false);
+          setCompositorLayout(layoutType);
+          console.log('Applied layout:', layoutType);
+          
+          // Start compositor and get composited stream with mixed audio
+          // The compositor now handles audio mixing internally
+          recordingStream = compositor.start();
+          
+          console.log('Composited stream created:', {
+            videoTracks: recordingStream.getVideoTracks().length,
+            audioTracks: recordingStream.getAudioTracks().length
+          });
+          
+          // Start performance monitoring
+          const metricsInterval = setInterval(() => {
+            if (compositor) {
+              const metrics = compositor.getPerformanceMetrics();
+              setPerformanceMetrics(metrics);
+              
+              if (!metrics.isPerformanceGood) {
+                console.warn('Compositor performance degraded:', metrics);
+              }
+            }
+          }, 2000);
+          
+          // Store interval for cleanup
+          statsTimerRef.current = metricsInterval;
+          
+        } catch (err: any) {
+          console.error('Compositor setup failed:', err);
+          setError('Failed to setup multi-source recording: ' + err.message);
+          if (compositor) {
+            compositor.dispose();
+          }
+          setCompositorInstance(null);
+          setIsCompositing(false);
+          return;
+        }
+      }
+    }
+    
+    // Single-source fallback or when compositor not needed
+    if (!recordingStream) {
+      console.log('Using single-source recording (backward compatibility)');
+      const combinedStream = createCombinedStream();
+      if (!combinedStream) {
+        console.error('Failed to create combined stream');
+        return;
+      }
+      
+      // Validate stream has active tracks
+      const activeTracks = combinedStream.getTracks().filter(track => track.readyState === 'live');
+      if (activeTracks.length === 0) {
+        console.error('No active tracks in combined stream');
+        setError('No active media tracks available for recording');
+        return;
+      }
+      
+      recordingStream = combinedStream;
+      console.log('Single-source stream created:', {
+        total: recordingStream.getTracks().length,
+        active: activeTracks.length,
+        video: recordingStream.getVideoTracks().length,
+        audio: recordingStream.getAudioTracks().length
+      });
+    }
+    
+    // Validate final recording stream
+    if (!recordingStream) {
+      console.error('No recording stream available');
+      setError('Failed to create recording stream');
+      return;
+    }
 
     try {
       setError(null);
@@ -656,37 +1024,44 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setCurrentSession(newSession);
       sessionStartTimeRef.current = Date.now();
 
-      // FIXED: Enhanced MIME type detection with VP8 priority for better compatibility
-      const mimeTypes = [
-        'video/webm; codecs=vp8,opus',  // Prioritize VP8 for better compatibility
-        'video/webm; codecs=vp9,opus',  // Fallback to VP9
-        'video/webm',                   // Basic WebM
-        'video/mp4; codecs=avc1.42E01E,mp4a.40.2', // MP4 fallback
-        'video/mp4',                    // Basic MP4
-      ];
-
+      // Task 6.2: Use browser-detected codec with fallback mechanism
       let supportedMimeType = 'video/webm; codecs=vp8,opus'; // Default to VP8
+      
+      if (browserSupport && browserSupport.suggestedCodec) {
+        // Use the codec suggested by browser compatibility check
+        supportedMimeType = browserSupport.suggestedCodec;
+        console.log('Using browser-suggested codec:', supportedMimeType);
+      } else {
+        // Fallback: Enhanced MIME type detection with VP8 priority for better compatibility
+        const mimeTypes = [
+          'video/webm; codecs=vp8,opus',  // Prioritize VP8 for better compatibility
+          'video/webm; codecs=vp9,opus',  // Fallback to VP9
+          'video/webm',                   // Basic WebM
+          'video/mp4; codecs=avc1.42E01E,mp4a.40.2', // MP4 fallback
+          'video/mp4',                    // Basic MP4
+        ];
 
-      // Try to find a supported type
-      for (const type of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          supportedMimeType = type;
-          console.log('Using MIME type:', type);
-          break;
+        // Try to find a supported type
+        for (const type of mimeTypes) {
+          if (MediaRecorder.isTypeSupported(type)) {
+            supportedMimeType = type;
+            console.log('Using fallback MIME type:', type);
+            break;
+          }
         }
       }
-
-      // Always use VP8 if available for better compatibility
-      if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8,opus')) {
-        supportedMimeType = 'video/webm; codecs=vp8,opus';
-        console.log('Forcing VP8 for better compatibility and server acceptance');
+      
+      // Task 6.2: Display capability warning if using fallback codec
+      if (browserSupport && !browserSupport.capabilities.vp9Codec && browserSupport.capabilities.vp8Codec) {
+        console.warn('Using VP8 codec - VP9 not available for better quality');
       }
 
       console.log('Starting enhanced recording with:', {
         mimeType: supportedMimeType,
         layout: currentLayout,
         resolution: options.resolution,
-        quality: options.quality
+        quality: options.quality,
+        usingCompositor: shouldUseCompositor
       });
 
       // Enhanced MediaRecorder options based on quality
@@ -708,7 +1083,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
           break;
       }
 
-      const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
+      const mediaRecorder = new MediaRecorder(recordingStream, recorderOptions);
       mediaRecorderRef.current = mediaRecorder;
 
       // Enhanced data available handler with stats tracking
@@ -838,11 +1213,13 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           console.log('Recording debug:', {
             state: mediaRecorderRef.current.state,
-            streamActive: combinedStream.active,
-            streamTracks: combinedStream.getTracks().length,
-            videoTracks: combinedStream.getVideoTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
-            audioTracks: combinedStream.getAudioTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
-            chunksCollected: recordedChunksRef.current.length
+            streamActive: recordingStream.active,
+            streamTracks: recordingStream.getTracks().length,
+            videoTracks: recordingStream.getVideoTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
+            audioTracks: recordingStream.getAudioTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
+            chunksCollected: recordedChunksRef.current.length,
+            usingCompositor: shouldUseCompositor,
+            compositorMetrics: compositor ? compositor.getPerformanceMetrics() : null
           });
         }
       }, 2000);
@@ -852,9 +1229,17 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setError('Failed to start recording: ' + err.message);
       setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
       setIsRecording(false);
+      
+      // Cleanup compositor on error
+      if (compositor) {
+        compositor.dispose();
+        setCompositorInstance(null);
+        setIsCompositing(false);
+      }
+      
       cleanupLocalStreams();
     }
-  }, [createCombinedStream, currentLayout, recordingSources, options, cleanupLocalStreams]);
+  }, [createCombinedStream, currentLayout, recordingSources, options, cleanupLocalStreams, initializeCompositor]);
 
   // Enhanced stop recording
   const stopRecording = useCallback(() => {
@@ -1087,6 +1472,98 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     return ['480p', '720p', '1080p'];
   }, []);
 
+  // Task 8.2: Audio mixing control functions
+  const setAudioVolume = useCallback((sourceId: string, volume: number): boolean => {
+    if (!compositorInstance) {
+      console.warn('Compositor not available for audio control');
+      return false;
+    }
+    return compositorInstance.setAudioVolume(sourceId, volume);
+  }, [compositorInstance]);
+
+  const setAudioMuted = useCallback((sourceId: string, muted: boolean): boolean => {
+    if (!compositorInstance) {
+      console.warn('Compositor not available for audio control');
+      return false;
+    }
+    return compositorInstance.setAudioMuted(sourceId, muted);
+  }, [compositorInstance]);
+
+  const getAudioVolume = useCallback((sourceId: string): number => {
+    if (!compositorInstance) {
+      return 0;
+    }
+    return compositorInstance.getAudioVolume(sourceId);
+  }, [compositorInstance]);
+
+  const isAudioMuted = useCallback((sourceId: string): boolean => {
+    if (!compositorInstance) {
+      return false;
+    }
+    return compositorInstance.isAudioMuted(sourceId);
+  }, [compositorInstance]);
+
+  const getAudioLevels = useCallback(() => {
+    if (!compositorInstance) {
+      return [];
+    }
+    return compositorInstance.getAllAudioLevels();
+  }, [compositorInstance]);
+
+  const startAudioLevelMonitoring = useCallback((callback: (levels: import('../utils/AudioMixer').AudioLevelData[]) => void) => {
+    if (!compositorInstance) {
+      console.warn('Compositor not available for audio monitoring');
+      return;
+    }
+    compositorInstance.startAudioLevelMonitoring(callback, 100);
+  }, [compositorInstance]);
+
+  const stopAudioLevelMonitoring = useCallback(() => {
+    if (!compositorInstance) {
+      return;
+    }
+    compositorInstance.stopAudioLevelMonitoring();
+  }, [compositorInstance]);
+
+  // Task 6.1, 6.2 & 6.3: Check browser support on mount with browser-specific handling
+  useEffect(() => {
+    const support = checkBrowserSupport();
+    setBrowserSupport(support);
+    
+    // Task 6.3: Get browser-specific behavior
+    const behavior = getBrowserSpecificBehavior(support.browserInfo);
+    
+    // Display warnings if any
+    if (support.warnings.length > 0) {
+      console.warn('Browser compatibility warnings:', support.warnings);
+      // Show the first warning to user
+      setError(support.warnings[0]);
+      
+      // Clear warning after 10 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 10000);
+    }
+    
+    // Task 6.3: Display browser-specific known issues
+    if (behavior.knownIssues.length > 0) {
+      console.warn('Browser-specific known issues:', behavior.knownIssues);
+    }
+    
+    // Task 6.3: Log comprehensive browser compatibility report
+    logBrowserCompatibility();
+    
+    // Log browser support info
+    console.log('Browser Support:', {
+      browser: `${support.browserInfo.name} ${support.browserInfo.version}`,
+      canUseCompositor: support.canUseCompositor,
+      canRecordVideo: support.canRecordVideo,
+      suggestedCodec: support.suggestedCodec,
+      capabilities: support.capabilities,
+      browserSpecificOptimizations: behavior.optimizations
+    });
+  }, []);
+
   // Enhanced device enumeration with error handling
   useEffect(() => {
     const enumerateDevices = async () => {
@@ -1156,9 +1633,21 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     recordingSources,
     currentLayout: currentLayout || 'picture-in-picture',
     setLayout,
+    changeLayout, // Task 3.5: Real-time layout switching
     startScreenShare,
     stopScreenShare,
+    addScreenShare, // Task 3.4: Dynamic source addition
+    removeScreenShare, // Task 3.4: Dynamic source removal
     isScreenSharing,
+    
+    // Compositor properties (Task 3.1)
+    compositorInstance,
+    isCompositing,
+    compositorLayout,
+    performanceMetrics,
+    
+    // Task 6.2: Browser compatibility
+    browserSupport,
     
     // Session management
     currentSession,
@@ -1190,6 +1679,15 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     // NEW: Device management
     switchCamera,
     switchMicrophone,
-    getAvailableResolutions
+    getAvailableResolutions,
+    
+    // Task 8.2: Audio mixing controls
+    setAudioVolume,
+    setAudioMuted,
+    getAudioVolume,
+    isAudioMuted,
+    getAudioLevels,
+    startAudioLevelMonitoring,
+    stopAudioLevelMonitoring
   };
 };

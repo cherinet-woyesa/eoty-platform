@@ -6,18 +6,24 @@ import { videoApi, coursesApi } from '../../services/api';
 import VideoTimelineEditor from './VideoTimelineEditor';
 import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';
+import LayoutSelector from './LayoutSelector';
+import CompositorPreview from './CompositorPreview';
+import SourceControlIndicators from './SourceControlIndicators';
+import KeyboardShortcuts from './KeyboardShortcuts';
+import NotificationContainer, { type Notification } from './NotificationContainer';
+import { AudioLevelIndicators } from './AudioLevelIndicators';
+import type { LayoutType } from '../../types/VideoCompositor';
+import type { AudioLevelData } from '../../utils/AudioMixer';
 import {
   Video, Circle, Square, Pause, Play,
   Upload, RotateCcw, Camera,
   CheckCircle, Loader, AlertCircle,
-  Settings, Trash2,
-  PlayCircle, Volume2, VolumeX, Cloud,
+  Settings, Cloud,
   Mic, MicOff, VideoIcon, Timer,
   Zap, Download,
   Lightbulb, Sparkles, Star,
-  Monitor, PictureInPicture,
-  Split, Save, FolderOpen, Scissors,
-  FileText, Clock
+  Monitor, Save, FolderOpen, Scissors,
+  FileText, Clock, Keyboard
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -312,8 +318,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     recordingSources,
     currentLayout,
     setLayout,
+    changeLayout,
     startScreenShare,
     stopScreenShare,
+    addScreenShare,
+    removeScreenShare,
     isScreenSharing,
     currentSession,
     isPaused,
@@ -322,6 +331,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     saveSession,
     loadSession,
     getSavedSessions,
+    // NEW: Compositor properties (Task 3.1)
+    compositorInstance,
+    isCompositing,
+    compositorLayout,
+    performanceMetrics,
     // NEW: Enhanced features
     recordingStats,
     setRecordingStats,
@@ -329,7 +343,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // NEW: Slide integration
     recordSlideChange,
     // NEW: Editing capabilities
-    editRecording
+    editRecording,
+    // Task 8.2: Audio mixing controls
+    setAudioVolume,
+    setAudioMuted,
+    getAudioVolume,
+    isAudioMuted,
+    startAudioLevelMonitoring,
+    stopAudioLevelMonitoring,
+    options
   } = useVideoRecorder();
 
   // Refs
@@ -378,6 +400,21 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // Session management state
   const [savedSessions, setSavedSessions] = useState<string[]>([]);
   const [showSessionMenu, setShowSessionMenu] = useState(false);
+  
+  // NEW: UI state for integrated components (Task 7.1)
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showCompositorPreview, setShowCompositorPreview] = useState(false);
+  
+  // Task 8.2: Audio level monitoring state
+  const [audioLevels, setAudioLevels] = useState<AudioLevelData[]>([]);
+  const [showAudioLevels, setShowAudioLevels] = useState(false);
+  
+  // NEW: Loading states (Task 7.2)
+  const [isInitializingCompositor, setIsInitializingCompositor] = useState(false);
+  const [layoutChangeNotification, setLayoutChangeNotification] = useState<string | null>(null);
+  
+  // NEW: Notification system (Task 7.3)
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // NEW: Integrated Features State
   const [showTimelineEditor, setShowTimelineEditor] = useState(false);
@@ -495,7 +532,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [stream, recordingSources, enableAudio]);
 
-  // NEW: Recording stats monitoring
+  // NEW: Recording stats monitoring with performance alerts (Task 7.3)
   useEffect(() => {
     if (isRecording && !isPaused) {
       recordingStatsIntervalRef.current = setInterval(() => {
@@ -562,8 +599,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Create new URLs for the edited video
       const newVideoUrl = URL.createObjectURL(editedBlob);
       
-      setSuccessMessage('Video edited successfully!');
+      setSuccessMessage('Video edited successfully! Ready to upload.');
       setShowTimelineEditor(false);
+      setShowPreview(false);
+      setShowLessonForm(true); // Go back to upload form after editing
       setRecordingStatus('idle');
       
       // Update preview if needed
@@ -576,6 +615,156 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setRecordingStatus('idle');
     }
   };
+
+  // NEW: Notification management functions (Task 7.3)
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const addNotification = useCallback((
+    type: Notification['type'],
+    title: string,
+    message: string,
+    recoveryAction?: Notification['recoveryAction'],
+    autoHide: boolean = true
+  ) => {
+    const id = `notification-${Date.now()}-${Math.random()}`;
+    const notification: Notification = {
+      id,
+      type,
+      title,
+      message,
+      recoveryAction,
+      autoHide,
+      autoHideDelay: 5000
+    };
+    
+    setNotifications(prev => [...prev, notification]);
+    
+    // Auto-remove after delay if autoHide is true
+    if (autoHide) {
+      setTimeout(() => {
+        dismissNotification(id);
+      }, 5000);
+    }
+  }, [dismissNotification]);
+
+  // NEW: Performance degradation handler (Task 7.3)
+  const handlePerformanceDegradation = useCallback(() => {
+    addNotification(
+      'warning',
+      'Performance Degraded',
+      'Recording performance is below optimal levels. Consider closing other applications or reducing video quality.',
+      {
+        label: 'Reduce Quality',
+        onClick: () => {
+          setRecordingQuality('480p');
+          setSuccessMessage('Recording quality reduced to improve performance');
+        }
+      },
+      false
+    );
+  }, [addNotification]);
+
+  // NEW: Source loss handler (Task 7.3)
+  const handleSourceLossNotification = useCallback((sourceType: 'camera' | 'screen') => {
+    const title = sourceType === 'camera' ? 'Camera Lost' : 'Screen Share Lost';
+    const message = sourceType === 'camera' 
+      ? 'Your camera connection was lost. Recording continues with remaining sources.'
+      : 'Screen sharing was stopped. Recording continues with camera only.';
+    
+    addNotification(
+      'warning',
+      title,
+      message,
+      {
+        label: sourceType === 'camera' ? 'Reconnect Camera' : 'Start Screen Share',
+        onClick: () => {
+          if (sourceType === 'camera') {
+            initializeCamera();
+          } else {
+            handleStartScreenShare();
+          }
+        }
+      },
+      false // Don't auto-hide, let user dismiss
+    );
+  }, [addNotification, initializeCamera]);
+
+  // NEW: Monitor performance metrics and show alerts (Task 7.3)
+  useEffect(() => {
+    if (performanceMetrics && isRecording) {
+      // Alert if FPS drops below 20
+      if (performanceMetrics.fps < 20 && performanceMetrics.fps > 0) {
+        handlePerformanceDegradation();
+      }
+      
+      // Alert if too many frames dropped
+      if (performanceMetrics.droppedFrames > 50) {
+        addNotification(
+          'warning',
+          'Frames Dropped',
+          `${performanceMetrics.droppedFrames} frames have been dropped. This may affect video quality.`,
+          undefined,
+          true
+        );
+      }
+    }
+  }, [performanceMetrics?.fps, performanceMetrics?.droppedFrames, isRecording, handlePerformanceDegradation, addNotification]);
+
+  // Task 8.2: Audio level monitoring effect
+  useEffect(() => {
+    if (isRecording && isCompositing && showAudioLevels) {
+      // Start monitoring audio levels
+      startAudioLevelMonitoring((levels) => {
+        setAudioLevels(levels);
+      });
+
+      return () => {
+        // Stop monitoring when recording stops or component unmounts
+        stopAudioLevelMonitoring();
+      };
+    } else {
+      // Clear audio levels when not recording
+      setAudioLevels([]);
+    }
+  }, [isRecording, isCompositing, showAudioLevels, startAudioLevelMonitoring, stopAudioLevelMonitoring]);
+
+  // NEW: Layout change with feedback (Task 7.2)
+  const handleLayoutChange = useCallback((layout: LayoutType) => {
+    if (changeLayout) {
+      // @ts-ignore - changeLayout accepts LayoutType including 'presentation'
+      changeLayout(layout);
+      
+      // Show feedback notification
+      const layoutNames: Record<LayoutType, string> = {
+        'picture-in-picture': 'Picture-in-Picture',
+        'side-by-side': 'Side-by-Side',
+        'presentation': 'Presentation',
+        'screen-only': 'Screen Only',
+        'camera-only': 'Camera Only'
+      };
+      
+      setLayoutChangeNotification(`Layout changed to ${layoutNames[layout]}`);
+      setTimeout(() => setLayoutChangeNotification(null), 2000);
+    }
+  }, [changeLayout]);
+
+  // NEW: Layout cycling function for keyboard shortcuts (Task 7.2)
+  const cycleLayout = useCallback(() => {
+    const layouts: LayoutType[] = [
+      'picture-in-picture',
+      'side-by-side',
+      'presentation',
+      'screen-only',
+      'camera-only'
+    ];
+    const currentIndex = layouts.indexOf(currentLayout as LayoutType);
+    const nextIndex = (currentIndex + 1) % layouts.length;
+    const nextLayout = layouts[nextIndex];
+    
+    handleLayoutChange(nextLayout);
+  }, [currentLayout, handleLayoutChange]);
 
   // NEW: Enhanced recording with multi-source support
   const startCountdownAndRecording = useCallback(async () => {
@@ -737,10 +926,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       await stopRecording();
       
       setRecordingStatus('idle');
-      setShowPreview(true);
-      setShowLessonForm(false); // Don't show form immediately, let user preview first
+      setShowPreview(false); // Don't show preview by default
+      setShowLessonForm(true); // Show lesson form immediately for upload
       setRecordingDuration(capturedDuration); // Use captured value BEFORE closing camera
-      setSuccessMessage('Recording completed! Preview your video before uploading.');
+      setSuccessMessage('Recording completed! Fill in the details to upload.');
       
       // Close camera and screen share AFTER setting duration
       // This provides clear feedback that recording has ended
@@ -1063,22 +1252,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (activeTab === 'record') {
       if (recordedVideo) {
         return (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full bg-black">
             <video
               ref={recordedVideoRef}
               src={recordedVideo}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              controls
+              controlsList="nodownload"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
-            />
-            {showPreview && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <button onClick={handlePreviewPlay} className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                  {isPlaying ? <Pause className="h-8 w-8 text-white" /> : <PlayCircle className="h-8 w-8 text-white" />}
-                </button>
-              </div>
-            )}
+              onLoadedMetadata={(e) => {
+                const video = e.currentTarget;
+                if (video.duration && video.duration > 0 && (!recordingDuration || recordingDuration === 0)) {
+                  const duration = Math.floor(video.duration);
+                  setRecordingDuration(duration);
+                }
+              }}
+            >
+              Your browser does not support the video tag.
+            </video>
           </div>
         );
       } else {
@@ -1175,7 +1368,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
+    <>
+      {/* Notification Container (Task 7.3) */}
+      <NotificationContainer
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
+      
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50">
         <div className="flex items-center justify-between">
@@ -1273,81 +1473,92 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* NEW: Multi-source Controls */}
+      {/* NEW: Multi-source Controls with integrated components (Task 7.1) */}
       {activeTab === 'record' && !recordedVideo && (
         <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">Sources:</span>
+          <div className="space-y-3">
+            {/* Source Control Indicators */}
+            <div className="flex items-center justify-between">
+              <SourceControlIndicators
+                recordingSources={recordingSources}
+                onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
+                onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
+                disabled={isRecording}
+                isRecording={isRecording}
+                micLevel={micLevel}
+              />
               
-              {/* Camera Toggle */}
-              <button
-                onClick={() => recordingSources.camera ? closeCamera() : initializeCamera()}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  recordingSources.camera 
-                    ? 'bg-green-100 text-green-700 border border-green-300' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <Camera className="h-4 w-4 inline mr-1" />
-                Camera
-              </button>
-              
-              {/* Screen Share Toggle - Enhanced like Google Meet */}
-              {!isScreenSharing ? (
+              {/* Additional controls */}
+              <div className="flex items-center space-x-2">
+                {/* Slide Manager Toggle */}
                 <button
-                  onClick={handleStartScreenShare}
-                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  title="Share your screen"
+                  onClick={() => setShowSlideManager(!showSlideManager)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    showSlideManager 
+                      ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
-                  <Monitor className="h-4 w-4 inline mr-1" />
-                  Share Screen
+                  <FileText className="h-4 w-4 inline mr-1" />
+                  Slides
                 </button>
-              ) : (
+                
+                {/* Keyboard Shortcuts Toggle */}
                 <button
-                  onClick={handleStopScreenShare}
-                  className="px-4 py-1 rounded-lg text-sm font-medium transition-colors bg-red-500 text-white hover:bg-red-600 animate-pulse"
-                  title="Stop sharing your screen"
+                  onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    showKeyboardShortcuts 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  title="Show keyboard shortcuts"
                 >
-                  <Monitor className="h-4 w-4 inline mr-1" />
-                  Stop Sharing
+                  <Keyboard className="h-4 w-4 inline mr-1" />
+                  Shortcuts
                 </button>
-              )}
-
-              {/* NEW: Slide Manager Toggle */}
-              <button
-                onClick={() => setShowSlideManager(!showSlideManager)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  showSlideManager 
-                    ? 'bg-purple-100 text-purple-700 border border-purple-300' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <FileText className="h-4 w-4 inline mr-1" />
-                Slides
-              </button>
+                
+                {/* Compositor Preview Toggle */}
+                {isCompositing && (
+                  <button
+                    onClick={() => setShowCompositorPreview(!showCompositorPreview)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      showCompositorPreview 
+                        ? 'bg-green-100 text-green-700 border border-green-300' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                    title="Show compositor preview"
+                  >
+                    <Monitor className="h-4 w-4 inline mr-1" />
+                    Preview
+                  </button>
+                )}
+                
+                {/* Audio Levels Toggle (Task 8.2) */}
+                {isCompositing && options.enableAudio && (
+                  <button
+                    onClick={() => setShowAudioLevels(!showAudioLevels)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      showAudioLevels 
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                    title="Show audio levels"
+                  >
+                    <Mic className="h-4 w-4 inline mr-1" />
+                    Audio
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Layout Selector */}
-            <div className="flex items-center space-x-1">
-              <span className="text-sm text-gray-600 mr-2">Layout:</span>
-              {(['picture-in-picture', 'side-by-side', 'screen-only', 'camera-only'] as const).map(layout => (
-                <button
-                  key={layout}
-                  onClick={() => setLayout(layout)}
-                  className={`p-1 rounded transition-colors ${
-                    currentLayout === layout 
-                      ? 'bg-blue-100 text-blue-600' 
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                  title={layout.replace('-', ' ')}
-                >
-                  {layout === 'picture-in-picture' && <PictureInPicture className="h-4 w-4" />}
-                  {layout === 'side-by-side' && <Split className="h-4 w-4" />}
-                  {layout === 'screen-only' && <Monitor className="h-4 w-4" />}
-                  {layout === 'camera-only' && <Camera className="h-4 w-4" />}
-                </button>
-              ))}
+            <div>
+              <LayoutSelector
+                currentLayout={currentLayout as LayoutType}
+                onLayoutChange={handleLayoutChange}
+                disabled={false}
+                isCompositing={isCompositing}
+              />
             </div>
           </div>
         </div>
@@ -1422,7 +1633,35 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Main Preview Area */}
       <div className="relative bg-black aspect-video">
-        {renderPreview()}
+        {/* Show compositor preview if enabled and compositing (Task 7.1) */}
+        {showCompositorPreview && isCompositing && compositorInstance ? (
+          <CompositorPreview
+            compositor={compositorInstance}
+            isCompositing={isCompositing}
+            performanceMetrics={performanceMetrics}
+          />
+        ) : (
+          renderPreview()
+        )}
+        
+        {/* Loading state during compositor initialization (Task 7.2) */}
+        {isInitializingCompositor && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+            <div className="text-center text-white">
+              <Loader className="h-12 w-12 mx-auto mb-4 animate-spin" />
+              <p className="text-lg font-semibold">Initializing Compositor...</p>
+              <p className="text-sm text-gray-300 mt-2">Setting up multi-source recording</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Compositor status indicator (Task 7.2) */}
+        {isCompositing && !isRecording && (
+          <div className="absolute top-4 right-4 z-20 bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-lg">
+            <CheckCircle className="h-4 w-4" />
+            <span>Compositor Ready</span>
+          </div>
+        )}
 
         {/* NEW: Slide Indicator */}
         {currentSlides.length > 0 && activeTab === 'record' && (
@@ -1457,12 +1696,28 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             )}
           </div>
         )}
+        
+        {/* Task 8.2: Audio Level Indicators */}
+        {showAudioLevels && audioLevels.length > 0 && isRecording && (
+          <div className="absolute bottom-4 right-4 z-30">
+            <AudioLevelIndicators
+              audioLevels={audioLevels}
+              onVolumeChange={setAudioVolume}
+              onMuteToggle={setAudioMuted}
+              getMutedState={isAudioMuted}
+              getVolume={getAudioVolume}
+            />
+          </div>
+        )}
 
         {/* NEW: Enhanced Action Buttons (shown after recording) */}
         {activeTab === 'record' && recordedVideo && (
           <div className="absolute top-4 right-4 z-30 flex space-x-2">
             <button
-              onClick={() => setShowTimelineEditor(true)}
+              onClick={() => {
+                setShowTimelineEditor(true);
+                setShowPreview(false);
+              }}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center space-x-2"
             >
               <Scissors className="h-4 w-4" />
@@ -1537,23 +1792,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
         )}
 
-        {/* Enhanced Preview Controls */}
-        {activeTab === 'record' && recordedVideo && showPreview && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-4">
-            <button onClick={handlePreviewPlay} className="p-3 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-colors">
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </button>
-            <button onClick={handleMuteToggle} className="p-3 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-colors">
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
-            <button onClick={downloadRecording} className="p-3 bg-green-600/80 text-white rounded-xl hover:bg-green-700/80 transition-colors">
-              <Download className="h-5 w-5" />
-            </button>
-            <button onClick={handleDeleteRecording} className="p-3 bg-red-600/80 text-white rounded-xl hover:bg-red-700/80 transition-colors">
-              <Trash2 className="h-5 w-5" />
-            </button>
-          </div>
-        )}
+
       </div>
 
       {/* NEW: Slide Manager */}
@@ -1565,8 +1804,30 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           />
         </div>
       )}
+      
+      {/* NEW: Keyboard Shortcuts Panel (Task 7.1, 7.2) */}
+      {showKeyboardShortcuts && (
+        <div className="absolute top-4 left-4 z-40 w-80">
+          <KeyboardShortcuts
+            isRecording={isRecording}
+            isPaused={isPaused}
+            onPauseResume={() => isPaused ? resumeRecording() : pauseRecording()}
+            onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
+            onCycleLayout={cycleLayout}
+            onSelectLayout={handleLayoutChange}
+            disabled={false}
+          />
+        </div>
+      )}
+      
+      {/* Layout change notification (Task 7.2) */}
+      {layoutChangeNotification && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
+          {layoutChangeNotification}
+        </div>
+      )}
 
-      {/* Recording Stats */}
+      {/* Recording Stats (Task 7.1 - Updated recording status indicators) */}
       {activeTab === 'record' && recordedVideo && videoBlob && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between text-sm text-gray-600">
@@ -1579,6 +1840,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 ...(recordingSources.camera ? ['Camera'] : []),
                 ...(recordingSources.screen ? ['Screen'] : [])
               ].join(' + ')}</span>
+              {isCompositing && (
+                <span className="text-green-600 font-medium">
+                  ✓ Composited
+                </span>
+              )}
               {currentSlides.length > 0 && (
                 <span>Slides: {currentSlides.length}</span>
               )}
@@ -1624,88 +1890,60 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Preview Section - Enhanced */}
-      {showPreview && (recordedVideo || selectedFile) && !uploading && !uploadSuccess && (
-        <div className="p-6 border-t bg-gradient-to-br from-blue-50 to-purple-50">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center space-x-2">
-              <PlayCircle className="h-5 w-5 text-blue-600" />
-              <span>Preview Your {activeTab === 'record' ? 'Recording' : 'Video'}</span>
-            </h3>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Clock className="h-4 w-4" />
-              <span>{formatTime(recordingDuration)}</span>
-              {videoBlob && (
-                <>
-                  <span className="mx-2">•</span>
-                  <span>{getFileSize(videoBlob.size)}</span>
-                </>
-              )}
-            </div>
-          </div>
-          
-          {/* Preview Video Player */}
-          <div className="relative bg-black rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
-            {(recordedVideo || filePreview) ? (
-              <video
-                ref={recordedVideoRef}
-                src={(recordedVideo || filePreview) || undefined}
-                className="w-full h-full object-contain"
-                controls
-                controlsList="nodownload"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => setIsPlaying(false)}
-                onLoadedMetadata={(e) => {
-                  const video = e.currentTarget;
-                  // Update duration from video metadata if not already set or if it's 0
-                  if (video.duration && video.duration > 0 && (!recordingDuration || recordingDuration === 0)) {
-                    const duration = Math.floor(video.duration);
-                    console.log('Video metadata loaded, duration:', duration);
-                    setRecordingDuration(duration);
-                  }
-                }}
-              >
-                Your browser does not support the video tag.
-              </video>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white">
-                <div className="text-center">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-2 text-red-400" />
-                  <p>No video available to preview</p>
-                </div>
+      {/* Quick Actions Bar - Shown when previewing */}
+      {(recordedVideo || selectedFile) && !uploading && !uploadSuccess && !showLessonForm && showPreview && (
+        <div className="p-4 border-t bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Clock className="h-4 w-4" />
+                <span>{formatTime(recordingDuration)}</span>
               </div>
-            )}
-          </div>
-
-          {/* Preview Actions */}
-          <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
-            <div className="flex items-center space-x-3">
-              {activeTab === 'record' && videoBlob && (
-                <button 
-                  onClick={downloadRecording}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-                  title="Download Recording"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Download</span>
-                </button>
+              {videoBlob && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <span>{getFileSize(videoBlob.size)}</span>
+                </div>
               )}
             </div>
             <div className="flex items-center space-x-2">
+              {activeTab === 'record' && videoBlob && (
+                <>
+                  <button 
+                    onClick={downloadRecording}
+                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 text-sm"
+                    title="Download Recording"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTimelineEditor(true);
+                      setShowPreview(false);
+                    }}
+                    className="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2 text-sm"
+                  >
+                    <Scissors className="h-4 w-4" />
+                    <span>Edit Video</span>
+                  </button>
+                </>
+              )}
               <button 
                 onClick={handleReset}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span>{activeTab === 'record' ? 'Record Again' : 'Choose Different File'}</span>
               </button>
               <button 
-                onClick={() => setShowLessonForm(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                onClick={() => {
+                  setShowPreview(false);
+                  setShowLessonForm(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 text-sm font-medium"
               >
-                <CheckCircle className="h-4 w-4" />
-                <span>Looks Good, Continue</span>
+                <Upload className="h-4 w-4" />
+                <span>Back to Upload Form</span>
               </button>
             </div>
           </div>
@@ -1715,10 +1953,36 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       {/* Lesson Form */}
       {showLessonForm && (recordedVideo || selectedFile) && (
         <div className="p-6 border-t">
-          <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-            <Star className="h-5 w-5 text-yellow-500" />
-            <span>Save Your {activeTab === 'record' ? 'Recording' : 'Video'}</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              <span>Save Your {activeTab === 'record' ? 'Recording' : 'Video'}</span>
+            </h3>
+            {activeTab === 'record' && recordedVideo && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setShowPreview(true);
+                    setShowLessonForm(false);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm"
+                >
+                  <Play className="h-4 w-4" />
+                  <span>Preview Video</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTimelineEditor(true);
+                    setShowLessonForm(false);
+                  }}
+                  className="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2 text-sm"
+                >
+                  <Scissors className="h-4 w-4" />
+                  <span>Edit Video</span>
+                </button>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Select Course *</label>
@@ -1798,7 +2062,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           videoBlob={videoBlob}
           videoUrl={recordedVideo}
           onEditComplete={handleEditComplete}
-          onCancel={() => setShowTimelineEditor(false)}
+          onCancel={() => {
+            setShowTimelineEditor(false);
+            setShowPreview(false);
+            setShowLessonForm(true); // Go back to upload form on cancel
+          }}
         />
       )}
 
@@ -1812,6 +2080,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         />
       )}
     </div>
+    </>
   );
 };
 
