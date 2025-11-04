@@ -11,7 +11,7 @@ const aiController = {
   async askQuestion(req, res) {
     const startTime = Date.now();
     const sessionId = req.body.sessionId || 'default';
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     try {
       const { question, context = {} } = req.body;
@@ -237,7 +237,7 @@ const aiController = {
           log_type: 'ai_error',
           severity: 'error',
           message: JSON.stringify({
-            userId: req.user.userId,
+            userId: req.user.id,
             sessionId: sessionId,
             error: error.message,
             stack: error.stack,
@@ -261,7 +261,7 @@ const aiController = {
   async getConversationHistory(req, res) {
     try {
       const { sessionId = 'default' } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const history = await aiService.getConversationHistory(userId, sessionId);
 
@@ -289,7 +289,7 @@ const aiController = {
   async clearConversation(req, res) {
     try {
       const { sessionId = 'default' } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const conversation = await db('ai_conversations')
         .where({ user_id: userId, session_id: sessionId })
@@ -328,7 +328,7 @@ const aiController = {
   // ENHANCED: Report/escalate an AI question for moderation with detailed tracking
   async reportQuestion(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { question, sessionId = 'default', context = {}, moderation = {}, reason, additionalNotes } = req.body || {};
 
       if (!question || question.trim().length === 0) {
@@ -415,7 +415,7 @@ const aiController = {
   // NEW: Receive client-side telemetry for response times with enhanced analytics
   async telemetry(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { 
         sessionId = 'default', 
         context = {}, 
@@ -462,7 +462,7 @@ const aiController = {
   // NEW: Privacy-safe conversation summary logging with enhanced metrics
   async summary(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { 
         sessionId = 'default', 
         language, 
@@ -540,7 +540,7 @@ const aiController = {
   // NEW: Get user-specific analytics
   async getUserAnalytics(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { timeframe = '30days' } = req.query;
 
       const userAnalytics = await analyticsService.getUserAnalytics(userId, timeframe);
@@ -603,7 +603,7 @@ const aiController = {
   async generateResourceSummary(req, res) {
     try {
       const { resourceId, type = 'brief' } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Get resource from database
       const resource = await db('resources')

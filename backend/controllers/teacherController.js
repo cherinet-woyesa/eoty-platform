@@ -3,7 +3,7 @@ const db = require('../config/database');
 const teacherController = {
   async getDashboard(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
 
       // Total courses created by the teacher
       const totalCoursesResult = await db('courses').where('created_by', teacherId).count('id as count').first();

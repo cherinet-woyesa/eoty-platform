@@ -371,7 +371,7 @@ const authController = {
   async getCurrentUser(req, res) {
     try {
       const user = await db('users')
-        .where({ id: req.user.userId })
+        .where({ id: req.user.id })
         .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture')
         .first();
 
@@ -410,7 +410,7 @@ const authController = {
 
   async getUserPermissions(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const user = await db('users')
         .where({ id: userId })

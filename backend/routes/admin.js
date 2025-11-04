@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const upload = require('../middleware/upload');
-const { authenticateToken } = require('../middleware/auth');
-const { requireAdmin } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requireRole } = require('../middleware/rbacMiddleware');
 
 // All admin routes require authentication and admin privileges
-router.use(authenticateToken, requireAdmin());
+router.use(requireAuth, requireRole(['chapter_admin', 'platform_admin']));
 
 // User Management
 router.post('/users', adminController.createUser);

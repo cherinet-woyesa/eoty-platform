@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const achievementController = require('../controllers/achievementController');
-const { authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Badge routes
 router.get('/badges', achievementController.getUserBadges);

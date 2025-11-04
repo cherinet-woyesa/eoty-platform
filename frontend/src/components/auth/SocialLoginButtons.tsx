@@ -1,69 +1,41 @@
-import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState } from 'react';
+import { signIn } from '../../lib/auth-client';
 
 const SocialLoginButtons: React.FC = () => {
-  const { loginWithGoogle } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      // In a real implementation, this would:
-      // 1. Load the Google OAuth library
-      // 2. Initiate the Google sign-in flow
-      // 3. Get the user's Google profile data
-      // 4. Send that data to our backend
-      
-      // For demonstration purposes, we'll simulate a successful Google login
-      // In a real app, you would use the Google OAuth library:
-      /*
-      // Load the Google OAuth library
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
-      
-      // Initialize Google Auth
-      google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID",
-        callback: handleGoogleCallback
+      // Better Auth handles the OAuth flow automatically
+      const result = await signIn.social({
+        provider: 'google',
+        callbackURL: '/dashboard',
       });
-      
-      // Handle the Google OAuth callback
-      const handleGoogleCallback = (response) => {
-        // Decode the JWT token to get user info
-        const user = jwt_decode(response.credential);
-        
-        // Send to our backend
-        loginWithGoogle({
-          googleId: user.sub,
-          email: user.email,
-          firstName: user.given_name,
-          lastName: user.family_name,
-          profilePicture: user.picture
-        });
-      };
-      */
-      
-      // Simulate Google login for demonstration
-      alert('In a real application, this would initiate the Google OAuth flow. For now, we\'ll simulate a successful login.');
-      
-      // Simulate successful Google login
-      await loginWithGoogle({
-        googleId: '123456789',
-        email: 'user@gmail.com',
-        firstName: 'Google',
-        lastName: 'User',
-        profilePicture: 'https://via.placeholder.com/150'
-      });
-      
-    } catch (error: any) {
-      console.error('Google login failed:', error);
-      alert('Google login failed: ' + (error.message || 'Unknown error'));
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Google sign-in failed');
+      }
+
+      // Better Auth will handle the redirect automatically
+    } catch (err: any) {
+      console.error('Google login failed:', err);
+      setError(err.message || 'Google sign-in failed. Please try again.');
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="mt-6">
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+      
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-gray-300" />
@@ -82,7 +54,7 @@ const SocialLoginButtons: React.FC = () => {
             onClick={handleGoogleLogin}
             className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             aria-label="Sign in with Google"
-            disabled={false}
+            disabled={isLoading}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path

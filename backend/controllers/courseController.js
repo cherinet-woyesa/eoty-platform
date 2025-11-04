@@ -4,7 +4,7 @@ const courseController = {
   // Get all courses for the logged-in teacher with statistics
   async getUserCourses(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const userRole = req.user.role;
 
       let coursesQuery = db('courses as c')
@@ -47,7 +47,7 @@ const courseController = {
   // Create a new course
   async createCourse(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { title, description, category } = req.body;
 
       if (!title) {
@@ -86,7 +86,7 @@ const courseController = {
   // Create a new lesson in a course
   async createLesson(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { courseId } = req.params;
       const { title, description, order } = req.body;
 
@@ -134,7 +134,7 @@ const courseController = {
   async getSignedVideoUrl(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const userRole = req.user.role;
 
       // Get lesson with course info

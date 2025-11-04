@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 
 const forumController = require('../controllers/forumController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/roles');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission } = require('../middleware/rbacMiddleware');
 
 // ✅ All routes require authentication
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // ✅ Forum browsing
 router.get('/', forumController.getForums);

@@ -4,7 +4,7 @@ const studentsController = {
   // List students associated with the teacher's courses, with filters and sorting
   async listStudents(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { q = '', status = 'all', sort = 'last_active_at', order = 'desc' } = req.query;
 
       // Base set: users who have progress on lessons from courses created by teacher
@@ -68,7 +68,7 @@ const studentsController = {
   ,
   async getStudentDashboard(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
 
       // Fetch all students associated with the teacher's courses
       const students = await db('users as u')
@@ -126,7 +126,7 @@ const studentsController = {
   },
   async streamUpdates(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');

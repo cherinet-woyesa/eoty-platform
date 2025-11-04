@@ -1,366 +1,291 @@
-const db = require('../config/database');
-
-class AnalyticsService {
-  constructor() {
-    this.metricCache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-  }
-
-  // Real-time metrics calculation
-  async calculateRealTimeMetrics() {
-    const cacheKey = 'realtime_metrics';
-    const cached = this.metricCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-
-    const [
-      activeUsersNow,
-      currentUploads,
-      pendingFlags,
-      systemHealth
-    ] = await Promise.all([
-      this.getActiveUsersNow(),
-      this.getCurrentUploads(),
-      this.getPendingFlags(),
-      this.getSystemHealth()
-    ]);
-
-    const metrics = {
-      active_users: activeUsersNow,
-      uploads_in_progress: currentUploads,
-      pending_moderation: pendingFlags,
-      system_health: systemHealth,
-      last_updated: new Date()
-    };
-
-    this.metricCache.set(cacheKey, {
-      timestamp: Date.now(),
-      data: metrics
-    });
-
-    return metrics;
-  }
-
-  async getActiveUsersNow() {
-    // Users active in last 15 minutes
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    
-    const result = await db('users')
-      .where('last_login_at', '>=', fifteenMinutesAgo)
-      .count('id as count')
-      .first();
-
-    return parseInt(result.count) || 0;
-  }
-
-  async getCurrentUploads() {
-    const result = await db('content_uploads')
-      .whereIn('status', ['pending', 'processing'])
-      .count('id as count')
-      .first();
-
-    return parseInt(result.count) || 0;
-  }
-
-  async getPendingFlags() {
-    const result = await db('flagged_content')
-      .where({ status: 'pending' })
-      .count('id as count')
-      .first();
-
-    return parseInt(result.count) || 0;
-  }
-
-  async getSystemHealth() {
-    // Check database connection
-    const dbHealth = await this.checkDatabaseHealth();
-    
-    // Check file system (simplified)
-    const storageHealth = await this.checkStorageHealth();
-    
-    // Check external services (AI, etc.)
-    const servicesHealth = await this.checkServicesHealth();
-
-    return {
-      database: dbHealth,
-      storage: storageHealth,
-      services: servicesHealth,
-      overall: dbHealth && storageHealth && servicesHealth ? 'healthy' : 'degraded'
-    };
-  }
-
-  async checkDatabaseHealth() {
-    try {
-      await db.raw('SELECT 1');
-      return true;
-    } catch (error) {
-      console.error('Database health check failed:', error);
-      return false;
-    }
-  }
-
-  async checkStorageHealth() {
-    // Simplified storage check
-    // In production, check disk space, S3 connectivity, etc.
-    return true;
-  }
-
-  async checkServicesHealth() {
-    // Check external services like AI, email, etc.
-    const checks = {
-      ai_service: await this.checkAIService(),
-      email_service: await this.checkEmailService()
-    };
-
-    return Object.values(checks).every(check => check);
-  }
-
-  async checkAIService() {
-    try {
-      // Simple check - in production, ping AI service
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  async checkEmailService() {
-    // Check email service connectivity
-    return true;
-  }
-
-  // Chapter comparison analytics
-  async compareChapterPerformance(timeframe = '30days') {
-    const chapters = await db('users').distinct('chapter_id').pluck('chapter_id');
-    
-    const comparison = {};
-    const dateFilter = this.getDateFilter(timeframe);
-
-    for (const chapterId of chapters) {
-      const metrics = await this.getChapterMetrics(chapterId, dateFilter);
-      comparison[chapterId] = metrics;
-    }
-
-    // Calculate rankings
-    const rankedChapters = this.rankChapters(comparison);
-    
-    return {
-      comparison,
-      rankings: rankedChapters,
-      timeframe
-    };
-  }
-
-  async getChapterMetrics(chapterId, dateFilter) {
-    const [
-      userGrowth,
-      contentActivity,
-      forumEngagement,
-      completionRates
-    ] = await Promise.all([
-      this.calculateUserGrowth(chapterId, dateFilter),
-      this.calculateContentActivity(chapterId, dateFilter),
-      this.calculateForumEngagement(chapterId, dateFilter),
-      this.calculateCompletionRates(chapterId, dateFilter)
-    ]);
-
-    return {
-      user_growth: userGrowth,
-      content_activity: contentActivity,
-      forum_engagement: forumEngagement,
-      completion_rates: completionRates,
-      overall_score: this.calculateOverallScore(userGrowth, contentActivity, forumEngagement, completionRates)
-    };
-  }
-
-  rankChapters(comparison) {
-    const chapters = Object.entries(comparison).map(([chapterId, metrics]) => ({
-      chapter_id: chapterId,
-      score: metrics.overall_score
-    }));
-
-    return chapters
-      .sort((a, b) => b.score - a.score)
-      .map((chapter, index) => ({
-        ...chapter,
-        rank: index + 1
-      }));
-  }
-
-  // Trend analysis
-  async analyzeTrends(metric, timeframe = '90days') {
-    const dateFilter = this.getDateFilter(timeframe);
-    
-    switch (metric) {
-      case 'user_growth':
-        return await this.analyzeUserGrowthTrend(dateFilter);
-      case 'content_consumption':
-        return await this.analyzeContentConsumptionTrend(dateFilter);
-      case 'engagement':
-        return await this.analyzeEngagementTrend(dateFilter);
-      default:
-        return {};
-    }
-  }
-
-  async analyzeUserGrowthTrend(dateFilter) {
-    const dailyGrowth = await db('users')
-      .where('created_at', '>=', dateFilter)
-      .groupByRaw('DATE(created_at)')
-      .select(
-        db.raw('DATE(created_at) as date'),
-        db.raw('COUNT(id) as new_users')
-      )
-      .orderBy('date', 'asc');
-
-    return {
-      data: dailyGrowth,
-      trend: this.calculateTrendDirection(dailyGrowth.map(d => d.new_users)),
-      summary: this.generateTrendSummary(dailyGrowth, 'user growth')
-    };
-  }
-
-  // Alert system for anomalies
-  async checkForAnomalies() {
-    const anomalies = [];
-
-    // Check for sudden drop in activity
-    const activityDrop = await this.checkActivityDrop();
-    if (activityDrop) {
-      anomalies.push({
-        type: 'activity_drop',
-        severity: 'high',
-        message: 'Significant drop in user activity detected',
-        details: activityDrop
-      });
-    }
-
-    // Check for moderation backlog
-    const moderationBacklog = await this.checkModerationBacklog();
-    if (moderationBacklog) {
-      anomalies.push({
-        type: 'moderation_backlog',
-        severity: 'medium',
-        message: 'Moderation queue is growing faster than processing',
-        details: moderationBacklog
-      });
-    }
-
-    // Check for content quality issues
-    const qualityIssues = await this.checkContentQuality();
-    if (qualityIssues) {
-      anomalies.push({
-        type: 'content_quality',
-        severity: 'low',
-        message: 'Potential content quality issues detected',
-        details: qualityIssues
-      });
-    }
-
-    return anomalies;
-  }
-
-  async checkActivityDrop() {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const todayActivity = await db('user_engagement')
-      .where('created_at', '>=', today.setHours(0, 0, 0, 0))
-      .count('id as count')
-      .first();
-
-    const yesterdayActivity = await db('user_engagement')
-      .whereBetween('created_at', [yesterday.setHours(0, 0, 0, 0), yesterday.setHours(23, 59, 59, 999)])
-      .count('id as count')
-      .first();
-
-    const dropPercentage = yesterdayActivity.count > 0 
-      ? ((yesterdayActivity.count - todayActivity.count) / yesterdayActivity.count) * 100
-      : 0;
-
-    return dropPercentage > 50 ? { drop_percentage: dropPercentage } : null;
-  }
-
-  // Utility methods
-  getDateFilter(timeframe) {
-    const now = new Date();
-    switch (timeframe) {
-      case '24hours':
-        return new Date(now.setDate(now.getDate() - 1));
-      case '7days':
-        return new Date(now.setDate(now.getDate() - 7));
-      case '30days':
-        return new Date(now.setDate(now.getDate() - 30));
-      case '90days':
-        return new Date(now.setDate(now.getDate() - 90));
-      default:
-        return new Date(now.setDate(now.getDate() - 30));
-    }
-  }
-
-  calculateTrendDirection(data) {
-    if (data.length < 2) return 'stable';
-    
-    const firstHalf = data.slice(0, Math.floor(data.length / 2));
-    const secondHalf = data.slice(Math.floor(data.length / 2));
-    
-    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
-    const change = ((avgSecond - avgFirst) / avgFirst) * 100;
-    
-    if (change > 10) return 'increasing';
-    if (change < -10) return 'decreasing';
-    return 'stable';
-  }
-
-  generateTrendSummary(data, metric) {
-    const values = data.map(d => d.new_users || d.count || 0);
-    const total = values.reduce((a, b) => a + b, 0);
-    const average = total / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-
-    return {
-      total,
-      average: Math.round(average),
-      peak: max,
-      low: min,
-      variability: ((max - min) / average * 100).toFixed(1) + '%'
-    };
-  }
-
-  calculateOverallScore(userGrowth, contentActivity, forumEngagement, completionRates) {
-    // Weighted scoring algorithm
-    const weights = {
-      user_growth: 0.25,
-      content_activity: 0.30,
-      forum_engagement: 0.25,
-      completion_rates: 0.20
-    };
-
-    const score = 
-      (userGrowth.score * weights.user_growth) +
-      (contentActivity.score * weights.content_activity) +
-      (forumEngagement.score * weights.forum_engagement) +
-      (completionRates.score * weights.completion_rates);
-
-    return Math.min(100, Math.max(0, score));
-  }
-}
-
-module.exports = new AnalyticsService();
+const nodemailer = require('nodemailer');
 
 class EmailService {
-  async sendWelcomeEmail(user) {
-    // Implementation for welcome emails
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
   }
 
-  async sendNotification(user, message) {
-    // Implementation for notifications
+  /**
+   * Send email verification email with token
+   * @param {string} email - User's email address
+   * @param {string} token - Verification token
+   * @param {string} userName - User's name
+   */
+  async sendVerificationEmail(email, token, userName = '') {
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@eotyplatform.com',
+        to: email,
+        subject: 'Verify your EOTY Platform account',
+        html: this.getVerificationEmailTemplate(verificationUrl, userName),
+        text: `Welcome to EOTY Platform! Please verify your email address by visiting: ${verificationUrl}\n\nThis link will expire in 24 hours.`,
+      });
+
+      console.log(`Verification email sent to ${email}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      throw new Error('Failed to send verification email');
+    }
+  }
+
+  /**
+   * Send password reset email with token
+   * @param {string} email - User's email address
+   * @param {string} token - Password reset token
+   * @param {string} userName - User's name
+   */
+  async sendPasswordResetEmail(email, token, userName = '') {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@eotyplatform.com',
+        to: email,
+        subject: 'Reset your EOTY Platform password',
+        html: this.getPasswordResetEmailTemplate(resetUrl, userName),
+        text: `You requested to reset your password. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`,
+      });
+
+      console.log(`Password reset email sent to ${email}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw new Error('Failed to send password reset email');
+    }
+  }
+
+  /**
+   * Get HTML template for verification email
+   * @param {string} verificationUrl - Verification URL
+   * @param {string} userName - User's name
+   * @returns {string} HTML template
+   */
+  getVerificationEmailTemplate(verificationUrl, userName) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            color: #2c5282;
+            margin: 0;
+          }
+          .content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #3182ce;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+          }
+          .button:hover {
+            background-color: #2c5282;
+          }
+          .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+          }
+          .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Welcome to EOTY Platform!</h1>
+          </div>
+          <div class="content">
+            ${userName ? `<p>Hello ${userName},</p>` : '<p>Hello,</p>'}
+            <p>Thank you for registering with the Ethiopian Orthodox Tewahedo Youth Platform. We're excited to have you join our community of spiritual learning and growth.</p>
+            <p>To complete your registration and access all features, please verify your email address by clicking the button below:</p>
+            <div style="text-align: center;">
+              <a href="${verificationUrl}" class="button">Verify Email Address</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #3182ce;">${verificationUrl}</p>
+            <div class="warning">
+              <strong>⏰ Important:</strong> This verification link will expire in 24 hours.
+            </div>
+          </div>
+          <div class="footer">
+            <p>If you didn't create an account with EOTY Platform, please ignore this email.</p>
+            <p>&copy; ${new Date().getFullYear()} EOTY Platform. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Get HTML template for password reset email
+   * @param {string} resetUrl - Password reset URL
+   * @param {string} userName - User's name
+   * @returns {string} HTML template
+   */
+  getPasswordResetEmailTemplate(resetUrl, userName) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            color: #2c5282;
+            margin: 0;
+          }
+          .content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #e53e3e;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+          }
+          .button:hover {
+            background-color: #c53030;
+          }
+          .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+          }
+          .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+          }
+          .security-notice {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Password Reset Request</h1>
+          </div>
+          <div class="content">
+            ${userName ? `<p>Hello ${userName},</p>` : '<p>Hello,</p>'}
+            <p>We received a request to reset the password for your EOTY Platform account.</p>
+            <p>To reset your password, click the button below:</p>
+            <div style="text-align: center;">
+              <a href="${resetUrl}" class="button">Reset Password</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #e53e3e;">${resetUrl}</p>
+            <div class="warning">
+              <strong>⏰ Important:</strong> This password reset link will expire in 1 hour.
+            </div>
+            <div class="security-notice">
+              <strong>🔒 Security Notice:</strong> If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+            </div>
+          </div>
+          <div class="footer">
+            <p>For security reasons, this link can only be used once.</p>
+            <p>&copy; ${new Date().getFullYear()} EOTY Platform. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Verify SMTP connection
+   * @returns {Promise<boolean>} Connection status
+   */
+  async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      console.log('SMTP connection verified successfully');
+      return true;
+    } catch (error) {
+      console.error('SMTP connection verification failed:', error);
+      return false;
+    }
   }
 }
 

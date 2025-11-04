@@ -50,7 +50,7 @@ const interactiveController = {
   async getLessonQuizzes(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const quizzes = await db('quizzes')
         .where({ lesson_id: lessonId, is_published: true })
@@ -114,7 +114,7 @@ const interactiveController = {
     try {
       const { quizId } = req.params;
       const { answers } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Get quiz and questions
       const quiz = await db('quizzes').where({ id: quizId }).first();
@@ -235,7 +235,7 @@ const interactiveController = {
   async createAnnotation(req, res) {
     try {
       const { lessonId, timestamp, content, type, metadata = {}, isPublic = false } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Validate required fields
       if (!lessonId || timestamp === undefined || !content || !type) {
@@ -293,7 +293,7 @@ const interactiveController = {
   async getLessonAnnotations(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const annotations = await db('video_annotations')
         .where({ lesson_id: lessonId })
@@ -320,7 +320,7 @@ const interactiveController = {
   async createDiscussionPost(req, res) {
     try {
       const { lessonId, content, parentId = null, videoTimestamp = null } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Basic validation
       if (!content || content.trim().length === 0) {
@@ -406,7 +406,7 @@ const interactiveController = {
   async reportDiscussionPost(req, res) {
     try {
       const { postId, reason } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Validate reason
       const validReasons = ['inappropriate', 'spam', 'harassment', 'offensive', 'other'];
@@ -537,7 +537,7 @@ const interactiveController = {
   async moderateDiscussionPost(req, res) {
     try {
       const { postId, action } = req.body; // action: 'approve', 'reject', 'pin'
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check if user has moderation permissions
       const user = await db('users')
@@ -607,7 +607,7 @@ const interactiveController = {
   // Get flagged posts for moderation (admin/teacher only)
   async getFlaggedPosts(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check if user has moderation permissions
       const user = await db('users')
@@ -652,7 +652,7 @@ const interactiveController = {
     try {
       // Only allow admin users to access system metrics
       const user = await db('users')
-        .where({ id: req.user.userId })
+        .where({ id: req.user.id })
         .first();
         
       if (!user || user.role !== 'admin') {
@@ -683,7 +683,7 @@ const interactiveController = {
     try {
       // Only allow admin users to run validation
       const user = await db('users')
-        .where({ id: req.user.userId })
+        .where({ id: req.user.id })
         .first();
         
       if (!user || user.role !== 'admin') {
@@ -714,7 +714,7 @@ const interactiveController = {
     try {
       // Only allow admin users to access validation history
       const user = await db('users')
-        .where({ id: req.user.userId })
+        .where({ id: req.user.id })
         .first();
         
       if (!user || user.role !== 'admin') {
@@ -745,7 +745,7 @@ const interactiveController = {
     try {
       const { lessonId } = req.params;
       const { progress, lastWatchedTimestamp, isCompleted = false } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const existingProgress = await db('user_lesson_progress')
         .where({ user_id: userId, lesson_id: lessonId })
@@ -790,7 +790,7 @@ const interactiveController = {
   async getLessonProgress(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const progress = await db('user_lesson_progress')
         .where({ user_id: userId, lesson_id: lessonId })
@@ -812,7 +812,7 @@ const interactiveController = {
   // Get comprehensive user progress across all courses and lessons
   async getUserProgress(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Get all course progress
       const courseProgress = await db('courses as c')
@@ -912,7 +912,7 @@ const interactiveController = {
   async getQuizForTaking(req, res) {
     try {
       const { quizId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Get quiz details
       const quiz = await db('quizzes')
@@ -965,7 +965,7 @@ const interactiveController = {
   async getQuizResults(req, res) {
     try {
       const { attemptId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Get the attempt
       const attempt = await db('user_quiz_attempts')
@@ -997,7 +997,7 @@ const interactiveController = {
   // Get user notifications
   async getUserNotifications(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const notifications = await db('notifications')
         .where('user_id', userId)
@@ -1020,7 +1020,7 @@ const interactiveController = {
   // Mark notification as read
   async markNotificationAsRead(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { notificationId } = req.body;
       
       const notification = await db('notifications')

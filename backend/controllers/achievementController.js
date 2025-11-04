@@ -6,7 +6,7 @@ const achievementController = {
   // Get user badges
   async getUserBadges(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const badges = await UserBadge.getUserBadges(userId);
       const totalPoints = await UserBadge.getUserPoints(userId);
@@ -49,7 +49,7 @@ const achievementController = {
   async checkEligibility(req, res) {
     try {
       const { badgeId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const eligible = await Badge.checkEligibility(userId, badgeId);
       const badge = await Badge.findById(badgeId);
@@ -75,7 +75,7 @@ const achievementController = {
   async getLeaderboard(req, res) {
     try {
       const { type = 'chapter', period = 'current' } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
       
@@ -128,7 +128,7 @@ const achievementController = {
   async updateAnonymity(req, res) {
     try {
       const { isAnonymous } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
 

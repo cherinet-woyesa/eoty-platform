@@ -72,7 +72,7 @@ const videoController = {
   // Upload video for a lesson to AWS S3 with transaction support
   async uploadVideo(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { lessonId } = req.body;
 
       if (!req.file) {
@@ -158,7 +158,7 @@ const videoController = {
 
       // Check video access permissions
       if (req.user) {
-        const hasAccess = await this.checkVideoAccess(req.user.userId, video.lesson_id);
+        const hasAccess = await this.checkVideoAccess(req.user.id, video.lesson_id);
         if (!hasAccess) {
           return res.status(403).json({
             success: false,
@@ -246,7 +246,7 @@ const videoController = {
 
       // Check access permissions
       if (req.user) {
-        const hasAccess = await this.checkVideoAccess(req.user.userId, video.lesson_id);
+        const hasAccess = await this.checkVideoAccess(req.user.id, video.lesson_id);
         if (!hasAccess) {
           return res.status(403).json({
             success: false,
@@ -307,7 +307,7 @@ const videoController = {
 
       // Check access permissions
       if (req.user) {
-        const hasAccess = await this.checkVideoAccess(req.user.userId, video.lesson_id);
+        const hasAccess = await this.checkVideoAccess(req.user.id, video.lesson_id);
         if (!hasAccess) {
           return res.status(403).json({
             success: false,
@@ -420,7 +420,7 @@ const videoController = {
   async notifyVideoAvailable(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       // Check if lesson exists
       const lesson = await db('lessons')
@@ -470,7 +470,7 @@ const videoController = {
   // Get user's video notifications
   async getUserVideoNotifications(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       const notifications = await db('video_availability_notifications as van')
         .join('lessons as l', 'van.lesson_id', 'l.id')
@@ -598,7 +598,7 @@ const videoController = {
   async uploadSubtitle(req, res) {
     try {
       const { lessonId, languageCode, languageName } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       if (!req.file) {
         return res.status(400).json({
@@ -688,7 +688,7 @@ const videoController = {
 
       // Check access to the associated lesson
       if (req.user) {
-        const hasAccess = await this.checkVideoAccess(req.user.userId, subtitle.lesson_id);
+        const hasAccess = await this.checkVideoAccess(req.user.id, subtitle.lesson_id);
         if (!hasAccess) {
           return res.status(403).json({
             success: false,
@@ -716,7 +716,7 @@ const videoController = {
   // Get lessons for a course
   async getCourseLessons(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { courseId } = req.params;
 
       // Verify course belongs to teacher
@@ -760,7 +760,7 @@ const videoController = {
   async deleteVideo(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Use video processing service for deletion
       const deleteResult = await videoProcessingService.deleteVideo(lessonId, userId);
@@ -783,7 +783,7 @@ const videoController = {
   async getVideoAnalytics(req, res) {
     try {
       const { lessonId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Verify the lesson belongs to the teacher
       const lesson = await db('lessons')
@@ -837,7 +837,7 @@ const videoController = {
   async getVideoProcessingStatus(req, res) {
     try {
       const { videoId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Verify user has access to this video
       const video = await db('videos as v')
@@ -874,7 +874,7 @@ const videoController = {
   async retryVideoProcessing(req, res) {
     try {
       const { videoId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Verify user has access to this video
       const video = await db('videos as v')
@@ -945,7 +945,7 @@ const videoController = {
   // NEW: Get video service statistics
   async getVideoStatistics(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Verify user is admin or teacher
       const user = await db('users')

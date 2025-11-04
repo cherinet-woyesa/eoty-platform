@@ -7,7 +7,7 @@ const resourceController = {
   async getResources(req, res) {
     try {
       const { category, language, tags, search, page = 1, limit = 20 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       
       // Get user's chapter
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
@@ -54,7 +54,7 @@ const resourceController = {
   async getResource(req, res) {
     try {
       const { id } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const hasAccess = await Resource.checkPermission(id, userId, 'view');
       if (!hasAccess) {
@@ -97,7 +97,7 @@ const resourceController = {
   async createNote(req, res) {
     try {
       const { resourceId, content, anchorPoint, isPublic = false, metadata = {} } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const hasAccess = await Resource.checkPermission(resourceId, userId, 'view');
       if (!hasAccess) {
@@ -143,7 +143,7 @@ const resourceController = {
     try {
       const { id } = req.params;
       const { type = 'brief' } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const hasAccess = await Resource.checkPermission(id, userId, 'view');
       if (!hasAccess) {
@@ -211,7 +211,7 @@ const resourceController = {
   async getNotes(req, res) {
     try {
       const { id } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const hasAccess = await Resource.checkPermission(id, userId, 'view');
       if (!hasAccess) {
@@ -268,7 +268,7 @@ const resourceController = {
     try {
       const { id } = req.params;
       const { format = 'pdf' } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const hasAccess = await Resource.checkPermission(id, userId, 'view');
       if (!hasAccess) {
@@ -317,7 +317,7 @@ const resourceController = {
   async createResource(req, res) {
     try {
       const { title, description, category, language, tags, author, isPublic = false } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check if file was uploaded
       if (!req.file) {
@@ -373,7 +373,7 @@ const resourceController = {
     try {
       const { id } = req.params;
       const { title, description, category, language, tags, author, isPublic } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check if resource exists and user has permission
       const existingResource = await Resource.findById(id);
@@ -425,7 +425,7 @@ const resourceController = {
   async deleteResource(req, res) {
     try {
       const { id } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check if resource exists
       const existingResource = await Resource.findById(id);

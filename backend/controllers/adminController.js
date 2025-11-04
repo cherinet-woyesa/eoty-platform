@@ -127,7 +127,7 @@ const adminController = {
       const result = await db('users').insert(userData).returning('id');
       const userId = result[0].id;
 
-      console.log('User created with ID:', userId, 'Role:', role, 'By admin:', req.user.userId);
+      console.log('User created with ID:', userId, 'Role:', role, 'By admin:', req.user.id);
 
       // Get the created user without password
       const user = await db('users')
@@ -269,7 +269,7 @@ const adminController = {
       }
 
       // Prevent users from changing their own role to a higher one
-      if (userId === req.user.userId && newRole !== userToUpdate.role) {
+      if (userId === req.user.id && newRole !== userToUpdate.role) {
         return res.status(403).json({
           success: false,
           message: 'Cannot change your own role'
@@ -344,7 +344,7 @@ const adminController = {
       }
 
       // Prevent users from deactivating themselves
-      if (userId === req.user.userId && !isActive) {
+      if (userId === req.user.id && !isActive) {
         return res.status(403).json({
           success: false,
           message: 'Cannot deactivate your own account'
@@ -383,7 +383,7 @@ const adminController = {
   async getUploadQueue(req, res) {
     try {
       const { status, chapter, page = 1, limit = 20 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role', 'chapter_id').first();
@@ -417,7 +417,7 @@ const adminController = {
   async uploadContent(req, res) {
     try {
       const { title, description, category, tags, chapterId } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const file = req.file;
 
       if (!file) {
@@ -527,7 +527,7 @@ const adminController = {
     try {
       const { uploadId } = req.params;
       const { action } = req.body; // 'approve' or 'reject'
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const rejectionReason = req.body.rejectionReason;
 
       const upload = await ContentUpload.findById(uploadId);
@@ -594,7 +594,7 @@ const adminController = {
   async getFlaggedContent(req, res) {
     try {
       const { status, page = 1, limit = 20 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check moderator permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -633,7 +633,7 @@ const adminController = {
     try {
       const { flagId } = req.params;
       const { action, notes, moderationAction } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const flag = await FlaggedContent.findById(flagId);
       if (!flag) {
@@ -737,7 +737,7 @@ const adminController = {
   async getAnalytics(req, res) {
     try {
       const { timeframe = '7days', compare = false } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -864,7 +864,7 @@ const adminController = {
   async createTag(req, res) {
     try {
       const { name, category, color } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const tag = await ContentTag.create({
         name,
@@ -899,7 +899,7 @@ const adminController = {
   async tagContent(req, res) {
     try {
       const { contentType, contentId, tagId } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const relation = await ContentTag.tagContent(contentType, contentId, tagId, userId);
 
@@ -930,7 +930,7 @@ const adminController = {
   async getPendingAIModeration(req, res) {
     try {
       const { page = 1, limit = 20 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -980,7 +980,7 @@ const adminController = {
     try {
       const { itemId } = req.params;
       const { action, notes } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -1056,7 +1056,7 @@ const adminController = {
   // Get moderation statistics
   async getModerationStats(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -1111,7 +1111,7 @@ const adminController = {
   async getAuditLogs(req, res) {
     try {
       const { adminId, actionType, startDate, endDate, page = 1, limit = 50 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -1148,7 +1148,7 @@ const adminController = {
   async exportData(req, res) {
     try {
       const { type, format, startDate, endDate } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check platform admin permissions for full export
       const user = await db('users').where({ id: userId }).select('role').first();
@@ -1247,7 +1247,7 @@ const adminController = {
   async getStats(req, res) {
     try {
       const requestingUserRole = req.user.role;
-      const requestingUserId = req.user.userId;
+      const requestingUserId = req.user.id;
 
       // Check if requesting user is an admin
       if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {

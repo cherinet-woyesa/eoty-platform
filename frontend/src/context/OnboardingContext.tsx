@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onboardingApi, type OnboardingFlow, type OnboardingProgress } from '../services/api/onboarding';
-import { useAuth } from './AuthContext';
+import { useUnifiedAuth } from '../hooks/useUnifiedAuth';
 
 interface OnboardingContextType {
   hasOnboarding: boolean;
@@ -25,7 +25,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  
+  // Use unified auth hook
+  const { isAuthenticated } = useUnifiedAuth();
 
   const fetchProgress = useCallback(async () => {
     if (!isAuthenticated) {

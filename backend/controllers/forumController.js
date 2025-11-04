@@ -7,7 +7,7 @@ const forumController = {
   // Get forums for user's chapter
   async getForums(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
       
       const forums = await Forum.findByChapter(user.chapter_id);
@@ -30,7 +30,7 @@ const forumController = {
     try {
       const { forumId } = req.params;
       const { page = 1, limit = 20 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check forum access
       const hasAccess = await Forum.checkMembership(forumId, userId);
@@ -60,7 +60,7 @@ const forumController = {
   async createTopic(req, res) {
     try {
       const { forumId, title, content } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       // Check forum access
       const hasAccess = await Forum.checkMembership(forumId, userId);
@@ -120,7 +120,7 @@ const forumController = {
     try {
       const { topicId } = req.params;
       const { page = 1, limit = 50 } = req.query;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const topic = await ForumTopic.findById(topicId);
       if (!topic) {
@@ -172,7 +172,7 @@ const forumController = {
   async createPost(req, res) {
     try {
       const { topicId, content, parentId } = req.body;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const topic = await ForumTopic.findById(topicId);
       if (!topic) {
@@ -246,7 +246,7 @@ const forumController = {
   async likePost(req, res) {
     try {
       const { postId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const post = await ForumPost.findById(postId);
       if (!post) {
@@ -296,7 +296,7 @@ const forumController = {
   async lockTopic(req, res) {
     try {
       const { topicId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const topic = await ForumTopic.findById(topicId);
       if (!topic) {
@@ -333,7 +333,7 @@ const forumController = {
     try {
       const { postId } = req.params;
       const { action, reason } = req.body; // action: 'delete', 'hide', 'warn'
-      const userId = req.user.userId;
+      const userId = req.user.id;
 
       const post = await ForumPost.findById(postId);
       if (!post) {

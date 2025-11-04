@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const interactiveController = require('../controllers/interactiveController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission } = require('../middleware/rbacMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Quiz routes
 router.get('/lessons/:lessonId/quizzes', interactiveController.getLessonQuizzes);

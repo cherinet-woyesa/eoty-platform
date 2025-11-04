@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/courseController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission, requireRole } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission, requireRole } = require('../middleware/rbacMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Changed from 'course:view' to 'course:create' since teacher has that permission
 router.get('/', requirePermission('course:view'), courseController.getUserCourses);

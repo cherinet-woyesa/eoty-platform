@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const moderationController = require('../controllers/moderationController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requireRole } = require('../middleware/rbacMiddleware');
 
 // All routes require moderator or admin role
-router.use(authenticateToken);
+router.use(requireAuth);
 router.use(requireRole(['moderator', 'admin']));
 
 // Escalation management

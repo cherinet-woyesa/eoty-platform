@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const quizController = require('../controllers/quizController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission, requireRole } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission, requireRole } = require('../middleware/rbacMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Quiz question management (teachers only)
 router.post('/lessons/:lessonId/questions', requirePermission('lesson:create'), quizController.createQuestion);

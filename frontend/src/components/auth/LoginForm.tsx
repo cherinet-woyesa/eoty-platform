@@ -92,13 +92,27 @@ const LoginForm: React.FC = () => {
     setSuccessMessage(null);
     
     try {
+      console.log('LoginForm: Calling login function');
       await login(formData.email, formData.password);
+      console.log('LoginForm: Login completed successfully');
+      
+      // Verify token was saved
+      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      console.log('LoginForm: Verification after login', {
+        hasToken: !!savedToken,
+        hasUser: !!savedUser
+      });
+      
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
-      // No explicit navigation here, PublicRoute will handle redirection to /dashboard
-      // based on isAuthenticated status.
+      // Use full page reload to ensure AuthContext reinitializes with token
+      setTimeout(() => {
+        console.log('LoginForm: Redirecting to dashboard with full page reload');
+        window.location.href = '/dashboard';
+      }, 1000);
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('LoginForm: Login error:', err);
       
       // Enhanced error messages that are actionable and non-technical
       let errorMessage = 'Something went wrong. Please try again.';

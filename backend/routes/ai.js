@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const aiController = require('../controllers/aiController');
-const { authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 router.post('/ask', aiController.askQuestion);
 router.get('/conversation', aiController.getConversationHistory);

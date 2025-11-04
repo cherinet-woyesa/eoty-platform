@@ -1,7 +1,12 @@
 import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './utils/protectedStorage'; // Protect localStorage from accidental clears
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import ResendVerification from './pages/auth/ResendVerification';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import TeacherDashboard from './components/dashboard/TeacherDashboard/TeacherDashboard';
 import StudentDashboard from './components/dashboard/StudentDashboard/StudentDashboard';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -13,6 +18,7 @@ import CourseDetails from './pages/courses/CourseDetails';
 import AIAssistant from './pages/ai/AIAssistant';
 import FloatingAIChat from './components/ai/FloatingAIChat';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { BetterAuthProvider, useBetterAuth } from './context/BetterAuthContext';
 import Forums from './pages/social/Forums';
 import ForumTopics from './pages/social/ForumTopics';
 import Achievements from './pages/social/Achievements';
@@ -56,7 +62,7 @@ interface PublicRouteProps {
 
 // Enhanced ProtectedRoute component with role support
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole, requiredPermission }) => {
-  const { isAuthenticated, user, hasPermission, hasRole, isLoading } = useAuth();
+  const { isAuthenticated, user, hasPermission, hasRole, isLoading } = useUnifiedAuth();
   
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -134,7 +140,7 @@ const AdminRoute: React.FC<RouteProps> = ({ children, requiredPermission }) => (
 
 // Public route component (redirects authenticated users away from login/register)
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useUnifiedAuth();
   
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -158,7 +164,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 
 // Dynamic dashboard based on user role
 const DynamicDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   
   // Redirect admins to admin dashboard
   if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
@@ -173,9 +179,43 @@ const DynamicDashboard: React.FC = () => {
   return <TeacherDashboard />;
 };
 
+// Feature flag to toggle between auth systems
+const isBetterAuthEnabled = import.meta.env.VITE_ENABLE_BETTER_AUTH === 'true';
+
+// Unified auth hook that uses the appropriate context
+function useUnifiedAuth() {
+  if (isBetterAuthEnabled) {
+    const betterAuth = useBetterAuth();
+    return {
+      user: betterAuth.user ? {
+        id: betterAuth.user.id,
+        firstName: betterAuth.user.first_name,
+        lastName: betterAuth.user.last_name,
+        email: betterAuth.user.email,
+        role: betterAuth.user.role,
+        chapter: String(betterAuth.user.chapter_id),
+        profilePicture: betterAuth.user.profile_picture,
+      } : null,
+      isLoading: betterAuth.isLoading,
+      isAuthenticated: betterAuth.isAuthenticated,
+      hasPermission: betterAuth.hasPermission,
+      hasRole: betterAuth.hasRole,
+    };
+  } else {
+    const legacyAuth = useAuth();
+    return {
+      user: legacyAuth.user,
+      isLoading: legacyAuth.isLoading,
+      isAuthenticated: legacyAuth.isAuthenticated,
+      hasPermission: legacyAuth.hasPermission,
+      hasRole: legacyAuth.hasRole,
+    };
+  }
+}
+
 // Main App Content that uses the auth context
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useUnifiedAuth();
 
   // Show loading spinner while auth is initializing
   if (isLoading) {
@@ -206,6 +246,30 @@ function AppContent() {
           element={
             <PublicRoute>
               <Register />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/verify-email" 
+          element={<VerifyEmail />} 
+        />
+        <Route 
+          path="/resend-verification" 
+          element={<ResendVerification />} 
+        />
+        <Route 
+          path="/forgot-password" 
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/reset-password" 
+          element={
+            <PublicRoute>
+              <ResetPassword />
             </PublicRoute>
           } 
         />
@@ -542,15 +606,18 @@ function AppContent() {
 
 // Main App component that provides the context
 function App() {
+  // Choose the appropriate auth provider based on feature flag
+  const AuthContextProvider = isBetterAuthEnabled ? BetterAuthProvider : AuthProvider;
+  
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
+      <AuthContextProvider>
         <UserProvider>
           <OnboardingProvider>
             <AppContent />
           </OnboardingProvider>
         </UserProvider>
-      </AuthProvider>
+      </AuthContextProvider>
     </Router>
   );
 }

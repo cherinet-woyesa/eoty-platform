@@ -4,7 +4,7 @@ const quizController = {
   // Create a quiz question for a lesson
   async createQuestion(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const teacherId = req.user.id;
       const { lessonId } = req.params;
       const { question_text, question_type, options, correct_answer, explanation, points, order } = req.body;
 
@@ -80,7 +80,7 @@ const quizController = {
   // Submit a quiz answer
   async submitAnswer(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { questionId } = req.params;
       const { answer } = req.body;
 
@@ -133,7 +133,7 @@ const quizController = {
   // Start a quiz session
   async startQuizSession(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { lessonId } = req.params;
 
       // Get total questions and points for the lesson
@@ -170,7 +170,7 @@ const quizController = {
   // Complete a quiz session
   async completeQuizSession(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { sessionId } = req.params;
 
       // Get session details
@@ -233,7 +233,7 @@ const quizController = {
   // Get user's quiz results for a lesson
   async getQuizResults(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { lessonId } = req.params;
 
       const results = await db('quiz_sessions')
@@ -304,7 +304,7 @@ const quizController = {
   // Get user's lesson progress
   async getLessonProgress(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { lessonId } = req.params;
 
       const progress = await db('user_lesson_progress')

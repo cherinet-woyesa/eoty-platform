@@ -91,7 +91,7 @@ const discussionController = {
   // Create a new discussion
   async createDiscussion(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { lessonId } = req.params;
       const { content, video_timestamp, parent_id } = req.body;
 
@@ -145,7 +145,7 @@ const discussionController = {
   // Update a discussion
   async updateDiscussion(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { discussionId } = req.params;
       const { content, is_pinned, is_approved } = req.body;
 
@@ -193,7 +193,7 @@ const discussionController = {
   // Delete a discussion
   async deleteDiscussion(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { discussionId } = req.params;
 
       // Check if user owns the discussion
@@ -247,7 +247,7 @@ const discussionController = {
   // Toggle like on a discussion
   async toggleLike(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { discussionId } = req.params;
 
       // Check if user already liked this discussion
@@ -298,7 +298,7 @@ const discussionController = {
   // Flag a discussion
   async flagDiscussion(req, res) {
     try {
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const { discussionId } = req.params;
       const { reason } = req.body;
 

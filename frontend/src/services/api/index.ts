@@ -31,10 +31,27 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      console.log('401 Error intercepted:', {
+        url: error.config?.url,
+        currentPath: window.location.pathname,
+        hasToken: !!localStorage.getItem('token')
+      });
+      
+      // Only redirect if we're not already on login/register pages
+      // and if the request wasn't to login/register endpoints
+      const currentPath = window.location.pathname;
+      const isAuthPage = currentPath === '/login' || currentPath === '/register';
+      const isAuthRequest = error.config?.url?.includes('/auth/login') || 
+                           error.config?.url?.includes('/auth/register') ||
+                           error.config?.url?.includes('/auth/permissions');
+      
+      if (!isAuthPage && !isAuthRequest) {
+        console.log('Redirecting to login due to 401');
+        // Token expired or invalid
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -73,6 +90,17 @@ export const authApi = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     return { success: true };
+  },
+
+  // Password reset
+  forgotPassword: async (email: string) => {
+    const response = await apiClient.post('/auth/forget-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await apiClient.post('/auth/reset-password', { token, newPassword });
+    return response.data;
   }
 };
 

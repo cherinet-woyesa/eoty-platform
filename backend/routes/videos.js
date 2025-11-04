@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const videoController = require('../controllers/videoController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission } = require('../middleware/rbacMiddleware');
 const upload = require('../middleware/upload');
 
 const { videoUploadLimiter } = require('../middleware/rateLimiter');
@@ -16,7 +16,7 @@ router.get('/lessons/:lessonId/metadata', videoController.getVideoMetadata);
 router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability);
 
 // Apply authentication middleware to remaining routes
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Video upload routes (teacher/admin only)
 router.post('/upload', videoUploadLimiter, requirePermission('video:upload'), upload.single('video'), videoController.uploadVideo);

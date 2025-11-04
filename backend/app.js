@@ -2,10 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const betterAuthRoutes = require('./routes/betterAuth'); // Better Auth routes
+const migrationRoutes = require('./routes/migration'); // Legacy user migration routes
 const courseRoutes = require('./routes/courses');
 const videoRoutes = require('./routes/videos');
 const studentRoutes = require('./routes/students');
@@ -27,7 +30,7 @@ const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
-// Enhanced CORS configuration for video streaming
+// Enhanced CORS configuration for video streaming and Better Auth
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -36,8 +39,10 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5000',
+      'http://localhost:5173', // Vite dev server
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:5000'
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:5173' // Vite dev server
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -46,15 +51,17 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true, // Important for Better Auth cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
     'Range', 
     'Accept',
     'Origin',
-    'X-Requested-With'
+    'X-Requested-With',
+    'Cookie', // Better Auth uses cookies
+    'Set-Cookie'
   ],
   exposedHeaders: [
     'Content-Range',
@@ -63,7 +70,8 @@ const corsOptions = {
     'Content-Type',
     'Authorization',
     'X-Video-Quality',
-    'X-Estimated-Bitrate'
+    'X-Estimated-Bitrate',
+    'Set-Cookie' // Better Auth sets cookies
   ]
 };
 
@@ -72,6 +80,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" } // Important for video streaming
 }));
 app.use(cors(corsOptions)); // Use enhanced CORS configuration
+app.use(cookieParser()); // Required for Better Auth cookie-based sessions
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -121,8 +130,18 @@ app.get('/api/health', (req, res) => {
 // Handle preflight requests globally
 app.options('*', cors(corsOptions));
 
+// Migration routes - must be mounted before Better Auth routes
+// Handles transparent migration of legacy users to Better Auth
+app.use('/api/auth', migrationRoutes);
+
+// Better Auth routes - must be mounted before other routes
+// Better Auth handles all authentication endpoints at /api/auth/*
+app.use('/api/auth', betterAuthRoutes);
+
+// Legacy auth routes (will be deprecated after migration)
+// app.use('/api/auth', authRoutes); // Commented out - Better Auth takes precedence
+
 // Public routes
-app.use('/api/auth', authRoutes);
 app.use('/api/chapters', chapterRoutes);
 
 // Video routes - some endpoints are public for streaming

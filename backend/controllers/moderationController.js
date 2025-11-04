@@ -53,7 +53,7 @@ const moderationController = {
   async resolveEscalation(req, res) {
     try {
       const { escalationId } = req.params;
-      const moderatorId = req.user.userId;
+      const moderatorId = req.user.id;
       const { 
         action, 
         category, 
@@ -102,7 +102,7 @@ const moderationController = {
   async bulkResolveEscalations(req, res) {
     try {
       const { escalationIds, action, category, resolutionNotes } = req.body;
-      const moderatorId = req.user.userId;
+      const moderatorId = req.user.id;
 
       if (!Array.isArray(escalationIds) || escalationIds.length === 0) {
         return res.status(400).json({
@@ -288,7 +288,7 @@ const moderationController = {
           .insert({
             setting_key: key,
             setting_value: JSON.stringify(value),
-            updated_by: req.user.userId,
+            updated_by: req.user.id,
             updated_at: new Date()
           })
           .onConflict('setting_key')

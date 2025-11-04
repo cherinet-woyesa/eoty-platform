@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
 const teacherController = require('../controllers/teacherController');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // GET /api/teacher/dashboard
 router.get('/dashboard', teacherController.getDashboard);

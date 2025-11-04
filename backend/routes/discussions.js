@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const discussionController = require('../controllers/discussionController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/rbac');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission } = require('../middleware/rbacMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Get discussions for a lesson
 router.get('/lessons/:lessonId', discussionController.getLessonDiscussions);

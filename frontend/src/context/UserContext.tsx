@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../services/api';
-import { useAuth } from './AuthContext'; // Import useAuth
+import { useUnifiedAuth } from '../hooks/useUnifiedAuth';
 
 interface User {
   id: string;
@@ -25,7 +25,9 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, user: authUser } = useAuth(); // Get auth state and user
+  
+  // Use unified auth hook
+  const { isAuthenticated, user: authUser } = useUnifiedAuth();
 
   const loadUser = async () => {
     try {
@@ -47,9 +49,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           permissions
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load user:', error);
-      localStorage.removeItem('token');
+      // Only clear token on 401 (unauthorized), not on other errors like 429 (rate limit)
+      if (error.response?.status === 401) {
+        console.warn('Token invalid, clearing auth storage');
+        localStorage.removeItem('token');
+      } else {
+        console.warn('Failed to load user but keeping token (error may be temporary)');
+      }
     } finally {
       setLoading(false);
     }

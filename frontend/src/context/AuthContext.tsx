@@ -50,29 +50,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('🔍 AuthContext: Starting initialization...');
+      console.log('🔍 localStorage keys:', Object.keys(localStorage));
+      
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
       
+      console.log('AuthContext: Initializing auth', { 
+        hasToken: !!storedToken,
+        tokenLength: storedToken?.length,
+        hasUser: !!storedUser,
+        userLength: storedUser?.length
+      });
+      
       if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        
-        // Load permissions for the user
-        await loadPermissions();
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setToken(storedToken);
+          setUser(parsedUser);
+          
+          console.log('✅ AuthContext: User loaded from localStorage', parsedUser.email);
+          
+          // Load permissions for the user
+          await loadPermissions();
+        } catch (error) {
+          console.error('❌ AuthContext: Error parsing stored user:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } else {
+        console.log('⚠️ AuthContext: No stored credentials found');
       }
       
       setLoading(false);
+      console.log('AuthContext: Initialization complete');
     };
 
     initializeAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('🔐 AuthContext: LOGIN FUNCTION CALLED', { email });
     try {
-      console.log('AuthContext: Attempting login with:', { email });
+      console.log('🔐 AuthContext: Attempting login with:', { email });
       
       const response = await authApi.login(email, password);
-      console.log('AuthContext: Raw API response:', response);
+      console.log('🔐 AuthContext: Raw API response:', response);
 
       // FIXED: Handle the correct response format from backend
       let token, user;
@@ -92,16 +115,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Invalid response from server: missing token or user data');
       }
 
-      console.log('AuthContext: Login successful', { token, user });
+      console.log('✅ AuthContext: Login successful', { token: token.substring(0, 20) + '...', user: user.email });
       
       setToken(token);
       setUser(user);
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      console.log('✅ AuthContext: Token and user saved to localStorage');
       
-      // Load permissions after login
-      await loadPermissions();
+      // Load permissions after login (don't let this fail the login)
+      try {
+        await loadPermissions();
+        console.log('✅ AuthContext: Permissions loaded');
+      } catch (permError) {
+        console.warn('⚠️ AuthContext: Failed to load permissions, but login succeeded:', permError);
+      }
       
     } catch (error: any) {
       console.error('AuthContext: Login error:', error);
@@ -190,6 +219,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    console.log('AuthContext: Logout called');
+    console.trace('Logout stack trace');
     setUser(null);
     setToken(null);
     setPermissions([]);
@@ -251,3 +282,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Re-export unified auth hook for convenience
+export { useUnifiedAuth } from '../hooks/useUnifiedAuth';

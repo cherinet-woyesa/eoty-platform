@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const resourceController = require('../controllers/resourceController');
-const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/roles');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
+const { requirePermission } = require('../middleware/rbacMiddleware');
 const upload = require('../middleware/upload');
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // Resource browsing and filtering
 router.get('/', resourceController.getResources);

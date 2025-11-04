@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/betterAuthMiddleware');
 
-router.use(authenticateToken);
+router.use(requireAuth);
 
 // GET /api/onboarding/progress
 router.get('/progress', (req, res) => {
