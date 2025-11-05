@@ -22,6 +22,7 @@ const onboardingRoutes = require('./routes/onboarding');
 const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
 const analyticsRoutes = require('./routes/analytics');
+const systemConfigRoutes = require('./routes/systemConfig');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -131,6 +132,7 @@ app.use('/api/videos', videoRoutes); // Authentication handled inside route file
 
 // Admin routes
 app.use('/api/admin', adminRoutes);
+app.use('/api/system-config', systemConfigRoutes);
 
 // Protected routes
 app.use('/api/courses', authenticateToken, courseRoutes);

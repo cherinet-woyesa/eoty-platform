@@ -1,14 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import AdminMetrics from './AdminMetrics';
-import QuickActions from './QuickActions';
-import SystemAlerts from './SystemAlerts';
-import RecentActivity from './RecentActivity';
-import UserManagementPreview from './UserManagementPreview';
-import ContentManagementPreview from './ContentManagementPreview';
-import AnalyticsOverview from './AnalyticsOverview';
-import { useWebSocket } from '../../../hooks/useWebSocket';
 import { useRealTimeData } from '../../../hooks/useRealTimeData';
+import { useWebSocket } from '../../../hooks/useWebSocket';
+import { Users, BookOpen, CheckCircle, BarChart2, Clock, AlertTriangle, Zap, TrendingUp, AlertCircle as AlertCircleIcon } from 'lucide-react';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import ErrorBoundary from '../../common/ErrorBoundary';
 
@@ -17,182 +11,349 @@ interface AdminDashboardProps {
   onTabChange?: (tab: string) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
-  activeTab = 'overview', 
-  onTabChange 
-}) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedMetric, setSelectedMetric] = useState<string | null>('totalUsers');
+  const [activeView, setActiveView] = useState('overview');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Real-time data for admin metrics
-  const { data: realTimeStats, error: statsError } = useRealTimeData('/admin/stats', {
-    totalUsers: 1248,
-    activeCourses: 86,
-    completedLessons: 3421,
-    avgEngagement: 78,
-    pendingApprovals: 5,
-    flaggedContent: 3,
-    activeUsers: 1247,
-    newRegistrations: 12
-  });
+  const initialAdminData = useMemo(() => ({
+    totalUsers: 0,
+    activeCourses: 0,
+    completedLessons: 0,
+    avgEngagement: 0,
+    pendingApprovals: 0,
+    flaggedContent: 0,
+    activeUsers: 0,
+    newRegistrations: 0
+  }), []);
 
-  // WebSocket for live updates
+  const { data: realTimeStats, error: statsError, isLoading, refetch } = useRealTimeData('/admin/stats', initialAdminData);
+
+  // WebSocket for live admin updates
   const { lastMessage } = useWebSocket('/admin/updates');
+
+  // Update time every minute
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Handle real-time updates
   React.useEffect(() => {
     if (lastMessage) {
       const update = JSON.parse(lastMessage.data);
       console.log('Real-time admin update:', update);
-      // Handle different types of updates (new users, content, etc.)
     }
   }, [lastMessage]);
 
-  const tabs = useMemo(() => [
+  // Log data to verify backend fetch
+  React.useEffect(() => {
+    console.log('Admin Dashboard - Stats:', realTimeStats);
+    console.log('Admin Dashboard - Error:', statsError);
+  }, [realTimeStats, statsError]);
+
+  const metrics = [
+    {
+      id: 'totalUsers',
+      title: 'Total Users',
+      value: realTimeStats?.totalUsers || 0,
+      change: 12,
+      icon: <Users className="h-6 w-6" />,
+      color: 'from-blue-500 to-blue-600',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700'
+    },
+    {
+      id: 'activeCourses',
+      title: 'Active Courses',
+      value: realTimeStats?.activeCourses || 0,
+      change: 5,
+      icon: <BookOpen className="h-6 w-6" />,
+      color: 'from-green-500 to-green-600',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-700'
+    },
+    {
+      id: 'completedLessons',
+      title: 'Completed Lessons',
+      value: realTimeStats?.completedLessons || 0,
+      change: 8,
+      icon: <CheckCircle className="h-6 w-6" />,
+      color: 'from-purple-500 to-purple-600',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-700'
+    },
+    {
+      id: 'avgEngagement',
+      title: 'Avg. Engagement',
+      value: `${realTimeStats?.avgEngagement || 0}%`,
+      change: 3,
+      icon: <BarChart2 className="h-6 w-6" />,
+      color: 'from-orange-500 to-orange-600',
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-700'
+    },
+    {
+      id: 'pendingApprovals',
+      title: 'Pending Approvals',
+      value: realTimeStats?.pendingApprovals || 0,
+      change: 2,
+      icon: <Clock className="h-6 w-6" />,
+      color: 'from-yellow-500 to-yellow-600',
+      bgColor: 'bg-yellow-50',
+      textColor: 'text-yellow-700'
+    },
+    {
+      id: 'flaggedContent',
+      title: 'Flagged Content',
+      value: realTimeStats?.flaggedContent || 0,
+      change: 1,
+      icon: <AlertTriangle className="h-6 w-6" />,
+      color: 'from-red-500 to-red-600',
+      bgColor: 'bg-red-50',
+      textColor: 'text-red-700'
+    },
+    {
+      id: 'activeUsers',
+      title: 'Active Users',
+      value: realTimeStats?.activeUsers || 0,
+      change: 24,
+      icon: <Zap className="h-6 w-6" />,
+      color: 'from-indigo-500 to-indigo-600',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-700'
+    },
+    {
+      id: 'newRegistrations',
+      title: 'New Registrations',
+      value: realTimeStats?.newRegistrations || 0,
+      change: 3,
+      icon: <TrendingUp className="h-6 w-6" />,
+      color: 'from-pink-500 to-pink-600',
+      bgColor: 'bg-pink-50',
+      textColor: 'text-pink-700'
+    }
+  ];
+
+  const views = useMemo(() => [
     { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'users', name: 'User Management', icon: '👥' },
-    { id: 'content', name: 'Content Management', icon: '📚' },
+    { id: 'users', name: 'Users', icon: '👥' },
+    { id: 'courses', name: 'Courses', icon: '📚' },
     { id: 'analytics', name: 'Analytics', icon: '📈' },
     { id: 'moderation', name: 'Moderation', icon: '🛡️' },
-    { id: 'system', name: 'System Health', icon: '⚙️' }
+    { id: 'system', name: 'System', icon: '⚙️' }
   ], []);
 
-  const handleRefresh = useCallback(() => {
-    setIsLoading(true);
-    setRefreshKey(prev => prev + 1);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
 
-  const handleTabChange = useCallback((tabId: string) => {
-    onTabChange?.(tabId);
-  }, [onTabChange]);
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
 
-  const renderTabContent = () => {
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const selectedMetricData = metrics.find(m => m.id === selectedMetric);
+
+  const renderViewContent = () => {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading dashboard data..." />
+          <LoadingSpinner size="lg" text="Loading admin data..." />
         </div>
       );
     }
 
-    switch (activeTab) {
+    switch (activeView) {
       case 'users':
-        return <UserManagementPreview />;
-      case 'content':
-        return <ContentManagementPreview />;
+        return (
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">User Management</h2>
+            <p className="text-gray-600">User management interface will be displayed here.</p>
+          </div>
+        );
+      case 'courses':
+        return (
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Course Management</h2>
+            <p className="text-gray-600">Course management interface will be displayed here.</p>
+          </div>
+        );
       case 'analytics':
-        return <AnalyticsOverview />;
+        return (
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">System Analytics</h2>
+            <p className="text-gray-600">Detailed analytics will be displayed here.</p>
+          </div>
+        );
       case 'moderation':
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SystemAlerts alerts={[]} />
-            <RecentActivity activities={[]} />
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Content Moderation</h2>
+            <p className="text-gray-600">Moderation tools and flagged content will be displayed here.</p>
           </div>
         );
       case 'system':
         return (
-          <div className="space-y-6">
-            <SystemAlerts alerts={[]} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
-                {/* System health metrics would go here */}
-              </div>
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance</h3>
-                {/* Performance metrics would go here */}
-              </div>
-            </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">System Configuration</h2>
+            <p className="text-gray-600">System settings and configuration will be displayed here.</p>
           </div>
         );
       default:
         return (
           <div className="space-y-6">
-            {/* Metrics Overview */}
-            <AdminMetrics stats={realTimeStats || {}} error={statsError || undefined} />
-            
-            {/* Quick Actions & Alerts */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <QuickActions />
-              </div>
-              <div>
-                <SystemAlerts alerts={[]} />
-              </div>
+            {/* Metrics Grid - Always Visible Clickable Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+              {metrics.map((metric) => (
+                <button
+                  key={metric.id}
+                  onClick={() => setSelectedMetric(metric.id)}
+                  className={`bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all p-4 text-left group ${
+                    selectedMetric === metric.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
+                  }`}
+                >
+                  <div className={`bg-gradient-to-r ${metric.color} rounded-lg p-3 text-white mb-3 group-hover:scale-105 transition-transform`}>
+                    {metric.icon}
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1">{metric.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                  <p className={`text-xs mt-1 ${metric.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {metric.change >= 0 ? '↑' : '↓'} {Math.abs(metric.change)}%
+                  </p>
+                </button>
+              ))}
             </div>
 
-            {/* Recent Activity & Previews */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <RecentActivity activities={[]} compact />
-              <UserManagementPreview compact />
-            </div>
+            {/* Detail View - Shown Below Cards When Metric Selected */}
+            {selectedMetric && selectedMetricData && (
+              <div className="space-y-4">
+                {/* Selected Metric Header */}
+                <div className={`bg-gradient-to-r ${selectedMetricData.color} rounded-xl shadow-sm p-6 text-white`}>
+                  <div className="flex items-center gap-4">
+                    {selectedMetricData.icon}
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedMetricData.title}</h2>
+                      <p className="text-white/80 mt-1">Detailed view and analytics</p>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Content & Analytics Previews */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ContentManagementPreview compact />
-              <AnalyticsOverview compact />
-            </div>
+                {/* Metric Details */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Current Value</p>
+                      <p className="text-3xl font-bold text-gray-900">{selectedMetricData.value}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Change</p>
+                      <p className={`text-3xl font-bold ${selectedMetricData.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {selectedMetricData.change >= 0 ? '+' : ''}{selectedMetricData.change}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Status</p>
+                      <p className="text-3xl font-bold text-blue-600">Active</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                    <p className="text-gray-600">Detailed {selectedMetricData.title.toLowerCase()} data will be displayed here.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
     }
   };
 
+  if (statsError) {
+    return (
+      <ErrorBoundary>
+        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertCircleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 text-lg mb-4">Error loading admin data</p>
+              <button 
+                onClick={handleRetry}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-4 sm:mb-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600 mt-2">
-              Welcome, {user?.firstName}! You have {user?.role === 'platform_admin' ? 'full' : 'chapter'} admin privileges.
-              {lastMessage && (
-                <span className="ml-2 text-green-600 text-sm">
-                  ● Live
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Refreshing...' : 'Refresh Data'}
-            </button>
-            <div className="text-sm text-gray-500">
-              Last updated: {new Date().toLocaleTimeString()}
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-xl sm:text-2xl font-bold">Admin Dashboard</h1>
+                {lastMessage && (
+                  <div className="flex items-center space-x-2 text-blue-100">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm">Live Updates</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-blue-100 text-sm sm:text-base">
+                Welcome, {user?.firstName}! {formatDate(currentTime)} • {formatTime(currentTime)}
+              </p>
+              <p className="text-blue-200 text-xs sm:text-sm mt-1">
+                You have {user?.role === 'platform_admin' ? 'full platform' : 'chapter'} admin privileges • Managing {realTimeStats?.totalUsers || 0} users across {realTimeStats?.activeCourses || 0} courses
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => (
+        {/* View Navigation */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex flex-wrap gap-2">
+            {views.map((view) => (
               <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                key={view.id}
+                onClick={() => setActiveView(view.id)}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                  activeView === view.id
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.name}
+                <span className="mr-2">{view.icon}</span>
+                {view.name}
               </button>
             ))}
-          </nav>
+          </div>
         </div>
 
-        {/* Tab Content */}
+        {/* Main Content */}
         <div className="min-h-96">
-          {renderTabContent()}
+          {renderViewContent()}
         </div>
       </div>
     </ErrorBoundary>

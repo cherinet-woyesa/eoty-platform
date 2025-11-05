@@ -30,12 +30,17 @@ import AdminDashboard from './components/dashboard/AdminDashboard/AdminDashboard
 import ContentManagement from './pages/admin/ContentManagement';
 import { UserProvider } from './context/UserContext';
 import { OnboardingProvider } from './context/OnboardingContext';
-import ContentManager from './components/admin/ContentManager';
 import ModerationTools from './components/admin/ModerationTools';
 import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
 import TagManager from './components/admin/TagManager';
 import UserManagement from './components/admin/UserManagement';
 import UploadManager from './components/admin/UploadManager';
+import SystemConfigDashboard from './pages/admin/config/SystemConfigDashboard';
+import CategoryManagement from './pages/admin/config/CategoryManagement';
+import LevelManagement from './pages/admin/config/LevelManagement';
+import DurationManagement from './pages/admin/config/DurationManagement';
+import TagManagement from './pages/admin/config/TagManagement';
+import ChapterManagement from './pages/admin/config/ChapterManagement';
 import ResourceLibrary from './pages/resources/ResourceLibrary';
 import ResourceView from './pages/resources/ResourceView';
 import QuizDemo from './pages/courses/QuizDemo';
@@ -436,6 +441,73 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <UploadManager />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        {/* System Configuration Routes */}
+        <Route 
+          path="/admin/config/dashboard" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <SystemConfigDashboard />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/config/categories" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <CategoryManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/config/levels" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <LevelManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/config/durations" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <DurationManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/config/tags" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <TagManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/config/chapters" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <ChapterManagement />
               </DashboardLayout>
             </AdminRoute>
           } 

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { 
   LayoutDashboard, 
   Users, 
@@ -9,20 +10,22 @@ import {
   BarChart2, 
   Settings,
   Upload,
-  MessageSquare,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
   Crown,
   Database,
   Server,
   Globe,
-  CreditCard
+  ChevronDown,
+  ChevronUp,
+  FolderTree,
+  Layers,
+  Timer,
+  Hash,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { getMetrics } from '../../../services/api/systemConfig';
 
 interface AdminSidebarProps {
   isCollapsed?: boolean;
@@ -35,9 +38,36 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const [isSystemConfigExpanded, setIsSystemConfigExpanded] = useState(false);
 
-  const isPlatformAdmin = user?.role === 'platform_admin';
-  const isChapterAdmin = user?.role === 'chapter_admin';
+  // Fetch system config metrics for badge indicators
+  const { data: metrics } = useQuery({
+    queryKey: ['systemConfigMetrics'],
+    queryFn: getMetrics,
+    refetchInterval: false, // Disable auto-refetch to prevent excessive API calls
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    enabled: !!(user?.role === 'chapter_admin' || user?.role === 'platform_admin'),
+    retry: 1, // Only retry once on failure
+  });
+
+  // Calculate total inactive items
+  const totalInactive = useMemo(() => {
+    if (!metrics) return 0;
+    return (
+      metrics.categories.inactive +
+      metrics.levels.inactive +
+      metrics.durations.inactive +
+      metrics.tags.inactive +
+      metrics.chapters.inactive
+    );
+  }, [metrics]);
+
+  // Auto-expand System Config menu if on a config page
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin/config')) {
+      setIsSystemConfigExpanded(true);
+    }
+  }, [location.pathname]);
   
   const navigationItems = useMemo(() => [
     {
@@ -95,14 +125,40 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       roles: ['chapter_admin', 'platform_admin'],
       badge: 'New',
       description: 'Platform insights'
+    }
+
+  ], []);
+
+  const systemConfigItems = useMemo(() => [
+    {
+      name: 'Categories',
+      href: '/admin/config/categories',
+      icon: <FolderTree className="h-4 w-4" />,
+      description: 'Course categories'
     },
     {
-      name: 'Billing & Payments',
-      href: '/admin/billing',
-      icon: <CreditCard className="h-4 w-4" />,
-      roles: ['platform_admin'],
-      badge: null,
-      description: 'Financial management'
+      name: 'Levels',
+      href: '/admin/config/levels',
+      icon: <Layers className="h-4 w-4" />,
+      description: 'Difficulty levels'
+    },
+    {
+      name: 'Durations',
+      href: '/admin/config/durations',
+      icon: <Timer className="h-4 w-4" />,
+      description: 'Course durations'
+    },
+    {
+      name: 'Tags',
+      href: '/admin/config/tags',
+      icon: <Hash className="h-4 w-4" />,
+      description: 'Content tags'
+    },
+    {
+      name: 'Chapters',
+      href: '/admin/config/chapters',
+      icon: <BookOpen className="h-4 w-4" />,
+      description: 'Chapter management'
     }
   ], []);
 
@@ -156,32 +212,27 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-gradient-to-b from-gray-900 to-blue-900/90 border-r border-blue-700/30 transition-all duration-300 ${
+    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between h-14 px-4 border-b border-blue-700/50 bg-gradient-to-r from-blue-800 to-purple-900">
+      {/* Header - Compact */}
+      <div className="flex items-center justify-between h-12 px-3 border-b border-blue-200/50 bg-gradient-to-r from-blue-600 to-indigo-700">
         {!isCollapsed && (
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
               <Crown className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-white tracking-tight">Admin Panel</h1>
-              <p className="text-xs text-blue-200 capitalize leading-tight">
-                {user?.role?.replace('_', ' ')}
-              </p>
-            </div>
+            <h1 className="text-sm font-bold text-white">Admin Panel</h1>
           </div>
         )}
         <button
           onClick={onToggleCollapse}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-1 rounded-md hover:bg-white/20 transition-colors duration-200"
         >
           {isCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-blue-200" />
+            <ChevronRight className="h-3 w-3 text-white" />
           ) : (
-            <ChevronLeft className="h-4 w-4 text-blue-200" />
+            <ChevronLeft className="h-3 w-3 text-white" />
           )}
         </button>
       </div>
@@ -200,30 +251,30 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 to={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-blue-600 text-white shadow-sm border border-blue-500/50'
-                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
                 title={isCollapsed ? item.description : undefined}
               >
-                <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
-                  active ? 'bg-blue-500' : 'bg-blue-700/50 group-hover:bg-blue-600/50'
+                <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                  active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <div className={active ? 'text-white' : 'text-blue-300 group-hover:text-white'}>
-                    {React.cloneElement(item.icon, { className: 'h-5 w-5' })}
+                  <div className={active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}>
+                    {item.icon}
                   </div>
                 </div>
                 
                 {!isCollapsed && (
                   <div className="ml-3 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="truncate font-semibold text-base">{item.name}</span>
+                      <span className="truncate">{item.name}</span>
                       {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500 text-white">
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {item.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-blue-300/80 truncate">{item.description}</p>
+                    <p className="text-xs text-gray-500 truncate">{item.description}</p>
                   </div>
                 )}
               </Link>
@@ -231,14 +282,109 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           })}
         </nav>
 
+        {/* System Config Expandable Menu */}
+        <div className="px-2 mt-1">
+          <button
+            onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
+            className={`group w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              location.pathname.startsWith('/admin/config')
+                ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+            title={isCollapsed ? 'System Configuration' : undefined}
+          >
+            <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+              location.pathname.startsWith('/admin/config') ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
+            } transition-colors duration-200`}>
+              <Settings className={`h-4 w-4 ${
+                location.pathname.startsWith('/admin/config') ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'
+              }`} />
+            </div>
+            
+            {!isCollapsed && (
+              <div className="ml-3 flex-1 min-w-0 flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate">System Config</span>
+                    {totalInactive > 0 && (
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        {totalInactive}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">Manage system options</p>
+                </div>
+                <div className="ml-2">
+                  {isSystemConfigExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </div>
+            )}
+          </button>
+
+          {/* System Config Sub-menu */}
+          {!isCollapsed && isSystemConfigExpanded && (
+            <div className="mt-1 ml-4 space-y-1">
+              {systemConfigItems.map((subItem) => {
+                const active = isActive(subItem.href);
+                
+                // Get inactive count for this specific item
+                let inactiveCount = 0;
+                if (metrics) {
+                  if (subItem.href.includes('categories')) inactiveCount = metrics.categories.inactive;
+                  else if (subItem.href.includes('levels')) inactiveCount = metrics.levels.inactive;
+                  else if (subItem.href.includes('durations')) inactiveCount = metrics.durations.inactive;
+                  else if (subItem.href.includes('tags')) inactiveCount = metrics.tags.inactive;
+                  else if (subItem.href.includes('chapters')) inactiveCount = metrics.chapters.inactive;
+                }
+                
+                return (
+                  <Link
+                    key={subItem.name}
+                    to={subItem.href}
+                    className={`group flex items-center px-2 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      active
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                      active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
+                    } transition-colors duration-200`}>
+                      {React.cloneElement(subItem.icon, { 
+                        className: `h-4 w-4 ${active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}` 
+                      })}
+                    </div>
+                    
+                    <div className="ml-2 flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="truncate font-medium text-sm">{subItem.name}</span>
+                        {inactiveCount > 0 && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            {inactiveCount}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{subItem.description}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* System Section */}
         {filteredSystemItems.length > 0 && (
           <>
             <div className="px-2 py-4">
-              <div className="border-t border-blue-700/30"></div>
+              <div className="border-t border-gray-200"></div>
             </div>
             <div className="px-3 mb-2">
-              <h3 className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 System
               </h3>
             </div>
@@ -252,30 +398,30 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     to={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
-                        ? 'bg-purple-600 text-white shadow-sm border border-purple-500/50'
-                        : 'text-purple-100 hover:bg-white/10 hover:text-white'
+                        ? 'bg-gray-100 text-gray-700 shadow-sm border border-gray-200/50'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }`}
                     title={isCollapsed ? item.description : undefined}
                   >
-                    <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
-                      active ? 'bg-purple-500' : 'bg-purple-700/50 group-hover:bg-purple-600/50'
+                    <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                      active ? 'bg-gray-200' : 'bg-gray-100 group-hover:bg-gray-200'
                     } transition-colors duration-200`}>
-                      <div className={active ? 'text-white' : 'text-purple-300 group-hover:text-white'}>
-                        {React.cloneElement(item.icon, { className: 'h-5 w-5' })}
+                      <div className={active ? 'text-gray-700' : 'text-gray-500 group-hover:text-gray-700'}>
+                        {item.icon}
                       </div>
                     </div>
                     
                     {!isCollapsed && (
                       <div className="ml-3 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="truncate font-semibold text-base">{item.name}</span>
+                          <span className="truncate">{item.name}</span>
                           {item.badge && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white">
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               {item.badge}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-purple-300/70 truncate">{item.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{item.description}</p>
                       </div>
                     )}
                   </Link>
@@ -286,46 +432,29 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         )}
       </div>
 
-      {/* Quick Actions - Only when expanded */}
+      {/* Footer - Compact Stats */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-blue-700/30 bg-blue-800/20">
-          <div className="space-y-3">
-            <button className="w-full flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve All
-            </button>
-            <button className="w-full flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors">
-              <Shield className="h-4 w-4 mr-2" />
-              Moderate
-            </button>
+        <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Total Users</span>
+              <span className="font-semibold text-gray-900">{metrics?.categories?.total || 0}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Active Courses</span>
+              <span className="font-semibold text-gray-900">{metrics?.levels?.total || 0}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Pending</span>
+              <span className="font-semibold text-amber-600">{totalInactive}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Admin</span>
+              <span className="font-semibold text-gray-900 capitalize">{user?.role?.replace('_', ' ')}</span>
+            </div>
           </div>
         </div>
       )}
-
-      {/* User Profile */}
-      <div className="border-t border-blue-700/30 p-4 bg-blue-800/20 backdrop-blur-sm">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : ''}`}>
-          <div className="flex-shrink-0 relative">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center shadow-lg ring-2 ring-amber-200/50">
-              <span className="text-white text-base font-bold">
-                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-              </span>
-            </div>
-            {/* Online indicator */}
-            <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 bg-green-400 rounded-full border-2 border-blue-900"></div>
-          </div>
-          {!isCollapsed && (
-            <div className="ml-4 min-w-0">
-              <p className="text-base font-semibold text-white truncate">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-blue-300 capitalize truncate">
-                {user?.role?.replace('_', ' ')} • Online
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

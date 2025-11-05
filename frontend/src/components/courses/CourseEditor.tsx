@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coursesApi } from '../../services/api';
+import { systemConfigApi } from '../../services/api/systemConfig';
 import { useNotification } from '../../context/NotificationContext';
 import { useFormValidation, validationRules } from '../../hooks/useFormValidation';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
@@ -11,7 +12,6 @@ import {
   Plus,
   GripVertical,
   Save,
-  Clock,
   AlertCircle,
   CheckCircle,
   Loader,
@@ -24,28 +24,6 @@ interface CourseEditorProps {
   onSave?: (course: Course) => void;
   onCancel?: () => void;
 }
-
-const CATEGORIES = [
-  { value: 'faith', label: 'Faith & Doctrine', icon: BookOpen },
-  { value: 'history', label: 'Church History', icon: Clock },
-  { value: 'spiritual', label: 'Spiritual Development', icon: BookOpen },
-  { value: 'bible', label: 'Bible Study', icon: BookOpen },
-  { value: 'liturgical', label: 'Liturgical Studies', icon: BookOpen },
-  { value: 'youth', label: 'Youth Ministry', icon: BookOpen },
-];
-
-const LEVELS = [
-  { value: 'beginner', label: 'Beginner', description: 'No prior knowledge required' },
-  { value: 'intermediate', label: 'Intermediate', description: 'Basic understanding recommended' },
-  { value: 'advanced', label: 'Advanced', description: 'For experienced learners' },
-];
-
-const DURATIONS = [
-  { value: '1-2', label: '1-2 weeks' },
-  { value: '3-4', label: '3-4 weeks' },
-  { value: '5-8', label: '5-8 weeks' },
-  { value: '9+', label: '9+ weeks' },
-];
 
 export const CourseEditor: React.FC<CourseEditorProps> = ({
   courseId,
@@ -65,6 +43,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const course = courseData?.data?.course;
 
+  // Fetch dynamic configuration options
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['system-config', 'categories', 'active'],
+    queryFn: () => systemConfigApi.getCategories(true),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  const { data: levels = [], isLoading: isLoadingLevels } = useQuery({
+    queryKey: ['system-config', 'levels', 'active'],
+    queryFn: () => systemConfigApi.getLevels(true),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  const { data: durations = [], isLoading: isLoadingDurations } = useQuery({
+    queryKey: ['system-config', 'durations', 'active'],
+    queryFn: () => systemConfigApi.getDurations(true),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  const { data: tags = [], isLoading: isLoadingTags } = useQuery({
+    queryKey: ['system-config', 'tags', 'active'],
+    queryFn: () => systemConfigApi.getTags(true, 'usage'),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
   // Form state
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
@@ -75,6 +78,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     learning_objectives: [''],
     prerequisites: '',
     estimated_duration: '',
+    tags: [],
   });
 
   const [coverImagePreview, setCoverImagePreview] = useState<string>('');
@@ -94,6 +98,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         learning_objectives: course.learning_objectives || [''],
         prerequisites: course.prerequisites || '',
         estimated_duration: course.estimated_duration || '',
+        tags: course.tags || [],
       });
       setCoverImagePreview(course.cover_image || '');
     }
@@ -313,13 +318,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     message: 'You have unsaved changes. Are you sure you want to leave?',
   });
 
-  if (isLoadingCourse) {
+  // Show loading state while fetching course or configuration data
+  const isLoading = isLoadingCourse || isLoadingCategories || isLoadingLevels || isLoadingDurations || isLoadingTags;
+  
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Spinner size="lg" />
       </div>
     );
   }
+
+  // Sort categories, levels, and durations by display_order
+  const sortedCategories = [...categories].sort((a, b) => a.display_order - b.display_order);
+  const sortedLevels = [...levels].sort((a, b) => a.display_order - b.display_order);
+  const sortedDurations = [...durations].sort((a, b) => a.display_order - b.display_order);
+  
+  // Group tags by category if available
+  const groupedTags = tags.reduce((acc, tag) => {
+    const category = tag.category || 'Uncategorized';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(tag);
+    return acc;
+  }, {} as Record<string, typeof tags>);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -494,9 +517,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   : 'border-gray-300'
               }`}
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              {sortedCategories.map((cat) => (
+                <option key={cat.id} value={cat.slug}>
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -523,9 +546,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   : 'border-gray-300'
               }`}
             >
-              {LEVELS.map((level) => (
-                <option key={level.value} value={level.value}>
-                  {level.label} - {level.description}
+              {sortedLevels.map((level) => (
+                <option key={level.id} value={level.slug}>
+                  {level.name} - {level.description}
                 </option>
               ))}
             </select>
@@ -551,8 +574,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             >
               <option value="">Select duration</option>
-              {DURATIONS.map((duration) => (
-                <option key={duration.value} value={duration.value}>
+              {sortedDurations.map((duration) => (
+                <option key={duration.id} value={duration.value}>
                   {duration.label}
                 </option>
               ))}
@@ -572,6 +595,75 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               placeholder="e.g., Basic knowledge of Christianity"
             />
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tags
+          </label>
+          <div className="space-y-3">
+            {/* Selected Tags Display */}
+            {formData.tags && formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                {formData.tags.map((tagName) => {
+                  const tag = tags.find(t => t.name === tagName);
+                  return (
+                    <span
+                      key={tagName}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                      style={{
+                        backgroundColor: tag?.color ? `${tag.color}20` : '#3B82F620',
+                        color: tag?.color || '#3B82F6',
+                        border: `1px solid ${tag?.color || '#3B82F6'}40`
+                      }}
+                    >
+                      {tagName}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedTags = formData.tags?.filter(t => t !== tagName) || [];
+                          handleChange('tags', updatedTags);
+                        }}
+                        className="ml-2 hover:opacity-70"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Tag Selection Dropdown */}
+            <select
+              value=""
+              onChange={(e) => {
+                const tagName = e.target.value;
+                if (tagName && !formData.tags?.includes(tagName)) {
+                  handleChange('tags', [...(formData.tags || []), tagName]);
+                }
+                e.target.value = ''; // Reset dropdown
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            >
+              <option value="">Select tags...</option>
+              {Object.entries(groupedTags).map(([category, categoryTags]) => (
+                <optgroup key={category} label={category}>
+                  {categoryTags
+                    .filter(tag => !formData.tags?.includes(tag.name))
+                    .map((tag) => (
+                      <option key={tag.id} value={tag.name}>
+                        {tag.name} {tag.usage_count > 0 ? `(${tag.usage_count})` : ''}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              Select tags to categorize your course. Tags help students find relevant content.
+            </p>
           </div>
         </div>
 

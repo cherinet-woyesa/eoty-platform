@@ -38,6 +38,7 @@ export interface CourseFormData {
   learning_objectives: string[];
   prerequisites: string;
   estimated_duration: string;
+  tags?: string[];
 }
 
 export interface CourseEditorProps {

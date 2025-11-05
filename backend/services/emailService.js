@@ -65,12 +65,17 @@ class AnalyticsService {
   }
 
   async getPendingFlags() {
-    const result = await db('flagged_content')
-      .where({ status: 'pending' })
-      .count('id as count')
-      .first();
+    try {
+      const result = await db('flagged_content')
+        .where({ status: 'pending' })
+        .count('id as count')
+        .first();
 
-    return parseInt(result.count) || 0;
+      return parseInt(result.count) || 0;
+    } catch (err) {
+      console.warn('flagged_content table may not exist:', err.message);
+      return 0;
+    }
   }
 
   async getSystemHealth() {

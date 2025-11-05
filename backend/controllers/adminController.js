@@ -821,19 +821,23 @@ const adminController = {
     });
 
     // Check for unresolved flags
-    const pendingFlags = await db('flagged_content')
-      .where({ status: 'pending' })
-      .where('created_at', '<=', new Date(Date.now() - 2 * 60 * 60 * 1000)) // Older than 2 hours
-      .count('id as count')
-      .first();
+    try {
+      const pendingFlags = await db('flagged_content')
+        .where({ status: 'pending' })
+        .where('created_at', '<=', new Date(Date.now() - 2 * 60 * 60 * 1000)) // Older than 2 hours
+        .count('id as count')
+        .first();
 
-    if (pendingFlags.count > 0) {
-      alerts.push({
-        type: 'pending_flags',
-        severity: 'warning',
-        message: `${pendingFlags.count} flagged items pending review for over 2 hours`,
-        count: pendingFlags.count
-      });
+      if (pendingFlags && pendingFlags.count > 0) {
+        alerts.push({
+          type: 'pending_flags',
+          severity: 'warning',
+          message: `${pendingFlags.count} flagged items pending review for over 2 hours`,
+          count: pendingFlags.count
+        });
+      }
+    } catch (err) {
+      console.warn('flagged_content table may not exist:', err.message);
     }
 
     return alerts;

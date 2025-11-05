@@ -25,9 +25,7 @@ exports.seed = async function(knex) {
       password_hash: studentPassword,
       role: 'student',
       chapter_id: chapters[0].id,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date()
+      is_active: true
     },
     {
       first_name: 'Teacher',
@@ -36,9 +34,7 @@ exports.seed = async function(knex) {
       password_hash: teacherPassword,
       role: 'teacher',
       chapter_id: chapters[0].id,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date()
+      is_active: true
     },
     {
       first_name: 'Chapter',
@@ -47,9 +43,7 @@ exports.seed = async function(knex) {
       password_hash: chapterAdminPassword,
       role: 'chapter_admin',
       chapter_id: chapters[0].id,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date()
+      is_active: true
     },
     {
       first_name: 'Platform',
@@ -58,9 +52,7 @@ exports.seed = async function(knex) {
       password_hash: platformAdminPassword, // password: admin123
       role: 'platform_admin',
       chapter_id: chapters[0].id,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date()
+      is_active: true
     }
   ];
   
@@ -68,14 +60,13 @@ exports.seed = async function(knex) {
   for (const user of users) {
     const existingUser = await knex('users').where('email', user.email).first();
     if (!existingUser) {
-      // User doesn't exist, create new
+      // User doesn't exist, create new (let database handle timestamps)
       await knex('users').insert(user);
       console.log(`Created user: ${user.email}`);
     } else {
       // User exists, update password
       await knex('users').where('email', user.email).update({
-        password_hash: user.password_hash,
-        updated_at: new Date()
+        password_hash: user.password_hash
       });
       console.log(`Updated password for user: ${user.email}`);
     }
