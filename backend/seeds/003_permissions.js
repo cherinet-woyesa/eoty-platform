@@ -54,6 +54,7 @@ exports.seed = async function(knex) {
     // Teacher permissions
     { role: 'teacher', permission_id: permissionMap['course:create'] },
     { role: 'teacher', permission_id: permissionMap['course:edit'] },
+    { role: 'teacher', permission_id: permissionMap['course:delete'] },
     { role: 'teacher', permission_id: permissionMap['course:view'] },
     { role: 'teacher', permission_id: permissionMap['course:publish'] },
     { role: 'teacher', permission_id: permissionMap['lesson:create'] },

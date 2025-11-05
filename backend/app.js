@@ -21,6 +21,7 @@ const chapterRoutes = require('./routes/chapters');
 const onboardingRoutes = require('./routes/onboarding');
 const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
+const analyticsRoutes = require('./routes/analytics');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -144,6 +145,7 @@ app.use('/api/achievements', authenticateToken, achievementRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
+app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -170,5 +172,9 @@ app.use((req, res) => {
     message: 'Route not found'
   });
 });
+
+// Initialize scheduled jobs
+const { initializeScheduledPublishing } = require('./jobs/scheduledPublishing');
+initializeScheduledPublishing();
 
 module.exports = app;

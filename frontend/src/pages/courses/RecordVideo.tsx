@@ -6,7 +6,7 @@ import {
   Camera, Mic, Monitor, Wifi, AlertCircle,
   CheckCircle, Upload, FileVideo, Zap
 } from 'lucide-react';
-import VideoRecorder from '../../components/courses/VideoRecorder';
+import EnhancedVideoRecorder from '../../components/courses/EnhancedVideoRecorder';
 import { coursesApi } from '../../services/api';
 
 interface Course {
@@ -45,13 +45,14 @@ const RecordVideo: React.FC = () => {
     loadData();
   }, []);
 
-  const handleRecordingComplete = (videoUrl: string) => {
-    console.log('Recording completed:', videoUrl);
-  };
-
-  const handleUploadComplete = (lessonId: string, videoUrl: string) => {
-    console.log('Upload completed:', { lessonId, videoUrl });
-    // Navigate to course or show success message
+  const handleComplete = (lessonId: string, videoUrl: string) => {
+    console.log('Lesson created:', { lessonId, videoUrl });
+    // Navigate to the course details page
+    if (selectedCourse) {
+      navigate(`/courses/${selectedCourse}`);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const selectedCourseData = courses.find(course => course.id === selectedCourse);
@@ -89,10 +90,9 @@ const RecordVideo: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Recording Area - 3/4 width */}
           <div className="xl:col-span-3">
-            <VideoRecorder 
-              onRecordingComplete={handleRecordingComplete}
-              onUploadComplete={handleUploadComplete}
-              courseId={selectedCourse}
+            <EnhancedVideoRecorder 
+              onComplete={handleComplete}
+              initialCourseId={selectedCourse}
             />
           </div>
 

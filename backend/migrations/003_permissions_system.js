@@ -81,6 +81,7 @@ exports.up = async function(knex) {
     // Teacher permissions
     { role: 'teacher', permission_id: 1 }, // course:create
     { role: 'teacher', permission_id: 2 }, // course:edit
+    { role: 'teacher', permission_id: 3 }, // course:delete
     { role: 'teacher', permission_id: 4 }, // course:view
     { role: 'teacher', permission_id: 5 }, // course:publish
     { role: 'teacher', permission_id: 6 }, // lesson:create

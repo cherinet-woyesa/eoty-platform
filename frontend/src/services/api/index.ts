@@ -112,6 +112,80 @@ export const coursesApi = {
   deleteLesson: async (lessonId: string) => {
     const response = await apiClient.delete(`/courses/lessons/${lessonId}`);
     return response.data;
+  },
+
+  // Reorder lessons
+  reorderLessons: async (courseId: string, lessons: { id: number; order: number }[]) => {
+    const response = await apiClient.post(`/courses/${courseId}/lessons/reorder`, { lessons });
+    return response.data;
+  },
+
+  // Get video status
+  getVideoStatus: async (lessonId: string) => {
+    const response = await apiClient.get(`/courses/lessons/${lessonId}/video-status`);
+    return response.data;
+  },
+
+  // Update course
+  updateCourse: async (courseId: string, courseData: any) => {
+    const response = await apiClient.put(`/courses/${courseId}`, courseData);
+    return response.data;
+  },
+
+  // Get single course
+  getCourse: async (courseId: string) => {
+    const response = await apiClient.get(`/courses/${courseId}`);
+    return response.data;
+  },
+
+  // Bulk operations
+  bulkAction: async (action: string, courseIds: number[], data?: any) => {
+    const response = await apiClient.post('/courses/bulk-action', {
+      action,
+      courseIds,
+      data
+    });
+    return response.data;
+  },
+
+  // Analytics endpoints
+  getEnrolledStudents: async (courseId: string, params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => {
+    const response = await apiClient.get(`/courses/${courseId}/students`, { params });
+    return response.data;
+  },
+
+  getStudentProgress: async (courseId: string, studentId: string) => {
+    const response = await apiClient.get(`/courses/${courseId}/students/${studentId}/progress`);
+    return response.data;
+  },
+
+  getEngagementAnalytics: async (courseId: string, params?: {
+    startDate?: string;
+    endDate?: string;
+    granularity?: string;
+  }) => {
+    const response = await apiClient.get(`/courses/${courseId}/analytics/engagement`, { params });
+    return response.data;
+  },
+
+  exportAnalytics: async (courseId: string, params?: {
+    format?: string;
+    reportType?: string;
+  }) => {
+    const response = await apiClient.get(`/courses/${courseId}/analytics/export`, { params });
+    return response.data;
+  },
+
+  // Get course analytics summary
+  getCourseAnalytics: async (courseId: string) => {
+    const response = await apiClient.get(`/courses/${courseId}/analytics`);
+    return response.data;
   }
 };
 

@@ -2,30 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, Plus, Search, Video, Users, Clock, 
-  TrendingUp, Eye, Edit3, Trash2,
-  PlayCircle, BarChart3, Calendar, Zap,
+  TrendingUp, Eye, Edit3,
+  PlayCircle, Calendar, Zap,
   Loader2, AlertCircle, RefreshCw, Grid, List,
-  SortAsc, SortDesc, CheckCircle
+  SortAsc, SortDesc
 } from 'lucide-react';
 import { coursesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from 'react-i18next';
-
-interface Course {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  level: string;
-  created_at: string;
-  updated_at: string;
-  lesson_count: number;
-  student_count: number;
-  total_duration: number;
-  is_published: boolean;
-  published_at?: string;
-  coverImage?: string;
-}
+import { BulkActions } from '../../components/courses/BulkActions';
+import type { Course } from '../../types/courses';
 
 interface CourseStats {
   totalCourses: number;
@@ -52,7 +37,6 @@ const MyCourses: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
 
   const categories = [
@@ -93,8 +77,8 @@ const MyCourses: React.FC = () => {
         // Calculate stats
         const courseStats: CourseStats = {
           totalCourses: coursesData.length,
-          activeStudents: coursesData.reduce((sum: number, course: Course) => sum + course.student_count, 0),
-          recordedVideos: coursesData.reduce((sum: number, course: Course) => sum + course.lesson_count, 0),
+          activeStudents: coursesData.reduce((sum: number, course: Course) => sum + (course.student_count || 0), 0),
+          recordedVideos: coursesData.reduce((sum: number, course: Course) => sum + (course.lesson_count || 0), 0),
           hoursTaught: Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.total_duration || 0), 0) / 60),
           publishedCourses: coursesData.filter((course: Course) => course.is_published).length,
           averageRating: 4.8, // Mock data - would come from ratings system
@@ -162,9 +146,9 @@ const MyCourses: React.FC = () => {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const getTimeAgo = (date: string) => {
+  const getTimeAgo = (date: string | Date) => {
     const now = new Date();
-    const courseDate = new Date(date);
+    const courseDate = typeof date === 'string' ? new Date(date) : date;
     const diffInHours = Math.floor((now.getTime() - courseDate.getTime()) / (1000 * 60 * 60));
     
     if (diffInHours < 1) return 'Just now';
@@ -383,7 +367,7 @@ const MyCourses: React.FC = () => {
         </div>
       </div>
 
-      {/* Bulk Actions and Quick Features */}
+      {/* Selection Controls and Quick Features */}
       {filteredAndSortedCourses.length > 0 && (
         <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -391,7 +375,7 @@ const MyCourses: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  checked={selectedCourses.length === filteredAndSortedCourses.length}
+                  checked={selectedCourses.length === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
                   onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedCourses(filteredAndSortedCourses.map(c => c.id));
@@ -404,70 +388,29 @@ const MyCourses: React.FC = () => {
                 <span className="text-sm text-gray-600">
                   {selectedCourses.length > 0 
                     ? `${selectedCourses.length} selected` 
-                    : 'Select courses'
+                    : 'Select all'
                   }
                 </span>
               </div>
-              
-              {selectedCourses.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowBulkActions(!showBulkActions)}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Bulk Actions
-                  </button>
-                  <button
-                    onClick={() => setSelectedCourses([])}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowTemplates(!showTemplates)}
-                className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Templates
               </button>
               <Link
                 to="/courses/new"
-                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
               >
                 <Plus className="h-3 w-3 mr-1" />
                 New Course
               </Link>
             </div>
           </div>
-
-          {/* Bulk Actions Panel */}
-          {showBulkActions && selectedCourses.length > 0 && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-              <div className="flex flex-wrap gap-2">
-                <button className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Publish Selected
-                </button>
-                <button className="px-3 py-1.5 bg-yellow-600 text-white text-xs font-medium rounded-md hover:bg-yellow-700 transition-colors">
-                  <Edit3 className="h-3 w-3 mr-1" />
-                  Edit Selected
-                </button>
-                <button className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-md hover:bg-purple-700 transition-colors">
-                  <BarChart3 className="h-3 w-3 mr-1" />
-                  Analytics
-                </button>
-                <button className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition-colors">
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete Selected
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Course Templates Panel */}
           {showTemplates && (
@@ -549,9 +492,9 @@ const MyCourses: React.FC = () => {
               {viewMode === 'grid' ? (
                 // Grid View
                 <>
-                  {course.coverImage && (
+                  {course.cover_image && (
                     <img 
-                      src={course.coverImage} 
+                      src={course.cover_image} 
                       alt={`Cover for ${course.title}`}
                       className="w-full h-32 object-cover mb-4 rounded-t-lg"
                     />
@@ -599,7 +542,7 @@ const MyCourses: React.FC = () => {
                       </div>
                       <div className="bg-green-50 rounded-lg p-3">
                         <Clock className="h-4 w-4 text-green-600 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-gray-900">{formatDuration(course.total_duration)}</div>
+                        <div className="text-lg font-bold text-gray-900">{formatDuration(course.total_duration || 0)}</div>
                         <div className="text-xs text-gray-500">Duration</div>
                       </div>
                     </div>
@@ -636,9 +579,9 @@ const MyCourses: React.FC = () => {
               ) : (
                 // List View
                 <div className="flex items-center space-x-4">
-                  {course.coverImage ? (
+                  {course.cover_image ? (
                     <img 
-                      src={course.coverImage} 
+                      src={course.cover_image} 
                       alt={`Cover for ${course.title}`}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
@@ -661,7 +604,7 @@ const MyCourses: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="h-3 w-3" />
-                        <span>{formatDuration(course.total_duration)}</span>
+                        <span>{formatDuration(course.total_duration || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -711,6 +654,14 @@ const MyCourses: React.FC = () => {
           </Link>
         </div>
       )}
+
+      {/* Bulk Actions Floating Bar */}
+      <BulkActions
+        selectedCourses={selectedCourses}
+        courses={courses}
+        onActionComplete={loadCourses}
+        onClearSelection={() => setSelectedCourses([])}
+      />
     </div>
   );
 };

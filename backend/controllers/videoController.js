@@ -743,9 +743,21 @@ const videoController = {
         )
         .orderBy('lessons.order', 'asc');
 
+      // Parse resources JSON for each lesson
+      const lessonsWithParsedResources = lessons.map(lesson => {
+        if (lesson.resources) {
+          try {
+            lesson.resources = JSON.parse(lesson.resources);
+          } catch (e) {
+            lesson.resources = [];
+          }
+        }
+        return lesson;
+      });
+
       res.json({
         success: true,
-        data: { lessons }
+        data: { lessons: lessonsWithParsedResources }
       });
     } catch (error) {
       console.error('Get lessons error:', error);

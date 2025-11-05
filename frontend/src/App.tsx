@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import TeacherDashboard from './components/dashboard/TeacherDashboard/TeacherDashboard';
@@ -9,10 +11,16 @@ import './styles/globals.css';
 import RecordVideo from './pages/courses/RecordVideo';
 import MyCourses from './pages/courses/MyCourses';
 import CreateCourse from './pages/courses/CreateCourse';
+import EditCourse from './pages/courses/EditCourse';
 import CourseDetails from './pages/courses/CourseDetails';
+import { CourseEditorDemo } from './components/courses/CourseEditorDemo';
+import { CoursePublisherDemo } from './components/courses/CoursePublisherDemo';
 import AIAssistant from './pages/ai/AIAssistant';
 import FloatingAIChat from './components/ai/FloatingAIChat';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
+import { NotificationSystem } from './components/shared';
 import Forums from './pages/social/Forums';
 import ForumTopics from './pages/social/ForumTopics';
 import Achievements from './pages/social/Achievements';
@@ -34,6 +42,7 @@ import QuizDemo from './pages/courses/QuizDemo';
 import ProgressPage from './pages/courses/ProgressPage';
 import DiscussionDemo from './pages/courses/DiscussionDemo';
 import Students from './pages/students/Students';
+import { queryClient } from './lib/queryClient';
 import './i18n/config';
 
 // Define types
@@ -242,6 +251,42 @@ function AppContent() {
             <TeacherRoute>
               <DashboardLayout>
                 <Students />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        {/* Edit Course - Only for teachers and above */}
+        <Route 
+          path="/courses/:courseId/edit" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <EditCourse />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        {/* Course Editor Demo - For testing */}
+        <Route 
+          path="/demo/course-editor" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <CourseEditorDemo />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        {/* Course Publisher Demo - For testing */}
+        <Route 
+          path="/demo/course-publisher" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <CoursePublisherDemo />
               </DashboardLayout>
             </TeacherRoute>
           } 
@@ -543,15 +588,23 @@ function AppContent() {
 // Main App component that provides the context
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
-        <UserProvider>
-          <OnboardingProvider>
-            <AppContent />
-          </OnboardingProvider>
-        </UserProvider>
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthProvider>
+          <UserProvider>
+            <OnboardingProvider>
+              <NotificationProvider>
+                <ConfirmDialogProvider>
+                  <AppContent />
+                  <NotificationSystem />
+                </ConfirmDialogProvider>
+              </NotificationProvider>
+            </OnboardingProvider>
+          </UserProvider>
+        </AuthProvider>
+      </Router>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 
