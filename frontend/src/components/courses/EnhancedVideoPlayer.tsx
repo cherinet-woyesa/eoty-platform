@@ -1,4 +1,4 @@
-// frontend/src/components/courses/EnhancedVideoPlayer.tsx
+
 import * as React from 'react';
 import Hls from 'hls.js';
 import {
