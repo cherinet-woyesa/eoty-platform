@@ -26,6 +26,12 @@ const requirePermission = (permission) => {
         });
       }
       
+      // Platform admins and chapter admins have all permissions
+      if (userRole === 'platform_admin' || userRole === 'chapter_admin') {
+        console.log(`[RBAC] Permission ${permission} GRANTED for admin user ${req.user.email}`);
+        return next();
+      }
+      
       // Get user's permissions based on their role
       const userPermissions = await db('role_permissions as rp')
         .join('user_permissions as up', 'rp.permission_id', 'up.id')

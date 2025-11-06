@@ -51,7 +51,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     },
     {
       name: 'My Courses',
-      href: '/courses',
+      href: '/teacher/courses',
       icon: <BookOpen className="h-4 w-4" />,
       badge: '8',
       description: 'Manage courses',

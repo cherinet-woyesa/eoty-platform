@@ -25,6 +25,7 @@ interface CourseStats {
 const MyCourses: React.FC = () => {
   // const { t } = useTranslation();
   const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin';
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,10 +204,10 @@ const MyCourses: React.FC = () => {
               </div>
             </div>
             <p className="text-blue-100 text-xs sm:text-sm">
-              Manage and organize your teaching content
+              {isTeacher ? 'Manage and organize your teaching content' : 'Continue your learning journey'}
             </p>
             <p className="text-blue-200 text-xs mt-1">
-              {user?.firstName} {user?.lastName} • {stats?.totalCourses || 0} courses created
+              {user?.firstName} {user?.lastName} • {stats?.totalCourses || 0} {isTeacher ? 'courses created' : 'courses enrolled'}
             </p>
           </div>
           <div className="mt-3 lg:mt-0 lg:ml-4">

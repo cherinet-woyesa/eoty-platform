@@ -83,7 +83,8 @@ const CourseCreationForm: React.FC = () => {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
-        coverImage: coverImage || undefined
+        level: formData.level,
+        cover_image: coverImage || undefined
       });
       setSuccess(true);
       setTimeout(() => navigate('/courses'), 2000);

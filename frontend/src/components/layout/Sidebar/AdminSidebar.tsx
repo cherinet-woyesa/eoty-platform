@@ -87,21 +87,22 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       description: 'Manage users & roles'
     },
     {
-      name: 'Content Management',
+      name: 'Courses',
+      href: '/courses',
+      icon: <BookOpen className="h-4 w-4" />,
+      roles: ['chapter_admin', 'platform_admin'],
+      badge: null,
+      description: 'Manage all courses'
+    },
+    {
+      name: 'Upload Queue',
       href: '/admin/content',
       icon: <FileText className="h-4 w-4" />,
       roles: ['chapter_admin', 'platform_admin'],
       badge: '24',
-      description: 'Courses & materials'
+      description: 'Approve uploads'
     },
-    {
-      name: 'Upload Queue',
-      href: '/admin/uploads',
-      icon: <Upload className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: '5',
-      description: 'Pending approvals'
-    },
+
     {
       name: 'Moderation',
       href: '/admin/moderation',

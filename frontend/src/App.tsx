@@ -10,6 +10,8 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import './styles/globals.css';
 import RecordVideo from './pages/courses/RecordVideo';
 import MyCourses from './pages/courses/MyCourses';
+import StudentCourses from './pages/courses/StudentCourses';
+import AllCourses from './pages/admin/AllCourses';
 import CreateCourse from './pages/courses/CreateCourse';
 import EditCourse from './pages/courses/EditCourse';
 import CourseDetails from './pages/courses/CourseDetails';
@@ -237,15 +239,27 @@ function AppContent() {
           } 
         />
 
-        {/* Courses - Accessible to all authenticated users */}
+        {/* Courses - Role-based view */}
         <Route 
           path="/courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
-                <MyCourses />
+                <AllCourses />
               </DashboardLayout>
             </StudentRoute>
+          } 
+        />
+        
+        {/* Teacher Courses Management (alternative route) */}
+        <Route 
+          path="/teacher/courses" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <MyCourses />
+              </DashboardLayout>
+            </TeacherRoute>
           } 
         />
 
