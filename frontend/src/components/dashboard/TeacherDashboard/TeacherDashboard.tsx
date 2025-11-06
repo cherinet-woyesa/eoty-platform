@@ -31,13 +31,10 @@ const TeacherDashboard: React.FC = () => {
 
   // Real-time teacher data
   const initialTeacherData = useMemo(() => ({
-    stats: {
-      totalCourses: 8,
-      totalStudents: 247,
-      totalLessons: 156,
-      totalHours: 342
-  
-    },
+    totalCourses: 0,
+    totalStudentsEnrolled: 0,
+    totalLessons: 0,
+    averageCompletionRate: 0,
     courses: [],
     recentActivity: [],
     studentPerformance: [],
@@ -133,7 +130,7 @@ const TeacherDashboard: React.FC = () => {
         return (
           <div className="space-y-6">
             {/* Teacher Metrics - Now only shows first 4 metrics */}
-            <TeacherMetrics stats={{ ...teacherData?.stats, averageRating: 4.8, completionRate: 78, engagementScore: 85 }} />
+            <TeacherMetrics stats={teacherData} />
             
             {/* Quick Actions & Upcoming Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
@@ -203,8 +200,8 @@ const TeacherDashboard: React.FC = () => {
               </p>
               <p className="text-blue-200 text-xs sm:text-sm mt-1">
                 {t('dashboard.teacher.inspiring_students', 'Inspiring {{students}} students across {{courses}} courses', { // Updated to use translation
-                  students: teacherData?.stats?.totalStudents || 0,
-                  courses: teacherData?.stats?.totalCourses || 0
+                  students: teacherData?.totalStudentsEnrolled || 0,
+                  courses: teacherData?.totalCourses || 0
                 })}
               </p>
             </div>

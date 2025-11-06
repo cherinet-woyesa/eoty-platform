@@ -1,17 +1,17 @@
 import React, { useMemo } from 'react';
-import { BookOpen, Users, Video, Clock, Star, Target, TrendingUp, DollarSign } from 'lucide-react';
+import { BookOpen, Users, Video, Target } from 'lucide-react';
 import MetricsCard from '../AdminDashboard/MetricsCard';
 import { useTranslation } from 'react-i18next'; // Added translation hook
 
 interface TeacherMetricsProps {
   stats?: {
     totalCourses: number;
-    totalStudents: number;
+    totalStudentsEnrolled: number;
     totalLessons: number;
-    totalHours: number;
-    averageRating: number;
-    completionRate: number;
-    engagementScore: number;
+    averageCompletionRate: number;
+    averageRating?: number;
+    completionRate?: number;
+    engagementScore?: number;
     revenue?: number;
   };
 }
@@ -42,7 +42,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
     },
     {
       title: t('dashboard.teacher.active_students'), // Updated to use translation
-      value: stats?.totalStudents || 0,
+      value: stats?.totalStudentsEnrolled || 0,
       change: 12,
       icon: <Users className="h-6 w-6" />,
       color: 'from-green-500 to-green-600',
@@ -57,12 +57,13 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ stats }) => {
       trend: 'up' as const
     },
     {
-      title: t('dashboard.teacher.total_hours_taught', 'Hours Taught'), 
-      value: stats?.totalHours || 0,
+      title: 'Completion Rate',
+      value: stats?.averageCompletionRate || 0,
       change: 15,
-      icon: <Clock className="h-6 w-6" />,
+      icon: <Target className="h-6 w-6" />,
       color: 'from-orange-500 to-orange-600',
-      trend: 'up' as const
+      trend: 'up' as const,
+      format: 'percent' as const
     }
   ], [stats, t]); // Added t to dependency array
 

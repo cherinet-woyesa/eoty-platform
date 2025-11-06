@@ -68,54 +68,206 @@ const studentsController = {
   ,
   async getStudentDashboard(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const studentId = req.user.userId;
+      console.log('Fetching dashboard for student:', studentId);
 
-      // Fetch all students associated with the teacher's courses
-      const students = await db('users as u')
-        .join('user_lesson_progress as ulp', 'u.id', 'ulp.user_id')
-        .join('lessons as l', 'ulp.lesson_id', 'l.id')
-        .join('courses as c', 'l.course_id', 'c.id')
-        .where('c.created_by', teacherId)
-        .groupBy('u.id')
-        .select(
-          'u.id',
-          db.raw('COUNT(DISTINCT c.id) as enrolled_courses'),
-          db.raw('ROUND(AVG(ulp.progress)::numeric, 0) as progress_percent'),
-          db.raw('MAX(ulp.last_accessed_at) as last_active_at')
-        );
+      // Get enrolled courses count
+      let totalCourses = 0;
+      try {
+        const enrolledCoursesResult = await db('user_course_enrollments')
+          .where('user_id', studentId)
+          .count('id as count')
+          .first();
+        totalCourses = parseInt(enrolledCoursesResult?.count, 10) || 0;
+      } catch (err) {
+        console.warn('Error fetching enrolled courses:', err.message);
+      }
 
-      const now = Date.now();
-      let totalProgress = 0;
-      let totalEnrolledCourses = 0;
-      let activeTodayCount = 0;
+      // Get completed courses count
+      let completedCourses = 0;
+      try {
+        const completedCoursesResult = await db('user_course_enrollments')
+          .where('user_id', studentId)
+          .where('enrollment_status', 'completed')
+          .count('id as count')
+          .first();
+        completedCourses = parseInt(completedCoursesResult?.count, 10) || 0;
+      } catch (err) {
+        console.warn('Error fetching completed courses:', err.message);
+      }
 
-      students.forEach(student => {
-        totalProgress += parseInt(student.progress_percent, 10);
-        totalEnrolledCourses += parseInt(student.enrolled_courses, 10);
-        const lastActive = student.last_active_at ? new Date(student.last_active_at).getTime() : 0;
-        const hoursDiff = (now - lastActive) / (1000 * 60 * 60);
-        if (hoursDiff <= 24) {
-          activeTodayCount++;
+      // Get total lessons from enrolled courses
+      let totalLessons = 0;
+      try {
+        const totalLessonsResult = await db('lessons as l')
+          .join('user_course_enrollments as uce', 'l.course_id', 'uce.course_id')
+          .where('uce.user_id', studentId)
+          .count('l.id as count')
+          .first();
+        totalLessons = parseInt(totalLessonsResult?.count, 10) || 0;
+      } catch (err) {
+        console.warn('Error fetching total lessons:', err.message);
+      }
+
+      // Get completed lessons count
+      let completedLessons = 0;
+      try {
+        const completedLessonsResult = await db('user_lesson_progress')
+          .where('user_id', studentId)
+          .where(function() {
+            this.where('progress', 100).orWhere('is_completed', true);
+          })
+          .count('id as count')
+          .first();
+        completedLessons = parseInt(completedLessonsResult?.count, 10) || 0;
+      } catch (err) {
+        console.warn('Error fetching completed lessons:', err.message);
+      }
+
+      // Calculate study streak (consecutive days with activity)
+      let studyStreak = 0;
+      try {
+        const recentActivity = await db('user_lesson_progress')
+          .where('user_id', studentId)
+          .whereRaw('last_accessed_at >= NOW() - INTERVAL \'30 days\'')
+          .select(db.raw('DATE(last_accessed_at) as activity_date'))
+          .groupBy(db.raw('DATE(last_accessed_at)'))
+          .orderBy('activity_date', 'desc');
+
+        if (recentActivity.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          let currentDate = new Date(today);
+          
+          for (const activity of recentActivity) {
+            const activityDate = new Date(activity.activity_date);
+            activityDate.setHours(0, 0, 0, 0);
+            
+            if (activityDate.getTime() === currentDate.getTime()) {
+              studyStreak++;
+              currentDate.setDate(currentDate.getDate() - 1);
+            } else {
+              break;
+            }
+          }
         }
-      });
+      } catch (err) {
+        console.warn('Error calculating study streak:', err.message);
+        studyStreak = 0;
+      }
 
-      const totalStudents = students.length;
-      const avgProgress = totalStudents > 0 ? Math.round(totalProgress / totalStudents) : 0;
-      const avgEnrolledCourses = totalStudents > 0 ? (totalEnrolledCourses / totalStudents).toFixed(1) : 0;
+      // Get total points (you can implement a points system later)
+      const totalPoints = completedLessons * 50; // 50 points per completed lesson
+
+      // Get enrolled courses with progress
+      let coursesWithProgress = [];
+      try {
+        const enrolledCourses = await db('courses as c')
+          .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
+          .where('uce.user_id', studentId)
+          .select(
+            'c.id',
+            'c.title',
+            'c.description',
+            'c.cover_image',
+            'uce.enrollment_status'
+          )
+          .limit(10);
+
+        // Get lesson counts and progress for each course
+        coursesWithProgress = await Promise.all(enrolledCourses.map(async (course) => {
+          try {
+            const totalLessonsResult = await db('lessons')
+              .where('course_id', course.id)
+              .count('id as count')
+              .first();
+            const totalLessons = parseInt(totalLessonsResult?.count, 10) || 0;
+
+            const completedLessonsResult = await db('user_lesson_progress')
+              .join('lessons', 'user_lesson_progress.lesson_id', 'lessons.id')
+              .where('lessons.course_id', course.id)
+              .where('user_lesson_progress.user_id', studentId)
+              .where(function() {
+                this.where('user_lesson_progress.is_completed', true)
+                  .orWhere('user_lesson_progress.progress', 100);
+              })
+              .count('user_lesson_progress.id as count')
+              .first();
+            const completedLessons = parseInt(completedLessonsResult?.count, 10) || 0;
+
+            const avgProgressResult = await db('user_lesson_progress')
+              .join('lessons', 'user_lesson_progress.lesson_id', 'lessons.id')
+              .where('lessons.course_id', course.id)
+              .where('user_lesson_progress.user_id', studentId)
+              .avg('user_lesson_progress.progress as average')
+              .first();
+            const progress = avgProgressResult?.average ? Math.round(parseFloat(avgProgressResult.average)) : 0;
+
+            return {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              coverImage: course.cover_image,
+              progress,
+              totalLessons,
+              completedLessons,
+              status: course.enrollment_status
+            };
+          } catch (err) {
+            console.warn(`Error fetching progress for course ${course.id}:`, err.message);
+            return {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              coverImage: course.cover_image,
+              progress: 0,
+              totalLessons: 0,
+              completedLessons: 0,
+              status: course.enrollment_status
+            };
+          }
+        }));
+      } catch (err) {
+        console.warn('Error fetching enrolled courses:', err.message);
+      }
+
+      // Weekly goal progress (lessons completed this week)
+      let weeklyProgress = 0;
+      try {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weeklyProgressResult = await db('user_lesson_progress')
+          .where('user_id', studentId)
+          .where('completed_at', '>=', weekStart)
+          .where(function() {
+            this.where('is_completed', true).orWhere('progress', 100);
+          })
+          .count('id as count')
+          .first();
+        weeklyProgress = parseInt(weeklyProgressResult?.count, 10) || 0;
+      } catch (err) {
+        console.warn('Error fetching weekly progress:', err.message);
+      }
 
       res.json({
         success: true,
         data: {
-          totalStudents,
-          avgProgress,
-          avgEnrolledCourses,
-          activeTodayCount,
-          students: students.map(s => ({ // Return a simplified list of students if needed by frontend
-            id: s.id,
-            enrolled_courses: s.enrolled_courses,
-            progress_percent: s.progress_percent,
-            last_active_at: s.last_active_at
-          }))
+          progress: {
+            totalCourses,
+            completedCourses,
+            totalLessons,
+            completedLessons,
+            studyStreak,
+            totalPoints,
+            nextGoal: `Complete ${Math.max(1, 5 - (completedLessons % 5))} more lessons`,
+            weeklyGoal: 10,
+            weeklyProgress
+          },
+          enrolledCourses: coursesWithProgress,
+          recentActivity: [],
+          recommendations: []
         }
       });
 
