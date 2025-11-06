@@ -43,7 +43,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   const navigationItems = useMemo(() => [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/teacher/dashboard',
       icon: <LayoutDashboard className="h-4 w-4" />,
       badge: null,
       description: 'Teaching overview',

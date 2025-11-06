@@ -9,13 +9,9 @@ import {
   Tag, 
   BarChart2, 
   Settings,
-  Upload,
   ChevronLeft,
   ChevronRight,
   Crown,
-  Database,
-  Server,
-  Globe,
   ChevronDown,
   ChevronUp,
   FolderTree,
@@ -88,7 +84,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     },
     {
       name: 'Courses',
-      href: '/courses',
+      href: '/admin/courses',
       icon: <BookOpen className="h-4 w-4" />,
       roles: ['chapter_admin', 'platform_admin'],
       badge: null,
@@ -102,7 +98,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: '24',
       description: 'Approve uploads'
     },
-
     {
       name: 'Moderation',
       href: '/admin/moderation',
@@ -127,7 +122,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: 'New',
       description: 'Platform insights'
     }
-
   ], []);
 
   const systemConfigItems = useMemo(() => [
@@ -163,48 +157,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   ], []);
 
-  const systemItems = useMemo(() => [
-    {
-      name: 'System Settings',
-      href: '/admin/settings',
-      icon: <Settings className="h-4 w-4" />,
-      roles: ['platform_admin'],
-      badge: null,
-      description: 'Platform configuration'
-    },
-    {
-      name: 'Database',
-      href: '/admin/database',
-      icon: <Database className="h-4 w-4" />,
-      roles: ['platform_admin'],
-      badge: null,
-      description: 'Data management'
-    },
-    {
-      name: 'Server Status',
-      href: '/admin/status',
-      icon: <Server className="h-4 w-4" />,
-      roles: ['platform_admin'],
-      badge: 'Healthy',
-      description: 'System health'
-    },
-    {
-      name: 'Global Settings',
-      href: '/admin/global',
-      icon: <Globe className="h-4 w-4" />,
-      roles: ['platform_admin'],
-      badge: null,
-      description: 'Multi-tenant config'
-    }
-  ], []);
-
-  
-
   const filteredItems = navigationItems.filter(item => 
-    item.roles.includes(user?.role || '')
-  );
-
-  const filteredSystemItems = systemItems.filter(item => 
     item.roles.includes(user?.role || '')
   );
 
@@ -237,10 +190,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           )}
         </button>
       </div>
-      
-      
 
-      {/* Navigation */}
+      {/* Navigation - All content inside scrollable container */}
       <div className="flex-1 overflow-y-auto py-2">
         <nav className="space-y-1 px-2">
           {filteredItems.map((item) => {
@@ -283,7 +234,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           })}
         </nav>
 
-        {/* System Config Expandable Menu */}
+        {/* System Config Expandable Menu - NOW INSIDE scrollable container */}
         <div className="px-2 mt-1">
           <button
             onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
@@ -377,60 +328,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
           )}
         </div>
-
-        {/* System Section */}
-        {filteredSystemItems.length > 0 && (
-          <>
-            <div className="px-2 py-4">
-              <div className="border-t border-gray-200"></div>
-            </div>
-            <div className="px-3 mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                System
-              </h3>
-            </div>
-            <nav className="space-y-1 px-2">
-              {filteredSystemItems.map((item) => {
-                const active = isActive(item.href);
-                
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      active
-                        ? 'bg-gray-100 text-gray-700 shadow-sm border border-gray-200/50'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                    title={isCollapsed ? item.description : undefined}
-                  >
-                    <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                      active ? 'bg-gray-200' : 'bg-gray-100 group-hover:bg-gray-200'
-                    } transition-colors duration-200`}>
-                      <div className={active ? 'text-gray-700' : 'text-gray-500 group-hover:text-gray-700'}>
-                        {item.icon}
-                      </div>
-                    </div>
-                    
-                    {!isCollapsed && (
-                      <div className="ml-3 flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="truncate">{item.name}</span>
-                          {item.badge && (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">{item.description}</p>
-                      </div>
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
-          </>
-        )}
       </div>
 
       {/* Footer - Compact Stats */}

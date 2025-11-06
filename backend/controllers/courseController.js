@@ -1250,6 +1250,89 @@ const courseController = {
         message: 'Failed to fetch video status'
       });
     }
+  },
+
+  // Get course catalog with enrollment status
+  async getCourseCatalog(req, res) {
+    try {
+      const userId = req.user.userId;
+      
+      const courses = await db('courses as c')
+        .leftJoin('lessons as l', 'c.id', 'l.course_id')
+        .leftJoin('user_course_enrollments as uce', function() {
+          this.on('c.id', '=', 'uce.course_id')
+            .andOn('uce.user_id', '=', db.raw('?', [userId]));
+        })
+        .leftJoin('users as u', 'c.created_by', 'u.id')
+        .where('c.is_published', true)
+        .groupBy('c.id', 'u.first_name', 'u.last_name', 'uce.user_id')
+        .select(
+          'c.*',
+          db.raw('COUNT(DISTINCT l.id) as lesson_count'),
+          db.raw('COUNT(DISTINCT CASE WHEN uce.user_id != ? THEN uce.user_id END) as student_count', [userId]),
+          db.raw('CASE WHEN uce.user_id = ? THEN true ELSE false END as is_enrolled', [userId]),
+          db.raw("CONCAT(u.first_name, ' ', u.last_name) as created_by_name")
+        );
+
+      res.json({
+        success: true,
+        data: { courses }
+      });
+    } catch (error) {
+      console.error('Get catalog error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch course catalog'
+      });
+    }
+  },
+
+  // Enroll in a course
+  async enrollInCourse(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { courseId } = req.params;
+
+      // Check if course exists and is published
+      const course = await db('courses').where({ id: courseId, is_published: true }).first();
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: 'Course not found or not published'
+        });
+      }
+
+      // Check if already enrolled
+      const existing = await db('user_course_enrollments')
+        .where({ user_id: userId, course_id: courseId })
+        .first();
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: 'Already enrolled in this course'
+        });
+      }
+
+      // Enroll student
+      await db('user_course_enrollments').insert({
+        user_id: userId,
+        course_id: courseId,
+        enrollment_status: 'active',
+        enrolled_at: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: 'Successfully enrolled in course'
+      });
+    } catch (error) {
+      console.error('Enroll error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to enroll in course'
+      });
+    }
   }
 };
 

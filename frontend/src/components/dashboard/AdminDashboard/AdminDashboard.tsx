@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useRealTimeData } from '../../../hooks/useRealTimeData';
 import { useWebSocket } from '../../../hooks/useWebSocket';
@@ -14,7 +15,6 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const { user } = useAuth();
   const [selectedMetric, setSelectedMetric] = useState<string | null>('totalUsers');
-  const [activeView, setActiveView] = useState('overview');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Real-time data for admin metrics
@@ -137,14 +137,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     }
   ];
 
-  const views = useMemo(() => [
-    { id: 'overview', name: 'Overview', icon: '📊' },
-    { id: 'users', name: 'Users', icon: '👥' },
-    { id: 'courses', name: 'Courses', icon: '📚' },
-    { id: 'analytics', name: 'Analytics', icon: '📈' },
-    { id: 'moderation', name: 'Moderation', icon: '🛡️' },
-    { id: 'system', name: 'System', icon: '⚙️' }
-  ], []);
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -178,44 +171,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       );
     }
 
-    switch (activeView) {
-      case 'users':
-        return (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">User Management</h2>
-            <p className="text-gray-600">User management interface will be displayed here.</p>
-          </div>
-        );
-      case 'courses':
-        return (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Course Management</h2>
-            <p className="text-gray-600">Course management interface will be displayed here.</p>
-          </div>
-        );
-      case 'analytics':
-        return (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">System Analytics</h2>
-            <p className="text-gray-600">Detailed analytics will be displayed here.</p>
-          </div>
-        );
-      case 'moderation':
-        return (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Content Moderation</h2>
-            <p className="text-gray-600">Moderation tools and flagged content will be displayed here.</p>
-          </div>
-        );
-      case 'system':
-        return (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">System Configuration</h2>
-            <p className="text-gray-600">System settings and configuration will be displayed here.</p>
-          </div>
-        );
-      default:
-        return (
+    return (
           <div className="space-y-6">
             {/* Metrics Grid - Always Visible Clickable Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">
@@ -281,7 +237,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
             )}
           </div>
         );
-    }
   };
 
   if (statsError) {
@@ -328,26 +283,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 You have {user?.role === 'platform_admin' ? 'full platform' : 'chapter'} admin privileges • Managing {realTimeStats?.totalUsers || 0} users across {realTimeStats?.activeCourses || 0} courses
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* View Navigation */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex flex-wrap gap-2">
-            {views.map((view) => (
-              <button
-                key={view.id}
-                onClick={() => setActiveView(view.id)}
-                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                  activeView === view.id
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
-                }`}
-              >
-                <span className="mr-2">{view.icon}</span>
-                {view.name}
-              </button>
-            ))}
           </div>
         </div>
 

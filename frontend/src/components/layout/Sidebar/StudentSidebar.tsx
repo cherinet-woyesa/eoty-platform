@@ -19,7 +19,8 @@ import {
   MessageCircle,
   Users,
   BarChart3,
-  FileText
+  FileText,
+  Search
 } from 'lucide-react';
 
 interface StudentSidebarProps {
@@ -36,7 +37,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
   const navigationItems = useMemo(() => [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/student/dashboard',
       icon: <LayoutDashboard className="h-4 w-4" />,
       badge: null,
       description: 'Learning overview',
@@ -49,6 +50,14 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
       badge: '5',
       description: 'Continue learning',
       color: 'text-green-600'
+    },
+    {
+      name: 'Browse Courses',
+      href: '/catalog',
+      icon: <Search className="h-4 w-4" />,
+      badge: null,
+      description: 'Discover new courses',
+      color: 'text-purple-600'
     },
     {
       name: 'Study Paths',

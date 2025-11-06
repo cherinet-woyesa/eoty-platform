@@ -11,6 +11,7 @@ import './styles/globals.css';
 import RecordVideo from './pages/courses/RecordVideo';
 import MyCourses from './pages/courses/MyCourses';
 import StudentCourses from './pages/courses/StudentCourses';
+import CourseCatalog from './pages/courses/CourseCatalog';
 import AllCourses from './pages/admin/AllCourses';
 import CreateCourse from './pages/courses/CreateCourse';
 import EditCourse from './pages/courses/EditCourse';
@@ -30,6 +31,7 @@ import Leaderboards from './pages/social/Leaderboards';
 import CommunityHub from './pages/social/CommunityHub';
 import AdminDashboard from './components/dashboard/AdminDashboard/AdminDashboard';
 import ContentManagement from './pages/admin/ContentManagement';
+import AdminCourseView from './pages/admin/AdminCourseView';
 import { UserProvider } from './context/UserContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import ModerationTools from './components/admin/ModerationTools';
@@ -176,17 +178,21 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 const DynamicDashboard: React.FC = () => {
   const { user } = useAuth();
   
-  // Redirect admins to admin dashboard
+  // Redirect to role-specific dashboard
   if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
     return <Navigate to="/admin/dashboard" replace />;
   }
   
-  if (user?.role === 'student') {
-    return <StudentDashboard />;
+  if (user?.role === 'teacher') {
+    return <Navigate to="/teacher/dashboard" replace />;
   }
   
-  // Teachers see teacher dashboard
-  return <TeacherDashboard />;
+  if (user?.role === 'student') {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+  
+  // Fallback
+  return <Navigate to="/student/dashboard" replace />;
 };
 
 // Main App Content that uses the auth context
@@ -228,30 +234,65 @@ function AppContent() {
 
         {/* Authenticated routes */}
         {/* Dashboard - Accessible to all authenticated users */}
+        {/* Generic dashboard route - redirects to role-specific dashboard */}
         <Route 
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <DashboardLayout>
-                <DynamicDashboard />
-              </DashboardLayout>
+              <DynamicDashboard />
             </ProtectedRoute>
           } 
         />
-
-        {/* Courses - Role-based view */}
+        
+        {/* Student Dashboard */}
         <Route 
-          path="/courses" 
+          path="/student/dashboard" 
           element={
             <StudentRoute>
               <DashboardLayout>
-                <AllCourses />
+                <StudentDashboard />
               </DashboardLayout>
             </StudentRoute>
           } 
         />
         
-        {/* Teacher Courses Management (alternative route) */}
+        {/* Teacher Dashboard */}
+        <Route 
+          path="/teacher/dashboard" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherDashboard />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        {/* Student Courses - Browse catalog and enrolled courses */}
+        <Route 
+          path="/courses" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <CourseCatalog />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        {/* Course Catalog - Alias for /courses */}
+        <Route 
+          path="/catalog" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <CourseCatalog />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        {/* Teacher Courses Management */}
         <Route 
           path="/teacher/courses" 
           element={
@@ -260,6 +301,18 @@ function AppContent() {
                 <MyCourses />
               </DashboardLayout>
             </TeacherRoute>
+          } 
+        />
+
+        {/* Admin Courses Management */}
+        <Route 
+          path="/admin/courses" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AllCourses />
+              </DashboardLayout>
+            </AdminRoute>
           } 
         />
 
@@ -275,15 +328,39 @@ function AppContent() {
           } 
         />
 
+        {/* Teacher Course Detail/Edit */}
+        <Route 
+          path="/teacher/courses/:courseId" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <CourseDetails />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
         {/* Edit Course - Only for teachers and above */}
         <Route 
-          path="/courses/:courseId/edit" 
+          path="/teacher/courses/:courseId/edit" 
           element={
             <TeacherRoute>
               <DashboardLayout>
                 <EditCourse />
               </DashboardLayout>
             </TeacherRoute>
+          } 
+        />
+
+        {/* Admin Course Detail */}
+        <Route 
+          path="/admin/courses/:courseId" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminCourseView />
+              </DashboardLayout>
+            </AdminRoute>
           } 
         />
 
@@ -311,7 +388,7 @@ function AppContent() {
           } 
         />
 
-        {/* Course Details - Accessible to all authenticated users */}
+        {/* Student Course Details - View enrolled courses */}
         <Route 
           path="/courses/:courseId" 
           element={
@@ -400,6 +477,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <ContentManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/courses/:courseId" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminCourseView />
               </DashboardLayout>
             </AdminRoute>
           } 

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
 import EnhancedVideoPlayer from '../../components/courses/EnhancedVideoPlayer';
 import { CoursePublisher } from '../../components/courses/CoursePublisher';
+import { useAuth } from '../../context/AuthContext';
 import { 
   ArrowLeft, BookOpen, Clock, PlayCircle, Video, Users, BarChart, 
   Search, Filter, CheckCircle, Circle, Star, MessageSquare, 
-  Download, Share2, Edit, TrendingUp, Award, Calendar
+  Download, Share2, Edit, TrendingUp, Award, Calendar, Settings
 } from 'lucide-react';
 
 interface Lesson {
@@ -24,6 +25,8 @@ type TabType = 'overview' | 'lessons' | 'resources' | 'discussions';
 
 const CourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,11 @@ const CourseDetails: React.FC = () => {
     completedLessons: 0,
     activeStudents: 0
   });
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  // Check if user is teacher who owns this course
+  const isOwner = user?.role === 'teacher' && course?.created_by === user?.userId;
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -183,16 +191,29 @@ const CourseDetails: React.FC = () => {
     );
   }
 
+  // Determine back link based on user role
+  const getBackLink = () => {
+    if (isAdmin) return '/admin/courses';
+    if (isOwner || user?.role === 'teacher') return '/teacher/courses';
+    return '/courses';
+  };
+
+  const getBackLabel = () => {
+    if (isAdmin) return 'Back to Admin Courses';
+    if (isOwner || user?.role === 'teacher') return 'Back to My Courses';
+    return 'Back to Courses';
+  };
+
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header Section - Matching MyCourses Style */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-3 sm:p-4 text-white shadow-lg">
         <Link
-          to="/courses"
+          to={getBackLink()}
           className="inline-flex items-center text-xs sm:text-sm font-medium text-white/90 hover:text-white mb-2 transition-colors"
         >
           <ArrowLeft className="mr-1.5 h-3 w-3" />
-          Back to Courses
+          {getBackLabel()}
         </Link>
         
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -236,6 +257,27 @@ const CourseDetails: React.FC = () => {
           
           <div className="mt-3 lg:mt-0 lg:ml-4">
             <div className="flex flex-col sm:flex-row gap-1.5">
+              {/* Admin/Teacher Actions */}
+              {(isAdmin || isOwner) && (
+                <>
+                  <Link
+                    to={`/teacher/courses/${courseId}/edit`}
+                    className="inline-flex items-center px-3 py-1.5 bg-white text-blue-600 hover:bg-blue-50 text-xs font-medium rounded-lg transition-colors"
+                  >
+                    <Edit className="h-3 w-3 mr-1.5" />
+                    Edit Course
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to={`/admin/courses/${courseId}`}
+                      className="inline-flex items-center px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <Settings className="h-3 w-3 mr-1.5" />
+                      Admin View
+                    </Link>
+                  )}
+                </>
+              )}
               <button className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors backdrop-blur-sm">
                 <Share2 className="h-3 w-3 mr-1.5" />
                 Share

@@ -9,15 +9,26 @@ const { courseCreationLimiter, bulkOperationLimiter } = require('../middleware/r
 
 router.use(authenticateToken);
 
+// Course catalog and enrollment (must be before /:courseId to avoid conflicts)
+router.get('/catalog', requirePermission('course:view'), courseController.getCourseCatalog);
+
+// Bulk operations (must be before /:courseId to avoid conflicts)
+router.post('/bulk-action', bulkOperationLimiter, requirePermission('course:edit'), validateBulkAction, courseController.bulkAction);
+
+// Lesson operations (specific routes before parameterized ones)
+router.put('/lessons/:lessonId', requirePermission('lesson:edit'), validateLessonData, checkLessonOwnership, courseController.updateLesson);
+router.delete('/lessons/:lessonId', requirePermission('lesson:delete'), checkLessonOwnership, courseController.deleteLesson);
+router.get('/lessons/:lessonId/video-status', requirePermission('lesson:view'), courseController.getVideoStatus);
+router.get('/lessons/:lessonId/video-url', requirePermission('lesson:view'), courseController.getSignedVideoUrl);
+
 // Course CRUD operations
 router.get('/', requirePermission('course:view'), courseController.getUserCourses);
-router.get('/:courseId', requirePermission('course:view'), courseController.getCourse);
 router.post('/', courseCreationLimiter, requirePermission('course:create'), validateCourseData, courseController.createCourse);
+
+// Course-specific routes (parameterized routes should come after specific routes)
+router.get('/:courseId', requirePermission('course:view'), courseController.getCourse);
 router.put('/:courseId', requirePermission('course:edit'), validateCourseData, courseController.updateCourse);
 router.delete('/:courseId', requirePermission('course:delete'), courseController.deleteCourse);
-
-// Bulk operations
-router.post('/bulk-action', bulkOperationLimiter, requirePermission('course:edit'), validateBulkAction, courseController.bulkAction);
 
 // Course analytics
 router.get('/:courseId/analytics', requirePermission('course:view'), courseController.getCourseAnalytics);
@@ -27,14 +38,11 @@ router.post('/:courseId/publish', requirePermission('course:edit'), courseContro
 router.post('/:courseId/unpublish', requirePermission('course:edit'), courseController.unpublishCourse);
 router.post('/:courseId/schedule-publish', requirePermission('course:edit'), courseController.schedulePublishCourse);
 
-// Lesson operations
+// Lesson operations for specific course
 router.post('/:courseId/lessons', requirePermission('lesson:create'), courseController.createLesson);
-router.put('/lessons/:lessonId', requirePermission('lesson:edit'), validateLessonData, checkLessonOwnership, courseController.updateLesson);
-router.delete('/lessons/:lessonId', requirePermission('lesson:delete'), checkLessonOwnership, courseController.deleteLesson);
 router.post('/:courseId/lessons/reorder', requirePermission('lesson:edit'), validateReorderData, checkLessonOwnership, courseController.reorderLessons);
-router.get('/lessons/:lessonId/video-status', requirePermission('lesson:view'), courseController.getVideoStatus);
 
-// Get signed video URL for a lesson (with access control)
-router.get('/lessons/:lessonId/video-url', requirePermission('lesson:view'), courseController.getSignedVideoUrl);
+// Course enrollment
+router.post('/:courseId/enroll', requirePermission('course:view'), courseController.enrollInCourse);
 
 module.exports = router;
