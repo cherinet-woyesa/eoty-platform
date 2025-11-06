@@ -98,6 +98,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: '24',
       description: 'Approve uploads'
     },
+
     {
       name: 'Moderation',
       href: '/admin/moderation',
@@ -122,6 +123,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: 'New',
       description: 'Platform insights'
     }
+
   ], []);
 
   const systemConfigItems = useMemo(() => [
@@ -157,6 +159,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   ], []);
 
+
+
+  
+
   const filteredItems = navigationItems.filter(item => 
     item.roles.includes(user?.role || '')
   );
@@ -190,9 +196,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           )}
         </button>
       </div>
+      
+      
 
-      {/* Navigation - All content inside scrollable container */}
-      <div className="flex-1 overflow-y-auto py-2">
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-2 min-h-0">
         <nav className="space-y-1 px-2">
           {filteredItems.map((item) => {
             const active = isActive(item.href);
@@ -234,7 +242,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           })}
         </nav>
 
-        {/* System Config Expandable Menu - NOW INSIDE scrollable container */}
+        {/* System Config Expandable Menu */}
         <div className="px-2 mt-1">
           <button
             onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
@@ -328,6 +336,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
           )}
         </div>
+
+
       </div>
 
       {/* Footer - Compact Stats */}

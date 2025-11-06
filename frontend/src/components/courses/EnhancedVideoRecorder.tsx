@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useVideoRecorder } from '../../hooks/useVideoRecorder';
-import { videoApi, coursesApi } from '../../services/api';
+import { coursesApi } from '../../services/api';
+import { videoApi } from '../../services/api/videos';
 import VideoTimelineEditor from './VideoTimelineEditor';
 import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';
@@ -1134,14 +1135,55 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         throw new Error('No valid video content to upload');
       }
 
-      setUploadProgress(100);
-      setUploadSuccess(true);
+      console.log('Upload response:', uploadResponse);
       
-      const videoUrl = uploadResponse.data.videoUrl;
-      console.log('Upload successful. Video URL:', videoUrl);
-      
-      onRecordingComplete?.(videoUrl);
-      onUploadComplete?.(newLessonId, videoUrl);
+      // Check if video is immediately available or needs processing
+      if (uploadResponse.data.videoUrl) {
+        // Video is ready immediately
+        setUploadProgress(100);
+        setUploadSuccess(true);
+        
+        const videoUrl = uploadResponse.data.videoUrl;
+        console.log('Upload successful. Video URL:', videoUrl);
+        
+        onRecordingComplete?.(videoUrl);
+        onUploadComplete?.(newLessonId, videoUrl);
+      } else if (uploadResponse.data.status === 'processing') {
+        // Video needs processing - start polling
+        console.log('Video is processing, starting polling...');
+        setUploadProgress(70);
+        
+        try {
+          const processingResult = await videoApi.pollProcessingStatus(
+            newLessonId,
+            30,
+            (status, progress) => {
+              console.log('Processing status:', status, progress);
+              // Update progress from 70% to 100% based on processing progress
+              setUploadProgress(70 + (progress * 0.3));
+            }
+          );
+          
+          setUploadProgress(100);
+          setUploadSuccess(true);
+          
+          const videoUrl = processingResult.videoUrl;
+          console.log('Processing complete. Video URL:', videoUrl);
+          
+          onRecordingComplete?.(videoUrl);
+          onUploadComplete?.(newLessonId, videoUrl);
+        } catch (pollingError: any) {
+          console.error('Processing polling failed:', pollingError);
+          setErrorMessage(pollingError.message || 'Video processing failed. Please check the lesson page.');
+          setUploading(false);
+          setShowProcessingStatus(false);
+          setProcessingLessonId(null);
+          return;
+        }
+      } else {
+        // Unexpected response
+        throw new Error('Unexpected upload response format');
+      }
 
     } catch (error: any) {
       console.error('Upload failed:', error);
@@ -1710,28 +1752,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
         )}
 
-        {/* NEW: Enhanced Action Buttons (shown after recording) */}
-        {activeTab === 'record' && recordedVideo && (
-          <div className="absolute top-4 right-4 z-30 flex space-x-2">
-            <button
-              onClick={() => {
-                setShowTimelineEditor(true);
-                setShowPreview(false);
-              }}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center space-x-2"
-            >
-              <Scissors className="h-4 w-4" />
-              <span>Edit Video</span>
-            </button>
-            <button
-              onClick={handleExportSession}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center space-x-2"
-            >
-              <Download className="h-4 w-4" />
-              <span>Export</span>
-            </button>
-          </div>
-        )}
+
 
         {/* Recording Controls */}
         {activeTab === 'record' && !recordedVideo && (
@@ -1927,6 +1948,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <span>Edit Video</span>
                   </button>
                 </>
+              )}
+              {(recordedVideo || selectedFile) && (
+                <button
+                  onClick={handleExportSession}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 text-sm"
+                  title="Export Session"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export</span>
+                </button>
               )}
               <button 
                 onClick={handleReset}

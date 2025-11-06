@@ -154,7 +154,7 @@ async function createCategory(req, res) {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: 'A category with this name already exists',
+        message: `A category with the name "${existing.name}" already exists (similar names are not allowed)`,
         errors: { name: 'Category name must be unique' }
       });
     }
@@ -164,7 +164,7 @@ async function createCategory(req, res) {
     const display_order = (maxOrder.max || 0) + 1;
 
     // Insert category
-    const [categoryId] = await db('course_categories').insert({
+    const [result] = await db('course_categories').insert({
       name,
       slug,
       icon,
@@ -177,6 +177,7 @@ async function createCategory(req, res) {
       updated_at: new Date()
     }).returning('id');
 
+    const categoryId = result.id || result;
     const category = await db('course_categories').where('id', categoryId).first();
 
     // Log audit
@@ -197,6 +198,16 @@ async function createCategory(req, res) {
     });
   } catch (error) {
     console.error('Error creating category:', error);
+    
+    // Check if it's a unique constraint violation
+    if (error.code === '23505' || error.message?.includes('unique')) {
+      return res.status(400).json({
+        success: false,
+        message: 'A category with this name already exists',
+        errors: { name: 'Category name must be unique' }
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create category'
@@ -399,7 +410,7 @@ async function createLevel(req, res) {
     const display_order = (maxOrder.max || 0) + 1;
 
     // Insert level
-    const [levelId] = await db('course_levels').insert({
+    const [result] = await db('course_levels').insert({
       name,
       slug,
       description,
@@ -411,6 +422,7 @@ async function createLevel(req, res) {
       updated_at: new Date()
     }).returning('id');
 
+    const levelId = result.id || result;
     const level = await db('course_levels').where('id', levelId).first();
 
     // Log audit
@@ -629,7 +641,7 @@ async function createDuration(req, res) {
     const display_order = (maxOrder.max || 0) + 1;
 
     // Insert duration
-    const [durationId] = await db('course_durations').insert({
+    const [result] = await db('course_durations').insert({
       value,
       label,
       weeks_min,
@@ -642,6 +654,7 @@ async function createDuration(req, res) {
       updated_at: new Date()
     }).returning('id');
 
+    const durationId = result.id || result;
     const duration = await db('course_durations').where('id', durationId).first();
 
     // Log audit
@@ -880,7 +893,7 @@ async function createTag(req, res) {
     const display_order = (maxOrder.max || 0) + 1;
 
     // Insert tag
-    const [tagId] = await db('content_tags').insert({
+    const [result] = await db('content_tags').insert({
       name,
       category: category || null,
       color: color || '#3B82F6',
@@ -892,6 +905,7 @@ async function createTag(req, res) {
       updated_at: new Date()
     }).returning('id');
 
+    const tagId = result.id || result;
     const tag = await db('content_tags').where('id', tagId).first();
 
     // Log audit
@@ -1171,12 +1185,20 @@ async function createChapter(req, res) {
     const { name, description } = req.body;
     const userId = req.user.userId;
 
-    // Check if chapter name already exists
-    const existing = await db('chapters').where('name', name).first();
+    console.log('Creating chapter with name:', name);
+
+    // Check if chapter name already exists (case-insensitive)
+    const existing = await db('chapters')
+      .whereRaw('LOWER(name) = LOWER(?)', [name])
+      .first();
+    
+    console.log('Existing chapter check:', existing);
+    
     if (existing) {
+      console.log('Chapter already exists, returning 400');
       return res.status(400).json({
         success: false,
-        message: 'A chapter with this name already exists',
+        message: `A chapter with the name "${existing.name}" already exists`,
         errors: { name: 'Chapter name must be unique' }
       });
     }
@@ -1185,8 +1207,10 @@ async function createChapter(req, res) {
     const maxOrder = await db('chapters').max('display_order as max').first();
     const display_order = (maxOrder.max || 0) + 1;
 
+    console.log('Inserting chapter into database...');
+    
     // Insert chapter
-    const [chapterId] = await db('chapters').insert({
+    const [result] = await db('chapters').insert({
       name,
       description: description || null,
       display_order,
@@ -1195,6 +1219,9 @@ async function createChapter(req, res) {
       created_at: new Date(),
       updated_at: new Date()
     }).returning('id');
+    
+    const chapterId = result.id || result;
+    console.log('Chapter created with ID:', chapterId);
 
     const chapter = await db('chapters').where('id', chapterId).first();
 
@@ -1216,6 +1243,16 @@ async function createChapter(req, res) {
     });
   } catch (error) {
     console.error('Error creating chapter:', error);
+    
+    // Check if it's a unique constraint violation
+    if (error.code === '23505' || error.message?.includes('unique')) {
+      return res.status(400).json({
+        success: false,
+        message: 'A chapter with this name already exists',
+        errors: { name: 'Chapter name must be unique' }
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create chapter'

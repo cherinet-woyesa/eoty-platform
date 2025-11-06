@@ -402,6 +402,54 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
     }
   },
 
+  // Poll for video processing completion with smart backoff
+  pollProcessingStatus: async (
+    lessonId: string,
+    maxAttempts: number = 30,
+    onProgress?: (status: string, progress: number) => void
+  ): Promise<any> => {
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const response = await apiClient.get(`/courses/lessons/${lessonId}/video-status`);
+        const { videoStatus, processingProgress, videoUrl, signedStreamUrl } = response.data;
+        
+        console.log(`Polling attempt ${attempts + 1}:`, { videoStatus, processingProgress, videoUrl, signedStreamUrl });
+        
+        if (onProgress) {
+          onProgress(videoStatus, processingProgress || 0);
+        }
+        
+        // If complete, return the result with the video URL
+        if (videoStatus === 'completed' || videoStatus === 'ready') {
+          console.log('Video processing completed!');
+          return {
+            status: 'completed',
+            videoUrl: signedStreamUrl || videoUrl,
+            progress: 100
+          };
+        }
+        
+        // If failed, throw error
+        if (videoStatus === 'failed' || videoStatus === 'error') {
+          throw new Error('Video processing failed');
+        }
+        
+        // Wait before next poll (exponential backoff: 2s, 3s, 4s, 5s, then 5s)
+        const delay = Math.min(2000 + (attempts * 1000), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        attempts++;
+      } catch (error: any) {
+        console.error('Polling error:', error);
+        throw error;
+      }
+    }
+    
+    throw new Error('Video processing timeout');
+  },
+
   // Bulk video operations
   bulkVideoOperations: {
     // Upload multiple videos

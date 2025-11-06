@@ -49,30 +49,45 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   // Handle mouse/touch drag for trim handles
   useEffect(() => {
     const handleMove = (clientX: number) => {
-      if (!isDraggingRef.current || !timelineRef.current || !duration || duration <= 0) return;
+      if (!isDraggingRef.current || !timelineRef.current) return;
+      
+      const videoDuration = videoRef.current?.duration || 0;
+      if (!videoDuration || videoDuration <= 0) return;
 
       const rect = timelineRef.current.getBoundingClientRect();
       const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-      const time = (x / rect.width) * duration;
+      const time = (x / rect.width) * videoDuration;
 
       if (!isFinite(time) || time < 0) return;
 
       if (isDraggingRef.current === 'start') {
-        const newStart = Math.min(time, trimEnd - 0.5);
-        if (isFinite(newStart) && newStart >= 0) {
-          setTrimStart(newStart);
-          if (videoRef.current) {
-            videoRef.current.currentTime = newStart;
-          }
-        }
+        setTrimStart(prevStart => {
+          setTrimEnd(prevEnd => {
+            const newStart = Math.min(time, prevEnd - 0.5);
+            if (isFinite(newStart) && newStart >= 0) {
+              if (videoRef.current) {
+                videoRef.current.currentTime = newStart;
+              }
+              return newStart;
+            }
+            return prevStart;
+          });
+          return prevStart;
+        });
       } else if (isDraggingRef.current === 'end') {
-        const newEnd = Math.max(time, trimStart + 0.5);
-        if (isFinite(newEnd) && newEnd >= 0) {
-          setTrimEnd(newEnd);
-          if (videoRef.current) {
-            videoRef.current.currentTime = newEnd;
-          }
-        }
+        setTrimEnd(prevEnd => {
+          setTrimStart(prevStart => {
+            const newEnd = Math.max(time, prevStart + 0.5);
+            if (isFinite(newEnd) && newEnd >= 0) {
+              if (videoRef.current) {
+                videoRef.current.currentTime = newEnd;
+              }
+              return newEnd;
+            }
+            return prevEnd;
+          });
+          return prevEnd;
+        });
       }
     };
 
@@ -94,11 +109,6 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
       document.body.style.userSelect = '';
     };
 
-    if (isDraggingRef.current) {
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-    }
-
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleEnd);
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -112,7 +122,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [duration, trimStart, trimEnd]);
+  }, []); // Empty dependency array - only set up once
 
   const handlePlayPause = () => {
     if (videoRef.current) {

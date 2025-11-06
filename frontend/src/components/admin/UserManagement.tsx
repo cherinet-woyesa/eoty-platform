@@ -77,13 +77,20 @@ const UserManagement: React.FC = () => {
 
   const fetchChapters = async () => {
     try {
+      console.log('Fetching chapters from API...');
       const response = await chaptersApi.getAllChapters();
-      if (response.success) {
+      console.log('Chapters API response:', response);
+      
+      if (response.success && response.data && response.data.chapters) {
+        console.log('Setting chapters:', response.data.chapters);
         setChapters(response.data.chapters);
       } else {
-        throw new Error('Failed to fetch chapters');
+        console.error('Invalid response format:', response);
+        throw new Error('Failed to fetch chapters - invalid response format');
       }
     } catch (err) {
+      console.error('Error fetching chapters:', err);
+      // Fallback to hardcoded chapters
       setChapters([
         { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
         { id: 2, name: 'toronto', location: 'Toronto, Canada' },

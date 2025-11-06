@@ -730,8 +730,15 @@ function AppContent() {
                   } 
                 />
 
-        {/* Default route for authenticated users */}
-        <Route path="/" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+        {/* Default route - redirect to login or dashboard based on auth status */}
+        <Route 
+          path="/" 
+          element={
+            <PublicRoute>
+              <Navigate to="/login" replace />
+            </PublicRoute>
+          } 
+        />
 
         {/* Catch-all 404 route */}
         <Route 
