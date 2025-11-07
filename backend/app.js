@@ -23,6 +23,8 @@ const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
 const analyticsRoutes = require('./routes/analytics');
 const systemConfigRoutes = require('./routes/systemConfig');
+const subtitleRoutes = require('./routes/subtitles');
+const accessLogRoutes = require('./routes/accessLogs');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -123,6 +125,15 @@ app.get('/api/health', (req, res) => {
 // Handle preflight requests globally
 app.options('*', cors(corsOptions));
 
+// Health check endpoint (for load balancers, Docker, etc.)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chapters', chapterRoutes);
@@ -133,9 +144,12 @@ app.use('/api/videos', videoRoutes); // Authentication handled inside route file
 // Admin routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/system-config', systemConfigRoutes);
+app.use('/api/admin/access-logs', accessLogRoutes);
 
 // Protected routes
 app.use('/api/courses', authenticateToken, courseRoutes);
+app.use('/api/courses', subtitleRoutes); // Subtitle routes (authentication handled in route file)
+app.use('/api/courses', resourceRoutes); // Resource routes (authentication handled in route file)
 app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/quizzes', authenticateToken, quizRoutes);
 app.use('/api/discussions', authenticateToken, discussionRoutes);

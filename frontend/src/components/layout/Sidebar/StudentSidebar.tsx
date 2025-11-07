@@ -1,27 +1,15 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Bookmark, 
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  Award,
-  PlayCircle,
-  MessageSquare,
-  HelpCircle,
   Clock,
   Star,
-  Target,
-  Zap,
-  Brain,
-  MessageCircle,
-  Users,
-  BarChart3,
-  FileText,
-  Search
+  Zap
 } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
+import { studentNavItems } from '../../../config/navigation';
+import { filterNavItems } from '../../../utils/navigationFilter';
 
 interface StudentSidebarProps {
   isCollapsed?: boolean;
@@ -32,135 +20,13 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
   isCollapsed = false, 
   onToggleCollapse 
 }) => {
+  const { user, permissions } = useAuth();
   const location = useLocation();
   
-  const navigationItems = useMemo(() => [
-    {
-      name: 'Dashboard',
-      href: '/student/dashboard',
-      icon: <LayoutDashboard className="h-4 w-4" />,
-      badge: null,
-      description: 'Learning overview',
-      color: 'text-blue-600'
-    },
-    {
-      name: 'My Courses',
-      href: '/courses',
-      icon: <BookOpen className="h-4 w-4" />,
-      badge: '5',
-      description: 'Continue learning',
-      color: 'text-green-600'
-    },
-    {
-      name: 'Browse Courses',
-      href: '/catalog',
-      icon: <Search className="h-4 w-4" />,
-      badge: null,
-      description: 'Discover new courses',
-      color: 'text-purple-600'
-    },
-    {
-      name: 'Study Paths',
-      href: '/learning-paths',
-      icon: <Target className="h-4 w-4" />,
-      badge: '3',
-      description: 'Structured learning',
-      color: 'text-purple-600'
-    },
-    {
-      name: 'Bookmarks',
-      href: '/bookmarks',
-      icon: <Bookmark className="h-4 w-4" />,
-      badge: '12',
-      description: 'Saved lessons',
-      color: 'text-yellow-600'
-    },
-    {
-      name: 'Study Schedule',
-      href: '/schedule',
-      icon: <Calendar className="h-4 w-4" />,
-      badge: null,
-      description: 'Plan your study',
-      color: 'text-indigo-600'
-    },
-    {
-      name: 'Progress',
-      href: '/progress',
-      icon: <BarChart3 className="h-4 w-4" />,
-      badge: null,
-      description: 'Track learning',
-      color: 'text-orange-600'
-    },
-    {
-      name: 'Discussions',
-      href: '/forums',
-      icon: <MessageSquare className="h-4 w-4" />,
-      badge: '3',
-      description: 'Ask questions',
-      color: 'text-pink-600'
-    },
-    {
-      name: 'Study Groups',
-      href: '/study-groups',
-      icon: <Users className="h-4 w-4" />,
-      badge: '2',
-      description: 'Collaborate with peers',
-      color: 'text-cyan-600'
-    },
-    {
-      name: 'Achievements',
-      href: '/achievements',
-      icon: <Award className="h-4 w-4" />,
-      badge: '7',
-      description: 'View badges',
-      color: 'text-amber-600'
-    },
-    {
-      name: 'AI Assistant',
-      href: '/ai-assistant',
-      icon: <Brain className="h-4 w-4" />,
-      badge: 'AI',
-      description: 'Get help',
-      color: 'text-emerald-600'
-    },
-    {
-      name: 'Resources',
-      href: '/resources',
-      icon: <FileText className="h-4 w-4" />,
-      badge: null,
-      description: 'Study materials',
-      color: 'text-gray-600'
-    },
-    {
-      name: 'Help Center',
-      href: '/help',
-      icon: <HelpCircle className="h-4 w-4" />,
-      badge: null,
-      description: 'Get support',
-      color: 'text-red-600'
-    }
-  ], []);
-
-  const quickActions = useMemo(() => [
-    {
-      name: 'Continue Learning',
-      href: '/continue',
-      icon: <PlayCircle className="h-3 w-3" />,
-      description: 'Last course: Theology 101'
-    },
-    {
-      name: 'Due Soon',
-      href: '/due',
-      icon: <Clock className="h-3 w-3" />,
-      description: '2 assignments due'
-    },
-    {
-      name: 'Recommended',
-      href: '/recommended',
-      icon: <Star className="h-3 w-3" />,
-      description: 'New courses for you'
-    }
-  ], []);
+  // Filter navigation items based on user role and permissions
+  const navigationItems = useMemo(() => {
+    return filterNavItems(studentNavItems, user?.role, permissions);
+  }, [user?.role, permissions]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -203,6 +69,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         <nav className="space-y-1 px-2">
           {navigationItems.map((item) => {
             const active = isActive(item.href);
+            const IconComponent = item.icon as React.ElementType;
             
             return (
               <Link
@@ -218,9 +85,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
-                    {item.icon}
-                  </div>
+                  <IconComponent className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
                 </div>
                 
                 {!isCollapsed && (

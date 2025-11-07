@@ -160,11 +160,13 @@ const MyCourses: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading your courses...</p>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">Loading your courses...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -173,17 +175,19 @@ const MyCourses: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
-              onClick={loadCourses}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <button 
+                onClick={loadCourses}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -191,56 +195,52 @@ const MyCourses: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header Section - Compact */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-3 sm:p-4 text-white shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <h1 className="text-lg sm:text-xl font-bold">My Courses</h1>
-              <div className="hidden sm:flex items-center space-x-1 text-blue-100">
-                <Clock className="h-3 w-3" />
-                <span className="text-xs">Updated {getTimeAgo(lastUpdated.toISOString())}</span>
-              </div>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section - Compact */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-lg shadow-sm p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                <BookOpen className="h-8 w-8" />
+                My Courses
+              </h1>
+              <p className="text-blue-100 mt-2">
+                {isTeacher ? 'Manage and organize your teaching content' : 'Continue your learning journey'}
+              </p>
+              <p className="text-blue-200 text-sm mt-1">
+                {user?.firstName} {user?.lastName} • {stats?.totalCourses || 0} {isTeacher ? 'courses created' : 'courses enrolled'} • Updated {getTimeAgo(lastUpdated.toISOString())}
+              </p>
             </div>
-            <p className="text-blue-100 text-xs sm:text-sm">
-              {isTeacher ? 'Manage and organize your teaching content' : 'Continue your learning journey'}
-            </p>
-            <p className="text-blue-200 text-xs mt-1">
-              {user?.firstName} {user?.lastName} • {stats?.totalCourses || 0} {isTeacher ? 'courses created' : 'courses enrolled'}
-            </p>
-          </div>
-          <div className="mt-3 lg:mt-0 lg:ml-4">
-            <div className="flex flex-col sm:flex-row gap-1.5">
-            <button
+            <div className="flex items-center gap-3">
+              <button
                 onClick={loadCourses}
-              disabled={loading}
-                className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm disabled:opacity-50"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm disabled:opacity-50"
               >
-                <RefreshCw className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
-            </button>
-            <Link
-              to="/courses/new"
-                className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-            >
-                <Plus className="h-3 w-3 mr-1.5" />
+              </button>
+              <Link
+                to="/teacher/courses/new"
+                className="inline-flex items-center px-4 py-2 bg-white text-blue-600 hover:bg-blue-50 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
                 New Course
-            </Link>
+              </Link>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Grid - Compact */}
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {/* Stats Grid - Compact */}
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {[
             { 
               name: 'Total Courses', 
               value: stats.totalCourses.toString(), 
               icon: BookOpen, 
-              change: '+2', 
+              change: 2, 
               changeType: 'positive',
               color: 'from-blue-500 to-blue-600',
               bgColor: 'from-blue-50 to-blue-100'
@@ -249,7 +249,7 @@ const MyCourses: React.FC = () => {
               name: 'Active Students', 
               value: stats.activeStudents.toString(), 
               icon: Users, 
-              change: '+8', 
+              change: 8, 
               changeType: 'positive',
               color: 'from-green-500 to-green-600',
               bgColor: 'from-green-50 to-green-100'
@@ -258,7 +258,7 @@ const MyCourses: React.FC = () => {
               name: 'Recorded Videos', 
               value: stats.recordedVideos.toString(), 
               icon: Video, 
-              change: '+12', 
+              change: 12, 
               changeType: 'positive',
               color: 'from-purple-500 to-purple-600',
               bgColor: 'from-purple-50 to-purple-100'
@@ -267,177 +267,171 @@ const MyCourses: React.FC = () => {
               name: 'Hours Taught', 
               value: stats.hoursTaught.toString(), 
               icon: Clock, 
-              change: '+15', 
+              change: 15, 
               changeType: 'positive',
               color: 'from-orange-500 to-orange-600',
               bgColor: 'from-orange-50 to-orange-100'
             }
           ].map((stat, index) => (
-            <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-lg p-2.5 sm:p-3 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className={`p-1.5 rounded-md bg-gradient-to-r ${stat.color} shadow-sm`}>
-                  <stat.icon className="h-3 w-3 text-white" />
-            </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-1">
-                    <TrendingUp className="h-2.5 w-2.5 text-green-600" />
-                    <span className="text-xs font-medium text-green-700">{stat.change}</span>
-            </div>
+              <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all p-6">
+                <div className={`bg-gradient-to-r ${stat.color} rounded-lg p-3 text-white mb-4`}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-gray-600 mb-1">{stat.name}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className={`text-sm mt-2 ${(stat.change || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <TrendingUp className="h-4 w-4 inline mr-1" />
+                  {(stat.change || 0) >= 0 ? '+' : ''}{stat.change}% from last month
+                </p>
+              </div>
+            ))}
           </div>
-            </div>
-            <div>
-                <p className="text-lg sm:text-xl font-bold text-gray-900 mb-0.5">{stat.value}</p>
-                <p className="text-xs text-gray-600 font-medium">{stat.name}</p>
-        </div>
-            </div>
-          ))}
-        </div>
-      )}
+        )}
 
-      {/* Search and Filter Section - Compact */}
-      <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-3">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-
-          {/* Filter and Sort Controls */}
-          <div className="flex flex-col sm:flex-row gap-2">
-          {/* Category Filter */}
-            <div className="sm:w-40">
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
-              >
-                {categories.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label} ({category.count})
-                  </option>
-                ))}
-              </select>
+        {/* Search and Filter Section - Compact */}
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search courses..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
             </div>
 
-            {/* Sort */}
-            <div className="sm:w-32">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
-              >
-                {sortOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Category Filter */}
+              <div className="sm:w-48">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                >
+                  {categories.map(category => (
+                    <option key={category.value} value={category.value}>
+                      {category.label} ({category.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Sort Order */}
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-2.5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              {sortOrder === 'asc' ? <SortAsc className="h-3.5 w-3.5" /> : <SortDesc className="h-3.5 w-3.5" />}
-            </button>
+              {/* Sort */}
+              <div className="sm:w-40">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                >
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* View Mode */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              {/* Sort Order */}
               <button
-                onClick={() => setViewMode('grid')}
-                className={`px-2.5 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <Grid className="h-3.5 w-3.5" />
+                {sortOrder === 'asc' ? <SortAsc className="h-5 w-5" /> : <SortDesc className="h-5 w-5" />}
               </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-2.5 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-              >
-                <List className="h-3.5 w-3.5" />
-              </button>
+
+              {/* View Mode */}
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Grid className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <List className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Selection Controls and Quick Features */}
-      {filteredAndSortedCourses.length > 0 && (
-        <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedCourses.length === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedCourses(filteredAndSortedCourses.map(c => c.id));
-                    } else {
-                      setSelectedCourses([]);
+        {/* Selection Controls and Quick Features */}
+        {filteredAndSortedCourses.length > 0 && (
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedCourses.length === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedCourses(filteredAndSortedCourses.map(c => c.id));
+                      } else {
+                        setSelectedCourses([]);
+                      }
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {selectedCourses.length > 0 
+                      ? `${selectedCourses.length} selected` 
+                      : 'Select all'
                     }
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-600">
-                  {selectedCourses.length > 0 
-                    ? `${selectedCourses.length} selected` 
-                    : 'Select all'
-                  }
-                </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowTemplates(!showTemplates)}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Templates
+                </button>
+                <Link
+                  to="/teacher/courses/new"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Course
+                </Link>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowTemplates(!showTemplates)}
-                className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Templates
-              </button>
-              <Link
-                to="/courses/new"
-                className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                New Course
-              </Link>
-            </div>
+            {/* Course Templates Panel */}
+            {showTemplates && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 className="text-base font-semibold text-gray-900 mb-3">Course Templates</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { name: 'Bible Study', category: 'bible', icon: BookOpen },
+                    { name: 'Church History', category: 'history', icon: Calendar },
+                    { name: 'Spiritual Growth', category: 'spiritual', icon: Zap },
+                    { name: 'Youth Ministry', category: 'youth', icon: Users }
+                  ].map((template, index) => (
+                    <button
+                      key={index}
+                      className="p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+                    >
+                      <template.icon className="h-5 w-5 text-blue-600 mb-2" />
+                      <div className="text-sm font-medium text-gray-900">{template.name}</div>
+                      <div className="text-xs text-gray-500 capitalize">{template.category}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Course Templates Panel */}
-          {showTemplates && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">Course Templates</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {[
-                  { name: 'Bible Study', category: 'bible', icon: BookOpen },
-                  { name: 'Church History', category: 'history', icon: Calendar },
-                  { name: 'Spiritual Growth', category: 'spiritual', icon: Zap },
-                  { name: 'Youth Ministry', category: 'youth', icon: Users }
-                ].map((template, index) => (
-                  <button
-                    key={index}
-                    className="p-2 bg-white rounded-md border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
-                  >
-                    <template.icon className="h-4 w-4 text-blue-600 mb-1" />
-                    <div className="text-xs font-medium text-gray-900">{template.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">{template.category}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
 
       {/* Quick Stats Bar */}
       {stats && (
@@ -464,12 +458,12 @@ const MyCourses: React.FC = () => {
         </div>
       )}
 
-      {/* Courses Display */}
-      {filteredAndSortedCourses.length > 0 ? (
-        <div className={viewMode === 'grid' 
-          ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4" 
-          : "space-y-3"
-        }>
+        {/* Courses Display */}
+        {filteredAndSortedCourses.length > 0 ? (
+          <div className={viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6" 
+            : "space-y-4"
+          }>
           {filteredAndSortedCourses.map(course => (
             <div key={course.id} className={`relative ${viewMode === 'grid' 
               ? "bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
@@ -511,14 +505,14 @@ const MyCourses: React.FC = () => {
                       </div>
                       <div className="flex space-x-1 ml-3">
                         <Link
-                          to={`/courses/${course.id}`}
+                          to={`/teacher/courses/${course.id}`}
                           className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                           title="View Course"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <Link
-                          to={`/courses/${course.id}/edit`}
+                          to={`/teacher/courses/${course.id}/edit`}
                           className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                           title="Edit Course"
                         >
@@ -561,14 +555,14 @@ const MyCourses: React.FC = () => {
                     {/* Action Buttons */}
                     <div className="flex space-x-2">
                       <Link
-                        to={`/courses/${course.id}`}
+                        to={`/teacher/courses/${course.id}`}
                         className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                       >
                         <PlayCircle className="mr-1 h-4 w-4" />
                         View
                       </Link>
                       <Link
-                        to={`/record?course=${course.id}`}
+                        to={`/teacher/record?course=${course.id}`}
                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         title="Add Lesson"
                       >
@@ -611,19 +605,19 @@ const MyCourses: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Link
-                      to={`/courses/${course.id}`}
+                      to={`/teacher/courses/${course.id}`}
                       className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                     >
                       <Eye className="h-4 w-4" />
                     </Link>
                     <Link
-                      to={`/courses/${course.id}/edit`}
+                      to={`/teacher/courses/${course.id}/edit`}
                       className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                     >
                       <Edit3 className="h-4 w-4" />
                     </Link>
                     <Link
-                      to={`/record?course=${course.id}`}
+                      to={`/teacher/record?course=${course.id}`}
                       className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
                     >
                       <Video className="h-4 w-4" />
@@ -633,36 +627,37 @@ const MyCourses: React.FC = () => {
               )}
             </div>
           ))}
-        </div>
-      ) : (
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-6 sm:p-8 text-center shadow-sm">
-          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
-            {courses.length === 0 ? 'No courses yet' : 'No courses found'}
-          </h3>
-          <p className="text-gray-600 text-sm mb-4 max-w-lg mx-auto">
-            {courses.length === 0 
-              ? 'Create your first course to start teaching and sharing knowledge with your students.'
-              : 'Try adjusting your search or filter criteria to find what you\'re looking for.'
-            }
-          </p>
-          <Link
-            to="/courses/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Create Your First Course
-          </Link>
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-8 text-center shadow-sm">
+            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {courses.length === 0 ? 'No courses yet' : 'No courses found'}
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+              {courses.length === 0 
+                ? 'Create your first course to start teaching and sharing knowledge with your students.'
+                : 'Try adjusting your search or filter criteria to find what you\'re looking for.'
+              }
+            </p>
+            <Link
+              to="/teacher/courses/new"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Create Your First Course
+            </Link>
+          </div>
+        )}
 
-      {/* Bulk Actions Floating Bar */}
-      <BulkActions
-        selectedCourses={selectedCourses}
-        courses={courses}
-        onActionComplete={loadCourses}
-        onClearSelection={() => setSelectedCourses([])}
-      />
+        {/* Bulk Actions Floating Bar */}
+        <BulkActions
+          selectedCourses={selectedCourses}
+          courses={courses}
+          onActionComplete={loadCourses}
+          onClearSelection={() => setSelectedCourses([])}
+        />
+      </div>
     </div>
   );
 };

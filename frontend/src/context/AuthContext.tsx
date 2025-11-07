@@ -21,6 +21,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string | string[]) => boolean;
+  isRoleOrHigher: (role: string) => boolean;
+  canAccessRoute: (path: string) => boolean;
+  getRoleDashboard: () => string;
   refreshPermissions: () => Promise<void>;
   isLoading: boolean;
   // Google login function
@@ -52,10 +55,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
+      const storedRole = localStorage.getItem('userRole');
       
       if (storedToken && storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        
+        // Check for role change - if stored role differs from current user role
+        if (storedRole && storedRole !== parsedUser.role) {
+          console.warn('Role change detected. Clearing authentication state.');
+          // Clear auth state and force re-authentication
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('userRole');
+          setLoading(false);
+          return;
+        }
+        
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        
+        // Store current role for change detection
+        localStorage.setItem('userRole', parsedUser.role);
         
         // Load permissions for the user
         await loadPermissions();
@@ -66,6 +86,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
   }, []);
+
+  // Monitor for role changes in user object
+  useEffect(() => {
+    if (user) {
+      const storedRole = localStorage.getItem('userRole');
+      
+      // If role has changed, invalidate session
+      if (storedRole && storedRole !== user.role) {
+        console.warn('User role changed. Forcing re-authentication.');
+        logout();
+        window.location.href = '/login';
+      } else {
+        // Update stored role
+        localStorage.setItem('userRole', user.role);
+      }
+    }
+  }, [user?.role]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -99,6 +136,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('userRole', user.role);
       
       // Load permissions after login
       await loadPermissions();
@@ -145,6 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('userRole', user.role);
         
         // Load permissions after registration
         await loadPermissions();
@@ -175,6 +214,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('userRole', user.role);
         
         // Load permissions after Google login
         await loadPermissions();
@@ -196,6 +236,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
     authApi.logout();
   };
 
@@ -208,6 +249,105 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const roles = Array.isArray(role) ? role : [role];
     return roles.includes(user.role);
+  };
+
+  // Role hierarchy constants
+  const ROLE_HIERARCHY: Record<string, number> = {
+    student: 1,
+    teacher: 2,
+    chapter_admin: 3,
+    platform_admin: 4,
+  };
+
+  /**
+   * Check if user's role is equal to or higher than the specified role
+   * Uses role hierarchy: student < teacher < chapter_admin < platform_admin
+   */
+  const isRoleOrHigher = (role: string): boolean => {
+    if (!user) return false;
+    
+    const userLevel = ROLE_HIERARCHY[user.role] || 0;
+    const requiredLevel = ROLE_HIERARCHY[role] || 0;
+    return userLevel >= requiredLevel;
+  };
+
+  /**
+   * Get the dashboard path appropriate for the user's role
+   */
+  const getRoleDashboard = (): string => {
+    if (!user) return '/login';
+
+    if (user.role === 'platform_admin' || user.role === 'chapter_admin') {
+      return '/admin/dashboard';
+    }
+    if (user.role === 'teacher') {
+      return '/teacher/dashboard';
+    }
+    return '/student/dashboard';
+  };
+
+  /**
+   * Enhanced route access validation
+   * Maps routes to required roles with wildcard and parameterized route support
+   */
+  const canAccessRoute = (path: string): boolean => {
+    if (!user) return false;
+
+    // Normalize path (remove trailing slash and query params)
+    const normalizedPath = path.split('?')[0].replace(/\/$/, '');
+
+    // Admin routes - require admin role
+    if (normalizedPath.startsWith('/admin')) {
+      return user.role === 'chapter_admin' || user.role === 'platform_admin';
+    }
+
+    // Teacher routes - require teacher or higher
+    if (normalizedPath.startsWith('/teacher')) {
+      return isRoleOrHigher('teacher');
+    }
+
+    // Student routes - accessible by all authenticated users
+    if (normalizedPath.startsWith('/student')) {
+      return true;
+    }
+
+    // Shared routes accessible to all authenticated users
+    const sharedRoutes = [
+      '/dashboard',
+      '/ai-assistant',
+      '/forums',
+      '/community',
+      '/leaderboards',
+      '/resources',
+      '/help',
+    ];
+
+    for (const route of sharedRoutes) {
+      if (normalizedPath === route || normalizedPath.startsWith(`${route}/`)) {
+        return true;
+      }
+    }
+
+    // Legacy routes that should redirect
+    const legacyRoutes = [
+      '/courses',
+      '/catalog',
+      '/progress',
+      '/achievements',
+      '/record',
+      '/students',
+      '/analytics',
+    ];
+
+    for (const route of legacyRoutes) {
+      if (normalizedPath === route || normalizedPath.startsWith(`${route}/`)) {
+        // Allow access but these will redirect to namespaced routes
+        return true;
+      }
+    }
+
+    // Default: deny access for unknown routes
+    return false;
   };
 
   const refreshPermissions = async () => {
@@ -224,6 +364,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: !!user && !!token,
     hasPermission,
     hasRole,
+    isRoleOrHigher,
+    canAccessRoute,
+    getRoleDashboard,
     refreshPermissions,
     isLoading: loading,
     loginWithGoogle

@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+// Use environment variable for API base URL, fallback to localhost for development
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 // Create axios instance with base config
 export const apiClient = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for production
   withCredentials: true, // Important for CORS with cookies/auth
 });
 

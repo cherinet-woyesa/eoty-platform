@@ -169,7 +169,7 @@ const courseController = {
     try {
       const teacherId = req.user.userId;
       const { courseId } = req.params;
-      const { title, description, order } = req.body;
+      const { title, description, order, allow_download } = req.body;
 
       // Verify the course belongs to the teacher
       const course = await db('courses')
@@ -189,6 +189,7 @@ const courseController = {
         order: order || 0,
         course_id: courseId,
         duration: 0, // Set default duration to 0
+        allow_download: allow_download !== undefined ? allow_download : false,
         created_by: teacherId,
         created_at: new Date(),
         updated_at: new Date()
@@ -987,7 +988,7 @@ const courseController = {
     try {
       const userId = req.user.userId;
       const { lessonId } = req.params;
-      const { title, description, order, duration, video_url, is_published, resources, thumbnail_url } = req.body;
+      const { title, description, order, duration, video_url, is_published, resources, thumbnail_url, allow_download } = req.body;
 
       // Get lesson with course info (ownership already verified by middleware)
       const lesson = await db('lessons as l')
@@ -1014,6 +1015,7 @@ const courseController = {
       if (duration !== undefined) updateData.duration = parseInt(duration);
       if (video_url !== undefined) updateData.video_url = video_url;
       if (thumbnail_url !== undefined) updateData.thumbnail_url = thumbnail_url;
+      if (allow_download !== undefined) updateData.allow_download = allow_download;
       if (resources !== undefined) {
         // Validate and store resources as JSON
         updateData.resources = JSON.stringify(Array.isArray(resources) ? resources : []);
@@ -1362,6 +1364,45 @@ async function updateCourseStatistics(courseId) {
     console.error('Update course statistics error:', error);
     // Don't throw error, just log it
   }
-}
+};
+
+courseController.getVideoDownloadUrl = async function(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+
+      const videoDownloadService = require('../services/videoDownloadService');
+      const result = await videoDownloadService.generateDownloadUrl(
+        parseInt(lessonId),
+        userId
+      );
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Get video download URL error:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+      
+      if (error.message.includes('Access denied') || error.message.includes('not permitted')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to generate download URL'
+      });
+    }
+};
 
 module.exports = courseController;

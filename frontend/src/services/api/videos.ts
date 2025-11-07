@@ -517,6 +517,20 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
     }
   },
 
+  // Get video download URL (with permission check)
+  getVideoDownloadUrl: async (lessonId: string) => {
+    try {
+      const response = await apiClient.get(`/courses/lessons/${lessonId}/download-url`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Get video download URL error:', error);
+      if (error.response?.status === 403) {
+        throw new Error('Video download is not permitted for this lesson');
+      }
+      throw new Error(error.response?.data?.message || 'Failed to get download URL');
+    }
+  },
+
   // NEW: Test file upload with simple fetch
   testUpload: async (file: File, lessonId: string) => {
     try {

@@ -2,26 +2,16 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Shield, 
-  Tag, 
-  BarChart2, 
-  Settings,
   ChevronLeft,
   ChevronRight,
   Crown,
   ChevronDown,
-  ChevronUp,
-  FolderTree,
-  Layers,
-  Timer,
-  Hash,
-  BookOpen
+  ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { getMetrics } from '../../../services/api/systemConfig';
+import { adminNavItems } from '../../../config/navigation';
+import { filterNavItems } from '../../../utils/navigationFilter';
 
 interface AdminSidebarProps {
   isCollapsed?: boolean;
@@ -32,7 +22,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   isCollapsed = false, 
   onToggleCollapse 
 }) => {
-  const { user } = useAuth();
+  const { user, permissions } = useAuth();
   const location = useLocation();
   const [isSystemConfigExpanded, setIsSystemConfigExpanded] = useState(false);
 
@@ -65,107 +55,19 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   }, [location.pathname]);
   
-  const navigationItems = useMemo(() => [
-    {
-      name: 'Dashboard',
-      href: '/admin/dashboard',
-      icon: <LayoutDashboard className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: null,
-      description: 'Overview & metrics'
-    },
-    {
-      name: 'User Management',
-      href: '/admin/users',
-      icon: <Users className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: '12',
-      description: 'Manage users & roles'
-    },
-    {
-      name: 'Courses',
-      href: '/admin/courses',
-      icon: <BookOpen className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: null,
-      description: 'Manage all courses'
-    },
-    {
-      name: 'Upload Queue',
-      href: '/admin/content',
-      icon: <FileText className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: '24',
-      description: 'Approve uploads'
-    },
+  // Filter navigation items based on user role and permissions
+  const filteredItems = useMemo(() => {
+    const filtered = filterNavItems(adminNavItems, user?.role, permissions);
+    
+    // Separate System Config item from main items
+    return filtered.filter(item => item.href !== '/admin/config');
+  }, [user?.role, permissions]);
 
-    {
-      name: 'Moderation',
-      href: '/admin/moderation',
-      icon: <Shield className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: '3',
-      description: 'Content review'
-    },
-    {
-      name: 'Tags & Categories',
-      href: '/admin/tags',
-      icon: <Tag className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: null,
-      description: 'Organize content'
-    },
-    {
-      name: 'Analytics',
-      href: '/admin/analytics',
-      icon: <BarChart2 className="h-4 w-4" />,
-      roles: ['chapter_admin', 'platform_admin'],
-      badge: 'New',
-      description: 'Platform insights'
-    }
-
-  ], []);
-
-  const systemConfigItems = useMemo(() => [
-    {
-      name: 'Categories',
-      href: '/admin/config/categories',
-      icon: <FolderTree className="h-4 w-4" />,
-      description: 'Course categories'
-    },
-    {
-      name: 'Levels',
-      href: '/admin/config/levels',
-      icon: <Layers className="h-4 w-4" />,
-      description: 'Difficulty levels'
-    },
-    {
-      name: 'Durations',
-      href: '/admin/config/durations',
-      icon: <Timer className="h-4 w-4" />,
-      description: 'Course durations'
-    },
-    {
-      name: 'Tags',
-      href: '/admin/config/tags',
-      icon: <Hash className="h-4 w-4" />,
-      description: 'Content tags'
-    },
-    {
-      name: 'Chapters',
-      href: '/admin/config/chapters',
-      icon: <BookOpen className="h-4 w-4" />,
-      description: 'Chapter management'
-    }
-  ], []);
-
-
-
-  
-
-  const filteredItems = navigationItems.filter(item => 
-    item.roles.includes(user?.role || '')
-  );
+  // Get System Config item and its children separately
+  const systemConfigItem = useMemo(() => {
+    const filtered = filterNavItems(adminNavItems, user?.role, permissions);
+    return filtered.find(item => item.href === '/admin/config');
+  }, [user?.role, permissions]);
 
   const isActive = (href: string) => {
     return location.pathname.startsWith(href);
@@ -204,6 +106,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <nav className="space-y-1 px-2">
           {filteredItems.map((item) => {
             const active = isActive(item.href);
+            const IconComponent = item.icon as React.ElementType;
             
             return (
               <Link
@@ -219,9 +122,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <div className={active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}>
-                    {item.icon}
-                  </div>
+                  <IconComponent className={`h-4 w-4 ${active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}`} />
                 </div>
                 
                 {!isCollapsed && (
@@ -243,107 +144,117 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </nav>
 
         {/* System Config Expandable Menu */}
-        <div className="px-2 mt-1">
-          <button
-            onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
-            className={`group w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-              location.pathname.startsWith('/admin/config')
-                ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
-            title={isCollapsed ? 'System Configuration' : undefined}
-          >
-            <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-              location.pathname.startsWith('/admin/config') ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
-            } transition-colors duration-200`}>
-              <Settings className={`h-4 w-4 ${
-                location.pathname.startsWith('/admin/config') ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'
-              }`} />
-            </div>
-            
-            {!isCollapsed && (
-              <div className="ml-3 flex-1 min-w-0 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="truncate">System Config</span>
-                    {totalInactive > 0 && (
-                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                        {totalInactive}
-                      </span>
+        {systemConfigItem && (
+          <div className="px-2 mt-1">
+            <button
+              onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
+              className={`group w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                location.pathname.startsWith('/admin/config')
+                  ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              title={isCollapsed ? systemConfigItem.description : undefined}
+            >
+              <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                location.pathname.startsWith('/admin/config') ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
+              } transition-colors duration-200`}>
+                {React.createElement(systemConfigItem.icon as React.ElementType, {
+                  className: `h-4 w-4 ${location.pathname.startsWith('/admin/config') ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}`
+                })}
+              </div>
+              
+              {!isCollapsed && (
+                <div className="ml-3 flex-1 min-w-0 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="truncate">{systemConfigItem.name}</span>
+                      {totalInactive > 0 && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          {totalInactive}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{systemConfigItem.description}</p>
+                  </div>
+                  <div className="ml-2">
+                    {isSystemConfigExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">Manage system options</p>
                 </div>
-                <div className="ml-2">
-                  {isSystemConfigExpanded ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
+              )}
+            </button>
+
+            {/* System Config Sub-menu */}
+            {!isCollapsed && isSystemConfigExpanded && systemConfigItem.children && (
+              <div className="mt-1 ml-4 space-y-1">
+                {systemConfigItem.children.map((subItem) => {
+                  const active = isActive(subItem.href);
+                  const SubIconComponent = subItem.icon as React.ElementType;
+                  
+                  // Get inactive count for this specific item
+                  let inactiveCount = 0;
+                  if (metrics) {
+                    if (subItem.href.includes('categories')) inactiveCount = metrics.categories.inactive;
+                    else if (subItem.href.includes('levels')) inactiveCount = metrics.levels.inactive;
+                    else if (subItem.href.includes('durations')) inactiveCount = metrics.durations.inactive;
+                    else if (subItem.href.includes('tags')) inactiveCount = metrics.tags.inactive;
+                    else if (subItem.href.includes('chapters')) inactiveCount = metrics.chapters.inactive;
+                  }
+                  
+                  return (
+                    <Link
+                      key={subItem.name}
+                      to={subItem.href}
+                      className={`group flex items-center px-2 py-2 text-sm rounded-lg transition-all duration-200 ${
+                        active
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
+                        active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
+                      } transition-colors duration-200`}>
+                        <SubIconComponent className={`h-4 w-4 ${active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                      </div>
+                      
+                      <div className="ml-2 flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="truncate font-medium text-sm">{subItem.name}</span>
+                          {inactiveCount > 0 && (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              {inactiveCount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{subItem.description}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
-          </button>
-
-          {/* System Config Sub-menu */}
-          {!isCollapsed && isSystemConfigExpanded && (
-            <div className="mt-1 ml-4 space-y-1">
-              {systemConfigItems.map((subItem) => {
-                const active = isActive(subItem.href);
-                
-                // Get inactive count for this specific item
-                let inactiveCount = 0;
-                if (metrics) {
-                  if (subItem.href.includes('categories')) inactiveCount = metrics.categories.inactive;
-                  else if (subItem.href.includes('levels')) inactiveCount = metrics.levels.inactive;
-                  else if (subItem.href.includes('durations')) inactiveCount = metrics.durations.inactive;
-                  else if (subItem.href.includes('tags')) inactiveCount = metrics.tags.inactive;
-                  else if (subItem.href.includes('chapters')) inactiveCount = metrics.chapters.inactive;
-                }
-                
-                return (
-                  <Link
-                    key={subItem.name}
-                    to={subItem.href}
-                    className={`group flex items-center px-2 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      active
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                      active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
-                    } transition-colors duration-200`}>
-                      {React.cloneElement(subItem.icon, { 
-                        className: `h-4 w-4 ${active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}` 
-                      })}
-                    </div>
-                    
-                    <div className="ml-2 flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="truncate font-medium text-sm">{subItem.name}</span>
-                        {inactiveCount > 0 && (
-                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                            {inactiveCount}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 truncate">{subItem.description}</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-
+          </div>
+        )}
       </div>
 
-      {/* Footer - Compact Stats */}
+      {/* Footer - Compact Stats with Role Indicator */}
       {!isCollapsed && (
         <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
           <div className="space-y-2">
+            {/* Role Indicator - Prominent */}
+            <div className="flex items-center justify-between p-2 bg-blue-100 rounded-lg border border-blue-200">
+              <div className="flex items-center space-x-2">
+                <Crown className="h-4 w-4 text-blue-700" />
+                <span className="text-xs font-medium text-blue-700">Role</span>
+              </div>
+              <span className="text-xs font-bold text-blue-900 capitalize">
+                {user?.role?.replace('_', ' ')}
+              </span>
+            </div>
+            
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-500">Total Users</span>
               <span className="font-semibold text-gray-900">{metrics?.categories?.total || 0}</span>
@@ -355,10 +266,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-500">Pending</span>
               <span className="font-semibold text-amber-600">{totalInactive}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Admin</span>
-              <span className="font-semibold text-gray-900 capitalize">{user?.role?.replace('_', ' ')}</span>
             </div>
           </div>
         </div>

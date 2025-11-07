@@ -1,30 +1,17 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video, 
-  MessageSquare, 
-  Trophy, 
-  BarChart2,
-  Bot,
   ChevronLeft,
   ChevronRight,
-  Users,
-  Award,
-  Sparkles,
-  FileText,
-  Upload,
   Settings,
-  Clock,
   Star,
-  HelpCircle,
-  Zap,
-  Target,
   DollarSign,
-  School
+  School,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { teacherNavItems } from '../../../config/navigation';
+import { filterNavItems } from '../../../utils/navigationFilter';
 
 interface TeacherSidebarProps {
   isCollapsed?: boolean;
@@ -35,120 +22,39 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   isCollapsed = false, 
   onToggleCollapse 
 }) => {
-  const { user } = useAuth();
+  const { user, permissions } = useAuth();
   const location = useLocation();
 
   const isChapterAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
   
-  const navigationItems = useMemo(() => [
-    {
-      name: 'Dashboard',
-      href: '/teacher/dashboard',
-      icon: <LayoutDashboard className="h-4 w-4" />,
-      badge: null,
-      description: 'Teaching overview',
-      color: 'text-blue-600'
-    },
-    {
-      name: 'My Courses',
-      href: '/teacher/courses',
-      icon: <BookOpen className="h-4 w-4" />,
-      badge: '8',
-      description: 'Manage courses',
-      color: 'text-green-600'
-    },
-    {
-      name: 'Record Video',
-      href: '/record',
-      icon: <Video className="h-4 w-4" />,
-      badge: null,
-      description: 'Create lessons',
-      color: 'text-red-600'
-    },
-    {
-      name: 'Create Course',
-      href: '/courses/new',
-      icon: <Sparkles className="h-4 w-4" />,
-      badge: null,
-      description: 'New course',
-      color: 'text-purple-600'
-    },
-    {
-      name: 'Students',
-      href: '/students',
-      icon: <Users className="h-4 w-4" />,
-      badge: '247',
-      description: 'Manage learners',
-      color: 'text-indigo-600'
-    },
-    {
-      name: 'Analytics',
-      href: '/analytics',
-      icon: <BarChart2 className="h-4 w-4" />,
-      badge: null,
-      description: 'View reports',
-      color: 'text-orange-600'
-    },
-    {
-      name: 'Discussions',
-      href: '/forums',
-      icon: <MessageSquare className="h-4 w-4" />,
-      badge: '12',
-      description: 'Student chats',
-      color: 'text-pink-600'
-    },
-    {
-      name: 'Assignments',
-      href: '/assignments',
-      icon: <FileText className="h-4 w-4" />,
-      badge: '5',
-      description: 'Grade work',
-      color: 'text-amber-600'
-    },
-    {
-      name: 'Resources',
-      href: '/resources',
-      icon: <Upload className="h-4 w-4" />,
-      badge: null,
-      description: 'Upload files',
-      color: 'text-emerald-600'
-    },
-    {
-      name: 'AI Assistant',
-      href: '/ai-assistant',
-      icon: <Bot className="h-4 w-4" />,
-      badge: null,
-      description: 'Get help',
-      color: 'text-cyan-600'
-    },
-    {
-      name: 'Achievements',
-      href: '/achievements',
-      icon: <Award className="h-4 w-4" />,
-      badge: null,
-      description: 'View badges',
-      color: 'text-yellow-600'
-    }
-  ], []);
+  // Filter navigation items based on user role and permissions
+  const navigationItems = useMemo(() => {
+    return filterNavItems(teacherNavItems, user?.role, permissions);
+  }, [user?.role, permissions]);
 
-  const adminItems = useMemo(() => [
-    {
-      name: 'Admin Panel',
-      href: '/admin',
-      icon: <Settings className="h-4 w-4" />,
-      badge: null,
-      description: 'System management',
-      color: 'text-gray-600'
-    },
-    {
-      name: 'Revenue',
-      href: '/revenue',
-      icon: <DollarSign className="h-4 w-4" />,
-      badge: null,
-      description: 'Earnings & payments',
-      color: 'text-green-600'
-    }
-  ], []);
+  // Admin-specific items for chapter_admin and platform_admin
+  const adminItems = useMemo(() => {
+    if (!isChapterAdmin) return [];
+    
+    return [
+      {
+        name: 'Admin Panel',
+        href: '/admin',
+        icon: Settings,
+        badge: null,
+        description: 'System management',
+        color: 'text-gray-600'
+      },
+      {
+        name: 'Revenue',
+        href: '/revenue',
+        icon: DollarSign,
+        badge: null,
+        description: 'Earnings & payments',
+        color: 'text-green-600'
+      }
+    ];
+  }, [isChapterAdmin]);
 
 //   const quickStats = useMemo(() => [
 //     {
@@ -227,6 +133,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
         <nav className="space-y-1 px-2">
           {navigationItems.map((item) => {
             const active = isActive(item.href);
+            const IconComponent = item.icon as React.ElementType;
             
             return (
               <Link
@@ -242,9 +149,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                   active ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
                 } transition-colors duration-200`}>
-                  <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
-                    {item.icon}
-                  </div>
+                  <IconComponent className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
                 </div>
                 
                 {!isCollapsed && (
@@ -266,19 +171,22 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
         </nav>
 
         {/* Admin Section */}
-        {isChapterAdmin && (
+        {isChapterAdmin && adminItems.length > 0 && (
           <>
             <div className="px-2 py-4">
               <div className="border-t border-gray-200"></div>
             </div>
-            <div className="px-3 mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Administration
-              </h3>
-            </div>
+            {!isCollapsed && (
+              <div className="px-3 mb-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Administration
+                </h3>
+              </div>
+            )}
             <nav className="space-y-1 px-2">
               {adminItems.map((item) => {
                 const active = isActive(item.href);
+                const IconComponent = item.icon as React.ElementType;
                 
                 return (
                   <Link
@@ -294,9 +202,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                     <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                       active ? 'bg-gray-200' : 'bg-gray-100 group-hover:bg-gray-200'
                     } transition-colors duration-200`}>
-                      <div className={active ? item.color : 'text-gray-500 group-hover:text-gray-700'}>
-                        {item.icon}
-                      </div>
+                      <IconComponent className={`h-4 w-4 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
                     </div>
                     
                     {!isCollapsed && (

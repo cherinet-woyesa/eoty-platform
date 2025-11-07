@@ -184,14 +184,13 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     if (isOpen && lessonId) {
       console.log('Opening WebSocket connection for lesson:', lessonId);
       connectWebSocket();
-    } else {
-      cleanupWebSocket();
     }
 
     return () => {
       cleanupWebSocket();
     };
-  }, [isOpen, lessonId, connectWebSocket, cleanupWebSocket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, lessonId]);
 
   // Simulate progress if WebSocket fails completely
   useEffect(() => {

@@ -3,46 +3,47 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const upload = require('../middleware/upload');
 const { authenticateToken } = require('../middleware/auth');
-const { requireAdmin } = require('../middleware/rbac');
+const { requireAdmin, requirePermission } = require('../middleware/rbac');
 
 // All admin routes require authentication and admin privileges
 router.use(authenticateToken, requireAdmin());
 
 // User Management
-router.post('/users', adminController.createUser);
-router.get('/users', adminController.getUsers);
-router.put('/users/role', adminController.updateUserRole);
-router.put('/users/status', adminController.updateUserStatus);
+// Requires admin role (already enforced by router.use above)
+router.post('/users', requirePermission('user:create'), adminController.createUser);
+router.get('/users', requirePermission('user:view'), adminController.getUsers);
+router.put('/users/role', requirePermission('user:manage'), adminController.updateUserRole);
+router.put('/users/status', requirePermission('user:manage'), adminController.updateUserStatus);
 
 // Content Upload Management
-router.get('/uploads', adminController.getUploadQueue);
-router.post('/uploads', upload.single('file'), adminController.uploadContent);
-router.post('/uploads/:uploadId/review', adminController.approveContent);
+router.get('/uploads', requirePermission('content:view'), adminController.getUploadQueue);
+router.post('/uploads', requirePermission('content:create'), upload.single('file'), adminController.uploadContent);
+router.post('/uploads/:uploadId/review', requirePermission('content:moderate'), adminController.approveContent);
 
 // Content Moderation
-router.get('/moderation/flagged', adminController.getFlaggedContent);
-router.post('/moderation/flagged/:flagId/review', adminController.reviewFlaggedContent);
+router.get('/moderation/flagged', requirePermission('content:moderate'), adminController.getFlaggedContent);
+router.post('/moderation/flagged/:flagId/review', requirePermission('content:moderate'), adminController.reviewFlaggedContent);
 
 // AI Content Moderation
-router.get('/moderation/ai/pending', adminController.getPendingAIModeration);
-router.post('/moderation/ai/:itemId/review', adminController.reviewAIModeration);
-router.get('/moderation/ai/stats', adminController.getModerationStats);
+router.get('/moderation/ai/pending', requirePermission('content:moderate'), adminController.getPendingAIModeration);
+router.post('/moderation/ai/:itemId/review', requirePermission('content:moderate'), adminController.reviewAIModeration);
+router.get('/moderation/ai/stats', requirePermission('content:view'), adminController.getModerationStats);
 
 // Analytics Dashboard
-router.get('/analytics', adminController.getAnalytics);
+router.get('/analytics', requirePermission('analytics:view'), adminController.getAnalytics);
 
 // Admin Statistics
-router.get('/stats', adminController.getStats);
+router.get('/stats', requirePermission('analytics:view'), adminController.getStats);
 
 // Content Tagging
-router.get('/tags', adminController.getTags);
-router.post('/tags', adminController.createTag);
-router.post('/tags/content', adminController.tagContent);
+router.get('/tags', requirePermission('content:view'), adminController.getTags);
+router.post('/tags', requirePermission('content:manage'), adminController.createTag);
+router.post('/tags/content', requirePermission('content:manage'), adminController.tagContent);
 
 // Audit Logs
-router.get('/audit', adminController.getAuditLogs);
+router.get('/audit', requirePermission('audit:view'), adminController.getAuditLogs);
 
 // Data Export
-router.get('/export', adminController.exportData);
+router.get('/export', requirePermission('data:export'), adminController.exportData);
 
 module.exports = router;

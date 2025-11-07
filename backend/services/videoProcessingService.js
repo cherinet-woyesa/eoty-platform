@@ -187,7 +187,12 @@ class VideoProcessingService {
       await notifyVideoAvailable(lessonId);
 
       console.log('Video processing completed successfully:', { videoId, videoUrl: hlsUrl });
-      websocketService.sendProgress(lessonId, { type: 'complete' });
+      
+      // Send completion message with a small delay to ensure WebSocket is ready
+      setTimeout(() => {
+        console.log('Sending completion notification for lesson:', lessonId);
+        websocketService.sendProgress(lessonId, { type: 'complete', videoUrl: hlsUrl });
+      }, 100);
 
       return {
         success: true,

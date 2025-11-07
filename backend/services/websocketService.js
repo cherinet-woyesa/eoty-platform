@@ -35,10 +35,22 @@ function init(server) {
 }
 
 function sendProgress(lessonId, progress) {
+  let sentCount = 0;
+  console.log(`Attempting to send progress for lesson ${lessonId}:`, progress);
+  console.log(`Active WebSocket clients: ${clients.size}`);
+  
   for (const [id, client] of clients.entries()) {
     if (client.lessonId === lessonId) {
+      console.log(`Sending to client ${id} for lesson ${lessonId}`);
       client.socket.emit('progress', progress);
+      sentCount++;
     }
+  }
+  
+  console.log(`Sent ${sentCount} notifications for lesson ${lessonId}`);
+  
+  if (sentCount === 0) {
+    console.warn(`No active WebSocket clients found for lesson ${lessonId}`);
   }
 }
 

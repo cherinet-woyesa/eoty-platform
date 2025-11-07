@@ -20,17 +20,19 @@ const sseTokenAuth = (req, res, next) => {
 // SSE stream before global auth
 router.get('/stream', sseTokenAuth, studentsController.streamUpdates);
 
+// All student routes require authentication
 router.use(authenticateToken);
 
-// GET /api/students/dashboard
+// GET /api/students/dashboard - accessible by all authenticated users
 router.get('/dashboard', studentsController.getStudentDashboard);
 
-// GET /api/students?q=&status=&sort=&order=
-router.get('/', studentsController.listStudents);
+// GET /api/students?q=&status=&sort=&order= - list students (teachers and admins only)
+const { requireRole } = require('../middleware/rbac');
+router.get('/', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.listStudents);
 
-// Invite and message endpoints (stubs; can be backed by migrations later)
-router.post('/invite', studentsController.inviteStudent);
-router.post('/:studentId/message', studentsController.messageStudent);
+// Invite and message endpoints (teachers and admins only)
+router.post('/invite', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.inviteStudent);
+router.post('/:studentId/message', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.messageStudent);
 
 module.exports = router;
 

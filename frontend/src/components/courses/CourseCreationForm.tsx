@@ -87,7 +87,7 @@ const CourseCreationForm: React.FC = () => {
         cover_image: coverImage || undefined
       });
       setSuccess(true);
-      setTimeout(() => navigate('/courses'), 2000);
+      setTimeout(() => navigate('/teacher/courses'), 2000);
     } catch (error) {
       console.error('Failed to create course:', error);
       alert('Failed to create course. Please try again.');
@@ -136,11 +136,6 @@ const CourseCreationForm: React.FC = () => {
     }));
   };
 
-  const getLevelColor = (level: string) => {
-    const levelConfig = levels.find(l => l.value === level);
-    return levelConfig?.color || 'gray';
-  };
-
   // Autosave draft to localStorage
   useEffect(() => {
     const key = 'create-course-draft';
@@ -172,87 +167,104 @@ const CourseCreationForm: React.FC = () => {
 
   if (success) {
     return (
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-8 text-center">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <CheckCircle className="h-10 w-10 text-green-600" />
+      <>
+        {/* Success Header */}
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 rounded-lg shadow-sm p-6 text-white">
+          <div className="flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-12 w-12 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold mb-2">Course Created Successfully! 🎉</h1>
+              <p className="text-green-100">
+                Your new course "<span className="font-semibold">{formData.title}</span>" is ready!
+              </p>
+            </div>
+          </div>
         </div>
-        <h3 className="text-3xl font-bold text-gray-900 mb-3">Course Created Successfully! 🎉</h3>
-        <p className="text-gray-600 text-lg mb-2">Your new course "<span className="font-semibold text-gray-900">{formData.title}</span>" is ready!</p>
-        <p className="text-gray-500 mb-8">You can now start adding lessons and content to your course.</p>
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center">
-          <button
-            onClick={() => navigate('/courses')}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
-          >
-            <BookOpen className="mr-2 h-5 w-5" />
-            View My Courses
-          </button>
-          <button
-            onClick={() => navigate('/record')}
-            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm"
-          >
-            <Upload className="mr-2 h-5 w-5" />
-            Record First Lesson
-          </button>
+
+        {/* Success Content */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
+          <p className="text-gray-600 text-lg mb-8">
+            You can now start adding lessons and content to your course.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate('/teacher/courses')}
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
+            >
+              <BookOpen className="mr-2 h-5 w-5" />
+              View My Courses
+            </button>
+            <button
+              onClick={() => navigate('/teacher/record')}
+              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm"
+            >
+              <Upload className="mr-2 h-5 w-5" />
+              Record First Lesson
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-700 px-4 sm:px-6 py-4 text-white">
+    <>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-lg shadow-sm p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl lg:text-2xl font-bold mb-1.5 flex items-center">
-              <Sparkles className="h-6 w-6 mr-2" />
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Sparkles className="h-8 w-8" />
               Create New Course
-            </h2>
-            <p className="text-blue-100 opacity-90 text-sm">
+            </h1>
+            <p className="text-blue-100 mt-2">
               Build engaging learning experiences for your students
             </p>
           </div>
           <button
-            onClick={() => navigate('/courses')}
-            className="inline-flex items-center px-3 py-1.5 border border-white/30 text-xs font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200"
+            onClick={() => navigate('/teacher/courses')}
+            className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
           >
-            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Courses
           </button>
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="px-4 sm:px-6 pt-4">
-        <div className="flex items-center justify-between mb-8">
-          {[1, 2, 3].map(step => (
-            <div key={step} className="flex items-center flex-1">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 font-semibold text-sm transition-all duration-300 ${
-                step === currentStep
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/50'
-                  : step < currentStep
-                  ? 'bg-green-500 border-green-500 text-white'
-                  : 'bg-white border-gray-300 text-gray-400'
-              }`}>
-                {step < currentStep ? <CheckCircle className="h-5 w-5" /> : step}
-              </div>
-              {step < 3 && (
-                <div className={`flex-1 h-1 mx-1.5 transition-all duration-300 ${
-                  step < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                }`} />
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-4 text-center text-xs font-medium text-gray-600 mb-2">
-          <div className={currentStep === 1 ? 'text-blue-600 font-semibold' : ''}>Basic Info</div>
-          <div className={currentStep === 2 ? 'text-blue-600 font-semibold' : ''}>Course Details</div>
-          <div className={currentStep === 3 ? 'text-blue-600 font-semibold' : ''}>Finalize</div>
-        </div>
-      </div>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
 
-      <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
+        {/* Progress Steps */}
+        <div className="px-6 pt-6">
+          <div className="flex items-center justify-between mb-8">
+            {[1, 2, 3].map(step => (
+              <div key={step} className="flex items-center flex-1">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-semibold transition-all duration-300 ${
+                  step === currentStep
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/50'
+                    : step < currentStep
+                    ? 'bg-green-500 border-green-500 text-white'
+                    : 'bg-white border-gray-300 text-gray-400'
+                }`}>
+                  {step < currentStep ? <CheckCircle className="h-6 w-6" /> : step}
+                </div>
+                {step < 3 && (
+                  <div className={`flex-1 h-1.5 mx-2 transition-all duration-300 rounded-full ${
+                    step < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-center text-sm font-medium text-gray-600 mb-4">
+            <div className={currentStep === 1 ? 'text-blue-600 font-semibold' : ''}>Basic Info</div>
+            <div className={currentStep === 2 ? 'text-blue-600 font-semibold' : ''}>Course Details</div>
+            <div className={currentStep === 3 ? 'text-blue-600 font-semibold' : ''}>Finalize</div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Step 1: Basic Information */}
         {currentStep === 1 && (
           <div className="space-y-6 animate-fade-in">
@@ -541,43 +553,44 @@ const CourseCreationForm: React.FC = () => {
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between pt-6 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => setCurrentStep(prev => prev - 1)}
-            disabled={currentStep === 1}
-            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Previous
-          </button>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(prev => prev - 1)}
+              disabled={currentStep === 1}
+              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Previous
+            </button>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || !formData.title.trim()}
-            className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/25"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
-                Creating Course...
-              </>
-            ) : currentStep === 3 ? (
-              <>
-                <BookOpen className="mr-2 h-5 w-5" />
-                Create Course
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || !formData.title.trim()}
+              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/25"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
+                  Creating Course...
+                </>
+              ) : currentStep === 3 ? (
+                <>
+                  <BookOpen className="mr-2 h-5 w-5" />
+                  Create Course
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 };
 

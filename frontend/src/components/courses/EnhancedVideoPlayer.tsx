@@ -6,13 +6,21 @@ import {
   MessageCircle, PenTool,
   X, AlertCircle, Clock, Send,
   Loader, WifiOff,
-  Zap, Download, Share2,
+  Zap, Share2,
   PictureInPicture, Volume1,
   Monitor, BarChart,
   FastForward, Rewind
 } from 'lucide-react';
 import { interactiveApi } from '../../services/api';
+import { subtitlesApi } from '../../services/api/subtitles';
+import type { SubtitleTrack } from '../../services/api/subtitles';
+import { lessonResourcesApi } from '../../services/api/lessonResources';
+import type { LessonResource } from '../../services/api/lessonResources';
 import QuizInterface from './QuizInterface';
+import SubtitleSelector from './SubtitleSelector';
+import SubtitleDisplay from './SubtitleDisplay';
+import QualitySelector, { type QualityLevel } from './QualitySelector';
+import ResourceList from './ResourceList';
 
 interface EnhancedVideoPlayerProps {
   videoUrl: string;
@@ -86,6 +94,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   onTimestampClick,
   courseTitle,
   chapterTitle,
+  onQualityChange,
   onPlaybackRateChange,
   onFullscreenChange,
   onError,
@@ -110,14 +119,26 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [annotations, setAnnotations] = React.useState<Annotation[]>([]);
   const [discussions, setDiscussions] = React.useState<Discussion[]>([]);
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
+  const [resources, setResources] = React.useState<LessonResource[]>([]);
   const [loading, setLoading] = React.useState({
     annotations: false,
     discussions: false,
     quizzes: false,
-    subtitles: false
+    subtitles: false,
+    resources: false
   });
   const [newDiscussion, setNewDiscussion] = React.useState('');
-  const [newReply, setNewReply] = React.useState<{ [key: string]: string }>({}); 
+  const [newReply, setNewReply] = React.useState<{ [key: string]: string }>({});
+  
+  // Subtitle states
+  const [subtitles, setSubtitles] = React.useState<SubtitleTrack[]>([]);
+  const [currentSubtitleTrack, setCurrentSubtitleTrack] = React.useState<string | null>(null);
+  const [currentSubtitleCue, setCurrentSubtitleCue] = React.useState<string>('');
+  const [subtitleTextTrack, setSubtitleTextTrack] = React.useState<TextTrack | null>(null);
+  
+  // Quality states
+  const [qualityLevels, setQualityLevels] = React.useState<QualityLevel[]>([]);
+  const [currentQuality, setCurrentQuality] = React.useState<number>(-1); // -1 = Auto 
  // Enhanced states
   const [networkStatus, setNetworkStatus] = React.useState<{
     status: 'online' | 'offline' | 'reconnecting' | 'degraded';
@@ -230,6 +251,50 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('HLS manifest parsed successfully');
             setNetworkStatus({ status: 'online', retryCount: 0 });
+            
+            // Extract quality levels
+            const hlsInstance = hls;
+            if (hlsInstance && hlsInstance.levels && hlsInstance.levels.length > 0) {
+              const levels: QualityLevel[] = hlsInstance.levels.map((level, index) => ({
+                index,
+                height: level.height,
+                bitrate: level.bitrate,
+                label: `${level.height}p`,
+              }));
+              
+              // Sort by height descending (highest quality first)
+              levels.sort((a, b) => b.height - a.height);
+              
+              setQualityLevels(levels);
+              console.log('Available quality levels:', levels);
+            }
+          });
+
+          // Listen for quality level switches
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+            const hlsInstance = hls;
+            if (!hlsInstance) return;
+            
+            console.log('Quality level switched to:', data.level);
+            const previousLevel = currentQuality;
+            setCurrentQuality(data.level);
+            
+            // Update video stats with new bitrate
+            if (hlsInstance.levels && hlsInstance.levels[data.level]) {
+              setVideoStats(prev => ({
+                ...prev,
+                currentBitrate: hlsInstance.levels[data.level].bitrate,
+              }));
+            }
+
+            // Track automatic quality switches (when not manually set)
+            if (hlsInstance.currentLevel === -1 && previousLevel !== data.level && hlsInstance.levels) {
+              console.log('Automatic quality switch:', {
+                from: previousLevel === -1 ? 'auto' : `${hlsInstance.levels[previousLevel]?.height}p`,
+                to: `${hlsInstance.levels[data.level]?.height}p`,
+                type: 'automatic'
+              });
+            }
           });
 
           hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -358,6 +423,8 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     loadAnnotations();
     loadDiscussions();
     loadQuizzes();
+    loadSubtitles();
+    loadResources();
   }, [lessonId]);
 
   // API functions
@@ -400,6 +467,223 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       console.error('Failed to load quizzes:', error);
     } finally {
       setLoading(prev => ({ ...prev, quizzes: false }));
+    }
+  };
+
+  const loadSubtitles = async () => {
+    setLoading(prev => ({ ...prev, subtitles: true }));
+    try {
+      const response = await subtitlesApi.getSubtitles(lessonId);
+      if (response.success) {
+        setSubtitles(response.data.subtitles || []);
+      }
+    } catch (error) {
+      console.error('Failed to load subtitles:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, subtitles: false }));
+    }
+  };
+
+  const loadResources = async () => {
+    setLoading(prev => ({ ...prev, resources: true }));
+    try {
+      const response = await lessonResourcesApi.getResources(lessonId);
+      if (response.success) {
+        setResources(response.data.resources || []);
+      }
+    } catch (error) {
+      console.error('Failed to load resources:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, resources: false }));
+    }
+  };
+
+  // Subtitle track management
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Remove existing text tracks
+    const existingTracks = Array.from(video.textTracks);
+    existingTracks.forEach(track => {
+      track.mode = 'hidden';
+    });
+
+    if (!currentSubtitleTrack) {
+      setCurrentSubtitleCue('');
+      setSubtitleTextTrack(null);
+      return;
+    }
+
+    // Find the selected subtitle
+    const selectedSubtitle = subtitles.find(s => s.id === currentSubtitleTrack);
+    if (!selectedSubtitle) return;
+
+    // Add new text track
+    const track = video.addTextTrack('subtitles', selectedSubtitle.language, selectedSubtitle.language_code);
+    track.mode = 'hidden'; // We'll handle display ourselves
+
+    // Load VTT file
+    fetch(selectedSubtitle.file_url)
+      .then(response => response.text())
+      .then(vttContent => {
+        // Parse VTT and add cues
+        const cues = parseVTT(vttContent);
+        cues.forEach(cue => {
+          try {
+            const vttCue = new VTTCue(cue.startTime, cue.endTime, cue.text);
+            track.addCue(vttCue);
+          } catch (error) {
+            console.error('Failed to add cue:', error);
+          }
+        });
+        setSubtitleTextTrack(track);
+      })
+      .catch(error => {
+        console.error('Failed to load subtitle file:', error);
+      });
+
+    return () => {
+      // Cleanup
+      if (track && track.cues) {
+        Array.from(track.cues).forEach(cue => {
+          track.removeCue(cue);
+        });
+      }
+    };
+  }, [currentSubtitleTrack, subtitles]);
+
+  // Update current subtitle cue based on video time
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !subtitleTextTrack) return;
+
+    const updateCue = () => {
+      if (!subtitleTextTrack.cues) return;
+
+      const currentTime = video.currentTime;
+      let activeCue = '';
+
+      for (let i = 0; i < subtitleTextTrack.cues.length; i++) {
+        const cue = subtitleTextTrack.cues[i] as VTTCue;
+        if (currentTime >= cue.startTime && currentTime <= cue.endTime) {
+          activeCue = cue.text;
+          break;
+        }
+      }
+
+      setCurrentSubtitleCue(activeCue);
+    };
+
+    video.addEventListener('timeupdate', updateCue);
+    return () => {
+      video.removeEventListener('timeupdate', updateCue);
+    };
+  }, [subtitleTextTrack]);
+
+  // Parse VTT content
+  const parseVTT = (vttContent: string) => {
+    const lines = vttContent.split('\n');
+    const cues: Array<{ startTime: number; endTime: number; text: string }> = [];
+    let i = 0;
+
+    // Skip WEBVTT header
+    while (i < lines.length && !lines[i].includes('-->')) {
+      i++;
+    }
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+
+      // Look for timestamp line
+      if (line.includes('-->')) {
+        const [startStr, endStr] = line.split('-->').map(s => s.trim());
+        const startTime = parseVTTTimestamp(startStr);
+        const endTime = parseVTTTimestamp(endStr);
+
+        // Collect text lines
+        i++;
+        const textLines: string[] = [];
+        while (i < lines.length && lines[i].trim() !== '') {
+          textLines.push(lines[i].trim());
+          i++;
+        }
+
+        if (textLines.length > 0) {
+          cues.push({
+            startTime,
+            endTime,
+            text: textLines.join('\n'),
+          });
+        }
+      }
+      i++;
+    }
+
+    return cues;
+  };
+
+  // Parse VTT timestamp to seconds
+  const parseVTTTimestamp = (timestamp: string): number => {
+    const parts = timestamp.split(':');
+    if (parts.length === 3) {
+      const [hours, minutes, seconds] = parts;
+      return (
+        parseInt(hours) * 3600 +
+        parseInt(minutes) * 60 +
+        parseFloat(seconds)
+      );
+    } else if (parts.length === 2) {
+      const [minutes, seconds] = parts;
+      return parseInt(minutes) * 60 + parseFloat(seconds);
+    }
+    return 0;
+  };
+
+  const handleSubtitleTrackChange = (trackId: string | null) => {
+    setCurrentSubtitleTrack(trackId);
+  };
+
+  // Resource download handler
+  const handleResourceDownload = async (resource: LessonResource) => {
+    try {
+      const response = await lessonResourcesApi.downloadResource(lessonId, resource.id);
+      if (response.success && response.data.downloadUrl) {
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = response.data.downloadUrl;
+        link.download = resource.original_filename;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Reload resources to update download count
+        loadResources();
+      }
+    } catch (error) {
+      console.error('Failed to download resource:', error);
+      alert('Failed to download resource. Please try again.');
+    }
+  };
+
+  // Quality switching handler
+  const handleQualityChange = (levelIndex: number) => {
+    const hls = hlsRef.current;
+    if (!hls || !hls.levels) return;
+
+    console.log('Changing quality to level:', levelIndex);
+    
+    // -1 means Auto mode
+    if (levelIndex === -1) {
+      hls.currentLevel = -1; // Enable adaptive bitrate
+      setCurrentQuality(-1);
+      onQualityChange?.('auto');
+    } else {
+      hls.currentLevel = levelIndex; // Set specific quality level
+      setCurrentQuality(levelIndex);
+      const qualityLabel = hls.levels[levelIndex]?.height ? `${hls.levels[levelIndex].height}p` : 'unknown';
+      onQualityChange?.(qualityLabel);
     }
   };
 
@@ -670,6 +954,12 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           </div>
         )}
 
+        {/* Subtitle Display */}
+        <SubtitleDisplay
+          currentCue={currentSubtitleCue}
+          visible={!!currentSubtitleTrack}
+        />
+
         {/* Play/Pause Overlay */}
         {!isPlaying && !videoError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
@@ -777,6 +1067,20 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                 {playbackRate}x
               </button>
               
+              {isHls && qualityLevels.length > 0 && (
+                <QualitySelector
+                  levels={qualityLevels}
+                  currentLevel={currentQuality}
+                  onLevelChange={handleQualityChange}
+                />
+              )}
+              
+              <SubtitleSelector
+                tracks={subtitles}
+                currentTrack={currentSubtitleTrack}
+                onTrackChange={handleSubtitleTrackChange}
+              />
+              
               <button onClick={togglePictureInPicture} className="text-white hover:text-gray-300" title="Picture in Picture">
                 <PictureInPicture className="h-5 w-5" />
               </button>
@@ -847,7 +1151,7 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
             onClick={() => setActiveTab('resources')}
             className={`py-2 px-4 text-sm font-medium ${activeTab === 'resources' ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-gray-200'}`}
           >
-            Resources
+            Resources ({resources.length})
           </button>
           {quizzes.length > 0 && (
             <button
@@ -1058,15 +1362,15 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
               <div className="flex items-center justify-between">
                 <h5 className="font-semibold text-white text-lg">Lesson Resources</h5>
                 <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
-                  0 files
+                  {resources.length} {resources.length === 1 ? 'file' : 'files'}
                 </span>
               </div>
 
-              <div className="text-center py-8 text-gray-400">
-                <Download className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm font-medium mb-1">No resources available</p>
-                <p className="text-xs">Resources will appear here when added by the instructor</p>
-              </div>
+              <ResourceList
+                resources={resources}
+                loading={loading.resources}
+                onDownload={handleResourceDownload}
+              />
             </div>
           )}
         </div>

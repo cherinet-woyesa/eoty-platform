@@ -6,8 +6,11 @@ import { quizApi } from './quiz';
 import { progressApi } from './progress';
 import { discussionsApi } from './discussions';
 import { apiClient } from './apiClient';
+import { subtitlesApi } from './subtitles';
+import { lessonResourcesApi } from './lessonResources';
 
-const API_BASE = 'http://localhost:5000/api';
+// Use environment variable for API base URL, fallback to localhost for development
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 // Export apiClient so other modules can import it
 export { apiClient };
@@ -476,6 +479,12 @@ export { adminApi };
 
 export { forumsApi, achievementsApi };
 
+// Export subtitles API
+export { subtitlesApi };
+
+// Export lesson resources API
+export { lessonResourcesApi };
+
 // Export all API
 export default {
   auth: authApi,
@@ -491,5 +500,7 @@ export default {
   achievements: achievementsApi,
   moderation: moderationApi,
   admin: adminApi,
-  dashboard: dashboardApi
+  dashboard: dashboardApi,
+  subtitles: subtitlesApi,
+  lessonResources: lessonResourcesApi
 };
