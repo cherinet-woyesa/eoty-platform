@@ -9,7 +9,7 @@ const adminController = {
     try {
       // Check if requesting user is an admin
       const requestingUserRole = req.user.role;
-      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+      if (requestingUserRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to create users'
@@ -44,16 +44,8 @@ const adminController = {
       }
 
       // Validate role - only allow specific roles
-      const validRoles = ['student', 'teacher', 'chapter_admin'];
-      // Platform admin can only be created by another platform admin
-      if (role === 'platform_admin' && requestingUserRole !== 'platform_admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Only platform admins can create other platform admins'
-        });
-      }
-
-      if (!validRoles.includes(role) && !(role === 'platform_admin' && requestingUserRole === 'platform_admin')) {
+      const validRoles = ['student', 'teacher', 'admin'];
+      if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid role specified'
@@ -89,13 +81,7 @@ const adminController = {
         });
       }
 
-      // Chapter admin can only create users in their own chapter
-      if (requestingUserRole === 'chapter_admin' && chapterId !== req.user.chapter_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Chapter admins can only create users in their own chapter'
-        });
-      }
+      // Admins can create users in any chapter (no chapter restriction for simplified role system)
 
       // Check if user already exists
       const existingUser = await db('users').where({ email }).first();
@@ -165,7 +151,7 @@ const adminController = {
     try {
       // Check if requesting user is an admin
       const requestingUserRole = req.user.role;
-      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+      if (requestingUserRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to view users'
@@ -187,10 +173,7 @@ const adminController = {
           'chapters.name as chapter_name'
         );
 
-      // Chapter admin can only see users in their own chapter
-      if (requestingUserRole === 'chapter_admin') {
-        query = query.where('users.chapter_id', req.user.chapter_id);
-      }
+      // Admins can see all users (no chapter restriction in simplified role system)
 
       const users = await query.orderBy('users.created_at', 'desc');
 
@@ -228,7 +211,7 @@ const adminController = {
       const requestingUserRole = req.user.role;
 
       // Check if requesting user is an admin
-      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+      if (requestingUserRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to update user roles'
@@ -236,15 +219,8 @@ const adminController = {
       }
 
       // Validate role
-      const validRoles = ['student', 'teacher', 'chapter_admin'];
-      if (newRole === 'platform_admin' && requestingUserRole !== 'platform_admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Only platform admins can assign platform admin role'
-        });
-      }
-
-      if (!validRoles.includes(newRole) && !(newRole === 'platform_admin' && requestingUserRole === 'platform_admin')) {
+      const validRoles = ['student', 'teacher', 'admin'];
+      if (!validRoles.includes(newRole)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid role specified'
@@ -260,13 +236,7 @@ const adminController = {
         });
       }
 
-      // Chapter admin can only update users in their own chapter
-      if (requestingUserRole === 'chapter_admin' && userToUpdate.chapter_id !== req.user.chapter_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Chapter admins can only update users in their own chapter'
-        });
-      }
+      // Admins can update any user (no chapter restriction in simplified role system)
 
       // Prevent users from changing their own role to a higher one
       if (userId === req.user.userId && newRole !== userToUpdate.role) {
@@ -311,7 +281,7 @@ const adminController = {
       const requestingUserRole = req.user.role;
 
       // Check if requesting user is an admin
-      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+      if (requestingUserRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to update user status'
@@ -335,13 +305,7 @@ const adminController = {
         });
       }
 
-      // Chapter admin can only update users in their own chapter
-      if (requestingUserRole === 'chapter_admin' && userToUpdate.chapter_id !== req.user.chapter_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Chapter admins can only update users in their own chapter'
-        });
-      }
+      // Admins can update any user (no chapter restriction in simplified role system)
 
       // Prevent users from deactivating themselves
       if (userId === req.user.userId && !isActive) {
@@ -387,7 +351,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role', 'chapter_id').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -396,7 +360,7 @@ const adminController = {
 
       const uploads = await ContentUpload.findByStatus(
         status || 'pending',
-        user.role === 'chapter_admin' ? user.chapter_id : chapter,
+        user.role === 'admin' ? user.chapter_id : chapter,
         parseInt(page),
         parseInt(limit)
       );
@@ -598,7 +562,7 @@ const adminController = {
 
       // Check moderator permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -741,7 +705,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -938,7 +902,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -988,7 +952,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -1064,7 +1028,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -1119,7 +1083,7 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (!['chapter_admin', 'platform_admin'].includes(user.role)) {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions'
@@ -1154,9 +1118,9 @@ const adminController = {
       const { type, format, startDate, endDate } = req.query;
       const userId = req.user.userId;
 
-      // Check platform admin permissions for full export
+      // Check admin permissions for full export
       const user = await db('users').where({ id: userId }).select('role').first();
-      if (user.role !== 'platform_admin') {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Platform admin access required for data export'
@@ -1254,44 +1218,33 @@ const adminController = {
       const requestingUserId = req.user.userId;
 
       // Check if requesting user is an admin
-      if (requestingUserRole !== 'chapter_admin' && requestingUserRole !== 'platform_admin') {
+      if (requestingUserRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to view admin statistics'
         });
       }
 
-      // Get user's chapter if chapter admin
-      let chapterFilter = {};
-      if (requestingUserRole === 'chapter_admin') {
-        const user = await db('users').where({ id: requestingUserId }).select('chapter_id').first();
-        chapterFilter = { chapter_id: user.chapter_id };
-      }
+      // Admins can see all stats (no chapter filtering in simplified role system)
 
       // Total users
-      let usersQuery = db('users');
-      if (chapterFilter.chapter_id) {
-        usersQuery = usersQuery.where('chapter_id', chapterFilter.chapter_id);
-      }
-      const totalUsers = await usersQuery.count('id as count').first();
+      const totalUsers = await db('users').count('id as count').first();
 
       // Active users (logged in within last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      let activeUsersQuery = db('users').where('last_login_at', '>=', thirtyDaysAgo);
-      if (chapterFilter.chapter_id) {
-        activeUsersQuery = activeUsersQuery.where('chapter_id', chapterFilter.chapter_id);
-      }
-      const activeUsers = await activeUsersQuery.count('id as count').first();
+      const activeUsers = await db('users')
+        .where('last_login_at', '>=', thirtyDaysAgo)
+        .count('id as count')
+        .first();
 
       // New registrations (last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      let newRegistrationsQuery = db('users').where('created_at', '>=', sevenDaysAgo);
-      if (chapterFilter.chapter_id) {
-        newRegistrationsQuery = newRegistrationsQuery.where('chapter_id', chapterFilter.chapter_id);
-      }
-      const newRegistrations = await newRegistrationsQuery.count('id as count').first();
+      const newRegistrations = await db('users')
+        .where('created_at', '>=', sevenDaysAgo)
+        .count('id as count')
+        .first();
 
       // Active courses
       let coursesQuery = db('courses').where('is_published', true);
@@ -1301,15 +1254,12 @@ const adminController = {
       // Completed lessons
       let completedLessons = { count: 0 };
       try {
-        let lessonsQuery = db('user_lesson_progress').where(function() {
-          this.where('progress', 100).orWhere('is_completed', true);
-        });
-        if (chapterFilter.chapter_id) {
-          lessonsQuery = lessonsQuery
-            .join('users', 'user_lesson_progress.user_id', 'users.id')
-            .where('users.chapter_id', chapterFilter.chapter_id);
-        }
-        const completedLessonsResult = await lessonsQuery.count('user_lesson_progress.id as count').first();
+        const completedLessonsResult = await db('user_lesson_progress')
+          .where(function() {
+            this.where('progress', 100).orWhere('is_completed', true);
+          })
+          .count('id as count')
+          .first();
         completedLessons = completedLessonsResult || { count: 0 };
       } catch (err) {
         console.warn('Error querying completed lessons:', err.message);
