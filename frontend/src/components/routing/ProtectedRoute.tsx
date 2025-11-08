@@ -16,6 +16,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
   teacher: 2,
   chapter_admin: 3,
   platform_admin: 4,
+  admin: 4, // Backwards compatibility for 'admin' role
 };
 
 /**
@@ -71,7 +72,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!hasRequiredRole) {
       // Get the user's role-appropriate dashboard
       const getRoleDashboard = (): string => {
-        if (user.role === 'platform_admin' || user.role === 'chapter_admin') {
+        if (user.role === 'platform_admin' || user.role === 'chapter_admin' || user.role === 'admin') {
           return '/admin/dashboard';
         }
         if (user.role === 'teacher') {
@@ -130,7 +131,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredPermission && !hasPermission(requiredPermission)) {
     // Get the user's role-appropriate dashboard
     const getRoleDashboard = (): string => {
-      if (user.role === 'platform_admin' || user.role === 'chapter_admin') {
+      if (user.role === 'platform_admin' || user.role === 'chapter_admin' || user.role === 'admin') {
         return '/admin/dashboard';
       }
       if (user.role === 'teacher') {

@@ -28,7 +28,8 @@ const RoleRedirect: React.FC<RoleRedirectProps> = ({
   const getRoleDashboard = (): string => {
     if (!user) return '/login';
 
-    if (user.role === 'platform_admin' || user.role === 'chapter_admin') {
+    // Handle both 'admin' and 'platform_admin' for backwards compatibility
+    if (user.role === 'platform_admin' || user.role === 'chapter_admin' || user.role === 'admin') {
       return '/admin/dashboard';
     }
     if (user.role === 'teacher') {
