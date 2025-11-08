@@ -11,11 +11,11 @@ exports.up = async function(knex) {
       table.increments('id').primary();
       table.string('content_type', 50).notNullable(); // 'course', 'lesson', 'comment', etc.
       table.integer('content_id').notNullable();
-      table.text('flagged_by').notNullable(); // Match users.id type (text)
+      table.integer('flagged_by').unsigned().notNullable(); // Match users.id type (integer)
       table.string('flag_reason', 100).notNullable();
       table.text('description');
       table.string('status', 20).notNullable().defaultTo('pending'); // 'pending', 'reviewed', 'resolved', 'dismissed'
-      table.text('reviewed_by'); // Match users.id type (text)
+      table.integer('reviewed_by').unsigned(); // Match users.id type (integer)
       table.text('review_notes');
       table.string('action_taken', 50);
       table.timestamp('reviewed_at');
