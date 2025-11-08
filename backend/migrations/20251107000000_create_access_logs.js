@@ -6,7 +6,7 @@
 exports.up = function(knex) {
   return knex.schema.createTable('access_logs', (table) => {
     table.increments('id').primary();
-    table.text('user_id').nullable(); // Match users table ID type (text)
+    table.integer('user_id').unsigned().nullable(); // Match users table ID type (integer)
     table.string('user_role', 50).notNullable();
     table.string('resource', 500).notNullable(); // Route or endpoint accessed
     table.string('required_role', 50).nullable(); // Role required for access

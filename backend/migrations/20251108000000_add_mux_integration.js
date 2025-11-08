@@ -66,7 +66,8 @@ exports.up = async function(knex) {
     table.string('mux_view_id').nullable();
     
     // User who watched (if authenticated)
-    table.text('user_id')
+    table.integer('user_id')
+      .unsigned()
       .nullable()
       .references('id')
       .inTable('users')
