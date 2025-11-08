@@ -257,6 +257,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     teacher: 2,
     chapter_admin: 3,
     platform_admin: 4,
+    admin: 4, // Backwards compatibility for 'admin' role
   };
 
   /**
@@ -277,7 +278,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getRoleDashboard = (): string => {
     if (!user) return '/login';
 
-    if (user.role === 'platform_admin' || user.role === 'chapter_admin') {
+    if (user.role === 'platform_admin' || user.role === 'chapter_admin' || user.role === 'admin') {
       return '/admin/dashboard';
     }
     if (user.role === 'teacher') {
@@ -298,7 +299,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Admin routes - require admin role
     if (normalizedPath.startsWith('/admin')) {
-      return user.role === 'chapter_admin' || user.role === 'platform_admin';
+      return user.role === 'chapter_admin' || user.role === 'platform_admin' || user.role === 'admin';
     }
 
     // Teacher routes - require teacher or higher

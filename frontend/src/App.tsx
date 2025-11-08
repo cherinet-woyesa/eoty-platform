@@ -76,7 +76,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   
   if (isAuthenticated) {
     // Redirect admins to admin dashboard, others to regular dashboard
-    if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+    if (user?.role === 'chapter_admin' || user?.role === 'platform_admin' || user?.role === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
     }
     return <Navigate to="/dashboard" replace />;
