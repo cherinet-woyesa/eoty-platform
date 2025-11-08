@@ -32,6 +32,7 @@ router.get('/courses/:courseId/lessons', videoController.getCourseLessons);
 // Mux integration routes
 router.post('/mux/upload-url', requirePermission('video:upload'), videoController.createMuxUploadUrl);
 router.post('/mux/webhook', videoController.handleMuxWebhook); // No auth - verified by signature
+router.post('/mux/webhook/test', authenticateToken, videoController.testWebhook); // Test endpoint for debugging
 router.get('/:lessonId/playback', videoController.getPlaybackInfo);
 
 // Video analytics routes
