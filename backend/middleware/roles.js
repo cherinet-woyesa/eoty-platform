@@ -23,10 +23,10 @@ const authorize = (roles = []) => {
 };
 
 // Specific role helpers for all roles
-const requireStudent = authorize(['student', 'teacher', 'chapter_admin', 'platform_admin']);
-const requireTeacher = authorize(['teacher', 'chapter_admin', 'platform_admin']);
-const requireChapterAdmin = authorize(['chapter_admin', 'platform_admin']);
-const requirePlatformAdmin = authorize(['platform_admin']);
+const requireStudent = authorize(['student', 'teacher', 'admin', 'admin']);
+const requireTeacher = authorize(['teacher', 'admin']);
+const requireChapterAdmin = authorize('admin');
+const requirePlatformAdmin = authorize(['admin']);
 
 // Permission-based middleware - SIMPLIFIED VERSION
 const requirePermission = (permission) => {
@@ -43,8 +43,8 @@ const requirePermission = (permission) => {
       const rolePermissions = {
         'student': ['course:view', 'lesson:view'],
         'teacher': ['course:view', 'course:create', 'course:edit', 'course:delete', 'lesson:view', 'lesson:create', 'lesson:edit', 'lesson:delete', 'analytics:view'],
-        'chapter_admin': ['course:view', 'course:create', 'course:edit', 'course:delete', 'lesson:view', 'lesson:create', 'lesson:edit', 'lesson:delete', 'user:manage', 'analytics:view'],
-        'platform_admin': ['course:view', 'course:create', 'course:edit', 'course:delete', 'lesson:view', 'lesson:create', 'lesson:edit', 'lesson:delete', 'user:manage', 'analytics:view']
+        'admin': ['course:view', 'course:create', 'course:edit', 'course:delete', 'lesson:view', 'lesson:create', 'lesson:edit', 'lesson:delete', 'user:manage', 'analytics:view'],
+        'admin': ['course:view', 'course:create', 'course:edit', 'course:delete', 'lesson:view', 'lesson:create', 'lesson:edit', 'lesson:delete', 'user:manage', 'analytics:view']
       };
 
       const userPermissions = rolePermissions[req.user.role] || [];

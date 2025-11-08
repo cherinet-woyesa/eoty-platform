@@ -15,12 +15,12 @@ router.get('/catalog', requirePermission('course:view'), courseController.getCou
 
 // Bulk operations (must be before /:courseId to avoid conflicts)
 // Only teachers (for their courses) and admins can perform bulk actions
-router.post('/bulk-action', bulkOperationLimiter, requireRole(['teacher', 'chapter_admin', 'platform_admin']), validateBulkAction, courseController.bulkAction);
+router.post('/bulk-action', bulkOperationLimiter, requireRole(['teacher', 'admin']), validateBulkAction, courseController.bulkAction);
 
 // Lesson operations (specific routes before parameterized ones)
 // Teachers can edit/delete their own lessons, admins can edit/delete any
-router.put('/lessons/:lessonId', requireRole(['teacher', 'chapter_admin', 'platform_admin']), validateLessonData, checkLessonOwnership, courseController.updateLesson);
-router.delete('/lessons/:lessonId', requireRole(['teacher', 'chapter_admin', 'platform_admin']), checkLessonOwnership, courseController.deleteLesson);
+router.put('/lessons/:lessonId', requireRole(['teacher', 'admin']), validateLessonData, checkLessonOwnership, courseController.updateLesson);
+router.delete('/lessons/:lessonId', requireRole(['teacher', 'admin']), checkLessonOwnership, courseController.deleteLesson);
 // Video status and URLs accessible to enrolled students, course owners, and admins
 router.get('/lessons/:lessonId/video-status', requirePermission('lesson:view'), courseController.getVideoStatus);
 router.get('/lessons/:lessonId/video-url', requirePermission('lesson:view'), courseController.getSignedVideoUrl);
@@ -30,30 +30,30 @@ router.get('/lessons/:lessonId/download-url', requirePermission('lesson:view'), 
 // All authenticated users can view courses (filtered by role in controller)
 router.get('/', requirePermission('course:view'), courseController.getUserCourses);
 // Only teachers and admins can create courses
-router.post('/', courseCreationLimiter, requireRole(['teacher', 'chapter_admin', 'platform_admin']), validateCourseData, courseController.createCourse);
+router.post('/', courseCreationLimiter, requireRole(['teacher', 'admin']), validateCourseData, courseController.createCourse);
 
 // Course-specific routes (parameterized routes should come after specific routes)
 // View: accessible to enrolled students, course owners, and admins (controller handles access)
 router.get('/:courseId', requirePermission('course:view'), courseController.getCourse);
 // Edit: only course owner (teacher) or admins, with ownership validation
-router.put('/:courseId', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), validateCourseData, courseController.updateCourse);
+router.put('/:courseId', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), validateCourseData, courseController.updateCourse);
 // Delete: only course owner (teacher) or admins, with ownership validation
-router.delete('/:courseId', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.deleteCourse);
+router.delete('/:courseId', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.deleteCourse);
 
 // Course analytics
 // Only course owner (teacher) or admins can view analytics (controller handles access)
-router.get('/:courseId/analytics', requireRole(['teacher', 'chapter_admin', 'platform_admin']), courseController.getCourseAnalytics);
+router.get('/:courseId/analytics', requireRole(['teacher', 'admin']), courseController.getCourseAnalytics);
 
 // Publishing workflow
 // Only course owner (teacher) or admins can publish/unpublish
-router.post('/:courseId/publish', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.publishCourse);
-router.post('/:courseId/unpublish', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.unpublishCourse);
-router.post('/:courseId/schedule-publish', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.schedulePublishCourse);
+router.post('/:courseId/publish', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.publishCourse);
+router.post('/:courseId/unpublish', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.unpublishCourse);
+router.post('/:courseId/schedule-publish', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.schedulePublishCourse);
 
 // Lesson operations for specific course
 // Only course owner (teacher) or admins can create/reorder lessons
-router.post('/:courseId/lessons', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.createLesson);
-router.post('/:courseId/lessons/reorder', requireRole(['teacher', 'chapter_admin', 'platform_admin']), requireOwnership('courses', { resourceParam: 'courseId' }), validateReorderData, courseController.reorderLessons);
+router.post('/:courseId/lessons', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), courseController.createLesson);
+router.post('/:courseId/lessons/reorder', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), validateReorderData, courseController.reorderLessons);
 
 // Course enrollment
 // Only students can enroll in courses (teachers and admins don't need to enroll)

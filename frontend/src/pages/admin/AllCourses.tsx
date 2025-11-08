@@ -8,7 +8,7 @@ const AllCourses: React.FC = () => {
   
   // Admins see all courses (teacher view)
   // Students see only enrolled courses
-  const isAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
   
   if (isAdmin || isTeacher) {

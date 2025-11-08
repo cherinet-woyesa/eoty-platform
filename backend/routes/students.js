@@ -28,11 +28,11 @@ router.get('/dashboard', studentsController.getStudentDashboard);
 
 // GET /api/students?q=&status=&sort=&order= - list students (teachers and admins only)
 const { requireRole } = require('../middleware/rbac');
-router.get('/', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.listStudents);
+router.get('/', requireRole(['teacher', 'admin']), studentsController.listStudents);
 
 // Invite and message endpoints (teachers and admins only)
-router.post('/invite', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.inviteStudent);
-router.post('/:studentId/message', requireRole(['teacher', 'chapter_admin', 'platform_admin']), studentsController.messageStudent);
+router.post('/invite', requireRole(['teacher', 'admin']), studentsController.inviteStudent);
+router.post('/:studentId/message', requireRole(['teacher', 'admin']), studentsController.messageStudent);
 
 module.exports = router;
 

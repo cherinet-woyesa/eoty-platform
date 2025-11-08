@@ -921,7 +921,7 @@ const videoController = {
 
       // Check permissions: teacher owns course OR admin OR student enrolled
       const isOwner = course.created_by === userId;
-      const isAdmin = userRole === 'chapter_admin' || userRole === 'platform_admin';
+      const isAdmin = userRole === 'admin';
       
       if (!isOwner && !isAdmin) {
         // Check if student is enrolled
@@ -1620,7 +1620,7 @@ const videoController = {
         .first();
 
       const isOwner = course && course.created_by === userId;
-      const isAdmin = req.user.role === 'chapter_admin' || req.user.role === 'platform_admin';
+      const isAdmin = req.user.role === 'admin' || req.user.role === 'admin';
 
       if (!enrollment && !isOwner && !isAdmin) {
         return res.status(403).json({

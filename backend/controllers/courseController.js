@@ -32,8 +32,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin OR student enrolled
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission && userRole === 'student') {
         // Check if student is enrolled
@@ -91,7 +91,7 @@ const courseController = {
           .where('uce.user_id', userId);
       } else if (userRole === 'teacher') {
         coursesQuery = coursesQuery.where('c.created_by', userId);
-      } else if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+      } else if (userRole === 'admin') {
         // Admins can see all courses, no additional where clause needed
       }
 
@@ -245,7 +245,7 @@ const courseController = {
           .where({ user_id: userId, course_id: lesson.course_id })
           .first();
         hasAccess = !!enrollment;
-      } else if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+      } else if (userRole === 'admin') {
         hasAccess = true;
       }
 
@@ -310,8 +310,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -388,8 +388,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -454,8 +454,8 @@ const courseController = {
       const unauthorizedCourses = courses.filter(course => {
         const hasPermission = 
           (userRole === 'teacher' && course.created_by === userId) ||
-          userRole === 'chapter_admin' ||
-          userRole === 'platform_admin';
+          userRole === 'admin' ||
+          userRole === 'admin';
         return !hasPermission;
       });
 
@@ -593,8 +593,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -694,8 +694,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -779,8 +779,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -879,8 +879,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -1221,8 +1221,8 @@ const courseController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && lesson.course_owner === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({

@@ -39,7 +39,7 @@ router.get('/lessons/:lessonId', async (req, res) => {
     }
 
     // Only teacher who owns the course or admin can view analytics
-    if (userRole !== 'platform_admin' && userRole !== 'chapter_admin' && lesson.teacher_id !== userId) {
+    if (userRole !== 'admin' && lesson.teacher_id !== userId) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to view analytics for this lesson'
@@ -93,7 +93,7 @@ router.get('/courses/:courseId', async (req, res) => {
     }
 
     // Only teacher who owns the course or admin can view analytics
-    if (userRole !== 'platform_admin' && userRole !== 'chapter_admin' && course.created_by !== userId) {
+    if (userRole !== 'admin' && course.created_by !== userId) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to view analytics for this course'
@@ -171,7 +171,7 @@ router.post('/lessons/bulk', async (req, res) => {
       .select('lessons.id', 'courses.created_by as teacher_id');
 
     // Verify user has permission for all lessons
-    if (userRole !== 'platform_admin' && userRole !== 'chapter_admin') {
+    if (userRole !== 'admin') {
       const unauthorized = lessons.some(l => l.teacher_id !== userId);
       if (unauthorized) {
         return res.status(403).json({

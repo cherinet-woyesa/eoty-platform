@@ -438,7 +438,7 @@ const authController = {
           'discussion:view', 'discussion:create',
           'user:edit_own', 'analytics:view_own'
         ],
-        chapter_admin: [
+        admin: [
           'course:view', 'course:create', 'course:edit_own', 'course:edit_any', 'course:delete_own', 'course:delete_any',
           'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:edit_any', 'lesson:delete_own', 'lesson:delete_any',
           'video:upload', 'video:delete_own', 'video:delete_any',
@@ -448,7 +448,7 @@ const authController = {
           'chapter:view', 'chapter:manage',
           'analytics:view'
         ],
-        platform_admin: ['system:admin']
+        admin: ['system:admin']
       };
 
       const permissions = permissionMap[user.role] || permissionMap.student;

@@ -262,8 +262,8 @@ const onboardingController = {
         return 'new_user';
       case 'teacher':
         return 'new_teacher';
-      case 'chapter_admin':
-      case 'platform_admin':
+      case 'admin':
+      case 'admin':
         return 'new_admin';
       default:
         return 'new_user';

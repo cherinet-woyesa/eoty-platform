@@ -9,7 +9,7 @@ const db = require('../config/database');
 
 // All routes require admin authentication
 router.use(authenticateToken);
-router.use(requireRole(['platform_admin', 'chapter_admin']));
+router.use(requireRole('admin'));
 
 /**
  * GET /api/mux-migration/eligible-videos

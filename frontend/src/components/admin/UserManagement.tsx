@@ -45,7 +45,7 @@ const UserManagement: React.FC = () => {
     lastName: '',
     email: '',
     password: '',
-    chapter: 'addis-ababa',
+    chapter: '1', // Default to first chapter ID
     role: 'student'
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -110,7 +110,7 @@ const UserManagement: React.FC = () => {
         lastName: '',
         email: '',
         password: '',
-        chapter: 'addis-ababa',
+        chapter: '1', // Reset to first chapter ID
         role: 'student'
       });
       setShowCreateForm(false);
@@ -159,9 +159,9 @@ const UserManagement: React.FC = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || 
@@ -456,7 +456,7 @@ const UserManagement: React.FC = () => {
                   className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 >
                   {chapters.map((ch) => (
-                    <option key={ch.id} value={ch.name}>{ch.location}</option>
+                    <option key={ch.id} value={ch.id}>{ch.location}</option>
                   ))}
                 </select>
               </div>
@@ -470,8 +470,7 @@ const UserManagement: React.FC = () => {
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
-                  <option value="chapter_admin">Chapter Admin</option>
-                  {isPlatformAdmin && <option value="platform_admin">Platform Admin</option>}
+                  <option value="admin">Admin</option>
                 </select>
               </div>
             </div>

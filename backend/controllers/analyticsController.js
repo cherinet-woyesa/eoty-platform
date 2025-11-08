@@ -30,8 +30,8 @@ const analyticsController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -172,8 +172,8 @@ const analyticsController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -323,8 +323,8 @@ const analyticsController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -527,8 +527,8 @@ const analyticsController = {
       // Check permissions: teacher owns course OR admin
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'chapter_admin' ||
-        userRole === 'platform_admin';
+        userRole === 'admin' ||
+        userRole === 'admin';
 
       if (!hasPermission) {
         return res.status(403).json({
