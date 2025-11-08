@@ -43,14 +43,21 @@ const corsOptions = {
       'http://localhost:5000',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5000',
+      // Production frontend URLs
+      'https://eoty-platform.vercel.app',
+      'https://eoty-platform-git-main-cherinet-woyesas-projects.vercel.app',
+      'https://eoty-platform-cherinet-woyesas-projects.vercel.app',
       // Mux direct upload domains
       'https://storage.googleapis.com',
       'https://mux.com'
     ];
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    console.log('CORS check - Origin:', origin, 'Allowed:', allowedOrigins.includes(origin));
+    
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
