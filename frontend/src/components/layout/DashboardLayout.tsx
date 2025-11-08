@@ -26,8 +26,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   });
 
   // Determine user roles with memoization
-  const isAdminUser = user?.role === 'platform_admin' || user?.role === 'chapter_admin' || user?.role === 'admin';
-  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin' || user?.role === 'admin';
+  const isAdminUser = user?.role === 'admin';
+  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const isStudent = user?.role === 'student';
   
   // Check if current route is admin route

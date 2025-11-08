@@ -5,8 +5,7 @@ const accessLogService = require('../services/accessLogService');
 const ROLE_HIERARCHY = {
   'student': 1,
   'teacher': 2,
-  'chapter_admin': 3,
-  'platform_admin': 4
+  'admin': 3
 };
 
 // Helper function to check if user's role is equal to or higher than required role
@@ -61,8 +60,8 @@ const requirePermission = (permission) => {
         );
       }
       
-      // Platform admins and chapter admins have all permissions
-      if (userRole === 'platform_admin' || userRole === 'chapter_admin') {
+      // Admins have all permissions
+      if (userRole === 'admin') {
         console.log(`[RBAC] Permission ${permission} GRANTED for admin user ${req.user.email}`);
         return next();
       }
@@ -247,8 +246,8 @@ const requireChapterAccess = () => {
         return next();
       }
       
-      // Platform admins can access all chapters
-      if (userRole === 'platform_admin') {
+      // Admins can access all chapters
+      if (userRole === 'admin') {
         return next();
       }
       
@@ -304,7 +303,7 @@ const requireAdmin = () => {
     
     const userRole = req.user.role;
     
-    if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+    if (userRole === 'admin') {
       return next();
     }
     
@@ -314,7 +313,7 @@ const requireAdmin = () => {
         'Access denied: Admin role required',
         {
           userRole,
-          requiredRole: ['chapter_admin', 'platform_admin'],
+          requiredRole: ['admin'],
           resource: req.originalUrl
         }
       )
@@ -366,35 +365,9 @@ const requireOwnership = (resourceType, options = {}) => {
         });
       }
       
-      // Platform admins bypass ownership checks
-      if (allowAdmin && userRole === 'platform_admin') {
+      // Admins bypass ownership checks
+      if (allowAdmin && userRole === 'admin') {
         return next();
-      }
-      
-      // Chapter admins can access resources in their chapter
-      if (allowAdmin && userRole === 'chapter_admin' && req.user.chapter_id) {
-        // Verify resource belongs to admin's chapter
-        const resource = await db(resourceType)
-          .where('id', resourceId)
-          .first();
-        
-        if (!resource) {
-          return res.status(404).json({
-            success: false,
-            error: {
-              code: 'RESOURCE_NOT_FOUND',
-              message: `${resourceType} not found`,
-              details: {
-                resourceType,
-                resourceId
-              }
-            }
-          });
-        }
-        
-        if (resource.chapter_id === req.user.chapter_id) {
-          return next();
-        }
       }
       
       // Check resource ownership
@@ -506,7 +479,7 @@ const requireEnrollment = (options = {}) => {
       }
       
       // Admins can access all courses
-      if (userRole === 'platform_admin' || userRole === 'chapter_admin') {
+      if (userRole === 'admin') {
         return next();
       }
       

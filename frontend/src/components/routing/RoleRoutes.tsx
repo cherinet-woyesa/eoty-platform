@@ -10,8 +10,8 @@ interface RoleRouteProps {
 /**
  * StudentRoute - Accessible by students and all higher roles
  * 
- * Role hierarchy: student (1) <= teacher (2) <= chapter_admin (3) <= platform_admin (4)
- * This route is accessible by: student, teacher, chapter_admin, platform_admin, admin
+ * Role hierarchy: student (1) <= teacher (2) <= admin (3)
+ * This route is accessible by: student, teacher, admin
  */
 export const StudentRoute: React.FC<RoleRouteProps> = ({
   children,
@@ -20,7 +20,7 @@ export const StudentRoute: React.FC<RoleRouteProps> = ({
 }) => {
   return (
     <ProtectedRoute
-      allowedRoles={['student', 'teacher', 'chapter_admin', 'platform_admin', 'admin']}
+      allowedRoles={['student', 'teacher', 'admin']}
       requiredPermission={requiredPermission}
       redirectTo={redirectTo}
     >
@@ -32,8 +32,8 @@ export const StudentRoute: React.FC<RoleRouteProps> = ({
 /**
  * TeacherRoute - Accessible by teachers and all higher roles
  * 
- * Role hierarchy: teacher (2) <= chapter_admin (3) <= platform_admin (4)
- * This route is accessible by: teacher, chapter_admin, platform_admin, admin
+ * Role hierarchy: teacher (2) <= admin (3)
+ * This route is accessible by: teacher, admin
  */
 export const TeacherRoute: React.FC<RoleRouteProps> = ({
   children,
@@ -42,7 +42,7 @@ export const TeacherRoute: React.FC<RoleRouteProps> = ({
 }) => {
   return (
     <ProtectedRoute
-      allowedRoles={['teacher', 'chapter_admin', 'platform_admin', 'admin']}
+      allowedRoles={['teacher', 'admin']}
       requiredPermission={requiredPermission}
       redirectTo={redirectTo}
     >
@@ -54,8 +54,8 @@ export const TeacherRoute: React.FC<RoleRouteProps> = ({
 /**
  * AdminRoute - Accessible by admins only
  * 
- * Role hierarchy: chapter_admin (3) <= platform_admin (4)
- * This route is accessible by: chapter_admin, platform_admin, admin
+ * Role hierarchy: admin (3)
+ * This route is accessible by: admin
  */
 export const AdminRoute: React.FC<RoleRouteProps> = ({
   children,
@@ -64,7 +64,7 @@ export const AdminRoute: React.FC<RoleRouteProps> = ({
 }) => {
   return (
     <ProtectedRoute
-      allowedRoles={['chapter_admin', 'platform_admin', 'admin']}
+      allowedRoles={['admin']}
       requiredPermission={requiredPermission}
       redirectTo={redirectTo}
     >
