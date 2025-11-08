@@ -13,6 +13,7 @@ import SourceControlIndicators from './SourceControlIndicators';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import NotificationContainer, { type Notification } from './NotificationContainer';
 import { AudioLevelIndicators } from './AudioLevelIndicators';
+import MuxVideoUploader from './MuxVideoUploader';
 import type { LayoutType } from '../../types/VideoCompositor';
 import type { AudioLevelData } from '../../utils/AudioMixer';
 import {
@@ -397,6 +398,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [autoStopTimer, setAutoStopTimer] = useState<number>(0);
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  
+  // Mux upload state
+  const [useMuxUpload, setUseMuxUpload] = useState(true); // Default to Mux
+  const [showMuxUploader, setShowMuxUploader] = useState(false);
+  const [muxUploadLessonId, setMuxUploadLessonId] = useState<string | null>(null);
   
   // Session management state
   const [savedSessions, setSavedSessions] = useState<string[]>([]);
@@ -1005,6 +1011,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setProcessingLessonId(null);
     setCurrentSlides([]);
     setCurrentSlideIndex(0);
+    setShowMuxUploader(false);
+    setMuxUploadLessonId(null);
     setRecordingStats({
       fileSize: 0,
       bitrate: 0,
@@ -1048,7 +1056,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
-  // FIXED: Enhanced upload function with WebM header analysis
+  // FIXED: Enhanced upload function with WebM header analysis and Mux support
   const handleUpload = async () => {
     if (!selectedCourse || !lessonTitle.trim()) {
       setErrorMessage('Please select a course and enter a lesson title.');
@@ -1059,7 +1067,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setUploading(true);
       setUploadProgress(0);
       setErrorMessage(null);
-      setShowProcessingStatus(true);
 
       if (activeTab === 'record' && (!videoBlob || videoBlob.size === 0)) {
         throw new Error('Recorded video is empty or invalid. Please record again.');
@@ -1087,6 +1094,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       const newLessonId = lessonResponse.data.lesson.id;
       setProcessingLessonId(newLessonId);
       setUploadProgress(30);
+
+      // If using Mux upload, show Mux uploader instead of traditional upload
+      if (useMuxUpload) {
+        setMuxUploadLessonId(newLessonId);
+        setShowMuxUploader(true);
+        setUploading(false);
+        setShowLessonForm(false);
+        return;
+      }
+
+      // Traditional S3 upload flow
+      setShowProcessingStatus(true);
 
       let uploadResponse;
       
@@ -1202,6 +1221,38 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       handleReset();
     }, 3000);
   };
+
+  // NEW: Handle Mux upload completion
+  const handleMuxUploadComplete = useCallback((assetId: string, playbackId: string) => {
+    console.log('Mux upload complete:', { assetId, playbackId });
+    setUploadSuccess(true);
+    setSuccessMessage('Video uploaded to Mux successfully! Processing will begin shortly.');
+    
+    // Notify parent components
+    if (muxUploadLessonId) {
+      onUploadComplete?.(muxUploadLessonId, playbackId);
+    }
+    
+    // Reset after a delay
+    setTimeout(() => {
+      handleReset();
+    }, 3000);
+  }, [muxUploadLessonId, onUploadComplete]);
+
+  // NEW: Handle Mux upload error
+  const handleMuxUploadError = useCallback((error: Error) => {
+    console.error('Mux upload error:', error);
+    setErrorMessage(error.message || 'Failed to upload video to Mux');
+    setShowMuxUploader(false);
+    setMuxUploadLessonId(null);
+  }, []);
+
+  // NEW: Handle Mux upload cancel
+  const handleMuxUploadCancel = useCallback(() => {
+    setShowMuxUploader(false);
+    setMuxUploadLessonId(null);
+    setShowLessonForm(true);
+  }, []);
 
   // NEW: Enhanced screen share handlers with feedback
   const handleStartScreenShare = async () => {
@@ -1981,6 +2032,28 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
+      {/* Mux Uploader Modal */}
+      {showMuxUploader && muxUploadLessonId && (
+        <div className="p-6 border-t bg-gradient-to-br from-blue-50 to-purple-50">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold flex items-center space-x-2 mb-2">
+              <Cloud className="h-5 w-5 text-blue-600" />
+              <span>Upload to Mux</span>
+            </h3>
+            <p className="text-sm text-gray-600">
+              Your lesson has been created. Now upload your video to Mux for optimized streaming.
+            </p>
+          </div>
+          <MuxVideoUploader
+            lessonId={muxUploadLessonId}
+            videoBlob={recordedVideo || undefined}
+            onUploadComplete={handleMuxUploadComplete}
+            onError={handleMuxUploadError}
+            onCancel={handleMuxUploadCancel}
+          />
+        </div>
+      )}
+
       {/* Lesson Form */}
       {showLessonForm && (recordedVideo || selectedFile) && (
         <div className="p-6 border-t">
@@ -2015,6 +2088,42 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             )}
           </div>
           <div className="space-y-4">
+            {/* Upload Provider Selection */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <label className="block text-sm font-medium mb-2">Upload Method</label>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="uploadProvider"
+                    checked={useMuxUpload}
+                    onChange={() => setUseMuxUpload(true)}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                  <span className="text-sm font-medium">
+                    Mux (Recommended)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    - Optimized streaming, adaptive quality
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="uploadProvider"
+                    checked={!useMuxUpload}
+                    onChange={() => setUseMuxUpload(false)}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                  <span className="text-sm font-medium">
+                    S3 (Legacy)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    - Traditional upload
+                  </span>
+                </label>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Select Course *</label>
               <select 
@@ -2108,6 +2217,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           isOpen={showProcessingStatus}
           onClose={() => setShowProcessingStatus(false)}
           onProcessingComplete={handleProcessingComplete}
+          videoProvider={useMuxUpload ? 'mux' : 's3'}
         />
       )}
     </div>

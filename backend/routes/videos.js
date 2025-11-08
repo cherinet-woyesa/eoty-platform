@@ -29,4 +29,14 @@ router.get('/notifications', videoController.getUserVideoNotifications);
 // Course lessons route
 router.get('/courses/:courseId/lessons', videoController.getCourseLessons);
 
+// Mux integration routes
+router.post('/mux/upload-url', requirePermission('video:upload'), videoController.createMuxUploadUrl);
+router.post('/mux/webhook', videoController.handleMuxWebhook); // No auth - verified by signature
+router.get('/:lessonId/playback', videoController.getPlaybackInfo);
+
+// Video analytics routes
+router.get('/:lessonId/analytics', videoController.getVideoAnalytics);
+router.post('/:lessonId/track-view', videoController.trackVideoView);
+router.get('/bulk/analytics', videoController.getBulkAnalytics);
+
 module.exports = router;

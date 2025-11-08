@@ -1025,30 +1025,32 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       sessionStartTimeRef.current = Date.now();
 
       // Task 6.2: Use browser-detected codec with fallback mechanism
-      let supportedMimeType = 'video/webm; codecs=vp8,opus'; // Default to VP8
+      // PRIORITIZE MP4 for better Mux compatibility
+      let supportedMimeType = 'video/webm; codecs=vp8,opus'; // Default fallback
       
-      if (browserSupport && browserSupport.suggestedCodec) {
-        // Use the codec suggested by browser compatibility check
-        supportedMimeType = browserSupport.suggestedCodec;
-        console.log('Using browser-suggested codec:', supportedMimeType);
-      } else {
-        // Fallback: Enhanced MIME type detection with VP8 priority for better compatibility
-        const mimeTypes = [
-          'video/webm; codecs=vp8,opus',  // Prioritize VP8 for better compatibility
-          'video/webm; codecs=vp9,opus',  // Fallback to VP9
-          'video/webm',                   // Basic WebM
-          'video/mp4; codecs=avc1.42E01E,mp4a.40.2', // MP4 fallback
-          'video/mp4',                    // Basic MP4
-        ];
+      // Try MP4 first as it's more compatible with Mux
+      const mimeTypes = [
+        'video/mp4',                    // Try basic MP4 first (best for Mux)
+        'video/mp4; codecs=avc1.42E01E,mp4a.40.2', // H.264 MP4
+        'video/webm; codecs=h264,opus', // H.264 in WebM container
+        'video/webm; codecs=vp9,opus',  // VP9 WebM
+        'video/webm; codecs=vp8,opus',  // VP8 WebM
+        'video/webm',                   // Basic WebM
+      ];
 
-        // Try to find a supported type
-        for (const type of mimeTypes) {
-          if (MediaRecorder.isTypeSupported(type)) {
-            supportedMimeType = type;
-            console.log('Using fallback MIME type:', type);
-            break;
-          }
+      // Try to find a supported type
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          supportedMimeType = type;
+          console.log('Selected MIME type:', type);
+          break;
         }
+      }
+      
+      // Override with browser-suggested codec if available and it's MP4
+      if (browserSupport && browserSupport.suggestedCodec && browserSupport.suggestedCodec.includes('mp4')) {
+        supportedMimeType = browserSupport.suggestedCodec;
+        console.log('Using browser-suggested MP4 codec:', supportedMimeType);
       }
       
       // Task 6.2: Display capability warning if using fallback codec

@@ -15,8 +15,7 @@ import AllCourses from './pages/admin/AllCourses';
 import CreateCourse from './pages/courses/CreateCourse';
 import EditCourse from './pages/courses/EditCourse';
 import CourseDetails from './pages/courses/CourseDetails';
-import { CourseEditorDemo } from './components/courses/CourseEditorDemo';
-import { CoursePublisherDemo } from './components/courses/CoursePublisherDemo';
+
 import AIAssistant from './pages/ai/AIAssistant';
 import FloatingAIChat from './components/ai/FloatingAIChat';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -45,6 +44,7 @@ import LevelManagement from './pages/admin/config/LevelManagement';
 import DurationManagement from './pages/admin/config/DurationManagement';
 import TagManagement from './pages/admin/config/TagManagement';
 import ChapterManagement from './pages/admin/config/ChapterManagement';
+import MuxMigration from './pages/admin/MuxMigration';
 import ResourceLibrary from './pages/resources/ResourceLibrary';
 import ResourceView from './pages/resources/ResourceView';
 import QuizDemo from './pages/courses/QuizDemo';
@@ -317,31 +317,7 @@ function AppContent() {
         <Route path="/analytics" element={<Navigate to="/teacher/analytics" replace />} />
 
         {/* Demo Routes - Under /teacher for testing */}
-        <Route 
-          path="/teacher/demo/course-editor" 
-          element={
-            <TeacherRoute>
-              <DashboardLayout>
-                <CourseEditorDemo />
-              </DashboardLayout>
-            </TeacherRoute>
-          } 
-        />
 
-        <Route 
-          path="/teacher/demo/course-publisher" 
-          element={
-            <TeacherRoute>
-              <DashboardLayout>
-                <CoursePublisherDemo />
-              </DashboardLayout>
-            </TeacherRoute>
-          } 
-        />
-
-        {/* Legacy demo routes - redirect */}
-        <Route path="/demo/course-editor" element={<Navigate to="/teacher/demo/course-editor" replace />} />
-        <Route path="/demo/course-publisher" element={<Navigate to="/teacher/demo/course-publisher" replace />} />
 
         {/* Shared Routes - Accessible to all authenticated users */}
         <Route 
@@ -445,6 +421,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <AnalyticsDashboard />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/mux-migration" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <MuxMigration />
               </DashboardLayout>
             </AdminRoute>
           } 

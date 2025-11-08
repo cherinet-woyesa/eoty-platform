@@ -218,6 +218,7 @@ const courseController = {
       const { lessonId } = req.params;
       const userId = req.user.userId;
       const userRole = req.user.role;
+      const videoProviderDetection = require('../utils/videoProviderDetection');
 
       // Get lesson with course info
       const lesson = await db('lessons as l')
@@ -255,22 +256,26 @@ const courseController = {
         });
       }
 
-      // Generate fresh signed URL
-      const cloudStorageService = require('../services/cloudStorageService');
-      
-      if (!lesson.s3_key) {
+      // Use provider detection to get playback info
+      const playbackInfo = await videoProviderDetection.getPlaybackInfo(lesson, {
+        generateSignedUrls: true,
+        urlExpiration: 3600
+      });
+
+      if (!playbackInfo.hasVideo) {
         return res.status(404).json({
           success: false,
           message: 'Video not available for this lesson'
         });
       }
 
-      const signedUrl = await cloudStorageService.getSignedStreamUrl(lesson.s3_key, 3600); // 1 hour expiry
-
       res.json({
         success: true,
         data: {
-          videoUrl: signedUrl,
+          videoUrl: playbackInfo.playbackUrl,
+          provider: playbackInfo.provider,
+          status: playbackInfo.status,
+          thumbnailUrl: playbackInfo.thumbnailUrl,
           expiresIn: 3600
         }
       });
@@ -1186,6 +1191,7 @@ const courseController = {
       const userId = req.user.userId;
       const userRole = req.user.role;
       const { lessonId } = req.params;
+      const videoProviderDetection = require('../utils/videoProviderDetection');
 
       // Get lesson with video info
       const lesson = await db('lessons as l')
@@ -1193,9 +1199,7 @@ const courseController = {
         .leftJoin('courses as c', 'l.course_id', 'c.id')
         .where('l.id', lessonId)
         .select(
-          'l.id as lesson_id',
-          'l.title',
-          'l.video_id',
+          'l.*',
           'v.status as video_status',
           'v.processing_progress',
           'v.error_message',
@@ -1227,19 +1231,47 @@ const courseController = {
         });
       }
 
-      // Build status response
+      // Detect provider and get status
+      const provider = videoProviderDetection.detectVideoProvider(lesson);
+
+      // Build status response based on provider
       const statusData = {
-        lessonId: lesson.lesson_id,
+        lessonId: lesson.id,
         lessonTitle: lesson.title,
-        hasVideo: !!lesson.video_id,
-        videoStatus: lesson.video_status || 'no_video',
-        processingProgress: lesson.processing_progress || 0,
-        errorMessage: lesson.error_message || null,
-        fileSize: lesson.size_bytes || 0,
-        duration: lesson.video_duration || 0,
-        uploadStartedAt: lesson.upload_started_at,
-        lastUpdatedAt: lesson.last_updated_at
+        provider,
+        hasVideo: provider !== 'none',
+        videoStatus: null,
+        processingProgress: 0,
+        errorMessage: null,
+        fileSize: 0,
+        duration: lesson.duration || 0,
+        uploadStartedAt: null,
+        lastUpdatedAt: lesson.updated_at
       };
+
+      if (provider === 'mux') {
+        statusData.videoStatus = lesson.mux_status || 'preparing';
+        statusData.errorMessage = lesson.mux_error_message || null;
+        statusData.uploadStartedAt = lesson.mux_created_at;
+        statusData.metadata = {
+          assetId: lesson.mux_asset_id,
+          playbackId: lesson.mux_playback_id,
+          uploadId: lesson.mux_upload_id
+        };
+      } else if (provider === 's3') {
+        statusData.videoStatus = lesson.video_status || 'ready';
+        statusData.processingProgress = lesson.processing_progress || 100;
+        statusData.errorMessage = lesson.error_message || null;
+        statusData.fileSize = lesson.size_bytes || 0;
+        statusData.uploadStartedAt = lesson.upload_started_at;
+        statusData.metadata = {
+          s3Key: lesson.s3_key,
+          videoUrl: lesson.video_url,
+          hlsUrl: lesson.hls_url
+        };
+      } else {
+        statusData.videoStatus = 'no_video';
+      }
 
       res.json({
         success: true,

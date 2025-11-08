@@ -8,6 +8,7 @@ interface VideoProcessingStatusProps {
   isOpen: boolean;
   onClose: () => void;
   onProcessingComplete: () => void;
+  videoProvider?: 'mux' | 's3'; // Optional: specify video provider
 }
 
 interface ProcessingState {
@@ -15,19 +16,24 @@ interface ProcessingState {
   progress: number;
   currentStep: string;
   error: string | null;
+  provider?: 'mux' | 's3'; // Track which provider is being used
+  assetId?: string; // Mux asset ID
+  playbackId?: string; // Mux playback ID
 }
 
 const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   lessonId,
   isOpen,
   onClose,
-  onProcessingComplete
+  onProcessingComplete,
+  videoProvider = 's3' // Default to S3 for backward compatibility
 }) => {
   const [processingState, setProcessingState] = useState<ProcessingState>({
     status: 'queued',
     progress: 0,
-    currentStep: 'Initializing...',
-    error: null
+    currentStep: videoProvider === 'mux' ? 'Uploading to Mux...' : 'Initializing...',
+    error: null,
+    provider: videoProvider
   });
   
   const [retryCount, setRetryCount] = useState(0);
@@ -79,17 +85,23 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                 ...prev,
                 progress: data.progress,
                 currentStep: data.currentStep || prev.currentStep,
-                status: 'processing'
+                status: 'processing',
+                provider: data.provider || prev.provider,
+                assetId: data.assetId || prev.assetId
               }));
               break;
             
             case 'complete':
-              setProcessingState({
+              setProcessingState(prev => ({
+                ...prev,
                 status: 'completed',
                 progress: 100,
-                currentStep: 'Processing complete',
-                error: null
-              });
+                currentStep: prev.provider === 'mux' 
+                  ? 'Mux processing complete' 
+                  : 'Processing complete',
+                error: null,
+                playbackId: data.playbackId || prev.playbackId
+              }));
               
               // Notify parent component after a short delay
               setTimeout(() => {
@@ -102,7 +114,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                 ...prev,
                 status: 'failed',
                 error: data.error || 'Processing failed',
-                currentStep: 'Processing failed'
+                currentStep: prev.provider === 'mux'
+                  ? 'Mux processing failed'
+                  : 'Processing failed'
               }));
               break;
 
@@ -197,6 +211,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     if (processingState.status === 'failed' && retryCount >= 5) {
       // Fallback to simulated progress after all retries fail
       let simulatedProgress = processingState.progress;
+      const isMux = processingState.provider === 'mux';
       
       const fallbackInterval = setInterval(() => {
         simulatedProgress = Math.min(simulatedProgress + 10, 100);
@@ -205,25 +220,35 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           if (simulatedProgress >= 100) {
             clearInterval(fallbackInterval);
             return {
+              ...prev,
               status: 'completed',
               progress: 100,
-              currentStep: 'Processing completed (simulated)',
+              currentStep: isMux 
+                ? 'Mux processing completed (simulated)' 
+                : 'Processing completed (simulated)',
               error: null
             };
           }
           
-          const steps = [
-            'Upload complete',
-            'Validating video',
-            'Finalizing'
-          ];
+          const steps = isMux 
+            ? [
+                'Upload to Mux complete',
+                'Mux is encoding video',
+                'Generating adaptive streams',
+                'Finalizing'
+              ]
+            : [
+                'Upload complete',
+                'Validating video',
+                'Finalizing'
+              ];
           
-          const stepIndex = Math.floor(simulatedProgress / 20);
+          const stepIndex = Math.floor(simulatedProgress / 25);
           
           return {
             ...prev,
             progress: simulatedProgress,
-            currentStep: steps[stepIndex] || 'Processing...',
+            currentStep: steps[stepIndex] || (isMux ? 'Processing with Mux...' : 'Processing...'),
             status: 'processing'
           };
         });
@@ -231,7 +256,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
       return () => clearInterval(fallbackInterval);
     }
-  }, [processingState.status, retryCount, processingState.progress]);
+  }, [processingState.status, retryCount, processingState.progress, processingState.provider]);
 
   // Auto-close on completion after delay
   useEffect(() => {
@@ -276,15 +301,17 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   };
 
   const getStatusText = () => {
+    const isMux = processingState.provider === 'mux';
+    
     switch (processingState.status) {
       case 'queued':
-        return 'Video queued for processing';
+        return isMux ? 'Video queued for Mux upload' : 'Video queued for processing';
       case 'processing':
-        return 'Processing video...';
+        return isMux ? 'Mux is processing your video...' : 'Processing video...';
       case 'completed':
-        return 'Processing complete!';
+        return isMux ? 'Mux processing complete!' : 'Processing complete!';
       case 'failed':
-        return 'Processing failed';
+        return isMux ? 'Mux processing failed' : 'Processing failed';
       default:
         return 'Unknown status';
     }
@@ -331,12 +358,17 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             </div>
           )}
 
-          {/* Success Message for WebM */}
+          {/* Success Message */}
           {processingState.status === 'completed' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 w-full">
               <p className="text-green-800 text-center font-medium">
                 ✅ Your video is ready and available for viewing!
               </p>
+              {processingState.provider === 'mux' && (
+                <p className="text-green-700 text-center text-sm mt-2">
+                  Powered by Mux - Adaptive streaming enabled
+                </p>
+              )}
             </div>
           )}
 

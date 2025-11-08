@@ -16,6 +16,7 @@ import EngagementAnalytics from './EngagementAnalytics';
 import QuickActions from './QuickActions';
 import RecentActivity from './RecentActivity';
 import UpcomingTasks from './UpcomingTasks';
+import VideoAnalyticsDashboard from './VideoAnalyticsDashboard';
 import { useRealTimeData } from '../../../hooks/useRealTimeData';
 import { useWebSocket } from '../../../hooks/useWebSocket';
 import LoadingSpinner from '../../common/LoadingSpinner';
@@ -65,6 +66,7 @@ const TeacherDashboard: React.FC = () => {
     { id: 'overview', name: t('dashboard.teacher.title'), icon: '📊' }, 
     { id: 'courses', name: t('common.my_courses'), icon: '📚' }, 
     { id: 'students', name: t('common.community'), icon: '👥' }, 
+    { id: 'video-analytics', name: 'Video Analytics', icon: '🎬' },
     { id: 'analytics', name: t('dashboard.teacher.view_analytics'), icon: '📈' }, 
     { id: 'engagement', name: t('common.engagement'), icon: '🎯' },
     { id: 'content', name: t('common.resources'), icon: '🎥' } 
@@ -110,6 +112,8 @@ const TeacherDashboard: React.FC = () => {
         return <CourseManagement courses={teacherData?.courses || []} />;
       case 'students':
         return <StudentPerformance data={teacherData?.studentPerformance || []} />;
+      case 'video-analytics':
+        return <VideoAnalyticsDashboard />;
       case 'analytics':
         return <EngagementAnalytics courseId={selectedCourse} />;
       case 'engagement':
@@ -151,6 +155,43 @@ const TeacherDashboard: React.FC = () => {
                 data={teacherData?.studentPerformance || []} 
                 compact 
               />
+            </div>
+
+            {/* Video Analytics Preview */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <Video className="h-5 w-5 mr-2 text-purple-600" />
+                  Video Analytics
+                </h3>
+                <button
+                  onClick={() => setActiveView('video-analytics')}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+                >
+                  View Details
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                Track video engagement, watch time, and completion rates across all your lessons
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <Eye className="h-5 w-5 text-blue-600 mx-auto mb-1" />
+                  <div className="text-xs text-gray-600">Total Views</div>
+                  <div className="text-lg font-bold text-gray-900">-</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <Clock className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                  <div className="text-xs text-gray-600">Watch Time</div>
+                  <div className="text-lg font-bold text-gray-900">-</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <Target className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                  <div className="text-xs text-gray-600">Completion</div>
+                  <div className="text-lg font-bold text-gray-900">-</div>
+                </div>
+              </div>
             </div>
 
             {/* Recent Activity */}

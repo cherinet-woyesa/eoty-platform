@@ -127,6 +127,15 @@ export const adminNavItems: NavItem[] = [
     requiredRole: ['chapter_admin', 'platform_admin'],
   },
   {
+    name: 'Mux Migration',
+    href: '/admin/mux-migration',
+    icon: Settings,
+    badge: null,
+    description: 'Migrate videos to Mux',
+    color: 'text-purple-600',
+    requiredRole: ['platform_admin'],
+  },
+  {
     name: 'System Config',
     href: '/admin/config',
     icon: Settings,

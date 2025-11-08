@@ -61,8 +61,12 @@ class CloudStorageService {
   }
 
   // Enhanced upload with progress tracking and metadata - ACL REMOVED
+  // NOTE: This method is for LEGACY S3 uploads only
+  // New video uploads should use Mux via MuxService.createDirectUpload()
   async uploadVideo(fileBuffer, fileName, contentType, metadata = {}) {
     const key = `videos/${this.sanitizeKey(fileName)}`;
+    
+    console.warn('⚠️  Using legacy S3 video upload. Consider using Mux for new uploads.');
     
     try {
       console.log('Uploading video to S3:', {

@@ -25,13 +25,14 @@ const analyticsRoutes = require('./routes/analytics');
 const systemConfigRoutes = require('./routes/systemConfig');
 const subtitleRoutes = require('./routes/subtitles');
 const accessLogRoutes = require('./routes/accessLogs');
+const muxMigrationRoutes = require('./routes/muxMigration');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
-// Enhanced CORS configuration for video streaming
+// Enhanced CORS configuration for video streaming and Mux direct uploads
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -41,7 +42,10 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:5000',
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:5000'
+      'http://127.0.0.1:5000',
+      // Mux direct upload domains
+      'https://storage.googleapis.com',
+      'https://mux.com'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -51,14 +55,17 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
     'Range', 
     'Accept',
     'Origin',
-    'X-Requested-With'
+    'X-Requested-With',
+    // Mux-specific headers
+    'X-Mux-Signature',
+    'Mux-Signature'
   ],
   exposedHeaders: [
     'Content-Range',
@@ -141,6 +148,10 @@ app.use('/api/chapters', chapterRoutes);
 // Video routes - some endpoints are public for streaming
 app.use('/api/videos', videoRoutes); // Authentication handled inside route file
 
+// Mux migration routes (admin only)
+app.use('/api/mux-migration', muxMigrationRoutes);
+app.use('/api/mux-costs', require('./routes/muxCostMonitoring'));
+
 // Admin routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/system-config', systemConfigRoutes);
@@ -162,6 +173,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
+app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video analytics routes (Mux + Platform)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -191,6 +203,9 @@ app.use((req, res) => {
 
 // Initialize scheduled jobs
 const { initializeScheduledPublishing } = require('./jobs/scheduledPublishing');
+const { initializeMuxAnalyticsSync } = require('./jobs/muxAnalyticsSync');
+
 initializeScheduledPublishing();
+initializeMuxAnalyticsSync();
 
 module.exports = app;

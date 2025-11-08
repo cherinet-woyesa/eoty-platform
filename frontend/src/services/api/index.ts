@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { forumsApi, achievementsApi } from './community';
 import { adminApi } from './admin';
 import { dashboardApi } from './dashboard';
@@ -8,9 +7,6 @@ import { discussionsApi } from './discussions';
 import { apiClient } from './apiClient';
 import { subtitlesApi } from './subtitles';
 import { lessonResourcesApi } from './lessonResources';
-
-// Use environment variable for API base URL, fallback to localhost for development
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 // Export apiClient so other modules can import it
 export { apiClient };

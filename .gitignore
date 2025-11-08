@@ -84,3 +84,25 @@ backend/uploads/
 # Build outputs
 dist/
 build/
+# Test an
+d debug files
+test-*.js
+check-*.js
+fix-*.js
+debug-*.js
+*-test.js
+*-debug.js
+*.test.local.js
+
+# Temporary documentation
+*_FIX_*.md
+*_DIAGNOSIS*.md
+*_COMPLETE.md
+*_SUMMARY.md
+RECORDING_FIX_PLAN.md
+
+# Demo files
+*Demo.tsx
+*Demo.ts
+*Demo.jsx
+*Demo.js

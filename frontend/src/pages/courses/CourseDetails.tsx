@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
-import EnhancedVideoPlayer from '../../components/courses/EnhancedVideoPlayer';
+import UnifiedVideoPlayer from '../../components/courses/UnifiedVideoPlayer';
 import { CoursePublisher } from '../../components/courses/CoursePublisher';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -15,6 +15,10 @@ interface Lesson {
   title: string;
   description: string;
   video_url: string;
+  video_provider?: 'mux' | 's3';
+  mux_playback_id?: string;
+  mux_asset_id?: string;
+  mux_status?: string;
   order: number;
   created_at: string;
   duration?: number;
@@ -46,7 +50,7 @@ const CourseDetails: React.FC = () => {
   // Check if user is admin
   const isAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
   // Check if user is teacher who owns this course
-  const isOwner = user?.role === 'teacher' && course?.created_by === user?.userId;
+  const isOwner = user?.role === 'teacher' && course?.created_by === user?.id;
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -401,13 +405,29 @@ const CourseDetails: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             {selectedLesson ? (
               <>
-                {/* Enhanced Video Player - Matching MyCourses Style */}
+                {/* Unified Video Player - Supports both Mux and S3 - Matching MyCourses Style */}
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                  <EnhancedVideoPlayer 
-                    videoUrl={selectedLesson.video_url}
-                    title={selectedLesson.title}
-                    lessonId={selectedLesson.id}
+                  <UnifiedVideoPlayer 
+                    lesson={{
+                      id: selectedLesson.id,
+                      title: selectedLesson.title,
+                      video_provider: selectedLesson.video_provider,
+                      mux_playback_id: selectedLesson.mux_playback_id,
+                      video_url: selectedLesson.video_url
+                    }}
+                    courseTitle={course?.title}
                     onTimestampClick={handleTimestampClick}
+                    onProgress={(time) => {
+                      // Track video progress
+                      console.log('Video progress:', time);
+                    }}
+                    onComplete={() => {
+                      // Handle video completion
+                      console.log('Video completed');
+                    }}
+                    onError={(error) => {
+                      console.error('Video playback error:', error);
+                    }}
                   />
                 </div>
                 

@@ -6,6 +6,7 @@ const fs = require('fs');
 const { notifyVideoAvailable } = require('../services/notificationService');
 const cloudStorageService = require('../services/cloudStorageService');
 const videoProcessingService = require('../services/videoProcessingService');
+const muxService = require('../services/muxService');
 const { withTransaction } = require('../utils/databaseTransactions');
 
 // Security: Allowed video MIME types
@@ -67,6 +68,192 @@ const getFileInfo = (filePath) => {
     };
   }
 };
+
+// ============================================================================
+// WEBHOOK EVENT HANDLERS
+// ============================================================================
+
+async function handleAssetReady(assetData) {
+  try {
+    const assetId = assetData.id;
+    const playbackIds = assetData.playback_ids || [];
+
+    console.log(`✅ Asset ready: ${assetId}`);
+
+    // Get asset details from Mux
+    const asset = await muxService.getAsset(assetId);
+
+    // Find lesson by asset ID
+    const lesson = await db('lessons')
+      .where({ mux_asset_id: assetId })
+      .first();
+
+    if (!lesson) {
+      console.warn(`⚠️  No lesson found for asset ${assetId}`);
+      return;
+    }
+
+    // Update lesson with playback info
+    await db('lessons')
+      .where({ id: lesson.id })
+      .update({
+        mux_status: 'ready',
+        mux_playback_id: playbackIds[0]?.id || null,
+        mux_ready_at: db.fn.now(),
+        mux_metadata: JSON.stringify({
+          duration: asset.duration,
+          aspectRatio: asset.aspectRatio,
+          maxResolution: asset.maxStoredResolution
+        }),
+        duration: Math.ceil(asset.duration || 0),
+        updated_at: db.fn.now()
+      });
+
+    console.log(`✅ Lesson ${lesson.id} updated with Mux playback info`);
+
+    // Send WebSocket update for processing completion
+    const websocketService = require('../services/websocketService');
+    websocketService.sendProgress(lesson.id.toString(), {
+      type: 'complete',
+      progress: 100,
+      currentStep: 'Video processing complete',
+      provider: 'mux',
+      playbackId: playbackIds[0]?.id || null
+    });
+
+    // Notify users that video is ready
+    await notifyVideoAvailable(lesson.id);
+  } catch (error) {
+    console.error('❌ Error handling asset ready:', error);
+  }
+}
+
+async function handleAssetError(assetData) {
+  try {
+    const assetId = assetData.id;
+    const errors = assetData.errors || {};
+
+    console.error(`❌ Asset error: ${assetId}`, errors);
+
+    // Find lesson by asset ID
+    const lesson = await db('lessons')
+      .where({ mux_asset_id: assetId })
+      .first();
+
+    if (!lesson) {
+      console.warn(`⚠️  No lesson found for asset ${assetId}`);
+      return;
+    }
+
+    // Update lesson with error info
+    await db('lessons')
+      .where({ id: lesson.id })
+      .update({
+        mux_status: 'errored',
+        mux_error_message: JSON.stringify(errors),
+        updated_at: db.fn.now()
+      });
+
+    console.log(`✅ Lesson ${lesson.id} marked as errored`);
+
+    // Send WebSocket update for processing error
+    const websocketService = require('../services/websocketService');
+    websocketService.sendProgress(lesson.id.toString(), {
+      type: 'failed',
+      progress: 0,
+      currentStep: 'Video processing failed',
+      provider: 'mux',
+      error: typeof errors === 'string' ? errors : JSON.stringify(errors)
+    });
+  } catch (error) {
+    console.error('❌ Error handling asset error:', error);
+  }
+}
+
+async function handleUploadAssetCreated(uploadData) {
+  try {
+    const uploadId = uploadData.id;
+    const assetId = uploadData.asset_id;
+
+    console.log(`✅ Upload created asset: ${uploadId} -> ${assetId}`);
+
+    // Find lesson by upload ID
+    const lesson = await db('lessons')
+      .where({ mux_upload_id: uploadId })
+      .first();
+
+    if (!lesson) {
+      console.warn(`⚠️  No lesson found for upload ${uploadId}`);
+      return;
+    }
+
+    // Update lesson with asset ID and status
+    await db('lessons')
+      .where({ id: lesson.id })
+      .update({
+        mux_asset_id: assetId,
+        mux_status: 'processing',
+        mux_created_at: db.fn.now(),
+        updated_at: db.fn.now()
+      });
+
+    console.log(`✅ Lesson ${lesson.id} linked to asset ${assetId}`);
+
+    // Send WebSocket update for processing start
+    const websocketService = require('../services/websocketService');
+    websocketService.sendProgress(lesson.id.toString(), {
+      type: 'progress',
+      progress: 50,
+      currentStep: 'Mux is processing your video',
+      provider: 'mux',
+      assetId: assetId
+    });
+  } catch (error) {
+    console.error('❌ Error handling upload asset created:', error);
+  }
+}
+
+async function handleUploadError(uploadData) {
+  try {
+    const uploadId = uploadData.id;
+    const error = uploadData.error || 'Upload failed';
+
+    console.error(`❌ Upload error: ${uploadId}`, error);
+
+    // Find lesson by upload ID
+    const lesson = await db('lessons')
+      .where({ mux_upload_id: uploadId })
+      .first();
+
+    if (!lesson) {
+      console.warn(`⚠️  No lesson found for upload ${uploadId}`);
+      return;
+    }
+
+    // Update lesson with error info
+    await db('lessons')
+      .where({ id: lesson.id })
+      .update({
+        mux_status: 'errored',
+        mux_error_message: typeof error === 'string' ? error : JSON.stringify(error),
+        updated_at: db.fn.now()
+      });
+
+    console.log(`✅ Lesson ${lesson.id} marked as upload failed`);
+
+    // Send WebSocket update for upload error
+    const websocketService = require('../services/websocketService');
+    websocketService.sendProgress(lesson.id.toString(), {
+      type: 'failed',
+      progress: 0,
+      currentStep: 'Upload failed',
+      provider: 'mux',
+      error: typeof error === 'string' ? error : JSON.stringify(error)
+    });
+  } catch (error) {
+    console.error('❌ Error handling upload error:', error);
+  }
+}
 
 const videoController = {
   // Upload video for a lesson to AWS S3 with transaction support
@@ -716,12 +903,13 @@ const videoController = {
   // Get lessons for a course
   async getCourseLessons(req, res) {
     try {
-      const teacherId = req.user.userId;
+      const userId = req.user.userId;
+      const userRole = req.user.role;
       const { courseId } = req.params;
 
-      // Verify course belongs to teacher
+      // Verify course exists
       const course = await db('courses')
-        .where({ id: courseId, created_by: teacherId })
+        .where({ id: courseId })
         .first();
 
       if (!course) {
@@ -729,6 +917,31 @@ const videoController = {
           success: false,
           message: 'Course not found'
         });
+      }
+
+      // Check permissions: teacher owns course OR admin OR student enrolled
+      const isOwner = course.created_by === userId;
+      const isAdmin = userRole === 'chapter_admin' || userRole === 'platform_admin';
+      
+      if (!isOwner && !isAdmin) {
+        // Check if student is enrolled
+        if (userRole === 'student') {
+          const enrollment = await db('user_course_enrollments')
+            .where({ user_id: userId, course_id: courseId })
+            .first();
+          
+          if (!enrollment) {
+            return res.status(403).json({
+              success: false,
+              message: 'You must be enrolled in this course to view lessons'
+            });
+          }
+        } else {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to view these lessons'
+          });
+        }
       }
 
       const lessons = await db('lessons')
@@ -739,7 +952,14 @@ const videoController = {
           'videos.storage_url as video_url',
           'videos.status as video_status',
           'videos.hls_url',
-          'videos.processing_error'
+          'videos.processing_error',
+          // Ensure Mux columns are included (they're already in lessons.*)
+          // but explicitly list them for clarity
+          'lessons.mux_playback_id',
+          'lessons.mux_asset_id',
+          'lessons.video_provider',
+          'lessons.mux_status',
+          'lessons.mux_error_message'
         )
         .orderBy('lessons.order', 'asc');
 
@@ -983,6 +1203,450 @@ const videoController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch video statistics: ' + error.message
+      });
+    }
+  },
+
+  /**
+   * Get video analytics for a lesson
+   * GET /api/videos/:lessonId/analytics
+   */
+  async getVideoAnalytics(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const { timeframe = '7:days', startDate, endDate } = req.query;
+      const muxService = require('../services/muxService');
+
+      // Get lesson
+      const lesson = await db('lessons')
+        .where({ id: lessonId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // Check if user has permission to view analytics
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+
+      // Teachers can view analytics for their own courses
+      if (userRole === 'teacher') {
+        const course = await db('courses')
+          .where({ id: lesson.course_id })
+          .first();
+
+        if (!course || course.teacher_id !== userId) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to view analytics for this lesson'
+          });
+        }
+      } else if (userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      // Get analytics based on video provider
+      let analytics;
+
+      if (lesson.video_provider === 'mux' && lesson.mux_asset_id) {
+        // Get Mux analytics with caching
+        analytics = await muxService.getCachedAnalytics(
+          lesson.mux_asset_id,
+          db,
+          {
+            timeframe,
+            startDate: startDate ? new Date(startDate) : null,
+            endDate: endDate ? new Date(endDate) : null,
+            ttl: 300 // 5 minutes cache
+          }
+        );
+      } else {
+        // For S3 videos, get analytics from video_analytics table
+        const dateFilter = db('video_analytics').where({ lesson_id: lessonId });
+
+        if (startDate && endDate) {
+          dateFilter.whereBetween('session_started_at', [new Date(startDate), new Date(endDate)]);
+        } else if (timeframe) {
+          const [amount, unit] = timeframe.split(':');
+          const daysAgo = unit === 'days' ? parseInt(amount) : 7;
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+          dateFilter.where('session_started_at', '>=', cutoffDate);
+        }
+
+        const summary = await dateFilter
+          .select(
+            db.raw('COUNT(DISTINCT id) as total_views'),
+            db.raw('COUNT(DISTINCT user_id) as unique_viewers'),
+            db.raw('SUM(watch_time_seconds) as total_watch_time'),
+            db.raw('AVG(watch_time_seconds) as avg_watch_time'),
+            db.raw('AVG(completion_percentage) as avg_completion_rate')
+          )
+          .first();
+
+        analytics = {
+          lessonId: parseInt(lessonId),
+          timeframe,
+          summary: {
+            totalViews: parseInt(summary.total_views) || 0,
+            uniqueViewers: parseInt(summary.unique_viewers) || 0,
+            totalWatchTime: parseInt(summary.total_watch_time) || 0,
+            averageWatchTime: parseFloat(summary.avg_watch_time) || 0,
+            averageCompletionRate: parseFloat(summary.avg_completion_rate) || 0
+          }
+        };
+      }
+
+      res.json({
+        success: true,
+        analytics
+      });
+    } catch (error) {
+      console.error('Get video analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch video analytics: ' + error.message
+      });
+    }
+  },
+
+  /**
+   * Track a video view
+   * POST /api/videos/:lessonId/track-view
+   */
+  async trackVideoView(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const {
+        watchTime,
+        videoDuration,
+        completionPercentage,
+        muxViewId,
+        deviceInfo = {}
+      } = req.body;
+
+      const userId = req.user?.userId || null;
+      const muxService = require('../services/muxService');
+
+      // Validate lesson exists
+      const lesson = await db('lessons')
+        .where({ id: lessonId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // Record the view
+      const viewRecord = await muxService.recordVideoView(
+        {
+          lessonId: parseInt(lessonId),
+          userId,
+          muxViewId,
+          watchTime: parseInt(watchTime) || 0,
+          videoDuration: videoDuration ? parseInt(videoDuration) : null,
+          completionPercentage: parseFloat(completionPercentage) || 0,
+          deviceInfo
+        },
+        db
+      );
+
+      // Clear analytics cache for this lesson
+      if (lesson.mux_asset_id) {
+        muxService.clearAnalyticsCache(lesson.mux_asset_id);
+      }
+
+      res.json({
+        success: true,
+        message: 'View tracked successfully',
+        viewId: viewRecord.id
+      });
+    } catch (error) {
+      console.error('Track video view error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to track video view: ' + error.message
+      });
+    }
+  },
+
+  /**
+   * Get bulk analytics for multiple lessons
+   * GET /api/videos/bulk/analytics?lessonIds=1,2,3
+   */
+  async getBulkAnalytics(req, res) {
+    try {
+      const { lessonIds, timeframe = '7:days' } = req.query;
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+      const muxService = require('../services/muxService');
+
+      if (!lessonIds) {
+        return res.status(400).json({
+          success: false,
+          message: 'lessonIds query parameter is required'
+        });
+      }
+
+      const lessonIdArray = lessonIds.split(',').map(id => parseInt(id));
+
+      // Verify user has permission to view analytics for these lessons
+      if (userRole === 'teacher') {
+        const lessons = await db('lessons')
+          .whereIn('id', lessonIdArray)
+          .join('courses', 'lessons.course_id', 'courses.id')
+          .select('lessons.id', 'courses.teacher_id');
+
+        const unauthorized = lessons.some(l => l.teacher_id !== userId);
+        if (unauthorized) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to view analytics for some of these lessons'
+          });
+        }
+      } else if (userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      // Get bulk analytics
+      const analytics = await muxService.getBulkAnalytics(
+        lessonIdArray,
+        db,
+        { timeframe }
+      );
+
+      res.json({
+        success: true,
+        analytics
+      });
+    } catch (error) {
+      console.error('Get bulk analytics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch bulk analytics: ' + error.message
+      });
+    }
+  },
+
+  // ============================================================================
+  // MUX INTEGRATION ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Create Mux direct upload URL
+   * POST /api/videos/mux/upload-url
+   */
+  async createMuxUploadUrl(req, res) {
+  try {
+    const { lessonId, metadata = {} } = req.body;
+    const userId = req.user.id;
+
+    // Validate lesson exists and user has permission
+    const lesson = await db('lessons')
+      .where({ id: lessonId })
+      .first();
+
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lesson not found'
+      });
+    }
+
+    // Check if user owns the lesson's course
+    const course = await db('courses')
+      .where({ id: lesson.course_id })
+      .first();
+
+    // Allow if user is admin, teacher role, or owns the course
+    const isAuthorized = 
+      req.user.role === 'admin' || 
+      req.user.role === 'teacher' ||
+      course.created_by === userId;
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to upload video for this lesson'
+      });
+    }
+
+    // Create Mux direct upload
+    const upload = await muxService.createDirectUpload({
+      corsOrigin: req.headers.origin || process.env.FRONTEND_URL,
+      metadata: {
+        lessonId,
+        userId,
+        ...metadata
+      }
+    });
+
+    // Update lesson with upload info
+    await db('lessons')
+      .where({ id: lessonId })
+      .update({
+        mux_upload_id: upload.uploadId,
+        video_provider: 'mux',
+        mux_status: 'preparing',
+        updated_at: db.fn.now()
+      });
+
+    console.log(`✅ Mux upload URL created for lesson ${lessonId}`);
+
+    res.json({
+      success: true,
+      data: {
+        uploadUrl: upload.uploadUrl,
+        uploadId: upload.uploadId,
+        lessonId
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to create Mux upload URL:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create upload URL',
+      error: error.message
+    });
+  }
+},
+
+  /**
+   * Handle Mux webhook events
+   * POST /api/videos/mux/webhook
+   */
+  async handleMuxWebhook(req, res) {
+  try {
+    // Get raw body for signature verification
+    const signature = req.headers['mux-signature'];
+    const rawBody = JSON.stringify(req.body);
+
+    // Verify webhook signature
+    const isValid = muxService.verifyWebhookSignature(rawBody, signature);
+
+    if (!isValid) {
+      console.warn('⚠️  Invalid Mux webhook signature');
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid webhook signature'
+      });
+    }
+
+    const event = req.body;
+    console.log('📥 Mux webhook received:', event.type);
+
+    // Handle different event types
+    switch (event.type) {
+      case 'video.asset.ready':
+        await handleAssetReady(event.data);
+        break;
+
+      case 'video.asset.errored':
+        await handleAssetError(event.data);
+        break;
+
+      case 'video.upload.asset_created':
+        await handleUploadAssetCreated(event.data);
+        break;
+
+      case 'video.upload.cancelled':
+      case 'video.upload.errored':
+        await handleUploadError(event.data);
+        break;
+
+      default:
+        console.log(`ℹ️  Unhandled webhook event: ${event.type}`);
+    }
+
+    res.json({ success: true, received: true });
+  } catch (error) {
+    console.error('❌ Webhook processing error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Webhook processing failed',
+      error: error.message
+    });
+  }
+},
+
+  /**
+   * Get playback information for a lesson
+   * GET /api/videos/:lessonId/playback
+   */
+  async getPlaybackInfo(req, res) {
+  try {
+    const { lessonId } = req.params;
+    const userId = req.user?.id;
+    const { generateSignedUrls = 'true' } = req.query;
+
+    const videoProviderDetection = require('../utils/videoProviderDetection');
+
+    // Get lesson with video info
+    const lesson = await db('lessons')
+      .where({ id: lessonId })
+      .first();
+
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lesson not found'
+      });
+    }
+
+    // Check enrollment if user is authenticated
+    if (userId) {
+      const enrollment = await db('user_course_enrollments')
+        .where({
+          user_id: userId,
+          course_id: lesson.course_id
+        })
+        .first();
+
+      const course = await db('courses')
+        .where({ id: lesson.course_id })
+        .first();
+
+      const isOwner = course && course.created_by === userId;
+      const isAdmin = req.user.role === 'chapter_admin' || req.user.role === 'platform_admin';
+
+      if (!enrollment && !isOwner && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not enrolled in this course'
+        });
+      }
+    }
+
+    // Get playback info using provider detection utility
+    const playbackInfo = await videoProviderDetection.getPlaybackInfo(lesson, {
+      generateSignedUrls: generateSignedUrls === 'true',
+      urlExpiration: 3600, // 1 hour
+      playbackPolicy: 'public' // Can be made dynamic based on course settings
+    });
+
+    res.json({
+      success: true,
+      data: playbackInfo
+    });
+    } catch (error) {
+      console.error('❌ Failed to get playback info:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get playback information',
+        error: error.message
       });
     }
   }

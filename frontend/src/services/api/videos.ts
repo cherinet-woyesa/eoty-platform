@@ -558,5 +558,247 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
       console.error('Test upload failed:', error);
       throw error;
     }
+  },
+
+  // ============================================================================
+  // MUX INTEGRATION METHODS
+  // ============================================================================
+
+  /**
+   * Get playback information for a lesson (supports both Mux and S3)
+   * This method automatically detects the video provider and returns appropriate playback URLs
+   */
+  getPlaybackInfo: async (lessonId: string, options?: { generateSignedUrls?: boolean }) => {
+    try {
+      const params = new URLSearchParams();
+      if (options?.generateSignedUrls !== undefined) {
+        params.append('generateSignedUrls', options.generateSignedUrls.toString());
+      }
+
+      const url = `/videos/${lessonId}/playback${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await apiClient.get(url, { timeout: 10000 });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Get playback info error:', error);
+      
+      // Provider-specific error handling
+      if (error.response?.status === 404) {
+        throw new Error('Video not found or not yet processed');
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have access to this video');
+      } else if (error.response?.data?.message?.includes('Mux')) {
+        throw new Error(`Mux error: ${error.response.data.message}`);
+      } else if (error.response?.data?.message?.includes('S3')) {
+        throw new Error(`S3 error: ${error.response.data.message}`);
+      }
+      
+      throw new Error(error.response?.data?.message || 'Failed to get playback information');
+    }
+  },
+
+  /**
+   * Create Mux direct upload URL for a lesson
+   */
+  createMuxUploadUrl: async (lessonId: string, metadata?: Record<string, any>) => {
+    try {
+      const response = await apiClient.post('/videos/mux/upload-url', {
+        lessonId,
+        metadata
+      }, { timeout: 15000 });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Create Mux upload URL error:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('Lesson not found');
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to upload videos for this lesson');
+      } else if (error.response?.data?.message?.includes('Mux')) {
+        throw new Error(`Mux configuration error: ${error.response.data.message}`);
+      }
+      
+      throw new Error(error.response?.data?.message || 'Failed to create Mux upload URL');
+    }
+  },
+
+  /**
+   * Get Mux asset status for a lesson
+   */
+  getMuxAssetStatus: async (lessonId: string) => {
+    try {
+      const response = await apiClient.get(`/videos/${lessonId}/mux-status`, {
+        timeout: 10000
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Get Mux asset status error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to get Mux asset status');
+    }
+  },
+
+  /**
+   * Track video view for analytics
+   */
+  trackVideoView: async (lessonId: string, viewData: {
+    watchTime: number;
+    videoDuration?: number;
+    completionPercentage: number;
+    muxViewId?: string;
+    deviceInfo?: {
+      deviceType?: string;
+      browser?: string;
+      os?: string;
+      country?: string;
+      region?: string;
+    };
+  }) => {
+    try {
+      const response = await apiClient.post(`/videos/${lessonId}/track-view`, viewData, {
+        timeout: 5000
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      // Don't throw errors for analytics tracking - just log them
+      console.error('Track video view error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Get bulk analytics for multiple lessons
+   */
+  getBulkAnalytics: async (lessonIds: number[], timeframe: string = '7:days') => {
+    try {
+      const params = new URLSearchParams();
+      params.append('lessonIds', lessonIds.join(','));
+      params.append('timeframe', timeframe);
+
+      const response = await apiClient.get(`/videos/bulk/analytics?${params.toString()}`, {
+        timeout: 15000
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Get bulk analytics error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to get bulk analytics');
+    }
+  },
+
+  /**
+   * Check if video provider is Mux or S3
+   */
+  detectVideoProvider: async (lessonId: string): Promise<'mux' | 's3' | 'none'> => {
+    try {
+      const playbackInfo = await videoApi.getPlaybackInfo(lessonId);
+      return playbackInfo.data?.provider || 'none';
+    } catch (error) {
+      console.error('Detect video provider error:', error);
+      return 'none';
+    }
+  },
+
+  /**
+   * Upload video to Mux (alternative to direct upload)
+   * This method handles the entire upload process including URL generation
+   */
+  uploadToMux: async (
+    file: File,
+    lessonId: string,
+    onProgress?: (progress: number) => void
+  ) => {
+    try {
+      // Step 1: Get Mux upload URL
+      const uploadUrlResponse = await videoApi.createMuxUploadUrl(lessonId, {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
+      const { uploadUrl, uploadId } = uploadUrlResponse.data;
+
+      // Step 2: Upload file directly to Mux
+      const xhr = new XMLHttpRequest();
+
+      return new Promise((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable && onProgress) {
+            const progress = Math.round((e.loaded / e.total) * 100);
+            onProgress(progress);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve({
+              success: true,
+              uploadId,
+              message: 'Video uploaded successfully to Mux'
+            });
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload aborted'));
+        });
+
+        xhr.open('PUT', uploadUrl);
+        xhr.send(file);
+      });
+    } catch (error: any) {
+      console.error('Upload to Mux error:', error);
+      throw new Error(error.message || 'Failed to upload video to Mux');
+    }
+  },
+
+  /**
+   * Handle provider-specific errors with user-friendly messages
+   */
+  handleProviderError: (error: any, provider: 'mux' | 's3' | 'unknown' = 'unknown'): string => {
+    const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+
+    // Mux-specific errors
+    if (provider === 'mux' || errorMessage.toLowerCase().includes('mux')) {
+      if (errorMessage.includes('not configured')) {
+        return 'Mux video service is not configured. Please contact support.';
+      } else if (errorMessage.includes('asset') && errorMessage.includes('not found')) {
+        return 'Video asset not found in Mux. It may have been deleted.';
+      } else if (errorMessage.includes('processing')) {
+        return 'Video is still being processed. Please wait a few moments.';
+      } else if (errorMessage.includes('playback')) {
+        return 'Unable to generate playback URL. Please try again.';
+      }
+    }
+
+    // S3-specific errors
+    if (provider === 's3' || errorMessage.toLowerCase().includes('s3')) {
+      if (errorMessage.includes('not found')) {
+        return 'Video file not found in storage. It may have been moved or deleted.';
+      } else if (errorMessage.includes('access denied')) {
+        return 'Access to video file denied. Please check your permissions.';
+      }
+    }
+
+    // Generic errors
+    if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+      return 'You do not have permission to access this video.';
+    } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+      return 'Video not found. It may have been deleted.';
+    } else if (errorMessage.includes('timeout')) {
+      return 'Request timed out. Please check your connection and try again.';
+    } else if (errorMessage.includes('network')) {
+      return 'Network error. Please check your internet connection.';
+    }
+
+    return errorMessage;
   }
 };
