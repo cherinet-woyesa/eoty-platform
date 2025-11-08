@@ -54,13 +54,12 @@ export interface NavItem {
 export const ROLE_HIERARCHY: Record<string, number> = {
   student: 1,
   teacher: 2,
-  chapter_admin: 3,
-  platform_admin: 4,
+  admin: 3,
 };
 
 /**
  * Admin navigation items
- * Accessible by chapter_admin and platform_admin roles
+ * Accessible by admin role
  */
 export const adminNavItems: NavItem[] = [
   {
@@ -70,7 +69,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Overview & metrics',
     color: 'text-blue-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'User Management',
@@ -79,7 +78,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Manage users & roles',
     color: 'text-indigo-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Courses',
@@ -88,7 +87,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Manage all courses',
     color: 'text-green-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Upload Queue',
@@ -97,7 +96,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Approve uploads',
     color: 'text-purple-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Moderation',
@@ -106,7 +105,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Content review',
     color: 'text-red-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Tags & Categories',
@@ -115,7 +114,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Organize content',
     color: 'text-pink-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Analytics',
@@ -124,7 +123,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Platform insights',
     color: 'text-orange-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'Mux Migration',
@@ -133,7 +132,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Migrate videos to Mux',
     color: 'text-purple-600',
-    requiredRole: ['platform_admin'],
+    requiredRole: 'admin',
   },
   {
     name: 'System Config',
@@ -142,7 +141,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Manage system options',
     color: 'text-gray-600',
-    requiredRole: ['chapter_admin', 'platform_admin'],
+    requiredRole: 'admin',
     children: [
       {
         name: 'Categories',
@@ -150,7 +149,7 @@ export const adminNavItems: NavItem[] = [
         icon: FolderTree,
         description: 'Course categories',
         color: 'text-blue-600',
-        requiredRole: ['chapter_admin', 'platform_admin'],
+        requiredRole: 'admin',
       },
       {
         name: 'Levels',
@@ -158,7 +157,7 @@ export const adminNavItems: NavItem[] = [
         icon: Layers,
         description: 'Difficulty levels',
         color: 'text-green-600',
-        requiredRole: ['chapter_admin', 'platform_admin'],
+        requiredRole: 'admin',
       },
       {
         name: 'Durations',
@@ -166,7 +165,7 @@ export const adminNavItems: NavItem[] = [
         icon: Timer,
         description: 'Course durations',
         color: 'text-purple-600',
-        requiredRole: ['chapter_admin', 'platform_admin'],
+        requiredRole: 'admin',
       },
       {
         name: 'Tags',
@@ -174,7 +173,7 @@ export const adminNavItems: NavItem[] = [
         icon: Hash,
         description: 'Content tags',
         color: 'text-pink-600',
-        requiredRole: ['chapter_admin', 'platform_admin'],
+        requiredRole: 'admin',
       },
       {
         name: 'Chapters',
@@ -182,7 +181,7 @@ export const adminNavItems: NavItem[] = [
         icon: BookOpen,
         description: 'Chapter management',
         color: 'text-indigo-600',
-        requiredRole: ['chapter_admin', 'platform_admin'],
+        requiredRole: 'admin',
       },
     ],
   },
@@ -190,7 +189,7 @@ export const adminNavItems: NavItem[] = [
 
 /**
  * Teacher navigation items
- * Accessible by teacher, chapter_admin, and platform_admin roles
+ * Accessible by teacher and admin roles
  */
 export const teacherNavItems: NavItem[] = [
   {
@@ -200,7 +199,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Teaching overview',
     color: 'text-blue-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'My Courses',
@@ -209,7 +208,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Manage courses',
     color: 'text-green-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Record Video',
@@ -218,7 +217,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Create lessons',
     color: 'text-red-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Create Course',
@@ -227,7 +226,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'New course',
     color: 'text-purple-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Students',
@@ -236,7 +235,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Manage learners',
     color: 'text-indigo-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Analytics',
@@ -245,7 +244,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'View reports',
     color: 'text-orange-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Discussions',
@@ -254,7 +253,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Student chats',
     color: 'text-pink-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Assignments',
@@ -263,7 +262,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Grade work',
     color: 'text-amber-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Resources',
@@ -272,7 +271,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Upload files',
     color: 'text-emerald-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'AI Assistant',
@@ -281,7 +280,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'Get help',
     color: 'text-cyan-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Achievements',
@@ -290,7 +289,7 @@ export const teacherNavItems: NavItem[] = [
     badge: null,
     description: 'View badges',
     color: 'text-yellow-600',
-    requiredRole: ['teacher', 'chapter_admin', 'platform_admin'],
+    requiredRole: ['teacher', 'admin'],
   },
 ];
 
