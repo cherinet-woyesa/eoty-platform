@@ -1,6 +1,5 @@
 import * as React from 'react';
 import MuxPlayer from '@mux/mux-player-react';
-import type MuxPlayerElement from '@mux/mux-player';
 import EnhancedVideoPlayer from './EnhancedVideoPlayer';
 
 interface UnifiedVideoPlayerProps {
@@ -8,8 +7,8 @@ interface UnifiedVideoPlayerProps {
     id: string;
     title?: string;
     video_provider?: 'mux' | 's3';
-    mux_playback_id?: string;
-    video_url?: string;
+    mux_playback_id?: string | null;
+    video_url?: string | null;
   };
   autoPlay?: boolean;
   onTimestampClick?: (timestamp: number) => void;
@@ -53,7 +52,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   onProgress,
   onComplete
 }) => {
-  const muxPlayerRef = React.useRef<MuxPlayerElement>(null);
+  const muxPlayerRef = React.useRef<any>(null);
   const [viewingSession, setViewingSession] = React.useState<ViewingSession>({
     startTime: Date.now(),
     lastProgressTime: 0,
@@ -62,71 +61,74 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const [currentPlaybackRate, setCurrentPlaybackRate] = React.useState(1);
   const progressIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // Detect video provider
+  // FIXED: Proper video provider detection with validation
   const videoProvider = React.useMemo(() => {
-    // Explicit provider field takes precedence
-    if (lesson.video_provider) {
-      return lesson.video_provider;
+    // If explicit provider is set, validate it has the required data
+    if (lesson.video_provider === 'mux') {
+      return lesson.mux_playback_id ? 'mux' : 'none';
     }
     
-    // If Mux playback ID exists, use Mux
+    if (lesson.video_provider === 's3') {
+      return lesson.video_url ? 's3' : 'none';
+    }
+    
+    // Auto-detect based on available data
     if (lesson.mux_playback_id) {
       return 'mux';
     }
     
-    // Otherwise, fallback to S3
-    return 's3';
-  }, [lesson.video_provider, lesson.mux_playback_id]);
+    if (lesson.video_url) {
+      return 's3';
+    }
+    
+    return 'none';
+  }, [lesson.video_provider, lesson.mux_playback_id, lesson.video_url]);
 
   console.log('UnifiedVideoPlayer - Provider detection:', {
     lessonId: lesson.id,
     provider: videoProvider,
     muxPlaybackId: lesson.mux_playback_id,
-    videoUrl: lesson.video_url
+    videoUrl: lesson.video_url,
+    videoProviderField: lesson.video_provider
   });
 
-  // Track viewing analytics for Mux videos (Requirement 2.5)
+  // FIXED: Simplified analytics tracking without API calls
   React.useEffect(() => {
     if (videoProvider !== 'mux') return;
 
-    // Start progress tracking interval
-    progressIntervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       const player = muxPlayerRef.current;
       if (player && !player.paused) {
         const currentTime = player.currentTime || 0;
         const duration = player.duration || 0;
         
-        setViewingSession(prev => {
-          const watchTime = prev.totalWatchTime + 1;
-          return {
-            ...prev,
-            lastProgressTime: currentTime,
-            totalWatchTime: watchTime
-          };
-        });
+        // Update viewing session
+        setViewingSession(prev => ({
+          ...prev,
+          lastProgressTime: currentTime,
+          totalWatchTime: prev.totalWatchTime + 1
+        }));
 
-        // Send progress update to backend
-        if (currentTime > 0 && duration > 0) {
+        // Send progress update
+        onProgress?.(currentTime);
+
+        // Log analytics every 10 seconds
+        if (Math.floor(currentTime) % 10 === 0 && duration > 0) {
           const progress = (currentTime / duration) * 100;
-          onProgress?.(currentTime);
-          
-          // Log analytics every 10 seconds
-          if (Math.floor(currentTime) % 10 === 0) {
-            console.log('Video analytics:', {
-              lessonId: lesson.id,
-              currentTime,
-              duration,
-              progress: progress.toFixed(2) + '%',
-              watchTime: viewingSession.totalWatchTime
-            });
-          }
+          console.log('Video analytics:', {
+            lessonId: lesson.id,
+            currentTime,
+            duration,
+            progress: progress.toFixed(2) + '%',
+            watchTime: viewingSession.totalWatchTime
+          });
         }
       }
     }, 1000);
 
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      if (interval) {
+        clearInterval(interval);
       }
     };
   }, [videoProvider, lesson.id, onProgress, viewingSession.totalWatchTime]);
@@ -140,10 +142,10 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
     };
   }, []);
 
-  // Render Mux Player for Mux videos (Requirements: 2.1, 2.3, 2.4, 2.5)
+  // FIXED: Render Mux Player ONLY if we have valid playback ID
   if (videoProvider === 'mux' && lesson.mux_playback_id) {
     return (
-      <div className="unified-video-player mux-player-container">
+      <div className="unified-video-player mux-player-container relative">
         <MuxPlayer
           ref={muxPlayerRef}
           playbackId={lesson.mux_playback_id}
@@ -154,18 +156,15 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           }}
           streamType="on-demand"
           autoPlay={autoPlay}
-          // Enable playback speed controls (Requirement 2.3)
           playbackRates={[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]}
           defaultShowRemainingTime
-          // Enable quality selector (Requirement 2.4)
-          // Mux Player automatically provides quality selection
-          onError={(error) => {
-            console.error('Mux Player error:', error);
+          onError={(event: any) => {
+            console.error('Mux Player error:', event);
             onError?.(new Error('Mux playback error'));
           }}
-          onLoadedMetadata={(e) => {
-            console.log('Mux video loaded:', e);
-            const player = e.target as MuxPlayerElement;
+          onLoadedMetadata={(event: any) => {
+            console.log('Mux video loaded:', event);
+            const player = event.target;
             onLoad?.({ 
               lesson,
               duration: player.duration,
@@ -173,13 +172,12 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               videoHeight: player.videoHeight
             });
           }}
-          onTimeUpdate={(e) => {
-            const player = e.target as MuxPlayerElement;
+          onTimeUpdate={(event: any) => {
+            const player = event.target;
             onProgress?.(player.currentTime || 0);
           }}
           onEnded={() => {
             console.log('Mux video completed');
-            // Track completion analytics
             console.log('Video viewing session completed:', {
               lessonId: lesson.id,
               totalWatchTime: viewingSession.totalWatchTime,
@@ -187,8 +185,8 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             });
             onComplete?.();
           }}
-          onRateChange={(e) => {
-            const player = e.target as MuxPlayerElement;
+          onRateChange={(event: any) => {
+            const player = event.target;
             const rate = player.playbackRate || 1;
             setCurrentPlaybackRate(rate);
             onPlaybackRateChange?.(rate);
@@ -208,16 +206,13 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           }}
           style={{
             width: '100%',
-            aspectRatio: '16/9',
-            '--controls': 'auto',
-            '--media-object-fit': 'contain',
-            '--media-object-position': 'center'
-          } as React.CSSProperties}
+            aspectRatio: '16/9'
+          }}
         />
         
         {/* Display current playback rate indicator */}
         {currentPlaybackRate !== 1 && (
-          <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm font-medium">
+          <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm font-medium z-10">
             {currentPlaybackRate}x
           </div>
         )}
@@ -225,7 +220,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
     );
   }
 
-  // Render legacy player for S3 videos
+  // FIXED: Render legacy player for S3 videos ONLY if we have valid video URL
   if (videoProvider === 's3' && lesson.video_url) {
     return (
       <div className="unified-video-player legacy-player-container">
@@ -247,7 +242,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
     );
   }
 
-  // No video available
+  // FIXED: No video available - Show appropriate message based on what's missing
   return (
     <div className="unified-video-player no-video-container">
       <div className="flex items-center justify-center bg-gray-900 rounded-lg" style={{ aspectRatio: '16/9' }}>
@@ -265,9 +260,19 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
             />
           </svg>
-          <h3 className="text-lg font-semibold mb-2">No Video Available</h3>
-          <p className="text-gray-400 text-sm">
-            This lesson doesn't have a video yet.
+          <h3 className="text-lg font-semibold mb-2">
+            {videoProvider === 'none' ? 'No Video Available' : 'Video Configuration Error'}
+          </h3>
+          <p className="text-gray-400 text-sm mb-2">
+            {lesson.video_provider === 'mux' && !lesson.mux_playback_id 
+              ? "Mux playback ID is missing for this lesson."
+              : lesson.video_provider === 's3' && !lesson.video_url
+              ? "Video URL is missing for this lesson." 
+              : "This lesson doesn't have a video configured yet."
+            }
+          </p>
+          <p className="text-gray-500 text-xs">
+            Lesson ID: {lesson.id} | Provider: {lesson.video_provider || 'auto'}
           </p>
         </div>
       </div>

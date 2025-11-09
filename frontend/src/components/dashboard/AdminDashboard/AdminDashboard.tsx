@@ -280,7 +280,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 Welcome, {user?.firstName}! {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
               <p className="text-blue-200 text-xs sm:text-sm mt-1">
-                You have {user?.role === 'platform_admin' ? 'full platform' : 'chapter'} admin privileges • Managing {realTimeStats?.totalUsers || 0} users across {realTimeStats?.activeCourses || 0} courses
+                You have full admin privileges • Managing {realTimeStats?.totalUsers || 0} users across {realTimeStats?.activeCourses || 0} courses
               </p>
             </div>
           </div>

@@ -50,7 +50,7 @@ exports.seed = async function(knex) {
       last_name: 'Admin',
       email: 'admin@eoty.org',
       password_hash: platformAdminPassword, // password: admin123
-      role: 'platform_admin',
+      role: 'admin',
       chapter_id: chapters[0].id,
       is_active: true
     }

@@ -44,7 +44,7 @@ interface Course {
 
 
 
-// FIXED: Enhanced blobToFile function with forced WebM type
+// FIXED: Enhanced blobToFile function that preserves original format
 const blobToFile = (blob: Blob, fileName: string): File => {
   try {
     if (!blob || blob.size === 0) {
@@ -60,14 +60,24 @@ const blobToFile = (blob: Blob, fileName: string): File => {
     // Extract base filename without extension
     const baseName = fileName.split('.')[0];
     
-    // ALWAYS use webm extension regardless of blob type
-    // This forces the file to be treated as WebM
-    const fileExtension = 'webm';
-    const mimeType = 'video/webm';
+    // FIXED: Detect actual format from blob type instead of forcing WebM
+    let fileExtension = 'webm';
+    let mimeType = blob.type || 'video/webm';
+    
+    if (blob.type.includes('mp4')) {
+      fileExtension = 'mp4';
+      mimeType = 'video/mp4';
+    } else if (blob.type.includes('webm')) {
+      fileExtension = 'webm';
+      mimeType = 'video/webm';
+    } else if (blob.type.includes('quicktime') || blob.type.includes('mov')) {
+      fileExtension = 'mov';
+      mimeType = 'video/quicktime';
+    }
     
     const finalFileName = `${baseName}.${fileExtension}`;
 
-    // Create the file with forced WebM type
+    // Create the file with correct type
     const file = new File([blob], finalFileName, {
       type: mimeType,
       lastModified: Date.now()
@@ -1115,10 +1125,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         // Debug the blob content before conversion
         await debugBlobContent(videoBlob);
         
-        // Repair WebM header for FFmpeg compatibility
-        const repairedBlob = await repairWebMHeader(videoBlob);
+        // FIXED: Only repair WebM header for actual WebM files, not MP4
+        let processedBlob = videoBlob;
+        const isWebM = videoBlob.type.includes('webm') || videoBlob.type === '';
+        const isMP4 = videoBlob.type.includes('mp4');
         
-        const videoFile = blobToFile(repairedBlob, `lesson-${newLessonId}-${Date.now()}`);
+        if (isWebM && !isMP4) {
+          console.log('WebM file detected - repairing header for FFmpeg compatibility');
+          processedBlob = await repairWebMHeader(videoBlob);
+        } else if (isMP4) {
+          console.log('MP4 file detected - using original blob without modification');
+        }
+        
+        const videoFile = blobToFile(processedBlob, `lesson-${newLessonId}-${Date.now()}`);
         
         // Validate the file before upload
         await validateVideoFile(videoFile);
@@ -1214,30 +1233,40 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   // NEW: Handle processing completion
-  const handleProcessingComplete = () => {
+  const handleProcessingComplete = (transcodedVideoUrl?: string) => {
     setShowProcessingStatus(false);
     setSuccessMessage('Video processing completed! Your video is now available.');
+    
+    // If we have a transcoded video URL, notify parent components
+    if (transcodedVideoUrl && processingLessonId) {
+      console.log('Processing complete with transcoded URL:', transcodedVideoUrl);
+      // The video player will read from the database, which should have the updated URL
+      // But we can notify parent components if needed
+      onUploadComplete?.(processingLessonId, transcodedVideoUrl);
+    }
+    
     setTimeout(() => {
       handleReset();
     }, 3000);
   };
 
   // NEW: Handle Mux upload completion
-  const handleMuxUploadComplete = useCallback((assetId: string, playbackId: string) => {
-    console.log('Mux upload complete:', { assetId, playbackId });
+  const handleMuxUploadComplete = useCallback((lessonId: string) => {
+    console.log('Mux upload complete for lesson:', lessonId);
     setUploadSuccess(true);
     setSuccessMessage('Video uploaded to Mux successfully! Processing will begin shortly.');
     
-    // Notify parent components
-    if (muxUploadLessonId) {
-      onUploadComplete?.(muxUploadLessonId, playbackId);
-    }
+    // Hide Mux uploader and show processing status
+    setShowMuxUploader(false);
+    setMuxUploadLessonId(null);
     
-    // Reset after a delay
-    setTimeout(() => {
-      handleReset();
-    }, 3000);
-  }, [muxUploadLessonId, onUploadComplete]);
+    // Show processing status component - it will wait for webhooks/WebSocket updates
+    setProcessingLessonId(lessonId);
+    setShowProcessingStatus(true);
+    
+    // Note: assetId and playbackId will come via webhooks and be updated in the database
+    // The VideoProcessingStatus component will listen for WebSocket updates
+  }, []);
 
   // NEW: Handle Mux upload error
   const handleMuxUploadError = useCallback((error: Error) => {
@@ -2046,7 +2075,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
           <MuxVideoUploader
             lessonId={muxUploadLessonId}
-            videoBlob={recordedVideo || undefined}
+            videoBlob={videoBlob || undefined}
             onUploadComplete={handleMuxUploadComplete}
             onError={handleMuxUploadError}
             onCancel={handleMuxUploadCancel}

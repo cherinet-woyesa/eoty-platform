@@ -11,6 +11,10 @@ const muxConfig = {
   tokenSecret: process.env.MUX_TOKEN_SECRET,
   webhookSecret: process.env.MUX_WEBHOOK_SECRET,
   
+  // Signing keys for signed playback
+  signingKeyId: process.env.MUX_SIGNING_KEY_ID,
+  signingKeyPrivate: process.env.MUX_SIGNING_KEY_PRIVATE,
+  
   // Environment
   environment: process.env.MUX_ENVIRONMENT || 'development',
   

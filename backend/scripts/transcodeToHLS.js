@@ -28,7 +28,8 @@ async function uploadToS3(bucket, key, filePath, contentType) {
     Key: key,
     Body: fileStream,
     ContentType: contentType,
-    ACL: 'public-read',
+    // ACL: 'public-read', // REMOVED - Bucket doesn't allow ACLs
+    CacheControl: 'max-age=31536000', // 1 year cache for HLS segments
   }));
 }
 
@@ -120,9 +121,16 @@ async function transcodeToHLS({ s3Bucket, s3Key, outputPrefix, resolutions = ['4
     await uploadToS3(s3Bucket, key, filePath, contentType);
   }
 
-  // Return CloudFront master playlist URL
-  const cloudFrontDomain = cloudFrontConfig.domain.replace(/\/$/, '');
-  const masterPlaylistUrl = `https://${cloudFrontDomain}/${outputPrefix}/master.m3u8`;
+  // Return CloudFront or S3 master playlist URL
+  let masterPlaylistUrl;
+  if (cloudFrontConfig.domain) {
+    const cloudFrontDomain = cloudFrontConfig.domain.replace(/\/$/, '');
+    masterPlaylistUrl = `https://${cloudFrontDomain}/${outputPrefix}/master.m3u8`;
+  } else {
+    // Fallback to S3 URL if CloudFront not configured
+    const region = process.env.AWS_REGION || 'us-east-1';
+    masterPlaylistUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${outputPrefix}/master.m3u8`;
+  }
   return masterPlaylistUrl;
 }
 

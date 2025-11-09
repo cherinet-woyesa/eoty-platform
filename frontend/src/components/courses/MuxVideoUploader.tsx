@@ -7,7 +7,7 @@ import { Upload, CheckCircle, AlertCircle, Loader, X } from 'lucide-react';
 interface MuxVideoUploaderProps {
   lessonId: string;
   videoBlob?: Blob; // Optional: if provided, will auto-upload this blob
-  onUploadComplete: (assetId: string, playbackId: string) => void;
+  onUploadComplete: (lessonId: string) => void; // Changed: now passes lessonId
   onUploadProgress?: (progress: number) => void;
   onError?: (error: Error) => void;
   onCancel?: () => void;
@@ -38,6 +38,14 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
 
   // Fetch upload URL from backend
   const fetchUploadUrl = useCallback(async () => {
+    if (!lessonId) {
+      const error = new Error('Lesson ID is required to create upload URL');
+      setErrorMessage(error.message);
+      setUploadStatus('error');
+      onError?.(error);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setUploadStatus('preparing');
@@ -59,7 +67,47 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       }
     } catch (error: any) {
       console.error('Failed to fetch Mux upload URL:', error);
-      const message = error.response?.data?.message || error.message || 'Failed to prepare upload';
+      let message = 'Failed to prepare upload';
+      
+      // Parse error message from response
+      if (error.response?.data?.error) {
+        // Check if it's a Mux API error with details
+        const errorStr = typeof error.response.data.error === 'string' 
+          ? error.response.data.error 
+          : JSON.stringify(error.response.data.error);
+        
+        // Check for Mux asset limit error
+        if (errorStr.includes('Free plan is limited to 10 assets') || 
+            errorStr.includes('exceeding this limit')) {
+          message = 'Mux free tier limit reached: You have reached the 10 asset limit. Please delete old videos or upgrade your Mux plan to upload more videos.';
+        } else if (errorStr.includes('invalid_parameters')) {
+          // Try to extract the actual error message from Mux
+          try {
+            const errorObj = typeof error.response.data.error === 'string' 
+              ? JSON.parse(error.response.data.error) 
+              : error.response.data.error;
+            if (errorObj?.error?.messages?.[0]) {
+              message = `Mux error: ${errorObj.error.messages[0]}`;
+            }
+          } catch {
+            message = errorStr;
+          }
+        } else {
+          message = errorStr;
+        }
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      // Log full error for debugging
+      console.error('Upload URL error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
       setErrorMessage(message);
       setUploadStatus('error');
       onError?.(new Error(message));
@@ -79,20 +127,15 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
   }, [onUploadProgress]);
 
   // Handle upload success
-  const handleSuccess = useCallback((event: any) => {
-    console.log('Mux upload successful:', event.detail);
+  const handleSuccess = useCallback(() => {
+    // The `onSuccess` event from MuxUploader confirms the file has been uploaded.
+    // It does not provide the assetId or playbackId directly.
+    // These details are sent to the backend via webhooks from Mux.
+    console.log('Mux upload successful: File transfer complete. Waiting for Mux to process the video.');
     setUploadStatus('success');
     setUploadProgress(100);
-
-    // Extract asset ID and playback ID from the event
-    const { assetId, playbackId } = event.detail || {};
-    
-    if (assetId) {
-      onUploadComplete(assetId, playbackId || '');
-    } else {
-      console.warn('Upload succeeded but no asset ID received');
-    }
-  }, [onUploadComplete]);
+    onUploadComplete(lessonId);
+  }, [onUploadComplete, lessonId]);
 
   // Handle upload error
   const handleError = useCallback((event: any) => {
@@ -165,7 +208,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
           setUploadStatus('success');
           setUploadProgress(100);
           // Mux will send webhook when asset is ready
-          onUploadComplete('', ''); // Asset ID will come via webhook
+          onUploadComplete(lessonId); // Pass lessonId - Asset ID will come via webhook
         } else {
           throw new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`);
         }
@@ -202,10 +245,10 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
 
   // Auto-upload when videoBlob is provided
   useEffect(() => {
-    if (videoBlob && !uploadUrl) {
+    if (videoBlob && !uploadUrl && lessonId) {
       fetchUploadUrl();
     }
-  }, [videoBlob, uploadUrl, fetchUploadUrl]);
+  }, [videoBlob, uploadUrl, lessonId, fetchUploadUrl]);
 
   // Upload blob when URL is ready
   useEffect(() => {
@@ -218,18 +261,31 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
     <div className="w-full">
       {/* Status Messages */}
       {uploadStatus === 'error' && errorMessage && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-red-900">Upload Failed</h4>
-            <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+        <div className="mb-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-red-900 mb-2">Upload Failed</h4>
+              <p className="text-sm text-red-700 mb-2">{errorMessage}</p>
+              {errorMessage.includes('10 asset limit') && (
+                <div className="mt-3 p-2 bg-red-100 rounded border border-red-200">
+                  <p className="text-xs text-red-800 font-medium mb-1">Solutions:</p>
+                  <ul className="text-xs text-red-700 list-disc list-inside space-y-1">
+                    <li>Delete unused videos from your Mux dashboard</li>
+                    <li>Upgrade your Mux plan for more storage</li>
+                    <li>Use S3 upload instead (toggle in settings)</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleCancel}
+              className="text-red-600 hover:text-red-800 flex-shrink-0"
+              aria-label="Close error"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            onClick={handleCancel}
-            className="text-red-600 hover:text-red-800"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
       )}
 

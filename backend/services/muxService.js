@@ -78,8 +78,46 @@ class MuxService {
         corsOrigin: upload.cors_origin
       };
     } catch (error) {
-      console.error('❌ Failed to create direct upload:', error.message);
-      throw new Error(`Failed to create Mux direct upload: ${error.message}`);
+      console.error('❌ Failed to create direct upload:', error);
+      
+      // Parse Mux API error messages for better user feedback
+      let errorMessage = error.message || 'Unknown error';
+      
+      // Check if error has response data with Mux error details
+      if (error.response?.data) {
+        const muxError = error.response.data;
+        
+        // Check for asset limit error
+        if (muxError.error && muxError.error.messages) {
+          const messages = muxError.error.messages;
+          if (messages.some(msg => msg.includes('10 assets') || msg.includes('exceeding this limit'))) {
+            errorMessage = `400 ${JSON.stringify({error: {type: muxError.error.type, messages}})}`;
+          } else {
+            errorMessage = `400 ${JSON.stringify(muxError)}`;
+          }
+        } else {
+          errorMessage = `400 ${JSON.stringify(muxError)}`;
+        }
+      }
+      
+      throw new Error(`Failed to create Mux direct upload: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get upload information from Mux
+   * 
+   * @param {string} uploadId - Mux upload ID
+   * @returns {Promise<Object>} Upload information
+   */
+  async getUpload(uploadId) {
+    try {
+      console.log('Fetching Mux upload:', uploadId);
+      const upload = await this.mux.video.uploads.retrieve(uploadId);
+      return upload;
+    } catch (error) {
+      console.error('Failed to fetch Mux upload:', error.message);
+      throw error;
     }
   }
 
@@ -115,35 +153,94 @@ class MuxService {
   }
 
   /**
-   * Create a signed playback URL for private videos
+   * Generate a signed playback token (JWT) for private videos
    * 
    * @param {string} playbackId - Mux playback ID
    * @param {Object} options - Signing options
    * @param {number} options.expiresIn - Expiration time in seconds
    * @param {string} options.type - 'video' or 'thumbnail' or 'storyboard'
+   * @param {Object} options.params - Additional parameters for the token
+   * @returns {Promise<string>} Signed playback token (JWT)
+   */
+  async generatePlaybackToken(playbackId, options = {}) {
+    try {
+      const {
+        expiresIn = this.config.signedUrlExpiration.playback,
+        type = 'video',
+        params = {}
+      } = options;
+
+      console.log('Generating signed playback token:', { playbackId, type, expiresIn });
+
+      // Check if we have signing key configuration
+      if (!this.config.signingKeyId || !this.config.signingKeyPrivate) {
+        console.warn('⚠️  No signing key configured. Attempting to fetch from Mux...');
+        
+        // Try to get or create signing keys
+        const signingKeys = await this.mux.video.signingKeys.list();
+        
+        if (!signingKeys || signingKeys.data.length === 0) {
+          console.warn('⚠️  No signing keys found. Creating one...');
+          const newKey = await this.mux.video.signingKeys.create();
+          console.log('✅ Created signing key:', newKey.id);
+          console.log('⚠️  Please add these to your .env file:');
+          console.log(`   MUX_SIGNING_KEY_ID=${newKey.id}`);
+          console.log(`   MUX_SIGNING_KEY_PRIVATE=${newKey.private_key}`);
+          
+          // Use the newly created key
+          this.config.signingKeyId = newKey.id;
+          this.config.signingKeyPrivate = newKey.private_key;
+        } else {
+          // Use the first available key
+          const firstKey = signingKeys.data[0];
+          console.log('✅ Using existing signing key:', firstKey.id);
+          this.config.signingKeyId = firstKey.id;
+          this.config.signingKeyPrivate = firstKey.private_key;
+        }
+      }
+
+      // Generate JWT token using Mux utilities
+      const jwt = require('jsonwebtoken');
+      
+      // Calculate expiration timestamp
+      const expiration = Math.floor(Date.now() / 1000) + expiresIn;
+
+      // Create JWT payload
+      const payload = {
+        sub: playbackId,
+        aud: type,
+        exp: expiration,
+        kid: this.config.signingKeyId,
+        ...params
+      };
+
+      // Sign the token
+      const token = jwt.sign(payload, Buffer.from(this.config.signingKeyPrivate, 'base64'), {
+        algorithm: 'RS256',
+        keyid: this.config.signingKeyId
+      });
+
+      console.log('✅ Playback token generated');
+
+      return token;
+    } catch (error) {
+      console.error('❌ Failed to generate playback token:', error.message);
+      throw new Error(`Failed to generate playback token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create a signed playback URL for private videos (legacy method)
+   * 
+   * @param {string} playbackId - Mux playback ID
+   * @param {Object} options - Signing options
    * @returns {Promise<string>} Signed playback URL
    */
   async createSignedPlaybackUrl(playbackId, options = {}) {
     try {
-      const {
-        expiresIn = this.config.signedUrlExpiration.playback,
-        type = 'video'
-      } = options;
-
-      console.log('Creating signed playback URL:', { playbackId, type, expiresIn });
-
-      // Calculate expiration timestamp
-      const expiration = Math.floor(Date.now() / 1000) + expiresIn;
-
-      // Generate signed URL using Mux SDK
-      const signedUrl = await this.mux.video.signingKeys.signPlaybackId(playbackId, {
-        type,
-        expiration
-      });
-
-      console.log('✅ Signed URL created');
-
-      return signedUrl;
+      const token = await this.generatePlaybackToken(playbackId, options);
+      const baseUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+      return `${baseUrl}?token=${token}`;
     } catch (error) {
       console.error('❌ Failed to create signed URL:', error.message);
       throw new Error(`Failed to create signed playback URL: ${error.message}`);

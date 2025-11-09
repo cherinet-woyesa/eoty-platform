@@ -147,11 +147,24 @@ class VideoProcessingService {
 
       // Handle different video formats appropriately
       let hlsUrl;
+      // WebM files need transcoding for browser compatibility (Safari doesn't support WebM well)
+      // Convert WebM to MP4/HLS for better cross-browser support
       if (s3Key.toLowerCase().endsWith('.webm')) {
-        console.log('Skipping HLS transcoding for WebM file, using original video');
-        // Use the original S3 URL as fallback for WebM files (due to stream issues)
-        hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400); // 24 hours
-        console.log('Using original WebM file as video URL:', hlsUrl);
+        console.log('WebM file detected - transcoding to HLS for browser compatibility');
+        try {
+          // Start HLS transcoding for WebM files to ensure browser compatibility
+          hlsUrl = await transcodeToHLS({
+            s3Bucket: cloudStorageService.bucket,
+            s3Key: s3Key,
+            outputPrefix: outputPrefix,
+          });
+          console.log('WebM HLS transcoding completed, URL:', hlsUrl);
+        } catch (transcodeError) {
+          console.error('WebM transcoding failed, falling back to direct URL:', transcodeError);
+          // Fallback: Use signed URL but warn about compatibility
+          hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400); // 24 hours
+          console.warn('Using WebM file directly - may not work in all browsers (especially Safari)');
+        }
       } else {
         console.log('Starting HLS transcoding for', s3Key);
         // Start HLS transcoding for MP4 and other formats

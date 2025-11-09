@@ -83,24 +83,44 @@ async function getPlaybackInfo(lesson, options = {}) {
       playbackInfo.metadata.uploadId = lesson.mux_upload_id;
 
       if (lesson.mux_playback_id && lesson.mux_status === 'ready') {
-        // Generate playback URL
-        if (playbackPolicy === 'signed' || generateSignedUrls) {
-          playbackInfo.playbackUrl = await muxService.createSignedPlaybackUrl(
-            lesson.mux_playback_id,
-            { expiresIn: urlExpiration }
-          );
+        // For Mux, we need to provide the playback ID and optionally a token
+        playbackInfo.playbackUrl = lesson.mux_playback_id; // Just the playback ID
+        
+        // Only generate tokens for signed policy (production)
+        if (playbackPolicy === 'signed' && generateSignedUrls) {
+          try {
+            playbackInfo.metadata.playbackToken = await muxService.generatePlaybackToken(
+              lesson.mux_playback_id,
+              { expiresIn: urlExpiration, type: 'video' }
+            );
+            console.log('✅ Playback token generated for signed video');
+          } catch (error) {
+            console.error('Failed to generate playback token:', error);
+            // Fallback to public playback if token generation fails
+            console.warn('Falling back to public playback');
+          }
         } else {
-          playbackInfo.playbackUrl = await muxService.getPlaybackUrl(
-            lesson.mux_playback_id,
-            'public'
-          );
+          console.log('🔓 Using public playback (development mode)');
         }
 
-        // Generate thumbnail URL
-        playbackInfo.thumbnailUrl = await muxService.getThumbnailUrl(
-          lesson.mux_playback_id,
-          { signed: playbackPolicy === 'signed' || generateSignedUrls }
-        );
+        // Generate thumbnail URL - use public for development
+        if (playbackPolicy === 'public' || !generateSignedUrls) {
+          // Use public Mux thumbnail URL
+          playbackInfo.thumbnailUrl = `https://image.mux.com/${lesson.mux_playback_id}/thumbnail.jpg`;
+          console.log('🔓 Using public thumbnail URL');
+        } else {
+          // Try to generate signed thumbnail for production
+          try {
+            playbackInfo.thumbnailUrl = await muxService.getThumbnailUrl(
+              lesson.mux_playback_id,
+              { signed: true }
+            );
+          } catch (error) {
+            console.error('Failed to generate signed thumbnail URL:', error);
+            // Fallback to public thumbnail
+            playbackInfo.thumbnailUrl = `https://image.mux.com/${lesson.mux_playback_id}/thumbnail.jpg`;
+          }
+        }
 
         playbackInfo.metadata.supportsAdaptiveStreaming = true;
         playbackInfo.metadata.format = 'hls';
@@ -113,27 +133,68 @@ async function getPlaybackInfo(lesson, options = {}) {
       }
     } else if (provider === 's3') {
       // S3 video playback
-      playbackInfo.status = 'ready';
+      // Check if video is still processing (check videos table status if available)
+      const isProcessing = lesson.video_status === 'processing' || 
+                          lesson.video_status === 'uploading' ||
+                          (lesson.video_id && !lesson.video_url?.includes('.m3u8') && !lesson.video_url?.includes('/hls/'));
+      
+      playbackInfo.status = isProcessing ? 'processing' : 'ready';
       playbackInfo.metadata.s3Key = lesson.s3_key;
       playbackInfo.metadata.videoUrl = lesson.video_url;
       playbackInfo.metadata.hlsUrl = lesson.hls_url;
+      playbackInfo.metadata.isProcessing = isProcessing;
 
-      // Generate signed URL for S3 if requested
-      if (generateSignedUrls && lesson.s3_key) {
+      // Priority: Use video_url if it contains HLS (transcoded), otherwise use hls_url, then s3_key
+      const hasHlsInVideoUrl = lesson.video_url && (
+        lesson.video_url.includes('.m3u8') || 
+        lesson.video_url.includes('/hls/')
+      );
+
+      if (hasHlsInVideoUrl) {
+        // video_url contains the transcoded HLS URL - use it directly
+        playbackInfo.playbackUrl = lesson.video_url;
+        playbackInfo.metadata.supportsAdaptiveStreaming = true;
+        playbackInfo.metadata.format = 'hls';
+        playbackInfo.status = 'ready';
+        console.log('✅ Using transcoded HLS URL from video_url:', lesson.video_url);
+      } else if (lesson.hls_url) {
+        // Prefer hls_url field if available
+        playbackInfo.playbackUrl = lesson.hls_url;
+        playbackInfo.metadata.supportsAdaptiveStreaming = true;
+        playbackInfo.metadata.format = 'hls';
+        playbackInfo.status = 'ready';
+        console.log('✅ Using hls_url from lesson:', lesson.hls_url);
+      } else if (isProcessing && generateSignedUrls && lesson.s3_key) {
+        // Video is still processing - provide temporary URL from original file
         playbackInfo.playbackUrl = await cloudStorageService.getSignedStreamUrl(
           lesson.s3_key,
           urlExpiration
         );
-      } else if (lesson.hls_url) {
-        // Prefer HLS URL if available
-        playbackInfo.playbackUrl = lesson.hls_url;
+        playbackInfo.metadata.supportsAdaptiveStreaming = false;
+        playbackInfo.metadata.format = lesson.s3_key.toLowerCase().endsWith('.webm') ? 'webm' : 'mp4';
+        playbackInfo.metadata.message = 'Video is being transcoded. This is a temporary URL - the transcoded version will be available shortly.';
+        playbackInfo.metadata.warning = 'Transcoding in progress - using original file temporarily';
+        console.log('⏳ Video is still processing, providing temporary URL from original file');
+      } else if (generateSignedUrls && lesson.s3_key) {
+        // Fallback: Generate signed URL from s3_key (original file)
+        // This means transcoding hasn't completed or failed
+        playbackInfo.playbackUrl = await cloudStorageService.getSignedStreamUrl(
+          lesson.s3_key,
+          urlExpiration
+        );
+        playbackInfo.metadata.supportsAdaptiveStreaming = false;
+        playbackInfo.metadata.format = lesson.s3_key.toLowerCase().endsWith('.webm') ? 'webm' : 'mp4';
+        playbackInfo.metadata.warning = lesson.s3_key.toLowerCase().endsWith('.webm') 
+          ? 'WebM format may not be supported by all browsers. Transcoding may still be in progress.'
+          : 'Using original file - transcoding may still be in progress.';
+        console.log('⚠️ Using signed URL from s3_key (original file, transcoding may be in progress):', lesson.s3_key);
       } else {
+        // Last resort: Use video_url as-is
         playbackInfo.playbackUrl = lesson.video_url;
+        playbackInfo.metadata.supportsAdaptiveStreaming = false;
+        playbackInfo.metadata.format = 'mp4';
+        console.log('⚠️ Using video_url as-is (may be original file):', lesson.video_url);
       }
-
-      // Check if HLS is available
-      playbackInfo.metadata.supportsAdaptiveStreaming = !!lesson.hls_url;
-      playbackInfo.metadata.format = lesson.hls_url ? 'hls' : 'mp4';
 
       // Thumbnail from S3 if available
       if (lesson.thumbnail_url) {

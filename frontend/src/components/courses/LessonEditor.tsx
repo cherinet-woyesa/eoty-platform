@@ -17,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Spinner, LoadingButton } from '../shared/LoadingStates';
+import MuxVideoUploader from './MuxVideoUploader';
 
 interface LessonEditorProps {
   lessonId: string;
@@ -39,11 +40,6 @@ interface Resource {
   type: string;
 }
 
-interface ThumbnailOption {
-  time: number;
-  dataUrl: string;
-}
-
 export const LessonEditor: React.FC<LessonEditorProps> = ({
   lessonId,
   courseId,
@@ -52,7 +48,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
 }) => {
   const { showNotification } = useNotification();
   const queryClient = useQueryClient();
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const subtitleInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch lesson data
@@ -71,15 +66,8 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
     duration: 0,
   });
 
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('');
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [isUploading, setIsUploading] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
   const [subtitleFile, setSubtitleFile] = useState<File | null>(null);
-  const [thumbnailOptions, setThumbnailOptions] = useState<ThumbnailOption[]>([]);
-  const [selectedThumbnail, setSelectedThumbnail] = useState<string>('');
-  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
 
   // Video status polling
   const { data: videoStatusData, refetch: refetchVideoStatus } = useQuery({
@@ -189,197 +177,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
       await updateMutation.mutateAsync(updateData);
     } catch (error) {
       // Error already handled in mutation
-    }
-  };
-
-  // Video file selection
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('video/')) {
-      showNotification({
-        type: 'error',
-        title: 'Invalid File',
-        message: 'Please select a video file',
-        duration: 5000,
-      });
-      return;
-    }
-
-    // Validate file size (max 500MB)
-    if (file.size > 500 * 1024 * 1024) {
-      showNotification({
-        type: 'error',
-        title: 'File Too Large',
-        message: 'Video must be less than 500MB',
-        duration: 5000,
-      });
-      return;
-    }
-
-    setVideoFile(file);
-    
-    // Create preview URL
-    const url = URL.createObjectURL(file);
-    setVideoPreviewUrl(url);
-
-    // Extract video metadata (duration)
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      window.URL.revokeObjectURL(video.src);
-      const durationInSeconds = Math.floor(video.duration);
-      
-      // Auto-populate duration if not already set
-      if (formData.duration === 0 || !formData.duration) {
-        setFormData(prev => ({ ...prev, duration: durationInSeconds }));
-        showNotification({
-          type: 'info',
-          title: 'Duration Detected',
-          message: `Video duration: ${Math.floor(durationInSeconds / 60)}m ${durationInSeconds % 60}s`,
-          duration: 3000,
-        });
-      }
-    };
-    video.src = url;
-  };
-
-  // Upload video
-  const handleUploadVideo = async () => {
-    if (!videoFile) {
-      showNotification({
-        type: 'error',
-        title: 'No Video Selected',
-        message: 'Please select a video file to upload',
-        duration: 3000,
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      await videoApi.uploadVideoFile(videoFile, lessonId, (progress) => {
-        setUploadProgress(progress);
-      });
-
-      showNotification({
-        type: 'success',
-        title: 'Upload Complete',
-        message: 'Video uploaded successfully and is being processed',
-        duration: 5000,
-      });
-
-      // Refresh video status
-      refetchVideoStatus();
-      queryClient.invalidateQueries({ queryKey: ['lessons', courseId] });
-      
-      setVideoFile(null);
-      setIsUploading(false);
-      setUploadProgress(0);
-    } catch (error: any) {
-      showNotification({
-        type: 'error',
-        title: 'Upload Failed',
-        message: error.response?.data?.message || 'Failed to upload video',
-        duration: 5000,
-      });
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
-
-  // Replace video
-  const handleReplaceVideo = () => {
-    setVideoFile(null);
-    setVideoPreviewUrl('');
-    videoInputRef.current?.click();
-  };
-
-  // Remove video
-  const handleRemoveVideo = () => {
-    setVideoFile(null);
-    setVideoPreviewUrl('');
-    setThumbnailOptions([]);
-    setSelectedThumbnail('');
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
-  };
-
-  // Generate thumbnail options from video
-  const generateThumbnails = async () => {
-    if (!videoPreviewUrl) return;
-
-    setIsGeneratingThumbnails(true);
-    const thumbnails: ThumbnailOption[] = [];
-
-    try {
-      const video = document.createElement('video');
-      video.src = videoPreviewUrl;
-      video.crossOrigin = 'anonymous';
-
-      await new Promise((resolve, reject) => {
-        video.onloadedmetadata = resolve;
-        video.onerror = reject;
-      });
-
-      const duration = video.duration;
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        throw new Error('Could not get canvas context');
-      }
-
-      // Generate 6 thumbnails at different timestamps
-      const timestamps = [
-        duration * 0.1,
-        duration * 0.25,
-        duration * 0.4,
-        duration * 0.55,
-        duration * 0.7,
-        duration * 0.85,
-      ];
-
-      for (const time of timestamps) {
-        video.currentTime = time;
-        await new Promise((resolve) => {
-          video.onseeked = resolve;
-        });
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        thumbnails.push({ time, dataUrl });
-      }
-
-      setThumbnailOptions(thumbnails);
-      if (thumbnails.length > 0) {
-        setSelectedThumbnail(thumbnails[0].dataUrl);
-      }
-
-      showNotification({
-        type: 'success',
-        title: 'Thumbnails Generated',
-        message: 'Select a thumbnail for your video',
-        duration: 3000,
-      });
-    } catch (error: any) {
-      console.error('Thumbnail generation error:', error);
-      showNotification({
-        type: 'error',
-        title: 'Thumbnail Generation Failed',
-        message: 'Could not generate thumbnails from video',
-        duration: 5000,
-      });
-    } finally {
-      setIsGeneratingThumbnails(false);
     }
   };
 
@@ -603,198 +400,50 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           )}
         </div>
 
-        {/* Order and Duration */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="order" className="block text-sm font-medium text-gray-700 mb-2">
-              Lesson Order
-            </label>
-            <input
-              type="number"
-              id="order"
-              value={formData.order}
-              onChange={(e) => handleChange('order', parseInt(e.target.value) || 0)}
-              min={0}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-              placeholder="0"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
-              Duration (seconds)
-            </label>
-            <input
-              type="number"
-              id="duration"
-              value={formData.duration}
-              onChange={(e) => handleChange('duration', parseInt(e.target.value) || 0)}
-              min={0}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-              placeholder="0"
-            />
-          </div>
-        </div>
+        {/* END: Order and Duration */}
 
         {/* Video Management Section */}
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Video Content</h3>
-          
-          {/* Video Status */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            {getVideoStatusDisplay()}
-            {videoStatusData?.data?.errorMessage && (
-              <p className="mt-2 text-sm text-red-600">{videoStatusData.data.errorMessage}</p>
-            )}
-          </div>
 
-          {/* Video Preview */}
-          {videoPreviewUrl && (
+          {lesson.video_provider === 'mux' && lesson.mux_playback_id ? (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video Preview
-              </label>
-              <div className="relative">
-                <video
-                  src={videoPreviewUrl}
-                  controls
-                  className="w-full max-w-2xl rounded-lg border border-gray-300"
-                  style={{ maxHeight: '400px' }}
-                />
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleReplaceVideo}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Replace Video
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemoveVideo}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Remove
-                  </button>
-                  {videoFile && thumbnailOptions.length === 0 && (
-                    <button
-                      type="button"
-                      onClick={generateThumbnails}
-                      disabled={isGeneratingThumbnails}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGeneratingThumbnails ? (
-                        <>
-                          <Loader className="h-4 w-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Video className="h-4 w-4 mr-2" />
-                          Generate Thumbnails
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Thumbnail Selection */}
-          {thumbnailOptions.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Video Thumbnail
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {thumbnailOptions.map((thumbnail, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setSelectedThumbnail(thumbnail.dataUrl)}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedThumbnail === thumbnail.dataUrl
-                        ? 'border-purple-600 ring-2 ring-purple-200'
-                        : 'border-gray-300 hover:border-purple-400'
-                    }`}
-                  >
-                    <img
-                      src={thumbnail.dataUrl}
-                      alt={`Thumbnail at ${thumbnail.time.toFixed(1)}s`}
-                      className="w-full h-auto"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-2 py-1">
-                      {thumbnail.time.toFixed(1)}s
-                    </div>
-                    {selectedThumbnail === thumbnail.dataUrl && (
-                      <div className="absolute top-2 right-2 bg-purple-600 text-white rounded-full p-1">
-                        <CheckCircle className="h-4 w-4" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Video Upload */}
-          {!videoPreviewUrl && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Video
-              </label>
-              <div
-                onClick={() => videoInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all"
-              >
-                <Video className="h-12 w-12 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Click to upload video</p>
-                <p className="text-xs text-gray-500">MP4, WebM, or other video formats up to 500MB</p>
-              </div>
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                onChange={handleVideoFileChange}
-                className="hidden"
+              <UnifiedVideoPlayer
+                provider="mux"
+                playbackId={lesson.mux_playback_id}
+                poster={lesson.thumbnail_url}
               />
             </div>
-          )}
-
-          {/* Upload Progress */}
-          {videoFile && !isUploading && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-700">Selected: {videoFile.name}</span>
-                <span className="text-sm text-gray-500">
-                  {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
-                </span>
-              </div>
-              <button
-                onClick={handleUploadVideo}
-                className="w-full inline-flex items-center justify-center px-4 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-all"
-              >
-                <Upload className="h-5 w-5 mr-2" />
-                Upload Video
-              </button>
+          ) : lesson.video_url ? (
+            <div className="mb-4">
+              <UnifiedVideoPlayer
+                provider="s3"
+                videoUrl={lesson.video_url}
+                poster={lesson.thumbnail_url}
+              />
             </div>
-          )}
-
-          {isUploading && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-700">Uploading...</span>
-                <span className="text-sm text-gray-600">{uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            </div>
+          ) : (
+            <MuxVideoUploader
+              lessonId={lessonId}
+              onUploadComplete={() => {
+                showNotification({
+                  type: 'success',
+                  title: 'Upload Complete',
+                  message: 'Video is now processing.',
+                  duration: 5000,
+                });
+                queryClient.invalidateQueries({ queryKey: ['lessons', courseId] });
+                refetchVideoStatus();
+              }}
+              onError={(error) => {
+                showNotification({
+                  type: 'error',
+                  title: 'Upload Failed',
+                  message: error.message,
+                  duration: 5000,
+                });
+              }}
+            />
           )}
         </div>
 

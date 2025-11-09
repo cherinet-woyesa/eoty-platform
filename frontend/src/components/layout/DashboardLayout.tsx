@@ -77,7 +77,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     if (isAdminRoute && isAdminUser) {
       return (
         <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-          <AdminSidebar />
+          <AdminSidebar 
+            isCollapsed={sidebarCollapsed} 
+            onToggleCollapse={handleToggleSidebar} 
+          />
         </div>
       );
     } else if (isTeacher) {

@@ -90,7 +90,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
       );
     }
 
-    if (user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+    if (user?.role === 'teacher' || user?.role === 'admin') {
       items.push(
         {
           name: 'My Courses',
@@ -99,7 +99,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: '8',
           description: 'Manage courses',
           color: 'text-green-600',
-          roles: ['teacher', 'chapter_admin', 'platform_admin']
+          roles: ['teacher', 'admin']
         },
         {
           name: 'Record Video',
@@ -108,7 +108,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: null,
           description: 'Create lessons',
           color: 'text-red-600',
-          roles: ['teacher', 'chapter_admin', 'platform_admin']
+          roles: ['teacher', 'admin']
         },
         {
           name: 'Students',
@@ -117,12 +117,12 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: '247',
           description: 'Manage learners',
           color: 'text-indigo-600',
-          roles: ['teacher', 'chapter_admin', 'platform_admin']
+          roles: ['teacher', 'admin']
         }
       );
     }
 
-    if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+    if (user?.role === 'admin') {
       items.push(
         {
           name: 'Analytics',
@@ -131,7 +131,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: null,
           description: 'View reports',
           color: 'text-orange-600',
-          roles: ['chapter_admin', 'platform_admin']
+          roles: ['admin']
         },
         {
           name: 'User Management',
@@ -140,7 +140,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: '12',
           description: 'Manage users',
           color: 'text-blue-600',
-          roles: ['chapter_admin', 'platform_admin']
+          roles: ['admin']
         }
       );
     }

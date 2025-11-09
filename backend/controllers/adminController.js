@@ -1269,9 +1269,7 @@ const adminController = {
       let pendingApprovals = { count: 0 };
       try {
         let pendingApprovalsQuery = db('content_uploads').where('status', 'pending');
-        if (chapterFilter.chapter_id) {
-          pendingApprovalsQuery = pendingApprovalsQuery.where('chapter_id', chapterFilter.chapter_id);
-        }
+        // Admins can see all pending approvals (no chapter filtering)
         pendingApprovals = await pendingApprovalsQuery.count('id as count').first() || { count: 0 };
       } catch (err) {
         console.warn('content_uploads table may not exist:', err.message);
@@ -1294,11 +1292,7 @@ const adminController = {
         
         let completedEnrollmentsQuery = db('user_course_enrollments')
           .where('enrollment_status', 'completed');
-        if (chapterFilter.chapter_id) {
-          completedEnrollmentsQuery = completedEnrollmentsQuery
-            .join('users', 'user_course_enrollments.user_id', 'users.id')
-            .where('users.chapter_id', chapterFilter.chapter_id);
-        }
+        // Admins can see all enrollments (no chapter filtering)
         const completedEnrollments = await completedEnrollmentsQuery.count('id as count').first() || { count: 0 };
         
         avgEngagement = totalEnrollments.count > 0

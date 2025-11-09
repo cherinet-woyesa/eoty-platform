@@ -220,19 +220,42 @@ const courseController = {
       const userRole = req.user.role;
       const videoProviderDetection = require('../utils/videoProviderDetection');
 
-      // Get lesson with course info
+      // Get lesson with course info - explicitly select video_url to ensure we get the updated transcoded URL
       const lesson = await db('lessons as l')
         .join('courses as c', 'l.course_id', 'c.id')
         .leftJoin('videos as v', 'l.video_id', 'v.id')
         .where('l.id', lessonId)
-        .select('l.*', 'c.created_by as course_teacher', 'v.s3_key', 'c.id as course_id')
+        .select(
+          'l.*', 
+          'c.created_by as course_teacher', 
+          'v.s3_key', 
+          'v.video_url as video_video_url', // Also get video_url from videos table
+          'v.hls_url as video_hls_url',
+          'v.status as video_status', // Get processing status from videos table
+          'c.id as course_id'
+        )
         .first();
-
+      
       if (!lesson) {
         return res.status(404).json({
           success: false,
           message: 'Lesson not found'
         });
+      }
+
+      // Prefer HLS URL from videos table if available, otherwise use lesson's video_url
+      // The videos table is updated by the transcoding service
+      if (lesson.video_video_url && (lesson.video_video_url.includes('.m3u8') || lesson.video_video_url.includes('/hls/'))) {
+        lesson.video_url = lesson.video_video_url;
+        console.log(`[getSignedVideoUrl] Using HLS URL from videos table:`, lesson.video_url);
+      } else if (lesson.video_hls_url) {
+        lesson.video_url = lesson.video_hls_url;
+        lesson.hls_url = lesson.video_hls_url;
+        console.log(`[getSignedVideoUrl] Using hls_url from videos table:`, lesson.video_url);
+      } else if (lesson.video_url && (lesson.video_url.includes('.m3u8') || lesson.video_url.includes('/hls/'))) {
+        console.log(`[getSignedVideoUrl] Using HLS URL from lesson.video_url:`, lesson.video_url);
+      } else {
+        console.log(`[getSignedVideoUrl] Using original video_url (may be WebM):`, lesson.video_url);
       }
 
       // Check access: teacher owns course OR student is enrolled OR admin
@@ -269,14 +292,38 @@ const courseController = {
         });
       }
 
+      // If video is still processing, return status but still provide a temporary URL if available
+      if (playbackInfo.status === 'processing' && !playbackInfo.playbackUrl) {
+        // Video is processing - return status but provide original file URL as fallback
+        if (lesson.s3_key) {
+          const cloudStorageService = require('../services/cloudStorageService');
+          const tempUrl = await cloudStorageService.getSignedStreamUrl(lesson.s3_key, 3600);
+          return res.json({
+            success: true,
+            data: {
+              videoUrl: tempUrl, // Temporary URL while processing
+              provider: playbackInfo.provider,
+              status: 'processing',
+              thumbnailUrl: playbackInfo.thumbnailUrl,
+              expiresIn: 3600,
+              metadata: {
+                ...playbackInfo.metadata,
+                message: 'Video is being transcoded. This is a temporary URL - the transcoded version will be available shortly.'
+              }
+            }
+          });
+        }
+      }
+
       res.json({
         success: true,
         data: {
-          videoUrl: playbackInfo.playbackUrl,
+          videoUrl: playbackInfo.playbackUrl || null,
           provider: playbackInfo.provider,
           status: playbackInfo.status,
           thumbnailUrl: playbackInfo.thumbnailUrl,
-          expiresIn: 3600
+          expiresIn: 3600,
+          metadata: playbackInfo.metadata || {}
         }
       });
 

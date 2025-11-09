@@ -1528,7 +1528,11 @@ const videoController = {
       updated_at: db.fn.now()
     };
     
-    console.log(`💾 Updating lesson ${lessonId} with upload data:`, JSON.stringify(updateData, null, 2));
+    console.log(`💾 Updating lesson ${lessonId} with upload data:`, {
+      mux_upload_id: upload.uploadId,
+      video_provider: 'mux',
+      mux_status: 'preparing'
+    });
     
     await db('lessons')
       .where({ id: lessonId })

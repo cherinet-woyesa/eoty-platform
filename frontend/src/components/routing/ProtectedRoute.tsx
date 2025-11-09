@@ -14,7 +14,9 @@ interface ProtectedRouteProps {
 const ROLE_HIERARCHY: Record<string, number> = {
   student: 1,
   teacher: 2,
-  admin: 3,
+  chapter_admin: 3,
+  admin: 4,
+  platform_admin: 4, // platform_admin has same level as admin
 };
 
 /**
@@ -70,7 +72,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!hasRequiredRole) {
       // Get the user's role-appropriate dashboard
       const getRoleDashboard = (): string => {
-        if (user.role === 'admin') {
+        if (user.role === 'admin' || user.role === 'platform_admin') {
           return '/admin/dashboard';
         }
         if (user.role === 'teacher') {
@@ -129,7 +131,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredPermission && !hasPermission(requiredPermission)) {
     // Get the user's role-appropriate dashboard
     const getRoleDashboard = (): string => {
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'platform_admin') {
         return '/admin/dashboard';
       }
       if (user.role === 'teacher') {

@@ -172,49 +172,73 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
   // Enhanced video URL resolution
   const [resolvedVideoUrl, setResolvedVideoUrl] = React.useState(videoUrl);
-  const [isHls, setIsHls] = React.useState(false);  
-// Initialize video URL - Fetch fresh signed URL from backend
-  React.useEffect(() => {
-    const initializeVideo = async () => {
-      try {
-        console.log('Fetching fresh signed URL for lesson:', lessonId);
-        
-        // Fetch fresh signed URL from backend
-        const response = await fetch(`http://localhost:5000/api/courses/lessons/${lessonId}/video-url`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to get video URL: ${response.statusText}`);
+  const [isHls, setIsHls] = React.useState(false);
+  const [urlRefreshKey, setUrlRefreshKey] = React.useState(0); // Key to force URL refresh
+  const [webmRetryCount, setWebmRetryCount] = React.useState(0); // Track WebM retry attempts
+  const MAX_WEBM_RETRIES = 5; // Maximum retries for WebM format errors
+  
+  // Function to fetch fresh video URL from backend
+  const fetchVideoUrl = React.useCallback(async () => {
+    if (!lessonId) return null;
+    
+    try {
+      console.log('Fetching fresh signed URL for lesson:', lessonId);
+      
+      // Use apiClient instead of fetch for consistency
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_BASE}/courses/lessons/${lessonId}/video-url`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
+      });
 
-        const data = await response.json();
-        const freshVideoUrl = data.data.videoUrl;
-        
-        console.log('Fresh signed URL received:', freshVideoUrl);
-        
-        // Check if it's actually an HLS stream (not just a URL with query params)
-        const isActuallyHls = freshVideoUrl.includes('.m3u8');
-        
-        setResolvedVideoUrl(freshVideoUrl);
-        setIsHls(isActuallyHls);
-        
-        console.log('Video type detected:', isActuallyHls ? 'HLS' : 'Direct video file');
-        
-        onLoad?.({ lesson: { video_url: freshVideoUrl } });
-      } catch (error) {
-        console.error('Failed to initialize video:', error);
-        setVideoError(`Failed to load video: ${(error as Error).message}`);
-        setIsHls(false);
+      if (!response.ok) {
+        throw new Error(`Failed to get video URL: ${response.statusText}`);
       }
-    };
 
-    if (lessonId) {
-      initializeVideo();
+      const data = await response.json();
+      const freshVideoUrl = data.data?.videoUrl;
+      
+      console.log('Fresh signed URL received:', freshVideoUrl);
+      
+      if (!freshVideoUrl) {
+        // Video might still be processing
+        const status = data.data?.status;
+        const metadata = data.data?.metadata || {};
+        
+        if (status === 'processing' || metadata.isProcessing) {
+          setVideoError('Video is still being transcoded. Please wait a few minutes and refresh the page.');
+          console.log('Video is still processing, waiting for transcoding to complete...');
+          return null;
+        } else {
+          throw new Error('Video URL not available. The video may not have been uploaded yet.');
+        }
+      }
+      
+      // Check if it's actually an HLS stream (not just a URL with query params)
+      const isActuallyHls = freshVideoUrl.includes('.m3u8') || freshVideoUrl.includes('/hls/');
+      
+      setResolvedVideoUrl(freshVideoUrl);
+      setIsHls(isActuallyHls);
+      
+      console.log('Video type detected:', isActuallyHls ? 'HLS' : 'Direct video file');
+      
+      onLoad?.({ lesson: { video_url: freshVideoUrl } });
+      return freshVideoUrl;
+    } catch (error) {
+      console.error('Failed to initialize video:', error);
+      setVideoError(`Failed to load video: ${(error as Error).message}`);
+      setIsHls(false);
+      return null;
     }
   }, [lessonId, onLoad]);
+
+  // Initialize video URL - Fetch fresh signed URL from backend
+  React.useEffect(() => {
+    if (lessonId) {
+      fetchVideoUrl();
+    }
+  }, [lessonId, urlRefreshKey, fetchVideoUrl]);
 
   // HLS.js integration and direct video support
   React.useEffect(() => {
@@ -358,6 +382,10 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       const error = videoElement.error;
       let errorMessage = 'Unknown video error';
       
+      // Check if the video URL is WebM format
+      const isWebM = resolvedVideoUrl?.toLowerCase().includes('.webm') || 
+                     resolvedVideoUrl?.toLowerCase().includes('video/webm');
+      
       if (error) {
         switch (error.code) {
           case error.MEDIA_ERR_ABORTED:
@@ -370,10 +398,34 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
             errorMessage = 'Video decoding error';
             break;
           case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = 'Video format not supported';
+            if (isWebM && webmRetryCount < MAX_WEBM_RETRIES) {
+              errorMessage = 'WebM format not supported by this browser. Checking for transcoded version...';
+              // Try to refresh the video URL - transcoding may have completed
+              console.log(`WebM format error detected (attempt ${webmRetryCount + 1}/${MAX_WEBM_RETRIES}), refreshing video URL to check for transcoded version...`);
+              setWebmRetryCount(prev => prev + 1);
+              setTimeout(() => {
+                setUrlRefreshKey(prev => prev + 1); // Trigger URL refresh
+              }, 3000 * (webmRetryCount + 1)); // Exponential backoff: 3s, 6s, 9s, 12s, 15s
+            } else if (isWebM) {
+              errorMessage = 'WebM format not supported and transcoding may still be in progress. Please wait a few minutes and refresh the page.';
+            } else {
+              errorMessage = 'Video format not supported by this browser';
+            }
             break;
         }
       }
+      
+      console.error('Video playback error:', {
+        errorCode: error?.code,
+        errorMessage,
+        videoUrl: resolvedVideoUrl,
+        isWebM,
+        videoElement: {
+          networkState: videoElement.networkState,
+          readyState: videoElement.readyState,
+          error: videoElement.error
+        }
+      });
       
       setVideoError(errorMessage);
       onError?.(new Error(errorMessage));
