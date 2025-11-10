@@ -27,6 +27,11 @@ interface LessonItemProps {
   onEdit?: (lesson: Lesson) => void;
   onDelete?: (lessonId: number) => void;
   onDuplicate?: (lesson: Lesson) => void;
+  onPreview?: (lesson: Lesson) => void;
+  onSelect?: (lessonId: number) => void;
+  isSelected?: boolean;
+  viewMode?: 'list' | 'grid';
+  compact?: boolean;
 }
 
 const LessonItem: React.FC<LessonItemProps> = ({

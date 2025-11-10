@@ -27,6 +27,11 @@ export interface Course {
   prerequisites?: string;
   estimated_duration?: string;
   tags?: string[];
+  language?: string;
+  certification_available?: boolean;
+  welcome_message?: string;
+  price?: number;
+  status?: 'draft' | 'published' | 'archived';
 }
 
 export interface CourseFormData {
@@ -38,7 +43,13 @@ export interface CourseFormData {
   learning_objectives: string[];
   prerequisites: string;
   estimated_duration: string;
-  tags?: string[];
+  tags: string[];
+  language?: string;
+  is_public?: boolean;
+  certification_available?: boolean;
+  welcome_message?: string;
+  price?: number;
+  status?: 'draft' | 'published' | 'archived';
 }
 
 export interface CourseEditorProps {
@@ -75,6 +86,12 @@ export interface Lesson {
     type: string;
   }>;
   thumbnail_url?: string;
+
+  // Properties added for LessonList.tsx
+  status: 'published' | 'draft' | 'scheduled' | 'archived';
+  type: 'video' | 'article' | 'quiz' | 'assignment' | 'live';
+  view_count?: number;
+  completion_rate?: number;
 }
 
 export interface LessonReorderItem {

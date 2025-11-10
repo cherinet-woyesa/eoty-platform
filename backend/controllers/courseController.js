@@ -1414,6 +1414,226 @@ const courseController = {
         message: 'Failed to enroll in course'
       });
     }
+  },
+
+  // Unenroll from a course
+  async unenrollFromCourse(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { courseId } = req.params;
+
+      // Check if enrolled
+      const enrollment = await db('user_course_enrollments')
+        .where({ user_id: userId, course_id: courseId })
+        .first();
+
+      if (!enrollment) {
+        return res.status(404).json({
+          success: false,
+          message: 'You are not enrolled in this course'
+        });
+      }
+
+      // Update enrollment status to 'dropped' instead of deleting (preserve progress)
+      await db('user_course_enrollments')
+        .where({ user_id: userId, course_id: courseId })
+        .update({
+          enrollment_status: 'dropped',
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: 'Successfully unenrolled from course. Your progress has been saved.'
+      });
+    } catch (error) {
+      console.error('Unenroll error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to unenroll from course'
+      });
+    }
+  },
+
+  // Add course to favorites
+  async addToFavorites(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { courseId } = req.params;
+
+      // Check if course exists
+      const course = await db('courses').where({ id: courseId }).first();
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: 'Course not found'
+        });
+      }
+
+      // Check if already favorited
+      const existing = await db('course_favorites')
+        .where({ user_id: userId, course_id: courseId })
+        .first();
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: 'Course already in favorites'
+        });
+      }
+
+      // Add to favorites
+      await db('course_favorites').insert({
+        user_id: userId,
+        course_id: courseId,
+        favorited_at: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: 'Course added to favorites'
+      });
+    } catch (error) {
+      console.error('Add to favorites error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to add course to favorites'
+      });
+    }
+  },
+
+  // Remove course from favorites
+  async removeFromFavorites(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { courseId } = req.params;
+
+      const deleted = await db('course_favorites')
+        .where({ user_id: userId, course_id: courseId })
+        .delete();
+
+      if (deleted === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Course not in favorites'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Course removed from favorites'
+      });
+    } catch (error) {
+      console.error('Remove from favorites error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove course from favorites'
+      });
+    }
+  },
+
+  // Rate a course
+  async rateCourse(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { courseId } = req.params;
+      const { rating, review } = req.body;
+
+      console.log('Rating request:', { userId, courseId, rating, review });
+
+      // Validate rating
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rating must be between 1 and 5'
+        });
+      }
+
+      // Check if enrolled
+      const enrollment = await db('user_course_enrollments')
+        .where({ user_id: userId, course_id: courseId })
+        .first();
+
+      if (!enrollment) {
+        return res.status(403).json({
+          success: false,
+          message: 'You must be enrolled in the course to rate it'
+        });
+      }
+
+      // Check if already rated
+      const existing = await db('course_ratings')
+        .where({ user_id: userId, course_id: courseId })
+        .first();
+
+      if (existing) {
+        // Update existing rating
+        await db('course_ratings')
+          .where({ user_id: userId, course_id: courseId })
+          .update({
+            rating,
+            review: review || null,
+            updated_at: new Date()
+          });
+      } else {
+        // Insert new rating
+        await db('course_ratings').insert({
+          user_id: userId,
+          course_id: courseId,
+          rating,
+          review: review || null,
+          is_verified: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Update course stats
+      const avgRating = await db('course_ratings')
+        .where({ course_id: courseId })
+        .avg('rating as avg_rating')
+        .count('id as rating_count')
+        .first();
+
+      // Upsert to course_stats
+      const statsExists = await db('course_stats')
+        .where({ course_id: courseId })
+        .first();
+
+      if (statsExists) {
+        await db('course_stats')
+          .where({ course_id: courseId })
+          .update({
+            average_rating: avgRating.avg_rating || 0,
+            rating_count: avgRating.rating_count || 0,
+            updated_at: new Date()
+          });
+      } else {
+        await db('course_stats').insert({
+          course_id: courseId,
+          average_rating: avgRating.avg_rating || 0,
+          rating_count: avgRating.rating_count || 0,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      res.json({
+        success: true,
+        message: existing ? 'Rating updated successfully' : 'Rating submitted successfully',
+        data: {
+          rating,
+          averageRating: rating,
+          ratingCount: 1
+        }
+      });
+    } catch (error) {
+      console.error('Rate course error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to submit rating'
+      });
+    }
   }
 };
 

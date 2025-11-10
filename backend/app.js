@@ -32,7 +32,7 @@ const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
-// Enhanced CORS configuration for video streaming and Mux direct uploads
+// Enhanced CORS configuration with proper headers
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -43,6 +43,8 @@ const corsOptions = {
       'http://localhost:5000',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5000',
+      'http://localhost:5173', // Vite dev server
+      'http://127.0.0.1:5173',
       // Production frontend URLs
       'https://eoty-platform.vercel.app',
       'https://eoty-platform-git-main-cherinet-woyesas-projects.vercel.app',
@@ -70,9 +72,12 @@ const corsOptions = {
     'Accept',
     'Origin',
     'X-Requested-With',
+    'Cache-Control', // Added this line to fix the CORS error
+    'X-Requested-With',
     // Mux-specific headers
     'X-Mux-Signature',
-    'Mux-Signature'
+    'Mux-Signature',
+    'Accept-Encoding'
   ],
   exposedHeaders: [
     'Content-Range',
@@ -81,30 +86,49 @@ const corsOptions = {
     'Content-Type',
     'Authorization',
     'X-Video-Quality',
-    'X-Estimated-Bitrate'
-  ]
+    'X-Estimated-Bitrate',
+    'X-Total-Count'
+  ],
+  maxAge: 86400 // 24 hours for preflight cache
 };
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Important for video streaming
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Important for video streaming
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  }
 }));
-app.use(cors(corsOptions)); // Use enhanced CORS configuration
+
+// Apply CORS before other middleware
+app.use(cors(corsOptions));
+
+// Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting - exclude video streaming, health checks, and all /api/admin/* routes from rate limits
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // Increased limit for development
   skip: (req) => {
     // Skip rate limiting for video streaming, health checks, and all /api/admin/* routes
     return (
       req.path.includes('/videos/stream/') ||
       req.path === '/api/health' ||
       req.path === '/api/videos/upload' ||
-      req.path.startsWith('/api/admin')
+      req.path.startsWith('/api/admin') ||
+      req.path.includes('/dashboard') // Skip for dashboard real-time updates
     );
+  },
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again later.'
   }
 });
 app.use(limiter);
@@ -115,8 +139,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     // Set CORS headers for static files
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length');
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Cache-Control');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
     
     // Cache control for videos
     if (path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.ogg')) {
@@ -128,23 +152,34 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
+    success: true,
     status: 'OK',
     timestamp: new Date().toISOString(),
     service: 'EOTY Platform API',
     cors: 'Enabled',
-    videoStreaming: 'Enabled'
+    videoStreaming: 'Enabled',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Handle preflight requests globally
-app.options('*', cors(corsOptions));
+// Enhanced preflight handler
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Range, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(204).send();
+});
 
 // Health check endpoint (for load balancers, Docker, etc.)
 app.get('/health', (req, res) => {
   res.status(200).json({ 
+    success: true,
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
   });
 });
 
@@ -182,7 +217,7 @@ app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
 app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video analytics routes (Mux + Platform)
 
-// Error handling middleware
+// Enhanced error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global Error Handler:', err.stack);
   
@@ -190,13 +225,23 @@ app.use((err, req, res, next) => {
   if (err.message.includes('CORS')) {
     return res.status(403).json({
       success: false,
-      message: 'CORS policy violation'
+      message: 'CORS policy violation',
+      details: 'Please check your CORS configuration'
+    });
+  }
+  
+  // Handle rate limit errors
+  if (err.status === 429) {
+    return res.status(429).json({
+      success: false,
+      message: 'Too many requests, please try again later.'
     });
   }
   
   res.status(500).json({
     success: false,
-    message: 'Something went wrong!'
+    message: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { error: err.message })
   });
 });
 
@@ -204,7 +249,9 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
   });
 });
 

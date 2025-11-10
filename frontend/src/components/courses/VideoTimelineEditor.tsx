@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, CheckCircle, X,
   FastForward, Rewind, Clock, 
-  SkipBack, SkipForward, Scissors, Info
+  SkipBack, SkipForward, Scissors, Info, Volume2, VolumeX
 } from 'lucide-react';
 
 interface VideoTimelineEditorProps {
@@ -26,6 +26,8 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -155,6 +157,27 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
     handleSeek(trimEnd);
   };
 
+  const handleVolumeChange = (newVolume: number) => {
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+      setVolume(newVolume);
+      setIsMuted(newVolume === 0);
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      const newMuted = !isMuted;
+      videoRef.current.muted = newMuted;
+      setIsMuted(newMuted);
+      if (newMuted) {
+        setVolume(0);
+      } else {
+        setVolume(videoRef.current.volume);
+      }
+    }
+  };
+
   const exportTrimmedVideo = async () => {
     setIsProcessing(true);
     
@@ -252,8 +275,8 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds % 1) * 10);
-    return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
   const getTrimmedDuration = () => {
@@ -274,7 +297,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               <Scissors className="h-6 w-6 text-orange-600" />
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Trim Your Video</h2>
-                <p className="text-sm text-gray-600">Drag the handles to select the part you want to keep</p>
+                <p className="text-sm text-gray-600">Select the part you want to keep by dragging the orange handles</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -288,7 +311,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               <button
                 onClick={exportTrimmedVideo}
                 disabled={isProcessing}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center"
               >
                 {isProcessing ? (
                   <>
@@ -308,19 +331,24 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
 
         {/* Help Banner */}
         {showHelp && (
-          <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-start justify-between flex-shrink-0">
-            <div className="flex items-start space-x-2">
+          <div className="px-6 py-4 bg-blue-50 border-b border-blue-100 flex items-start justify-between flex-shrink-0">
+            <div className="flex items-start space-x-3">
               <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
-                <p className="font-medium">How to trim:</p>
-                <p>Drag the <span className="font-semibold">orange handles</span> on the timeline to select the part you want to keep. Everything outside will be removed.</p>
+                <p className="font-bold mb-1">How to trim your video:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Drag the <span className="font-semibold text-orange-600">orange handles</span> to set the start and end points</li>
+                  <li>Click anywhere on the timeline to preview that part of the video</li>
+                  <li>Use the playback controls to review your selected segment</li>
+                  <li>Click "Save Trimmed Video" when you're satisfied with your selection</li>
+                </ul>
               </div>
             </div>
             <button
               onClick={() => setShowHelp(false)}
               className="text-blue-600 hover:text-blue-800"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         )}
@@ -348,8 +376,29 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               />
               
               {/* Time Display Overlay */}
-              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
+              <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm font-mono flex items-center space-x-4">
+                <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+                <div className="flex items-center space-x-2">
+                  <button onClick={toggleMute} className="hover:text-orange-400 transition-colors">
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="w-20 accent-orange-600"
+                  />
+                </div>
+              </div>
+              
+              {/* Trim Info Overlay */}
+              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm">
+                <div className="font-medium text-orange-400">Selected Segment</div>
+                <div className="font-mono">{formatTime(trimStart)} - {formatTime(trimEnd)}</div>
+                <div className="font-mono">Duration: {formatTime(getTrimmedDuration())}</div>
               </div>
             </div>
           </div>
@@ -395,13 +444,13 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
             </div>
 
             {/* Timeline */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between text-sm text-gray-600">
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4" />
-                  <span>Trimmed Duration: <span className="font-semibold text-gray-900">{formatTime(getTrimmedDuration())}</span></span>
+                  <span>Selected Duration: <span className="font-semibold text-gray-900">{formatTime(getTrimmedDuration())}</span></span>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                   Start: {formatTime(trimStart)} • End: {formatTime(trimEnd)}
                 </div>
               </div>
@@ -409,7 +458,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               {/* Visual Timeline */}
               <div
                 ref={timelineRef}
-                className="relative h-20 bg-gray-200 rounded-lg cursor-pointer overflow-hidden select-none"
+                className="relative h-24 bg-gray-200 rounded-lg cursor-pointer overflow-hidden select-none shadow-inner"
                 onClick={(e) => {
                   if (!isDraggingRef.current && timelineRef.current && duration > 0) {
                     const rect = timelineRef.current.getBoundingClientRect();
@@ -423,48 +472,50 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               >
                 {/* Trimmed Region */}
                 <div
-                  className="absolute top-0 bottom-0 bg-orange-400/30 border-l-4 border-r-4 border-orange-600"
+                  className="absolute top-0 bottom-0 bg-gradient-to-r from-orange-400/20 to-orange-500/20 border-l-4 border-r-4 border-orange-600 shadow-lg"
                   style={{
                     left: `${getTimelinePosition(trimStart)}%`,
                     right: `${100 - getTimelinePosition(trimEnd)}%`
                   }}
                 />
-
+                
                 {/* Removed Regions */}
                 <div
-                  className="absolute top-0 bottom-0 bg-gray-400/50 backdrop-blur-sm"
+                  className="absolute top-0 bottom-0 bg-gradient-to-r from-gray-400/50 to-gray-500/50 backdrop-blur-sm"
                   style={{
                     left: 0,
                     right: `${100 - getTimelinePosition(trimStart)}%`
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-600 font-medium">
-                    Will be removed
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-700 font-bold bg-black/10">
+                    WILL BE REMOVED
                   </div>
                 </div>
                 <div
-                  className="absolute top-0 bottom-0 bg-gray-400/50 backdrop-blur-sm"
+                  className="absolute top-0 bottom-0 bg-gradient-to-r from-gray-500/50 to-gray-400/50 backdrop-blur-sm"
                   style={{
                     left: `${getTimelinePosition(trimEnd)}%`,
                     right: 0
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-600 font-medium">
-                    Will be removed
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-700 font-bold bg-black/10">
+                    WILL BE REMOVED
                   </div>
                 </div>
 
                 {/* Current Time Indicator */}
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-blue-600 z-10"
+                  className="absolute top-0 bottom-0 w-0.5 bg-blue-600 z-10 shadow-lg"
                   style={{ left: `${getTimelinePosition(currentTime)}%` }}
                 >
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-600 rounded-full"></div>
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  </div>
                 </div>
 
                 {/* Trim Start Handle */}
                 <div
-                  className="absolute top-0 bottom-0 w-6 bg-orange-600 cursor-ew-resize hover:bg-orange-700 transition-colors z-20 flex items-center justify-center select-none shadow-lg touch-none"
+                  className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-orange-500 to-orange-600 cursor-ew-resize hover:from-orange-600 hover:to-orange-700 transition-all z-20 flex items-center justify-center select-none shadow-xl border-2 border-white rounded-lg"
                   style={{ left: `${getTimelinePosition(trimStart)}%`, transform: 'translateX(-50%)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -477,12 +528,12 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                     isDraggingRef.current = 'start';
                   }}
                 >
-                  <div className="w-1 h-10 bg-white rounded-full shadow"></div>
+                  <div className="w-1 h-8 bg-white rounded-full shadow"></div>
                 </div>
 
                 {/* Trim End Handle */}
                 <div
-                  className="absolute top-0 bottom-0 w-6 bg-orange-600 cursor-ew-resize hover:bg-orange-700 transition-colors z-20 flex items-center justify-center select-none shadow-lg touch-none"
+                  className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-orange-500 to-orange-600 cursor-ew-resize hover:from-orange-600 hover:to-orange-700 transition-all z-20 flex items-center justify-center select-none shadow-xl border-2 border-white rounded-lg"
                   style={{ left: `${getTimelinePosition(trimEnd)}%`, transform: 'translateX(-50%)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -495,14 +546,16 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                     isDraggingRef.current = 'end';
                   }}
                 >
-                  <div className="w-1 h-10 bg-white rounded-full shadow"></div>
+                  <div className="w-1 h-8 bg-white rounded-full shadow"></div>
                 </div>
               </div>
 
               {/* Time Markers */}
-              <div className="flex justify-between text-xs text-gray-500 px-1">
-                <span>0:00</span>
+              <div className="flex justify-between text-xs text-gray-500 px-2">
+                <span>0:00.00</span>
+                <span>{formatTime(duration / 4)}</span>
                 <span>{formatTime(duration / 2)}</span>
+                <span>{formatTime(3 * duration / 4)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>

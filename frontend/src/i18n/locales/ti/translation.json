@@ -47,7 +47,8 @@
       "total_courses": "ጠቕላላ ኮርስታት",
       "total_lessons": "ጠቕላላ ትምህርታት",
       "active_students": "ተማሪታት ንእቅስቃስ",
-      "completion_rate": "መጠን ናይ ተጠናቐቀ"
+      "completion_rate": "መጠን ናይ ተጠናቐቀ",
+      "student_performance": "ኣፈጻጽማ ተማሃራይ"
     },
     "student": {
       "title": "ዳሽቦርድ ናይ ተማሪ",

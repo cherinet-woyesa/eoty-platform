@@ -60,7 +60,8 @@
       "average_rating": "ደረጃ",
       "total_hours_taught": "የተማሩ ሰዓታት",
       "engagement_score": "የአበርታችነት ውጤት",
-      "revenue": "ገቢ"
+      "revenue": "ገቢ",
+      "student_performance": "የተማሪ አፈጻጸም"
     },
     "student": {
       "title": "የተማሪ ዳሽቦርድ",

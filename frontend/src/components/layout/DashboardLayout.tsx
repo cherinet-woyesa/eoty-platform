@@ -193,4 +193,4 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 // Add display name for better debugging
 DashboardLayout.displayName = 'DashboardLayout';
 
-export default React.memo(DashboardLayout);
+export default DashboardLayout;

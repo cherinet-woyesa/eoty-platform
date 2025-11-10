@@ -15,9 +15,11 @@ import {
   FileText,
   Plus,
   Trash2,
-} from 'lucide-react';
+}
+from 'lucide-react';
 import { Spinner, LoadingButton } from '../shared/LoadingStates';
 import MuxVideoUploader from './MuxVideoUploader';
+import UnifiedVideoPlayer from './UnifiedVideoPlayer';
 
 interface LessonEditorProps {
   lessonId: string;
@@ -89,9 +91,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
         order: lesson.order || 0,
         duration: lesson.duration || 0,
       });
-      if (lesson.video_url) {
-        setVideoPreviewUrl(lesson.video_url);
-      }
       // Load resources if they exist in lesson metadata
       if (lesson.resources && Array.isArray(lesson.resources)) {
         setResources(lesson.resources);
@@ -409,17 +408,13 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({
           {lesson.video_provider === 'mux' && lesson.mux_playback_id ? (
             <div className="mb-4">
               <UnifiedVideoPlayer
-                provider="mux"
-                playbackId={lesson.mux_playback_id}
-                poster={lesson.thumbnail_url}
+                lesson={lesson}
               />
             </div>
           ) : lesson.video_url ? (
             <div className="mb-4">
               <UnifiedVideoPlayer
-                provider="s3"
-                videoUrl={lesson.video_url}
-                poster={lesson.thumbnail_url}
+                lesson={lesson}
               />
             </div>
           ) : (

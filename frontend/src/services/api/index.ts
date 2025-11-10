@@ -72,6 +72,27 @@ export const authApi = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     return { success: true };
+  },
+
+  updateUserPreferences: async (preferences: any) => {
+    const response = await apiClient.put('/auth/preferences', preferences);
+    return response.data;
+  },
+
+  validateToken: async (token: string) => {
+    try {
+      // Make a request to a protected endpoint to validate the token
+      // The interceptor will handle 401 errors and redirect to login
+      await apiClient.get('/auth/validate-token', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      return true;
+    } catch (error) {
+      // If the request fails, the token is considered invalid
+      return false;
+    }
   }
 };
 
@@ -184,6 +205,18 @@ export const coursesApi = {
   // Get course analytics summary
   getCourseAnalytics: async (courseId: string) => {
     const response = await apiClient.get(`/courses/${courseId}/analytics`);
+    return response.data;
+  },
+
+  // Upload course cover image
+  uploadCourseImage: async (courseId: string, imageFile: File) => {
+    const formData = new FormData();
+    formData.append('coverImage', imageFile);
+    const response = await apiClient.post(`/courses/${courseId}/upload-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 };

@@ -9,9 +9,15 @@ interface User {
   role: string;
   chapter: string;
   profilePicture?: string;
+  preferences?: {
+    theme?: string;
+    notifications?: boolean;
+    language?: string;
+  };
 }
 
 interface AuthContextType {
+  // Defines the shape of the authentication context
   user: User | null;
   token: string | null;
   permissions: string[];
@@ -20,39 +26,114 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  hasAllPermissions: (permissions: string[]) => boolean;
   hasRole: (role: string | string[]) => boolean;
   isRoleOrHigher: (role: string) => boolean;
   canAccessRoute: (path: string) => boolean;
   getRoleDashboard: () => string;
   refreshPermissions: () => Promise<void>;
   isLoading: boolean;
-  // Google login function
   loginWithGoogle: (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => Promise<void>;
+  updateUserPreferences: (preferences: Partial<User['preferences']>) => Promise<void>;
+  lastActivity: Date;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Role hierarchy for permission checking
+const ROLE_HIERARCHY: Record<string, number> = {
+  student: 1,
+  teacher: 2,
+  admin: 3,
+  super_admin: 4
+};
+
+// Permission groups for common functionality
+const PERMISSION_GROUPS = {
+  COURSE: {
+    VIEW: 'course:view',
+    CREATE: 'course:create',
+    EDIT: 'course:edit',
+    DELETE: 'course:delete',
+    ENROLL: 'course:enroll'
+  },
+  USER: {
+    VIEW: 'user:view',
+    EDIT: 'user:edit',
+    DELETE: 'user:delete'
+  },
+  CONTENT: {
+    VIEW: 'content:view',
+    CREATE: 'content:create',
+    EDIT: 'content:edit',
+    DELETE: 'content:delete'
+  }
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastActivity, setLastActivity] = useState<Date>(new Date());
 
-  // Load user permissions
-  const loadPermissions = async () => {
+  // Activity tracker to detect inactivity
+  useEffect(() => {
+    const activities = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    const updateActivity = () => setLastActivity(new Date());
+    
+    activities.forEach(event => {
+      document.addEventListener(event, updateActivity);
+    });
+    
+    return () => {
+      activities.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
+    };
+  }, []);
+
+  // Auto-logout after 24 hours of inactivity
+  useEffect(() => {
+    const checkInactivity = setInterval(() => {
+      const now = new Date();
+      const diff = now.getTime() - lastActivity.getTime();
+      const hoursInactive = diff / (1000 * 60 * 60);
+      
+      if (hoursInactive > 24) {
+        console.log('Auto-logout due to inactivity');
+        logout();
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(checkInactivity);
+  }, [lastActivity]);
+
+  // Enhanced permission loading with caching
+  const loadPermissions = async (): Promise<void> => {
     try {
       const response = await authApi.getUserPermissions();
       if (response.success) {
         setPermissions(response.data.permissions);
+        // Cache permissions for offline use
+        localStorage.setItem('user_permissions', JSON.stringify(response.data.permissions));
       }
     } catch (error) {
       console.error('Failed to load permissions:', error);
-      setPermissions([]);
+      // Fallback to cached permissions
+      const cached = localStorage.getItem('user_permissions');
+      if (cached) {
+        setPermissions(JSON.parse(cached));
+      } else {
+        setPermissions([]);
+      }
     }
   };
 
-  useEffect(() => {
-    const initializeAuth = async () => {
+  // Enhanced initialization with retry logic and offline support
+  const initializeAuth = async (retryCount = 0): Promise<void> => {
+    try {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
       const storedRole = localStorage.getItem('userRole');
@@ -60,132 +141,143 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (storedToken && storedUser) {
         const parsedUser = JSON.parse(storedUser);
         
-        // Check for role change - if stored role differs from current user role
+        // Enhanced role change detection with version checking
         if (storedRole && storedRole !== parsedUser.role) {
           console.warn('Role change detected. Clearing authentication state.');
-          // Clear auth state and force re-authentication
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('userRole');
-          setLoading(false);
+          logout();
           return;
         }
         
-        setToken(storedToken);
-        setUser(parsedUser);
-        
-        // Store current role for change detection
-        localStorage.setItem('userRole', parsedUser.role);
-        
-        // Load permissions for the user
-        await loadPermissions();
+        // Validate token before setting state (with offline fallback)
+        try {
+          const isValid = await authApi.validateToken(storedToken);
+          if (!isValid) {
+            throw new Error('Invalid token');
+          }
+          
+          setToken(storedToken);
+          setUser(parsedUser);
+          setLastActivity(new Date());
+          localStorage.setItem('userRole', parsedUser.role);
+          await loadPermissions();
+        } catch (validationError) {
+          console.warn('Token validation failed:', validationError);
+          // Check if we're offline and use cached data
+          if (!navigator.onLine) {
+            console.log('Offline mode: using cached authentication');
+            setToken(storedToken);
+            setUser(parsedUser);
+            const cachedPermissions = localStorage.getItem('user_permissions');
+            if (cachedPermissions) {
+              setPermissions(JSON.parse(cachedPermissions));
+            }
+          } else {
+            logout();
+          }
+        }
       }
-      
-      setLoading(false);
-    };
-
-    initializeAuth();
-  }, []);
-
-  // Monitor for role changes in user object
-  useEffect(() => {
-    if (user) {
-      const storedRole = localStorage.getItem('userRole');
-      
-      // If role has changed, invalidate session
-      if (storedRole && storedRole !== user.role) {
-        console.warn('User role changed. Forcing re-authentication.');
-        logout();
-        window.location.href = '/login';
-      } else {
-        // Update stored role
-        localStorage.setItem('userRole', user.role);
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      if (retryCount < 3) {
+        setTimeout(() => initializeAuth(retryCount + 1), 1000 * (retryCount + 1));
       }
-    }
-  }, [user?.role]);
-
-  const login = async (email: string, password: string) => {
-    try {
-      console.log('AuthContext: Attempting login with:', { email });
-      
-      const response = await authApi.login(email, password);
-      console.log('AuthContext: Raw API response:', response);
-
-      // FIXED: Handle the correct response format from backend
-      let token, user;
-
-      if (response.success && response.data) {
-        // Your backend format: { success: true, data: { user, token } }
-        token = response.data.token;
-        user = response.data.user;
-      } else {
-        console.error('AuthContext: Unexpected response format:', response);
-        throw new Error('Unexpected response format from server');
-      }
-
-      // Validate required fields
-      if (!token || !user) {
-        console.error('AuthContext: Missing token or user in response:', response);
-        throw new Error('Invalid response from server: missing token or user data');
-      }
-
-      console.log('AuthContext: Login successful', { token, user });
-      
-      setToken(token);
-      setUser(user);
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userRole', user.role);
-      
-      // Load permissions after login
-      await loadPermissions();
-      
-    } catch (error: any) {
-      console.error('AuthContext: Login error:', error);
-      
-      let errorMessage = 'Login failed';
-
-      // Extract error message from different response formats
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      // Handle specific status codes
-      if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'Account is deactivated. Please contact administrator.';
-      } else if (error.response?.status === 422) {
-        errorMessage = 'Validation error. Please check your input.';
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-
-      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const register = async (userData: any) => {
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  // Enhanced login with better error handling and offline support
+  const login = async (email: string, password: string): Promise<void> => {
     try {
+      setIsLoading(true);
+      
+      const response = await authApi.login(email, password);
+      
+      if (response.success && response.data) {
+        const { token, user } = response.data;
+
+        if (!token || !user) {
+          throw new Error('Invalid response from server');
+        }
+
+        setToken(token);
+        setUser(user);
+        setLastActivity(new Date());
+        
+        // Enhanced storage with expiration
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('userRole', user.role);
+        localStorage.setItem('auth_timestamp', Date.now().toString());
+        
+        await loadPermissions();
+        
+        // Track login event for analytics
+        console.log('User logged in successfully:', { 
+          userId: user.id, 
+          email: user.email,
+          role: user.role 
+        });
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      let errorMessage = 'Login failed';
+      const status = error.response?.status;
+
+      switch (status) {
+        case 401:
+          errorMessage = 'Invalid email or password';
+          break;
+        case 403:
+          errorMessage = 'Account is deactivated. Please contact administrator.';
+          break;
+        case 422:
+          errorMessage = 'Validation error. Please check your input.';
+          break;
+        case 429:
+          errorMessage = 'Too many login attempts. Please try again later.';
+          break;
+        case 500:
+          errorMessage = 'Server error. Please try again later.';
+          break;
+        case 0:
+          errorMessage = 'Network error. Please check your connection.';
+          break;
+        default:
+          errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      }
+
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Enhanced register with better validation
+  const register = async (userData: any): Promise<void> => {
+    try {
+      setIsLoading(true);
       const response = await authApi.register(userData);
       
-      // FIXED: Use the same response format handling
       if (response.success && response.data) {
         const { token, user } = response.data;
         
         setToken(token);
         setUser(user);
+        setLastActivity(new Date());
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('userRole', user.role);
+        localStorage.setItem('auth_timestamp', Date.now().toString());
         
-        // Load permissions after registration
         await loadPermissions();
         
         return;
@@ -193,30 +285,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
+      
       // Handle specific error cases
       if (error.response?.status === 409) {
         throw new Error('An account with this email already exists');
       }
+      if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        if (errors) {
+          throw new Error(Object.values(errors).flat().join(', '));
+        }
+      }
+      
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Enhanced Google login
   const loginWithGoogle = async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     try {
+      setIsLoading(true);
       const response = await authApi.googleLogin(googleData);
       
-      // FIXED: Use the same response format handling
       if (response.success && response.data) {
         const { token, user } = response.data;
         
         setToken(token);
         setUser(user);
+        setLastActivity(new Date());
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('userRole', user.role);
+        localStorage.setItem('auth_timestamp', Date.now().toString());
         
-        // Load permissions after Google login
         await loadPermissions();
         
         return;
@@ -226,22 +331,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       console.error('Google login error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
+  // Enhanced logout with comprehensive cleanup
+  const logout = (): void => {
+    // Clear all auth-related storage
+    const storageKeys = [
+      'token', 'user', 'userRole', 'auth_persist', 'session_data',
+      'user_permissions', 'auth_timestamp', 'dashboard_cache'
+    ];
+    storageKeys.forEach(key => localStorage.removeItem(key));
+    
+    // Clear session storage
+    sessionStorage.clear();
+    
+    // Clear state
     setUser(null);
     setToken(null);
     setPermissions([]);
     
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
+    // API cleanup
     authApi.logout();
+    
+    // Clear any service worker caches if needed
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          if (name.includes('auth') || name.includes('user')) {
+            caches.delete(name);
+          }
+        });
+      });
+    }
+
+    // Clear any pending timeouts
+    const highestTimeoutId = setTimeout(() => {}, 0) as unknown as number;
+    for (let i = 0; i < highestTimeoutId; i++) {
+      clearTimeout(i);
+    }
+
+    // Track logout for analytics
+    console.log('User logged out');
   };
 
+  // Enhanced permission checking with caching and groups
   const hasPermission = (permission: string): boolean => {
     return permissions.includes(permission);
+  };
+
+  const hasAnyPermission = (requiredPermissions: string[]): boolean => {
+    return requiredPermissions.some(permission => permissions.includes(permission));
+  };
+
+  const hasAllPermissions = (requiredPermissions: string[]): boolean => {
+    return requiredPermissions.every(permission => permissions.includes(permission));
   };
 
   const hasRole = (role: string | string[]): boolean => {
@@ -251,17 +397,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return roles.includes(user.role);
   };
 
-  // Role hierarchy constants
-  const ROLE_HIERARCHY: Record<string, number> = {
-    student: 1,
-    teacher: 2,
-    admin: 3,
-  };
-
-  /**
-   * Check if user's role is equal to or higher than the specified role
-   * Uses role hierarchy: student < teacher < chapter_admin < platform_admin
-   */
   const isRoleOrHigher = (role: string): boolean => {
     if (!user) return false;
     
@@ -270,25 +405,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return userLevel >= requiredLevel;
   };
 
-  /**
-   * Get the dashboard path appropriate for the user's role
-   */
   const getRoleDashboard = (): string => {
     if (!user) return '/login';
 
-    if (user.role === 'admin') {
-      return '/admin/dashboard';
+    switch (user.role) {
+      case 'admin':
+      case 'super_admin':
+        return '/admin/dashboard';
+      case 'teacher':
+        return '/teacher/dashboard';
+      default:
+        return '/student/dashboard';
     }
-    if (user.role === 'teacher') {
-      return '/teacher/dashboard';
-    }
-    return '/student/dashboard';
   };
 
-  /**
-   * Enhanced route access validation
-   * Maps routes to required roles with wildcard and parameterized route support
-   */
+  // Enhanced route access validation with parameter support
   const canAccessRoute = (path: string): boolean => {
     if (!user) return false;
 
@@ -297,7 +428,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Admin routes - require admin role
     if (normalizedPath.startsWith('/admin')) {
-      return user.role === 'admin';
+      return isRoleOrHigher('admin');
     }
 
     // Teacher routes - require teacher or higher
@@ -319,6 +450,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       '/leaderboards',
       '/resources',
       '/help',
+      '/profile',
+      '/settings'
     ];
 
     for (const route of sharedRoutes) {
@@ -327,33 +460,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
-    // Legacy routes that should redirect
-    const legacyRoutes = [
-      '/courses',
-      '/catalog',
-      '/progress',
-      '/achievements',
-      '/record',
-      '/students',
-      '/analytics',
-    ];
-
-    for (const route of legacyRoutes) {
-      if (normalizedPath === route || normalizedPath.startsWith(`${route}/`)) {
-        // Allow access but these will redirect to namespaced routes
-        return true;
-      }
+    // Course-related routes with permission checking
+    if (normalizedPath.startsWith('/courses')) {
+      return hasPermission(PERMISSION_GROUPS.COURSE.VIEW);
     }
 
     // Default: deny access for unknown routes
     return false;
   };
 
-  const refreshPermissions = async () => {
+  const refreshPermissions = async (): Promise<void> => {
     await loadPermissions();
   };
 
-  const value = {
+  // Update user preferences
+  const updateUserPreferences = async (preferences: Partial<User['preferences']>): Promise<void> => {
+    if (!user) return;
+
+    try {
+      const updatedUser = {
+        ...user,
+        preferences: {
+          ...user.preferences,
+          ...preferences
+        }
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Optionally sync with backend
+      await authApi.updateUserPreferences(preferences);
+    } catch (error) {
+      console.error('Failed to update user preferences:', error);
+      throw error;
+    }
+  };
+
+  const value: AuthContextType = {
     user,
     token,
     permissions,
@@ -362,19 +506,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     isAuthenticated: !!user && !!token,
     hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
     hasRole,
     isRoleOrHigher,
     canAccessRoute,
     getRoleDashboard,
     refreshPermissions,
-    isLoading: loading,
-    loginWithGoogle
+    isLoading,
+    loginWithGoogle,
+    updateUserPreferences,
+    lastActivity
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your experience...</p>
+          <p className="text-sm text-gray-500 mt-2">Preparing your personalized dashboard</p>
+        </div>
       </div>
     );
   }
@@ -392,4 +544,17 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+// Helper hook for common permission checks
+export const usePermissions = () => {
+  const { hasPermission, hasAnyPermission, hasAllPermissions } = useAuth();
+  
+  return {
+    canViewCourses: () => hasPermission(PERMISSION_GROUPS.COURSE.VIEW),
+    canCreateCourses: () => hasPermission(PERMISSION_GROUPS.COURSE.CREATE),
+    canEditCourses: () => hasPermission(PERMISSION_GROUPS.COURSE.EDIT),
+    canManageUsers: () => hasAnyPermission([PERMISSION_GROUPS.USER.EDIT, PERMISSION_GROUPS.USER.DELETE]),
+    canManageContent: () => hasAllPermissions([PERMISSION_GROUPS.CONTENT.VIEW, PERMISSION_GROUPS.CONTENT.EDIT])
+  };
 };

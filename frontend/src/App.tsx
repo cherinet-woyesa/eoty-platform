@@ -11,6 +11,7 @@ import './styles/globals.css';
 import RecordVideo from './pages/courses/RecordVideo';
 import MyCourses from './pages/courses/MyCourses';
 import CourseCatalog from './pages/courses/CourseCatalog';
+import StudentEnrolledCourses from './pages/courses/StudentEnrolledCourses';
 import AllCourses from './pages/admin/AllCourses';
 import CreateCourse from './pages/courses/CreateCourse';
 import EditCourse from './pages/courses/EditCourse';
@@ -51,6 +52,11 @@ import QuizDemo from './pages/courses/QuizDemo';
 import ProgressPage from './pages/courses/ProgressPage';
 import DiscussionDemo from './pages/courses/DiscussionDemo';
 import Students from './pages/students/Students';
+import LearningPathsPage from './pages/student/LearningPathsPage';
+import BookmarksPage from './pages/student/BookmarksPage';
+import SchedulePage from './pages/student/SchedulePage';
+import StudyGroupsPage from './pages/student/StudyGroupsPage';
+import HelpPage from './pages/student/HelpPage';
 import { queryClient } from './lib/queryClient';
 import './i18n/config';
 
@@ -188,7 +194,18 @@ function AppContent() {
           element={
             <StudentRoute>
               <DashboardLayout>
-                <CourseCatalog />
+                <StudentEnrolledCourses />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        <Route 
+          path="/student/my-courses" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <StudentEnrolledCourses />
               </DashboardLayout>
             </StudentRoute>
           } 
@@ -222,6 +239,62 @@ function AppContent() {
             <StudentRoute>
               <DashboardLayout>
                 <Achievements />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        {/* New Student Routes */}
+        <Route 
+          path="/student/learning-paths" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <LearningPathsPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/bookmarks" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <BookmarksPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/schedule" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <SchedulePage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/study-groups" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <StudyGroupsPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/help" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <HelpPage />
               </DashboardLayout>
             </StudentRoute>
           } 
@@ -646,7 +719,7 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Router>
         <AuthProvider>
           <UserProvider>
             <OnboardingProvider>

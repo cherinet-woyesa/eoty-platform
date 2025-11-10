@@ -107,35 +107,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </nav>
       </div>
 
-      {/* Study Stats - Only when expanded */}
-      {!isCollapsed && (
-        <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Courses</span>
-              <span className="font-semibold text-gray-900">5</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Completed</span>
-              <span className="font-semibold text-gray-900">12 lessons</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Streak</span>
-              <div className="flex items-center space-x-1">
-                <Clock className="h-3 w-3 text-green-500" />
-                <span className="font-semibold text-gray-900">7 days</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Level</span>
-              <div className="flex items-center space-x-1">
-                <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                <span className="font-semibold text-gray-900">Intermediate</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

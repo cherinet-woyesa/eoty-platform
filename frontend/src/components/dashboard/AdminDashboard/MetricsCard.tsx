@@ -5,11 +5,12 @@ interface MetricsCardProps {
   title: string;
   value: string | number;
   change: number;
-  format?: 'number' | 'percent' | 'currency';
+  format?: 'number' | 'percent' | 'currency' | 'duration' | 'rating';
   icon: React.ReactNode;
   color: string;
   trend: 'up' | 'down';
   compact?: boolean;
+  decimal?: number;
 }
 
 const MetricsCard: React.FC<MetricsCardProps> = ({
@@ -20,11 +21,17 @@ const MetricsCard: React.FC<MetricsCardProps> = ({
   icon,
   color,
   trend,
-  compact = false
+  compact = false,
+  decimal = 1
 }) => {
   const formatValue = (val: string | number) => {
     if (format === 'percent') return `${val}%`;
     if (format === 'currency') return `$${val}`;
+    if (format === 'duration') return val;
+    if (format === 'rating') {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return num.toFixed(decimal);
+    }
     
     // Format large numbers
     const num = typeof val === 'string' ? parseFloat(val) : val;

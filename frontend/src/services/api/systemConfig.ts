@@ -279,6 +279,18 @@ export const getUsageDetails = async (entityType: string, id: number): Promise<U
 };
 
 // ============================================================================
+// Languages
+// ============================================================================
+
+export const getLanguages = async (activeOnly = false): Promise<Language[]> => {
+  const response = await apiClient.get<ApiResponse<LanguagesResponse>>(
+    `${BASE_URL}/languages`,
+    { params: { active_only: activeOnly } }
+  );
+  return response.data.data!.languages;
+};
+
+// ============================================================================
 // Export as default object
 // ============================================================================
 
@@ -326,7 +338,10 @@ export const systemConfigApi = {
   
   // Audit & Analytics
   getAuditLogs,
-  getUsageDetails
+  getUsageDetails,
+
+  // Languages
+  getLanguages
 };
 
 export default systemConfigApi;

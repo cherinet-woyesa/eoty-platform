@@ -58,5 +58,13 @@ router.post('/:courseId/lessons/reorder', requireRole(['teacher', 'admin']), req
 // Course enrollment
 // Only students can enroll in courses (teachers and admins don't need to enroll)
 router.post('/:courseId/enroll', requireRole(['student']), courseController.enrollInCourse);
+router.post('/:courseId/unenroll', requireRole(['student']), courseController.unenrollFromCourse);
+
+// Course favorites
+router.post('/:courseId/favorite', requirePermission('course:view'), courseController.addToFavorites);
+router.post('/:courseId/unfavorite', requirePermission('course:view'), courseController.removeFromFavorites);
+
+// Course rating
+router.post('/:courseId/rate', requireRole(['student']), courseController.rateCourse);
 
 module.exports = router;

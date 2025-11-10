@@ -1,6 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { PlayCircle, Clock, Users, Star, BookOpen, ArrowRight, Eye } from 'lucide-react';
+import { 
+  PlayCircle, Clock, Users, Star, BookOpen, ArrowRight, Eye, 
+  Bookmark, Filter, Search, SortAsc, MoreVertical, Download 
+} from 'lucide-react';
 
 interface Course {
   id: string;
@@ -17,14 +20,27 @@ interface Course {
   thumbnail?: string;
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  tags: string[];
+  isBookmarked?: boolean;
+  isFeatured?: boolean;
 }
 
 interface CourseGridProps {
   courses: Course[];
   compact?: boolean;
+  onCourseAction?: (courseId: string, action: string) => void;
 }
 
-const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => {
+const CourseGrid: React.FC<CourseGridProps> = ({ 
+  courses, 
+  compact = false,
+  onCourseAction 
+}) => {
+  const [bookmarkedCourses, setBookmarkedCourses] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'progress' | 'recent' | 'title' | 'difficulty'>('recent');
+  const [filterBy, setFilterBy] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -34,20 +50,108 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getDifficultyIcon = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner':
+        return '🟢';
+      case 'intermediate':
+        return '🟡';
+      case 'advanced':
+        return '🔴';
+      default:
+        return '⚪';
     }
   };
 
   const handleCourseClick = useCallback((courseId: string) => {
-    // Track course click for analytics
+    onCourseAction?.(courseId, 'view');
+    // Analytics tracking
     console.log('Course clicked:', courseId);
-  }, []);
+  }, [onCourseAction]);
+
+  const toggleBookmark = useCallback((courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBookmarkedCourses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+        onCourseAction?.(courseId, 'unbookmark');
+      } else {
+        newSet.add(courseId);
+        onCourseAction?.(courseId, 'bookmark');
+      }
+      return newSet;
+    });
+  }, [onCourseAction]);
+
+  const downloadCertificate = useCallback((courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCourseAction?.(courseId, 'download-certificate');
+  }, [onCourseAction]);
+
+  // Filter and sort courses
+  const filteredAndSortedCourses = useMemo(() => {
+    let filtered = courses.filter(course => 
+      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    // Apply progress filters
+    switch (filterBy) {
+      case 'in-progress':
+        filtered = filtered.filter(course => course.progress > 0 && course.progress < 100);
+        break;
+      case 'completed':
+        filtered = filtered.filter(course => course.progress === 100);
+        break;
+      case 'not-started':
+        filtered = filtered.filter(course => course.progress === 0);
+        break;
+    }
+
+    // Apply sorting
+    switch (sortBy) {
+      case 'progress':
+        return [...filtered].sort((a, b) => b.progress - a.progress);
+      case 'recent':
+        return [...filtered].sort((a, b) => 
+          new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime()
+        );
+      case 'title':
+        return [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+      case 'difficulty':
+        const difficultyOrder = { beginner: 1, intermediate: 2, advanced: 3 };
+        return [...filtered].sort((a, b) => 
+          difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]
+        );
+      default:
+        return filtered;
+    }
+  }, [courses, searchQuery, filterBy, sortBy]);
+
+  const CourseCardSkeleton: React.FC = () => (
+    <div className="border border-gray-200 rounded-lg overflow-hidden animate-pulse">
+      <div className="h-32 bg-gray-300"></div>
+      <div className="p-4 space-y-3">
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        <div className="h-3 bg-gray-300 rounded w-full"></div>
+        <div className="h-3 bg-gray-300 rounded w-2/3"></div>
+        <div className="h-2 bg-gray-300 rounded w-1/2"></div>
+      </div>
+    </div>
+  );
 
   if (compact) {
     return (
@@ -55,31 +159,50 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
             <BookOpen className="h-5 w-5 mr-2 text-blue-500" />
-            My Courses ({courses.length})
+            My Courses ({filteredAndSortedCourses.length})
           </h3>
-          <Link
-            to="/courses"
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
-          >
-            View All
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Link>
+          <div className="flex items-center space-x-2">
+            <div className="relative">
+              <Search className="h-4 w-4 text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search courses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <Link
+              to="/courses"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+            >
+              View All
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Link>
+          </div>
         </div>
         
-        {courses.length > 0 ? (
+        {filteredAndSortedCourses.length > 0 ? (
           <div className="space-y-3">
-            {courses.slice(0, 4).map((course) => (
+            {filteredAndSortedCourses.slice(0, 4).map((course) => (
               <div
                 key={course.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-all duration-200 cursor-pointer group hover:shadow-sm"
                 onClick={() => handleCourseClick(course.id)}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="font-medium text-gray-900 truncate">{course.title}</h4>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColor(course.difficulty)}`}>
-                      {course.difficulty}
+                    <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                      {course.title}
+                    </h4>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getDifficultyColor(course.difficulty)}`}>
+                      {getDifficultyIcon(course.difficulty)} {course.difficulty}
                     </span>
+                    {course.isFeatured && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                        ⭐ Featured
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                     <div className="flex items-center space-x-1">
@@ -92,23 +215,42 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="h-3 w-3" />
-                      <span>Last accessed {new Date(course.lastAccessed).toLocaleDateString()}</span>
+                      <span>Last: {new Date(course.lastAccessed).toLocaleDateString()}</span>
                     </div>
                   </div>
                   <div className="mt-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          course.progress === 100 ? 'bg-green-500' : 'bg-blue-600'
+                        }`}
                         style={{ width: `${course.progress}%` }}
                       ></div>
                     </div>
-                    <span className="text-xs text-gray-500 mt-1">{course.progress}% complete</span>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>{course.progress}% complete</span>
+                      {course.progress === 100 && (
+                        <span className="text-green-600 font-medium">Completed! 🎉</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
+                  <button
+                    onClick={(e) => toggleBookmark(course.id, e)}
+                    className={`p-2 transition-colors rounded-lg ${
+                      bookmarkedCourses.has(course.id) 
+                        ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100' 
+                        : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Bookmark 
+                      className={`h-4 w-4 ${bookmarkedCourses.has(course.id) ? 'fill-current' : ''}`} 
+                    />
+                  </button>
                   <Link
                     to={`/courses/${course.id}`}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <PlayCircle className="h-4 w-4" />
@@ -120,14 +262,46 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
         ) : (
           <div className="text-center py-8">
             <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">No courses enrolled yet</p>
+            <p className="text-gray-500 mb-2">
+              {searchQuery ? 'No courses match your search' : 'No courses enrolled yet'}
+            </p>
+            <p className="text-gray-400 text-sm mb-4">
+              {searchQuery ? 'Try adjusting your search terms' : 'Start your learning journey today'}
+            </p>
             <Link
               to="/courses"
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              Browse Available Courses
+              {searchQuery ? 'Browse All Courses' : 'Browse Available Courses'}
             </Link>
+          </div>
+        )}
+
+        {/* Filters for compact view */}
+        {filteredAndSortedCourses.length > 0 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center space-x-2 text-sm">
+              <span className="text-gray-500">Filter:</span>
+              <select
+                value={filterBy}
+                onChange={(e) => setFilterBy(e.target.value as any)}
+                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Courses</option>
+                <option value="not-started">Not Started</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -136,30 +310,71 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
 
   return (
     <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
         <div>
           <h2 className="text-xl font-bold text-gray-900">My Courses</h2>
-          <p className="text-gray-600 mt-1">Continue your learning journey</p>
+          <p className="text-gray-600 mt-1">
+            {filteredAndSortedCourses.length} course{filteredAndSortedCourses.length !== 1 ? 's' : ''} • Continue your learning journey
+          </p>
         </div>
-        <Link
-          to="/courses"
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <BookOpen className="h-4 w-4 mr-2" />
-          Browse Courses
-        </Link>
+        
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-48"
+            />
+          </div>
+
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="recent">Recently Accessed</option>
+            <option value="progress">Progress</option>
+            <option value="title">Title</option>
+            <option value="difficulty">Difficulty</option>
+          </select>
+
+          {/* Filter */}
+          <select
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value as any)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Courses</option>
+            <option value="not-started">Not Started</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+
+          <Link
+            to="/courses"
+            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Browse Courses
+          </Link>
+        </div>
       </div>
 
-      {courses.length > 0 ? (
+      {filteredAndSortedCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {filteredAndSortedCourses.map((course) => (
             <div
               key={course.id}
               className="border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group"
               onClick={() => handleCourseClick(course.id)}
             >
               {/* Course Thumbnail */}
-              <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 relative">
+              <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
                 {course.thumbnail ? (
                   <img
                     src={course.thumbnail}
@@ -171,33 +386,83 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
                     <BookOpen className="h-8 w-8" />
                   </div>
                 )}
+                
+                {/* Featured Badge */}
+                {course.isFeatured && (
+                  <div className="absolute top-2 left-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500 text-white">
+                      ⭐ Featured
+                    </span>
+                  </div>
+                )}
+                
+                {/* Difficulty Badge */}
                 <div className="absolute top-2 right-2">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${
                     course.difficulty === 'beginner' ? 'bg-green-500' :
                     course.difficulty === 'intermediate' ? 'bg-yellow-500' : 'bg-red-500'
                   }`}>
-                    {course.difficulty}
+                    {getDifficultyIcon(course.difficulty)} {course.difficulty}
                   </span>
                 </div>
+                
+                {/* Category Badge */}
                 <div className="absolute bottom-2 left-2">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-black/50 text-white">
                     {course.category}
                   </span>
                 </div>
+
+                {/* Progress Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1">
+                  <div className="flex justify-between items-center">
+                    <span>Progress</span>
+                    <span>{course.progress}%</span>
+                  </div>
+                  <div className="w-full bg-white/30 rounded-full h-1 mt-1">
+                    <div 
+                      className={`h-1 rounded-full ${
+                        course.progress === 100 ? 'bg-green-400' : 'bg-blue-400'
+                      }`}
+                      style={{ width: `${course.progress}%` }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Course Info */}
               <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                  {course.title}
-                </h3>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 mr-2">
+                    {course.title}
+                  </h3>
+                  <button
+                    onClick={(e) => toggleBookmark(course.id, e)}
+                    className={`p-1 transition-colors rounded ${
+                      bookmarkedCourses.has(course.id) 
+                        ? 'text-yellow-500 hover:text-yellow-600' 
+                        : 'text-gray-400 hover:text-yellow-500'
+                    }`}
+                  >
+                    <Bookmark 
+                      className={`h-4 w-4 ${bookmarkedCourses.has(course.id) ? 'fill-current' : ''}`} 
+                    />
+                  </button>
+                </div>
+                
                 <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description}</p>
                 
+                {/* Instructor */}
+                <div className="flex items-center text-xs text-gray-500 mb-3">
+                  <span>by {course.instructor}</span>
+                </div>
+                
+                {/* Metadata */}
                 <div className="space-y-2 text-xs text-gray-500 mb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <Users className="h-3 w-3" />
-                      <span>{course.studentCount} students</span>
+                      <span>{course.studentCount.toLocaleString()} students</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <PlayCircle className="h-3 w-3" />
@@ -216,41 +481,60 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
                   </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Progress</span>
-                    <span>{course.progress}%</span>
+                {/* Tags */}
+                {course.tags && course.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {course.tags.slice(0, 3).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {course.tags.length > 3 && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                        +{course.tags.length - 3} more
+                      </span>
+                    )}
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
-                </div>
+                )}
 
-                {/* Instructor & Action Buttons */}
+                {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="text-xs text-gray-500">
-                    by {course.instructor}
-                  </div>
                   <div className="flex items-center space-x-2">
                     <Link
                       to={`/courses/${course.id}`}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                        course.progress === 100 
+                          ? 'text-green-700 bg-green-50 hover:bg-green-100' 
+                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                      }`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {course.progress > 0 ? 'Continue' : 'Start'}
+                      {course.progress === 100 ? 'Review' : course.progress > 0 ? 'Continue' : 'Start'}
                     </Link>
+                    
+                    {course.progress === 100 && (
+                      <button
+                        onClick={(e) => downloadCertificate(course.id, e)}
+                        className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center space-x-1"
+                      >
+                        <Download className="h-3 w-3" />
+                        <span>Certificate</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Add to bookmarks
+                        onCourseAction?.(course.id, 'more');
                       }}
-                      className="text-xs text-gray-400 hover:text-yellow-500 transition-colors"
+                      className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      <Eye className="h-3 w-3" />
+                      <MoreVertical className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -261,22 +545,41 @@ const CourseGrid: React.FC<CourseGridProps> = ({ courses, compact = false }) => 
       ) : (
         <div className="text-center py-12">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No courses yet</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {searchQuery ? 'No courses found' : 'No courses yet'}
+          </h3>
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            Start your learning journey by enrolling in courses that match your interests and goals.
+            {searchQuery 
+              ? 'No courses match your search criteria. Try adjusting your filters or search terms.'
+              : 'Start your learning journey by enrolling in courses that match your interests and goals.'
+            }
           </p>
-          <Link
-            to="/courses"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <BookOpen className="h-5 w-5 mr-2" />
-            Explore Courses
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              to="/courses"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <BookOpen className="h-5 w-5 mr-2" />
+              Explore Courses
+            </Link>
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterBy('all');
+                  setSortBy('recent');
+                }}
+                className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* View All Courses */}
-      {courses.length > 0 && (
+      {filteredAndSortedCourses.length > 0 && (
         <div className="mt-6 text-center">
           <Link
             to="/courses"

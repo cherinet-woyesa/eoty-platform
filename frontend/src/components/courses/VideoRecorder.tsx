@@ -1,6 +1,7 @@
 // frontend/src/components/courses/VideoRecorder.tsx
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
+
 import { useVideoRecorder } from '../../hooks/useVideoRecorder';
 import { videoApi, coursesApi } from '../../services/api';
 import VideoTimelineEditor from './VideoTimelineEditor';
@@ -1164,7 +1165,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Enhanced screen share handlers with feedback
   const handleStartScreenShare = async () => {
     try {
-      await startScreenShare();
+      // If we're recording and have a camera source, we want to add screen share to existing recording
+      if (isRecording && recordingSources.camera) {
+        await addScreenShare(); // Use addScreenShare for dynamic addition during recording
+      } else {
+        await startScreenShare(); // Use startScreenShare for initial screen sharing
+      }
+      
       if (isRecording) {
         setSuccessMessage('Now recording your screen! Recording continues seamlessly.');
       } else {
@@ -1178,7 +1185,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   const handleStopScreenShare = async () => {
-    await stopScreenShare();
+    // If we're recording, we want to remove screen share from existing recording
+    if (isRecording && recordingSources.screen) {
+      await removeScreenShare(); // Use removeScreenShare for dynamic removal during recording
+    } else {
+      await stopScreenShare(); // Use stopScreenShare for stopping initial screen sharing
+    }
+    
     if (isRecording) {
       setSuccessMessage('Switched back to camera! Recording continues seamlessly.');
     } else {
@@ -1366,77 +1379,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       );
     }
   };
-
-  return (
-    <>
-      {/* Notification Container (Task 7.3) */}
-      <NotificationContainer
-        notifications={notifications}
-        onDismiss={dismissNotification}
-      />
-      
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Video className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-bold text-gray-900">Create Video Lesson</h3>
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* Session Management Button */}
-            {savedSessions.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowSessionMenu(!showSessionMenu)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                  title="Saved Sessions"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                </button>
-                {showSessionMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
-                    <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
-                      Saved Sessions
-                    </div>
-                    {savedSessions.map(sessionId => (
-                      <button
-                        key={sessionId}
-                        onClick={() => handleLoadSession(sessionId)}
-                        className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Session {sessionId.slice(-8)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <button
-              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-              className="p-2 text-gray-400 hover:text-gray-600"
-              title="Advanced Settings"
-            >
-              <Settings className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-gray-400 hover:text-gray-600"
-              title="Settings"
-            >
-              <Sparkles className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-        
-        {/* Enhanced Tab Navigation */}
-        <div className="flex space-x-1 mt-4 bg-white rounded-xl p-1 border">
-          <button
-            onClick={() => handleTabChange('record')}
-            className={`flex-1 py-2 px-3 rounded-lg transition-all flex items-center justify-center space-x-2 ${
-              activeTab === 'record' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'
-            }`}>
             <VideoIcon className="h-4 w-4" />
             <span>Record Live</span>
           </button>
@@ -1712,20 +1654,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         {/* NEW: Enhanced Action Buttons (shown after recording) */}
         {activeTab === 'record' && recordedVideo && (
-          <div className="absolute top-4 right-4 z-30 flex space-x-2">
-            <button
-              onClick={() => {
-                setShowTimelineEditor(true);
-                setShowPreview(false);
-              }}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center space-x-2"
-            >
-              <Scissors className="h-4 w-4" />
-              <span>Edit Video</span>
-            </button>
+          <div className="absolute top-4 right-4 z-30 flex space-x-3">
+            <div className="relative group">
+              <button
+                onClick={() => {
+                  setShowTimelineEditor(true);
+                  setShowPreview(false);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 text-sm font-medium flex items-center space-x-2 shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
+                <Scissors className="h-4 w-4" />
+                <span>Edit Video</span>
+              </button>
+              <div className="absolute right-0 mt-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                Trim your video to remove unwanted parts
+                <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 rotate-45"></div>
+              </div>
+            </div>
             <button
               onClick={handleExportSession}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center space-x-2"
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 text-sm font-medium flex items-center space-x-2 shadow-lg transition-all duration-200"
             >
               <Download className="h-4 w-4" />
               <span>Export</span>
@@ -1910,22 +1858,28 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 <>
                   <button 
                     onClick={downloadRecording}
-                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 text-sm"
+                    className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center space-x-2 text-sm shadow-md"
                     title="Download Recording"
                   >
                     <Download className="h-4 w-4" />
                     <span>Download</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowTimelineEditor(true);
-                      setShowPreview(false);
-                    }}
-                    className="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2 text-sm"
-                  >
-                    <Scissors className="h-4 w-4" />
-                    <span>Edit Video</span>
-                  </button>
+                  <div className="relative group">
+                    <button
+                      onClick={() => {
+                        setShowTimelineEditor(true);
+                        setShowPreview(false);
+                      }}
+                      className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors flex items-center space-x-2 text-sm shadow-md"
+                    >
+                      <Scissors className="h-4 w-4" />
+                      <span>Edit Video</span>
+                    </button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                      Trim your video to remove unwanted parts
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    </div>
+                  </div>
                 </>
               )}
               <button 
@@ -1965,21 +1919,27 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     setShowPreview(true);
                     setShowLessonForm(false);
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm"
+                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm shadow-sm"
                 >
                   <Play className="h-4 w-4" />
                   <span>Preview Video</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setShowTimelineEditor(true);
-                    setShowLessonForm(false);
-                  }}
-                  className="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2 text-sm"
-                >
-                  <Scissors className="h-4 w-4" />
-                  <span>Edit Video</span>
-                </button>
+                <div className="relative group">
+                  <button
+                    onClick={() => {
+                      setShowTimelineEditor(true);
+                      setShowLessonForm(false);
+                    }}
+                    className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors flex items-center space-x-2 text-sm shadow-md"
+                  >
+                    <Scissors className="h-4 w-4" />
+                    <span>Edit Video</span>
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    Trim your video to remove unwanted parts
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

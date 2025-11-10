@@ -309,16 +309,16 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'My Courses',
-    href: '/courses',
+    href: '/student/courses',
     icon: BookOpen,
     badge: null,
-    description: 'Continue learning',
+    description: 'Your enrolled courses',
     color: 'text-green-600',
     requiredRole: 'student',
   },
   {
     name: 'Browse Courses',
-    href: '/catalog',
+    href: '/courses',
     icon: Search,
     badge: null,
     description: 'Discover new courses',
@@ -327,7 +327,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Study Paths',
-    href: '/learning-paths',
+    href: '/student/learning-paths',
     icon: Target,
     badge: null,
     description: 'Structured learning',
@@ -336,7 +336,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Bookmarks',
-    href: '/bookmarks',
+    href: '/student/bookmarks',
     icon: Bookmark,
     badge: null,
     description: 'Saved lessons',
@@ -345,7 +345,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Study Schedule',
-    href: '/schedule',
+    href: '/student/schedule',
     icon: Calendar,
     badge: null,
     description: 'Plan your study',
@@ -354,7 +354,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Progress',
-    href: '/progress',
+    href: '/student/progress',
     icon: BarChart3,
     badge: null,
     description: 'Track learning',
@@ -372,7 +372,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Study Groups',
-    href: '/study-groups',
+    href: '/student/study-groups',
     icon: Users,
     badge: null,
     description: 'Collaborate with peers',
@@ -381,7 +381,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Achievements',
-    href: '/achievements',
+    href: '/student/achievements',
     icon: Award,
     badge: null,
     description: 'View badges',
@@ -408,7 +408,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'Help Center',
-    href: '/help',
+    href: '/student/help',
     icon: HelpCircle,
     badge: null,
     description: 'Get support',

@@ -19,7 +19,7 @@ export interface FieldValidation {
  * Form validation configuration
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface FormValidationConfig<T extends Record<string, any>> {
+export interface FormValidationConfig {
   [key: string]: FieldValidation;
 }
 
@@ -59,7 +59,7 @@ export interface UseFormValidationReturn<T extends Record<string, any>> {
  * @returns Validation state and methods
  */
 export function useFormValidation<T extends Record<string, any>>(
-  config: FormValidationConfig<T>
+  config: FormValidationConfig
 ): UseFormValidationReturn<T> {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<TouchedFields>({});
@@ -255,6 +255,22 @@ export const validationRules = {
   custom: (validatorFn: (value: any, formData?: any) => boolean, message: string): ValidationRule => {
     return (value: any, formData?: any) => {
       return validatorFn(value, formData) ? null : message;
+    };
+  },
+
+  minValue: (min: number, message?: string): ValidationRule => {
+    return (value: number) => {
+      if (value === null || value === undefined) return null;
+      const errorMessage = message || `Must be at least ${min}`;
+      return value >= min ? null : errorMessage;
+    };
+  },
+
+  maxValue: (max: number, message?: string): ValidationRule => {
+    return (value: number) => {
+      if (value === null || value === undefined) return null;
+      const errorMessage = message || `Must be no more than ${max}`;
+      return value <= max ? null : errorMessage;
     };
   },
 };

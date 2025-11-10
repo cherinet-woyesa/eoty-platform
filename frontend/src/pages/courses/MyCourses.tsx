@@ -34,6 +34,7 @@ const MyCourses: React.FC = () => {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [activeTab, setActiveTab] = useState('all');
   // const [showFilters, setShowFilters] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [stats, setStats] = useState<CourseStats | null>(null);
@@ -110,7 +111,10 @@ const MyCourses: React.FC = () => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesTab = activeTab === 'all' ||
+                       (activeTab === 'published' && course.is_published) ||
+                       (activeTab === 'drafts' && !course.is_published);
+    return matchesSearch && matchesCategory && matchesTab;
     })
     .sort((a, b) => {
       let aValue: any = a[sortBy as keyof Course];
@@ -433,30 +437,41 @@ const MyCourses: React.FC = () => {
           </div>
         )}
 
-      {/* Quick Stats Bar */}
-      {stats && (
-        <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-3 border border-gray-200">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-4 text-sm">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-gray-600">Published: {stats.publishedCourses}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span className="text-gray-600">Drafts: {stats.totalCourses - stats.publishedCourses}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-gray-600">Avg. Rating: {stats.averageRating}/5</span>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500">
-              Last updated: {getTimeAgo(lastUpdated.toISOString())}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Tabs for filtering */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`${
+              activeTab === 'all'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            All Courses
+          </button>
+          <button
+            onClick={() => setActiveTab('published')}
+            className={`${
+              activeTab === 'published'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            Published
+          </button>
+          <button
+            onClick={() => setActiveTab('drafts')}
+            className={`${
+              activeTab === 'drafts'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            Drafts
+          </button>
+        </nav>
+      </div>
 
         {/* Courses Display */}
         {filteredAndSortedCourses.length > 0 ? (
