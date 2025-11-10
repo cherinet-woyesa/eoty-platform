@@ -410,7 +410,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   
   // Mux upload state
-  const [useMuxUpload, setUseMuxUpload] = useState(true); // Default to Mux
+  const [useMuxUpload, setUseMuxUpload] = useState(false); // Default to false
   const [showMuxUploader, setShowMuxUploader] = useState(false);
   const [muxUploadLessonId, setMuxUploadLessonId] = useState<string | null>(null);
   
@@ -1617,7 +1617,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 recordingSources={recordingSources}
                 onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
                 onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
-                disabled={isRecording}
+                disabled={false}
                 isRecording={isRecording}
                 micLevel={micLevel}
               />
@@ -2133,11 +2133,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 </div>
 
               </div>
-            )}
+           )}
           </div>
           <div className="space-y-4">
-            {/* Upload Provider Selection */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            {/* Upload Provider Selection - HIDDEN */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg hidden">
               <label className="block text-sm font-medium mb-2">Upload Method</label>
               <div className="flex items-center space-x-4">
                 <label className="flex items-center space-x-2 cursor-pointer">

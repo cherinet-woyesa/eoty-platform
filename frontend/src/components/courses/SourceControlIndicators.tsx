@@ -68,9 +68,10 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
       </button>
 
       {/* Screen share toggle button */}
+      {/* Allow screen sharing toggle even during recording as per project requirements */}
       <button
         onClick={onToggleScreen}
-        disabled={disabled}
+        disabled={disabled && !isRecording} // Only disable if not recording or globally disabled
         className={`
           group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
           transition-all duration-200
@@ -78,7 +79,7 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
             ? 'bg-blue-100 text-blue-700 border-2 border-blue-300 shadow-sm'
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${(disabled && !isRecording) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
         title={isScreenActive ? 'Screen sharing active - Click to stop' : 'Screen sharing inactive - Click to start'}
       >

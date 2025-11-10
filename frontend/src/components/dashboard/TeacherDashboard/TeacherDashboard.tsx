@@ -52,6 +52,11 @@ const TeacherDashboard: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
+  // Only fetch data if user is authenticated and has teacher role
+  const shouldFetchData = useMemo(() => {
+    return !!user && hasRole('teacher');
+  }, [user, hasRole]);
+
   // Real-time teacher data
   const initialTeacherData = useMemo((): TeacherStats => ({
     totalCourses: 0,
@@ -69,10 +74,36 @@ const TeacherDashboard: React.FC = () => {
     error, 
     isLoading, 
     refetch
-  } = useRealTimeData('/teacher/dashboard', initialTeacherData);
+  } = useRealTimeData('/teacher/dashboard', { 
+    initialData: initialTeacherData,
+    enabled: shouldFetchData // Only fetch when user is authenticated
+  });
 
   // WebSocket for live student activity and notifications
   const { lastMessage, isConnected } = useWebSocket('/teacher/updates');
+
+  // Transform backend data to match TeacherStats interface
+  const transformedTeacherData = useMemo(() => {
+    if (!teacherData) return initialTeacherData;
+    
+    // If the data already matches our expected structure, use it as-is
+    if (teacherData && typeof teacherData === 'object' && 'courses' in teacherData) {
+      return teacherData as TeacherStats;
+    }
+    
+    // Transform backend response to match TeacherStats interface
+    return {
+      totalCourses: (teacherData as any).totalCourses || 0,
+      totalStudentsEnrolled: (teacherData as any).totalStudents || 0,
+      totalLessons: (teacherData as any).totalLessons || 0,
+      averageCompletionRate: (teacherData as any).averageCompletionRate || 0,
+      averageRating: (teacherData as any).averageRating || 0,
+      courses: [],
+      recentActivity: [],
+      studentPerformance: [],
+      upcomingTasks: []
+    } as TeacherStats;
+  }, [teacherData, initialTeacherData]);
 
   // Update time every minute and track last update
   useEffect(() => {
@@ -165,7 +196,7 @@ const TeacherDashboard: React.FC = () => {
   }, []);
 
   const renderViewContent = () => {
-    if (isLoading && !teacherData) {
+    if (isLoading && !transformedTeacherData) {
       return (
         <div className="flex items-center justify-center min-h-96">
           <LoadingSpinner size="lg" text={t('common.loading_dashboard')} />
@@ -173,7 +204,7 @@ const TeacherDashboard: React.FC = () => {
       );
     }
 
-    if (error && !teacherData) {
+    if (error && !transformedTeacherData) {
       return (
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center max-w-md">
@@ -200,14 +231,14 @@ const TeacherDashboard: React.FC = () => {
       case 'courses':
         return (
           <CourseManagement 
-            courses={teacherData?.courses || []} 
+            courses={transformedTeacherData?.courses || []} 
             onCourseSelect={handleCourseSelect}
           />
         );
       case 'students':
         return (
           <StudentPerformance 
-            data={teacherData?.studentPerformance || []} 
+            data={transformedTeacherData?.studentPerformance || []} 
           />
         );
       case 'video-analytics':
@@ -219,7 +250,7 @@ const TeacherDashboard: React.FC = () => {
           <div className="space-y-6">
             <EngagementAnalytics />
             <StudentPerformance 
-              data={teacherData?.studentPerformance || []} 
+              data={transformedTeacherData?.studentPerformance || []} 
               compact 
             />
           </div>
@@ -265,25 +296,25 @@ const TeacherDashboard: React.FC = () => {
 
             {/* Teacher Metrics */}
             <TeacherMetrics 
-              stats={teacherData} 
+              stats={transformedTeacherData} 
               includeVideoAnalytics={true}
             />
             
             {/* Quick Actions & Upcoming Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <QuickActions />
-              <UpcomingTasks tasks={teacherData?.upcomingTasks || []} />
+              <UpcomingTasks tasks={transformedTeacherData?.upcomingTasks || []} />
             </div>
 
             {/* Course Management & Student Performance */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CourseManagement 
-                courses={teacherData?.courses || []} 
+                courses={transformedTeacherData?.courses || []} 
                 onCourseSelect={handleCourseSelect}
                 compact 
               />
               <StudentPerformance 
-                data={teacherData?.studentPerformance || []} 
+                data={transformedTeacherData?.studentPerformance || []} 
                 compact 
               />
             </div>
@@ -326,11 +357,33 @@ const TeacherDashboard: React.FC = () => {
             </div>
 
             {/* Recent Activity */}
-            <RecentActivity activities={teacherData?.recentActivity || []} />
+            <RecentActivity activities={transformedTeacherData?.recentActivity || []} />
           </div>
         );
     }
   };
+
+  if (!user || !hasRole('teacher')) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {t('common.access_denied')}
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {t('common.must_be_logged_in_as_teacher')}
+          </p>
+          <Link 
+            to="/login"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {t('common.go_to_login')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -355,8 +408,8 @@ const TeacherDashboard: React.FC = () => {
               </p>
               <p className="text-blue-200 text-xs sm:text-sm mt-1">
                 {t('dashboard.teacher.inspiring_students', {
-                  students: teacherData?.totalStudentsEnrolled || 0,
-                  courses: teacherData?.totalCourses || 0
+                  students: transformedTeacherData?.totalStudentsEnrolled || 0,
+                  courses: transformedTeacherData?.totalCourses || 0
                 })}
               </p>
             </div>

@@ -1379,14 +1379,27 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       );
     }
   };
+
+  return (
+    <div className="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
+      {/* Tab Navigation */}
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-full max-w-md mx-auto">
+          <button
+            onClick={() => handleTabChange('record')}
+            className={`flex-1 py-2 px-3 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+              activeTab === 'record' ? 'bg-blue-600 text-white' : 'hover:bg-gray-200'
+            }`}
+          >
             <VideoIcon className="h-4 w-4" />
             <span>Record Live</span>
           </button>
           <button
             onClick={() => handleTabChange('upload')}
             className={`flex-1 py-2 px-3 rounded-lg transition-all flex items-center justify-center space-x-2 ${
-              activeTab === 'upload' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'
-            }`}>
+              activeTab === 'upload' ? 'bg-blue-600 text-white' : 'hover:bg-gray-200'
+            }`}
+          >
             <Cloud className="h-4 w-4" />
             <span>Upload Video</span>
           </button>
@@ -1408,13 +1421,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               onClick={handleStopScreenShare}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium flex items-center space-x-2"
             >
-              <Square className="h-4 w-4" />
+              <RotateCcw className="h-4 w-4" />
               <span>Stop Sharing</span>
             </button>
           </div>
         </div>
       )}
 
+      {/* Preview/Upload Section */}
+      <div className="relative flex-1">
+        {renderPreview()}
+      </div>
       {/* NEW: Multi-source Controls with integrated components (Task 7.1) */}
       {activeTab === 'record' && !recordedVideo && (
         <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
@@ -2040,7 +2057,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         />
       )}
     </div>
-    </>
   );
 };
 

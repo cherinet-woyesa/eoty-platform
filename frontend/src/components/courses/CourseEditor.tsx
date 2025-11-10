@@ -176,7 +176,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   }, [course, statsData]);
 
   // Form validation
-  const { errors, touched, validateField, validateForm, setFieldTouched, setFieldError, clearErrors } =
+  const { errors, touched, validateField, validateForm, setFieldTouched, setFieldError, clearFieldError } =
     useFormValidation<CourseFormData>({
       title: {
         rules: [
@@ -254,7 +254,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         setFieldError(field, error);
       } else {
         // Clear error if validation passes
-        clearErrors(field);
+        clearFieldError(field);
       }
       setFieldTouched(field, true);
 
@@ -267,7 +267,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         handleAutoSave();
       }, 2000); // 2 seconds delay
     },
-    [validateField, setFieldError, clearErrors, setFieldTouched]
+    [validateField, setFieldError, clearFieldError, setFieldTouched]
   );
 
   // Auto-save function
@@ -581,7 +581,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => navigate(`/courses/${courseId}`)}
+                onClick={() => navigate(`/teacher/courses/${courseId}`)}
                 className="inline-flex items-center px-3 py-1.5 border border-white/30 text-xs font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all"
               >
                 <Eye className="mr-1.5 h-3.5 w-3.5" />
@@ -702,6 +702,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 }`}
                 placeholder={t('courses.creation.description_placeholder')}
               />
+              <div className="flex justify-between mt-2 text-xs text-gray-500">
+                <span>
+                  {formData.description && formData.description.length < 50 
+                    ? t('courses.creation.description_guideline') 
+                    : t('courses.creation.good_description_length')
+                  }
+                </span>
+                <span>{formData.description.length}/2000</span>
+              </div>
               {touched.description && errors.description && (
                 <p className="mt-2 text-sm text-red-600 flex items-center">
                   <AlertCircle className="h-4 w-4 mr-1" />

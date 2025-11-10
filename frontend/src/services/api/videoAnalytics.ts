@@ -3,9 +3,7 @@
  * Handles video analytics data (Mux + Platform combined)
  */
 
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { apiClient } from './apiClient';
 
 export interface VideoAnalyticsSummary {
   totalViews: number;
@@ -103,10 +101,7 @@ export const videoAnalyticsApi = {
     if (options?.timeframe) params.append('timeframe', options.timeframe);
     if (options?.forceRefresh) params.append('forceRefresh', 'true');
 
-    const response = await axios.get(
-      `${API_BASE_URL}/video-analytics/lessons/${lessonId}?${params.toString()}`,
-      { withCredentials: true }
-    );
+    const response = await apiClient.get(`/video-analytics/lessons/${lessonId}?${params.toString()}`);
     return response.data.data;
   },
 
@@ -122,10 +117,7 @@ export const videoAnalyticsApi = {
     const params = new URLSearchParams();
     if (options?.timeframe) params.append('timeframe', options.timeframe);
 
-    const response = await axios.get(
-      `${API_BASE_URL}/video-analytics/courses/${courseId}?${params.toString()}`,
-      { withCredentials: true }
-    );
+    const response = await apiClient.get(`/video-analytics/courses/${courseId}?${params.toString()}`);
     return response.data.data;
   },
 
@@ -140,10 +132,7 @@ export const videoAnalyticsApi = {
     if (options?.timeframe) params.append('timeframe', options.timeframe);
     if (options?.limit) params.append('limit', options.limit.toString());
 
-    const response = await axios.get(
-      `${API_BASE_URL}/video-analytics/teacher/dashboard?${params.toString()}`,
-      { withCredentials: true }
-    );
+    const response = await apiClient.get(`/video-analytics/teacher/dashboard?${params.toString()}`);
     return response.data.data;
   },
 
@@ -156,13 +145,12 @@ export const videoAnalyticsApi = {
       timeframe?: string;
     }
   ): Promise<LessonAnalytics[]> => {
-    const response = await axios.post(
-      `${API_BASE_URL}/video-analytics/lessons/bulk`,
+    const response = await apiClient.post(
+      `/video-analytics/lessons/bulk`,
       {
         lessonIds,
         timeframe: options?.timeframe || '7:days'
-      },
-      { withCredentials: true }
+      }
     );
     return response.data.data;
   }

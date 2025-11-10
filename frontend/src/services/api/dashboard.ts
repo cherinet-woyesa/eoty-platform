@@ -42,17 +42,17 @@ export interface Notification {
 export const dashboardApi = {
   // Get teacher dashboard statistics
   getTeacherStats: async (): Promise<{ success: boolean; data: DashboardStats }> => {
-    const response = await apiClient.get('/courses');
-    const courses = response.data.data.courses;
+    const response = await apiClient.get('/teacher/dashboard');
+    const data = response.data.data;
     
-    // Calculate statistics from courses data
+    // Return the data directly as it's already formatted correctly from the backend
     const stats: DashboardStats = {
-      totalCourses: courses.length,
-      totalStudents: courses.reduce((sum: number, course: CourseStats) => sum + course.student_count, 0),
-      totalLessons: courses.reduce((sum: number, course: CourseStats) => sum + course.lesson_count, 0),
-      totalHours: Math.round(courses.reduce((sum: number, course: CourseStats) => sum + (course.total_duration || 0), 0) / 60),
-      averageRating: 4.8, // This would come from a separate ratings endpoint
-      completionRate: 87 // This would come from progress tracking
+      totalCourses: data.totalCourses || 0,
+      totalStudents: data.totalStudentsEnrolled || 0,
+      totalLessons: data.totalLessons || 0,
+      totalHours: Math.round((data.totalLessons || 0) / 60),
+      averageRating: data.averageRating || 0,
+      completionRate: data.averageCompletionRate || 0
     };
     
     return { success: true, data: stats };
@@ -61,7 +61,14 @@ export const dashboardApi = {
   // Get teacher's courses with statistics
   getTeacherCourses: async (): Promise<{ success: boolean; data: { courses: CourseStats[] } }> => {
     const response = await apiClient.get('/courses');
-    return response.data;
+    // The backend returns { success: true, data: { courses } }
+    // We need to ensure the data structure matches what the frontend expects
+    return {
+      success: response.data.success,
+      data: {
+        courses: response.data.data.courses || []
+      }
+    };
   },
 
   // Get recent activity (mock for now - would need backend endpoint)
