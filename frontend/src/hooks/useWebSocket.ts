@@ -14,6 +14,7 @@ interface WebSocketOptions {
   reconnectAttempts?: number;
   reconnectInterval?: number;
   heartbeatInterval?: number;
+  disableReconnect?: boolean; // New option to disable reconnection
 }
 
 interface UseWebSocketReturn {
@@ -36,7 +37,8 @@ export function useWebSocket(
     onMessage,
     reconnectAttempts = 5,
     reconnectInterval = 3000,
-    heartbeatInterval = 30000
+    heartbeatInterval = 30000,
+    disableReconnect = false // New option
   } = options;
 
   const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
@@ -48,6 +50,7 @@ export function useWebSocket(
   const reconnectCount = useRef(0);
   const heartbeatTimer = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
+  const isManualClose = useRef(false); // Track manual closure
 
   const WS_ENABLED = import.meta.env.VITE_ENABLE_WS === 'true';
   const defaultWsBase = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:3001`;
@@ -65,7 +68,8 @@ export function useWebSocket(
   }, []);
 
   const connect = useCallback(() => {
-    if (!WS_ENABLED) {
+    // Don't reconnect if manually closed or reconnection disabled
+    if (!WS_ENABLED || isManualClose.current || disableReconnect) {
       setIsConnected(false);
       setConnectionStatus('disconnected');
       return;
@@ -129,17 +133,25 @@ export function useWebSocket(
         cleanup();
         onClose?.(event);
 
-        // Attempt reconnection
-        if (reconnectCount.current < reconnectAttempts) {
-          reconnectCount.current++;
-          console.log(`Attempting to reconnect... (${reconnectCount.current}/${reconnectAttempts})`);
-          
-          reconnectTimer.current = setTimeout(() => {
-            connect();
-          }, reconnectInterval * reconnectCount.current); // Exponential backoff
-        } else {
-          setConnectionStatus('error');
-          console.error('Max reconnection attempts reached');
+        // Don't attempt reconnection if manually closed
+        if (!isManualClose.current && !disableReconnect) {
+          // Attempt reconnection with exponential backoff
+          if (reconnectCount.current < reconnectAttempts) {
+            reconnectCount.current++;
+            console.log(`Attempting to reconnect... (${reconnectCount.current}/${reconnectAttempts})`);
+            
+            reconnectTimer.current = setTimeout(() => {
+              connect();
+            }, reconnectInterval * Math.min(reconnectCount.current, 4)); // Cap exponential backoff
+          } else {
+            setConnectionStatus('error');
+            console.error('Max reconnection attempts reached');
+          }
+        }
+        
+        // Reset manual close flag after handling
+        if (isManualClose.current) {
+          isManualClose.current = false;
         }
       };
 
@@ -156,7 +168,7 @@ export function useWebSocket(
       setConnectionStatus('error');
       setIsConnected(false);
     }
-  }, [url, WS_ENABLED, WS_BASE, onOpen, onClose, onError, onMessage, reconnectAttempts, reconnectInterval, heartbeatInterval, cleanup]);
+  }, [url, WS_ENABLED, WS_BASE, onOpen, onClose, onError, onMessage, reconnectAttempts, reconnectInterval, heartbeatInterval, cleanup, disableReconnect]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     if (!WS_ENABLED || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
@@ -184,10 +196,12 @@ export function useWebSocket(
   const reconnect = useCallback(() => {
     cleanup();
     reconnectCount.current = 0;
+    isManualClose.current = false; // Allow reconnection
     connect();
   }, [cleanup, connect]);
 
   const closeConnection = useCallback(() => {
+    isManualClose.current = true; // Mark as manual closure
     if (ws.current) {
       ws.current.close(1000, 'Manual closure'); // Normal closure
     }
@@ -203,22 +217,22 @@ export function useWebSocket(
     };
   }, [connect, closeConnection]);
 
-  // Auto-reconnect when window gains focus
+  // Auto-reconnect when window gains focus (only if not connected)
   useEffect(() => {
     const handleFocus = () => {
-      if (!isConnected && connectionStatus === 'disconnected') {
+      if (!isConnected && connectionStatus === 'disconnected' && !disableReconnect) {
         reconnect();
       }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isConnected, connectionStatus, reconnect]);
+  }, [isConnected, connectionStatus, reconnect, disableReconnect]);
 
   // Network status monitoring
   useEffect(() => {
     const handleOnline = () => {
-      if (!isConnected) {
+      if (!isConnected && !disableReconnect) {
         console.log('Network back online, attempting reconnect...');
         reconnect();
       }
@@ -235,7 +249,7 @@ export function useWebSocket(
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [isConnected, reconnect]);
+  }, [isConnected, reconnect, disableReconnect]);
 
   return {
     lastMessage,
@@ -262,7 +276,8 @@ export function useNotificationsWebSocket(userId?: string) {
             });
           }
         }
-      }
+      },
+      disableReconnect: !userId // Disable reconnection if no user ID
     }
   );
 
@@ -277,6 +292,7 @@ export function useCollaborationWebSocket(roomId: string) {
   return useWebSocket(`/collaboration/${roomId}`, {
     reconnectAttempts: 10, // More attempts for collaboration
     reconnectInterval: 1000, // Faster reconnection
-    heartbeatInterval: 15000 // More frequent heartbeat
+    heartbeatInterval: 15000, // More frequent heartbeat
+    disableReconnect: !roomId // Disable if no room ID
   });
 }

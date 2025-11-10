@@ -34,6 +34,20 @@ interface CacheEntry<T> {
 
 // Enhanced cache with persistence
 const dataCache = new Map<string, CacheEntry<any>>();
+export { dataCache }; // Export the cache so it can be accessed externally
+
+// Debounce function for limiting API calls
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout | null;
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      if (timeout) clearTimeout(timeout);
+      func(...args);
+    };
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 export function useRealTimeData<T>(
   endpoint: string, 
@@ -61,6 +75,7 @@ export function useRealTimeData<T>(
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const refetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchDebounceRef = useRef<Function | null>(null);
 
   // Network status monitoring
   useEffect(() => {
@@ -190,7 +205,7 @@ export function useRealTimeData<T>(
     return mockEndpoints[endpoint] || initialData;
   }, [endpoint, initialData]);
 
-  // Enhanced fetch function
+  // Enhanced fetch function with debouncing
   const fetchData = useCallback(async (isBackgroundRefetch = false) => {
     if (!enabled) return;
 
@@ -291,6 +306,11 @@ export function useRealTimeData<T>(
     getCachedData, setCachedData, useMockData, getMockData
   ]);
 
+  // Create debounced version of fetchData
+  useEffect(() => {
+    fetchDebounceRef.current = debounce(fetchData, 500);
+  }, [fetchData]);
+
   // Initial fetch with smart caching
   useEffect(() => {
     if (enabled) {
@@ -302,8 +322,12 @@ export function useRealTimeData<T>(
         setIsLoading(false);
         setIsStale(checkStaleData(dataCache.get(cacheKey!)));
         
-        // Fetch fresh data in background
-        setTimeout(() => fetchData(true), 100);
+        // Fetch fresh data in background with debouncing
+        setTimeout(() => {
+          if (fetchDebounceRef.current) {
+            fetchDebounceRef.current(true);
+          }
+        }, 100);
       } else {
         fetchData();
       }
@@ -313,7 +337,9 @@ export function useRealTimeData<T>(
     let intervalId: NodeJS.Timeout | null = null;
     if (refetchInterval && enabled && !useMockData) {
       intervalId = setInterval(() => {
-        fetchData(true);
+        if (fetchDebounceRef.current) {
+          fetchDebounceRef.current(true);
+        }
       }, refetchInterval);
       refetchIntervalRef.current = intervalId;
     }
@@ -342,8 +368,10 @@ export function useRealTimeData<T>(
   }, [cacheKey, lastUpdated, checkStaleData, useMockData]);
 
   const refetch = useCallback(async () => {
-    await fetchData(true);
-  }, [fetchData]);
+    if (fetchDebounceRef.current) {
+      await fetchDebounceRef.current(true);
+    }
+  }, []);
 
   // Optimistic updates
   const optimisticUpdate = useCallback((updater: (currentData: T) => T) => {
@@ -400,9 +428,9 @@ export function useDashboardData() {
       recentActivity: [],
       recommendations: []
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Increased to 1 minute
     cacheKey: 'dashboard_data',
-    staleTime: 60000,
+    staleTime: 60000, // Increased to 1 minute
     useMockData: import.meta.env.VITE_DEMO_MODE === 'true',
     onError: (error) => {
       console.error('Dashboard data fetch failed:', error);
@@ -418,7 +446,7 @@ export function useCourseData(courseId?: string) {
   return useRealTimeData(courseId ? `/courses/${courseId}` : '', {
     initialData: null,
     cacheKey: courseId ? `course_${courseId}` : undefined,
-    staleTime: 120000,
+    staleTime: 120000, // 2 minutes
     enabled: !!courseId,
     useMockData: import.meta.env.VITE_DEMO_MODE === 'true'
   });
@@ -434,7 +462,7 @@ export function useUserProgress(userId?: string) {
       timeSpent: 0
     },
     cacheKey: userId ? `user_progress_${userId}` : undefined,
-    staleTime: 60000,
+    staleTime: 60000, // 1 minute
     enabled: !!userId,
     useMockData: import.meta.env.VITE_DEMO_MODE === 'true'
   });

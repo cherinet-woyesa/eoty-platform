@@ -1,8 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Crown, Trophy, Calendar, Users, Globe, Shield } from 'lucide-react';
 import LeaderboardTable from '../../components/social/LeaderboardTable';
 import { useLeaderboard } from '../../hooks/useCommunity';
 import { useAuth } from '../../context/AuthContext';
+
+// Memoized loading component
+const LoadingSkeleton = React.memo(() => (
+  <div className="min-h-screen bg-gray-50 py-8">
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+));
+
+// Memoized error component
+const ErrorDisplay = React.memo(({ error }: { error: string }) => (
+  <div className="min-h-screen bg-gray-50 py-8">
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h2 className="text-red-800 font-semibold mb-2">Error Loading Leaderboard</h2>
+        <p className="text-red-600">{error}</p>
+      </div>
+    </div>
+  </div>
+));
 
 const Leaderboards: React.FC = () => {
   const { user } = useAuth();
@@ -11,41 +35,40 @@ const Leaderboards: React.FC = () => {
   
   const { leaderboard, userRank, loading, error, updateAnonymity } = useLeaderboard(leaderboardType, period);
 
-  const leaderboardTypes = [
+  // Memoized leaderboard types
+  const leaderboardTypes = useMemo(() => [
     { id: 'chapter' as const, name: 'Chapter', icon: Users, description: 'Rank within your chapter' },
     { id: 'global' as const, name: 'Global', icon: Globe, description: 'Rank across all chapters' },
-  ];
+  ], []);
 
-  const periods = [
+  // Memoized periods
+  const periods = useMemo(() => [
     { id: 'current' as const, name: 'All Time', icon: Trophy },
     { id: 'weekly' as const, name: 'This Week', icon: Calendar },
     { id: 'monthly' as const, name: 'This Month', icon: Calendar },
-  ];
+  ], []);
+
+  // Memoized user rank message
+  const userRankMessage = useMemo(() => {
+    if (!userRank) return '';
+    if (userRank === 1) return '🏆 You are #1! Amazing work!';
+    if (userRank <= 10) return `🎉 You're in the top 10! Rank #${userRank}`;
+    return `You're currently ranked #${userRank}`;
+  }, [userRank]);
+
+  // Memoized update anonymity handler
+  const handleUpdateAnonymity = useCallback(() => {
+    const currentUser = leaderboard.find(e => e.user_id === Number(user?.id));
+    const isCurrentlyAnonymous = currentUser?.is_anonymous;
+    updateAnonymity(!isCurrentlyAnonymous);
+  }, [leaderboard, user?.id, updateAnonymity]);
 
   if (loading && leaderboard.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-red-800 font-semibold mb-2">Error Loading Leaderboard</h2>
-            <p className="text-red-600">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay error={error} />;
   }
 
   return (
@@ -67,9 +90,7 @@ const Leaderboards: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold mb-1">Your Ranking</h2>
                 <p className="text-blue-100">
-                  {userRank === 1 ? '🏆 You are #1! Amazing work!' :
-                   userRank <= 10 ? `🎉 You're in the top 10! Rank #${userRank}` :
-                   `You're currently ranked #${userRank}`}
+                  {userRankMessage}
                 </p>
               </div>
               <div className="text-right">
@@ -169,15 +190,15 @@ const Leaderboards: React.FC = () => {
                 </p>
               </div>
               <button
-                onClick={() => updateAnonymity(!leaderboard.find(e => e.user_id === user?.id)?.is_anonymous)}
+                onClick={handleUpdateAnonymity}
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Shield className="h-4 w-4" />
                 <span>
-                  {leaderboard.find(e => e.user_id === user?.id)?.is_anonymous 
-                    ? 'Go Public' 
-                    : 'Make Anonymous'
-                  }
+                  {(() => {
+                    const currentUser = leaderboard.find(e => e.user_id === Number(user?.id));
+                    return currentUser?.is_anonymous ? 'Go Public' : 'Make Anonymous';
+                  })()}
                 </span>
               </button>
             </div>
@@ -187,7 +208,7 @@ const Leaderboards: React.FC = () => {
         {/* Leaderboard Table */}
         <LeaderboardTable
           entries={leaderboard}
-          currentUserId={user?.id}
+          currentUserId={user?.id ? Number(user.id) : undefined}
           showChapter={leaderboardType === 'global'}
         />
 
@@ -208,4 +229,4 @@ const Leaderboards: React.FC = () => {
   );
 };
 
-export default Leaderboards;
+export default React.memo(Leaderboards);

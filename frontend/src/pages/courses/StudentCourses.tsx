@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, Search, PlayCircle, Clock, 
@@ -33,6 +33,35 @@ interface StudentCoursesData {
   enrolledCourses: EnrolledCourse[];
 }
 
+// Memoized components
+const LoadingSpinner = React.memo(() => (
+  <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600 text-lg">Loading your courses...</p>
+      </div>
+    </div>
+  </div>
+));
+
+const ErrorDisplay = React.memo(({ error, onRetry }: { error: string; onRetry: () => void }) => (
+  <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <p className="text-red-600 text-lg mb-4">{error}</p>
+        <button 
+          onClick={onRetry}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  </div>
+));
+
 const StudentCourses: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<StudentCoursesData | null>(null);
@@ -42,11 +71,8 @@ const StudentCourses: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterStatus, setFilterStatus] = useState<'all' | 'in-progress' | 'completed'>('all');
 
-  useEffect(() => {
-    loadCourses();
-  }, []);
-
-  const loadCourses = async () => {
+  // Load courses with useCallback
+  const loadCourses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,23 +87,31 @@ const StudentCourses: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filteredCourses = data?.enrolledCourses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    let matchesStatus = true;
-    if (filterStatus === 'in-progress') {
-      matchesStatus = course.progress > 0 && course.progress < 100;
-    } else if (filterStatus === 'completed') {
-      matchesStatus = course.progress === 100;
-    }
-    
-    return matchesSearch && matchesStatus;
-  }) || [];
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
-  const getCategoryColor = (category?: string) => {
+  // Memoized filtered courses
+  const filteredCourses = useMemo(() => {
+    return data?.enrolledCourses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      let matchesStatus = true;
+      if (filterStatus === 'in-progress') {
+        matchesStatus = course.progress > 0 && course.progress < 100;
+      } else if (filterStatus === 'completed') {
+        matchesStatus = course.progress === 100;
+      }
+      
+      return matchesSearch && matchesStatus;
+    }) || [];
+  }, [data?.enrolledCourses, searchTerm, filterStatus]);
+
+  // Memoized category color function
+  const getCategoryColor = useCallback((category?: string) => {
     const colors: { [key: string]: string } = {
       faith: 'from-blue-500 to-blue-600',
       history: 'from-purple-500 to-purple-600',
@@ -87,38 +121,49 @@ const StudentCourses: React.FC = () => {
       youth: 'from-pink-500 to-pink-600'
     };
     return colors[category || ''] || 'from-gray-500 to-gray-600';
-  };
+  }, []);
+
+  // Memoized stats
+  const stats = useMemo(() => {
+    if (!data) return [];
+    return [
+      { 
+        name: 'Enrolled Courses', 
+        value: data.progress.totalCourses.toString(), 
+        icon: BookOpen, 
+        color: 'from-blue-500 to-blue-600',
+        bgColor: 'from-blue-50 to-blue-100'
+      },
+      { 
+        name: 'Completed Lessons', 
+        value: data.progress.completedLessons.toString(), 
+        icon: CheckCircle, 
+        color: 'from-green-500 to-green-600',
+        bgColor: 'from-green-50 to-green-100'
+      },
+      { 
+        name: 'Study Streak', 
+        value: `${data.progress.studyStreak} days`, 
+        icon: Zap, 
+        color: 'from-purple-500 to-purple-600',
+        bgColor: 'from-purple-50 to-purple-100'
+      },
+      { 
+        name: 'Total Points', 
+        value: data.progress.totalPoints.toString(), 
+        icon: Award, 
+        color: 'from-orange-500 to-orange-600',
+        bgColor: 'from-orange-50 to-orange-100'
+      }
+    ];
+  }, [data]);
 
   if (loading) {
-    return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading your courses...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
-    return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
-              onClick={loadCourses}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay error={error} onRetry={loadCourses} />;
   }
 
   return (
@@ -151,36 +196,7 @@ const StudentCourses: React.FC = () => {
       {/* Stats Grid */}
       {data && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[
-            { 
-              name: 'Enrolled Courses', 
-              value: data.progress.totalCourses.toString(), 
-              icon: BookOpen, 
-              color: 'from-blue-500 to-blue-600',
-              bgColor: 'from-blue-50 to-blue-100'
-            },
-            { 
-              name: 'Completed Lessons', 
-              value: data.progress.completedLessons.toString(), 
-              icon: CheckCircle, 
-              color: 'from-green-500 to-green-600',
-              bgColor: 'from-green-50 to-green-100'
-            },
-            { 
-              name: 'Study Streak', 
-              value: `${data.progress.studyStreak} days`, 
-              icon: Zap, 
-              color: 'from-purple-500 to-purple-600',
-              bgColor: 'from-purple-50 to-purple-100'
-            },
-            { 
-              name: 'Total Points', 
-              value: data.progress.totalPoints.toString(), 
-              icon: Award, 
-              color: 'from-orange-500 to-orange-600',
-              bgColor: 'from-orange-50 to-orange-100'
-            }
-          ].map((stat, index) => (
+          {stats.map((stat, index) => (
             <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-xl p-4 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200`}>
               <div className="flex items-center justify-between mb-2">
                 <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} shadow-sm`}>
@@ -348,4 +364,4 @@ const StudentCourses: React.FC = () => {
   );
 };
 
-export default StudentCourses;
+export default React.memo(StudentCourses);

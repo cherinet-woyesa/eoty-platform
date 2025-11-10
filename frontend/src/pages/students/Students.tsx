@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, Search, RefreshCw, Filter, SortAsc, SortDesc, 
@@ -19,6 +19,18 @@ interface Student {
 
 import { studentsApi } from '../../services/api/students';
 
+// Memoized loading component
+const LoadingSpinner = React.memo(() => (
+  <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600 text-lg">Loading students...</p>
+      </div>
+    </div>
+  </div>
+));
+
 const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +38,19 @@ const Students: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | Student['status']>('all');
   const [sortBy, setSortBy] = useState<'name' | 'last_active_at' | 'progress_percent'>('last_active_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Memoized fetch function
+  const fetchStudents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await studentsApi.getStudents({ q: searchTerm, status: statusFilter, sort: sortBy, order: sortOrder });
+      if (res.success) setStudents(res.data.students || []);
+    } catch (error) {
+      console.error('Failed to fetch students:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, statusFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     let mounted = true;
@@ -41,13 +66,7 @@ const Students: React.FC = () => {
     });
     // Fallback to HTTP fetch if no token
     if (!token) {
-      (async () => {
-        setLoading(true);
-        try {
-          const res = await studentsApi.getStudents({ q: searchTerm, status: statusFilter, sort: sortBy, order: sortOrder });
-          if (mounted && res.success) setStudents(res.data.students || []);
-        } finally { if (mounted) setLoading(false); }
-      })();
+      fetchStudents();
       return () => { mounted = false; };
     }
     setLoading(true);
@@ -64,17 +83,13 @@ const Students: React.FC = () => {
     es.onerror = () => {
       // On error, close and fallback to one-time fetch
       es.close();
-      (async () => {
-        try {
-          const res = await studentsApi.getStudents({ q: searchTerm, status: statusFilter, sort: sortBy, order: sortOrder });
-          if (mounted && res.success) setStudents(res.data.students || []);
-        } finally { if (mounted) setLoading(false); }
-      })();
+      fetchStudents();
     };
     return () => { mounted = false; es.close(); };
-  }, [searchTerm, statusFilter, sortBy, sortOrder]);
+  }, [searchTerm, statusFilter, sortBy, sortOrder, fetchStudents]);
 
-  const filtered = useMemo(() => {
+  // Memoized filtered and sorted students
+  const filteredStudents = useMemo(() => {
     const list = students.filter(s => {
       const q = searchTerm.toLowerCase();
       const matchesQ = `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
@@ -91,24 +106,45 @@ const Students: React.FC = () => {
     return sorted;
   }, [students, searchTerm, statusFilter, sortBy, sortOrder]);
 
-  const formatTimeAgo = (iso: string) => {
+  // Memoized stats
+  const stats = useMemo(() => {
+    const totalStudents = students.length;
+    const avgProgress = Math.round(students.reduce((s,c)=>s+c.progress_percent,0)/Math.max(1,students.length));
+    const avgCourses = (students.reduce((s,c)=>s+c.enrolled_courses,0)/Math.max(1,students.length)).toFixed(1);
+    const activeToday = students.filter(s=>new Date(s.last_active_at)>new Date(Date.now()-24*3600_000)).length;
+    
+    return [
+      {label:'Total Students', value:totalStudents, icon:Users, color:'from-blue-500 to-blue-600'},
+      {label:'Avg. Progress', value:`${avgProgress}%`, icon:TrendingUp, color:'from-green-500 to-green-600'},
+      {label:'Avg. Courses', value:avgCourses, icon:BookOpen, color:'from-purple-500 to-purple-600'},
+      {label:'Active Today', value:activeToday, icon:Clock, color:'from-orange-500 to-orange-600'}
+    ];
+  }, [students]);
+
+  // Memoized time ago formatter
+  const formatTimeAgo = useCallback((iso: string) => {
     const diffH = Math.floor((Date.now() - new Date(iso).getTime())/3600_000);
     if (diffH < 1) return 'Just now';
     if (diffH < 24) return `${diffH}h ago`;
     return `${Math.floor(diffH/24)}d ago`;
-  };
+  }, []);
+
+  // Memoized status badge
+  const getStatusBadge = useCallback((status: Student['status']) => {
+    switch (status) {
+      case 'active':
+        return <span className="inline-flex items-center text-green-700 bg-green-50 px-2 py-0.5 rounded text-xs"><UserCheck className="h-3.5 w-3.5 mr-1"/>Active</span>;
+      case 'invited':
+        return <span className="inline-flex items-center text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs"><ShieldCheck className="h-3.5 w-3.5 mr-1"/>Invited</span>;
+      case 'inactive':
+        return <span className="inline-flex items-center text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs"><UserX className="h-3.5 w-3.5 mr-1"/>Inactive</span>;
+      default:
+        return null;
+    }
+  }, []);
 
   if (loading) {
-    return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading students...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -185,11 +221,7 @@ const Students: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {[{label:'Total Students',value:students.length,icon:Users,color:'from-blue-500 to-blue-600'},
-          {label:'Avg. Progress',value:Math.round(students.reduce((s,c)=>s+c.progress_percent,0)/Math.max(1,students.length))+'%',icon:TrendingUp,color:'from-green-500 to-green-600'},
-          {label:'Avg. Courses',value:(students.reduce((s,c)=>s+c.enrolled_courses,0)/Math.max(1,students.length)).toFixed(1),icon:BookOpen,color:'from-purple-500 to-purple-600'},
-          {label:'Active Today',value:students.filter(s=>new Date(s.last_active_at)>new Date(Date.now()-24*3600_000)).length,icon:Clock,color:'from-orange-500 to-orange-600'}]
-          .map((s,idx)=>(
+        {stats.map((s,idx)=>(
           <div key={idx} className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-2.5 sm:p-3 border border-white/50 shadow-sm`}>
             <div className="flex items-center justify-between mb-1.5">
               <div className={`p-1.5 rounded-md bg-gradient-to-r ${s.color} shadow-sm`}>
@@ -206,7 +238,7 @@ const Students: React.FC = () => {
 
       {/* Students list */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-        {filtered.map(st => (
+        {filteredStudents.map(st => (
           <div key={st.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-all duration-200">
             <div className="flex items-start justify-between">
               <div>
@@ -221,9 +253,7 @@ const Students: React.FC = () => {
             </div>
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {st.status === 'active' && <span className="inline-flex items-center text-green-700 bg-green-50 px-2 py-0.5 rounded text-xs"><UserCheck className="h-3.5 w-3.5 mr-1"/>Active</span>}
-                {st.status === 'invited' && <span className="inline-flex items-center text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs"><ShieldCheck className="h-3.5 w-3.5 mr-1"/>Invited</span>}
-                {st.status === 'inactive' && <span className="inline-flex items-center text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs"><UserX className="h-3.5 w-3.5 mr-1"/>Inactive</span>}
+                {getStatusBadge(st.status)}
               </div>
               <div className="flex items-center gap-2">
                 <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50">Message</button>
@@ -237,6 +267,4 @@ const Students: React.FC = () => {
   );
 };
 
-export default Students;
-
-
+export default React.memo(Students);

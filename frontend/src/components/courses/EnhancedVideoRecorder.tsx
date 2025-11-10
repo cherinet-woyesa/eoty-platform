@@ -1105,6 +1105,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setProcessingLessonId(newLessonId);
       setUploadProgress(30);
 
+      // Clear the teacher dashboard cache to force a refresh of lesson counts
+      dataCache.delete('teacher_dashboard');
+
       // If using Mux upload, show Mux uploader instead of traditional upload
       if (useMuxUpload) {
         setMuxUploadLessonId(newLessonId);

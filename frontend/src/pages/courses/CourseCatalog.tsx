@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, Search, Users, Clock, Star, 
@@ -32,7 +32,8 @@ const CourseCatalog: React.FC = () => {
   const [filterLevel, setFilterLevel] = useState('all');
   const [enrolling, setEnrolling] = useState<number | null>(null);
 
-  const categories = [
+  // Memoize categories and levels to prevent re-creation on each render
+  const categories = useMemo(() => [
     { value: 'all', label: 'All Categories' },
     { value: 'faith', label: 'Faith & Doctrine' },
     { value: 'history', label: 'Church History' },
@@ -40,20 +41,16 @@ const CourseCatalog: React.FC = () => {
     { value: 'bible', label: 'Bible Study' },
     { value: 'liturgical', label: 'Liturgical Studies' },
     { value: 'youth', label: 'Youth Ministry' }
-  ];
+  ], []);
 
-  const levels = [
+  const levels = useMemo(() => [
     { value: 'all', label: 'All Levels' },
     { value: 'beginner', label: 'Beginner' },
     { value: 'intermediate', label: 'Intermediate' },
     { value: 'advanced', label: 'Advanced' }
-  ];
+  ], []);
 
-  useEffect(() => {
-    loadCatalog();
-  }, []);
-
-  const loadCatalog = async () => {
+  const loadCatalog = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -68,9 +65,13 @@ const CourseCatalog: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleEnroll = async (courseId: number) => {
+  useEffect(() => {
+    loadCatalog();
+  }, [loadCatalog]);
+
+  const handleEnroll = useCallback(async (courseId: number) => {
     try {
       setEnrolling(courseId);
       await apiClient.post(`/courses/${courseId}/enroll`);
@@ -87,18 +88,21 @@ const CourseCatalog: React.FC = () => {
     } finally {
       setEnrolling(null);
     }
-  };
+  }, [courses]);
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-    const matchesLevel = filterLevel === 'all' || course.level === filterLevel;
-    
-    return matchesSearch && matchesCategory && matchesLevel && course.is_published;
-  });
+  // Memoize filtered courses to prevent unnecessary re-calculations
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
+      const matchesLevel = filterLevel === 'all' || course.level === filterLevel;
+      
+      return matchesSearch && matchesCategory && matchesLevel && course.is_published;
+    });
+  }, [courses, searchTerm, filterCategory, filterLevel]);
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
       faith: 'from-blue-500 to-blue-600',
       history: 'from-purple-500 to-purple-600',
@@ -108,7 +112,83 @@ const CourseCatalog: React.FC = () => {
       youth: 'from-pink-500 to-pink-600'
     };
     return colors[category] || 'from-gray-500 to-gray-600';
-  };
+  }, []);
+
+  // Memoize course rendering to prevent unnecessary re-renders
+  const renderCourseCard = useCallback((course: CatalogCourse) => (
+    <div key={course.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
+      {/* Course Header */}
+      <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white relative`}>
+        <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
+        <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
+          {course.description || 'No description provided'}
+        </p>
+        {course.is_enrolled && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Enrolled
+          </div>
+        )}
+      </div>
+
+      {/* Course Info */}
+      <div className="p-4">
+        <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+          <div className="flex items-center space-x-1">
+            <Users className="h-4 w-4" />
+            <span>{course.student_count} students</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <BookOpen className="h-4 w-4" />
+            <span>{course.lesson_count} lessons</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-sm mb-4">
+          <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
+            {course.level || 'Beginner'}
+          </span>
+          <span className="text-gray-500 text-xs">
+            by {course.created_by_name}
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex space-x-2">
+          <Link
+            to={`/courses/${course.id}`}
+            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            View Details
+          </Link>
+          
+          {!course.is_enrolled ? (
+            <button
+              onClick={() => handleEnroll(course.id)}
+              disabled={enrolling === course.id}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {enrolling === course.id ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Enrolling...
+                </>
+              ) : (
+                'Enroll Now'
+              )}
+            </button>
+          ) : (
+            <Link
+              to={`/courses/${course.id}`}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
+            >
+              Continue Learning
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  ), [getCategoryColor, handleEnroll, enrolling]);
 
   if (loading) {
     return (
@@ -203,80 +283,7 @@ const CourseCatalog: React.FC = () => {
       {/* Course Grid */}
       {filteredCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredCourses.map(course => (
-            <div key={course.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
-              {/* Course Header */}
-              <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white relative`}>
-                <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
-                <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
-                  {course.description || 'No description provided'}
-                </p>
-                {course.is_enrolled && (
-                  <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Enrolled
-                  </div>
-                )}
-              </div>
-
-              {/* Course Info */}
-              <div className="p-4">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                  <div className="flex items-center space-x-1">
-                    <Users className="h-4 w-4" />
-                    <span>{course.student_count} students</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{course.lesson_count} lessons</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm mb-4">
-                  <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
-                    {course.level || 'Beginner'}
-                  </span>
-                  <span className="text-gray-500 text-xs">
-                    by {course.created_by_name}
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-2">
-                  <Link
-                    to={`/courses/${course.id}`}
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    View Details
-                  </Link>
-                  
-                  {!course.is_enrolled ? (
-                    <button
-                      onClick={() => handleEnroll(course.id)}
-                      disabled={enrolling === course.id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {enrolling === course.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          Enrolling...
-                        </>
-                      ) : (
-                        'Enroll Now'
-                      )}
-                    </button>
-                  ) : (
-                    <Link
-                      to={`/courses/${course.id}`}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
-                    >
-                      Continue Learning
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+          {filteredCourses.map(renderCourseCard)}
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -291,4 +298,4 @@ const CourseCatalog: React.FC = () => {
   );
 };
 
-export default CourseCatalog;
+export default React.memo(CourseCatalog);

@@ -10,6 +10,13 @@ interface User {
   role: 'student' | 'teacher' | 'chapter_admin' | 'platform_admin';
   chapter: string;
   permissions: string[];
+  bio?: string;
+  phone?: string;
+  location?: string;
+  profilePicture?: string;
+  specialties?: string[];
+  teachingExperience?: number;
+  education?: string;
 }
 
 interface UserContextType {

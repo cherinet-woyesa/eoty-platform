@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
 import UnifiedVideoPlayer from '../../components/courses/UnifiedVideoPlayer';
@@ -27,6 +27,31 @@ interface Lesson {
 
 type TabType = 'overview' | 'lessons' | 'resources' | 'discussions';
 
+// Memoized components
+const LoadingSpinner = React.memo(() => (
+  <div className="flex items-center justify-center min-h-96">
+    <div className="text-center">
+      <div className="w-16 h-16 border-t-2 border-blue-600 border-solid rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading course content...</p>
+    </div>
+  </div>
+));
+
+const CourseNotFound = React.memo(({ onBack }: { onBack: () => void }) => (
+  <div className="text-center py-12">
+    <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Not Found</h3>
+    <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
+    <button
+      onClick={onBack}
+      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700"
+    >
+      <ArrowLeft className="mr-2 h-4 w-4" />
+      Back to Courses
+    </button>
+  </div>
+));
+
 const CourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
@@ -47,166 +72,155 @@ const CourseDetails: React.FC = () => {
     activeStudents: 0
   });
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
-  // Check if user is teacher who owns this course
-  const isOwner = user?.role === 'teacher' && course?.created_by === user?.id;
+  // Memoized values
+  const isAdmin = useMemo(() => user?.role === 'chapter_admin' || user?.role === 'platform_admin', [user?.role]);
+  const isOwner = useMemo(() => user?.role === 'teacher' && course?.created_by === user?.id, [user?.role, user?.id, course?.created_by]);
 
-  useEffect(() => {
-    const loadCourseData = async () => {
-      if (!courseId) return;
+  // Memoized functions
+  const getBackLink = useCallback(() => {
+    if (isAdmin) return '/admin/courses';
+    if (isOwner || user?.role === 'teacher') return '/teacher/courses';
+    return '/courses';
+  }, [isAdmin, isOwner, user?.role]);
 
-      try {
-        setLoading(true);
-        
-        // Load course details
-        const coursesResponse = await coursesApi.getCourses();
-        const courseData = coursesResponse.data.courses.find((c: any) => c.id === parseInt(courseId));
-        setCourse(courseData);
+  const getBackLabel = useCallback(() => {
+    if (isAdmin) return 'Back to Admin Courses';
+    if (isOwner || user?.role === 'teacher') return 'Back to My Courses';
+    return 'Back to Courses';
+  }, [isAdmin, isOwner, user?.role]);
 
-        // Load lessons
-        const lessonsResponse = await coursesApi.getLessons(courseId);
-        const lessonsData = lessonsResponse.data.lessons || [];
-        
-        setLessons(lessonsData);
-
-        // Auto-select first lesson if available
-        if (lessonsData.length > 0) {
-          setSelectedLesson(lessonsData[0]);
-        }
-
-        // Load real analytics data
-        try {
-          const analyticsResponse = await coursesApi.getEngagementAnalytics(courseId, {
-            startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            endDate: new Date().toISOString(),
-            granularity: 'daily'
-          });
-
-          const analyticsData = analyticsResponse.data;
-          
-          // Get enrolled students count
-          const studentsResponse = await coursesApi.getEnrolledStudents(courseId, {
-            page: 1,
-            pageSize: 1
-          });
-
-          const totalStudents = studentsResponse.data.pagination?.totalItems || 0;
-          const activeStudents = analyticsData.dailyActiveStudents?.reduce((sum: number, day: any) => 
-            Math.max(sum, day.active_students || 0), 0) || 0;
-
-          // Calculate completion rate from lesson stats
-          const lessonStats = analyticsData.lessonStats || [];
-          const avgCompletionRate = lessonStats.length > 0
-            ? lessonStats.reduce((sum: number, lesson: any) => sum + (lesson.completionRate || 0), 0) / lessonStats.length
-            : 0;
-
-          // Calculate completed lessons (lessons with >80% completion rate)
-          const completedLessons = lessonStats.filter((lesson: any) => 
-            (lesson.completionRate || 0) > 80
-          ).length;
-
-          setCourseStats({
-            totalStudents,
-            completionRate: Math.round(avgCompletionRate),
-            averageRating: 4.5, // TODO: Implement rating system
-            totalLessons: lessonsData.length,
-            completedLessons,
-            activeStudents
-          });
-
-        } catch (analyticsError) {
-          console.error('Failed to load analytics:', analyticsError);
-          // Fallback to basic stats
-          setCourseStats({
-            totalStudents: 0,
-            completionRate: 0,
-            averageRating: 0,
-            totalLessons: lessonsData.length,
-            completedLessons: 0,
-            activeStudents: 0
-          });
-        }
-
-      } catch (error) {
-        console.error('Failed to load course data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCourseData();
-  }, [courseId]);
-
-  const formatDuration = (minutes: number) => {
+  const formatDuration = useCallback((minutes: number) => {
     if (!minutes) return '0 min';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
+  }, []);
 
-  const handleTimestampClick = (timestamp: number) => {
+  const handleTimestampClick = useCallback((timestamp: number) => {
     console.log('Jumping to timestamp:', timestamp);
-  };
+  }, []);
 
-  const filteredLessons = lessons.filter(lesson => {
-    const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
-    // Note: Lesson completion status would come from user progress data
-    // For now, show all lessons regardless of filter
-    const matchesFilter = filterCompleted === 'all' || 
-                         (filterCompleted === 'completed' && lesson.completed) ||
-                         (filterCompleted === 'incomplete' && !lesson.completed);
-    return matchesSearch && (filterCompleted === 'all' || matchesFilter);
-  });
+  // Memoized filtered lessons
+  const filteredLessons = useMemo(() => {
+    return lessons.filter(lesson => {
+      const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = filterCompleted === 'all' || 
+                           (filterCompleted === 'completed' && lesson.completed) ||
+                           (filterCompleted === 'incomplete' && !lesson.completed);
+      return matchesSearch && (filterCompleted === 'all' || matchesFilter);
+    });
+  }, [lessons, searchQuery, filterCompleted]);
 
-  const tabs = [
+  // Memoized tabs
+  const tabs = useMemo(() => [
     { id: 'overview' as TabType, label: 'Overview', icon: BookOpen },
     { id: 'lessons' as TabType, label: 'Lessons', icon: PlayCircle, count: lessons.length },
     { id: 'resources' as TabType, label: 'Resources', icon: Download },
     { id: 'discussions' as TabType, label: 'Discussions', icon: MessageSquare }
-  ];
+  ], [lessons.length]);
+
+  // Load course data with useCallback
+  const loadCourseData = useCallback(async () => {
+    if (!courseId) return;
+
+    try {
+      setLoading(true);
+      
+      // Load course details
+      const coursesResponse = await coursesApi.getCourses();
+      const courseData = coursesResponse.data.courses.find((c: any) => c.id === parseInt(courseId));
+      setCourse(courseData);
+
+      // Load lessons
+      const lessonsResponse = await coursesApi.getLessons(courseId);
+      const lessonsData = lessonsResponse.data.lessons || [];
+      
+      setLessons(lessonsData);
+
+      // Auto-select first lesson if available
+      if (lessonsData.length > 0) {
+        setSelectedLesson(lessonsData[0]);
+      }
+
+      // Load real analytics data
+      try {
+        const analyticsResponse = await coursesApi.getEngagementAnalytics(courseId, {
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date().toISOString(),
+          granularity: 'daily'
+        });
+
+        const analyticsData = analyticsResponse.data;
+        
+        // Get enrolled students count
+        const studentsResponse = await coursesApi.getEnrolledStudents(courseId, {
+          page: 1,
+          pageSize: 1
+        });
+
+        const totalStudents = studentsResponse.data.pagination?.totalItems || 0;
+        const activeStudents = analyticsData.dailyActiveStudents?.reduce((sum: number, day: any) => 
+          Math.max(sum, day.active_students || 0), 0) || 0;
+
+        // Calculate completion rate from lesson stats
+        const lessonStats = analyticsData.lessonStats || [];
+        const avgCompletionRate = lessonStats.length > 0
+          ? lessonStats.reduce((sum: number, lesson: any) => sum + (lesson.completionRate || 0), 0) / lessonStats.length
+          : 0;
+
+        // Calculate completed lessons (lessons with >80% completion rate)
+        const completedLessons = lessonStats.filter((lesson: any) => 
+          (lesson.completionRate || 0) > 80
+        ).length;
+
+        setCourseStats({
+          totalStudents,
+          completionRate: Math.round(avgCompletionRate),
+          averageRating: 4.5, // TODO: Implement rating system
+          totalLessons: lessonsData.length,
+          completedLessons,
+          activeStudents
+        });
+
+      } catch (analyticsError) {
+        console.error('Failed to load analytics:', analyticsError);
+        // Fallback to basic stats
+        setCourseStats({
+          totalStudents: 0,
+          completionRate: 0,
+          averageRating: 0,
+          totalLessons: lessonsData.length,
+          completedLessons: 0,
+          activeStudents: 0
+        });
+      }
+
+    } catch (error) {
+      console.error('Failed to load course data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    loadCourseData();
+  }, [loadCourseData]);
+
+  // Memoized progress percentage
+  const progressPercentage = useMemo(() => {
+    return courseStats.totalLessons > 0 
+      ? Math.round((courseStats.completedLessons / courseStats.totalLessons) * 100) 
+      : 0;
+  }, [courseStats.completedLessons, courseStats.totalLessons]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="w-16 h-16 border-t-2 border-blue-600 border-solid rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading course content...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!course) {
-    return (
-      <div className="text-center py-12">
-        <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Not Found</h3>
-        <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
-        <Link
-          to="/courses"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Courses
-        </Link>
-      </div>
-    );
+    return <CourseNotFound onBack={() => navigate(getBackLink())} />;
   }
-
-  // Determine back link based on user role
-  const getBackLink = () => {
-    if (isAdmin) return '/admin/courses';
-    if (isOwner || user?.role === 'teacher') return '/teacher/courses';
-    return '/courses';
-  };
-
-  const getBackLabel = () => {
-    if (isAdmin) return 'Back to Admin Courses';
-    if (isOwner || user?.role === 'teacher') return 'Back to My Courses';
-    return 'Back to Courses';
-  };
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
@@ -566,18 +580,14 @@ const CourseDetails: React.FC = () => {
                   <div className="flex justify-between text-xs font-medium text-gray-700 mb-1.5">
                     <span>Course Completion</span>
                     <span className="text-green-600">
-                      {courseStats.totalLessons > 0 
-                        ? Math.round((courseStats.completedLessons / courseStats.totalLessons) * 100) 
-                        : 0}%
+                      {progressPercentage}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div 
                       className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${courseStats.totalLessons > 0 
-                          ? (courseStats.completedLessons / courseStats.totalLessons) * 100 
-                          : 0}%` 
+                        width: `${progressPercentage}%` 
                       }}
                     ></div>
                   </div>
@@ -765,4 +775,4 @@ const CourseDetails: React.FC = () => {
   );
 };
 
-export default CourseDetails;
+export default React.memo(CourseDetails);

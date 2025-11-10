@@ -57,6 +57,7 @@ import BookmarksPage from './pages/student/BookmarksPage';
 import SchedulePage from './pages/student/SchedulePage';
 import StudyGroupsPage from './pages/student/StudyGroupsPage';
 import HelpPage from './pages/student/HelpPage';
+import TeacherProfile from './pages/teachers/TeacherProfile';
 import { queryClient } from './lib/queryClient';
 import './i18n/config';
 
@@ -378,6 +379,17 @@ function AppContent() {
             <TeacherRoute>
               <DashboardLayout>
                 <AnalyticsDashboard />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        <Route 
+          path="/teacher/profile" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherProfile />
               </DashboardLayout>
             </TeacherRoute>
           } 

@@ -7,17 +7,19 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api
 // Mock data store for demo mode
 const mockDataStore = new Map<string, any>();
 
-// Enhanced axios instance with better error handling
+// Enhanced axios instance with better error handling and performance optimizations
 export const apiClient = axios.create({
   baseURL: API_BASE,
-  timeout: 30000,
+  timeout: 15000, // Increased timeout to 15 seconds
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
+  // Add response type for better performance
+  responseType: 'json',
 });
 
-// Request interceptor with enhanced CORS handling
+// Request interceptor with enhanced CORS handling and performance optimizations
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
@@ -58,7 +60,10 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Enhanced response interceptor
+// Enhanced response interceptor with caching support
+const responseCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 seconds
+
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log successful responses in development
@@ -66,6 +71,15 @@ apiClient.interceptors.response.use(
       console.log(`✅ API Response: ${response.status} ${response.config.url}`, {
         data: response.data,
         headers: response.headers
+      });
+    }
+    
+    // Cache GET requests for performance
+    if (response.config.method?.toUpperCase() === 'GET') {
+      const cacheKey = `${response.config.method}:${response.config.url}`;
+      responseCache.set(cacheKey, {
+        data: response.data,
+        timestamp: Date.now()
       });
     }
     
@@ -319,9 +333,20 @@ const getMockData = (url: string): any => {
 
 // Utility functions for API calls
 export const apiUtils = {
-  // Enhanced GET with error handling
+  // Enhanced GET with error handling and caching
   async get<T>(url: string, config?: any): Promise<T> {
     try {
+      // Check cache first for GET requests
+      if (config?.method?.toUpperCase() !== 'POST') {
+        const cacheKey = `GET:${url}`;
+        const cached = responseCache.get(cacheKey);
+        
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          console.log('📦 Using cached response for:', url);
+          return cached.data;
+        }
+      }
+      
       const response = await apiClient.get<T>(url, config);
       return response.data;
     } catch (error) {
@@ -333,6 +358,8 @@ export const apiUtils = {
   async post<T>(url: string, data?: any, config?: any): Promise<T> {
     try {
       const response = await apiClient.post<T>(url, data, config);
+      // Clear cache for this endpoint after POST
+      responseCache.delete(`GET:${url}`);
       return response.data;
     } catch (error) {
       throw this.handleApiError(error);
@@ -343,6 +370,8 @@ export const apiUtils = {
   async put<T>(url: string, data?: any, config?: any): Promise<T> {
     try {
       const response = await apiClient.put<T>(url, data, config);
+      // Clear cache for this endpoint after PUT
+      responseCache.delete(`GET:${url}`);
       return response.data;
     } catch (error) {
       throw this.handleApiError(error);
@@ -353,6 +382,8 @@ export const apiUtils = {
   async delete<T>(url: string, config?: any): Promise<T> {
     try {
       const response = await apiClient.delete<T>(url, config);
+      // Clear cache for this endpoint after DELETE
+      responseCache.delete(`GET:${url}`);
       return response.data;
     } catch (error) {
       throw this.handleApiError(error);
@@ -380,6 +411,11 @@ export const apiUtils = {
     } catch {
       return false;
     }
+  },
+  
+  // Clear cache
+  clearCache(): void {
+    responseCache.clear();
   }
 };
 

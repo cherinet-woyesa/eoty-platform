@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, Plus, Search, Video, Users, Clock, 
@@ -11,6 +11,7 @@ import { coursesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { BulkActions } from '../../components/courses/BulkActions';
 import type { Course } from '../../types/courses';
+import { dataCache } from '../../hooks/useRealTimeData';
 
 interface CourseStats {
   totalCourses: number;
@@ -41,7 +42,8 @@ const MyCourses: React.FC = () => {
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
 
-  const categories = [
+  // Memoize categories and sort options to prevent re-creation on each render
+  const categories = useMemo(() => [
     { value: 'all', label: 'All Categories', count: 0 },
     { value: 'faith', label: 'Faith & Doctrine', count: 0 },
     { value: 'history', label: 'Church History', count: 0 },
@@ -49,27 +51,23 @@ const MyCourses: React.FC = () => {
     { value: 'bible', label: 'Bible Study', count: 0 },
     { value: 'liturgical', label: 'Liturgical Studies', count: 0 },
     { value: 'youth', label: 'Youth Ministry', count: 0 }
-  ];
+  ], []);
 
-  const sortOptions = [
+  const sortOptions = useMemo(() => [
     { value: 'created_at', label: 'Date Created' },
     { value: 'updated_at', label: 'Last Updated' },
     { value: 'title', label: 'Course Title' },
     { value: 'lesson_count', label: 'Number of Lessons' },
     { value: 'student_count', label: 'Number of Students' },
     { value: 'total_duration', label: 'Total Duration' }
-  ];
+  ], []);
 
-  useEffect(() => {
-    loadCourses();
-  }, []);
-
-    const loadCourses = async () => {
-      try {
+  const loadCourses = useCallback(async () => {
+    try {
       setLoading(true);
       setError(null);
       
-        const response = await coursesApi.getCourses();
+      const response = await coursesApi.getCourses();
       
       if (response.success) {
         const coursesData = response.data.courses || [];
@@ -101,38 +99,45 @@ const MyCourses: React.FC = () => {
     } catch (err) {
       console.error('Failed to load courses:', err);
       setError('Failed to load courses. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  }, [categories]);
 
-  const filteredAndSortedCourses = courses
-    .filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-    const matchesTab = activeTab === 'all' ||
-                       (activeTab === 'published' && course.is_published) ||
-                       (activeTab === 'drafts' && !course.is_published);
-    return matchesSearch && matchesCategory && matchesTab;
-    })
-    .sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Course];
-      let bValue: any = b[sortBy as keyof Course];
-      
-      if (sortBy === 'created_at' || sortBy === 'updated_at') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
-  const getCategoryColor = (category: string) => {
+  // Memoize filtered and sorted courses to prevent unnecessary re-calculations
+  const filteredAndSortedCourses = useMemo(() => {
+    return courses
+      .filter(course => {
+        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             course.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
+        const matchesTab = activeTab === 'all' ||
+                           (activeTab === 'published' && course.is_published) ||
+                           (activeTab === 'drafts' && !course.is_published);
+        return matchesSearch && matchesCategory && matchesTab;
+      })
+      .sort((a, b) => {
+        let aValue: any = a[sortBy as keyof Course];
+        let bValue: any = b[sortBy as keyof Course];
+        
+        if (sortBy === 'created_at' || sortBy === 'updated_at') {
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
+        }
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+  }, [courses, searchTerm, filterCategory, activeTab, sortBy, sortOrder]);
+
+  const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
       faith: 'from-blue-500 to-blue-600',
       history: 'from-purple-500 to-purple-600',
@@ -142,16 +147,16 @@ const MyCourses: React.FC = () => {
       youth: 'from-pink-500 to-pink-600'
     };
     return colors[category] || 'from-gray-500 to-gray-600';
-  };
+  }, []);
 
-  const formatDuration = (minutes: number) => {
+  const formatDuration = useCallback((minutes: number) => {
     if (!minutes) return '0 min';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
+  }, []);
 
-  const getTimeAgo = (date: string | Date) => {
+  const getTimeAgo = useCallback((date: string | Date) => {
     const now = new Date();
     const courseDate = typeof date === 'string' ? new Date(date) : date;
     const diffInHours = Math.floor((now.getTime() - courseDate.getTime()) / (1000 * 60 * 60));
@@ -160,7 +165,191 @@ const MyCourses: React.FC = () => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
     return courseDate.toLocaleDateString();
-  };
+  }, []);
+
+  // Memoize course rendering to prevent unnecessary re-renders
+  const renderCourseCard = useCallback((course: Course) => (
+    <div key={course.id} className={`relative ${viewMode === 'grid' 
+      ? "bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+      : "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-lg transition-all duration-200"
+    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+      {/* Selection Checkbox */}
+      <div className="absolute top-2 left-2 z-10">
+        <input
+          type="checkbox"
+          checked={selectedCourses.includes(course.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedCourses([...selectedCourses, course.id]);
+            } else {
+              setSelectedCourses(selectedCourses.filter(id => id !== course.id));
+            }
+          }}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      </div>
+      {viewMode === 'grid' ? (
+        // Grid View
+        <>
+          {course.cover_image && (
+            <img 
+              src={course.cover_image} 
+              alt={`Cover for ${course.title}`}
+              className="w-full h-32 object-cover mb-4 rounded-t-lg"
+            />
+          )}
+          {/* Course Header */}
+          <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white`}>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
+                <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
+                  {course.description || 'No description provided'}
+                </p>
+              </div>
+              <div className="flex space-x-1 ml-3">
+                <Link
+                  to={`/teacher/courses/${course.id}`}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  title="View Course"
+                >
+                  <Eye className="h-4 w-4" />
+                </Link>
+                <Link
+                  to={`/teacher/courses/${course.id}/edit`}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  title="Edit Course"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Course Stats */}
+          <div className="p-4">
+            <div className="grid grid-cols-3 gap-3 mb-4 text-center">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <Video className="h-4 w-4 text-blue-600 mx-auto mb-1" />
+                <div className="text-lg font-bold text-gray-900">{course.lesson_count}</div>
+                <div className="text-xs text-gray-500">Lessons</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-3">
+                <Users className="h-4 w-4 text-purple-600 mx-auto mb-1" />
+                <div className="text-lg font-bold text-gray-900">{course.student_count}</div>
+                <div className="text-xs text-gray-500">Students</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3">
+                <Clock className="h-4 w-4 text-green-600 mx-auto mb-1" />
+                <div className="text-lg font-bold text-gray-900">{formatDuration(course.total_duration || 0)}</div>
+                <div className="text-xs text-gray-500">Duration</div>
+              </div>
+            </div>
+
+            {/* Course Metadata */}
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+              <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
+                {course.level || 'Beginner'}
+              </span>
+              <span className="text-gray-500 text-xs">
+                {getTimeAgo(course.created_at)}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-2">
+              <Link
+                to={`/teacher/courses/${course.id}`}
+                className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              >
+                <PlayCircle className="mr-1 h-4 w-4" />
+                View
+              </Link>
+              <Link
+                to={`/teacher/record?course=${course.id}`}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                title="Add Lesson"
+              >
+                <Video className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </>
+      ) : (
+        // List View
+        <div className="flex items-center space-x-4">
+          {course.cover_image ? (
+            <img 
+              src={course.cover_image} 
+              alt={`Cover for ${course.title}`}
+              className="w-16 h-16 object-cover rounded-lg"
+            />
+          ) : (
+            <div className={`w-16 h-16 bg-gradient-to-r ${getCategoryColor(course.category)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
+              {course.title.charAt(0)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900 truncate">{course.title}</h3>
+            <p className="text-sm text-gray-500 truncate">{course.description || 'No description'}</p>
+            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+              <div className="flex items-center space-x-1">
+                <Video className="h-3 w-3" />
+                <span>{course.lesson_count} lessons</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Users className="h-3 w-3" />
+                <span>{course.student_count} students</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Clock className="h-3 w-3" />
+                <span>{formatDuration(course.total_duration || 0)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Link
+              to={`/teacher/courses/${course.id}`}
+              className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
+            <Link
+              to={`/teacher/courses/${course.id}/edit`}
+              className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+            >
+              <Edit3 className="h-4 w-4" />
+            </Link>
+            <Link
+              to={`/teacher/record?course=${course.id}`}
+              className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+            >
+              <Video className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  ), [viewMode, selectedCourses, getCategoryColor, formatDuration, getTimeAgo]);
+
+  const handleDeleteCourse = useCallback(async (courseId: number) => {
+    try {
+      await coursesApi.deleteCourse(courseId.toString());
+      
+      // Remove the deleted course from the state
+      setCourses(prevCourses => prevCourses.filter(course => course.id !== courseId));
+      
+      // Clear the teacher dashboard cache to force a refresh of course counts
+      dataCache.delete('teacher_dashboard');
+      
+      // Show success message
+      // You might want to add a toast notification here
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+      // Show error message
+      // You might want to add a toast notification here
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -479,169 +668,7 @@ const MyCourses: React.FC = () => {
             ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6" 
             : "space-y-4"
           }>
-          {filteredAndSortedCourses.map(course => (
-            <div key={course.id} className={`relative ${viewMode === 'grid' 
-              ? "bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
-              : "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-lg transition-all duration-200"
-            } ${selectedCourses.includes(course.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
-              {/* Selection Checkbox */}
-              <div className="absolute top-2 left-2 z-10">
-                <input
-                  type="checkbox"
-                  checked={selectedCourses.includes(course.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedCourses([...selectedCourses, course.id]);
-                    } else {
-                      setSelectedCourses(selectedCourses.filter(id => id !== course.id));
-                    }
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-              </div>
-              {viewMode === 'grid' ? (
-                // Grid View
-                <>
-                  {course.cover_image && (
-                    <img 
-                      src={course.cover_image} 
-                      alt={`Cover for ${course.title}`}
-                      className="w-full h-32 object-cover mb-4 rounded-t-lg"
-                    />
-                  )}
-                  {/* Course Header */}
-                  <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
-                        <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
-                          {course.description || 'No description provided'}
-                        </p>
-                      </div>
-                      <div className="flex space-x-1 ml-3">
-                        <Link
-                          to={`/teacher/courses/${course.id}`}
-                          className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                          title="View Course"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                        <Link
-                          to={`/teacher/courses/${course.id}/edit`}
-                          className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                          title="Edit Course"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Course Stats */}
-                  <div className="p-4">
-                    <div className="grid grid-cols-3 gap-3 mb-4 text-center">
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <Video className="h-4 w-4 text-blue-600 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-gray-900">{course.lesson_count}</div>
-                        <div className="text-xs text-gray-500">Lessons</div>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-3">
-                        <Users className="h-4 w-4 text-purple-600 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-gray-900">{course.student_count}</div>
-                        <div className="text-xs text-gray-500">Students</div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-3">
-                        <Clock className="h-4 w-4 text-green-600 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-gray-900">{formatDuration(course.total_duration || 0)}</div>
-                        <div className="text-xs text-gray-500">Duration</div>
-                      </div>
-                    </div>
-
-                    {/* Course Metadata */}
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                      <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
-                        {course.level || 'Beginner'}
-                      </span>
-                      <span className="text-gray-500 text-xs">
-                        {getTimeAgo(course.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2">
-                      <Link
-                        to={`/teacher/courses/${course.id}`}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                      >
-                        <PlayCircle className="mr-1 h-4 w-4" />
-                        View
-                      </Link>
-                      <Link
-                        to={`/teacher/record?course=${course.id}`}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                        title="Add Lesson"
-                      >
-                        <Video className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                // List View
-                <div className="flex items-center space-x-4">
-                  {course.cover_image ? (
-                    <img 
-                      src={course.cover_image} 
-                      alt={`Cover for ${course.title}`}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className={`w-16 h-16 bg-gradient-to-r ${getCategoryColor(course.category)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
-                      {course.title.charAt(0)}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">{course.title}</h3>
-                    <p className="text-sm text-gray-500 truncate">{course.description || 'No description'}</p>
-                    <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <Video className="h-3 w-3" />
-                        <span>{course.lesson_count} lessons</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="h-3 w-3" />
-                        <span>{course.student_count} students</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatDuration(course.total_duration || 0)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      to={`/teacher/courses/${course.id}`}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      to={`/teacher/courses/${course.id}/edit`}
-                      className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      to={`/teacher/record?course=${course.id}`}
-                      className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-                    >
-                      <Video className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+          {filteredAndSortedCourses.map(renderCourseCard)}
           </div>
         ) : (
           <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-8 text-center shadow-sm">
@@ -677,4 +704,4 @@ const MyCourses: React.FC = () => {
   );
 };
 
-export default MyCourses;
+export default React.memo(MyCourses);

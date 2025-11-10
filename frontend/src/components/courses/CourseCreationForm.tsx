@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../services/api';
+import { dataCache } from '../../hooks/useRealTimeData';
 import { 
   BookOpen, 
   Upload, 
@@ -37,7 +38,6 @@ interface CourseFormData {
   learningObjectives: string[];
   prerequisites: string;
   tags: string[];
-  price?: number | undefined;
   language: string;
   welcomeMessage?: string | undefined;
   certificationAvailable: boolean;
@@ -58,7 +58,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -88,43 +87,37 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       value: 'faith', 
       label: t('courses.categories.faith'), 
       icon: BookOpen, 
-      color: 'blue',
-      description: t('courses.categories.faith_description')
+      color: 'blue'
     },
     { 
       value: 'history', 
       label: t('courses.categories.history'), 
       icon: Clock, 
-      color: 'amber',
-      description: t('courses.categories.history_description')
+      color: 'amber'
     },
     { 
       value: 'spiritual', 
       label: t('courses.categories.spiritual'), 
       icon: Sparkles, 
-      color: 'purple',
-      description: t('courses.categories.spiritual_description')
+      color: 'purple'
     },
     { 
       value: 'bible', 
       label: t('courses.categories.bible'), 
       icon: BookOpen, 
-      color: 'green',
-      description: t('courses.categories.bible_description')
+      color: 'green'
     },
     { 
       value: 'liturgical', 
       label: t('courses.categories.liturgical'), 
       icon: Award, 
-      color: 'red',
-      description: t('courses.categories.liturgical_description')
+      color: 'red'
     },
     { 
       value: 'youth', 
       label: t('courses.categories.youth'), 
       icon: Users, 
-      color: 'pink',
-      description: t('courses.categories.youth_description')
+      color: 'pink'
     }
   ], [t]);
 
@@ -132,31 +125,18 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     { 
       value: 'beginner', 
       label: t('courses.levels.beginner'), 
-      description: t('courses.levels.beginner_description'),
-      color: 'green',
-      icon: BookOpen
+      color: 'green'
     },
     { 
       value: 'intermediate', 
       label: t('courses.levels.intermediate'), 
-      description: t('courses.levels.intermediate_description'),
-      color: 'blue',
-      icon: Target
+      color: 'blue'
     },
     { 
       value: 'advanced', 
       label: t('courses.levels.advanced'), 
-      description: t('courses.levels.advanced_description'),
-      color: 'purple',
-      icon: Award
+      color: 'purple'
     }
-  ], [t]);
-
-  const durations = useMemo(() => [
-    { value: '1-2', label: t('courses.durations.1_2_weeks'), description: t('courses.durations.short_course') },
-    { value: '3-4', label: t('courses.durations.3_4_weeks'), description: t('courses.durations.standard_course') },
-    { value: '5-8', label: t('courses.durations.5_8_weeks'), description: t('courses.durations.comprehensive_course') },
-    { value: '9+', label: t('courses.durations.9_plus_weeks'), description: t('courses.durations.extended_program') }
   ], [t]);
 
   const languages = useMemo(() => [
@@ -167,57 +147,47 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     { value: 'es', label: t('common.spanish') }
   ], [t]);
 
-  const validateStep = useCallback((step: number): boolean => {
-    const stepErrors: Record<string, string> = {};
+  const validateForm = useCallback((): boolean => {
+    const formErrors: Record<string, string> = {};
     
-    switch (step) {
-      case 1:
-        if (!formData.title.trim()) {
-          stepErrors.title = t('courses.errors.title_required');
-        } else if (formData.title.length > 60) {
-          stepErrors.title = t('courses.errors.title_too_long');
-        }
-        if (!formData.description.trim()) {
-          stepErrors.description = t('courses.errors.description_required');
-        } else if (formData.description.length < 50) {
-          stepErrors.description = t('courses.errors.description_too_short');
-        }
-        break;
-      
-      case 2:
-        if (!formData.category) {
-          stepErrors.category = t('courses.errors.category_required');
-        }
-        if (formData.learningObjectives.some(obj => !obj.trim())) {
-          stepErrors.learningObjectives = t('courses.errors.objectives_required');
-        }
-        break;
-      
-      case 3:
-        if (formData.tags.length === 0) {
-          stepErrors.tags = t('courses.errors.tags_required');
-        }
-        if (!formData.language) {
-          stepErrors.language = t('courses.errors.language_required');
-        }
-        break;
+    // Title validation
+    if (!formData.title.trim()) {
+      formErrors.title = t('courses.errors.title_required');
+    } else if (formData.title.length > 60) {
+      formErrors.title = t('courses.errors.title_too_long');
     }
     
-    setErrors(stepErrors);
-    return Object.keys(stepErrors).length === 0;
+    // Description validation (changed to 5 characters minimum)
+    if (!formData.description.trim()) {
+      formErrors.description = t('courses.errors.description_required');
+    } else if (formData.description.length < 5) {
+      formErrors.description = t('courses.errors.description_too_short');
+    }
+    
+    // Category validation
+    if (!formData.category) {
+      formErrors.category = t('courses.errors.category_required');
+    }
+    
+    // Learning objectives validation
+    if (formData.learningObjectives.some(obj => !obj.trim())) {
+      formErrors.learningObjectives = t('courses.errors.objectives_required');
+    }
+    
+    // Language validation
+    if (!formData.language) {
+      formErrors.language = t('courses.errors.language_required');
+    }
+    
+    setErrors(formErrors);
+    return Object.keys(formErrors).length === 0;
   }, [formData, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (currentStep < 3) {
-      if (!validateStep(currentStep)) return;
-      setCurrentStep(currentStep + 1);
-      return;
-    }
-
-    // Final validation
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+    // Validate form
+    if (!validateForm()) {
       return;
     }
 
@@ -236,7 +206,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
         language: formData.language,
         certificationAvailable: formData.certificationAvailable,
         welcomeMessage: formData.welcomeMessage?.trim(),
-        ...(formData.price !== undefined && { price: formData.price })
       };
 
       let result;
@@ -256,6 +225,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
         }
       }
 
+      // Clear the teacher dashboard cache to force a refresh of course counts
+      dataCache.delete('teacher_dashboard');
+      
       setSuccess(true);
       setTimeout(() => navigate('/teacher/courses'), 2000);
     } catch (error: any) {
@@ -388,7 +360,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       language: formData.language,
       certificationAvailable: formData.certificationAvailable,
       welcomeMessage: formData.welcomeMessage,
-      price: formData.price
     };
     
     try {
@@ -405,12 +376,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       localStorage.removeItem(key);
     }
   }, [success, editMode, courseId]);
-
-  const stepTitles = useMemo(() => [
-    t('courses.creation.step1_title'),
-    t('courses.creation.step2_title'),
-    t('courses.creation.step3_title')
-  ], [t]);
 
   if (success) {
     return (
@@ -473,140 +438,35 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
   return (
     <>
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl shadow-sm p-8 text-white">
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl shadow-sm p-6 text-white">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="h-8 w-8" />
-              <div>
-                <h1 className="text-3xl font-bold">
-                  {editMode ? t('courses.creation.edit_course') : t('courses.creation.create_new_course')}
-                </h1>
-                <p className="text-blue-100 mt-2">
-                  {t('courses.creation.header_description')}
-                </p>
-              </div>
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="h-6 w-6" />
+              <h1 className="text-2xl font-bold">
+                {editMode ? t('courses.creation.edit_course') : t('courses.creation.create_new_course')}
+              </h1>
             </div>
-            
-            {/* Quick Stats */}
-            <div className="flex items-center space-x-6 text-sm text-blue-200">
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4" />
-                <span>{t('courses.creation.autosave_enabled')}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <BarChart3 className="h-4 w-4" />
-                <span>{t('courses.creation.step_x_of_y', { current: currentStep, total: 3 })}</span>
-              </div>
-            </div>
+            <p className="text-blue-100 text-sm">
+              {t('courses.creation.header_description')}
+            </p>
           </div>
           
-          <div className="flex items-center space-x-3 mt-6 lg:mt-0">
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              {showPreview ? t('common.hide_preview') : t('common.show_preview')}
-            </button>
+          <div className="flex items-center space-x-2 mt-4 lg:mt-0">
             <button
               onClick={() => navigate('/teacher/courses')}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+              className="inline-flex items-center px-3 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('common.back_to_courses')}
+              <ArrowLeft className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Preview Panel */}
-      {showPreview && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Eye className="h-5 w-5 mr-2 text-blue-600" />
-            {t('courses.creation.course_preview')}
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              {coverImage && (
-                <div>
-                  <img src={coverImage} alt="Cover preview" className="w-full h-48 object-cover rounded-lg border" />
-                </div>
-              )}
-              <div>
-                <h4 className="font-semibold text-gray-900 text-xl">{formData.title || t('courses.creation.preview_title')}</h4>
-                <p className="text-gray-600 mt-2">{formData.description || t('courses.creation.preview_description')}</p>
-              </div>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('common.category')}:</span>
-                <span className="font-medium">
-                  {categories.find(c => c.value === formData.category)?.label || t('common.not_set')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('common.level')}:</span>
-                <span className="font-medium">
-                  {levels.find(l => l.value === formData.level)?.label || t('common.not_set')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('common.duration')}:</span>
-                <span className="font-medium">
-                  {durations.find(d => d.value === formData.estimatedDuration)?.label || t('common.not_set')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">{t('common.visibility')}:</span>
-                <span className="font-medium">
-                  {formData.isPublic ? t('common.public') : t('common.private')}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Progress Steps */}
-        <div className="px-8 pt-8">
-          <div className="flex items-center justify-between mb-8">
-            {[1, 2, 3].map(step => (
-              <div key={step} className="flex items-center flex-1">
-                <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 font-semibold transition-all duration-300 ${
-                  step === currentStep
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/50'
-                    : step < currentStep
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-white border-gray-300 text-gray-400'
-                }`}>
-                  {step < currentStep ? <CheckCircle className="h-6 w-6" /> : step}
-                </div>
-                {step < 3 && (
-                  <div className={`flex-1 h-2 mx-4 transition-all duration-300 rounded-full ${
-                    step < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center text-sm font-medium text-gray-600 mb-6">
-            {stepTitles.map((title, index) => (
-              <div 
-                key={index} 
-                className={currentStep === index + 1 ? 'text-blue-600 font-semibold' : ''}
-              >
-                {title}
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Error Alert */}
         {errors.submit && (
-          <div className="mx-8 mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
               <span className="text-red-700">{errors.submit}</span>
@@ -614,379 +474,129 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
-          {/* Step 1: Basic Information */}
-          {currentStep === 1 && (
-            <div className="space-y-8 animate-fade-in">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2 text-blue-600" />
-                  {t('courses.creation.step1_title')}
-                </h3>
-                <p className="text-gray-600">{t('courses.creation.step1_description')}</p>
-              </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Simplified Form - Clean and Focused */}
+          <div className="space-y-6">
+            {/* Course Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('courses.creation.course_title')} *
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                required
+                maxLength={60}
+                value={formData.title}
+                onChange={handleChange}
+                placeholder={t('courses.creation.title_placeholder')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg"
+              />
+              {errors.title && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.title}
+                </p>
+              )}
+            </div>
 
-              {/* Course Title */}
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
-                  {t('courses.creation.course_title')} *
-                  {formData.title && (
-                    <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                      formData.title.length > 60 
-                        ? 'text-red-600 bg-red-100' 
-                        : 'text-green-600 bg-green-100'
-                    }`}>
-                      {formData.title.length}/60 {t('common.characters')}
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  maxLength={60}
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder={t('courses.creation.title_placeholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg font-medium"
-                />
-                {errors.title && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.title}
-                  </p>
-                )}
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('courses.creation.course_description')} *
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={4}
+                value={formData.description}
+                onChange={handleChange}
+                placeholder={t('courses.creation.description_placeholder')}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              />
+              <div className="flex justify-between mt-1 text-xs text-gray-500">
+                <span>
+                  {formData.description.length < 5 
+                    ? t('courses.creation.description_too_short_warning') 
+                    : ''
+                  }
+                </span>
+                <span>{formData.description.length}/2000</span>
               </div>
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.description}
+                </p>
+              )}
+            </div>
 
-              {/* Description */}
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-3">
-                  {t('courses.creation.course_description')} *
-                  <span className="text-gray-400 text-xs ml-2">
-                    ({t('courses.creation.description_guideline')})
-                  </span>
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows={5}
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder={t('courses.creation.description_placeholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
-                />
-                <div className="flex justify-between mt-2 text-xs text-gray-500">
-                  <span>
-                    {formData.description.length < 50 
-                      ? t('courses.creation.description_too_short_warning') 
-                      : t('courses.creation.good_description_length')
-                    }
-                  </span>
-                  <span>{formData.description.length}/2000</span>
-                </div>
-                {errors.description && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Cover Image */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  {t('courses.creation.cover_image')}
-                  <span className="text-gray-400 text-xs ml-2">({t('common.optional')})</span>
+                  {t('courses.creation.category')} *
                 </label>
-                <div className="flex items-center space-x-4">
-                  <label className="inline-flex items-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handleCoverChange} 
-                    />
-                    <Upload className="h-5 w-5 mr-2" />
-                    {t('common.upload_image')}
-                  </label>
-                  {coverImage && (
-                    <div className="relative">
-                      <img 
-                        src={coverImage} 
-                        alt="Cover preview" 
-                        className="h-20 w-32 object-cover rounded-lg border shadow-sm" 
-                      />
+                <div className="grid grid-cols-2 gap-3">
+                  {categories.map(category => {
+                    const Icon = category.icon;
+                    return (
                       <button
+                        key={category.value}
                         type="button"
-                        onClick={() => {
-                          setCoverImage(null);
-                          setCoverImageFile(null);
-                        }}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                        onClick={() => setFormData(prev => ({ 
+                          ...prev, 
+                          category: category.value
+                        }))}
+                        className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
+                          formData.category === category.value
+                            ? `border-${category.color}-500 bg-${category.color}-50`
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
                       >
-                        <X className="h-3 w-3" />
+                        <div className="flex items-center space-x-2">
+                          <Icon className={`h-4 w-4 text-${category.color}-600 flex-shrink-0`} />
+                          <div className="font-medium text-gray-900 text-sm">{category.label}</div>
+                        </div>
                       </button>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-                {errors.coverImage && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                {errors.category && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.coverImage}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-gray-500">
-                  {t('courses.creation.cover_image_guidelines')}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Course Details */}
-          {currentStep === 2 && (
-            <div className="space-y-8 animate-fade-in">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
-                  <Target className="h-5 w-5 mr-2 text-green-600" />
-                  {t('courses.creation.step2_title')}
-                </h3>
-                <p className="text-gray-600">{t('courses.creation.step2_description')}</p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    {t('courses.creation.category')} *
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {categories.map(category => {
-                      const Icon = category.icon;
-                      return (
-                        <button
-                          key={category.value}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ 
-                            ...prev, 
-                            category: category.value
-                          }))}
-                          className={`p-4 border-2 rounded-xl text-left transition-all duration-200 group ${
-                            formData.category === category.value
-                              ? `border-${category.color}-500 bg-${category.color}-50 shadow-sm`
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-start space-x-3">
-                            <Icon className={`h-5 w-5 mt-0.5 text-${category.color}-600 flex-shrink-0`} />
-                            <div>
-                              <div className="font-medium text-gray-900 text-sm">{category.label}</div>
-                              <div className="text-xs text-gray-500 mt-1">{category.description}</div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {errors.category && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.category}
-                    </p>
-                  )}
-                </div>
-
-                {/* Level and Duration */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-4">
-                      {t('courses.creation.difficulty_level')} *
-                    </label>
-                    <div className="space-y-3">
-                      {levels.map(level => {
-                        const Icon = level.icon;
-                        return (
-                          <button
-                            key={level.value}
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
-                            className={`w-full p-4 border-2 rounded-xl text-left transition-all duration-200 group ${
-                              formData.level === level.value
-                                ? `border-${level.color}-500 bg-${level.color}-50 shadow-sm`
-                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <Icon className={`h-5 w-5 text-${level.color}-600 flex-shrink-0`} />
-                              <div>
-                                <div className="font-medium text-gray-900">{level.label}</div>
-                                <div className="text-sm text-gray-600 mt-1">{level.description}</div>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      {t('courses.creation.estimated_duration')}
-                    </label>
-                    <select
-                      name="estimatedDuration"
-                      value={formData.estimatedDuration}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    >
-                      <option value="">{t('common.select_duration')}</option>
-                      {durations.map(duration => (
-                        <option key={duration.value} value={duration.value}>
-                          {duration.label} • {duration.description}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Learning Objectives */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-4 flex items-center">
-                  <Zap className="h-4 w-4 mr-2 text-amber-600" />
-                  {t('courses.creation.learning_objectives')} *
-                  <span className="text-gray-400 text-xs ml-2">
-                    ({t('courses.creation.objectives_guideline')})
-                  </span>
-                </label>
-                <div className="space-y-3">
-                  {formData.learningObjectives.map((objective, index) => (
-                    <div key={index} className="flex space-x-3 items-start">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={objective}
-                          onChange={(e) => updateLearningObjective(index, e.target.value)}
-                          placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        />
-                      </div>
-                      {formData.learningObjectives.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeLearningObjective(index)}
-                          className="px-3 py-3 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors flex items-center"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addLearningObjective}
-                    className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {t('courses.creation.add_another_objective')}
-                  </button>
-                </div>
-                {errors.learningObjectives && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.learningObjectives}
+                    {errors.category}
                   </p>
                 )}
               </div>
 
-              {/* Prerequisites */}
-              <div>
-                <label htmlFor="prerequisites" className="block text-sm font-medium text-gray-700 mb-3">
-                  {t('courses.creation.prerequisites')}
-                  <span className="text-gray-400 text-xs ml-2">({t('common.optional')})</span>
-                </label>
-                <textarea
-                  id="prerequisites"
-                  name="prerequisites"
-                  rows={3}
-                  value={formData.prerequisites}
-                  onChange={handleChange}
-                  placeholder={t('courses.creation.prerequisites_placeholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Finalize */}
-          {currentStep === 3 && (
-            <div className="space-y-8 animate-fade-in">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
-                  <Award className="h-5 w-5 mr-2 text-purple-600" />
-                  {t('courses.creation.step3_title')}
-                </h3>
-                <p className="text-gray-600">{t('courses.creation.step3_description')}</p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Tags */}
+              {/* Level and Language */}
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    <Tag className="h-4 w-4 mr-2 text-blue-600" />
-                    {t('courses.creation.tags')} *
-                    <span className="text-gray-400 text-xs ml-2">
-                      ({t('courses.creation.tags_guideline')})
-                    </span>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('courses.creation.difficulty_level')} *
                   </label>
-                  <div className="space-y-3">
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        onKeyPress={handleTagKeyPress}
-                        placeholder={t('courses.creation.add_tag_placeholder')}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
+                  <div className="grid grid-cols-3 gap-2">
+                    {levels.map(level => (
                       <button
+                        key={level.value}
                         type="button"
-                        onClick={addTag}
-                        disabled={!newTag.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
+                        className={`p-2 border rounded-lg text-center transition-all ${
+                          formData.level === level.value
+                            ? `border-${level.color}-500 bg-${level.color}-50 text-${level.color}-700`
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
                       >
-                        <Plus className="h-4 w-4" />
+                        <div className="text-xs font-medium">{level.label}</div>
                       </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                        >
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="ml-1 text-blue-600 hover:text-blue-800"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                  {errors.tags && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.tags}
-                    </p>
-                  )}
                 </div>
 
-                {/* Language */}
                 <div>
-                  <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-3">
+                  <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
                     {t('courses.creation.language')} *
                   </label>
                   <select
@@ -994,7 +604,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     name="language"
                     value={formData.language}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {languages.map(lang => (
                       <option key={lang.value} value={lang.value}>
@@ -1002,149 +612,258 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       </option>
                     ))}
                   </select>
-                  {errors.language && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.language}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Additional Settings */}
-              <div className="space-y-6">
-                {/* Welcome Message */}
-                <div>
-                  <label htmlFor="welcomeMessage" className="block text-sm font-medium text-gray-700 mb-3">
-                    {t('courses.creation.welcome_message')}
-                    <span className="text-gray-400 text-xs ml-2">({t('common.optional')})</span>
-                  </label>
-                  <textarea
-                    id="welcomeMessage"
-                    name="welcomeMessage"
-                    rows={3}
-                    value={formData.welcomeMessage || ''}
-                    onChange={handleChange}
-                    placeholder={t('courses.creation.welcome_message_placeholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical"
-                  />
-                </div>
-
-                {/* Settings Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Privacy Setting */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${formData.isPublic ? 'bg-green-100' : 'bg-blue-100'}`}>
-                        {formData.isPublic ? (
-                          <Globe className="h-6 w-6 text-green-600" />
-                        ) : (
-                          <Lock className="h-6 w-6 text-blue-600" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">
-                              {formData.isPublic ? t('common.public_course') : t('common.private_course')}
-                            </h4>
-                            <p className="text-gray-600 text-sm mt-1">
-                              {formData.isPublic 
-                                ? t('courses.creation.public_course_description')
-                                : t('courses.creation.private_course_description')
-                              }
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              formData.isPublic ? 'bg-green-600' : 'bg-blue-600'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                formData.isPublic ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Certification */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${formData.certificationAvailable ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                        <Award className={`h-6 w-6 ${formData.certificationAvailable ? 'text-purple-600' : 'text-gray-400'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">
-                              {t('courses.creation.certification_available')}
-                            </h4>
-                            <p className="text-gray-600 text-sm mt-1">
-                              {t('courses.creation.certification_description')}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setFormData(prev => ({ 
-                              ...prev, 
-                              certificationAvailable: !prev.certificationAvailable 
-                            }))}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              formData.certificationAvailable ? 'bg-purple-600' : 'bg-gray-300'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                formData.certificationAvailable ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-8 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setCurrentStep(prev => prev - 1)}
-              disabled={currentStep === 1}
-              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              {t('common.previous')}
-            </button>
+            {/* Learning Objectives */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                {t('courses.creation.learning_objectives')} *
+              </label>
+              <div className="space-y-2">
+                {formData.learningObjectives.map((objective, index) => (
+                  <div key={index} className="flex space-x-2 items-center">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={objective}
+                        onChange={(e) => updateLearningObjective(index, e.target.value)}
+                        placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    {formData.learningObjectives.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLearningObjective(index)}
+                        className="px-2 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addLearningObjective}
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('courses.creation.add_another_objective')}
+                </button>
+              </div>
+              {errors.learningObjectives && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.learningObjectives}
+                </p>
+              )}
+            </div>
 
+            {/* Optional Sections - Collapsible */}
+            <div className="border-t border-gray-200 pt-4">
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer list-none">
+                  <div className="flex items-center text-sm font-medium text-gray-700">
+                    <span>Additional Options</span>
+                  </div>
+                  <div className="text-gray-400 group-open:rotate-180 transition-transform">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </summary>
+                
+                <div className="mt-4 space-y-4">
+                  {/* Prerequisites */}
+                  <div>
+                    <label htmlFor="prerequisites" className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('courses.creation.prerequisites')}
+                    </label>
+                    <textarea
+                      id="prerequisites"
+                      name="prerequisites"
+                      rows={2}
+                      value={formData.prerequisites}
+                      onChange={handleChange}
+                      placeholder={t('courses.creation.prerequisites_placeholder')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Tags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('courses.creation.tags')}
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyPress={handleTagKeyPress}
+                          placeholder={t('courses.creation.add_tag_placeholder')}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={addTag}
+                          disabled={!newTag.trim()}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="ml-1 text-blue-600 hover:text-blue-800"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cover Image */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('courses.creation.cover_image')}
+                    </label>
+                    <div className="flex items-center space-x-3">
+                      <label className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleCoverChange} 
+                        />
+                        <Upload className="h-4 w-4 mr-1" />
+                        {t('common.upload_image')}
+                      </label>
+                      {coverImage && (
+                        <div className="relative">
+                          <img 
+                            src={coverImage} 
+                            alt="Cover preview" 
+                            className="h-16 w-24 object-cover rounded-lg border" 
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCoverImage(null);
+                              setCoverImageFile(null);
+                            }}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          >
+                            <X className="h-2 w-2" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {errors.coverImage && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {errors.coverImage}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Settings Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Privacy Setting */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {formData.isPublic ? (
+                            <Globe className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <Lock className="h-5 w-5 text-blue-600" />
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm">
+                              {formData.isPublic ? t('common.public_course') : t('common.private_course')}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            formData.isPublic ? 'bg-green-600' : 'bg-blue-600'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              formData.isPublic ? 'translate-x-4' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Certification */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-purple-600' : 'text-gray-400'}`} />
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm">
+                              {t('courses.creation.certification_available')}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ 
+                            ...prev, 
+                            certificationAvailable: !prev.certificationAvailable 
+                          }))}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                            formData.certificationAvailable ? 'bg-purple-600' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              formData.certificationAvailable ? 'translate-x-4' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/25"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-5 h-5 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
+                  <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
                   {editMode ? t('common.updating') : t('common.creating')}...
-                </>
-              ) : currentStep === 3 ? (
-                <>
-                  <BookOpen className="mr-2 h-5 w-5" />
-                  {editMode ? t('common.update_course') : t('common.create_course')}
                 </>
               ) : (
                 <>
-                  {t('common.continue')}
-                  <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  {editMode ? t('common.update_course') : t('common.create_course')}
                 </>
               )}
             </button>

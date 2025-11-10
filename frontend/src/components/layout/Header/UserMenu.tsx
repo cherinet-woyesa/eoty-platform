@@ -2,12 +2,14 @@ import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { LogOut, Settings, User, ChevronDown, Mail, CreditCard, HelpCircle, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
+import { useNavigate } from 'react-router-dom';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const handleLogout = useCallback(() => {
     logout();
@@ -39,7 +41,12 @@ const UserMenu: React.FC = () => {
       icon: User,
       label: 'Profile',
       onClick: () => {
-        console.log('Navigate to profile');
+        // Navigate to the appropriate profile page based on user role
+        if (user?.role === 'teacher') {
+          navigate('/teacher/profile');
+        } else {
+          console.log('Navigate to profile');
+        }
         handleCloseProfile();
       },
       description: 'View and edit your profile'
@@ -92,10 +99,20 @@ const UserMenu: React.FC = () => {
         aria-expanded={isProfileOpen}
         aria-haspopup="true"
       >
-        <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
-          <span className="text-white text-xs font-semibold">
-            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-          </span>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-sm">
+          {user?.profilePicture ? (
+            <img 
+              src={user.profilePicture} 
+              alt="Profile" 
+              className="w-7 h-7 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-semibold">
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </span>
+            </div>
+          )}
         </div>
         <div className="hidden sm:block text-left">
           <p className="text-xs font-semibold text-gray-900 leading-tight">
@@ -114,10 +131,20 @@ const UserMenu: React.FC = () => {
           {/* User info section */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
-                <span className="text-white font-semibold text-lg">
-                  {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                </span>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md">
+                {user?.profilePicture ? (
+                  <img 
+                    src={user.profilePicture} 
+                    alt="Profile" 
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-lg">
+                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">

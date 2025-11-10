@@ -23,10 +23,8 @@ import ErrorBoundary from '../../common/ErrorBoundary';
 import DashboardSearch from './DashboardSearch';
 import ViewCustomizer from './ViewCustomizer';
 
-
-
 // Skeleton loader components
-const DashboardSkeleton: React.FC = () => (
+const DashboardSkeleton: React.FC = React.memo(() => (
   <div className="w-full space-y-6 p-6">
     {/* Welcome Section Skeleton */}
     <div className="bg-gray-200 rounded-xl p-6 animate-pulse h-32"></div>
@@ -52,7 +50,7 @@ const DashboardSkeleton: React.FC = () => (
       </div>
     </div>
   </div>
-);
+));
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -77,10 +75,15 @@ const StudentDashboard: React.FC = () => {
     lastUpdated 
   } = useDashboardData();
 
-  // WebSocket for live updates
-  const { lastMessage, isConnected } = useWebSocket('/student/updates');
+  // WebSocket for live updates with optimized settings
+  const { lastMessage, isConnected } = useWebSocket('/student/updates', {
+    reconnectAttempts: 3,
+    reconnectInterval: 5000,
+    heartbeatInterval: 60000,
+    disableReconnect: false
+  });
 
-  // Handle real-time updates from WebSocket
+  // Handle real-time updates from WebSocket with debouncing
   useEffect(() => {
     if (lastMessage) {
       try {
@@ -96,18 +99,17 @@ const StudentDashboard: React.FC = () => {
             }, ...prev]);
             break;
           case 'NEW_RECOMMENDATION':
-            // Refresh recommendations
-            refetch();
-            setNotifications(prev => [{
-              id: Date.now(),
-              message: 'New learning recommendations available',
-              read: false
-            }, ...prev]);
-            break;
+            // Refresh recommendations with debouncing
+            const recommendationTimer = setTimeout(() => {
+              refetch();
+            }, 2000);
+            return () => clearTimeout(recommendationTimer);
           case 'ACTIVITY_UPDATE':
-            // Refresh activities
-            refetch();
-            break;
+            // Refresh activities with debouncing
+            const activityTimer = setTimeout(() => {
+              refetch();
+            }, 2000);
+            return () => clearTimeout(activityTimer);
           case 'STREAK_MILESTONE':
             // Show streak celebration
             console.log('Streak milestone reached:', message.data);
@@ -127,7 +129,7 @@ const StudentDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Enhanced stats with real-time updates
+  // Enhanced stats with real-time updates and memoization
   const stats = useMemo(() => [
     { 
       name: 'Courses Enrolled', 
@@ -171,22 +173,22 @@ const StudentDashboard: React.FC = () => {
     }
   ], [studentData]);
 
-  const formatTime = (date: Date) => {
+  const formatTime = useCallback((date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit',
       hour12: true 
     });
-  };
+  }, []);
 
-  const formatDate = (date: Date) => {
+  const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('en-US', { 
       weekday: 'long',
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
-  };
+  }, []);
 
   const handleRetry = useCallback(() => {
     refetch();
@@ -235,7 +237,10 @@ const StudentDashboard: React.FC = () => {
     // Handle progress sharing
   }, []);
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  const unreadNotifications = useMemo(() => 
+    notifications.filter(n => !n.read).length, 
+    [notifications]
+  );
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -274,7 +279,6 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-
       <div className="min-h-screen bg-gray-50">
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
@@ -286,9 +290,9 @@ const StudentDashboard: React.FC = () => {
 
         <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
           {/* Header Section with Search and Controls */}
-          <div className="flex flex-col gap-4"> {/* Removed lg:flex-row lg:items-center lg:justify-between */}
+          <div className="flex flex-col gap-4">
             {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-4 sm:p-6 text-white shadow-lg w-full"> {/* Added w-full, removed flex-1 */}
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-4 sm:p-6 text-white shadow-lg w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
@@ -479,8 +483,6 @@ const StudentDashboard: React.FC = () => {
             </div>
           )}
 
-
-
           {/* Motivation Section */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
             <div className="flex items-center justify-between">
@@ -504,4 +506,4 @@ const StudentDashboard: React.FC = () => {
   );
 };
 
-export default StudentDashboard;
+export default React.memo(StudentDashboard);

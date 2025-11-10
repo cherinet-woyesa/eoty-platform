@@ -14,6 +14,12 @@ interface User {
     notifications?: boolean;
     language?: string;
   };
+  bio?: string;
+  phone?: string;
+  location?: string;
+  specialties?: string[];
+  teachingExperience?: number;
+  education?: string;
 }
 
 interface AuthContextType {

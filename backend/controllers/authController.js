@@ -448,7 +448,7 @@ const authController = {
           'chapter:view', 'chapter:manage',
           'analytics:view'
         ],
-        admin: ['system:admin']
+        platform_admin: ['system:admin']
       };
 
       const permissions = permissionMap[user.role] || permissionMap.student;
@@ -465,6 +465,111 @@ const authController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch user permissions'
+      });
+    }
+  },
+
+  // Upload profile image
+  async uploadProfileImage(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+
+      // In a real implementation, you would:
+      // 1. Upload the file to a storage service (S3, Cloudinary, etc.)
+      // 2. Save the URL to the user's profile in the database
+      // 3. Return the URL to the frontend
+
+      // For now, we'll simulate the upload by returning a placeholder URL
+      // In a real implementation, you would replace this with actual file storage logic
+      const profilePictureUrl = `/uploads/profiles/${req.file.filename}`;
+
+      // Update user's profile picture in database
+      await db('users')
+        .where({ id: req.user.userId })
+        .update({ 
+          profile_picture: profilePictureUrl,
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: 'Profile picture uploaded successfully',
+        data: {
+          profilePicture: profilePictureUrl
+        }
+      });
+    } catch (error) {
+      console.error('Profile picture upload error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload profile picture'
+      });
+    }
+  },
+
+  // Update user profile
+  async updateUserProfile(req, res) {
+    try {
+      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education } = req.body;
+      const userId = req.user.userId;
+
+      // Update user profile in database
+      const updateData = {
+        first_name: firstName,
+        last_name: lastName,
+        bio: bio || null,
+        phone: phone || null,
+        location: location || null,
+        profile_picture: profilePicture || null,
+        specialties: specialties ? JSON.stringify(specialties) : null,
+        teaching_experience: teachingExperience || null,
+        education: education || null,
+        updated_at: new Date()
+      };
+
+      await db('users')
+        .where({ id: userId })
+        .update(updateData);
+
+      // Get updated user data
+      const user = await db('users')
+        .where({ id: userId })
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education')
+        .first();
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          user: {
+            id: user.id,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            email: user.email,
+            role: user.role,
+            chapter: user.chapter_id,
+            isActive: user.is_active,
+            lastLoginAt: user.last_login_at,
+            profilePicture: user.profile_picture,
+            bio: user.bio,
+            phone: user.phone,
+            location: user.location,
+            specialties: user.specialties ? JSON.parse(user.specialties) : [],
+            teachingExperience: user.teaching_experience,
+            education: user.education
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Update profile error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update profile'
       });
     }
   }

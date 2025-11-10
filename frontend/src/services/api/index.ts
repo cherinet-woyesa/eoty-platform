@@ -79,6 +79,22 @@ export const authApi = {
     return response.data;
   },
 
+  updateUserProfile: async (profileData: any) => {
+    const response = await apiClient.put('/auth/profile', profileData);
+    return response.data;
+  },
+
+  uploadProfileImage: async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('profileImage', imageFile);
+    const response = await apiClient.post('/auth/upload-profile-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   validateToken: async (token: string) => {
     try {
       // Make a request to a protected endpoint to validate the token
@@ -107,6 +123,12 @@ export const coursesApi = {
   // Create new course
   createCourse: async (courseData: { title: string; description?: string; category?: string; level?: string; cover_image?: string }) => {
     const response = await apiClient.post('/courses', courseData);
+    return response.data;
+  },
+
+  // Delete course
+  deleteCourse: async (courseId: string) => {
+    const response = await apiClient.delete(`/courses/${courseId}`);
     return response.data;
   },
 

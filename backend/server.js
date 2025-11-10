@@ -12,7 +12,8 @@ const ensureUploadDirs = () => {
   const dirs = [
     'uploads/videos',
     'uploads/subtitles',
-    'uploads/thumbnails'
+    'uploads/thumbnails',
+    'uploads/profiles'
   ];
   
   dirs.forEach(dir => {

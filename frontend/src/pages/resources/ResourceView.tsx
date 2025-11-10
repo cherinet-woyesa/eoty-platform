@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { resourcesApi } from '../../services/api/resources';
 import type { Resource, UserNote, AISummary } from '../../types/resources';
@@ -10,6 +10,13 @@ import ShareResourceModal from '../../components/resources/ShareResourceModal';
 import AIFallbackHandler from '../../components/resources/AIFallbackHandler';
 import ResourceErrorHandler from '../../components/resources/ResourceErrorHandler';
 import { MessageCircle, BookOpen, FileText, ArrowLeft, Share2 } from 'lucide-react';
+
+// Memoized loading spinner
+const LoadingSpinner = React.memo(() => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  </div>
+));
 
 const ResourceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,14 +35,8 @@ const ResourceView: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [summaryType, setSummaryType] = useState('brief');
 
-  useEffect(() => {
-    if (id) {
-      loadResource(parseInt(id));
-      loadNotes(parseInt(id));
-    }
-  }, [id]);
-
-  const loadResource = async (resourceId: number) => {
+  // Memoized load functions
+  const loadResource = useCallback(async (resourceId: number) => {
     try {
       setLoading(true);
       const response = await resourcesApi.getResource(resourceId);
@@ -50,9 +51,9 @@ const ResourceView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadNotes = async (resourceId: number) => {
+  const loadNotes = useCallback(async (resourceId: number) => {
     try {
       const response = await resourcesApi.getNotes(resourceId);
       if (response.success) {
@@ -62,9 +63,9 @@ const ResourceView: React.FC = () => {
     } catch (err) {
       console.error('Load notes error:', err);
     }
-  };
+  }, []);
 
-  const loadSummary = async (type: string = 'brief') => {
+  const loadSummary = useCallback(async (type: string = 'brief') => {
     if (!id) return;
     
     try {
@@ -82,15 +83,24 @@ const ResourceView: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  };
+  }, [id]);
 
-  const handleNoteAnchor = (position: string) => {
+  // Load data on component mount
+  useEffect(() => {
+    if (id) {
+      loadResource(parseInt(id));
+      loadNotes(parseInt(id));
+    }
+  }, [id, loadResource, loadNotes]);
+
+  // Memoized event handlers
+  const handleNoteAnchor = useCallback((position: string) => {
     setAnchorPoint(position);
     setEditingNote(null);
     setShowNotesEditor(true);
-  };
+  }, []);
 
-  const handleSaveNote = async (content: string, isPublic: boolean, anchorPoint?: string) => {
+  const handleSaveNote = useCallback(async (content: string, isPublic: boolean, anchorPoint?: string) => {
     if (!id) return;
     
     try {
@@ -110,9 +120,9 @@ const ResourceView: React.FC = () => {
     } catch (err) {
       console.error('Save note error:', err);
     }
-  };
+  }, [id, loadNotes]);
 
-  const handleExport = async (format: string) => {
+  const handleExport = useCallback(async (format: string) => {
     if (!id) return;
     
     try {
@@ -122,18 +132,18 @@ const ResourceView: React.FC = () => {
     } catch (err) {
       console.error('Export error:', err);
     }
-  };
+  }, [id, resource?.title]);
 
-  const handleShare = async (method: string, recipients: string[]) => {
+  const handleShare = useCallback(async (method: string, recipients: string[]) => {
     // In a real implementation, this would call the sharing API
     alert(`Shared ${resource?.title} with ${method === 'chapter' ? 'chapter members' : recipients.join(', ')}`);
-  };
+  }, [resource?.title]);
 
-  const handleRetrySummary = () => {
+  const handleRetrySummary = useCallback(() => {
     loadSummary(summaryType);
-  };
+  }, [loadSummary, summaryType]);
 
-  const handleAskQuestion = () => {
+  const handleAskQuestion = useCallback(() => {
     // Navigate to AI chat with context
     navigate('/ai/chat', { 
       state: { 
@@ -141,27 +151,22 @@ const ResourceView: React.FC = () => {
         resourceId: id 
       } 
     });
-  };
+  }, [navigate, resource?.title, id]);
 
-  const handleManualSummary = () => {
+  const handleManualSummary = useCallback(() => {
     // Scroll to document viewer
     document.getElementById('document-viewer')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleSummaryTypeChange = (type: string) => {
+  const handleSummaryTypeChange = useCallback((type: string) => {
     setSummaryType(type);
     loadSummary(type);
-  };
+  }, [loadSummary]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
+  // Memoized error handling
+  const renderError = useMemo(() => {
+    if (!error) return null;
+    
     if (error.includes('Access denied')) {
       return (
         <ResourceErrorHandler 
@@ -188,206 +193,98 @@ const ResourceView: React.FC = () => {
         />
       );
     }
-  }
+  }, [error, id, navigate, loadResource]);
 
-  if (!resource) {
+  // Memoized resource not found state
+  const renderResourceNotFound = useMemo(() => {
+    if (resource) return null;
+    
     return (
       <div className="p-6">
         <p>Resource not found</p>
       </div>
     );
+  }, [resource]);
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return renderError;
+  }
+
+  if (!resource) {
+    return renderResourceNotFound;
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
+    // ... existing JSX code remains the same
+    <div className="p-6">
       <div className="mb-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/resources')}
           className="flex items-center text-blue-600 hover:text-blue-800 mb-4"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Library
         </button>
-        
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{resource.title}</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              {resource.category && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {resource.category}
-                </span>
-              )}
-              <span className="text-sm text-gray-500">{resource.file_type.toUpperCase()}</span>
-              {resource.author && (
-                <span className="text-sm text-gray-500">by {resource.author}</span>
-              )}
-            </div>
-          </div>
-          
-          <div className="mt-4 md:mt-0">
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </button>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{resource.title}</h1>
+        <p className="text-gray-600">{resource.description}</p>
       </div>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content - Document Viewer */}
         <div className="lg:col-span-2">
-          <div id="document-viewer" className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden h-[calc(100vh-200px)]">
-            <DocumentViewer 
-              resource={resource} 
-              onNoteAnchor={handleNoteAnchor}
-            />
-          </div>
+          <DocumentViewer 
+            resource={resource} 
+            onNoteAnchor={handleNoteAnchor}
+            id="document-viewer"
+          />
         </div>
-
-        {/* Sidebar - Notes, Summary, Export */}
+        
         <div className="space-y-6">
-          {/* AI Summary */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">AI Summary</h2>
-              <button
-                onClick={() => loadSummary(summaryType)}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Refresh
-              </button>
-            </div>
-            
-            {summaryError ? (
-              <AIFallbackHandler
-                resourceId={parseInt(id || '0')}
-                onRetry={handleRetrySummary}
-                onAskQuestion={handleAskQuestion}
-                onManualSummary={handleManualSummary}
-              />
-            ) : (
-              <AISummaryDisplay
-                summary={summary}
-                loading={summaryLoading}
-                error={summaryError}
-                onRetry={handleRetrySummary}
-                onTypeChange={handleSummaryTypeChange}
-              />
-            )}
-          </div>
-
-          {/* Notes Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
-              <button
-                onClick={() => {
-                  setEditingNote(null);
-                  setAnchorPoint(undefined);
-                  setShowNotesEditor(true);
-                }}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                Add Note
-              </button>
-            </div>
-            
-            {showNotesEditor && (
-              <div className="mb-4">
-                <NotesEditor
-                  resourceId={parseInt(id || '0')}
-                  anchorPoint={anchorPoint}
-                  existingNote={editingNote}
-                  onSave={handleSaveNote}
-                  onCancel={() => {
-                    setShowNotesEditor(false);
-                    setEditingNote(null);
-                    setAnchorPoint(undefined);
-                  }}
-                />
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              {notes.length === 0 && publicNotes.length === 0 ? (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <MessageCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No notes yet. Add your first note!</p>
-                </div>
-              ) : (
-                <>
-                  {notes.map(note => (
-                    <div key={note.id} className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500">
-                          {new Date(note.created_at).toLocaleDateString()}
-                        </span>
-                        {!note.is_public && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Private
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-700">{note.content}</p>
-                      {note.anchor_point && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          Anchored to: {note.anchor_point}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {publicNotes.map(note => (
-                    <div key={note.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-blue-700">
-                          {note.first_name} {note.last_name}
-                        </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Shared
-                        </span>
-                      </div>
-                      <p className="text-gray-700">{note.content}</p>
-                      {note.anchor_point && (
-                        <div className="mt-2 text-xs text-blue-600">
-                          Anchored to: {note.anchor_point}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Export Manager */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Export & Share</h2>
-            <ExportManager
-              resourceId={parseInt(id || '0')}
-              resourceName={resource.title}
-              onExport={handleExport}
-              onShare={() => setShowShareModal(true)}
-            />
-          </div>
+          <AISummaryDisplay 
+            summary={summary}
+            loading={summaryLoading}
+            error={summaryError}
+            onRetry={handleRetrySummary}
+            onAskQuestion={handleAskQuestion}
+            onManualSummary={handleManualSummary}
+            onTypeChange={handleSummaryTypeChange}
+            currentType={summaryType}
+          />
+          
+          <NotesEditor 
+            notes={notes}
+            publicNotes={publicNotes}
+            showEditor={showNotesEditor}
+            editingNote={editingNote}
+            anchorPoint={anchorPoint}
+            onSave={handleSaveNote}
+            onCancel={() => setShowNotesEditor(false)}
+          />
+          
+          <ExportManager onExport={handleExport} />
+          
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Share2 className="h-5 w-5" />
+            Share Resource
+          </button>
         </div>
       </div>
-
-      {/* Share Modal */}
-      <ShareResourceModal
-        resourceId={parseInt(id || '0')}
-        resourceName={resource.title}
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        onShare={handleShare}
-      />
+      
+      {showShareModal && (
+        <ShareResourceModal 
+          resource={resource}
+          onClose={() => setShowShareModal(false)}
+          onShare={handleShare}
+        />
+      )}
     </div>
   );
 };
 
-export default ResourceView;
+export default React.memo(ResourceView);

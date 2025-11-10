@@ -4,6 +4,10 @@ const teacherController = {
   async getDashboard(req, res) {
     try {
       const teacherId = req.user.userId;
+      console.log(`Fetching dashboard data for teacher ID: ${teacherId}`);
+
+      // Start timing for performance monitoring
+      const startTime = Date.now();
 
       // Total courses created by the teacher
       const totalCoursesResult = await db('courses').where('created_by', teacherId).count('id as count').first();
@@ -30,6 +34,10 @@ const teacherController = {
         .where('c.created_by', teacherId)
         .avg('ulp.progress as average').first();
       const averageCompletionRate = averageCompletionRateResult.average ? Math.round(parseFloat(averageCompletionRateResult.average)) : 0;
+
+      // Calculate execution time
+      const executionTime = Date.now() - startTime;
+      console.log(`Dashboard data fetched in ${executionTime}ms for teacher ID: ${teacherId}`);
 
       res.json({
         success: true,

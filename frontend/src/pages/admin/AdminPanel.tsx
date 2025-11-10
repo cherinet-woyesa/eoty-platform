@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { 
   Users, 
   Upload, 
@@ -11,13 +11,56 @@ import {
   LogOut
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AdminSidebar from '../../components/admin/AdminSidebar';
+import AdminSidebar from '../../components/layout/Sidebar/AdminSidebar';
+
+// Memoized stat cards
+const StatCard = React.memo(({ icon: Icon, title, value, color }: { icon: React.ElementType, title: string, value: string | number, color: string }) => (
+  <div className="bg-white rounded-lg shadow p-6">
+    <div className="flex items-center">
+      <div className={`p-3 rounded-lg ${color}`}>
+        <Icon className="h-6 w-6 text-white" />
+      </div>
+      <div className="ml-4">
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <p className="text-2xl font-semibold text-gray-900">{value}</p>
+      </div>
+    </div>
+  </div>
+));
+
+// Memoized quick action buttons
+const QuickActionButton = React.memo(({ icon: Icon, label, onClick }: { icon: React.ElementType, label: string, onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+  >
+    <Icon className="h-8 w-8 text-blue-600 mb-2" />
+    <span className="text-sm font-medium text-gray-900">{label}</span>
+  </button>
+));
+
+// Memoized activity item
+const ActivityItem = React.memo(({ icon: Icon, title, description, timeAgo, iconBg }: { icon: React.ElementType, title: string, description: string, timeAgo: string, iconBg: string }) => (
+  <div className="flex items-start">
+    <div className="flex-shrink-0">
+      <div className={`h-10 w-10 rounded-full ${iconBg} flex items-center justify-center`}>
+        <Icon className="h-5 w-5 text-white" />
+      </div>
+    </div>
+    <div className="ml-4">
+      <p className="text-sm font-medium text-gray-900">{title}</p>
+      <p className="text-sm text-gray-500">{description}</p>
+      <p className="text-xs text-gray-400 mt-1">{timeAgo}</p>
+    </div>
+  </div>
+));
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const getCurrentPageTitle = () => {
+  // Memoized page title
+  const getCurrentPageTitle = useCallback(() => {
     switch (location.pathname) {
       case '/admin/users':
         return 'User Management';
@@ -34,7 +77,58 @@ const AdminPanel: React.FC = () => {
       default:
         return 'Admin Dashboard';
     }
-  };
+  }, [location.pathname]);
+
+  // Memoized stats
+  const stats = useMemo(() => [
+    { icon: Users, title: 'Total Users', value: '1,248', color: 'bg-blue-100' },
+    { icon: Upload, title: 'Pending Uploads', value: '24', color: 'bg-green-100' },
+    { icon: AlertTriangle, title: 'Flagged Content', value: '8', color: 'bg-yellow-100' },
+    { icon: BarChart3, title: 'Active Today', value: '342', color: 'bg-purple-100' }
+  ], []);
+
+  // Memoized quick actions
+  const quickActions = useMemo(() => [
+    { icon: Users, label: 'Manage Users', path: '/admin/users' },
+    { icon: FileText, label: 'Content Manager', path: '/admin/content' },
+    { icon: Upload, label: 'Upload Queue', path: '/admin/uploads' },
+    { icon: Tag, label: 'Manage Tags', path: '/admin/tags' }
+  ], []);
+
+  // Memoized recent activities
+  const recentActivities = useMemo(() => [
+    { 
+      icon: Users, 
+      title: 'New user registered', 
+      description: 'John Doe joined as a student in Addis Ababa chapter', 
+      timeAgo: '2 minutes ago', 
+      iconBg: 'bg-blue-100' 
+    },
+    { 
+      icon: Upload, 
+      title: 'Content uploaded', 
+      description: 'Mathematics lesson uploaded by Teacher Smith', 
+      timeAgo: '15 minutes ago', 
+      iconBg: 'bg-green-100' 
+    },
+    { 
+      icon: Shield, 
+      title: 'Content flagged', 
+      description: 'Forum post flagged for inappropriate content', 
+      timeAgo: '1 hour ago', 
+      iconBg: 'bg-yellow-100' 
+    }
+  ], []);
+
+  // Memoized navigation handlers
+  const handleNavigate = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
+
+  const handleLogout = useCallback(() => {
+    // Logout logic would go here
+    navigate('/login');
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -50,7 +144,7 @@ const AdminPanel: React.FC = () => {
           <div className="flex items-center justify-between p-4">
             <h1 className="text-lg font-semibold text-gray-900">Admin Panel</h1>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => handleNavigate('/')}
               className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
             >
               <Home className="h-6 w-6" />
@@ -70,17 +164,14 @@ const AdminPanel: React.FC = () => {
               </div>
               <div className="flex space-x-3">
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => handleNavigate('/')}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <Home className="h-4 w-4 mr-2" />
                   Home
                 </button>
                 <button
-                  onClick={() => {
-                    // Logout logic would go here
-                    navigate('/login');
-                  }}
+                  onClick={handleLogout}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -95,90 +186,29 @@ const AdminPanel: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Stats cards */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-                  <p className="text-2xl font-semibold text-gray-900">1,248</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Upload className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Pending Uploads</h3>
-                  <p className="text-2xl font-semibold text-gray-900">24</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Flagged Content</h3>
-                  <p className="text-2xl font-semibold text-gray-900">8</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Active Today</h3>
-                  <p className="text-2xl font-semibold text-gray-900">342</p>
-                </div>
-              </div>
-            </div>
+            {stats.map((stat, index) => (
+              <StatCard 
+                key={index}
+                icon={stat.icon}
+                title={stat.title}
+                value={stat.value}
+                color={stat.color}
+              />
+            ))}
           </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg shadow p-6 mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button
-                onClick={() => navigate('/admin/users')}
-                className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Users className="h-8 w-8 text-blue-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Manage Users</span>
-              </button>
-              
-              <button
-                onClick={() => navigate('/admin/content')}
-                className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <FileText className="h-8 w-8 text-green-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Content Manager</span>
-              </button>
-              
-              <button
-                onClick={() => navigate('/admin/uploads')}
-                className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Upload className="h-8 w-8 text-purple-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Upload Queue</span>
-              </button>
-              
-              <button
-                onClick={() => navigate('/admin/tags')}
-                className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Tag className="h-8 w-8 text-yellow-600 mb-2" />
-                <span className="text-sm font-medium text-gray-900">Manage Tags</span>
-              </button>
+              {quickActions.map((action, index) => (
+                <QuickActionButton
+                  key={index}
+                  icon={action.icon}
+                  label={action.label}
+                  onClick={() => handleNavigate(action.path)}
+                />
+              ))}
             </div>
           </div>
 
@@ -186,44 +216,16 @@ const AdminPanel: React.FC = () => {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
             <div className="space-y-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-900">New user registered</p>
-                  <p className="text-sm text-gray-500">John Doe joined as a student in Addis Ababa chapter</p>
-                  <p className="text-xs text-gray-400 mt-1">2 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Upload className="h-5 w-5 text-green-600" />
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-900">Content uploaded</p>
-                  <p className="text-sm text-gray-500">Mathematics lesson uploaded by Teacher Smith</p>
-                  <p className="text-xs text-gray-400 mt-1">15 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-yellow-600" />
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-900">Content flagged</p>
-                  <p className="text-sm text-gray-500">Forum post flagged for inappropriate content</p>
-                  <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
-                </div>
-              </div>
+              {recentActivities.map((activity, index) => (
+                <ActivityItem
+                  key={index}
+                  icon={activity.icon}
+                  title={activity.title}
+                  description={activity.description}
+                  timeAgo={activity.timeAgo}
+                  iconBg={activity.iconBg}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -232,4 +234,4 @@ const AdminPanel: React.FC = () => {
   );
 };
 
-export default AdminPanel;
+export default React.memo(AdminPanel);
