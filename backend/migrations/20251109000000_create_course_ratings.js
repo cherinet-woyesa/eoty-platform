@@ -7,7 +7,7 @@ exports.up = async function(knex) {
   await knex.schema.createTable('course_ratings', (table) => {
     table.increments('id').primary();
     table.integer('course_id').unsigned().notNullable().references('id').inTable('courses').onDelete('CASCADE');
-    table.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.integer('rating').notNullable(); // 1-5 stars
     table.text('review');
     table.boolean('is_verified').defaultTo(false); // User actually enrolled in the course
@@ -41,7 +41,7 @@ exports.up = async function(knex) {
   await knex.schema.createTable('course_favorites', (table) => {
     table.increments('id').primary();
     table.integer('course_id').unsigned().notNullable().references('id').inTable('courses').onDelete('CASCADE');
-    table.string('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
     table.timestamp('favorited_at').defaultTo(knex.fn.now());
     table.jsonb('tags'); // User-defined tags for organization
     
