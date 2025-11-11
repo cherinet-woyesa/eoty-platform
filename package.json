@@ -8,6 +8,7 @@
     "deploy:windows": "powershell -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
     "deploy:unix": "bash ./deploy-vercel.sh"
   },
+  "description": "Deploy from project root. Vercel is configured with rootDirectory: 'frontend'",
   "private": true
 }
 
