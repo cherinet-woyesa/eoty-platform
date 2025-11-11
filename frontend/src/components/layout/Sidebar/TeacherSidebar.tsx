@@ -226,7 +226,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
         )}
       </div>
 
-      {/* Footer - Compact Stats */}
+      
       {!isCollapsed && (
         <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
           <div className="space-y-2">
