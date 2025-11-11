@@ -253,6 +253,27 @@ class VideoProcessingService {
       });
       
       // Use FFprobe to analyze the video
+      // Check if ffprobe is available first
+      const checkFfprobe = await new Promise((resolve) => {
+        exec('which ffprobe || command -v ffprobe', (error) => {
+          resolve(!error);
+        });
+      });
+
+      if (!checkFfprobe) {
+        console.warn('⚠️ FFprobe not found - skipping video validation. Install FFmpeg for full validation.');
+        // Clean up temp file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+        // Return basic validation - file exists and was uploaded
+        return {
+          valid: true,
+          format: path.extname(s3Key).slice(1) || 'unknown',
+          warning: 'FFprobe not available - advanced validation skipped'
+        };
+      }
+
       const ffprobeCmd = `ffprobe -v quiet -print_format json -show_format -show_streams "${tempFile}"`;
       
       const probeResult = await new Promise((resolve, reject) => {
@@ -260,11 +281,29 @@ class VideoProcessingService {
           if (error) {
             console.error('FFprobe error:', error);
             console.error('FFprobe stderr:', stderr);
+            // If ffprobe fails but file exists, return basic validation
+            if (error.code === 127 || stderr.includes('not found')) {
+              console.warn('⚠️ FFprobe command not found - skipping advanced validation');
+              return resolve(null); // Signal to skip validation
+            }
             return reject(error);
           }
           resolve(stdout);
         });
       });
+
+      // If probeResult is null, ffprobe wasn't available
+      if (!probeResult) {
+        // Clean up temp file
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+        return {
+          valid: true,
+          format: path.extname(s3Key).slice(1) || 'unknown',
+          warning: 'FFprobe not available - advanced validation skipped'
+        };
+      }
       
       // Clean up temp file
       if (fs.existsSync(tempFile)) {

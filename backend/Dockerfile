@@ -1,6 +1,9 @@
 # Use Node.js 18 as the base image
 FROM node:18-alpine
 
+# Install FFmpeg (includes ffprobe) for video processing
+RUN apk add --no-cache ffmpeg
+
 # Set the working directory
 WORKDIR /app
 
