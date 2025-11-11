@@ -98,15 +98,25 @@ export const authApi = {
   validateToken: async (token: string) => {
     try {
       // Make a request to a protected endpoint to validate the token
-      // The interceptor will handle 401 errors and redirect to login
+      // Use a shorter timeout to avoid blocking the UI
       await apiClient.get('/auth/validate-token', {
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        timeout: 5000 // 5 second timeout instead of default 15s
       });
       return true;
-    } catch (error) {
+    } catch (error: any) {
       // If the request fails, the token is considered invalid
+      // But don't fail on network errors - only on auth errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        return false;
+      }
+      // For network errors, assume token is valid (will be checked on next API call)
+      if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK') {
+        console.warn('Token validation timeout/network error - assuming valid');
+        return true; // Assume valid if network error
+      }
       return false;
     }
   }

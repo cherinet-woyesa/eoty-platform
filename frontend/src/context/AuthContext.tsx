@@ -138,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Enhanced initialization with retry logic and offline support
+  // Optimized: Set user immediately from cache, validate token in background
   const initializeAuth = async (retryCount = 0): Promise<void> => {
     try {
       const storedToken = localStorage.getItem('token');
@@ -151,44 +152,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (storedRole && storedRole !== parsedUser.role) {
           console.warn('Role change detected. Clearing authentication state.');
           logout();
+          setIsLoading(false);
           return;
         }
         
-        // Validate token before setting state (with offline fallback)
-        try {
-          const isValid = await authApi.validateToken(storedToken);
-          if (!isValid) {
-            throw new Error('Invalid token');
-          }
-          
-          setToken(storedToken);
-          setUser(parsedUser);
-          setLastActivity(new Date());
-          localStorage.setItem('userRole', parsedUser.role);
-          await loadPermissions();
-        } catch (validationError) {
-          console.warn('Token validation failed:', validationError);
-          // Check if we're offline and use cached data
-          if (!navigator.onLine) {
-            console.log('Offline mode: using cached authentication');
-            setToken(storedToken);
-            setUser(parsedUser);
-            const cachedPermissions = localStorage.getItem('user_permissions');
-            if (cachedPermissions) {
-              setPermissions(JSON.parse(cachedPermissions));
-            }
-          } else {
-            logout();
+        // OPTIMIZATION: Set user state immediately from cache for faster UI
+        setToken(storedToken);
+        setUser(parsedUser);
+        setLastActivity(new Date());
+        localStorage.setItem('userRole', parsedUser.role);
+        
+        // Load cached permissions immediately
+        const cachedPermissions = localStorage.getItem('user_permissions');
+        if (cachedPermissions) {
+          try {
+            setPermissions(JSON.parse(cachedPermissions));
+          } catch (e) {
+            console.warn('Failed to parse cached permissions:', e);
           }
         }
+        
+        // Stop loading immediately - don't wait for token validation
+        setIsLoading(false);
+        
+        // Validate token in background (non-blocking)
+        // This allows the UI to render immediately while validation happens
+        authApi.validateToken(storedToken)
+          .then((isValid) => {
+            if (!isValid) {
+              console.warn('Token validation failed - logging out');
+              logout();
+            } else {
+              // Token is valid, refresh permissions in background
+              loadPermissions().catch(err => {
+                console.warn('Failed to refresh permissions:', err);
+                // Keep using cached permissions
+              });
+            }
+          })
+          .catch((validationError) => {
+            console.warn('Token validation error:', validationError);
+            // Only logout if we're online and got a clear error
+            if (navigator.onLine && validationError.response?.status !== 401) {
+              // Network error - keep user logged in with cached data
+              console.log('Network error during validation - using cached auth');
+            } else if (navigator.onLine) {
+              // Token is invalid - logout
+              logout();
+            } else {
+              // Offline - keep using cached data
+              console.log('Offline mode: using cached authentication');
+            }
+          });
+      } else {
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      if (retryCount < 3) {
-        setTimeout(() => initializeAuth(retryCount + 1), 1000 * (retryCount + 1));
-      }
-    } finally {
       setIsLoading(false);
+      if (retryCount < 2) {
+        setTimeout(() => initializeAuth(retryCount + 1), 500 * (retryCount + 1));
+      }
     }
   };
 

@@ -2,13 +2,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { io, Socket } from 'socket.io-client'; // Import io and Socket type
-import { apiClient } from '../../services/api/apiClient';
 
 interface VideoProcessingStatusProps {
   lessonId: string;
   isOpen: boolean;
   onClose: () => void;
-  onProcessingComplete: (videoUrl?: string) => void; // Optional: pass transcoded video URL
+  onProcessingComplete: () => void;
   videoProvider?: 'mux' | 's3'; // Optional: specify video provider
 }
 
@@ -49,28 +48,19 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     isConnectingRef.current = true;
     
     try {
-      // Close existing connection only if it's connected
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.disconnect();
+      // Close existing connection
+      if (socketRef.current) {
+        socketRef.current.disconnect(); // Use socket.io disconnect
         socketRef.current = null;
       }
 
-      // Get API base URL and prepare for socket.io
-      // Socket.io can use http/https URLs directly and will handle protocol upgrade
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-      // Remove /api suffix if present - socket.io needs the base server URL
-      let socketUrl = apiBase.replace('/api', '').replace(/\/$/, ''); // Remove /api and trailing slash
+      // Connect to the socket.io server
+      const wsUrl = `http://localhost:5000?lessonId=${lessonId}`; // Adjust URL for socket.io
+      console.log('Connecting to WebSocket:', wsUrl);
       
-      // Socket.io works with http/https URLs and handles WebSocket upgrade internally
-      console.log('Connecting to WebSocket at:', socketUrl, 'for lesson:', lessonId);
-      
-      const socket = io(socketUrl, {
-        transports: ['websocket', 'polling'], // Allow both transports (polling fallback)
+      const socket = io(wsUrl, {
+        transports: ['websocket'], // Force WebSocket transport
         query: { lessonId }, // Pass lessonId as query parameter
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
-        timeout: 20000, // 20 second connection timeout
       });
       socketRef.current = socket;
 
@@ -102,7 +92,6 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
               break;
             
             case 'complete':
-              const transcodedVideoUrl = data.videoUrl || data.playbackId;
               setProcessingState(prev => ({
                 ...prev,
                 status: 'completed',
@@ -114,9 +103,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                 playbackId: data.playbackId || prev.playbackId
               }));
               
-              // Notify parent component with transcoded video URL after a short delay
+              // Notify parent component after a short delay
               setTimeout(() => {
-                onProcessingComplete(transcodedVideoUrl);
+                onProcessingComplete();
               }, 1500);
               break;
             
@@ -199,11 +188,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     }
     
     if (socketRef.current) {
-      // Only disconnect if connected or connecting
-      if (socketRef.current.connected || socketRef.current.connecting) {
-        socketRef.current.removeAllListeners(); // Remove all listeners first
-        socketRef.current.disconnect();
-      }
+      socketRef.current.disconnect(); // Use socket.io disconnect
       socketRef.current = null;
     }
   }, []);
@@ -212,93 +197,14 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   useEffect(() => {
     if (isOpen && lessonId) {
       console.log('Opening WebSocket connection for lesson:', lessonId);
-      // Small delay to ensure component is fully mounted
-      const timeoutId = setTimeout(() => {
-        connectWebSocket();
-      }, 100);
-
-      return () => {
-        clearTimeout(timeoutId);
-        cleanupWebSocket();
-      };
-    } else {
-      // Component is closing, cleanup
-      cleanupWebSocket();
+      connectWebSocket();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, lessonId]);
-
-  // Polling fallback: Check lesson status periodically if WebSocket doesn't provide updates
-  useEffect(() => {
-    if (!isOpen || !lessonId || processingState.status === 'completed') return;
-
-    let pollInterval: NodeJS.Timeout | null = null;
-    
-    // Start polling after 5 seconds if no WebSocket updates received
-    const pollDelay = setTimeout(() => {
-      // Only start polling if we're still processing and haven't received updates
-      if (processingState.status === 'processing' && processingState.progress <= 10) {
-        console.log('Starting polling fallback for lesson status (no WebSocket updates received)...');
-        
-        pollInterval = setInterval(async () => {
-          try {
-            // Poll lesson status from backend
-            const response = await apiClient.get(`/courses/video-status/${lessonId}`);
-            
-            if (response.data.success) {
-              const statusData = response.data.data;
-              
-              // Check Mux status
-              if (statusData.videoStatus === 'ready' && statusData.metadata?.playbackId) {
-                console.log('Lesson ready via polling:', statusData.metadata.playbackId);
-                setProcessingState(prev => ({
-                  ...prev,
-                  status: 'completed',
-                  progress: 100,
-                  currentStep: 'Mux processing complete',
-                  playbackId: statusData.metadata.playbackId
-                }));
-                
-                clearInterval(pollInterval);
-                setTimeout(() => {
-                  onProcessingComplete();
-                }, 1500);
-              } else if (statusData.videoStatus === 'processing' || statusData.videoStatus === 'preparing') {
-                // Update progress to show we're checking
-                setProcessingState(prev => ({
-                  ...prev,
-                  progress: Math.min(prev.progress + 2, 90), // Gradually increase to 90%
-                  currentStep: 'Mux is processing your video...'
-                }));
-              } else if (statusData.videoStatus === 'errored') {
-                setProcessingState(prev => ({
-                  ...prev,
-                  status: 'failed',
-                  error: statusData.errorMessage || 'Video processing failed'
-                }));
-                clearInterval(pollInterval);
-              }
-            }
-          } catch (error: any) {
-            console.error('Polling error:', error);
-            // Don't stop polling on error, just log it
-            // But update progress to show we're still checking
-            setProcessingState(prev => ({
-              ...prev,
-              progress: Math.min(prev.progress + 1, 95)
-            }));
-          }
-        }, 5000); // Poll every 5 seconds
-      }
-    }, 5000); // Wait 5 seconds before starting to poll
 
     return () => {
-      clearTimeout(pollDelay);
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
+      cleanupWebSocket();
     };
-  }, [isOpen, lessonId, processingState.status, processingState.progress, onProcessingComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, lessonId]);
 
   // Simulate progress if WebSocket fails completely
   useEffect(() => {
