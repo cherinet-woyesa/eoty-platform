@@ -84,14 +84,24 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
           switch (data.type) {
             case 'progress':
-              setProcessingState(prev => ({
-                ...prev,
-                progress: data.progress,
-                currentStep: data.currentStep || prev.currentStep,
-                status: 'processing',
-                provider: data.provider || prev.provider,
-                assetId: data.assetId || prev.assetId
-              }));
+              const newProgress = Math.max(data.progress || 0, 0);
+              const newStep = data.currentStep || 'Processing...';
+              console.log(`Updating progress: ${newProgress}% - ${newStep}`);
+              
+              setProcessingState(prev => {
+                // Only update if progress actually changed
+                if (prev.progress === newProgress && prev.currentStep === newStep) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  progress: newProgress,
+                  currentStep: newStep,
+                  status: 'processing',
+                  provider: data.provider || prev.provider,
+                  assetId: data.assetId || prev.assetId
+                };
+              });
               break;
             
             case 'complete':
@@ -148,6 +158,11 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         console.log('WebSocket disconnected:', reason);
         isConnectingRef.current = false;
         
+        // If processing was in progress, don't immediately fail - wait a bit
+        if (processingState.status === 'processing' && reason !== 'io client disconnect') {
+          console.log('Disconnected during processing - will attempt reconnect');
+        }
+        
         // Only attempt reconnect if not a normal closure and component is still open
         if (reason !== 'io client disconnect' && isOpen && retryCount < 5) { // Check reason
           console.log(`Attempting to reconnect... (${retryCount + 1}/5)`);
@@ -168,6 +183,15 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             error: 'Failed to connect to processing server after multiple attempts'
           }));
         }
+      });
+
+      // Add error handler for socket.io errors
+      socket.on('error', (error) => {
+        console.error('Socket.io error:', error);
+        setProcessingState(prev => ({
+          ...prev,
+          error: `Connection error: ${error.message || 'Unknown error'}`
+        }));
       });
 
     } catch (error) {
