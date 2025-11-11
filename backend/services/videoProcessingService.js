@@ -147,33 +147,66 @@ class VideoProcessingService {
 
       // Handle different video formats appropriately
       let hlsUrl;
-      // WebM files need transcoding for browser compatibility (Safari doesn't support WebM well)
-      // Convert WebM to MP4/HLS for better cross-browser support
-      if (s3Key.toLowerCase().endsWith('.webm')) {
-        console.log('WebM file detected - transcoding to HLS for browser compatibility');
-        try {
-          // Start HLS transcoding for WebM files to ensure browser compatibility
-          hlsUrl = await transcodeToHLS({
-            s3Bucket: cloudStorageService.bucket,
-            s3Key: s3Key,
-            outputPrefix: outputPrefix,
-          });
-          console.log('WebM HLS transcoding completed, URL:', hlsUrl);
-        } catch (transcodeError) {
-          console.error('WebM transcoding failed, falling back to direct URL:', transcodeError);
-          // Fallback: Use signed URL but warn about compatibility
-          hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400); // 24 hours
-          console.warn('Using WebM file directly - may not work in all browsers (especially Safari)');
-        }
-      } else {
-        console.log('Starting HLS transcoding for', s3Key);
-        // Start HLS transcoding for MP4 and other formats
-        hlsUrl = await transcodeToHLS({
-          s3Bucket: cloudStorageService.bucket, // Pass the S3 bucket name
-          s3Key: s3Key,
-          outputPrefix: outputPrefix,
+      let transcodingSkipped = false;
+      
+      // Check if FFmpeg is available before attempting transcoding
+      const { exec } = require('child_process');
+      const ffmpegAvailable = await new Promise((resolve) => {
+        exec('which ffmpeg || command -v ffmpeg', (error) => {
+          resolve(!error);
         });
-        console.log('HLS transcoding completed, URL:', hlsUrl);
+      });
+
+      if (!ffmpegAvailable) {
+        console.warn('⚠️ FFmpeg not available - skipping HLS transcoding, using direct video URL');
+        transcodingSkipped = true;
+        websocketService.sendProgress(lessonId, { type: 'progress', progress: 50, currentStep: 'FFmpeg not available - using direct video' });
+        // Use signed URL directly - video will work but without adaptive streaming
+        hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400 * 7); // 7 days
+      } else {
+        // WebM files need transcoding for browser compatibility (Safari doesn't support WebM well)
+        // Convert WebM to MP4/HLS for better cross-browser support
+        if (s3Key.toLowerCase().endsWith('.webm')) {
+          console.log('WebM file detected - transcoding to HLS for browser compatibility');
+          try {
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 40, currentStep: 'Transcoding WebM to HLS' });
+            // Start HLS transcoding for WebM files to ensure browser compatibility
+            hlsUrl = await transcodeToHLS({
+              s3Bucket: cloudStorageService.bucket,
+              s3Key: s3Key,
+              outputPrefix: outputPrefix,
+            });
+            console.log('WebM HLS transcoding completed, URL:', hlsUrl);
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 60, currentStep: 'HLS transcoding complete' });
+          } catch (transcodeError) {
+            console.error('WebM transcoding failed, falling back to direct URL:', transcodeError);
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 50, currentStep: 'Transcoding failed - using direct video' });
+            // Fallback: Use signed URL but warn about compatibility
+            hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400 * 7); // 7 days
+            transcodingSkipped = true;
+            console.warn('Using WebM file directly - may not work in all browsers (especially Safari)');
+          }
+        } else {
+          console.log('Starting HLS transcoding for', s3Key);
+          try {
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 40, currentStep: 'Transcoding to HLS format' });
+            // Start HLS transcoding for MP4 and other formats
+            hlsUrl = await transcodeToHLS({
+              s3Bucket: cloudStorageService.bucket, // Pass the S3 bucket name
+              s3Key: s3Key,
+              outputPrefix: outputPrefix,
+            });
+            console.log('HLS transcoding completed, URL:', hlsUrl);
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 60, currentStep: 'HLS transcoding complete' });
+          } catch (transcodeError) {
+            console.error('HLS transcoding failed, falling back to direct URL:', transcodeError);
+            websocketService.sendProgress(lessonId, { type: 'progress', progress: 50, currentStep: 'Transcoding failed - using direct video' });
+            // Fallback: Use signed URL if transcoding fails
+            hlsUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 86400 * 7); // 7 days
+            transcodingSkipped = true;
+            console.warn('Using direct video URL - adaptive streaming not available');
+          }
+        }
       }
 
       websocketService.sendProgress(lessonId, { type: 'progress', progress: 70, currentStep: 'Finalizing video' });
