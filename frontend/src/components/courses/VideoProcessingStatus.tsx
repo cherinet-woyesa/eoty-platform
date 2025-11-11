@@ -55,7 +55,10 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       }
 
       // Connect to the socket.io server
-      const wsUrl = `http://localhost:5000?lessonId=${lessonId}`; // Adjust URL for socket.io
+      // Get API base URL and convert to WebSocket URL
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const wsBase = apiBase.replace('/api', '').replace('http://', 'ws://').replace('https://', 'wss://');
+      const wsUrl = `${wsBase}?lessonId=${lessonId}`;
       console.log('Connecting to WebSocket:', wsUrl);
       
       const socket = io(wsUrl, {

@@ -308,9 +308,11 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
   getVideoStreamUrl: (filename: string): string => {
     // Remove any existing API base to avoid duplication
     const cleanFilename = filename.replace(`${API_BASE}/videos/stream/`, '');
+    // Use API_BASE_URL for production, fallback to origin for localhost
+    const apiBaseUrl = API_BASE.replace('/api', '');
     const baseUrl = window.location.origin.includes('localhost') 
-      ? 'http://localhost:5000' 
-      : window.location.origin;
+      ? apiBaseUrl 
+      : apiBaseUrl;
     return `${baseUrl}/api/videos/stream/${cleanFilename}`;
   },
 
@@ -343,19 +345,22 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
       
       // If it's a relative URL starting with /api/, make it absolute
       if (videoUrl.startsWith('/api/')) {
-        // Use the same origin to avoid CORS issues
+        // Use API_BASE_URL for production
+        const apiBaseUrl = API_BASE.replace('/api', '');
         const baseUrl = window.location.origin.includes('localhost') 
-          ? 'http://localhost:5000' 
-          : window.location.origin;
+          ? apiBaseUrl 
+          : apiBaseUrl;
         return `${baseUrl}${videoUrl}`;
       }
       
       // If it's just a filename, construct the full streaming URL
       const filename = videoApi.extractFilenameFromUrl(videoUrl);
       if (filename) {
+        // Use API_BASE_URL for production
+        const apiBaseUrl = API_BASE.replace('/api', '');
         const baseUrl = window.location.origin.includes('localhost') 
-          ? 'http://localhost:5000' 
-          : window.location.origin;
+          ? apiBaseUrl 
+          : apiBaseUrl;
         return `${baseUrl}/api/videos/stream/${filename}`;
       }
       
