@@ -139,13 +139,55 @@ export class VideoCompositor {
   }
 
   /**
-   * Add a video source to the compositor
+   * Add a video source to the compositor with enhanced readiness handling
    */
   addVideoSource(id: string, stream: MediaStream, config: Partial<SourceConfig>): void {
     console.log(`Adding video source: ${id}`, {
       videoTracks: stream.getVideoTracks().length,
-      audioTracks: stream.getAudioTracks().length
+      audioTracks: stream.getAudioTracks().length,
+      streamActive: stream.active,
+      trackStates: stream.getVideoTracks().map(t => ({ 
+        label: t.label, 
+        readyState: t.readyState, 
+        enabled: t.enabled 
+      }))
     });
+    
+    // CRITICAL: Check if source already exists - if so, remove it first to avoid conflicts
+    if (this.videoElements.has(id)) {
+      console.log(`Video source ${id} already exists - removing old source before adding new one`);
+      const existingSource = this.videoElements.get(id);
+      if (existingSource) {
+        // Pause and clear existing video element
+        existingSource.element.pause();
+        existingSource.element.srcObject = null;
+        // Remove from audio mixer if it was added
+        if (this.audioMixer && (id === 'camera' || id === 'screen')) {
+          this.audioMixer.removeAudioSource(id);
+        }
+      }
+      this.videoElements.delete(id);
+    }
+    
+    // Validate stream is active
+    if (!stream.active) {
+      console.error(`Stream is not active for source: ${id} - cannot add to compositor`);
+      return;
+    }
+    
+    // Validate stream has active video tracks
+    const videoTracks = stream.getVideoTracks();
+    if (videoTracks.length === 0) {
+      console.error(`No video tracks in stream for source: ${id}`);
+      return;
+    }
+    
+    // Check if tracks are active
+    const activeTracks = videoTracks.filter(t => t.readyState === 'live' && t.enabled);
+    if (activeTracks.length === 0) {
+      console.warn(`No active video tracks for source: ${id} - tracks may not be ready yet`);
+      // Don't return - allow it to be added and wait for tracks to become active
+    }
     
     // Create video element
     const video = document.createElement('video');
@@ -153,19 +195,130 @@ export class VideoCompositor {
     video.muted = true; // Mute to avoid echo
     video.autoplay = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', 'true'); // iOS compatibility
     
-    // Wait for video to be ready
+    // CRITICAL FIX: Ensure video is playing and ready before use
+    let videoReady = false;
+    const ensureVideoReady = async () => {
+      try {
+        // Wait for metadata to load with longer timeout for screen sharing
+        if (video.readyState < 2) {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              // Don't reject - just resolve and continue (screen sharing can take longer)
+              console.warn(`Video metadata load timeout for ${id}, continuing anyway`);
+              resolve();
+            }, 10000); // Increased to 10 seconds for screen sharing
+            
+            const existingHandler = video.onloadedmetadata;
+            video.onloadedmetadata = () => {
+              clearTimeout(timeout);
+              if (existingHandler) existingHandler.call(video);
+              resolve();
+            };
+            
+            video.onerror = (error) => {
+              clearTimeout(timeout);
+              // Don't reject - just log and continue
+              console.warn(`Video source ${id} error during initialization:`, error);
+              resolve();
+            };
+          });
+        }
+        
+        // Explicitly play the video to ensure frames are being rendered
+        if (video.paused) {
+          try {
+            await video.play();
+          } catch (playError) {
+            console.warn(`Failed to play video ${id} initially:`, playError);
+            // Try again after a delay
+            setTimeout(async () => {
+              try {
+                await video.play();
+              } catch (e) {
+                console.error(`Failed to play video ${id} on retry:`, e);
+              }
+            }, 500);
+          }
+        }
+        
+        // Wait a bit for first frame (longer for screen sharing)
+        await new Promise(resolve => setTimeout(resolve, id === 'screen' ? 300 : 100));
+        
+        // Verify video is actually rendering
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          videoReady = true;
+          console.log(`Video source ${id} is ready and playing`, {
+            width: video.videoWidth,
+            height: video.videoHeight,
+            readyState: video.readyState,
+            paused: video.paused
+          });
+        } else {
+          console.warn(`Video source ${id} metadata loaded but no dimensions yet - will continue anyway`);
+          // For screen sharing, dimensions might be 2x2 initially, continue anyway
+          videoReady = true;
+        }
+      } catch (error) {
+        console.error(`Failed to prepare video source ${id}:`, error);
+        // Always continue - video might still work even if preparation had issues
+        videoReady = true;
+      }
+    };
+    
+    // Start preparing video immediately (don't wait for it to complete)
+    ensureVideoReady().catch(err => {
+      console.warn(`Error ensuring video ready for ${id}:`, err);
+      // Don't throw - video might still work
+      videoReady = true;
+    });
+    
+    // Enhanced metadata handler
     video.onloadedmetadata = () => {
-      console.log(`Video source ${id} ready`, {
+      console.log(`Video source ${id} metadata loaded`, {
         width: video.videoWidth,
         height: video.videoHeight,
-        duration: video.duration
+        readyState: video.readyState,
+        duration: video.duration,
+        srcObject: !!video.srcObject,
+        streamActive: (video.srcObject as MediaStream)?.active
       });
+      
+      // CRITICAL: For screen sharing, dimensions might be wrong initially
+      // Check if we have a valid stream
+      if (id === 'screen' && (video.videoWidth <= 2 || video.videoHeight <= 2)) {
+        console.warn(`Screen video has invalid dimensions (${video.videoWidth}x${video.videoHeight}), waiting for actual dimensions...`);
+        // Wait a bit more and check again
+        setTimeout(() => {
+          if (video.videoWidth > 2 && video.videoHeight > 2) {
+            console.log(`Screen video dimensions updated: ${video.videoWidth}x${video.videoHeight}`);
+          } else {
+            console.warn(`Screen video still has invalid dimensions after wait`);
+          }
+        }, 1000);
+      }
+      
+      // Ensure video is playing
+      if (video.paused) {
+        video.play().catch(err => {
+          console.error(`Failed to play video source ${id}:`, err);
+        });
+      }
+    };
+    
+    // Handle video playing state
+    video.onplaying = () => {
+      console.log(`Video source ${id} is now playing`);
+      videoReady = true;
     };
     
     // Handle video errors
     video.onerror = (error) => {
-      console.error(`Video source ${id} error:`, error);
+      console.error(`Video source ${id} error:`, error, {
+        errorCode: video.error?.code,
+        errorMessage: video.error?.message
+      });
     };
     
     // Create default source config
@@ -204,7 +357,11 @@ export class VideoCompositor {
       }
     }
     
-    console.log(`Video source ${id} added successfully`);
+    console.log(`Video source ${id} added successfully`, {
+      videoReady,
+      isRunning: this.isRunning,
+      willBeVisible: sourceConfig.visible
+    });
   }
 
   /**
@@ -547,9 +704,42 @@ export class VideoCompositor {
       const video = sourceData.element;
       let layout = sourceData.config.layout;
       
-      // Skip if video not ready
+      // ENHANCED: Better handling of video readiness
+      // For screen sharing, we need to be more lenient as it may take time to start
       if (video.readyState < 2) {
-        continue;
+        // If video has dimensions, it's likely ready even if readyState < 2
+        // For screen sharing, dimensions might be 2x2 initially, so check if we have srcObject
+        const hasValidDimensions = video.videoWidth > 2 && video.videoHeight > 2;
+        const hasSrcObject = !!video.srcObject;
+        const streamActive = hasSrcObject && (video.srcObject as MediaStream)?.active;
+        
+        if (!hasValidDimensions && !hasSrcObject) {
+          // Only skip if we have no dimensions AND no srcObject
+          if (video.readyState === 0) {
+            continue; // Haven't started loading yet
+          }
+        }
+        
+        // For screen sharing with srcObject, try to draw even if dimensions are small
+        if (sourceId === 'screen' && hasSrcObject && streamActive) {
+          // Continue - screen might have small dimensions initially but will update
+          console.log(`Drawing screen source with initial dimensions: ${video.videoWidth}x${video.videoHeight}`);
+        } else if (!hasValidDimensions && !hasSrcObject) {
+          // For readyState 1 (HAVE_METADATA), try to draw anyway if we have srcObject
+          if (video.readyState === 1 && !hasSrcObject) {
+            continue;
+          }
+        }
+      }
+      
+      // Ensure video is playing if it has a source
+      if (video.srcObject && video.paused) {
+        // Don't require readyState >= 2 for screen sharing
+        if (sourceId === 'screen' || video.readyState >= 2) {
+          video.play().catch(err => {
+            console.warn(`Failed to play video during render for ${sourceId}:`, err);
+          });
+        }
       }
       
       // Interpolate layout during transition
@@ -1221,25 +1411,31 @@ export class VideoCompositor {
     }
     
     // Clean up video elements properly
+    // CRITICAL: Don't stop the source stream tracks!
+    // The source streams (camera, screen) are owned by useVideoRecorder, not the compositor.
+    // Stopping them would break the preview video elements that also use these streams.
     this.videoElements.forEach((sourceData, sourceId) => {
-      console.log(`Cleaning up video source: ${sourceId}`);
+      console.log(`Cleaning up video source: ${sourceId} (preserving source stream)`);
       
-      // Pause video
+      // Pause video element
       sourceData.element.pause();
       
       // Remove all event listeners
       sourceData.element.onloadedmetadata = null;
       sourceData.element.onerror = null;
+      sourceData.element.onplaying = null;
       
-      // Stop all tracks in the stream
-      if (sourceData.element.srcObject) {
-        const stream = sourceData.element.srcObject as MediaStream;
-        stream.getTracks().forEach(track => {
-          track.stop();
-        });
-      }
+      // CRITICAL FIX: Don't stop the source stream tracks!
+      // The streams are shared with preview video elements and useVideoRecorder.
+      // Only clear the srcObject reference, but leave the stream tracks running.
+      // if (sourceData.element.srcObject) {
+      //   const stream = sourceData.element.srcObject as MediaStream;
+      //   stream.getTracks().forEach(track => {
+      //     track.stop(); // DON'T DO THIS - streams are owned by useVideoRecorder
+      //   });
+      // }
       
-      // Clear source object
+      // Clear source object reference (but don't stop the stream)
       sourceData.element.srcObject = null;
       
       // Remove from DOM if attached

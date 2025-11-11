@@ -52,24 +52,39 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
     // FIX: Use fetch directly instead of apiClient to avoid JSON conversion
     const token = localStorage.getItem('token');
     
-    const response = await fetch(`${API_BASE}/videos/upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        // DO NOT set Content-Type - let browser set it with boundary
-      },
-      body: formData
-    });
+    // Create AbortController for timeout handling (5 minutes for large video files)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+    
+    try {
+      const response = await fetch(`${API_BASE}/videos/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // DO NOT set Content-Type - let browser set it with boundary
+        },
+        body: formData,
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('=== UPLOAD SUCCESS ===');
+      console.log('Upload response:', result);
+      return result;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Upload timeout - file may be too large or connection too slow');
+      }
+      throw error;
     }
-
-    const result = await response.json();
-    console.log('=== UPLOAD SUCCESS ===');
-    console.log('Upload response:', result);
-    return result;
 
   } catch (error: any) {
     console.error('=== UPLOAD FAILED ===');

@@ -19,7 +19,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico|webp))",
+      "source": "/(.*\\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico|webp|json|map))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -27,5 +27,7 @@
         }
       ]
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }

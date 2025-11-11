@@ -503,14 +503,97 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setRecordingTips(tips);
   }, []);
 
-  // Update video elements when streams change
+  // Update video elements when streams change - Enhanced for screen sharing
   useEffect(() => {
     if (videoRef.current && recordingSources.camera) {
-      videoRef.current.srcObject = recordingSources.camera;
+      // Only update if stream changed to avoid unnecessary re-initialization
+      if (videoRef.current.srcObject !== recordingSources.camera) {
+        videoRef.current.srcObject = recordingSources.camera;
+        console.log('Camera video srcObject updated');
+      }
     }
     
+    // ENHANCED: Better screen video initialization with persistence during restart
     if (screenVideoRef.current && recordingSources.screen) {
-      screenVideoRef.current.srcObject = recordingSources.screen;
+      const screenVideo = screenVideoRef.current;
+      const screenStream = recordingSources.screen;
+      
+      // Only update if stream changed to avoid clearing during restart
+      if (screenVideo.srcObject !== screenStream) {
+        console.log('Setting screen video srcObject');
+        screenVideo.srcObject = screenStream;
+      }
+      
+      // Ensure video is playing - retry if needed
+      const ensurePlaying = async () => {
+        try {
+          // Check if stream is still active
+          const videoTracks = screenStream.getVideoTracks();
+          const activeTracks = videoTracks.filter(t => t.readyState === 'live' && t.enabled);
+          
+          if (activeTracks.length === 0) {
+            console.warn('No active video tracks in screen stream');
+            return;
+          }
+          
+          // Ensure video element has the stream
+          if (!screenVideo.srcObject) {
+            screenVideo.srcObject = screenStream;
+          }
+          
+          // Play if paused
+          if (screenVideo.paused) {
+            await screenVideo.play();
+            console.log('Screen video started playing');
+          }
+          
+          console.log('Screen stream is active:', {
+            activeTracks: activeTracks.length,
+            totalTracks: videoTracks.length,
+            trackLabels: activeTracks.map(t => t.label),
+            videoWidth: screenVideo.videoWidth,
+            videoHeight: screenVideo.videoHeight,
+            readyState: screenVideo.readyState,
+            paused: screenVideo.paused
+          });
+        } catch (error) {
+          console.error('Failed to play screen video:', error);
+          // Retry after a delay
+          setTimeout(async () => {
+            try {
+              if (screenVideoRef.current && recordingSources.screen) {
+                await screenVideoRef.current.play();
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError);
+              setErrorMessage('Screen sharing video failed to start. Please try again.');
+            }
+          }, 500);
+        }
+      };
+      
+      // Wait for metadata then play
+      if (screenVideo.readyState >= 2) {
+        ensurePlaying();
+      } else {
+        // Remove old handler to avoid duplicates
+        screenVideo.onloadedmetadata = () => {
+          console.log('Screen video metadata loaded');
+          ensurePlaying();
+        };
+        
+        // Also try to play immediately if stream is already active
+        if (screenStream.active) {
+          ensurePlaying();
+        }
+      }
+    } else if (screenVideoRef.current && !recordingSources.screen) {
+      // Only clear if we're not restarting (to avoid clearing during restart)
+      // Check if recording is active - if so, might be restarting
+      if (!isRecording) {
+        screenVideoRef.current.srcObject = null;
+        console.log('Screen video srcObject cleared');
+      }
     }
     
     // Audio analysis setup
@@ -1292,22 +1375,37 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Enhanced screen share handlers with feedback
   const handleStartScreenShare = async () => {
     try {
+      setErrorMessage(null);
+      
       // If we're recording and have a camera source, we want to add screen share to existing recording
       if (isRecording && recordingSources.camera) {
+        setSuccessMessage('Adding screen to recording... This will briefly pause and restart.');
         await addScreenShare(); // Use addScreenShare for dynamic addition during recording
+        // Automatically switch to picture-in-picture to show both
+        if (currentLayout === 'camera-only') {
+          changeLayout('picture-in-picture');
+        }
+        // Success message will be set after restart completes
+        setTimeout(() => {
+          setSuccessMessage('Screen sharing added to recording! Both camera and screen are now being recorded.');
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }, 2000);
       } else {
         await startScreenShare(); // Use startScreenShare for initial screen sharing
-      }
-      
-      if (isRecording) {
-        setSuccessMessage('Now recording your screen! Recording continues seamlessly.');
-      } else {
+        // When screen sharing starts without camera, switch to screen-only layout
+        if (!recordingSources.camera) {
+          changeLayout('screen-only');
+        } else if (currentLayout === 'camera-only') {
+          changeLayout('picture-in-picture');
+        }
+        
         setSuccessMessage('Screen sharing started! Your screen is now being shared.');
+        setTimeout(() => setSuccessMessage(null), 5000);
       }
-      setErrorMessage(null);
     } catch (error) {
       console.error('Failed to start screen share:', error);
       setErrorMessage('Failed to start screen sharing. Please try again.');
+      setSuccessMessage(null);
     }
   };
 
@@ -1399,6 +1497,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               className="w-full h-full object-contain"
               controls
               controlsList="nodownload"
+              preload="metadata"
+              playsInline
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
@@ -1409,6 +1509,41 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   setRecordingDuration(duration);
                 }
               }}
+              onError={(e) => {
+                const video = e.currentTarget;
+                const error = video.error;
+                let errorMessage = 'Failed to load video. ';
+                
+                if (error) {
+                  switch (error.code) {
+                    case MediaError.MEDIA_ERR_ABORTED:
+                      errorMessage += 'Video loading was aborted.';
+                      break;
+                    case MediaError.MEDIA_ERR_NETWORK:
+                      errorMessage += 'Network error occurred while loading video.';
+                      break;
+                    case MediaError.MEDIA_ERR_DECODE:
+                      errorMessage += 'Video decoding failed. The file may be corrupted.';
+                      break;
+                    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                      errorMessage += 'Video format not supported. Please try a different format.';
+                      break;
+                    default:
+                      errorMessage += 'Unknown error occurred.';
+                  }
+                }
+                
+                console.error('Video playback error:', error, errorMessage);
+                setErrorMessage(errorMessage);
+                setSuccessMessage(null);
+              }}
+              onLoadStart={() => {
+                setErrorMessage(null);
+              }}
+              onCanPlay={() => {
+                // Video is ready to play
+                setErrorMessage(null);
+              }}
             >
               Your browser does not support the video tag.
             </video>
@@ -1417,9 +1552,70 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       } else {
         return (
           <div className={`w-full h-full relative ${getLayoutClass()}`}>
-            {/* Camera Preview */}
+            {/* Screen Share Preview - Show FIRST when available (priority) */}
+            {/* When screen sharing is active, prioritize showing screen content */}
+            {recordingSources.screen && (
+              <div 
+                className="screen-preview" 
+                style={{ 
+                  zIndex: currentLayout === 'screen-only' ? 20 : 10,
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  top: 0,
+                  left: 0,
+                  display: currentLayout === 'camera-only' ? 'none' : 'block',
+                  backgroundColor: '#000'
+                }}
+              >
+                <video
+                  ref={screenVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover rounded-lg"
+                  onLoadedMetadata={() => {
+                    const video = screenVideoRef.current;
+                    if (video) {
+                      console.log('Screen video ready:', {
+                        width: video.videoWidth,
+                        height: video.videoHeight,
+                        readyState: video.readyState,
+                        paused: video.paused
+                      });
+                      
+                      // Ensure video is playing
+                      if (video.paused) {
+                        video.play().catch(err => {
+                          console.error('Failed to play screen video:', err);
+                          setErrorMessage('Screen sharing video failed to play. Please try again.');
+                        });
+                      }
+                    }
+                  }}
+                  onPlaying={() => {
+                    console.log('Screen video is now playing');
+                    setErrorMessage(null);
+                  }}
+                  onError={(e) => {
+                    const video = e.currentTarget;
+                    console.error('Screen video error:', video.error);
+                    setErrorMessage('Screen sharing video error. Please restart screen sharing.');
+                  }}
+                />
+                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
+                  <Monitor className="h-3 w-3" />
+                  <span>Screen Sharing</span>
+                  {screenVideoRef.current && screenVideoRef.current.readyState >= 2 && (
+                    <div className="ml-2 w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Screen capture active" />
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Camera Preview - Show SECOND (lower priority when screen is active) */}
             {recordingSources.camera && (
-              <div className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}>
+              <div className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`} style={{ zIndex: recordingSources.screen ? 5 : 10 }}>
                 <video
                   ref={videoRef}
                   autoPlay
@@ -1439,23 +1635,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-            
-            {/* Screen Share Preview - Enhanced */}
-            {recordingSources.screen && (
-              <div className={`screen-preview ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
-                <video
-                  ref={screenVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover rounded-lg"
-                />
-                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
-                  <Monitor className="h-3 w-3" />
-                  <span>Screen Sharing</span>
                 </div>
               </div>
             )}
@@ -1773,15 +1952,20 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Main Preview Area */}
       <div className="relative bg-black aspect-video">
-        {/* Show compositor preview if enabled and compositing (Task 7.1) */}
-        {showCompositorPreview && isCompositing && compositorInstance ? (
-          <CompositorPreview
-            compositor={compositorInstance}
-            isCompositing={isCompositing}
-            performanceMetrics={performanceMetrics}
-          />
-        ) : (
-          renderPreview()
+        {/* Always show raw stream preview (not compositor) to ensure preview persists during restart */}
+        {/* The compositor preview can be shown separately if needed, but for reliability, */}
+        {/* we always show the raw streams in the main preview */}
+        {renderPreview()}
+        
+        {/* Optional: Show compositor preview overlay if enabled (for debugging) */}
+        {showCompositorPreview && isCompositing && compositorInstance && (
+          <div className="absolute inset-0 pointer-events-none opacity-50 z-10">
+            <CompositorPreview
+              compositor={compositorInstance}
+              isCompositing={isCompositing}
+              performanceMetrics={performanceMetrics}
+            />
+          </div>
         )}
         
         {/* Loading state during compositor initialization (Task 7.2) */}

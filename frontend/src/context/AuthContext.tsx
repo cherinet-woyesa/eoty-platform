@@ -175,9 +175,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Stop loading immediately - don't wait for token validation
         setIsLoading(false);
         
-        // Validate token in background (non-blocking)
+        // Validate token in background (non-blocking) with timeout
         // This allows the UI to render immediately while validation happens
-        authApi.validateToken(storedToken)
+        const validationPromise = authApi.validateToken(storedToken);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Validation timeout')), 10000)
+        );
+        
+        Promise.race([validationPromise, timeoutPromise])
           .then((isValid) => {
             if (!isValid) {
               console.warn('Token validation failed - logging out');
@@ -192,16 +197,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           })
           .catch((validationError) => {
             console.warn('Token validation error:', validationError);
-            // Only logout if we're online and got a clear error
-            if (navigator.onLine && validationError.response?.status !== 401) {
-              // Network error - keep user logged in with cached data
-              console.log('Network error during validation - using cached auth');
-            } else if (navigator.onLine) {
+            // On timeout or network error, keep user logged in with cached data
+            // Only logout if we get a clear 401 (unauthorized) response
+            if (validationError.response?.status === 401) {
               // Token is invalid - logout
+              console.log('Token invalid - logging out');
               logout();
             } else {
-              // Offline - keep using cached data
-              console.log('Offline mode: using cached authentication');
+              // Network error or timeout - keep user logged in with cached data
+              console.log('Network error/timeout during validation - using cached auth');
             }
           });
       } else {
@@ -210,8 +214,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Auth initialization error:', error);
       setIsLoading(false);
-      if (retryCount < 2) {
-        setTimeout(() => initializeAuth(retryCount + 1), 500 * (retryCount + 1));
+      // Don't retry on parse errors, only on network errors
+      if (retryCount < 2 && error instanceof TypeError && error.message.includes('fetch')) {
+        setTimeout(() => initializeAuth(retryCount + 1), 1000 * (retryCount + 1));
       }
     }
   };

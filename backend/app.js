@@ -38,6 +38,9 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    // Check if origin is from Vercel (allows all *.vercel.app subdomains)
+    const isVercelOrigin = /^https:\/\/.*\.vercel\.app$/.test(origin);
+    
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5000',
@@ -57,6 +60,12 @@ const corsOptions = {
       'https://storage.googleapis.com',
       'https://mux.com'
     ];
+    
+    // Allow all Vercel preview URLs
+    if (isVercelOrigin) {
+      console.log('CORS check - Vercel origin allowed:', origin);
+      return callback(null, true);
+    }
     
     console.log('CORS check - Origin:', origin, 'Allowed:', allowedOrigins.includes(origin));
     
