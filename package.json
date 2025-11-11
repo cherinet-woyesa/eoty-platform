@@ -1,0 +1,13 @@
+{
+  "name": "eoty-platform",
+  "version": "1.0.0",
+  "description": "EOTY Platform - Education On The Year",
+  "scripts": {
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "deploy:windows": "powershell -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
+    "deploy:unix": "bash ./deploy-vercel.sh"
+  },
+  "private": true
+}
+
