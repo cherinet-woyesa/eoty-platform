@@ -4,6 +4,9 @@ FROM node:18-alpine
 # Install FFmpeg (includes ffprobe) for video processing
 RUN apk add --no-cache ffmpeg
 
+# Verify FFmpeg installation
+RUN ffmpeg -version && ffprobe -version
+
 # Set the working directory
 WORKDIR /app
 
