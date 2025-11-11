@@ -49,6 +49,10 @@ const corsOptions = {
       'https://eoty-platform.vercel.app',
       'https://eoty-platform-git-main-cherinet-woyesas-projects.vercel.app',
       'https://eoty-platform-cherinet-woyesas-projects.vercel.app',
+      // Render deployment
+      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+      // Vercel deployments
+      ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
       // Mux direct upload domains
       'https://storage.googleapis.com',
       'https://mux.com'
@@ -137,7 +141,7 @@ app.use(limiter);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, path) => {
     // Set CORS headers for static files
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Cache-Control');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');

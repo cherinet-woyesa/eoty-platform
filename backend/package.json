@@ -11,6 +11,7 @@
     "migrate:rollback": "npx knex migrate:rollback --env ${NODE_ENV:-development}",
     "seed": "npx knex seed:run --env ${NODE_ENV:-development}",
     "init-db": "node scripts/init-database.js",
+    "verify": "node ../verify-deployment.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

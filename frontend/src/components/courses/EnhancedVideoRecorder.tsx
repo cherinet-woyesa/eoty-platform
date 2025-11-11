@@ -4,6 +4,7 @@ import type { FC } from 'react';
 import { useVideoRecorder } from '../../hooks/useVideoRecorder';
 import { coursesApi } from '../../services/api';
 import { videoApi } from '../../services/api/videos';
+import { dataCache } from '../../hooks/useRealTimeData';
 import VideoTimelineEditor from './VideoTimelineEditor';
 import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';

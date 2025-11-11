@@ -1,6 +1,3 @@
-# Render Blueprint for EOTY Platform Backend
-# This file configures automatic deployment on Render
-
 services:
   # Backend API Service
   - type: web
@@ -39,7 +36,7 @@ services:
         generateValue: true
         sync: false
       - key: FRONTEND_URL
-        value: https://your-app.vercel.app
+        value: https://YOUR_ACTUAL_FRONTEND_URL.com
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
@@ -56,6 +53,12 @@ services:
         sync: false
       - key: MUX_ENVIRONMENT
         value: production
+      - key: MUX_SIGNING_KEY_ID
+        sync: false
+      - key: MUX_SIGNING_KEY_PRIVATE
+        sync: false
+      - key: CLOUDFRONT_DOMAIN
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -70,9 +73,3 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
-
-databases:
-  - name: eoty-postgres
-    databaseName: eoty_platform
-    user: eoty_user
-    plan: starter

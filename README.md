@@ -1,79 +1,198 @@
-# EOTY Platform - Docker Setup
+# EOTY Platform
 
-This document explains how to set up and run the EOTY Platform using Docker.
+EOTY (Education On The Year) Platform is a comprehensive online learning management system with video streaming capabilities, AI-powered features, and interactive course management.
+
+## Features
+
+- 🎓 Course Management System
+- ▶️ Video Streaming with Mux Integration
+- 🤖 AI-Powered Learning Assistant
+- 💬 Interactive Discussions and Forums
+- 📊 Analytics and Progress Tracking
+- 🎯 Quizzes and Assessments
+- 🌐 Multi-language Support
+- 📱 Responsive Design
 
 ## Prerequisites
 
-- Docker Engine 20.10+ installed
-- Docker Compose 1.29+ installed
+- Node.js 18+
+- PostgreSQL 13+
+- Docker (optional, for containerized deployment)
+- AWS Account (for S3 storage)
+- Mux Account (for video processing)
 
 ## Quick Start
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd eoty-platform
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd eoty-platform
+```
+
+### 2. Environment Setup
+
+Create a `.env` file in the `backend` directory based on `.env.example`:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Update the environment variables with your configuration.
+
+### 3. Database Setup
+
+Start PostgreSQL database:
+
+```bash
+# Using Docker
+docker-compose up -d db
+
+# Or use your local PostgreSQL installation
+```
+
+Run database migrations:
+
+```bash
+cd backend
+npm run migrate
+```
+
+Seed initial data:
+
+```bash
+npm run seed
+```
+
+### 4. Install Dependencies
+
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
+```
+
+### 5. Start Development Servers
+
+```bash
+# Backend (port 5000)
+cd backend
+npm run dev
+
+# Frontend (port 3000)
+cd frontend
+npm run dev
+```
+
+Visit `http://localhost:3000` to access the application.
+
+## Deployment
+
+### Render Deployment
+
+1. Fork this repository
+2. Create a new Web Service on Render
+3. Connect your forked repository
+4. Set the following build command:
    ```
-
-2. Copy the example environment file and configure it:
-   ```bash
-   cp .env.example .env
-   # Edit .env file with your configuration
+   cd backend && npm install && npm run migrate
    ```
-
-3. **Important Security Note**: 
-   The repository includes a `.env.example` file showing the required environment variables. 
-   You should never commit actual credentials to version control. The `.gitignore` file 
-   is configured to exclude `.env` files from being committed.
-
-4. Build and start the services:
-   ```bash
-   docker-compose up --build
+5. Set the start command:
    ```
+   cd backend && npm start
+   ```
+6. Add environment variables in the Render dashboard (see Deployment Checklist below)
+7. Create a PostgreSQL database on Render
+8. Deploy!
 
-5. Access the application:
-   - Frontend: http://localhost
-   - Backend API: http://localhost/api/
-   - Database: localhost:5432 (PostgreSQL)
+### Vercel Frontend Deployment
 
-## Development Mode
+1. Deploy the frontend directory to Vercel
+2. Set environment variables as needed
+3. Configure the backend API URL
 
-For development with hot-reloading:
+### Environment Variables
 
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
+See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) for a complete list of required environment variables.
+
+## Project Structure
+
+```
+eoty-platform/
+├── backend/           # Node.js Express API
+│   ├── controllers/   # Request handlers
+│   ├── models/        # Database models
+│   ├── routes/        # API routes
+│   ├── services/      # Business logic
+│   ├── middleware/    # Express middleware
+│   ├── migrations/    # Database migrations
+│   └── seeds/         # Seed data
+├── frontend/          # React/Vite frontend
+│   ├── src/           # Source code
+│   ├── components/    # React components
+│   └── pages/         # Page components
+└── nginx/             # Nginx configuration
 ```
 
-## Services Overview
+## Key Services
 
-- **Frontend**: React application served by Nginx
-- **Backend**: Node.js/Express API
-- **Database**: PostgreSQL with pgvector extension
-- **Redis**: Caching and session storage
-- **Nginx**: Reverse proxy and load balancer
+### Video Processing
+The platform uses Mux for video processing and streaming. Videos uploaded by teachers are automatically processed for adaptive streaming.
 
-## Environment Variables
+### AI Features
+- Course content generation
+- Student question answering
+- Content summarization
+- Language translation
 
-See `.env.example` for all required environment variables.
+### Authentication
+- JWT-based authentication
+- Role-based access control (RBAC)
+- Google OAuth integration
 
-**Security Warning**: Never commit your `.env` file to version control as it contains sensitive information like database passwords, API keys, and secrets.
+## Performance Optimization
 
-## Database Migrations
+- Database connection pooling
+- Caching with Redis
+- CDN for static assets
+- Video streaming optimization with Mux
 
-To run database migrations:
+## Monitoring and Maintenance
 
-```bash
-docker-compose exec backend npm run migrate
-```
+- Health check endpoints
+- Logging and error tracking
+- Database backup strategies
+- Performance monitoring
 
-## Stopping the Services
+## Troubleshooting
 
-```bash
-docker-compose down
-```
+### Common Issues
 
-To stop and remove volumes (data will be lost):
+1. **CORS Errors**: Check frontend URL configuration in backend CORS settings
+2. **Video Upload Failures**: Verify Mux credentials and webhook configuration
+3. **Database Connection Issues**: Check database credentials and network connectivity
+4. **Slow Loading**: Review database queries and implement indexing
 
-```bash
-docker-compose down -v
-```
+### Debugging
+
+Enable debug logging by setting `DEBUG=*` environment variable.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Write tests if applicable
+5. Submit a pull request
+
+## License
+
+MIT License
+
+## Support
+
+For support, please open an issue on the GitHub repository or contact the development team.

@@ -24,7 +24,8 @@ const muxConfig = {
     'http://localhost:5000',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5000',
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])
   ],
   
   // Default playback policy
