@@ -1,4 +1,4 @@
-import type { CompositorLayout, LayoutType } from '../types/VideoCompositor';
+import type { CompositorLayout, LayoutType } from '@/types/VideoCompositor';
 
 /**
  * Predefined layout configurations for video compositing

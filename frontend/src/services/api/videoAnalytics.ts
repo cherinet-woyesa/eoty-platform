@@ -153,6 +153,35 @@ export const videoAnalyticsApi = {
       }
     );
     return response.data.data;
+  },
+
+  /**
+   * Get engagement heatmap data for a lesson
+   */
+  getEngagementHeatmap: async (
+    lessonId: number,
+    options?: {
+      timeframe?: string;
+      segments?: number;
+    }
+  ): Promise<{
+    lessonId: number;
+    videoDuration: number;
+    segments: number;
+    segmentData: Array<{
+      timestamp: number;
+      watchCount: number;
+    }>;
+    totalWatches: number;
+  }> => {
+    const params = new URLSearchParams();
+    if (options?.timeframe) params.append('timeframe', options.timeframe);
+    if (options?.segments) params.append('segments', options.segments.toString());
+
+    const response = await apiClient.get(
+      `/video-analytics/lessons/${lessonId}/heatmap?${params.toString()}`
+    );
+    return response.data.data;
   }
 };
 

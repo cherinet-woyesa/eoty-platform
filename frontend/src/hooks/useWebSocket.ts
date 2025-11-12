@@ -52,8 +52,12 @@ export function useWebSocket(
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const isManualClose = useRef(false); // Track manual closure
 
-  const WS_ENABLED = import.meta.env.VITE_ENABLE_WS === 'true';
-  const defaultWsBase = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:3001`;
+  const WS_ENABLED = import.meta.env.VITE_ENABLE_WS !== 'false'; // Default to true
+  // Use the same host as the API, but with ws/wss protocol
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  const apiUrl = new URL(apiBase.replace('/api', ''));
+  const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  const defaultWsBase = `${wsProtocol}//${apiUrl.hostname}:${apiUrl.port || (apiUrl.protocol === 'https:' ? '443' : '5000')}`;
   const WS_BASE = (import.meta.env.VITE_WS_URL as string) || defaultWsBase;
 
   const cleanup = useCallback(() => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { adminApi } from '../../services/api';
-import type { ContentTag } from '../../types/admin';
+import { adminApi } from '@/services/api';
+import type { ContentTag } from '@/types/admin';
 import { 
   GripVertical, 
   Plus, 

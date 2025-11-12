@@ -1,4 +1,4 @@
-import { NavItem, ROLE_HIERARCHY } from '../config/navigation';
+import { NavItem, ROLE_HIERARCHY } from '@/config/navigation';
 
 /**
  * Check if a user has the required role to access a navigation item

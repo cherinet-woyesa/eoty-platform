@@ -6,12 +6,11 @@ import {
   Settings,
   Star,
   DollarSign,
-  School,
-  Crown
+  School
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { teacherNavItems } from '../../../config/navigation';
-import { filterNavItems } from '../../../utils/navigationFilter';
+import { useAuth } from '@/context/AuthContext';
+import { teacherNavItems } from '@/config/navigation';
+import { filterNavItems } from '@/utils/navigationFilter';
 
 interface TeacherSidebarProps {
   isCollapsed?: boolean;

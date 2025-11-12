@@ -1,43 +1,37 @@
 /**
  * Video Provider Detection Utility
  * 
- * Handles detection of video provider (Mux or S3) for lessons
- * and provides unified playback information
+ * Handles Mux video detection and playback information
+ * All videos use Mux - S3 video support removed
  */
 
 const muxService = require('../services/muxService');
-const cloudStorageService = require('../services/cloudStorageService');
 
 /**
- * Detect video provider for a lesson
+ * Detect video provider for a lesson (Mux only)
  * 
  * @param {Object} lesson - Lesson object from database
- * @returns {string} 'mux' | 's3' | 'none'
+ * @returns {string} 'mux' | 'none'
  */
 function detectVideoProvider(lesson) {
-  // Priority 1: Check for Mux playback ID (most reliable indicator)
+  // Check for Mux playback ID (most reliable indicator - video is ready)
   if (lesson.mux_playback_id && lesson.mux_playback_id.trim() !== '') {
     return 'mux';
   }
 
-  // Priority 2: Check for Mux asset ID with ready status
-  if (lesson.mux_asset_id && lesson.mux_status === 'ready') {
+  // Check for Mux asset ID (video is processing or ready)
+  if (lesson.mux_asset_id && lesson.mux_asset_id.trim() !== '') {
     return 'mux';
   }
 
-  // Priority 3: Check video_provider field if it exists
-  if (lesson.video_provider) {
-    if (lesson.video_provider === 'mux' && lesson.mux_asset_id) {
-      return 'mux';
-    }
-    if (lesson.video_provider === 's3' && (lesson.video_url || lesson.s3_key)) {
-      return 's3';
-    }
+  // Check for Mux upload ID (upload in progress or processing)
+  if (lesson.mux_upload_id && lesson.mux_upload_id.trim() !== '') {
+    return 'mux';
   }
 
-  // Priority 4: Fallback to S3 if video_url or s3_key exists
-  if (lesson.video_url || lesson.s3_key || lesson.hls_url) {
-    return 's3';
+  // Check video_provider field with any Mux status (preparing, processing, ready, etc.)
+  if (lesson.video_provider === 'mux' && lesson.mux_status) {
+    return 'mux';
   }
 
   // No video found
@@ -131,75 +125,6 @@ async function getPlaybackInfo(lesson, options = {}) {
         playbackInfo.status = 'error';
         playbackInfo.metadata.error = lesson.mux_error_message || 'Video processing failed';
       }
-    } else if (provider === 's3') {
-      // S3 video playback
-      // Check if video is still processing (check videos table status if available)
-      const isProcessing = lesson.video_status === 'processing' || 
-                          lesson.video_status === 'uploading' ||
-                          (lesson.video_id && !lesson.video_url?.includes('.m3u8') && !lesson.video_url?.includes('/hls/'));
-      
-      playbackInfo.status = isProcessing ? 'processing' : 'ready';
-      playbackInfo.metadata.s3Key = lesson.s3_key;
-      playbackInfo.metadata.videoUrl = lesson.video_url;
-      playbackInfo.metadata.hlsUrl = lesson.hls_url;
-      playbackInfo.metadata.isProcessing = isProcessing;
-
-      // Priority: Use video_url if it contains HLS (transcoded), otherwise use hls_url, then s3_key
-      const hasHlsInVideoUrl = lesson.video_url && (
-        lesson.video_url.includes('.m3u8') || 
-        lesson.video_url.includes('/hls/')
-      );
-
-      if (hasHlsInVideoUrl) {
-        // video_url contains the transcoded HLS URL - use it directly
-        playbackInfo.playbackUrl = lesson.video_url;
-        playbackInfo.metadata.supportsAdaptiveStreaming = true;
-        playbackInfo.metadata.format = 'hls';
-        playbackInfo.status = 'ready';
-        console.log('✅ Using transcoded HLS URL from video_url:', lesson.video_url);
-      } else if (lesson.hls_url) {
-        // Prefer hls_url field if available
-        playbackInfo.playbackUrl = lesson.hls_url;
-        playbackInfo.metadata.supportsAdaptiveStreaming = true;
-        playbackInfo.metadata.format = 'hls';
-        playbackInfo.status = 'ready';
-        console.log('✅ Using hls_url from lesson:', lesson.hls_url);
-      } else if (isProcessing && generateSignedUrls && lesson.s3_key) {
-        // Video is still processing - provide temporary URL from original file
-        playbackInfo.playbackUrl = await cloudStorageService.getSignedStreamUrl(
-          lesson.s3_key,
-          urlExpiration
-        );
-        playbackInfo.metadata.supportsAdaptiveStreaming = false;
-        playbackInfo.metadata.format = lesson.s3_key.toLowerCase().endsWith('.webm') ? 'webm' : 'mp4';
-        playbackInfo.metadata.message = 'Video is being transcoded. This is a temporary URL - the transcoded version will be available shortly.';
-        playbackInfo.metadata.warning = 'Transcoding in progress - using original file temporarily';
-        console.log('⏳ Video is still processing, providing temporary URL from original file');
-      } else if (generateSignedUrls && lesson.s3_key) {
-        // Fallback: Generate signed URL from s3_key (original file)
-        // This means transcoding hasn't completed or failed
-        playbackInfo.playbackUrl = await cloudStorageService.getSignedStreamUrl(
-          lesson.s3_key,
-          urlExpiration
-        );
-        playbackInfo.metadata.supportsAdaptiveStreaming = false;
-        playbackInfo.metadata.format = lesson.s3_key.toLowerCase().endsWith('.webm') ? 'webm' : 'mp4';
-        playbackInfo.metadata.warning = lesson.s3_key.toLowerCase().endsWith('.webm') 
-          ? 'WebM format may not be supported by all browsers. Transcoding may still be in progress.'
-          : 'Using original file - transcoding may still be in progress.';
-        console.log('⚠️ Using signed URL from s3_key (original file, transcoding may be in progress):', lesson.s3_key);
-      } else {
-        // Last resort: Use video_url as-is
-        playbackInfo.playbackUrl = lesson.video_url;
-        playbackInfo.metadata.supportsAdaptiveStreaming = false;
-        playbackInfo.metadata.format = 'mp4';
-        console.log('⚠️ Using video_url as-is (may be original file):', lesson.video_url);
-      }
-
-      // Thumbnail from S3 if available
-      if (lesson.thumbnail_url) {
-        playbackInfo.thumbnailUrl = lesson.thumbnail_url;
-      }
     } else {
       // No video
       playbackInfo.status = 'no_video';
@@ -238,74 +163,36 @@ async function getBulkPlaybackInfo(lessons, options = {}) {
 }
 
 /**
- * Check if a lesson can be migrated from S3 to Mux
+ * Check if a lesson has a Mux video
  * 
  * @param {Object} lesson - Lesson object from database
- * @returns {Object} Migration eligibility info
+ * @returns {Object} Video status info
  */
-function checkMigrationEligibility(lesson) {
+function checkVideoStatus(lesson) {
   const provider = detectVideoProvider(lesson);
 
-  const eligibility = {
-    canMigrate: false,
-    reason: null,
-    currentProvider: provider
+  return {
+    hasVideo: provider === 'mux',
+    provider: provider,
+    status: lesson.mux_status || 'none',
+    playbackId: lesson.mux_playback_id || null
   };
-
-  if (provider === 'mux') {
-    eligibility.reason = 'Already using Mux';
-    return eligibility;
-  }
-
-  if (provider === 'none') {
-    eligibility.reason = 'No video to migrate';
-    return eligibility;
-  }
-
-  if (provider === 's3') {
-    if (!lesson.video_url && !lesson.s3_key) {
-      eligibility.reason = 'No S3 video URL or key found';
-      return eligibility;
-    }
-
-    eligibility.canMigrate = true;
-    eligibility.reason = 'Eligible for migration';
-    eligibility.s3Url = lesson.video_url;
-    eligibility.s3Key = lesson.s3_key;
-    return eligibility;
-  }
-
-  return eligibility;
 }
 
 /**
- * Get provider statistics for all lessons
+ * Get video statistics for all lessons
  * 
  * @param {Object} db - Database connection
- * @returns {Promise<Object>} Provider statistics
+ * @returns {Promise<Object>} Video statistics
  */
-async function getProviderStatistics(db) {
+async function getVideoStatistics(db) {
   try {
-    const [muxCount, s3Count, noVideoCount, totalCount] = await Promise.all([
+    const [muxCount, noVideoCount, totalCount] = await Promise.all([
       db('lessons')
-        .where({ video_provider: 'mux' })
         .whereNotNull('mux_playback_id')
         .count('* as count')
         .first(),
       db('lessons')
-        .where(function() {
-          this.where({ video_provider: 's3' })
-            .orWhereNull('video_provider');
-        })
-        .where(function() {
-          this.whereNotNull('video_url')
-            .orWhereNotNull('s3_key');
-        })
-        .count('* as count')
-        .first(),
-      db('lessons')
-        .whereNull('video_url')
-        .whereNull('s3_key')
         .whereNull('mux_playback_id')
         .count('* as count')
         .first(),
@@ -314,15 +201,14 @@ async function getProviderStatistics(db) {
 
     return {
       total: parseInt(totalCount.count) || 0,
-      mux: parseInt(muxCount.count) || 0,
-      s3: parseInt(s3Count.count) || 0,
-      noVideo: parseInt(noVideoCount.count) || 0,
-      muxPercentage: totalCount.count > 0 
+      withVideo: parseInt(muxCount.count) || 0,
+      withoutVideo: parseInt(noVideoCount.count) || 0,
+      videoPercentage: totalCount.count > 0 
         ? Math.round((parseInt(muxCount.count) / parseInt(totalCount.count)) * 100)
         : 0
     };
   } catch (error) {
-    console.error('Error getting provider statistics:', error);
+    console.error('Error getting video statistics:', error);
     throw error;
   }
 }
@@ -331,6 +217,6 @@ module.exports = {
   detectVideoProvider,
   getPlaybackInfo,
   getBulkPlaybackInfo,
-  checkMigrationEligibility,
-  getProviderStatistics
+  checkVideoStatus,
+  getVideoStatistics
 };

@@ -1,5 +1,6 @@
 import { forumsApi, achievementsApi } from './community';
 import { adminApi } from './admin';
+import { teacherApi } from './teacher';
 import { dashboardApi } from './dashboard';
 import { quizApi } from './quiz';
 import { progressApi } from './progress';
@@ -7,6 +8,12 @@ import { discussionsApi } from './discussions';
 import { apiClient } from './apiClient';
 import { subtitlesApi } from './subtitles';
 import { lessonResourcesApi } from './lessonResources';
+import { videoNotesApi } from './videoNotes';
+import { videoChaptersApi } from './videoChapters';
+import { thumbnailsApi } from './thumbnails';
+import { relatedVideosApi } from './relatedVideos';
+import { recordingPresetsApi } from './recordingPresets';
+import { moderationApi } from './moderation';
 
 // Export apiClient so other modules can import it
 export { apiClient };
@@ -514,37 +521,34 @@ export const resourcesApi = {
   }
 };
 
-// NEW: Moderation API for FR4 - Forum and Achievements
-export const moderationApi = {
-  // Get moderation dashboard data
-  getDashboard: async () => {
-    const response = await apiClient.get('/moderation/dashboard');
-    return response.data;
-  },
-
-  // Moderate a post
-  moderatePost: async (postId: number, action: 'delete' | 'hide' | 'warn' | 'approve', reason: string) => {
-    const response = await apiClient.post(`/moderation/posts/${postId}`, { action, reason });
-    return response.data;
-  },
-
-  // Get user moderation history
-  getUserHistory: async (userId: number) => {
-    const response = await apiClient.get(`/moderation/users/${userId}/history`);
-    return response.data;
-  }
-};
+// Moderation API is now imported from ./moderation
 
 // Admin API
 export { adminApi };
+export { teacherApi };
 
 export { forumsApi, achievementsApi };
+
+// Export moderation API
+export { moderationApi };
 
 // Export subtitles API
 export { subtitlesApi };
 
 // Export lesson resources API
 export { lessonResourcesApi };
+
+// Export video notes API
+export { videoNotesApi };
+export type { VideoNote, CreateNoteData, UpdateNoteData } from './videoNotes';
+export { videoChaptersApi };
+export type { VideoChapter, CreateChapterData, UpdateChapterData } from './videoChapters';
+export { thumbnailsApi };
+export type { ThumbnailOption } from './thumbnails';
+export { relatedVideosApi };
+export type { RelatedVideo } from './relatedVideos';
+export { recordingPresetsApi };
+export type { RecordingPreset, CreatePresetData, UpdatePresetData } from './recordingPresets';
 
 // Export all API
 export default {
@@ -563,5 +567,10 @@ export default {
   admin: adminApi,
   dashboard: dashboardApi,
   subtitles: subtitlesApi,
-  lessonResources: lessonResourcesApi
+  lessonResources: lessonResourcesApi,
+  videoNotes: videoNotesApi,
+  videoChapters: videoChaptersApi,
+  thumbnails: thumbnailsApi,
+  relatedVideos: relatedVideosApi,
+  recordingPresets: recordingPresetsApi
 };

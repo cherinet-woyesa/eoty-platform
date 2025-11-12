@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useNotification } from '../context/NotificationContext';
-import { parseApiError, getUserFriendlyErrorMessage } from '../utils/apiErrorHandler';
+import { useNotification } from '@/context/NotificationContext';
+import { parseApiError, getUserFriendlyErrorMessage } from '@/utils/apiErrorHandler';
 
 export const useApiError = () => {
   const { showNotification } = useNotification();

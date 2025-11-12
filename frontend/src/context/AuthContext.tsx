@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authApi } from '../services/api';
+import { authApi } from '@/services/api';
 
 interface User {
   id: string;
@@ -39,6 +39,7 @@ interface AuthContextType {
   canAccessRoute: (path: string) => boolean;
   getRoleDashboard: () => string;
   refreshPermissions: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
   loginWithGoogle: (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => Promise<void>;
   updateUserPreferences: (preferences: Partial<User['preferences']>) => Promise<void>;
@@ -508,6 +509,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await loadPermissions();
   };
 
+  // Refresh user data from backend
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const response = await authApi.getCurrentUser();
+      if (response.success && response.data?.user) {
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        // Update localStorage with fresh user data
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem('userRole', updatedUser.role);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      // Don't throw - allow cached user data to remain
+    }
+  };
+
   // Update user preferences
   const updateUserPreferences = async (preferences: Partial<User['preferences']>): Promise<void> => {
     if (!user) return;
@@ -548,6 +566,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     canAccessRoute,
     getRoleDashboard,
     refreshPermissions,
+    refreshUser,
     isLoading,
     loginWithGoogle,
     updateUserPreferences,

@@ -1,5 +1,5 @@
 import React from 'react';
-import UploadQueueComponent from '../../components/admin/UploadQueue';
+import UploadQueueComponent from '@/components/admin/UploadQueue';
 
 const UploadQueue: React.FC = () => {
   return (

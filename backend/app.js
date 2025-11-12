@@ -26,6 +26,11 @@ const systemConfigRoutes = require('./routes/systemConfig');
 const subtitleRoutes = require('./routes/subtitles');
 const accessLogRoutes = require('./routes/accessLogs');
 const muxMigrationRoutes = require('./routes/muxMigration');
+const videoNotesRoutes = require('./routes/videoNotes');
+const videoChaptersRoutes = require('./routes/videoChapters');
+const thumbnailRoutes = require('./routes/thumbnails');
+const relatedVideosRoutes = require('./routes/relatedVideos');
+const recordingPresetsRoutes = require('./routes/recordingPresets');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -229,6 +234,11 @@ app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
 app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video analytics routes (Mux + Platform)
+app.use('/api', videoNotesRoutes); // Video notes routes (authentication handled in route file)
+app.use('/api', videoChaptersRoutes); // Video chapters routes (authentication handled in route file)
+app.use('/api', thumbnailRoutes); // Thumbnail routes (authentication handled in route file)
+app.use('/api', relatedVideosRoutes); // Related videos routes (authentication handled in route file)
+app.use('/api/recording-presets', recordingPresetsRoutes); // Recording presets routes (authentication handled in route file)
 
 // Enhanced error handling middleware
 app.use((err, req, res, next) => {

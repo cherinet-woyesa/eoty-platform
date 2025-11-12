@@ -46,4 +46,10 @@ router.get('/audit', requirePermission('audit:view'), adminController.getAuditLo
 // Data Export
 router.get('/export', requirePermission('data:export'), adminController.exportData);
 
+// Teacher Applications
+router.get('/teacher-applications', requirePermission('user:view'), adminController.getTeacherApplications);
+router.get('/teacher-applications/:applicationId', requirePermission('user:view'), adminController.getTeacherApplication);
+router.post('/teacher-applications/:applicationId/approve', requirePermission('user:manage'), adminController.approveTeacherApplication);
+router.post('/teacher-applications/:applicationId/reject', requirePermission('user:manage'), adminController.rejectTeacherApplication);
+
 module.exports = router;

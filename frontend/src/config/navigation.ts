@@ -212,7 +212,7 @@ export const teacherNavItems: NavItem[] = [
   },
   {
     name: 'Record Video',
-    href: '/record',
+    href: '/teacher/record',
     icon: Video,
     badge: null,
     description: 'Create lessons',
@@ -230,7 +230,7 @@ export const teacherNavItems: NavItem[] = [
   },
   {
     name: 'Students',
-    href: '/students',
+    href: '/teacher/students',
     icon: Users,
     badge: null,
     description: 'Manage learners',

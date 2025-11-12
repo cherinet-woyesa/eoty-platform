@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../services/api';
-import type { AdminDashboard } from '../../types/admin';
+import { adminApi } from '@/services/api';
+import type { AdminDashboard } from '@/types/admin';
 import MetricsCard from './MetricsCard';
 import { 
   Users, 

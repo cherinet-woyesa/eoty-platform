@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Bell, X, CheckCircle, AlertTriangle, Info, MessageSquare, Users, Award } from 'lucide-react';
-import { useWebSocket } from '../../../hooks/useWebSocket';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface Notification {
   id: string;

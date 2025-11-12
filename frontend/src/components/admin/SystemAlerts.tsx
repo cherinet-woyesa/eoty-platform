@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Info, XCircle, CheckCircle } from 'lucide-react';
-import type { SystemAlert } from '../../types/admin';
+import type { SystemAlert } from '@/types/admin';
 
 interface SystemAlertsProps {
   alerts: SystemAlert[];

@@ -1,5 +1,5 @@
 import React from 'react';
-import ContentManager from '../../components/admin/ContentManager';
+import ContentManager from '@/components/admin/ContentManager';
 
 const ContentManagement: React.FC = () => {
   return (

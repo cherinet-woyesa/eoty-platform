@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, memo, useEffect } from 'react';
 import { Search, X, Clock, BookOpen, Users, TrendingUp } from 'lucide-react';
-import { useDebounce } from '../../../hooks/useDebounce';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface SearchResult {
   id: string;

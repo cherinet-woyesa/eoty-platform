@@ -2,64 +2,68 @@ import * as React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import TeacherDashboard from './components/dashboard/TeacherDashboard/TeacherDashboard';
-import StudentDashboard from './components/dashboard/StudentDashboard/StudentDashboard';
-import DashboardLayout from './components/layout/DashboardLayout';
-import './styles/globals.css';
-import RecordVideo from './pages/courses/RecordVideo';
-import MyCourses from './pages/courses/MyCourses';
-import CourseCatalog from './pages/courses/CourseCatalog';
-import StudentEnrolledCourses from './pages/courses/StudentEnrolledCourses';
-import AllCourses from './pages/admin/AllCourses';
-import CreateCourse from './pages/courses/CreateCourse';
-import EditCourse from './pages/courses/EditCourse';
-import CourseDetails from './pages/courses/CourseDetails';
+import Landing from '@/pages/shared/Landing';
+import Login from '@/pages/shared/auth/Login';
+import Register from '@/pages/shared/auth/Register';
+import TeacherDashboard from '@/components/teacher/dashboard/TeacherDashboard';
+import StudentDashboard from '@/components/student/dashboard/StudentDashboard';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import '@/styles/globals.css';
+import RecordVideo from '@/pages/teacher/RecordVideo';
+import MyCourses from '@/pages/teacher/MyCourses';
+import CourseCatalog from '@/pages/student/CourseCatalog';
+import StudentEnrolledCourses from '@/pages/student/StudentEnrolledCourses';
+import AllCourses from '@/pages/admin/AllCourses';
+import CreateCourse from '@/pages/teacher/CreateCourse';
+import EditCourse from '@/pages/teacher/EditCourse';
+import CourseDetails from '@/pages/shared/courses/CourseDetails';
 
-import AIAssistant from './pages/ai/AIAssistant';
-import FloatingAIChat from './components/ai/FloatingAIChat';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationProvider } from './context/NotificationContext';
-import { ConfirmDialogProvider } from './context/ConfirmDialogContext';
-import { NotificationSystem } from './components/shared';
-import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard } from './components/routing';
-import Forums from './pages/social/Forums';
-import ForumTopics from './pages/social/ForumTopics';
-import Achievements from './pages/social/Achievements';
-import Leaderboards from './pages/social/Leaderboards';
-import CommunityHub from './pages/social/CommunityHub';
-import AdminDashboard from './components/dashboard/AdminDashboard/AdminDashboard';
-import ContentManagement from './pages/admin/ContentManagement';
-import AdminCourseView from './pages/admin/AdminCourseView';
-import { UserProvider } from './context/UserContext';
-import { OnboardingProvider } from './context/OnboardingContext';
-import ModerationTools from './components/admin/ModerationTools';
-import AnalyticsDashboard from './components/admin/AnalyticsDashboard';
-import TagManager from './components/admin/TagManager';
-import UserManagement from './components/admin/UserManagement';
-import UploadManager from './components/admin/UploadManager';
-import SystemConfigDashboard from './pages/admin/config/SystemConfigDashboard';
-import CategoryManagement from './pages/admin/config/CategoryManagement';
-import LevelManagement from './pages/admin/config/LevelManagement';
-import DurationManagement from './pages/admin/config/DurationManagement';
-import TagManagement from './pages/admin/config/TagManagement';
-import ChapterManagement from './pages/admin/config/ChapterManagement';
-import MuxMigration from './pages/admin/MuxMigration';
-import ResourceLibrary from './pages/resources/ResourceLibrary';
-import ResourceView from './pages/resources/ResourceView';
-import QuizDemo from './pages/courses/QuizDemo';
-import ProgressPage from './pages/courses/ProgressPage';
-import DiscussionDemo from './pages/courses/DiscussionDemo';
-import Students from './pages/students/Students';
-import LearningPathsPage from './pages/student/LearningPathsPage';
-import BookmarksPage from './pages/student/BookmarksPage';
-import SchedulePage from './pages/student/SchedulePage';
-import StudyGroupsPage from './pages/student/StudyGroupsPage';
-import HelpPage from './pages/student/HelpPage';
-import TeacherProfile from './pages/teachers/TeacherProfile';
-import { queryClient } from './lib/queryClient';
-import './i18n/config';
+import AIAssistant from '@/pages/shared/ai/AIAssistant';
+import FloatingAIChat from '@/components/shared/ai/FloatingAIChat';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { NotificationProvider } from '@/context/NotificationContext';
+import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
+import { NotificationSystem } from '@/components/shared';
+import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard } from '@/components/routing';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
+import Forums from '@/pages/shared/social/Forums';
+import ForumTopics from '@/pages/shared/social/ForumTopics';
+import Achievements from '@/pages/shared/social/Achievements';
+import Leaderboards from '@/pages/shared/social/Leaderboards';
+import CommunityHub from '@/pages/shared/social/CommunityHub';
+import AdminDashboard from '@/components/admin/dashboard/AdminDashboard';
+import ContentManagement from '@/pages/admin/ContentManagement';
+import AdminCourseView from '@/pages/admin/AdminCourseView';
+import { UserProvider } from '@/context/UserContext';
+import { OnboardingProvider } from '@/context/OnboardingContext';
+import ModerationTools from '@/components/admin/ModerationTools';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import TagManager from '@/components/admin/TagManager';
+import UserManagement from '@/components/admin/UserManagement';
+import TeacherApplications from '@/components/admin/TeacherApplications';
+import UploadManager from '@/components/admin/UploadManager';
+import SystemConfigDashboard from '@/pages/admin/config/SystemConfigDashboard';
+import CategoryManagement from '@/pages/admin/config/CategoryManagement';
+import LevelManagement from '@/pages/admin/config/LevelManagement';
+import DurationManagement from '@/pages/admin/config/DurationManagement';
+import TagManagement from '@/pages/admin/config/TagManagement';
+import ChapterManagement from '@/pages/admin/config/ChapterManagement';
+import MuxMigration from '@/pages/admin/MuxMigration';
+import ResourceLibrary from '@/pages/shared/resources/ResourceLibrary';
+import ResourceView from '@/pages/shared/resources/ResourceView';
+import QuizDemo from '@/pages/shared/courses/QuizDemo';
+import ProgressPage from '@/pages/student/ProgressPage';
+import DiscussionDemo from '@/pages/shared/courses/DiscussionDemo';
+import Students from '@/pages/student/Students';
+import StudentManagement from '@/pages/teacher/StudentManagement';
+import LearningPathsPage from '@/pages/student/LearningPathsPage';
+import BookmarksPage from '@/pages/student/BookmarksPage';
+import SchedulePage from '@/pages/student/SchedulePage';
+import StudyGroupsPage from '@/pages/student/StudyGroupsPage';
+import HelpPage from '@/pages/student/HelpPage';
+import TeacherProfile from '@/pages/teacher/TeacherProfile';
+import { queryClient } from '@/lib/queryClient';
+import '@/i18n/config';
 
 // Define types
 type ReactNode = React.ReactNode;
@@ -367,7 +371,7 @@ function AppContent() {
           element={
             <TeacherRoute>
               <DashboardLayout>
-                <Students />
+                <StudentManagement />
               </DashboardLayout>
             </TeacherRoute>
           } 
@@ -462,6 +466,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <UserManagement />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/teacher-applications" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <TeacherApplications />
               </DashboardLayout>
             </AdminRoute>
           } 
@@ -691,12 +706,12 @@ function AppContent() {
           } 
         />
 
-        {/* Default route - redirect to login or dashboard based on auth status */}
+        {/* Landing Page - Public route */}
         <Route 
           path="/" 
           element={
             <PublicRoute>
-              <Navigate to="/login" replace />
+              <Landing />
             </PublicRoute>
           } 
         />
@@ -731,20 +746,24 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <UserProvider>
-            <OnboardingProvider>
-              <NotificationProvider>
-                <ConfirmDialogProvider>
-                  <AppContent />
-                  <NotificationSystem />
-                </ConfirmDialogProvider>
-              </NotificationProvider>
-            </OnboardingProvider>
-          </UserProvider>
-        </AuthProvider>
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <AuthProvider>
+            <UserProvider>
+              <OnboardingProvider>
+                <NotificationProvider>
+                  <ConfirmDialogProvider>
+                    <ErrorBoundary>
+                      <AppContent />
+                      <NotificationSystem />
+                    </ErrorBoundary>
+                  </ConfirmDialogProvider>
+                </NotificationProvider>
+              </OnboardingProvider>
+            </UserProvider>
+          </AuthProvider>
+        </Router>
+      </ErrorBoundary>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

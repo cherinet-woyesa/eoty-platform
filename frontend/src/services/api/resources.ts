@@ -7,7 +7,7 @@ import type {
   ResourceResponse, 
   FilterOptions,
   CreateNoteRequest 
-} from '../../types/resources';
+} from '@/types/resources';
 
 export const resourcesApi = {
   // Get resources with filtering

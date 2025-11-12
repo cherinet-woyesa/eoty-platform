@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { supportedLanguages } from '../../i18n/config';
+import { supportedLanguages } from '@/i18n/config';
 import { Globe } from 'lucide-react';
 
 const LanguageSelector: React.FC = () => {

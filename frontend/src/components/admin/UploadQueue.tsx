@@ -21,7 +21,7 @@ import {
 	XCircle,
 	AlertCircle,
 } from 'lucide-react';
-import type { ContentUpload } from '../../types/admin';
+import type { ContentUpload } from '@/types/admin';
 
 interface UploadQueueProps {
 	uploads: ContentUpload[];

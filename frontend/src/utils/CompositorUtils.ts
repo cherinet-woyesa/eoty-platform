@@ -4,7 +4,7 @@
  * coordinate transformations, and smooth transitions
  */
 
-import type { CompositorLayout, SourceLayout } from '../types/VideoCompositor';
+import type { CompositorLayout, SourceLayout } from '@/types/VideoCompositor';
 
 /**
  * Calculate aspect ratio from width and height

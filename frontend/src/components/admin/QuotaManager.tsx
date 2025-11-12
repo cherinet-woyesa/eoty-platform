@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../services/api/admin';
-import type { ContentQuota } from '../../services/api/admin';
+import { adminApi } from '@/services/api/admin';
+import type { ContentQuota } from '@/services/api/admin';
 import { 
   Database, 
   RefreshCw, 

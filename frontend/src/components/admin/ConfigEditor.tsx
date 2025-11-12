@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
-import { LoadingButton, Spinner } from '../shared/LoadingStates';
-import { useNotification } from '../../context/NotificationContext';
+import { LoadingButton, Spinner } from '@/components/shared/LoadingStates';
+import { useNotification } from '@/context/NotificationContext';
 
 interface ConfigEditorField {
   name: string;

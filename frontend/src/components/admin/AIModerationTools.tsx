@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../services/api';
+import { adminApi } from '@/services/api';
 import { AlertTriangle, CheckCircle, XCircle, ArrowUpCircle, BarChart3 } from 'lucide-react';
 import MetricsCard from './MetricsCard';
 

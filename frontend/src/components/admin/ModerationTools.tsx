@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../services/api';
-import type { FlaggedContent } from '../../types/admin';
+import { adminApi } from '@/services/api';
+import type { FlaggedContent } from '@/types/admin';
 
 const ModerationTools: React.FC = () => {
   const [flaggedContent, setFlaggedContent] = useState<FlaggedContent[]>([]);

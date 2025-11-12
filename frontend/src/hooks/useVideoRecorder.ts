@@ -1,14 +1,14 @@
 // frontend/src/hooks/useVideoRecorder.ts
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { VideoCompositor } from '../utils/VideoCompositor';
-import type { PerformanceMetrics, LayoutType } from '../types/VideoCompositor';
+import { VideoCompositor } from '@/utils/VideoCompositor';
+import type { PerformanceMetrics, LayoutType } from '@/types/VideoCompositor';
 import { 
   checkBrowserSupport, 
   getBrowserCompatibilityMessage,
   getBrowserSpecificBehavior,
   logBrowserCompatibility,
   type BrowserSupport 
-} from '../utils/BrowserCompatibility';
+} from '@/utils/BrowserCompatibility';
 
 // Extended interface for multi-source recording with slide support
 interface RecorderOptions {

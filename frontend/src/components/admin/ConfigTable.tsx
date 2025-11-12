@@ -9,7 +9,7 @@ import {
   EyeOff,
   Info
 } from 'lucide-react';
-import { TableSkeleton } from '../shared/LoadingStates';
+import { TableSkeleton } from '@/components/shared/LoadingStates';
 
 export interface ConfigTableColumn {
   key: string;

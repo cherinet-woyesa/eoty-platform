@@ -8,7 +8,8 @@ const upload = require('../middleware/upload');
 const { videoUploadLimiter } = require('../middleware/rateLimiter');
 
 // Public Video streaming routes (no authentication required for streaming)
-router.get('/stream/:filename', videoController.streamVideo);
+// NOTE: S3 video streaming route deprecated - all videos use Mux
+// router.get('/stream/:filename', videoController.streamVideo); // Deprecated
 router.get('/subtitles/:filename', videoController.streamSubtitle);
 
 // Public Video metadata and availability routes (no authentication required for metadata)
@@ -19,7 +20,8 @@ router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailabi
 router.use(authenticateToken);
 
 // Video upload routes (teacher/admin only)
-router.post('/upload', videoUploadLimiter, requirePermission('video:upload'), upload.single('video'), videoController.uploadVideo);
+// NOTE: S3 video upload route removed - all new uploads use Mux direct upload
+// POST /api/videos/mux/upload-url is the new upload method
 router.post('/subtitles', requirePermission('video:upload'), upload.single('subtitle'), videoController.uploadSubtitle);
 
 // Notification routes

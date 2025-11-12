@@ -150,6 +150,13 @@ const courseController = {
         )
         .first();
 
+      // Emit WebSocket event for real-time dashboard update
+      const websocketService = require('../services/websocketService');
+      websocketService.sendDashboardUpdate(teacherId, 'course_created', {
+        courseId: courseId,
+        message: 'New course created'
+      });
+
       res.status(201).json({
         success: true,
         message: 'Course created successfully',
@@ -197,6 +204,14 @@ const courseController = {
       const lessonId = lessonIdResult[0].id;
 
       const lesson = await db('lessons').where({ id: lessonId }).first();
+
+      // Emit WebSocket event for real-time dashboard update
+      const websocketService = require('../services/websocketService');
+      websocketService.sendDashboardUpdate(teacherId, 'lesson_created', {
+        lessonId: lessonId,
+        courseId: courseId,
+        message: 'New lesson created'
+      });
 
       res.status(201).json({
         success: true,
@@ -1040,7 +1055,7 @@ const courseController = {
     try {
       const userId = req.user.userId;
       const { lessonId } = req.params;
-      const { title, description, order, duration, video_url, is_published, resources, thumbnail_url, allow_download } = req.body;
+      const { title, description, order, duration, video_url, is_published, resources, thumbnail_url, allow_download, metadata } = req.body;
 
       // Get lesson with course info (ownership already verified by middleware)
       const lesson = await db('lessons as l')
@@ -1078,6 +1093,10 @@ const courseController = {
           updateData.published_at = new Date();
         }
       }
+      if (metadata !== undefined) {
+        // Store metadata as JSON string if it's an object
+        updateData.metadata = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+      }
 
       // Update the lesson
       await db('lessons').where({ id: lessonId }).update(updateData);
@@ -1091,6 +1110,17 @@ const courseController = {
           updatedLesson.resources = JSON.parse(updatedLesson.resources);
         } catch (e) {
           updatedLesson.resources = [];
+        }
+      }
+
+      // Parse metadata back to object if it exists
+      if (updatedLesson.metadata) {
+        try {
+          updatedLesson.metadata = typeof updatedLesson.metadata === 'string' 
+            ? JSON.parse(updatedLesson.metadata) 
+            : updatedLesson.metadata;
+        } catch (e) {
+          updatedLesson.metadata = {};
         }
       }
 
@@ -1241,19 +1271,13 @@ const courseController = {
       const videoProviderDetection = require('../utils/videoProviderDetection');
 
       // Get lesson with video info
+      // For Mux videos, we don't need the videos table join
+      // For legacy S3 videos, we'll handle them separately if needed
       const lesson = await db('lessons as l')
-        .leftJoin('videos as v', 'l.video_id', 'v.id')
         .leftJoin('courses as c', 'l.course_id', 'c.id')
         .where('l.id', lessonId)
         .select(
           'l.*',
-          'v.status as video_status',
-          'v.processing_progress',
-          'v.error_message',
-          'v.size_bytes',
-          'v.duration as video_duration',
-          'v.created_at as upload_started_at',
-          'v.updated_at as last_updated_at',
           'c.created_by as course_owner'
         )
         .first();
@@ -1297,7 +1321,96 @@ const courseController = {
       };
 
       if (provider === 'mux') {
+        // Sync with Mux if status is stuck (has upload_id but no asset_id, or has asset_id but no playback_id)
+        const muxService = require('../services/muxService');
+        
+        // If we have upload_id but no asset_id, check upload status
+        if (lesson.mux_upload_id && !lesson.mux_asset_id) {
+          try {
+            console.log(`🔄 Syncing Mux upload status for lesson ${lessonId}, upload_id: ${lesson.mux_upload_id}`);
+            const upload = await muxService.getUpload(lesson.mux_upload_id);
+            
+            // Mux upload object has asset_id property
+            const assetId = upload.asset_id || upload.assetId;
+            if (assetId) {
+              // Upload created an asset, update lesson
+              console.log(`✅ Found asset_id from upload: ${assetId}`);
+              await db('lessons')
+                .where({ id: lessonId })
+                .update({
+                  mux_asset_id: assetId,
+                  mux_status: 'processing',
+                  mux_created_at: db.fn.now(),
+                  updated_at: db.fn.now()
+                });
+              
+              // Refresh lesson data
+              const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+              lesson.mux_asset_id = updatedLesson.mux_asset_id;
+              lesson.mux_status = updatedLesson.mux_status;
+            }
+          } catch (error) {
+            console.warn(`⚠️  Failed to sync upload status: ${error.message}`);
+          }
+        }
+        
+        // If we have asset_id but no playback_id, check asset status
+        if (lesson.mux_asset_id && !lesson.mux_playback_id) {
+          try {
+            console.log(`🔄 Syncing Mux asset status for lesson ${lessonId}, asset_id: ${lesson.mux_asset_id}`);
+            const asset = await muxService.getAsset(lesson.mux_asset_id);
+            
+            if (asset.status === 'ready' && asset.playbackIds && asset.playbackIds.length > 0) {
+              // Asset is ready, update lesson with playback_id
+              const playbackId = asset.playbackIds[0].id;
+              console.log(`✅ Found playback_id from asset: ${playbackId}`);
+              
+              await db('lessons')
+                .where({ id: lessonId })
+                .update({
+                  mux_playback_id: playbackId,
+                  mux_status: 'ready',
+                  video_provider: 'mux',
+                  updated_at: db.fn.now()
+                });
+              
+              // Refresh lesson data
+              const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+              lesson.mux_playback_id = updatedLesson.mux_playback_id;
+              lesson.mux_status = updatedLesson.mux_status;
+              
+              // Send WebSocket update
+              const websocketService = require('../services/websocketService');
+              websocketService.sendProgress(lessonId.toString(), {
+                type: 'complete',
+                progress: 100,
+                currentStep: 'Video ready',
+                provider: 'mux',
+                playbackId: playbackId
+              });
+            } else if (asset.status === 'errored') {
+              // Asset errored, update lesson
+              console.log(`❌ Asset errored: ${asset.errors || 'Unknown error'}`);
+              await db('lessons')
+                .where({ id: lessonId })
+                .update({
+                  mux_status: 'errored',
+                  mux_error_message: JSON.stringify(asset.errors || {}),
+                  updated_at: db.fn.now()
+                });
+              
+              const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+              lesson.mux_status = updatedLesson.mux_status;
+              lesson.mux_error_message = updatedLesson.mux_error_message;
+            }
+          } catch (error) {
+            console.warn(`⚠️  Failed to sync asset status: ${error.message}`);
+          }
+        }
+        
         statusData.videoStatus = lesson.mux_status || 'preparing';
+        statusData.muxStatus = lesson.mux_status || 'preparing'; // Add for frontend compatibility
+        statusData.muxPlaybackId = lesson.mux_playback_id || null; // Add for frontend compatibility
         statusData.errorMessage = lesson.mux_error_message || null;
         statusData.uploadStartedAt = lesson.mux_created_at;
         statusData.metadata = {
@@ -1306,16 +1419,34 @@ const courseController = {
           uploadId: lesson.mux_upload_id
         };
       } else if (provider === 's3') {
-        statusData.videoStatus = lesson.video_status || 'ready';
-        statusData.processingProgress = lesson.processing_progress || 100;
-        statusData.errorMessage = lesson.error_message || null;
-        statusData.fileSize = lesson.size_bytes || 0;
-        statusData.uploadStartedAt = lesson.upload_started_at;
-        statusData.metadata = {
-          s3Key: lesson.s3_key,
-          videoUrl: lesson.video_url,
-          hlsUrl: lesson.hls_url
-        };
+        // For legacy S3 videos, try to get video info if video_id exists
+        if (lesson.video_id) {
+          try {
+            const video = await db('videos')
+              .where('id', lesson.video_id)
+              .first();
+            
+            if (video) {
+              statusData.videoStatus = video.status || 'ready';
+              statusData.processingProgress = video.processing_progress || 100;
+              statusData.errorMessage = video.error_message || null;
+              statusData.fileSize = video.size_bytes || 0;
+              statusData.uploadStartedAt = video.created_at;
+              statusData.metadata = {
+                s3Key: video.s3_key,
+                videoUrl: video.video_url,
+                hlsUrl: video.hls_url
+              };
+            } else {
+              statusData.videoStatus = 'no_video';
+            }
+          } catch (err) {
+            console.warn('Could not fetch legacy video info:', err.message);
+            statusData.videoStatus = 'no_video';
+          }
+        } else {
+          statusData.videoStatus = 'no_video';
+        }
       } else {
         statusData.videoStatus = 'no_video';
       }
@@ -1401,6 +1532,14 @@ const courseController = {
         course_id: courseId,
         enrollment_status: 'active',
         enrolled_at: new Date()
+      });
+
+      // Emit WebSocket event to notify the course creator (teacher)
+      const websocketService = require('../services/websocketService');
+      websocketService.sendDashboardUpdate(course.created_by, 'student_enrolled', {
+        courseId: courseId,
+        studentId: userId,
+        message: 'New student enrolled in your course'
       });
 
       res.json({

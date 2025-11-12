@@ -152,10 +152,19 @@ class VideoProcessingService {
       // Check if FFmpeg is available before attempting transcoding
       const { exec } = require('child_process');
       const ffmpegAvailable = await new Promise((resolve) => {
-        exec('which ffmpeg || command -v ffmpeg', (error) => {
+        // Add timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          console.warn('FFmpeg check timed out - assuming not available');
+          resolve(false);
+        }, 2000); // 2 second timeout
+        
+        exec('which ffmpeg || command -v ffmpeg', { timeout: 2000 }, (error) => {
+          clearTimeout(timeout);
           resolve(!error);
         });
       });
+      
+      console.log('FFmpeg available:', ffmpegAvailable);
 
       if (!ffmpegAvailable) {
         console.warn('⚠️ FFmpeg not available - skipping HLS transcoding, using direct video URL');
@@ -190,12 +199,20 @@ class VideoProcessingService {
           console.log('Starting HLS transcoding for', s3Key);
           try {
             websocketService.sendProgress(lessonId, { type: 'progress', progress: 40, currentStep: 'Transcoding to HLS format' });
-            // Start HLS transcoding for MP4 and other formats
-            hlsUrl = await transcodeToHLS({
+            
+            // Add timeout wrapper for transcoding (30 seconds max)
+            const transcodePromise = transcodeToHLS({
               s3Bucket: cloudStorageService.bucket, // Pass the S3 bucket name
               s3Key: s3Key,
               outputPrefix: outputPrefix,
             });
+            
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Transcoding timeout - FFmpeg may not be available')), 30000);
+            });
+            
+            // Start HLS transcoding for MP4 and other formats with timeout
+            hlsUrl = await Promise.race([transcodePromise, timeoutPromise]);
             console.log('HLS transcoding completed, URL:', hlsUrl);
             websocketService.sendProgress(lessonId, { type: 'progress', progress: 60, currentStep: 'HLS transcoding complete' });
           } catch (transcodeError) {

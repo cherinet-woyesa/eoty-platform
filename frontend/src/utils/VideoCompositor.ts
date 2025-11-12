@@ -5,7 +5,7 @@ import type {
   PerformanceMetrics,
   SourceLayout,
   LayoutType
-} from '../types/VideoCompositor';
+} from '@/types/VideoCompositor';
 import { getLayoutByType, getAvailableLayoutTypes } from './CompositorLayouts';
 import { AudioMixer, type AudioSourceConfig } from './AudioMixer';
 

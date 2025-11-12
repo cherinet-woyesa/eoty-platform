@@ -7,9 +7,9 @@ import {
   Star,
   Zap
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { studentNavItems } from '../../../config/navigation';
-import { filterNavItems } from '../../../utils/navigationFilter';
+import { useAuth } from '@/context/AuthContext';
+import { studentNavItems } from '@/config/navigation';
+import { filterNavItems } from '@/utils/navigationFilter';
 
 interface StudentSidebarProps {
   isCollapsed?: boolean;

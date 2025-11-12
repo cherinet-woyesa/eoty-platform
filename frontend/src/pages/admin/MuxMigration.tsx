@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Server
 } from 'lucide-react';
-import { apiClient } from '../../services/api';
+import { apiClient } from '@/services/api';
 
 interface EligibleVideo {
   id: number;

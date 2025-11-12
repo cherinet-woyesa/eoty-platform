@@ -1,5 +1,5 @@
 import { apiClient } from './index';
-import type { Chapter } from '../../types/community';
+import type { Chapter } from '@/types/community';
 
 export const chaptersApi = {
   // Get all active chapters

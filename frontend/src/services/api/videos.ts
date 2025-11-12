@@ -16,10 +16,13 @@ export const publicApiClient = {
 };
 
 export const videoApi = {
-  // FIXED: Upload video with enhanced error handling and file validation
- // Replace the uploadVideo method with this:
-
-uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number) => void) => {
+  /**
+   * @deprecated S3 video upload is deprecated. Use Mux direct upload instead.
+   * All new uploads should use createMuxUploadUrl() and MuxVideoUploader component.
+   * This method is kept for backward compatibility only.
+   */
+  uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number) => void) => {
+    console.warn('⚠️ uploadVideo is deprecated. Use Mux direct upload instead.');
   try {
     console.log('=== UPLOAD PROCESS START ===');
     console.log('Upload parameters:', {
@@ -422,7 +425,10 @@ uploadVideo: async (file: File, lessonId: string, onProgress?: (progress: number
     }
   },
 
-  // Poll for video processing completion with smart backoff
+  /**
+   * @deprecated S3 video processing polling is deprecated. Mux handles processing automatically via webhooks.
+   * This method is kept for backward compatibility with legacy S3 videos only.
+   */
   pollProcessingStatus: async (
     lessonId: string,
     maxAttempts: number = 30,

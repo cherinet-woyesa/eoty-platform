@@ -494,6 +494,94 @@ class VideoAnalyticsService {
       throw error;
     }
   }
+
+  /**
+   * Get engagement heatmap data for a lesson
+   * Returns watch count per timestamp segment
+   * 
+   * @param {number} lessonId - Lesson ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Engagement heatmap data
+   */
+  async getEngagementHeatmap(lessonId, options = {}) {
+    try {
+      const { timeframe = '7:days', segments = 100 } = options;
+
+      // Get lesson duration
+      const lesson = await db('lessons')
+        .where({ id: lessonId })
+        .select('id', 'title', 'video_duration')
+        .first();
+
+      if (!lesson) {
+        throw new Error(`Lesson ${lessonId} not found`);
+      }
+
+      // Get video duration (from lesson or calculate from video_analytics)
+      let videoDuration = lesson.video_duration;
+      if (!videoDuration) {
+        const durationData = await db('video_analytics')
+          .where({ lesson_id: lessonId })
+          .whereNotNull('video_duration_seconds')
+          .select(db.raw('MAX(video_duration_seconds) as max_duration'))
+          .first();
+        videoDuration = durationData?.max_duration || 600; // Default to 10 minutes
+      }
+
+      // Apply timeframe filter
+      let dateFilter = db('user_lesson_progress')
+        .where({ lesson_id: lessonId })
+        .whereNotNull('last_watched_timestamp');
+
+      if (timeframe) {
+        const [amount, unit] = timeframe.split(':');
+        const daysAgo = unit === 'days' ? parseInt(amount) : 7;
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+        dateFilter = dateFilter.where('last_accessed_at', '>=', cutoffDate);
+      }
+
+      // Get watch history data
+      const watchHistory = await dateFilter
+        .select('last_watched_timestamp', 'progress')
+        .whereNotNull('last_watched_timestamp');
+
+      // Segment duration
+      const segmentDuration = videoDuration / segments;
+
+      // Aggregate watch data by segment
+      const segmentData = Array(segments).fill(0).map((_, i) => ({
+        startTime: i * segmentDuration,
+        endTime: (i + 1) * segmentDuration,
+        watchCount: 0
+      }));
+
+      // Count watches per segment
+      watchHistory.forEach((record) => {
+        const timestamp = parseFloat(record.last_watched_timestamp) || 0;
+        if (timestamp >= 0 && timestamp <= videoDuration) {
+          const segmentIndex = Math.floor(timestamp / segmentDuration);
+          if (segmentIndex >= 0 && segmentIndex < segments) {
+            segmentData[segmentIndex].watchCount++;
+          }
+        }
+      });
+
+      return {
+        lessonId,
+        videoDuration,
+        segments,
+        segmentData: segmentData.map(s => ({
+          timestamp: s.startTime,
+          watchCount: s.watchCount
+        })),
+        totalWatches: watchHistory.length
+      };
+    } catch (error) {
+      console.error(`Failed to get engagement heatmap for lesson ${lessonId}:`, error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new VideoAnalyticsService();

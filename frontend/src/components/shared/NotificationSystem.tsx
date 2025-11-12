@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { useNotification, type Notification, type NotificationType } from '../../context/NotificationContext';
-import { theme } from '../../styles/theme';
+import { useNotification, type Notification, type NotificationType } from '@/context/NotificationContext';
+import { theme } from '@/styles/theme';
 
 const notificationConfig: Record<NotificationType, { icon: React.ElementType; bgColor: string; iconColor: string; borderColor: string }> = {
   success: {

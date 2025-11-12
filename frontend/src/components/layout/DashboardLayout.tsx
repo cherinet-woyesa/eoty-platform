@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import Header from './Header/Header';
 import Sidebar from './Sidebar/BaseSidebar';
 import AdminSidebar from './Sidebar/AdminSidebar';
 import StudentSidebar from './Sidebar/StudentSidebar';
 import TeacherSidebar from './Sidebar/TeacherSidebar';
-import { useOnboarding } from '../../context/OnboardingContext';
-import WelcomeMessage from '../onboarding/WelcomeMessage';
-import { useHotkeys } from '../../hooks/useHotkeys';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { useOnboarding } from '@/context/OnboardingContext';
+import WelcomeMessage from '@/components/shared/onboarding/WelcomeMessage';
+import { useHotkeys } from '@/hooks/useHotkeys';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

@@ -8,10 +8,10 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { getMetrics } from '../../../services/api/systemConfig';
-import { adminNavItems } from '../../../config/navigation';
-import { filterNavItems } from '../../../utils/navigationFilter';
+import { useAuth } from '@/context/AuthContext';
+import { getMetrics } from '@/services/api/systemConfig';
+import { adminNavItems } from '@/config/navigation';
+import { filterNavItems } from '@/utils/navigationFilter';
 
 interface AdminSidebarProps {
   isCollapsed?: boolean;

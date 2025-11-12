@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { coursesApi } from '../../services/api';
+import { coursesApi } from '@/services/api';
 import { 
   ArrowLeft, BookOpen, Users, BarChart, Settings, 
   Eye, EyeOff, Trash2, Edit, Calendar, TrendingUp,

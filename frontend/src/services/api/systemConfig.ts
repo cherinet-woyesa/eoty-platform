@@ -24,7 +24,7 @@ import type {
   DurationsResponse,
   TagsResponse,
   ChaptersResponse
-} from '../../types/systemConfig';
+} from '@/types/systemConfig';
 
 const BASE_URL = '/system-config';
 

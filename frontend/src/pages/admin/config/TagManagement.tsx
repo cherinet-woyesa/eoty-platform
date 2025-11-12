@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Tag, Shuffle } from 'lucide-react';
-import { systemConfigApi } from '../../../services/api/systemConfig';
-import { ConfigTable, StatusBadge, UsageBadge } from '../../../components/admin/ConfigTable';
-import type { ConfigTableColumn } from '../../../components/admin/ConfigTable';
-import { BulkActionBar } from '../../../components/admin/BulkActionBar';
-import { UsageAnalytics } from '../../../components/admin/UsageAnalytics';
-import { useNotification } from '../../../context/NotificationContext';
-import { useConfirmDialog } from '../../../context/ConfirmDialogContext';
-import type { ContentTag, TagFormData } from '../../../types/systemConfig';
+import { systemConfigApi } from '@/services/api/systemConfig';
+import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/ConfigTable';
+import type { ConfigTableColumn } from '@/components/admin/ConfigTable';
+import { BulkActionBar } from '@/components/admin/BulkActionBar';
+import { UsageAnalytics } from '@/components/admin/UsageAnalytics';
+import { useNotification } from '@/context/NotificationContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import type { ContentTag, TagFormData } from '@/types/systemConfig';
 
 export const TagManagement = () => {
   const queryClient = useQueryClient();

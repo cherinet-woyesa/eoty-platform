@@ -10,4 +10,11 @@ router.use(authenticateToken, requireRole(['teacher', 'admin']));
 // GET /api/teacher/dashboard
 router.get('/dashboard', teacherController.getDashboard);
 
+// Student Management
+// GET /api/teacher/students - Get all students enrolled in teacher's courses
+router.get('/students', teacherController.getStudents);
+
+// GET /api/teacher/students/:studentId - Get student details with progress
+router.get('/students/:studentId', teacherController.getStudentDetails);
+
 module.exports = router;

@@ -1,13 +1,13 @@
 import React, { useState, useCallback, memo } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
 import NotificationBell from './NotificationBell';
 import { Menu, X } from 'lucide-react';
-import LanguageSelector from '../../common/LanguageSelector';
+import LanguageSelector from '@/components/common/LanguageSelector';
 import BreadcrumbNav from './BreadcrumbNav';
 import QuickActions from './QuickActions';
-import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;

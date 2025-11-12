@@ -3,10 +3,31 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
 
+// Helper function to convert relative profile picture path to full URL
+function getProfilePictureUrl(relativePath) {
+  if (!relativePath) return null;
+  if (relativePath.startsWith('http')) return relativePath;
+  
+  const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return `${baseUrl}${relativePath}`;
+}
+
 const authController = {
   async register(req, res) {
     try {
-      const { firstName, lastName, email, password, chapter, role = 'student' } = req.body;
+      const { 
+        firstName, 
+        lastName, 
+        email, 
+        password, 
+        chapter, 
+        role = 'student',
+        // Teacher application fields
+        applicationText,
+        qualifications,
+        experience,
+        subjectAreas
+      } = req.body;
 
       console.log('Registration attempt:', { firstName, lastName, email, chapter, role });
 
@@ -35,9 +56,29 @@ const authController = {
         });
       }
 
-      // For public registration, only allow 'student' role
-      // Other roles must be assigned by admins
-      const userRole = role === 'student' ? 'student' : 'student';
+      // Validate role
+      const validRoles = ['student', 'teacher'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role specified'
+        });
+      }
+
+      // If teacher role, validate application fields
+      if (role === 'teacher') {
+        if (!applicationText || !qualifications) {
+          return res.status(400).json({
+            success: false,
+            message: 'Application text and qualifications are required for teacher registration'
+          });
+        }
+      }
+
+      // Users always start as 'student' role, but we track requested role
+      // If teacher, status will be 'pending_teacher' until approved
+      const userRole = 'student';
+      const userStatus = role === 'teacher' ? 'pending_teacher' : 'active';
 
       // Check if user already exists
       const existingUser = await db('users').where({ email }).first();
@@ -76,6 +117,8 @@ const authController = {
         email: email.toLowerCase(),
         password_hash: passwordHash,
         role: userRole,
+        role_requested: role, // Track requested role
+        status: userStatus, // Set status based on role request
         chapter_id: chapterId, // Use validated chapter ID
         is_active: true,
         created_at: new Date(),
@@ -86,7 +129,41 @@ const authController = {
       const result = await db('users').insert(userData).returning('id');
       const userId = result[0].id;
 
-      console.log('User created with ID:', userId, 'Role:', userRole);
+      console.log('User created with ID:', userId, 'Role:', userRole, 'Status:', userStatus, 'Requested:', role);
+
+      // If teacher application, create application record
+      if (role === 'teacher') {
+        try {
+          // Parse subject_areas if it's a string, otherwise use as-is
+          let subjectAreasJson = null;
+          if (subjectAreas) {
+            if (typeof subjectAreas === 'string') {
+              // If it's a comma-separated string, convert to array
+              subjectAreasJson = subjectAreas.includes(',') 
+                ? subjectAreas.split(',').map(s => s.trim()).filter(s => s)
+                : [subjectAreas.trim()];
+            } else if (Array.isArray(subjectAreas)) {
+              subjectAreasJson = subjectAreas;
+            }
+          }
+          
+          await db('teacher_applications').insert({
+            user_id: userId,
+            application_text: applicationText,
+            qualifications: qualifications,
+            experience: experience || null,
+            subject_areas: subjectAreasJson,
+            status: 'pending',
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+          console.log('Teacher application created for user:', userId);
+        } catch (appError) {
+          console.error('Error creating teacher application:', appError);
+          // Don't fail registration if application creation fails
+          // User is still created and can reapply later
+        }
+      }
 
       // Generate JWT token
       const token = jwt.sign(
@@ -105,12 +182,16 @@ const authController = {
       // Get the created user without password
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'role_requested', 'status', 'chapter_id', 'is_active')
         .first();
+
+      const responseMessage = role === 'teacher' 
+        ? 'Account created successfully! Your teacher application is pending review. You can use the platform as a student while waiting for approval.'
+        : 'User registered successfully';
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: responseMessage,
         data: {
           user: {
             id: user.id,
@@ -118,10 +199,13 @@ const authController = {
             lastName: user.last_name,
             email: user.email,
             role: user.role,
+            roleRequested: user.role_requested,
+            status: user.status,
             chapter: user.chapter_id,
             isActive: user.is_active
           },
-          token
+          token,
+          isTeacherApplication: role === 'teacher'
         }
       });
 
@@ -149,9 +233,10 @@ const authController = {
         });
       }
 
-      // Find user
+      // Find user (include profile_picture)
       const user = await db('users')
         .where({ email: email.toLowerCase() })
+        .select('id', 'first_name', 'last_name', 'email', 'password_hash', 'role', 'chapter_id', 'is_active', 'profile_picture')
         .first();
 
       if (!user) {
@@ -222,7 +307,8 @@ const authController = {
             email: user.email,
             role: user.role,
             chapter: user.chapter_id,
-            isActive: user.is_active
+            isActive: user.is_active,
+            profilePicture: getProfilePictureUrl(user.profile_picture)
           },
           token
         }
@@ -353,7 +439,7 @@ const authController = {
             role: user.role,
             chapter: user.chapter_id,
             isActive: user.is_active,
-            profilePicture: user.profile_picture
+            profilePicture: getProfilePictureUrl(user.profile_picture)
           },
           token
         }
@@ -372,7 +458,7 @@ const authController = {
     try {
       const user = await db('users')
         .where({ id: req.user.userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education')
         .first();
 
       if (!user) {
@@ -380,6 +466,21 @@ const authController = {
           success: false,
           message: 'User not found'
         });
+      }
+
+      // Parse specialties safely
+      let specialties = [];
+      if (user.specialties) {
+        if (typeof user.specialties === 'object') {
+          specialties = Array.isArray(user.specialties) ? user.specialties : [];
+        } else if (typeof user.specialties === 'string' && user.specialties.trim()) {
+          try {
+            specialties = JSON.parse(user.specialties);
+          } catch (e) {
+            console.warn('Failed to parse specialties JSON:', e.message);
+            specialties = [];
+          }
+        }
       }
 
       res.json({
@@ -394,7 +495,13 @@ const authController = {
             chapter: user.chapter_id,
             isActive: user.is_active,
             lastLoginAt: user.last_login_at,
-            profilePicture: user.profile_picture
+            profilePicture: getProfilePictureUrl(user.profile_picture),
+            bio: user.bio || '',
+            phone: user.phone || '',
+            location: user.location || '',
+            specialties: specialties,
+            teachingExperience: user.teaching_experience || 0,
+            education: user.education || ''
           }
         }
       });
@@ -484,15 +591,15 @@ const authController = {
       // 2. Save the URL to the user's profile in the database
       // 3. Return the URL to the frontend
 
-      // For now, we'll simulate the upload by returning a placeholder URL
-      // In a real implementation, you would replace this with actual file storage logic
-      const profilePictureUrl = `/uploads/profiles/${req.file.filename}`;
+      // Construct full URL for profile picture
+      const relativePath = `/uploads/profiles/${req.file.filename}`;
+      const profilePictureUrl = getProfilePictureUrl(relativePath);
 
-      // Update user's profile picture in database
+      // Update user's profile picture in database (store relative path, return full URL)
       await db('users')
         .where({ id: req.user.userId })
         .update({ 
-          profile_picture: profilePictureUrl,
+          profile_picture: relativePath, // Store relative path in DB
           updated_at: new Date()
         });
 
@@ -500,7 +607,7 @@ const authController = {
         success: true,
         message: 'Profile picture uploaded successfully',
         data: {
-          profilePicture: profilePictureUrl
+          profilePicture: profilePictureUrl // Return full URL to frontend
         }
       });
     } catch (error) {
@@ -518,6 +625,19 @@ const authController = {
       const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education } = req.body;
       const userId = req.user.userId;
 
+      // Extract relative path from profilePicture if it's a full URL
+      let profilePicturePath = profilePicture;
+      if (profilePicture && profilePicture.startsWith('http')) {
+        // Extract the path after the base URL
+        const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+        if (profilePicture.startsWith(baseUrl)) {
+          profilePicturePath = profilePicture.replace(baseUrl, '');
+        } else {
+          // If it's a different URL (e.g., Google profile picture), keep it as is
+          profilePicturePath = profilePicture;
+        }
+      }
+
       // Update user profile in database
       const updateData = {
         first_name: firstName,
@@ -525,7 +645,7 @@ const authController = {
         bio: bio || null,
         phone: phone || null,
         location: location || null,
-        profile_picture: profilePicture || null,
+        profile_picture: profilePicturePath || null,
         specialties: specialties ? JSON.stringify(specialties) : null,
         teaching_experience: teachingExperience || null,
         education: education || null,
@@ -555,11 +675,27 @@ const authController = {
             chapter: user.chapter_id,
             isActive: user.is_active,
             lastLoginAt: user.last_login_at,
-            profilePicture: user.profile_picture,
+            profilePicture: getProfilePictureUrl(user.profile_picture),
             bio: user.bio,
             phone: user.phone,
             location: user.location,
-            specialties: user.specialties ? JSON.parse(user.specialties) : [],
+            specialties: (() => {
+              if (!user.specialties) return [];
+              // If it's already an object/array (PostgreSQL JSON returns as object)
+              if (typeof user.specialties === 'object') {
+                return Array.isArray(user.specialties) ? user.specialties : [];
+              }
+              // If it's a string, try to parse it
+              if (typeof user.specialties === 'string' && user.specialties.trim()) {
+                try {
+                  return JSON.parse(user.specialties);
+                } catch (e) {
+                  console.warn('Failed to parse specialties JSON:', e.message);
+                  return [];
+                }
+              }
+              return [];
+            })(),
             teachingExperience: user.teaching_experience,
             education: user.education
           }

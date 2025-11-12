@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { onboardingApi, type OnboardingFlow, type OnboardingProgress } from '../services/api/onboarding';
+import { onboardingApi, type OnboardingFlow, type OnboardingProgress } from '@/services/api/onboarding';
 import { useAuth } from './AuthContext';
 
 interface OnboardingContextType {

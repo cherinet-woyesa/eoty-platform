@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { forumsApi, achievementsApi } from '../services/api';
+import { forumsApi, achievementsApi } from '@/services/api';
 
 // Types
-import type { Forum, ForumTopic, ForumPost, UserBadge, LeaderboardEntry } from '../types/community';
+import type { Forum, ForumTopic, ForumPost, UserBadge, LeaderboardEntry } from '@/types/community';
 
 // Forum hooks
 export const useForums = () => {

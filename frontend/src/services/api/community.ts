@@ -9,7 +9,7 @@ import type {
   BadgeProgress,
   CreateTopicRequest,
   CreatePostRequest
-} from '../../types/community';
+} from '@/types/community';
 
 export const forumsApi = {
   // Get forums for user's chapter

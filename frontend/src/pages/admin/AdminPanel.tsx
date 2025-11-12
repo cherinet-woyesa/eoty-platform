@@ -11,7 +11,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AdminSidebar from '../../components/layout/Sidebar/AdminSidebar';
+import AdminSidebar from '@/components/layout/Sidebar/AdminSidebar';
 
 // Memoized stat cards
 const StatCard = React.memo(({ icon: Icon, title, value, color }: { icon: React.ElementType, title: string, value: string | number, color: string }) => (

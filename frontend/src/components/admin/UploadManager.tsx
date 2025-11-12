@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Filter, RefreshCw } from 'lucide-react';
-import UploadQueue from '../../components/admin/UploadQueue';
-import { useUploadQueue } from '../../hooks/useAdmin';
+import UploadQueue from '@/components/admin/UploadQueue';
+import { useUploadQueue } from '@/hooks/useAdmin';
 
 const UploadManager: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('pending');

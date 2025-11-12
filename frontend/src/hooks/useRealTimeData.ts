@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiClient, apiUtils } from '../services/api/apiClient';
+import { apiClient, apiUtils } from '@/services/api/apiClient';
 
 interface UseRealTimeDataOptions<T> {
   initialData: T;
@@ -256,6 +256,9 @@ export function useRealTimeData<T>(
       // Handle both response formats: { success: true, data: ... } and direct data
       const finalData = responseData.success !== undefined ? responseData.data : responseData;
       
+      console.log(`📊 Raw response from ${endpoint}:`, responseData);
+      console.log(`📊 Extracted data:`, finalData);
+      
       setData(finalData);
       setLastUpdated(new Date());
       setCachedData(finalData);
@@ -265,7 +268,8 @@ export function useRealTimeData<T>(
       
       console.log(`✅ Data fetched from ${endpoint}`, {
         timestamp: new Date().toISOString(),
-        fromCache: false
+        fromCache: false,
+        data: finalData
       });
       
     } catch (err: any) {

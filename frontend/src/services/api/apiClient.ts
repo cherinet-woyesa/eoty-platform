@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse, AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { parseApiError, logError } from '@/utils/errorHandler';
 
 // Demo mode flag - set to true to use mock data when backend is unavailable
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || false;
@@ -86,7 +87,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
-    const enhancedError = enhanceError(error);
+    // Parse error using centralized error handler
+    const errorInfo = parseApiError(error);
+    logError(error, `API: ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
     
     // Handle specific error cases
     if (error.response?.status === 401) {
@@ -125,15 +128,11 @@ apiClient.interceptors.response.use(
       }
     }
     
-    // Log detailed error information
-    console.error('❌ API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      code: error.code
-    });
+    // Enhance error with user-friendly message
+    const enhancedError = enhanceError(error);
+    (enhancedError as any).userMessage = errorInfo.userMessage;
+    (enhancedError as any).retryable = errorInfo.retryable;
+    (enhancedError as any).errorCode = errorInfo.code;
     
     return Promise.reject(enhancedError);
   }

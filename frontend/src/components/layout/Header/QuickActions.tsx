@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Video, BookOpen, Users, BarChart, Zap, Settings, FileText } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { useHotkeys } from '../../../hooks/useHotkeys';
+import { useAuth } from '@/context/AuthContext';
+import { useHotkeys } from '@/hooks/useHotkeys';
 
 interface QuickAction {
   id: string;

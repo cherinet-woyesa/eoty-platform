@@ -1,5 +1,5 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import { coursesApi } from '../services/api';
+import { coursesApi } from '@/services/api';
 
 interface EngagementAnalyticsParams {
   startDate?: string;

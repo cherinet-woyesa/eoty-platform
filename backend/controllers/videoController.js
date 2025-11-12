@@ -74,6 +74,7 @@ const getFileInfo = (filePath) => {
 // ============================================================================
 
 async function handleAssetReady(assetData) {
+  const websocketService = require('../services/websocketService');
   try {
     const assetId = assetData.id;
     const playbackIds = assetData.playback_ids || [];
@@ -138,7 +139,6 @@ async function handleAssetReady(assetData) {
     }, null, 2));
 
     // Send WebSocket update for processing completion
-    const websocketService = require('../services/websocketService');
     websocketService.sendProgress(lesson.id.toString(), {
       type: 'complete',
       progress: 100,
@@ -282,133 +282,31 @@ async function handleUploadError(uploadData) {
 }
 
 const videoController = {
-  // Upload video for a lesson to AWS S3 with transaction support
+  /**
+   * @deprecated S3 video upload is deprecated. All new uploads use Mux direct upload.
+   * This endpoint is kept for backward compatibility with legacy code only.
+   * Route has been removed - use POST /api/videos/mux/upload-url instead.
+   */
   async uploadVideo(req, res) {
-    try {
-      const teacherId = req.user.userId;
-      const { lessonId } = req.body;
-
-      if (!req.file) {
-        console.log('Video upload error: No file received');
-        return res.status(400).json({
-          success: false,
-          message: 'No video file received by server. The file may be too large, in wrong format, or the upload was interrupted.'
-        });
-      }
-      
-      if (!lessonId) {
-        console.log('Video upload error: Lesson ID is required');
-        return res.status(400).json({
-          success: false,
-          message: 'Lesson ID is required'
-        });
-      }
-      
-      const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
-      if (req.file.size > MAX_FILE_SIZE) {
-        console.log('Video upload error: File too large', { fileSize: req.file.size });
-        return res.status(400).json({
-          success: false,
-          message: 'Video file too large. Maximum size is 2GB.'
-        });
-      }
-      
-      
-
-      // Use video processing service with transaction support
-      const uploadResult = await videoProcessingService.uploadVideo(
-        req.file.buffer,
-        req.file.originalname,
-        lessonId,
-        teacherId,
-        { enableTranscoding: true }
-      );
-
-      res.json({
-        success: true,
-        message: 'Video uploaded and processing started',
-        data: {
-          videoId: uploadResult.videoId,
-          processingStatus: uploadResult.processingStatus,
-          videoUrl: uploadResult.videoUrl,
-          fileSize: uploadResult.fileSize,
-          transcodingQueued: uploadResult.transcodingQueued
-        }
-      });
-
-    } catch (error) {
-      console.error('Video upload error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to upload video: ' + error.message 
-      });
-    }
+    console.warn('⚠️  S3 video upload endpoint called - this is deprecated. Use Mux direct upload instead.');
+    return res.status(410).json({
+      success: false,
+      message: 'S3 video upload is deprecated. Please use Mux direct upload (POST /api/videos/mux/upload-url) instead.',
+      migrationGuide: 'See MUX_IMPLEMENTATION_PLAN.md for migration instructions'
+    });
   },
 
-  // Stream video file with enhanced security and signed URLs
+  /**
+   * @deprecated S3 video streaming is deprecated. All videos use Mux.
+   * This endpoint is kept for backward compatibility only.
+   */
   async streamVideo(req, res) {
-    try {
-      const { filename } = req.params;
-      const { quality } = req.query;
-      
-      console.log('Stream request:', { filename, quality });
-
-      // Security: Validate and sanitize filename
-      const safeFilename = sanitizeFilename(filename);
-
-      // Get video from database to verify existence
-      const video = await db('videos')
-        .where('storage_url', 'like', `%${safeFilename}`)
-        .select('*')
-        .first();
-
-      if (!video) {
-        return res.status(404).json({
-          success: false,
-          message: 'Video not found'
-        });
-      }
-
-      // Check video access permissions
-      if (req.user) {
-        const hasAccess = await this.checkVideoAccess(req.user.userId, video.lesson_id);
-        if (!hasAccess) {
-          return res.status(403).json({
-            success: false,
-            message: 'Access denied to this video'
-          });
-        }
-      }
-
-      // Use HLS URL if available and ready, otherwise use original with signed URL
-      let streamUrl;
-      if (video.hls_url && video.status === 'ready') {
-        streamUrl = video.hls_url;
-      } else if (video.s3_key) {
-        // Generate signed URL for original video
-        streamUrl = await cloudStorageService.getSignedStreamUrl(video.s3_key);
-      } else {
-        // Fallback to storage_url (for backward compatibility)
-        streamUrl = video.storage_url;
-      }
-
-      console.log('Streaming video:', {
-        videoId: video.id,
-        status: video.status,
-        streamUrl: streamUrl,
-        quality: quality
-      });
-
-      // Redirect to the secure streaming URL
-      res.redirect(streamUrl);
-
-    } catch (error) {
-      console.error('Video stream error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to stream video: ' + error.message
-      });
-    }
+    console.warn('⚠️  S3 video streaming endpoint called - this is deprecated. All videos use Mux.');
+    return res.status(410).json({
+      success: false,
+      message: 'S3 video streaming is deprecated. All videos use Mux for playback.',
+      migrationGuide: 'Use GET /api/videos/:lessonId/playback for Mux video playback'
+    });
   },
 
   // Check video access permissions
@@ -1546,6 +1444,15 @@ const videoController = {
     
     console.log(`✅ Mux upload URL created for lesson ${lessonId}`);
     console.log(`📊 Updated lesson:`, JSON.stringify(updatedLesson, null, 2));
+
+    // Send initial WebSocket update
+    const websocketService = require('../services/websocketService');
+    websocketService.sendProgress(lessonId.toString(), {
+      type: 'progress',
+      progress: 5,
+      currentStep: 'Upload URL created - ready for upload',
+      provider: 'mux'
+    });
 
     res.json({
       success: true,

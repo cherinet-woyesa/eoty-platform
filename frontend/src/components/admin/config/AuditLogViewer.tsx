@@ -10,10 +10,10 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { getAuditLogs } from '../../../services/api/systemConfig';
-import type { ConfigAuditLog, AuditLogFilters } from '../../../types/systemConfig';
-import { TableSkeleton } from '../../shared/LoadingStates';
-import { apiClient } from '../../../services/api/apiClient';
+import { getAuditLogs } from '@/services/api/systemConfig';
+import type { ConfigAuditLog, AuditLogFilters } from '@/types/systemConfig';
+import { TableSkeleton } from '@/components/shared/LoadingStates';
+import { apiClient } from '@/services/api/apiClient';
 
 interface AuditLogViewerProps {
   entityType?: string;

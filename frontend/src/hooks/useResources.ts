@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { resourcesApi } from '../services/api';
-import type { Resource, ResourceFilters, UserNote, AISummary } from '../types/resources';
+import { resourcesApi } from '@/services/api';
+import type { Resource, ResourceFilters, UserNote, AISummary } from '@/types/resources';
 
 export const useResources = (initialFilters: ResourceFilters = {}) => {
   const [resources, setResources] = useState<Resource[]>([]);

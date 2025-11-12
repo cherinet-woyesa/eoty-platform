@@ -13,7 +13,7 @@ import type{
   AIModerationItem,
   AIModerationStats,
   RecentActivity
-} from '../../types/admin';
+} from '@/types/admin';
 
 // Define the quota type
 export interface ContentQuota {
@@ -226,6 +226,33 @@ export const adminApi = {
 
   resetQuota: async (quotaId: number): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/admin/quotas/${quotaId}/reset`);
+    return response.data;
+  },
+
+  // Teacher Applications
+  getTeacherApplications: async (status?: 'pending' | 'approved' | 'rejected') => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    const response = await apiClient.get(`/admin/teacher-applications?${params}`);
+    return response.data;
+  },
+
+  getTeacherApplication: async (applicationId: number) => {
+    const response = await apiClient.get(`/admin/teacher-applications/${applicationId}`);
+    return response.data;
+  },
+
+  approveTeacherApplication: async (applicationId: number, adminNotes?: string) => {
+    const response = await apiClient.post(`/admin/teacher-applications/${applicationId}/approve`, {
+      adminNotes
+    });
+    return response.data;
+  },
+
+  rejectTeacherApplication: async (applicationId: number, adminNotes?: string) => {
+    const response = await apiClient.post(`/admin/teacher-applications/${applicationId}/reject`, {
+      adminNotes
+    });
     return response.data;
   }
 };

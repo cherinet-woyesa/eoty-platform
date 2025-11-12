@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "framework": null,
   "rewrites": [
@@ -12,16 +11,7 @@
   ],
   "headers": [
     {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico|webp|json|map))",
+      "source": "/assets/:path*",
       "headers": [
         {
           "key": "Cache-Control",

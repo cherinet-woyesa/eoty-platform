@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Trash2, X } from 'lucide-react';
-import { useConfirmDialog } from '../../context/ConfirmDialogContext';
-import { useNotification } from '../../context/NotificationContext';
-import { LoadingButton } from '../shared/LoadingStates';
-import type { BulkActionResult } from '../../types/systemConfig';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import { useNotification } from '@/context/NotificationContext';
+import { LoadingButton } from '@/components/shared/LoadingStates';
+import type { BulkActionResult } from '@/types/systemConfig';
 
 interface BulkActionBarProps {
   selectedCount: number;

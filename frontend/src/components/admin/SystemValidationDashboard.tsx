@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { interactiveApi } from '../../services/api';
+import { interactiveApi } from '@/services/api';
 import { 
   Server, 
   Database, 

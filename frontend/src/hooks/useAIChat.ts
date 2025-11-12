@@ -1,7 +1,7 @@
 // frontend/src/hooks/useAIChat.ts
 
 import { useState, useCallback, useRef } from 'react';
-import { aiApi } from '../services/api';
+import { aiApi } from '@/services/api';
 
 export interface MessageMetadata {
   performanceMetrics?: {

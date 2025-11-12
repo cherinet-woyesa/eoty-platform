@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { LogOut, Settings, User, ChevronDown, Mail, CreditCard, HelpCircle, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useNavigate } from 'react-router-dom';
 
 const UserMenu: React.FC = () => {

@@ -12,9 +12,9 @@ import {
   Activity,
   ArrowRight
 } from 'lucide-react';
-import { systemConfigApi } from '../../../services/api/systemConfig';
-import { CardSkeleton } from '../../../components/shared/LoadingStates';
-import type { EntityMetrics } from '../../../types/systemConfig';
+import { systemConfigApi } from '@/services/api/systemConfig';
+import { CardSkeleton } from '@/components/shared/LoadingStates';
+import type { EntityMetrics } from '@/types/systemConfig';
 
 export const SystemConfigDashboard = () => {
   const { data: metrics, isLoading } = useQuery({

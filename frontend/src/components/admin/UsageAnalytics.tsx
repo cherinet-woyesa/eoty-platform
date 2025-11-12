@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { X, ExternalLink, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { systemConfigApi } from '../../services/api/systemConfig';
-import { Spinner } from '../shared/LoadingStates';
+import { systemConfigApi } from '@/services/api/systemConfig';
+import { Spinner } from '@/components/shared/LoadingStates';
 
 interface UsageAnalyticsProps {
   entityType: string;

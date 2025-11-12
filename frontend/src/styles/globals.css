@@ -15,7 +15,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+  background-color: #fafaf9; /* Light beige/stone background */
 }
 
 /* Custom scrollbar */
@@ -24,16 +24,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f5f5f0; /* Light beige */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d4d4d4; /* Light grey/silver */
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a3a3a3; /* Medium grey */
 }
 
 /* Smooth transitions for all interactive elements */
@@ -45,6 +45,6 @@ button, input, select, textarea {
 input:focus, button:focus, select:focus, textarea:focus {
   outline: none;
   ring: 2px;
-  ring-color: #3b82f6;
+  ring-color: #00FFC6; /* Neon cyan for focus */
   ring-offset: 2px;
 }

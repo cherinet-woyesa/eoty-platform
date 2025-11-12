@@ -8,13 +8,13 @@ import {
   Clock,
   Home
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import SidebarItem from './SidebarItem';
 import SidebarSearch from './SidebarSearch';
 import FavoriteItems from './FavoriteItems';
 import RecentItems from './RecentItems';
 
-import { useSidebar } from '../../../hooks/useSidebar';
+import { useSidebar } from '@/hooks/useSidebar';
 
 interface BaseSidebarProps {
   isCollapsed?: boolean;

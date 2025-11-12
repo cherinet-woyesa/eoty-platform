@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { ShieldAlert, Home, ArrowLeft, Mail } from 'lucide-react';
 
 interface AccessDeniedPageProps {

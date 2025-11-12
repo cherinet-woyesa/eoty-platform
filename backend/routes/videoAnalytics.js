@@ -200,4 +200,59 @@ router.post('/lessons/bulk', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/video-analytics/lessons/:lessonId/heatmap
+ * Get engagement heatmap data for a specific lesson
+ */
+router.get('/lessons/:lessonId/heatmap', async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    const { timeframe = '7:days', segments = '100' } = req.query;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    // Check permission
+    const lesson = await db('lessons')
+      .join('courses', 'lessons.course_id', 'courses.id')
+      .where('lessons.id', lessonId)
+      .select('lessons.*', 'courses.created_by as teacher_id')
+      .first();
+
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lesson not found'
+      });
+    }
+
+    // Only teacher who owns the course or admin can view analytics
+    if (userRole !== 'admin' && lesson.teacher_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to view analytics for this lesson'
+      });
+    }
+
+    const heatmapData = await videoAnalyticsService.getEngagementHeatmap(
+      parseInt(lessonId),
+      {
+        timeframe,
+        segments: parseInt(segments)
+      }
+    );
+
+    res.json({
+      success: true,
+      data: heatmapData
+    });
+  } catch (error) {
+    console.error('Get engagement heatmap error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch engagement heatmap',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

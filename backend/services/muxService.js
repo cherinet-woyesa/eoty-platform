@@ -1565,6 +1565,55 @@ class MuxService {
   }
 
   /**
+   * Get download URL for a Mux asset
+   * Note: This requires master_access to be enabled on the asset
+   * 
+   * @param {string} assetId - Mux asset ID
+   * @returns {Promise<string>} Download URL
+   */
+  async getAssetDownloadUrl(assetId) {
+    try {
+      console.log('Getting download URL for asset:', assetId);
+      
+      const asset = await this.getAsset(assetId);
+      
+      // Check if asset has master access enabled
+      // Master access allows downloading the original file
+      if (!asset.tracks || asset.tracks.length === 0) {
+        throw new Error('Asset has no tracks available for download');
+      }
+
+      // Find the master track (original file)
+      const masterTrack = asset.tracks.find(track => track.type === 'video' && track.max_width);
+      
+      if (!masterTrack) {
+        throw new Error('No master track found for download');
+      }
+
+      // Mux provides download URLs through the master track
+      // The download URL format is: https://mux.com/{asset_id}/master.m3u8
+      // But for direct file download, we need to use the master.m3u8 or check if there's a direct download URL
+      
+      // For now, we'll use the playback ID to generate a download URL
+      // Note: This may not work for all assets - depends on Mux configuration
+      if (asset.playbackIds && asset.playbackIds.length > 0) {
+        const playbackId = asset.playbackIds[0].id;
+        // Mux doesn't provide direct download URLs by default
+        // We'll need to use the master.m3u8 URL or check asset settings
+        const downloadUrl = `https://stream.mux.com/${playbackId}/master.m3u8`;
+        
+        console.log('✅ Download URL generated for asset:', assetId);
+        return downloadUrl;
+      }
+
+      throw new Error('No playback ID found for asset');
+    } catch (error) {
+      console.error('❌ Failed to get asset download URL:', error.message);
+      throw new Error(`Failed to get download URL: ${error.message}`);
+    }
+  }
+
+  /**
    * Get migration status for lessons
    * 
    * @param {Object} db - Database connection

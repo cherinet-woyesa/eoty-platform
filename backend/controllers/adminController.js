@@ -1270,7 +1270,20 @@ const adminController = {
       try {
         let pendingApprovalsQuery = db('content_uploads').where('status', 'pending');
         // Admins can see all pending approvals (no chapter filtering)
-        pendingApprovals = await pendingApprovalsQuery.count('id as count').first() || { count: 0 };
+        const contentApprovals = await pendingApprovalsQuery.count('id as count').first() || { count: 0 };
+        
+        // Also count pending teacher applications
+        let teacherAppsCount = { count: 0 };
+        try {
+          teacherAppsCount = await db('teacher_applications')
+            .where('status', 'pending')
+            .count('id as count')
+            .first() || { count: 0 };
+        } catch (err) {
+          console.warn('teacher_applications table may not exist:', err.message);
+        }
+        
+        pendingApprovals = { count: parseInt(contentApprovals.count) + parseInt(teacherAppsCount.count) };
       } catch (err) {
         console.warn('content_uploads table may not exist:', err.message);
       }
@@ -1320,6 +1333,228 @@ const adminController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch admin statistics'
+      });
+    }
+  },
+
+  // Get all pending teacher applications
+  async getTeacherApplications(req, res) {
+    try {
+      const requestingUserRole = req.user.role;
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const { status = 'pending' } = req.query;
+
+      const applications = await db('teacher_applications')
+        .join('users', 'teacher_applications.user_id', 'users.id')
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
+        .leftJoin('users as reviewer', 'teacher_applications.reviewed_by', 'reviewer.id')
+        .where('teacher_applications.status', status)
+        .select(
+          'teacher_applications.*',
+          'users.id as user_id',
+          'users.first_name',
+          'users.last_name',
+          'users.email',
+          'users.created_at as user_created_at',
+          'chapters.name as chapter_name',
+          'chapters.location as chapter_location',
+          'reviewer.first_name as reviewer_first_name',
+          'reviewer.last_name as reviewer_last_name'
+        )
+        .orderBy('teacher_applications.created_at', 'desc');
+
+      res.json({
+        success: true,
+        data: { applications }
+      });
+    } catch (error) {
+      console.error('Get teacher applications error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
+  // Get single teacher application
+  async getTeacherApplication(req, res) {
+    try {
+      const requestingUserRole = req.user.role;
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const { applicationId } = req.params;
+
+      const application = await db('teacher_applications')
+        .join('users', 'teacher_applications.user_id', 'users.id')
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
+        .leftJoin('users as reviewer', 'teacher_applications.reviewed_by', 'reviewer.id')
+        .where('teacher_applications.id', applicationId)
+        .select(
+          'teacher_applications.*',
+          'users.id as user_id',
+          'users.first_name',
+          'users.last_name',
+          'users.email',
+          'users.role',
+          'users.status as user_status',
+          'users.created_at as user_created_at',
+          'chapters.name as chapter_name',
+          'chapters.location as chapter_location',
+          'reviewer.first_name as reviewer_first_name',
+          'reviewer.last_name as reviewer_last_name'
+        )
+        .first();
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          message: 'Application not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: { application }
+      });
+    } catch (error) {
+      console.error('Get teacher application error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
+  // Approve teacher application
+  async approveTeacherApplication(req, res) {
+    try {
+      const requestingUserRole = req.user.role;
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const { applicationId } = req.params;
+      const { adminNotes } = req.body;
+      const reviewerId = req.user.userId;
+
+      // Get application
+      const application = await db('teacher_applications')
+        .where({ id: applicationId, status: 'pending' })
+        .first();
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          message: 'Application not found or already processed'
+        });
+      }
+
+      // Start transaction
+      await db.transaction(async (trx) => {
+        // Update application status
+        await trx('teacher_applications')
+          .where({ id: applicationId })
+          .update({
+            status: 'approved',
+            reviewed_by: reviewerId,
+            reviewed_at: new Date(),
+            admin_notes: adminNotes || null,
+            updated_at: new Date()
+          });
+
+        // Update user role and status
+        await trx('users')
+          .where({ id: application.user_id })
+          .update({
+            role: 'teacher',
+            status: 'active',
+            role_requested: 'teacher',
+            updated_at: new Date()
+          });
+      });
+
+      res.json({
+        success: true,
+        message: 'Teacher application approved successfully'
+      });
+    } catch (error) {
+      console.error('Approve teacher application error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
+  // Reject teacher application
+  async rejectTeacherApplication(req, res) {
+    try {
+      const requestingUserRole = req.user.role;
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const { applicationId } = req.params;
+      const { adminNotes } = req.body;
+      const reviewerId = req.user.userId;
+
+      // Get application
+      const application = await db('teacher_applications')
+        .where({ id: applicationId, status: 'pending' })
+        .first();
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          message: 'Application not found or already processed'
+        });
+      }
+
+      // Update application status
+      await db('teacher_applications')
+        .where({ id: applicationId })
+        .update({
+          status: 'rejected',
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          admin_notes: adminNotes || null,
+          updated_at: new Date()
+        });
+
+      // Update user status back to active (they can still use platform as student)
+      await db('users')
+        .where({ id: application.user_id })
+        .update({
+          status: 'active',
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: 'Teacher application rejected'
+      });
+    } catch (error) {
+      console.error('Reject teacher application error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
       });
     }
   }

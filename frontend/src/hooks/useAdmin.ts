@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminApi } from '../services/api';
+import { adminApi } from '@/services/api';
 import type { 
   ContentUpload, 
   FlaggedContent, 
@@ -7,7 +7,7 @@ import type {
   ContentTag, 
   AuditLog,
   SystemAlert 
-} from '../types/admin';
+} from '@/types/admin';
 
 export const useUploadQueue = (status?: string, chapter?: string) => {
   const [uploads, setUploads] = useState<ContentUpload[]>([]);
