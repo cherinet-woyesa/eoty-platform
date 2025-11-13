@@ -249,6 +249,9 @@ const RegisterForm: React.FC = () => {
         setSuccessMessage('Account created successfully! Redirecting...');
       }
       
+      // Store flag to show profile completion notification after redirect
+      localStorage.setItem('show_profile_completion', 'true');
+      
       // Redirect after 2 seconds (longer for teacher applications to read message)
       setTimeout(() => {
         navigate('/dashboard');

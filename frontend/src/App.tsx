@@ -26,6 +26,7 @@ import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
 import { NotificationSystem } from '@/components/shared';
 import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard } from '@/components/routing';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import ProfileCompletionNotification from '@/components/shared/ProfileCompletionNotification';
 import Forums from '@/pages/shared/social/Forums';
 import ForumTopics from '@/pages/shared/social/ForumTopics';
 import Achievements from '@/pages/shared/social/Achievements';
@@ -738,6 +739,9 @@ function AppContent() {
       
       {/* Floating AI Chat - Only show for authenticated users */}
       {user && <FloatingAIChat />}
+      
+      {/* Profile Completion Notification - Show for new users */}
+      {user && <ProfileCompletionNotification show={true} />}
     </div>
   );
 }

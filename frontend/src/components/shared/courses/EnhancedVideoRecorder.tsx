@@ -487,6 +487,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [isRecording, isPaused]);
 
+  // Show preview when video blob becomes available after recording stops
+  useEffect(() => {
+    // When recording stops and video blob becomes available, show preview
+    // This handles the case where videoBlob is set asynchronously by MediaRecorder's onstop handler
+    if (!isRecording && (videoBlob || recordedVideo) && !showPreview && !showLessonForm && !uploading) {
+      console.log('Video blob ready, showing preview', { hasBlob: !!videoBlob, hasUrl: !!recordedVideo, blobSize: videoBlob?.size });
+      setShowPreview(true);
+      setShowLessonForm(false);
+      setSuccessMessage('Recording completed! Review your video below.');
+    }
+  }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading]);
+
   // Auto-save drafts during recording
   useEffect(() => {
     if (isRecording && videoBlob && videoBlob.size > 0) {
@@ -806,10 +818,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             setSelectedCourse(courseId);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load courses:', error);
         if (isMounted) {
-          setErrorMessage('Failed to load courses. Please refresh the page.');
+          // Don't show error for 401 - let the auth system handle it
+          // Only show error for other types of failures
+          if (error?.response?.status === 401) {
+            // Authentication issue - don't set error message, let auth system handle redirect
+            console.warn('Authentication required to load courses');
+            return;
+          }
+          setErrorMessage('Failed to load courses. You can still record videos without selecting a course.');
         }
       }
     };
@@ -901,10 +920,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       await stopRecording();
       
       setRecordingStatus('idle');
-      setShowPreview(false); // Don't show preview by default
-      setShowLessonForm(true); // Show lesson form immediately for upload
       setRecordingDuration(capturedDuration); // Use captured value BEFORE closing camera
-      setSuccessMessage('Recording completed! Fill in the details to upload.');
+      
+      // Note: videoBlob will be set asynchronously by MediaRecorder's onstop handler
+      // We'll use a useEffect to show preview when videoBlob becomes available
+      // For now, just prepare the UI state
+      setShowPreview(false); // Will be set to true by useEffect when blob is ready
+      setShowLessonForm(false); // Don't show form until user clicks "Upload"
+      setSuccessMessage('Processing recording...');
       
       // Close camera and screen share AFTER setting duration
       // This provides clear feedback that recording has ended
@@ -1474,13 +1497,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <div className="p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200/50">
               <Video className="h-5 w-5 text-slate-700" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700">Create Video Lesson</h3>
+            <h3 className="text-lg font-bold text-slate-700">Recording Studio</h3>
           </div>
           <div className="flex items-center space-x-2">
             {/* Auto-save Indicator */}
             {isRecording && lastAutoSaveTime && (
               <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-50/50 border border-green-200/50 rounded-lg">
-                <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
                 <span className="text-xs text-slate-600">
                   Auto-saved {Math.floor((Date.now() - lastAutoSaveTime) / 1000)}s ago
                 </span>
@@ -1497,7 +1520,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 >
                   <Save className="h-5 w-5" />
                   {savedDrafts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {savedDrafts.length}
                     </span>
                   )}
@@ -1632,11 +1655,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             onClick={() => handleTabChange('record')}
             className={`flex-1 rounded-lg transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'record' 
-                ? 'bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white shadow-lg' 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg' 
                 : 'hover:bg-slate-50/50 text-slate-600'
             } ${isMobile ? 'py-1.5 px-2' : 'py-2 px-3'}`}>
             <VideoIcon className={isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-            <span className={isMobile ? 'text-xs' : ''}>Record Live</span>
+            <span className={isMobile ? 'text-xs' : ''}>Record</span>
           </button>
           <button
             onClick={() => handleTabChange('upload')}
@@ -1657,8 +1680,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
-                <Monitor className="h-5 w-5 text-[#39FF14]" />
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <Monitor className="h-5 w-5 text-blue-600" />
                 <span className="text-sm font-semibold text-slate-700">You are sharing your screen</span>
               </div>
             </div>
@@ -1723,7 +1746,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     onClick={() => setShowCompositorPreview(!showCompositorPreview)}
                     className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
                       showCompositorPreview 
-                        ? 'bg-gradient-to-r from-[#39FF14]/20 to-[#00FF41]/20 text-[#39FF14] border-[#39FF14]/30' 
+                        ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 border-blue-300' 
                         : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
                     }`}
                     title="Show compositor preview"
@@ -1829,7 +1852,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   setEnableAudio(e.target.checked);
                   setOptions({ ...options, enableAudio: e.target.checked });
                 }}
-                className="h-4 w-4 text-[#39FF14] rounded focus:ring-2 focus:ring-[#39FF14]/50"
+                className="h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500/50"
               />
               <label htmlFor="enable-audio" className="ml-2 text-sm text-slate-700">
                 Enable Audio Recording
@@ -1960,7 +1983,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 <button 
                   onClick={handleStartRecording} 
                   disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
-                  className={`flex items-center space-x-3 bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white rounded-2xl hover:from-[#00E6B8] hover:to-[#00D4A3] disabled:opacity-50 transition-all duration-200 shadow-2xl hover:shadow-[#39FF14]/40 backdrop-blur-sm border border-[#39FF14]/30 transform hover:scale-105 ${
+                  className={`flex items-center space-x-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-blue-500/30 transform hover:scale-105 ${
                     isMobile ? 'px-6 py-3' : 'px-8 py-4'
                   }`}
                 >
@@ -1979,7 +2002,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   {/* Session Save Button */}
                   <button 
                     onClick={handleSaveSession}
-                    className={`bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white rounded-2xl hover:from-[#00E6B8] hover:to-[#00D4A3] transition-all duration-200 shadow-lg hover:shadow-[#39FF14]/40 backdrop-blur-sm border border-[#39FF14]/30 ${
+                    className={`bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-indigo-500/30 ${
                         isMobile ? 'p-3' : 'p-4'
                       }`}
                     title="Save Session"
@@ -2088,8 +2111,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Success/Error Messages - Light theme */}
       {successMessage && (
-        <div className="p-3 bg-gradient-to-r from-[#39FF14]/10 to-[#00FF41]/10 border-l-4 border-[#39FF14] text-slate-700 flex items-center space-x-2 backdrop-blur-sm">
-          <CheckCircle className="h-4 w-4 text-[#39FF14]" />
+        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-600 text-slate-700 flex items-center space-x-2 backdrop-blur-sm">
+          <CheckCircle className="h-4 w-4 text-emerald-600" />
           <span className="font-medium">{successMessage}</span>
         </div>
       )}
@@ -2119,33 +2142,38 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Quick Actions Bar - Shown when previewing - Light theme */}
       {(recordedVideo || selectedFile) && !uploading && !uploadSuccess && !showLessonForm && showPreview && (
-        <div className="p-4 border-t border-slate-200/50 bg-white/85 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>{formatTime(recordingDuration)}</span>
-              </div>
-              {videoBlob && (
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span>{getFileSize(videoBlob.size)}</span>
+        <div className="mt-4 p-4 border-t border-slate-200/50 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm">
+          <div className="flex flex-col space-y-4">
+            {/* Video Info Row */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center space-x-4 text-sm text-slate-600">
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span className="font-medium">{formatTime(recordingDuration)}</span>
                 </div>
-              )}
+                {videoBlob && (
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">{getFileSize(videoBlob.size)}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
+            
+            {/* Action Buttons Row - Responsive Grid */}
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowEnhancedPreview(true)}
-                className="px-3 py-2 bg-gradient-to-r from-[#4FC3F7]/90 to-[#00D4FF]/90 text-white rounded-lg hover:from-[#00B8E6] hover:to-[#0099CC] transition-all duration-200 flex items-center space-x-2 text-sm shadow-md backdrop-blur-sm border border-[#4FC3F7]/30"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
                 title="Enhanced Preview with Controls"
               >
                 <Play className="h-4 w-4" />
-                <span>Full Preview</span>
+                <span>Preview</span>
               </button>
               {activeTab === 'record' && videoBlob && (
                 <>
                   <button 
                     onClick={downloadRecording}
-                    className="px-3 py-2 bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white rounded-lg hover:from-[#00E6B8] hover:to-[#00D4A3] transition-all duration-200 flex items-center space-x-2 text-sm shadow-md backdrop-blur-sm border border-[#39FF14]/30"
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
                     title="Download Recording"
                   >
                     <Download className="h-4 w-4" />
@@ -2156,17 +2184,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                       setShowTimelineEditor(true);
                       setShowPreview(false);
                     }}
-                    className="px-3 py-2 bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FF8C00] transition-all duration-200 flex items-center space-x-2 text-sm shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+                    className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
                   >
                     <Scissors className="h-4 w-4" />
-                    <span>Edit Video</span>
+                    <span>Edit</span>
                   </button>
                 </>
               )}
               {(recordedVideo || selectedFile) && (
                 <button
                   onClick={handleExportSession}
-                  className="px-3 py-2 bg-gradient-to-r from-[#00D4FF]/90 to-[#00B8E6]/90 text-white rounded-lg hover:from-[#00B8E6] hover:to-[#0099CC] transition-all duration-200 flex items-center space-x-2 text-sm shadow-md backdrop-blur-sm border border-[#00D4FF]/30"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg hover:from-cyan-700 hover:to-cyan-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
                   title="Export Session"
                 >
                   <Download className="h-4 w-4" />
@@ -2175,20 +2203,20 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               )}
               <button 
                 onClick={handleReset}
-                className="px-3 py-2 border border-slate-300/50 rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 transition-all duration-200 flex items-center space-x-2 text-sm text-slate-700"
+                className="px-4 py-2 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 flex items-center space-x-2 text-sm font-medium text-slate-700 shadow-sm"
               >
                 <RotateCcw className="h-4 w-4" />
-                <span>{activeTab === 'record' ? 'Record Again' : 'Choose Different File'}</span>
+                <span>{activeTab === 'record' ? 'Record Again' : 'New File'}</span>
               </button>
               <button 
                 onClick={() => {
                   setShowPreview(false);
                   setShowLessonForm(true);
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-[#00D4FF]/90 to-[#00B8E6]/90 text-white rounded-lg hover:from-[#00B8E6] hover:to-[#0099CC] transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md backdrop-blur-sm border border-[#00D4FF]/30"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
               >
                 <Upload className="h-4 w-4" />
-                <span>Back to Upload Form</span>
+                <span>Continue to Upload</span>
               </button>
             </div>
           </div>
@@ -2268,7 +2296,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                       setShowTimelineEditor(true);
                       setShowLessonForm(false);
                     }}
-                    className="px-3 py-2 bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FF8C00] transition-all duration-200 flex items-center space-x-2 text-sm shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+                    className="px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 flex items-center space-x-2 text-sm shadow-md"
                   >
                     <Scissors className="h-4 w-4" />
                     <span>Edit Video</span>

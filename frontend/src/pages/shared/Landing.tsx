@@ -20,14 +20,63 @@ import {
 import LoginForm from '@/components/shared/auth/LoginForm';
 import RegisterForm from '@/components/shared/auth/RegisterForm';
 import { useAuth } from '@/context/AuthContext';
+import { landingApi } from '@/services/api';
 
 const Landing: React.FC = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
+  const [stats, setStats] = useState({
+    totalStudents: 10000,
+    totalCourses: 500,
+    satisfactionRate: 98
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const { isAuthenticated } = useAuth();
+
+  // Fetch landing page statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        const response = await landingApi.getStats();
+        if (response.success && response.data) {
+          setStats({
+            totalStudents: response.data.totalStudents || 10000,
+            totalCourses: response.data.totalCourses || 500,
+            satisfactionRate: response.data.satisfactionRate || 98
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch landing stats:', error);
+        // Keep default values on error
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Fetch featured courses
+  useEffect(() => {
+    const fetchFeaturedCourses = async () => {
+      try {
+        const response = await landingApi.getFeaturedCourses();
+        if (response.success && response.data) {
+          setFeaturedCourses(response.data.courses || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch featured courses:', error);
+        // Keep empty array on error
+      }
+    };
+
+    fetchFeaturedCourses();
+  }, []);
 
   // Close form when user successfully authenticates
   useEffect(() => {
@@ -76,7 +125,7 @@ const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden relative">
-      {/* Background Image with Overlay */}
+      {/* Background Image with Overlay - Optimized with lazy loading */}
       <div 
         className="fixed inset-0 z-0"
         style={{
@@ -84,7 +133,9 @@ const Landing: React.FC = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          imageRendering: 'auto',
+          willChange: 'transform'
         }}
       >
         {/* Overlay for better text readability - lighter and more transparent */}
@@ -130,13 +181,25 @@ const Landing: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setAuthMode('login')}
+                onClick={() => {
+                  setAuthMode('login');
+                  // Scroll to hero section smoothly
+                  setTimeout(() => {
+                    document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 100);
+                }}
                 className="text-slate-600 hover:text-slate-800 font-medium transition-all duration-200 hover:scale-105"
               >
                 Sign In
               </button>
               <button
-                onClick={() => setAuthMode('register')}
+                onClick={() => {
+                  setAuthMode('register');
+                  // Scroll to hero section smoothly
+                  setTimeout(() => {
+                    document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 100);
+                }}
                 className="px-6 py-2.5 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-lg hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:shadow-[#00FFC6]/30 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
               >
                 Sign Up
@@ -147,7 +210,7 @@ const Landing: React.FC = () => {
       </header>
 
       {/* Hero Section - Full Screen */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 z-10">
+      <section id="hero-section" className="relative min-h-screen flex items-center justify-center pt-20 z-10">
         <div className="w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center px-4 lg:px-6">
             {/* Left Content */}
@@ -165,20 +228,25 @@ const Landing: React.FC = () => {
               </h1>
               
               <p className="text-xl md:text-2xl text-slate-600 leading-relaxed max-w-xl">
-                Join thousands of students and teachers on our comprehensive educational platform. 
-                Access courses, track progress, and connect with a vibrant learning community.
+                Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={() => setAuthMode('register')}
+                  onClick={() => {
+                    setAuthMode('register');
+                    // Already in hero section, no need to scroll
+                  }}
                   className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-xl hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-300 font-semibold text-lg shadow-2xl hover:shadow-[#00FFC6]/40 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
                 >
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
-                  onClick={() => setAuthMode('login')}
+                  onClick={() => {
+                    setAuthMode('login');
+                    // Already in hero section, no need to scroll
+                  }}
                   className="inline-flex items-center justify-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   Sign In
@@ -192,7 +260,9 @@ const Landing: React.FC = () => {
                     <Users className="h-5 w-5 text-[#39FF14]" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-700">10K+</div>
+                    <div className="text-2xl font-bold text-slate-700">
+                      {isLoadingStats ? '...' : `${(stats.totalStudents / 1000).toFixed(0)}K+`}
+                    </div>
                     <div className="text-sm text-slate-600">Active Students</div>
                   </div>
                 </div>
@@ -201,7 +271,9 @@ const Landing: React.FC = () => {
                     <BookOpen className="h-5 w-5 text-[#FFD700]" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-700">500+</div>
+                    <div className="text-2xl font-bold text-slate-700">
+                      {isLoadingStats ? '...' : `${stats.totalCourses}+`}
+                    </div>
                     <div className="text-sm text-slate-600">Courses</div>
                   </div>
                 </div>
@@ -210,7 +282,9 @@ const Landing: React.FC = () => {
                     <Award className="h-5 w-5 text-[#00FFFF]" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-700">98%</div>
+                    <div className="text-2xl font-bold text-slate-700">
+                      {isLoadingStats ? '...' : `${stats.satisfactionRate}%`}
+                    </div>
                     <div className="text-sm text-slate-600">Satisfaction</div>
                   </div>
                 </div>
@@ -422,14 +496,8 @@ const Landing: React.FC = () => {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <p className="text-xl text-slate-600 leading-relaxed">
-                  The EOTY Platform is dedicated to providing comprehensive, faith-aligned education 
-                  for Ethiopian Orthodox youths. We believe in nurturing spiritual growth through 
-                  quality learning experiences that honor our rich traditions and values.
-                </p>
-                <p className="text-lg text-slate-600 leading-relaxed">
-                  Our mission is to create an accessible, engaging, and supportive learning environment 
-                  where students can deepen their understanding of Orthodox Christianity, connect with 
-                  their community, and grow in their faith journey.
+                  Empowering Ethiopian Orthodox youths through faith-centered education. 
+                  Nurturing spiritual growth with quality learning that honors our traditions.
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">
                   <div className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-slate-200/50">
@@ -506,10 +574,10 @@ const Landing: React.FC = () => {
               }`}>
                 How It Works
               </h2>
-              <p className={`text-xl text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
+              <p className={`text-lg text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
                 visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
               }`}>
-                Get started in just a few simple steps
+                Start your learning journey in minutes
               </p>
             </div>
 
@@ -578,6 +646,131 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Featured Courses Section */}
+      {featuredCourses.length > 0 && (
+        <section 
+          ref={(el) => (sectionRefs.current['featured-courses'] = el as HTMLDivElement | null)}
+          data-section-id="featured-courses"
+          className={`relative py-32 bg-gradient-to-br from-white/70 via-stone-50/70 to-slate-50/70 backdrop-blur-md z-10 transition-all duration-1000 ${
+            visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+        >
+          <div className="w-full px-4 lg:px-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-20">
+                <div className={`inline-flex items-center space-x-2 px-4 py-2 bg-[#00FFC6]/25 rounded-full border border-[#00FFC6]/40 backdrop-blur-sm mb-6 transition-all duration-700 delay-200 ${
+                  visibleSections.has('featured-courses') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}>
+                  <Star className="h-4 w-4 text-[#00FFC6]" />
+                  <span className="text-sm font-medium text-slate-700">Popular Courses</span>
+                </div>
+                <h2 className={`text-4xl md:text-5xl font-bold text-slate-700 mb-6 transition-all duration-700 delay-300 ${
+                  visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+                }`}>
+                  Featured Courses
+                </h2>
+                <p className={`text-lg text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
+                  visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+                }`}>
+                  Discover our most popular courses
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredCourses.map((course, index) => (
+                  <Link
+                    key={course.id}
+                    to={`/courses/${course.id}`}
+                    className={`group bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-slate-200/50 transform hover:-translate-y-3 hover:scale-[1.02] cursor-pointer ${
+                      visibleSections.has('featured-courses') 
+                        ? 'opacity-100 translate-y-0' 
+                        : 'opacity-0 translate-y-10'
+                    }`}
+                    style={{ transitionDelay: `${index * 100}ms` }}
+                  >
+                    {/* Course Image */}
+                    <div className="relative h-48 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden group-hover:scale-110 transition-transform duration-500">
+                      {course.coverImage ? (
+                        <img
+                          src={course.coverImage}
+                          alt={course.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <BookOpen className="h-16 w-16 text-slate-400/50 group-hover:scale-110 transition-transform" />
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4">
+                        <div className="px-3 py-1 rounded-full backdrop-blur-sm text-xs font-semibold bg-white/90 text-slate-700">
+                          {course.level || 'Beginner'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Course Content */}
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= Math.round(course.rating || 0)
+                                  ? 'text-[#FFD700] fill-current'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-slate-600">
+                          {course.ratingCount || 0} reviews
+                        </span>
+                      </div>
+                      
+                      <h3 className="text-xl font-bold text-slate-700 mb-2 group-hover:text-slate-800 transition-colors line-clamp-2">
+                        {course.title}
+                      </h3>
+                      
+                      <p className="text-slate-600 mb-4 text-sm line-clamp-2">
+                        {course.description || 'Explore this course to learn more'}
+                      </p>
+                      
+                      <div className="flex items-center justify-between text-sm text-slate-500">
+                        <div className="flex items-center space-x-1">
+                          <Users className="h-4 w-4" />
+                          <span>{course.studentCount || 0} students</span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-[#00FFC6] font-semibold">
+                          <span>View Course</span>
+                          <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {featuredCourses.length > 0 && (
+                <div className="text-center mt-12">
+                  <Link
+                    to="/courses"
+                    className="inline-flex items-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    View All Courses
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Blogs Section */}
       <section 
         ref={(el) => (sectionRefs.current['blogs'] = el as HTMLDivElement | null)}
@@ -600,10 +793,10 @@ const Landing: React.FC = () => {
               }`}>
                 Insights & Stories
               </h2>
-              <p className={`text-xl text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
+              <p className={`text-lg text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
                 visibleSections.has('blogs') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
               }`}>
-                Read articles, stories, and insights from our community
+                Discover insights and stories from our community
               </p>
             </div>
 
@@ -706,23 +899,29 @@ const Landing: React.FC = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-700">
             Ready to Start Learning?
           </h2>
-          <p className="text-xl mb-12 text-slate-600 max-w-2xl mx-auto">
-            Join our platform today and unlock a world of knowledge and opportunities for Ethiopian Orthodox youths.
+          <p className="text-lg mb-12 text-slate-600 max-w-2xl mx-auto">
+            Start your faith-centered learning journey today
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
+            <button
+              onClick={() => {
+                setAuthMode('register');
+                document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className="group inline-flex items-center justify-center px-10 py-5 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-xl hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-300 font-semibold text-lg shadow-2xl hover:shadow-[#00FFC6]/40 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
             >
               Create Free Account
               <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              to="/login"
+            </button>
+            <button
+              onClick={() => {
+                setAuthMode('login');
+                document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className="inline-flex items-center justify-center px-10 py-5 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               Sign In to Existing Account
-            </Link>
+            </button>
           </div>
         </div>
       </section>
@@ -738,12 +937,24 @@ const Landing: React.FC = () => {
               <span className="text-xl font-bold text-slate-700">EOTY Platform</span>
             </div>
             <div className="flex space-x-8">
-              <Link to="/login" className="hover:text-slate-800 transition-colors font-medium">
+              <button
+                onClick={() => {
+                  setAuthMode('login');
+                  document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="hover:text-slate-800 transition-colors font-medium"
+              >
                 Sign In
-              </Link>
-              <Link to="/register" className="hover:text-slate-800 transition-colors font-medium">
+              </button>
+              <button
+                onClick={() => {
+                  setAuthMode('register');
+                  document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="hover:text-slate-800 transition-colors font-medium"
+              >
                 Sign Up
-              </Link>
+              </button>
             </div>
           </div>
           <div className="pt-8 border-t border-slate-400/40 text-center text-sm">
@@ -823,6 +1034,48 @@ const Landing: React.FC = () => {
         * {
           transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
           transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          /* Reduce padding on mobile */
+          section {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+          }
+          
+          /* Optimize touch targets */
+          button, a {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          /* Stack elements vertically on mobile */
+          .grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        
+        /* Image optimization */
+        img {
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: crisp-edges;
+        }
+        
+        /* Lazy loading placeholder */
+        img[loading="lazy"] {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
         }
       `}</style>
     </div>

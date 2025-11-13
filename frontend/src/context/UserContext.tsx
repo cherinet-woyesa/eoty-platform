@@ -54,9 +54,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           permissions
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load user:', error);
-      localStorage.removeItem('token');
+      // Only clear token on 401 (unauthorized) errors, not on 500 (server) errors
+      if (error?.response?.status === 401) {
+        console.warn('Authentication failed, clearing token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+      } else {
+        // For 500 errors or other server errors, don't clear token
+        // The user is still authenticated, just the server had an issue
+        console.warn('Server error loading user, but user is still authenticated');
+      }
     } finally {
       setLoading(false);
     }

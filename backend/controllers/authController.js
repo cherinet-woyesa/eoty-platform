@@ -458,7 +458,24 @@ const authController = {
     try {
       const user = await db('users')
         .where({ id: req.user.userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education')
+        .select(
+          'id', 
+          'first_name', 
+          'last_name', 
+          'email', 
+          'role', 
+          'chapter_id', 
+          'is_active', 
+          'last_login_at', 
+          'profile_picture', 
+          db.raw('COALESCE(bio, \'\') as bio'),
+          db.raw('COALESCE(phone, \'\') as phone'),
+          db.raw('COALESCE(location, \'\') as location'),
+          db.raw('COALESCE(specialties, NULL) as specialties'),
+          db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
+          db.raw('COALESCE(education, \'\') as education'),
+          'created_at'
+        )
         .first();
 
       if (!user) {
@@ -483,6 +500,22 @@ const authController = {
         }
       }
 
+      // Check profile completion
+      let profileCompletion;
+      try {
+        profileCompletion = this.calculateProfileCompletion(user);
+      } catch (error) {
+        console.error('Error calculating profile completion:', error);
+        // Set default completion if calculation fails
+        profileCompletion = {
+          percentage: 0,
+          completedFields: 0,
+          totalFields: 4,
+          isComplete: false,
+          missingFields: []
+        };
+      }
+
       res.json({
         success: true,
         data: {
@@ -501,17 +534,76 @@ const authController = {
             location: user.location || '',
             specialties: specialties,
             teachingExperience: user.teaching_experience || 0,
-            education: user.education || ''
+            education: user.education || '',
+            profileCompletion: profileCompletion
           }
         }
       });
 
     } catch (error) {
       console.error('Get user error:', error);
+      console.error('Error stack:', error.stack);
       res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
+    }
+  },
+
+  // Calculate profile completion percentage
+  calculateProfileCompletion(user) {
+    try {
+      const fields = {
+        profilePicture: user.profile_picture ? 1 : 0,
+        bio: user.bio && typeof user.bio === 'string' && user.bio.trim() ? 1 : 0,
+        phone: user.phone && typeof user.phone === 'string' && user.phone.trim() ? 1 : 0,
+        location: user.location && typeof user.location === 'string' && user.location.trim() ? 1 : 0
+      };
+
+      // For teachers, also check teaching-specific fields
+      if (user.role === 'teacher') {
+        // Handle specialties - can be array, string, or null
+        let hasSpecialties = false;
+        if (user.specialties) {
+          if (Array.isArray(user.specialties)) {
+            hasSpecialties = user.specialties.length > 0;
+          } else if (typeof user.specialties === 'string') {
+            try {
+              const parsed = JSON.parse(user.specialties);
+              hasSpecialties = Array.isArray(parsed) ? parsed.length > 0 : parsed.trim().length > 0;
+            } catch (e) {
+              hasSpecialties = user.specialties.trim().length > 0;
+            }
+          }
+        }
+        fields.specialties = hasSpecialties ? 1 : 0;
+        fields.education = user.education && typeof user.education === 'string' && user.education.trim() ? 1 : 0;
+      }
+
+      const totalFields = Object.keys(fields).length;
+      const completedFields = Object.values(fields).reduce((sum, val) => sum + val, 0);
+      const percentage = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
+
+      return {
+        percentage,
+        completedFields,
+        totalFields,
+        isComplete: percentage >= 80, // Consider 80%+ as complete
+        missingFields: Object.entries(fields)
+          .filter(([_, completed]) => !completed)
+          .map(([field, _]) => field)
+      };
+    } catch (error) {
+      console.error('Error calculating profile completion:', error);
+      // Return default completion if calculation fails
+      return {
+        percentage: 0,
+        completedFields: 0,
+        totalFields: 4,
+        isComplete: false,
+        missingFields: ['profilePicture', 'bio', 'phone', 'location']
+      };
     }
   },
 

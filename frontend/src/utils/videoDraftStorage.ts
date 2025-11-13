@@ -79,31 +79,54 @@ class VideoDraftStorage {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('VideoDraftsDB', 1);
 
-      request.onerror = () => reject(new Error('Failed to open IndexedDB'));
+      request.onerror = () => {
+        console.warn('IndexedDB not available, falling back to localStorage');
+        resolve(this.saveToLocalStorage(draft));
+      };
+
       request.onsuccess = () => {
         const db = request.result;
-        const transaction = db.transaction(['drafts'], 'readwrite');
-        const store = transaction.objectStore('drafts');
+        
+        // Ensure object store exists
+        if (!db.objectStoreNames.contains('drafts')) {
+          console.warn('Drafts object store does not exist, falling back to localStorage');
+          resolve(this.saveToLocalStorage(draft));
+          return;
+        }
 
-        // Convert blob to ArrayBuffer for storage
-        blob.arrayBuffer().then(buffer => {
-          const draftData = {
-            ...draft,
-            blobData: buffer
-          };
+        try {
+          const transaction = db.transaction(['drafts'], 'readwrite');
+          const store = transaction.objectStore('drafts');
 
-          const putRequest = store.put(draftData);
-          putRequest.onsuccess = () => {
-            console.log('✅ Draft saved to IndexedDB:', draft.id);
-            this.cleanupOldDrafts(db);
-            resolve(draft.id);
-          };
-          putRequest.onerror = () => reject(new Error('Failed to save draft'));
-        });
+          // Convert blob to ArrayBuffer for storage
+          draft.blob.arrayBuffer().then(buffer => {
+            const draftData = {
+              ...draft,
+              blobData: buffer
+            };
+
+            const putRequest = store.put(draftData);
+            putRequest.onsuccess = () => {
+              console.log('✅ Draft saved to IndexedDB:', draft.id);
+              this.cleanupOldDrafts(db);
+              resolve(draft.id);
+            };
+            putRequest.onerror = () => {
+              console.warn('Failed to save to IndexedDB, falling back to localStorage');
+              resolve(this.saveToLocalStorage(draft));
+            };
+          }).catch(() => {
+            console.warn('Failed to convert blob, falling back to localStorage');
+            resolve(this.saveToLocalStorage(draft));
+          });
+        } catch (error) {
+          console.warn('Error saving to IndexedDB:', error);
+          resolve(this.saveToLocalStorage(draft));
+        }
       };
 
       request.onupgradeneeded = (event: any) => {
-        const db = event.target.result;
+        const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains('drafts')) {
           const objectStore = db.createObjectStore('drafts', { keyPath: 'id' });
           objectStore.createIndex('timestamp', 'metadata.timestamp', { unique: false });
@@ -161,35 +184,64 @@ class VideoDraftStorage {
    * Load from IndexedDB
    */
   private async loadFromIndexedDB(draftId: string): Promise<VideoDraft | null> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const request = indexedDB.open('VideoDraftsDB', 1);
 
-      request.onerror = () => reject(new Error('Failed to open IndexedDB'));
+      request.onerror = () => {
+        console.warn('IndexedDB not available, trying localStorage');
+        resolve(this.loadFromLocalStorage(draftId));
+      };
+
       request.onsuccess = () => {
         const db = request.result;
-        const transaction = db.transaction(['drafts'], 'readonly');
-        const store = transaction.objectStore('drafts');
-        const getRequest = store.get(draftId);
+        
+        // Check if object store exists
+        if (!db.objectStoreNames.contains('drafts')) {
+          console.warn('Drafts object store does not exist, trying localStorage');
+          resolve(this.loadFromLocalStorage(draftId));
+          return;
+        }
 
-        getRequest.onsuccess = () => {
-          const result = getRequest.result;
-          if (!result) {
-            resolve(null);
-            return;
-          }
+        try {
+          const transaction = db.transaction(['drafts'], 'readonly');
+          const store = transaction.objectStore('drafts');
+          const getRequest = store.get(draftId);
 
-          // Convert ArrayBuffer back to Blob
-          const blob = new Blob([result.blobData], { type: 'video/webm' });
-          const draft: VideoDraft = {
-            id: result.id,
-            blob,
-            metadata: result.metadata
+          getRequest.onsuccess = () => {
+            const result = getRequest.result;
+            if (!result) {
+              // Try localStorage as fallback
+              resolve(this.loadFromLocalStorage(draftId));
+              return;
+            }
+
+            // Convert ArrayBuffer back to Blob
+            const blob = new Blob([result.blobData], { type: 'video/webm' });
+            const draft: VideoDraft = {
+              id: result.id,
+              blob,
+              metadata: result.metadata
+            };
+
+            resolve(draft);
           };
 
-          resolve(draft);
-        };
+          getRequest.onerror = () => {
+            console.warn('Failed to load from IndexedDB, trying localStorage');
+            resolve(this.loadFromLocalStorage(draftId));
+          };
+        } catch (error) {
+          console.warn('Error loading from IndexedDB:', error);
+          resolve(this.loadFromLocalStorage(draftId));
+        }
+      };
 
-        getRequest.onerror = () => reject(new Error('Failed to load draft'));
+      request.onupgradeneeded = (event: any) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('drafts')) {
+          const objectStore = db.createObjectStore('drafts', { keyPath: 'id' });
+          objectStore.createIndex('timestamp', 'metadata.timestamp', { unique: false });
+        }
       };
     });
   }
@@ -241,28 +293,77 @@ class VideoDraftStorage {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('VideoDraftsDB', 1);
 
-      request.onerror = () => reject(new Error('Failed to open IndexedDB'));
+      request.onerror = () => {
+        console.warn('IndexedDB not available, returning empty array');
+        resolve([]);
+      };
+
       request.onsuccess = () => {
         const db = request.result;
-        const transaction = db.transaction(['drafts'], 'readonly');
-        const store = transaction.objectStore('drafts');
-        const index = store.index('timestamp');
-        const getAllRequest = index.getAll();
+        
+        // Check if object store exists
+        if (!db.objectStoreNames.contains('drafts')) {
+          console.warn('Drafts object store does not exist, returning empty array');
+          resolve([]);
+          return;
+        }
 
-        getAllRequest.onsuccess = () => {
-          const results = getAllRequest.result;
-          const drafts: VideoDraft[] = results.map((result: any) => ({
-            id: result.id,
-            blob: new Blob([result.blobData], { type: 'video/webm' }),
-            metadata: result.metadata
-          }));
+        try {
+          const transaction = db.transaction(['drafts'], 'readonly');
+          const store = transaction.objectStore('drafts');
+          
+          // Check if index exists
+          if (!store.indexNames.contains('timestamp')) {
+            // If index doesn't exist, use getAll instead
+            const getAllRequest = store.getAll();
+            getAllRequest.onsuccess = () => {
+              const results = getAllRequest.result;
+              const drafts: VideoDraft[] = results.map((result: any) => ({
+                id: result.id,
+                blob: new Blob([result.blobData], { type: 'video/webm' }),
+                metadata: result.metadata
+              }));
+              drafts.sort((a, b) => b.metadata.timestamp - a.metadata.timestamp);
+              resolve(drafts);
+            };
+            getAllRequest.onerror = () => {
+              console.warn('Failed to load drafts from IndexedDB');
+              resolve([]);
+            };
+          } else {
+            const index = store.index('timestamp');
+            const getAllRequest = index.getAll();
 
-          // Sort by timestamp (newest first)
-          drafts.sort((a, b) => b.metadata.timestamp - a.metadata.timestamp);
-          resolve(drafts);
-        };
+            getAllRequest.onsuccess = () => {
+              const results = getAllRequest.result;
+              const drafts: VideoDraft[] = results.map((result: any) => ({
+                id: result.id,
+                blob: new Blob([result.blobData], { type: 'video/webm' }),
+                metadata: result.metadata
+              }));
 
-        getAllRequest.onerror = () => reject(new Error('Failed to load drafts'));
+              // Sort by timestamp (newest first)
+              drafts.sort((a, b) => b.metadata.timestamp - a.metadata.timestamp);
+              resolve(drafts);
+            };
+
+            getAllRequest.onerror = () => {
+              console.warn('Failed to load drafts from IndexedDB');
+              resolve([]);
+            };
+          }
+        } catch (error) {
+          console.warn('Error accessing IndexedDB:', error);
+          resolve([]);
+        }
+      };
+
+      request.onupgradeneeded = (event: any) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('drafts')) {
+          const objectStore = db.createObjectStore('drafts', { keyPath: 'id' });
+          objectStore.createIndex('timestamp', 'metadata.timestamp', { unique: false });
+        }
       };
     });
   }

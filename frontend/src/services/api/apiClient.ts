@@ -94,13 +94,40 @@ apiClient.interceptors.response.use(
     // Handle specific error cases
     if (error.response?.status === 401) {
       // Token expired or invalid
-      console.warn('🛑 Authentication failed, clearing local storage');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      console.warn('🛑 Authentication failed');
+      const currentPath = window.location.pathname;
       
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login?session_expired=true';
+      // Don't redirect if already on login/register pages
+      if (currentPath.includes('/login') || currentPath.includes('/register')) {
+        return Promise.reject(enhanceError(error));
+      }
+      
+      // Check if user is actually logged in (token exists)
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      // Only clear and redirect if we actually had auth data
+      if (token || user) {
+        console.warn('Clearing local storage due to 401 error');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('auth_timestamp');
+        
+        // Only redirect if not already on login page
+        // Use a small delay to prevent immediate redirect loops
+        setTimeout(() => {
+          // Double-check we're not already on login/register
+          const stillOnAuthPage = window.location.pathname.includes('/login') || 
+                                   window.location.pathname.includes('/register');
+          if (!stillOnAuthPage && !localStorage.getItem('token')) {
+            window.location.href = '/login?session_expired=true&redirect=' + encodeURIComponent(currentPath);
+          }
+        }, 500);
+      } else {
+        // No token/user data, but got 401 - might be a protected endpoint
+        // Don't redirect, just reject the error
+        console.warn('401 error but no auth data found - might be accessing protected endpoint without auth');
       }
     }
     

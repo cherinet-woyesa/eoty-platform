@@ -204,6 +204,7 @@ app.get('/health', (req, res) => {
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chapters', chapterRoutes);
+app.use('/api/landing', require('./routes/landing'));
 
 // Video routes - some endpoints are public for streaming
 app.use('/api/videos', videoRoutes); // Authentication handled inside route file

@@ -24,10 +24,7 @@ const RecordVideo: React.FC = () => {
                 <Video className="h-6 w-6 text-slate-700" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-700">Record Video Lesson</h1>
-                <p className="text-slate-600 text-sm mt-1">
-                  Create engaging content for your students
-                </p>
+                <h1 className="text-3xl font-bold text-slate-700">Video Recording Studio</h1>
               </div>
             </div>
             <Link
@@ -114,8 +111,8 @@ const RecordVideo: React.FC = () => {
                   to="/teacher/courses"
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50/50 transition-colors duration-200 border border-slate-200/50"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-[#39FF14]/20 to-[#00FF41]/20 rounded-lg flex items-center justify-center border border-[#39FF14]/30">
-                    <FileVideo className="h-4 w-4 text-[#39FF14]" />
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg flex items-center justify-center border border-blue-300">
+                    <FileVideo className="h-4 w-4 text-blue-600" />
                   </div>
                   <span className="text-sm font-medium text-slate-700">View All Courses</span>
                 </Link>

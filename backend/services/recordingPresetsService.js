@@ -7,10 +7,26 @@ class RecordingPresetsService {
    * @returns {Promise<Array>}
    */
   async getPresetsByUser(userId) {
-    return db('recording_presets')
-      .where({ user_id: userId })
-      .orderBy('is_default', 'desc')
-      .orderBy('created_at', 'desc');
+    try {
+      // Check if table exists first
+      const tableExists = await db.schema.hasTable('recording_presets');
+      if (!tableExists) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return [];
+      }
+      
+      return db('recording_presets')
+        .where({ user_id: userId })
+        .orderBy('is_default', 'desc')
+        .orderBy('created_at', 'desc');
+    } catch (error) {
+      // Handle case where table doesn't exist
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
@@ -20,9 +36,25 @@ class RecordingPresetsService {
    * @returns {Promise<Object>}
    */
   async getPresetById(userId, presetId) {
-    return db('recording_presets')
-      .where({ id: presetId, user_id: userId })
-      .first();
+    try {
+      // Check if table exists first
+      const tableExists = await db.schema.hasTable('recording_presets');
+      if (!tableExists) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return null;
+      }
+      
+      return db('recording_presets')
+        .where({ id: presetId, user_id: userId })
+        .first();
+    } catch (error) {
+      // Handle case where table doesn't exist
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -31,9 +63,25 @@ class RecordingPresetsService {
    * @returns {Promise<Object>}
    */
   async getDefaultPreset(userId) {
-    return db('recording_presets')
-      .where({ user_id: userId, is_default: true })
-      .first();
+    try {
+      // Check if table exists first
+      const tableExists = await db.schema.hasTable('recording_presets');
+      if (!tableExists) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return null;
+      }
+      
+      return db('recording_presets')
+        .where({ user_id: userId, is_default: true })
+        .first();
+    } catch (error) {
+      // Handle case where table doesn't exist
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('recording_presets table does not exist. Please run migrations.');
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**

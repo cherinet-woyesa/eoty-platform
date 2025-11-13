@@ -20,6 +20,13 @@ interface User {
   specialties?: string[];
   teachingExperience?: number;
   education?: string;
+  profileCompletion?: {
+    percentage: number;
+    completedFields: number;
+    totalFields: number;
+    isComplete: boolean;
+    missingFields: string[];
+  };
 }
 
 interface AuthContextType {

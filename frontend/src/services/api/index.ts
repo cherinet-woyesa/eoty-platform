@@ -550,6 +550,22 @@ export type { RelatedVideo } from './relatedVideos';
 export { recordingPresetsApi };
 export type { RecordingPreset, CreatePresetData, UpdatePresetData } from './recordingPresets';
 
+// Landing Page API (public)
+export const landingApi = {
+  getStats: async () => {
+    const response = await apiClient.get('/landing/stats');
+    return response.data;
+  },
+  getFeaturedCourses: async () => {
+    const response = await apiClient.get('/landing/featured-courses');
+    return response.data;
+  },
+  getTestimonials: async () => {
+    const response = await apiClient.get('/landing/testimonials');
+    return response.data;
+  }
+};
+
 // Export all API
 export default {
   auth: authApi,
@@ -572,5 +588,6 @@ export default {
   videoChapters: videoChaptersApi,
   thumbnails: thumbnailsApi,
   relatedVideos: relatedVideosApi,
-  recordingPresets: recordingPresetsApi
+  recordingPresets: recordingPresetsApi,
+  landing: landingApi
 };
