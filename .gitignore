@@ -105,10 +105,10 @@ debug-*.js
 *_SUMMARY.md
 RECORDING_FIX_PLAN.md
 
-# Demo files
-*Demo.tsx
-*Demo.ts
-*Demo.jsx
-*Demo.js
+# Demo files (excluding actual demo components used in the app)
+# *Demo.tsx
+# *Demo.ts
+# *Demo.jsx
+# *Demo.js
 
 .vercel
