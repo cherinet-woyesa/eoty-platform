@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
@@ -23,7 +23,8 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
-  const { login } = useAuth();
+  const { login, isAuthenticated, getRoleDashboard } = useAuth();
+  const navigate = useNavigate();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +78,14 @@ const LoginForm: React.FC = () => {
     }));
   }, [touched, validateField, validationTimers]);
 
+  // Redirect when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      const dashboardPath = getRoleDashboard();
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [isAuthenticated, getRoleDashboard, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -102,10 +111,11 @@ const LoginForm: React.FC = () => {
       await login(formData.email, formData.password);
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
-      // Display success message for 1 second before redirect
+      // Wait a moment for auth state to update, then redirect
       setTimeout(() => {
-        // PublicRoute will handle redirection to /dashboard based on isAuthenticated status
-      }, 1000);
+        const dashboardPath = getRoleDashboard();
+        navigate(dashboardPath, { replace: true });
+      }, 500);
     } catch (err: any) {
       console.error('Login error:', err);
       

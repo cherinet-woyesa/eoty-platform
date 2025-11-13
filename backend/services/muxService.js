@@ -507,27 +507,42 @@ class MuxService {
         )
         .first();
 
-      // Get device breakdown
-      const deviceBreakdown = await dateFilter
-        .clone()
-        .select('device_type')
-        .count('* as count')
-        .groupBy('device_type')
-        .whereNotNull('device_type');
+      // Get device breakdown (default to empty array if undefined)
+      let deviceBreakdown = [];
+      try {
+        const deviceResult = await dateFilter
+          .clone()
+          .select('device_type')
+          .count('* as count')
+          .groupBy('device_type')
+          .whereNotNull('device_type');
+        deviceBreakdown = Array.isArray(deviceResult) ? deviceResult : [];
+      } catch (error) {
+        console.warn('Failed to get device breakdown:', error.message);
+        deviceBreakdown = [];
+      }
 
-      // Get geographic breakdown
-      const geoBreakdown = await dateFilter
-        .clone()
-        .select('country')
-        .count('* as count')
-        .groupBy('country')
-        .whereNotNull('country')
-        .orderBy('count', 'desc')
-        .limit(10);
+      // Get geographic breakdown (default to empty array if undefined)
+      let geoBreakdown = [];
+      try {
+        const geoResult = await dateFilter
+          .clone()
+          .select('country')
+          .count('* as count')
+          .groupBy('country')
+          .whereNotNull('country')
+          .orderBy('count', 'desc')
+          .limit(10);
+        geoBreakdown = Array.isArray(geoResult) ? geoResult : [];
+      } catch (error) {
+        console.warn('Failed to get geographic breakdown:', error.message);
+        geoBreakdown = [];
+      }
 
-      // Calculate completion rate
-      const totalViews = parseInt(analytics.total_views) || 0;
-      const completedViews = parseInt(analytics.completed_views) || 0;
+      // Calculate completion rate (handle undefined analytics)
+      const analyticsSafe = analytics || {};
+      const totalViews = parseInt(analyticsSafe.total_views) || 0;
+      const completedViews = parseInt(analyticsSafe.completed_views) || 0;
       const completionRate = totalViews > 0 ? (completedViews / totalViews) * 100 : 0;
 
       const analyticsData = {
@@ -536,21 +551,21 @@ class MuxService {
         timeframe,
         summary: {
           totalViews: totalViews,
-          uniqueViewers: parseInt(analytics.unique_viewers) || 0,
-          totalWatchTime: parseInt(analytics.total_watch_time) || 0,
-          averageWatchTime: parseFloat(analytics.avg_watch_time) || 0,
-          averageCompletionRate: parseFloat(analytics.avg_completion_rate) || 0,
+          uniqueViewers: parseInt(analyticsSafe.unique_viewers) || 0,
+          totalWatchTime: parseInt(analyticsSafe.total_watch_time) || 0,
+          averageWatchTime: parseFloat(analyticsSafe.avg_watch_time) || 0,
+          averageCompletionRate: parseFloat(analyticsSafe.avg_completion_rate) || 0,
           completionRate: completionRate,
           completedViews: completedViews,
-          totalRebuffers: parseInt(analytics.total_rebuffers) || 0,
-          averageRebufferDuration: parseFloat(analytics.avg_rebuffer_duration) || 0
+          totalRebuffers: parseInt(analyticsSafe.total_rebuffers) || 0,
+          averageRebufferDuration: parseFloat(analyticsSafe.avg_rebuffer_duration) || 0
         },
         breakdown: {
-          devices: deviceBreakdown.map(d => ({
+          devices: (deviceBreakdown || []).map(d => ({
             type: d.device_type,
             count: parseInt(d.count)
           })),
-          geography: geoBreakdown.map(g => ({
+          geography: (geoBreakdown || []).map(g => ({
             country: g.country,
             count: parseInt(g.count)
           }))
