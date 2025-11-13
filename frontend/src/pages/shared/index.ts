@@ -1,26 +1,26 @@
 // Shared pages barrel export
 // Auth
-export { default as Login } from './auth/Login.tsx';
-export { default as Register } from './auth/Register.tsx';
+export { default as Login } from './auth/Login';
+export { default as Register } from './auth/Register';
 
 // AI
-export { default as AIAssistant } from './ai/AIAssistant.tsx';
+export { default as AIAssistant } from './ai/AIAssistant';
 
 // Social
-export { default as Forums } from './social/Forums.tsx';
-export { default as ForumTopics } from './social/ForumTopics.tsx';
-export { default as Achievements } from './social/Achievements.tsx';
-export { default as Leaderboards } from './social/Leaderboards.tsx';
-export { default as CommunityHub } from './social/CommunityHub.tsx';
+export { default as Forums } from './social/Forums';
+export { default as ForumTopics } from './social/ForumTopics';
+export { default as Achievements } from './social/Achievements';
+export { default as Leaderboards } from './social/Leaderboards';
+export { default as CommunityHub } from './social/CommunityHub';
 
 // Resources
-export { default as ResourceLibrary } from './resources/ResourceLibrary.tsx';
-export { default as ResourceView } from './resources/ResourceView.tsx';
+export { default as ResourceLibrary } from './resources/ResourceLibrary';
+export { default as ResourceView } from './resources/ResourceView';
 
 // Courses (shared)
-export { default as CourseDetails } from './courses/CourseDetails.tsx';
-export { default as LessonView } from './courses/LessonView.tsx';
-export { default as QuizDemo } from './courses/QuizDemo.tsx';
-export { default as DiscussionDemo } from './courses/DiscussionDemo.tsx';
-export { default as CourseHub } from './courses/CourseHub.tsx';
+export { default as CourseDetails } from './courses/CourseDetails';
+export { default as LessonView } from './courses/LessonView';
+export { default as QuizDemo } from './courses/QuizDemo';
+export { default as DiscussionDemo } from './courses/DiscussionDemo';
+export { default as CourseHub } from './courses/CourseHub';
 
