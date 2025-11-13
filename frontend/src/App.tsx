@@ -73,6 +73,7 @@ interface PublicRouteProps {
 }
 
 // Public route component (redirects authenticated users away from login/register)
+// Note: Landing page is NOT wrapped in this - it's accessible to everyone
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   
@@ -85,6 +86,8 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     );
   }
   
+  // Only redirect authenticated users away from login/register pages
+  // Landing page is handled separately and accessible to everyone
   if (isAuthenticated) {
     // Redirect admins to admin dashboard, others to regular dashboard
     if (user?.role === 'admin') {
@@ -706,14 +709,10 @@ function AppContent() {
           } 
         />
 
-        {/* Landing Page - Public route */}
+        {/* Landing Page - Always accessible (no redirect for authenticated users) */}
         <Route 
           path="/" 
-          element={
-            <PublicRoute>
-              <Landing />
-            </PublicRoute>
-          } 
+          element={<Landing />}
         />
 
         {/* Catch-all 404 route */}

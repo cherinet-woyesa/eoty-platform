@@ -269,10 +269,12 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           ...prev,
           status: 'completed',
           progress: 100,
-          currentStep: 'Video processing complete',
+          currentStep: 'Video processing complete! Your video is ready to view.',
           provider: 'mux',
           playbackId: muxPlaybackId
         }));
+        
+        // Trigger success notification via callback
         onProcessingComplete();
         return;
       }
@@ -452,12 +454,15 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     }
   }, [processingState.status, retryCount, processingState.progress, processingState.provider]);
 
-  // Auto-close on completion after delay
+  // Auto-close on completion after delay (increased to 8 seconds to show success message)
   useEffect(() => {
     if (processingState.status === 'completed') {
+      // Show success notification
+      console.log('✅ Video processing completed successfully!');
+      
       const timer = setTimeout(() => {
         onClose();
-      }, 3000);
+      }, 8000); // Increased from 3s to 8s to give users time to see success
       
       return () => clearTimeout(timer);
     }

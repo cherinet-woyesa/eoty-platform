@@ -153,9 +153,12 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
 
   // Mux-only video provider detection
   const videoProvider = React.useMemo(() => {
-    // Check for Mux playback ID
-    if (lesson.mux_playback_id) {
-      return 'mux';
+    // Check for Mux playback ID (must be non-empty string)
+    if (lesson.mux_playback_id && typeof lesson.mux_playback_id === 'string' && lesson.mux_playback_id.trim().length > 0) {
+      // Also check if status is ready or if status is undefined (might be ready but status not updated)
+      if (lesson.mux_status === 'ready' || !lesson.mux_status || lesson.mux_status === 'processing') {
+        return 'mux';
+      }
     }
     
     // Check for Mux asset ID with ready status
@@ -758,7 +761,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
 
         <MuxPlayer
           ref={muxPlayerRef}
-          playbackId={lesson.mux_playback_id}
+          playbackId={lesson.mux_playback_id || undefined}
           metadata={{
             video_id: lesson.id,
             video_title: lesson.title || 'Untitled Lesson',
@@ -770,7 +773,13 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           defaultShowRemainingTime
           onError={(event: any) => {
             console.error('Mux Player error:', event);
-            onError?.(new Error('Mux playback error'));
+            const errorMessage = event?.detail?.message || event?.message || 'Mux playback error';
+            console.error('Mux Player error details:', {
+              error: event,
+              playbackId: lesson.mux_playback_id,
+              lessonId: lesson.id
+            });
+            onError?.(new Error(errorMessage));
           }}
           onLoadedMetadata={(event: any) => {
             console.log('Mux video loaded:', event);

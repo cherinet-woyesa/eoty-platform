@@ -1108,7 +1108,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Handle processing completion
   const handleProcessingComplete = (transcodedVideoUrl?: string) => {
     setShowProcessingStatus(false);
-    setSuccessMessage('Video processing completed! Your video is now available.');
+    
+    // Show prominent success message that persists
+    setSuccessMessage('🎉 Video processing completed successfully! Your video is now available for viewing.');
     
     // If we have a transcoded video URL, notify parent components
     if (transcodedVideoUrl && processingLessonId) {
@@ -1118,9 +1120,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       onUploadComplete?.(processingLessonId, transcodedVideoUrl);
     }
     
-    setTimeout(() => {
-      handleReset();
-    }, 3000);
+    // Don't auto-reset - let user see the success message
+    // They can manually reset or navigate away
   };
 
   // NEW: Handle Mux upload completion
@@ -2111,9 +2112,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Success/Error Messages - Light theme */}
       {successMessage && (
-        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-600 text-slate-700 flex items-center space-x-2 backdrop-blur-sm">
-          <CheckCircle className="h-4 w-4 text-emerald-600" />
-          <span className="font-medium">{successMessage}</span>
+        <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-600 text-slate-700 flex items-center justify-between space-x-2 backdrop-blur-sm shadow-lg rounded-lg mx-4 my-2">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+            <span className="font-semibold text-base">{successMessage}</span>
+          </div>
+          <button
+            onClick={() => setSuccessMessage('')}
+            className="text-emerald-700 hover:text-emerald-900 transition-colors"
+            aria-label="Dismiss"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
         </div>
       )}
       
