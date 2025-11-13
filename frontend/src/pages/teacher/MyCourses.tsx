@@ -170,9 +170,9 @@ const MyCourses: React.FC = () => {
   // Memoize course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: Course) => (
     <div key={course.id} className={`relative ${viewMode === 'grid' 
-      ? "bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
-      : "bg-white rounded-lg border border-gray-200 p-3 hover:shadow-lg transition-all duration-200"
-    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+      ? "bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 hover:border-[#39FF14]/50"
+      : "bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-3 hover:shadow-lg transition-all duration-200 hover:border-[#39FF14]/50"
+    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[#39FF14] bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10' : ''}`}>
       {/* Selection Checkbox */}
       <div className="absolute top-2 left-2 z-10">
         <input
@@ -199,25 +199,25 @@ const MyCourses: React.FC = () => {
             />
           )}
           {/* Course Header */}
-          <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white`}>
+          <div className={`bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 p-4 border-b border-[#39FF14]/30`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
-                <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
+                <h3 className="text-lg font-bold text-stone-800 mb-1 line-clamp-2">{course.title}</h3>
+                <p className="text-stone-600 text-sm line-clamp-2">
                   {course.description || 'No description provided'}
                 </p>
               </div>
               <div className="flex space-x-1 ml-3">
                 <Link
                   to={`/teacher/courses/${course.id}`}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  className="p-2 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 rounded-lg transition-all text-stone-700 hover:text-[#39FF14]"
                   title="View Course"
                 >
                   <Eye className="h-4 w-4" />
                 </Link>
                 <Link
                   to={`/teacher/courses/${course.id}/edit`}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  className="p-2 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#00FFC6]/50 rounded-lg transition-all text-stone-700 hover:text-[#00FFC6]"
                   title="Edit Course"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -229,20 +229,20 @@ const MyCourses: React.FC = () => {
           {/* Course Stats */}
           <div className="p-4">
             <div className="grid grid-cols-3 gap-3 mb-4 text-center">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <Video className="h-4 w-4 text-blue-600 mx-auto mb-1" />
-                <div className="text-lg font-bold text-gray-900">{course.lesson_count}</div>
-                <div className="text-xs text-gray-500">Lessons</div>
+              <div className="bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 rounded-lg p-3 border border-[#39FF14]/30">
+                <Video className="h-4 w-4 text-[#39FF14] mx-auto mb-1" />
+                <div className="text-lg font-bold text-stone-800">{course.lesson_count}</div>
+                <div className="text-xs text-stone-600">Lessons</div>
               </div>
-              <div className="bg-purple-50 rounded-lg p-3">
-                <Users className="h-4 w-4 text-purple-600 mx-auto mb-1" />
-                <div className="text-lg font-bold text-gray-900">{course.student_count}</div>
-                <div className="text-xs text-gray-500">Students</div>
+              <div className="bg-gradient-to-br from-[#00FFC6]/10 to-[#00FFFF]/10 rounded-lg p-3 border border-[#00FFC6]/30">
+                <Users className="h-4 w-4 text-[#00FFC6] mx-auto mb-1" />
+                <div className="text-lg font-bold text-stone-800">{course.student_count}</div>
+                <div className="text-xs text-stone-600">Students</div>
               </div>
-              <div className="bg-green-50 rounded-lg p-3">
-                <Clock className="h-4 w-4 text-green-600 mx-auto mb-1" />
-                <div className="text-lg font-bold text-gray-900">{formatDuration(course.total_duration || 0)}</div>
-                <div className="text-xs text-gray-500">Duration</div>
+              <div className="bg-gradient-to-br from-[#00FFFF]/10 to-[#39FF14]/10 rounded-lg p-3 border border-[#00FFFF]/30">
+                <Clock className="h-4 w-4 text-[#00FFFF] mx-auto mb-1" />
+                <div className="text-lg font-bold text-stone-800">{formatDuration(course.total_duration || 0)}</div>
+                <div className="text-xs text-stone-600">Duration</div>
               </div>
             </div>
 
@@ -260,14 +260,14 @@ const MyCourses: React.FC = () => {
             <div className="flex space-x-2">
               <Link
                 to={`/teacher/courses/${course.id}`}
-                className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
               >
                 <PlayCircle className="mr-1 h-4 w-4" />
                 View
               </Link>
               <Link
                 to={`/teacher/record?course=${course.id}`}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center px-3 py-2 border border-stone-200 hover:border-[#39FF14]/50 text-sm font-medium rounded-lg text-stone-700 bg-white/90 hover:bg-white transition-all"
                 title="Add Lesson"
               >
                 <Video className="h-4 w-4" />
@@ -353,12 +353,12 @@ const MyCourses: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">Loading your courses...</p>
+              <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+              <p className="text-stone-600 text-lg">Loading your courses...</p>
             </div>
           </div>
         </div>
@@ -368,16 +368,17 @@ const MyCourses: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center min-h-96">
-            <div className="text-center">
+            <div className="text-center bg-white/90 backdrop-blur-md rounded-xl p-8 border border-red-200 shadow-md">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-600 text-lg mb-4">{error}</p>
               <button 
                 onClick={loadCourses}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
               >
+                <RefreshCw className="h-4 w-4 mr-2" />
                 Try Again
               </button>
             </div>
@@ -388,35 +389,38 @@ const MyCourses: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section - Compact */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-lg shadow-sm p-6 text-white">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <BookOpen className="h-8 w-8" />
+              <h1 className="text-3xl font-bold text-stone-800 flex items-center gap-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <BookOpen className="relative h-8 w-8 text-[#39FF14]" />
+                </div>
                 My Courses
               </h1>
-              <p className="text-blue-100 mt-2">
+              <p className="text-stone-600 mt-2">
                 {isTeacher ? 'Manage and organize your teaching content' : 'Continue your learning journey'}
               </p>
-              <p className="text-blue-200 text-sm mt-1">
-                {user?.firstName} {user?.lastName} • {stats?.totalCourses || 0} {isTeacher ? 'courses created' : 'courses enrolled'} • Updated {getTimeAgo(lastUpdated.toISOString())}
+              <p className="text-stone-700 text-sm mt-1">
+                {user?.firstName} {user?.lastName} • <span className="font-semibold text-[#39FF14]">{stats?.totalCourses || 0}</span> {isTeacher ? 'courses created' : 'courses enrolled'} • Updated {getTimeAgo(lastUpdated.toISOString())}
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={loadCourses}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <Link
                 to="/teacher/courses/new"
-                className="inline-flex items-center px-4 py-2 bg-white text-blue-600 hover:bg-blue-50 text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Course
@@ -465,24 +469,33 @@ const MyCourses: React.FC = () => {
               color: 'from-orange-500 to-orange-600',
               bgColor: 'from-orange-50 to-orange-100'
             }
-          ].map((stat, index) => (
-              <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all p-6">
-                <div className={`bg-gradient-to-r ${stat.color} rounded-lg p-3 text-white mb-4`}>
-                  <stat.icon className="h-6 w-6" />
+          ].map((stat, index) => {
+            const neonColors = [
+              { icon: 'text-[#39FF14]', bg: 'from-[#39FF14]/10 to-[#00FFC6]/10', border: 'border-[#39FF14]/30' },
+              { icon: 'text-[#00FFC6]', bg: 'from-[#00FFC6]/10 to-[#00FFFF]/10', border: 'border-[#00FFC6]/30' },
+              { icon: 'text-[#00FFFF]', bg: 'from-[#00FFFF]/10 to-[#39FF14]/10', border: 'border-[#00FFFF]/30' },
+              { icon: 'text-[#FFD700]', bg: 'from-[#FFD700]/10 to-[#FFA500]/10', border: 'border-[#FFD700]/30' }
+            ];
+            const colors = neonColors[index % neonColors.length];
+            return (
+              <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-md hover:shadow-lg transition-all p-6 hover:border-[#39FF14]/50">
+                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-3 border ${colors.border} mb-4`}>
+                  <stat.icon className={`h-6 w-6 ${colors.icon}`} />
                 </div>
-                <p className="text-sm text-gray-600 mb-1">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                <p className={`text-sm mt-2 ${(stat.change || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  <TrendingUp className="h-4 w-4 inline mr-1" />
+                <p className="text-sm text-stone-600 mb-1 font-medium">{stat.name}</p>
+                <p className="text-3xl font-bold text-stone-800">{stat.value}</p>
+                <p className={`text-sm mt-2 flex items-center ${(stat.change || 0) >= 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
+                  <TrendingUp className="h-4 w-4 mr-1" />
                   {(stat.change || 0) >= 0 ? '+' : ''}{stat.change}% from last month
                 </p>
               </div>
-            ))}
+            );
+          })}
           </div>
         )}
 
         {/* Search and Filter Section - Compact */}
-        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-md">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const path = require('path');
 
 // Import routes
@@ -125,6 +126,19 @@ app.use(helmet({
 
 // Apply CORS before other middleware
 app.use(cors(corsOptions));
+
+// Compression middleware - compress all responses
+app.use(compression({
+  level: 6, // Compression level (1-9, 6 is a good balance)
+  filter: (req, res) => {
+    // Don't compress if client doesn't support it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression for all text-based responses
+    return compression.filter(req, res);
+  }
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));

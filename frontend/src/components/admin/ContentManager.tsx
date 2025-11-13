@@ -309,62 +309,61 @@ const ContentManager: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading content...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <RefreshCw className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+          <p className="text-stone-600 text-lg">Loading content...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header Section - Compact */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-3 sm:p-4 text-white shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <h1 className="text-lg sm:text-xl font-bold">Content Management</h1>
-              <div className="hidden sm:flex items-center space-x-1 text-blue-100">
-                <Clock className="h-3 w-3" />
-                <span className="text-xs">Updated {getTimeAgo(new Date())}</span>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                  <Upload className="h-6 w-6 text-[#39FF14]" />
+                </div>
               </div>
+              <h1 className="text-3xl font-bold text-stone-800">Content Management</h1>
             </div>
-            <p className="text-blue-100 text-xs sm:text-sm">
+            <p className="text-stone-700 text-sm mt-2">
               Upload, review, and manage educational content
             </p>
-            <p className="text-blue-200 text-xs mt-1">
+            <p className="text-stone-600 text-xs mt-1">
               {uploads.length} total uploads • {uploads.filter(u => u.status === 'pending').length} pending review
             </p>
           </div>
-          <div className="mt-3 lg:mt-0 lg:ml-4">
-            <div className="flex flex-col sm:flex-row gap-1.5">
-              <button
-                onClick={fetchUploads}
-                disabled={loading}
-                className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm disabled:opacity-50"
-              >
-                <RefreshCw className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <button
-                onClick={() => setShowBulkUploadForm(!showBulkUploadForm)}
-                className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-              >
-                <Upload className="h-3 w-3 mr-1.5" />
-                Bulk Upload
-              </button>
-              <button
-                onClick={() => setShowUploadForm(!showUploadForm)}
-                className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-              >
-                <Plus className="h-3 w-3 mr-1.5" />
-                Upload
-              </button>
-            </div>
+          <div className="mt-4 lg:mt-0 flex gap-2">
+            <button
+              onClick={fetchUploads}
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowBulkUploadForm(!showBulkUploadForm)}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#00FFC6] to-[#00FFFF] hover:from-[#00FFC6]/90 hover:to-[#00FFFF]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Bulk Upload
+            </button>
+            <button
+              onClick={() => setShowUploadForm(!showUploadForm)}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Upload
+            </button>
           </div>
         </div>
       </div>
@@ -979,6 +978,7 @@ const ContentManager: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

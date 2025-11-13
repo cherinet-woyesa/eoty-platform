@@ -212,11 +212,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   if (!user || (user.role !== 'admin' && user.role !== 'platform_admin')) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
-          <p className="text-gray-600">You must be logged in as an admin to view this dashboard.</p>
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">Access Denied</h3>
+          <p className="text-stone-600">You must be logged in as an admin to view this dashboard.</p>
         </div>
       </div>
     );
@@ -224,29 +224,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   if (isLoading && stats.totalUsers === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading admin dashboard..." />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <LoadingSpinner size="lg" text="Loading admin dashboard..." />
       </div>
     );
   }
 
   if (error && stats.totalUsers === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center max-w-md">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button 
-              onClick={handleRetry}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">Unable to Load Dashboard</h3>
+          <p className="text-stone-600 mb-4">{error}</p>
+          <button 
+            onClick={handleRetry}
+            className="px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 transition-all shadow-md hover:shadow-lg"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -254,92 +250,135 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-6 p-6">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                {isConnected && (
-                  <div className="flex items-center space-x-2 text-blue-100">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">Live</span>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Welcome Section */}
+          <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                    <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                      <Users className="h-6 w-6 text-[#39FF14]" />
+                    </div>
                   </div>
-                )}
+                  <h1 className="text-3xl font-bold text-stone-800">Admin Dashboard</h1>
+                  {isConnected && (
+                    <div className="flex items-center space-x-2 text-[#39FF14]">
+                      <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Live</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-stone-700 mt-2">
+                  Welcome, <span className="font-semibold text-stone-800">{user?.firstName}</span>! {formatDate(currentTime)} • {formatTime(currentTime)}
+                </p>
+                <p className="text-stone-600 text-sm mt-1">
+                  Managing <span className="font-semibold text-stone-800">{stats.totalUsers}</span> users across <span className="font-semibold text-stone-800">{stats.activeCourses}</span> courses
+                </p>
               </div>
-              <p className="text-blue-100">
-                Welcome, {user?.firstName}! {formatDate(currentTime)} • {formatTime(currentTime)}
-              </p>
-              <p className="text-blue-200 text-sm mt-1">
-                Managing {stats.totalUsers} users across {stats.activeCourses} courses
-              </p>
-            </div>
-            <div className="mt-4 lg:mt-0">
-              <button
-                onClick={handleRetry}
-                className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
+              <div className="mt-4 lg:mt-0">
+                <button
+                  onClick={handleRetry}
+                  className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2 text-[#39FF14]" />
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Essential Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {metrics.map((metric) => (
-            <Link
-              key={metric.id}
-              to={metric.link || '#'}
-              className={`bg-white rounded-xl border-2 shadow-sm hover:shadow-md transition-all p-6 group ${
-                metric.isAlert ? 'border-red-200 ring-2 ring-red-100' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`bg-gradient-to-r ${metric.color} rounded-lg p-3 text-white group-hover:scale-105 transition-transform`}>
-                  {metric.icon}
-                </div>
-                {metric.isAlert && (
-                  <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                    Action Required
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{metric.title}</p>
-              <p className="text-3xl font-bold text-gray-900">{metric.value.toLocaleString()}</p>
-            </Link>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              to="/admin/users"
-              className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
-            >
-              <Users className="h-6 w-6 text-blue-600 mr-3" />
-              <span className="font-medium text-blue-900">Manage Users</span>
-            </Link>
-            <Link
-              to="/admin/courses"
-              className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
-            >
-              <BookOpen className="h-6 w-6 text-green-600 mr-3" />
-              <span className="font-medium text-green-900">Manage Courses</span>
-            </Link>
-            {stats.flaggedContent > 0 && (
+          {/* Essential Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {metrics.map((metric) => (
               <Link
-                to="/admin/moderation"
-                className="flex items-center p-4 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
+                key={metric.id}
+                to={metric.link || '#'}
+                className={`bg-white/90 backdrop-blur-md rounded-xl border-2 shadow-sm hover:shadow-lg transition-all p-6 group ${
+                  metric.isAlert ? 'border-red-300 ring-2 ring-red-100' : 'border-stone-200 hover:border-[#39FF14]/50'
+                }`}
               >
-                <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-                <span className="font-medium text-red-900">Review Flagged ({stats.flaggedContent})</span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`relative ${
+                    metric.id === 'totalUsers' ? 'text-[#39FF14]' :
+                    metric.id === 'activeUsers' ? 'text-[#00FFC6]' :
+                    metric.id === 'activeCourses' ? 'text-[#00FFFF]' :
+                    metric.id === 'completedLessons' ? 'text-[#FFD700]' :
+                    metric.id === 'newRegistrations' ? 'text-[#39FF14]' :
+                    metric.id === 'flaggedContent' ? 'text-red-500' :
+                    'text-amber-500'
+                  }`}>
+                    <div className={`absolute inset-0 ${
+                      metric.id === 'totalUsers' ? 'bg-[#39FF14]/20' :
+                      metric.id === 'activeUsers' ? 'bg-[#00FFC6]/20' :
+                      metric.id === 'activeCourses' ? 'bg-[#00FFFF]/20' :
+                      metric.id === 'completedLessons' ? 'bg-[#FFD700]/20' :
+                      metric.id === 'newRegistrations' ? 'bg-[#39FF14]/20' :
+                      metric.id === 'flaggedContent' ? 'bg-red-500/20' :
+                      'bg-amber-500/20'
+                    } rounded-lg blur-md`}></div>
+                    <div className={`relative p-3 ${
+                      metric.id === 'totalUsers' ? 'bg-[#39FF14]/10' :
+                      metric.id === 'activeUsers' ? 'bg-[#00FFC6]/10' :
+                      metric.id === 'activeCourses' ? 'bg-[#00FFFF]/10' :
+                      metric.id === 'completedLessons' ? 'bg-[#FFD700]/10' :
+                      metric.id === 'newRegistrations' ? 'bg-[#39FF14]/10' :
+                      metric.id === 'flaggedContent' ? 'bg-red-500/10' :
+                      'bg-amber-500/10'
+                    } rounded-lg border ${
+                      metric.id === 'totalUsers' ? 'border-[#39FF14]/30' :
+                      metric.id === 'activeUsers' ? 'border-[#00FFC6]/30' :
+                      metric.id === 'activeCourses' ? 'border-[#00FFFF]/30' :
+                      metric.id === 'completedLessons' ? 'border-[#FFD700]/30' :
+                      metric.id === 'newRegistrations' ? 'border-[#39FF14]/30' :
+                      metric.id === 'flaggedContent' ? 'border-red-500/30' :
+                      'border-amber-500/30'
+                    } group-hover:scale-105 transition-transform`}>
+                      {metric.icon}
+                    </div>
+                  </div>
+                  {metric.isAlert && (
+                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full border border-red-200">
+                      Action Required
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-stone-600 mb-2">{metric.title}</p>
+                <p className="text-3xl font-bold text-stone-800">{metric.value.toLocaleString()}</p>
               </Link>
-            )}
+            ))}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-stone-200 p-6">
+            <h3 className="text-lg font-semibold text-stone-800 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link
+                to="/admin/users"
+                className="flex items-center p-4 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 hover:from-[#39FF14]/20 hover:to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30 transition-all shadow-sm hover:shadow-md"
+              >
+                <Users className="h-6 w-6 text-[#39FF14] mr-3" />
+                <span className="font-medium text-stone-800">Manage Users</span>
+              </Link>
+              <Link
+                to="/admin/courses"
+                className="flex items-center p-4 bg-gradient-to-r from-[#00FFC6]/10 to-[#00FFFF]/10 hover:from-[#00FFC6]/20 hover:to-[#00FFFF]/20 rounded-lg border border-[#00FFC6]/30 transition-all shadow-sm hover:shadow-md"
+              >
+                <BookOpen className="h-6 w-6 text-[#00FFC6] mr-3" />
+                <span className="font-medium text-stone-800">Manage Courses</span>
+              </Link>
+              {stats.flaggedContent > 0 && (
+                <Link
+                  to="/admin/moderation"
+                  className="flex items-center p-4 bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 rounded-lg border border-red-300 transition-all shadow-sm hover:shadow-md"
+                >
+                  <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+                  <span className="font-medium text-stone-800">Review Flagged ({stats.flaggedContent})</span>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>

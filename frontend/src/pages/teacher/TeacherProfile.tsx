@@ -232,25 +232,37 @@ const TeacherProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-96">
+      <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading profile...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+          <p className="text-stone-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">Teacher Profile</h1>
-          <p className="text-gray-600 mt-1">Manage your public profile information</p>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+              <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                <User className="h-6 w-6 text-[#39FF14]" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-stone-800">Teacher Profile</h1>
+              <p className="text-stone-600 mt-1">Manage your public profile information</p>
+            </div>
+          </div>
         </div>
 
-        {error && (
-          <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200">
+          {error && (
+            <div className="mx-6 mt-6 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
               <span className="text-red-700">{error}</span>
@@ -259,10 +271,10 @@ const TeacherProfile: React.FC = () => {
         )}
 
         {success && (
-          <div className="mx-6 mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="mx-6 mt-6 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4">
             <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-green-700">Profile updated successfully!</span>
+              <CheckCircle className="h-5 w-5 text-[#39FF14]" />
+              <span className="text-stone-700 font-medium">Profile updated successfully!</span>
             </div>
           </div>
         )}
@@ -552,9 +564,11 @@ const TeacherProfile: React.FC = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
 };
 
 export default TeacherProfile;
+export { TeacherProfile };

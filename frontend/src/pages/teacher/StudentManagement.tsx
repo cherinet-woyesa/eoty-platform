@@ -125,7 +125,7 @@ const StudentManagement: React.FC = () => {
 
   if (loading && students.length === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
+      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-96">
           <LoadingSpinner size="lg" text="Loading students..." />
         </div>
@@ -134,30 +134,33 @@ const StudentManagement: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header - Light beige/silver theme */}
-      <div className="bg-gradient-to-br from-[#FEFCF8]/90 via-[#FAF8F3]/85 to-[#F5F3ED]/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 rounded-xl bg-white/70 backdrop-blur-sm border border-slate-200/50 shadow-sm">
-              <Users className="h-6 w-6 text-slate-700" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+              <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                <Users className="h-6 w-6 text-[#39FF14]" />
+              </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-700">Student Management</h1>
-              <p className="text-slate-600 text-sm mt-1">Manage and monitor your students' progress</p>
+              <h1 className="text-3xl font-bold text-stone-800">Student Management</h1>
+              <p className="text-stone-600 text-sm mt-1">Manage and monitor your students' progress</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/teacher/students/invite')}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] rounded-lg transition-all font-semibold"
             >
               <Mail className="h-4 w-4 mr-2" />
               Invite
             </button>
             <button
               onClick={fetchStudents}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#00FFC6]/50 text-stone-700 hover:text-[#00FFC6] rounded-lg transition-all font-semibold"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -166,51 +169,63 @@ const StudentManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards - Light colors */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-slate-100/80">
-              <Users className="h-5 w-5 text-slate-600" />
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#39FF14]/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#39FF14]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 rounded-lg border border-[#39FF14]/30">
+                <Users className="h-5 w-5 text-[#39FF14]" />
+              </div>
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-700">{stats.totalStudents}</p>
-          <p className="text-sm text-slate-600 mt-1">Total Students</p>
+          <p className="text-3xl font-bold text-stone-800">{stats.totalStudents}</p>
+          <p className="text-sm text-stone-600 mt-1 font-medium">Total Students</p>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-[#39FF14]/20">
-              <UserCheck className="h-5 w-5 text-[#39FF14]" />
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#00FFC6]/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#00FFC6]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#00FFC6]/10 to-[#00FFFF]/10 rounded-lg border border-[#00FFC6]/30">
+                <UserCheck className="h-5 w-5 text-[#00FFC6]" />
+              </div>
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-700">{stats.activeStudents}</p>
-          <p className="text-sm text-slate-600 mt-1">Active Students</p>
+          <p className="text-3xl font-bold text-stone-800">{stats.activeStudents}</p>
+          <p className="text-sm text-stone-600 mt-1 font-medium">Active Students</p>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-[#00FFC6]/20">
-              <TrendingUp className="h-5 w-5 text-[#00FFC6]" />
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#00FFFF]/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#00FFFF]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#00FFFF]/10 to-[#39FF14]/10 rounded-lg border border-[#00FFFF]/30">
+                <TrendingUp className="h-5 w-5 text-[#00FFFF]" />
+              </div>
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-700">{stats.avgProgress}%</p>
-          <p className="text-sm text-slate-600 mt-1">Avg. Progress</p>
+          <p className="text-3xl font-bold text-stone-800">{stats.avgProgress}%</p>
+          <p className="text-sm text-stone-600 mt-1 font-medium">Avg. Progress</p>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-slate-100/80">
-              <BookOpen className="h-5 w-5 text-slate-600" />
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#FFD700]/50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#FFD700]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
+                <BookOpen className="h-5 w-5 text-[#FFD700]" />
+              </div>
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-700">{stats.avgCourses}</p>
-          <p className="text-sm text-slate-600 mt-1">Avg. Courses</p>
+          <p className="text-3xl font-bold text-stone-800">{stats.avgCourses}</p>
+          <p className="text-sm text-stone-600 mt-1 font-medium">Avg. Courses</p>
         </div>
       </div>
 
-      {/* Filters - Light theme */}
-      <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm">
+      {/* Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-md">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -222,7 +237,7 @@ const StudentManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2.5 bg-white/90 backdrop-blur-sm border border-slate-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FFC6]/30 focus:border-[#00FFC6]/50 text-sm text-slate-700 placeholder-slate-400 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-sm text-stone-700 placeholder-stone-400 transition-all"
             />
           </div>
           <div className="flex gap-2">
@@ -232,7 +247,7 @@ const StudentManagement: React.FC = () => {
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="px-4 py-2.5 bg-white/90 backdrop-blur-sm border border-slate-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00FFC6]/30 focus:border-[#00FFC6]/50 text-sm text-slate-700"
+              className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-sm text-stone-700"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>

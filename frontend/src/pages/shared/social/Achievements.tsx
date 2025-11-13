@@ -1,33 +1,72 @@
-import React, { useState } from 'react';
-import { Trophy, Award, Star, Target, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Trophy, Award, Star, Target, Users, Search, Filter, TrendingUp, Sparkles, Medal, Crown } from 'lucide-react';
 import BadgeCard from '@/components/shared/social/BadgeCard';
 import { useAchievements } from '@/hooks/useCommunity';
 
 const Achievements: React.FC = () => {
-  const { badges, totalPoints, loading, error } = useAchievements();
+  const { badges, totalPoints, loading, error, refetch } = useAchievements();
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'recent' | 'points' | 'name'>('recent');
 
   const categories = [
-    { id: 'all', name: 'All Badges', icon: Trophy, count: badges.length },
-    { id: 'completion', name: 'Completion', icon: Target, count: badges.filter(b => b.badge_type === 'completion').length },
-    { id: 'participation', name: 'Participation', icon: Users, count: badges.filter(b => b.badge_type === 'participation').length },
-    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length },
-    { id: 'special', name: 'Special', icon: Star, count: badges.filter(b => b.badge_type === 'special').length },
+    { id: 'all', name: 'All Badges', icon: Trophy, count: badges.length, color: 'text-[#39FF14]' },
+    { id: 'completion', name: 'Completion', icon: Target, count: badges.filter(b => b.badge_type === 'completion').length, color: 'text-[#00FFC6]' },
+    { id: 'participation', name: 'Participation', icon: Users, count: badges.filter(b => b.badge_type === 'participation').length, color: 'text-[#00FFFF]' },
+    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#FFD700]' },
+    { id: 'special', name: 'Special', icon: Star, count: badges.filter(b => b.badge_type === 'special').length, color: 'text-[#FF6B9D]' },
   ];
 
-  const filteredBadges = activeCategory === 'all' 
-    ? badges 
-    : badges.filter(badge => badge.badge_type === activeCategory);
+  const filteredAndSortedBadges = useMemo(() => {
+    let filtered = activeCategory === 'all' 
+      ? badges 
+      : badges.filter(badge => badge.badge_type === activeCategory);
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(badge => 
+        badge.name.toLowerCase().includes(query) ||
+        badge.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'points':
+          return (b.points || 0) - (a.points || 0);
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'recent':
+        default:
+          const dateA = a.earned_at ? new Date(a.earned_at).getTime() : 0;
+          const dateB = b.earned_at ? new Date(b.earned_at).getTime() : 0;
+          return dateB - dateA;
+      }
+    });
+
+    return filtered;
+  }, [badges, activeCategory, searchQuery, sortBy]);
+
+  const earnedBadgesCount = badges.length;
+  const completionRate = categories.slice(1).reduce((acc, cat) => acc + cat.count, 0);
+  const averagePoints = earnedBadgesCount > 0 ? Math.round(totalPoints / earnedBadgesCount) : 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-12 bg-stone-200 rounded-xl w-1/3 mx-auto"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-stone-200 rounded-xl"></div>
+              ))}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                <div key={i} className="h-48 bg-stone-200 rounded-xl"></div>
               ))}
             </div>
           </div>
@@ -38,11 +77,20 @@ const Achievements: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-red-800 font-semibold mb-2">Error Loading Achievements</h2>
-            <p className="text-red-600">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-red-200 p-6 shadow-md">
+            <h2 className="text-red-800 font-semibold mb-2 flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Error Loading Achievements
+            </h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg font-semibold hover:shadow-lg transition-all"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -50,57 +98,107 @@ const Achievements: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mb-4">
-            <Trophy className="h-8 w-8 text-white" />
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-[#39FF14]/30 rounded-full blur-xl"></div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-full border-2 border-[#39FF14]/50">
+              <Trophy className="h-10 w-10 text-[#39FF14]" />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Achievements</h1>
-          <p className="text-gray-600">Track your progress and earned badges</p>
+          <h1 className="text-4xl font-bold text-stone-800 mb-2">Your Achievements</h1>
+          <p className="text-stone-600 text-lg">Track your progress and celebrate your milestones</p>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{badges.length}</div>
-            <div className="text-sm text-gray-600">Badges Earned</div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">{totalPoints}</div>
-            <div className="text-sm text-gray-600">Total Points</div>
-          </div>
-          
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">
-              {categories.slice(1).reduce((acc, cat) => acc + cat.count, 0)}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#39FF14]/50 transition-all">
+            <div className="flex items-center justify-center mb-2">
+              <Medal className="h-6 w-6 text-[#39FF14] mr-2" />
+              <div className="text-3xl font-bold text-stone-800">{earnedBadgesCount}</div>
             </div>
-            <div className="text-sm text-gray-600">Available Badges</div>
+            <div className="text-sm text-stone-600 font-medium">Badges Earned</div>
+          </div>
+          
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#00FFC6]/50 transition-all">
+            <div className="flex items-center justify-center mb-2">
+              <Sparkles className="h-6 w-6 text-[#00FFC6] mr-2" />
+              <div className="text-3xl font-bold text-stone-800">{totalPoints}</div>
+            </div>
+            <div className="text-sm text-stone-600 font-medium">Total Points</div>
+          </div>
+          
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#00FFFF]/50 transition-all">
+            <div className="flex items-center justify-center mb-2">
+              <TrendingUp className="h-6 w-6 text-[#00FFFF] mr-2" />
+              <div className="text-3xl font-bold text-stone-800">{averagePoints}</div>
+            </div>
+            <div className="text-sm text-stone-600 font-medium">Avg Points/Badge</div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#FFD700]/50 transition-all">
+            <div className="flex items-center justify-center mb-2">
+              <Crown className="h-6 w-6 text-[#FFD700] mr-2" />
+              <div className="text-3xl font-bold text-stone-800">{completionRate}</div>
+            </div>
+            <div className="text-sm text-stone-600 font-medium">Categories</div>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-md border border-stone-200 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Search badges..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-stone-700"
+              />
+            </div>
+
+            {/* Sort */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-stone-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'points' | 'name')}
+                className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-stone-700"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="points">Most Points</option>
+                <option value="name">Name (A-Z)</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 mb-8 justify-center">
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-8 justify-center">
           {categories.map(category => {
             const Icon = category.icon;
+            const isActive = activeCategory === category.id;
             return (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-colors ${
-                  activeCategory === category.id
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-full border transition-all font-medium ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 border-[#39FF14] shadow-lg'
+                    : 'bg-white/90 backdrop-blur-md text-stone-700 border-stone-200 hover:border-[#39FF14]/50 hover:bg-stone-50'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={`h-4 w-4 ${isActive ? category.color : 'text-stone-500'}`} />
                 <span>{category.name}</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  activeCategory === category.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600'
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  isActive
+                    ? 'bg-stone-900/20 text-stone-900'
+                    : 'bg-stone-100 text-stone-600'
                 }`}>
                   {category.count}
                 </span>
@@ -109,45 +207,59 @@ const Achievements: React.FC = () => {
           })}
         </div>
 
-        {/* Badges Grid */}
-        {filteredBadges.length > 0 ? (
+        {/* Badges Display */}
+        {filteredAndSortedBadges.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBadges.map(badge => (
+            {filteredAndSortedBadges.map(badge => (
               <BadgeCard key={badge.id} badge={badge} showDetails={true} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Award className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No badges in this category
+          <div className="text-center py-16 bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-md">
+            <div className="relative inline-block mb-4">
+              <div className="absolute inset-0 bg-[#39FF14]/20 rounded-full blur-xl"></div>
+              <Award className="relative h-16 w-16 text-stone-300 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-stone-800 mb-2">
+              {searchQuery ? 'No badges found' : 'No badges in this category'}
             </h3>
-            <p className="text-gray-600">
-              {activeCategory === 'all' 
-                ? "You haven't earned any badges yet. Start participating in the community!"
-                : `You haven't earned any ${activeCategory} badges yet.`
+            <p className="text-stone-600 max-w-md mx-auto">
+              {searchQuery 
+                ? `No badges match "${searchQuery}". Try a different search term.`
+                : activeCategory === 'all' 
+                  ? "You haven't earned any badges yet. Start participating in courses and activities to unlock achievements!"
+                  : `You haven't earned any ${activeCategory} badges yet. Keep learning to unlock them!`
               }
             </p>
           </div>
         )}
 
         {/* Progress Motivation */}
-        {badges.length > 0 && (
-          <div className="mt-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-8 text-white text-center">
-            <h2 className="text-2xl font-bold mb-2">Keep Going!</h2>
-            <p className="text-blue-100 mb-4">
-              You've earned {badges.length} badges and {totalPoints} points. 
-              Continue your journey to unlock more achievements!
-            </p>
-            <div className="w-full bg-blue-400 rounded-full h-2">
-              <div 
-                className="bg-white h-2 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((badges.length / 20) * 100, 100)}%` }}
-              ></div>
+        {earnedBadgesCount > 0 && (
+          <div className="mt-12 bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-8 border border-[#39FF14]/30 shadow-lg">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-stone-800 mb-2 flex items-center justify-center gap-2">
+                <Sparkles className="h-6 w-6 text-[#39FF14]" />
+                Keep Going!
+              </h2>
+              <p className="text-stone-700 mb-6 text-lg">
+                You've earned <span className="font-bold text-[#39FF14]">{earnedBadgesCount}</span> badges and{' '}
+                <span className="font-bold text-[#00FFC6]">{totalPoints}</span> points. 
+                Continue your journey to unlock more achievements!
+              </p>
+              <div className="max-w-md mx-auto">
+                <div className="flex justify-between text-sm text-stone-600 mb-2">
+                  <span>Progress</span>
+                  <span>{earnedBadgesCount} of {Math.max(20, earnedBadgesCount + 5)} badges</span>
+                </div>
+                <div className="w-full bg-stone-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-3 rounded-full transition-all duration-700 shadow-lg"
+                    style={{ width: `${Math.min((earnedBadgesCount / Math.max(20, earnedBadgesCount + 5)) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
-            <p className="text-blue-100 text-sm mt-2">
-              {badges.length} of 20 badges collected
-            </p>
           </div>
         )}
       </div>

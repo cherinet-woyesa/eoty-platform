@@ -219,22 +219,6 @@ const Landing: React.FC = () => {
               <p className="text-xl md:text-2xl text-slate-600 leading-relaxed max-w-xl">
                 Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.
               </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/register"
-                  className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-xl hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-300 font-semibold text-lg shadow-2xl hover:shadow-[#00FFC6]/40 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
-                >
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  Sign In
-                </Link>
-              </div>
 
               {/* Stats */}
               <div className="flex flex-wrap gap-8 pt-4">
@@ -630,14 +614,13 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Featured Courses Section */}
-      {featuredCourses.length > 0 && (
-        <section 
-          ref={(el) => (sectionRefs.current['featured-courses'] = el as HTMLDivElement | null)}
-          data-section-id="featured-courses"
-          className={`relative py-32 bg-gradient-to-br from-white/70 via-stone-50/70 to-slate-50/70 backdrop-blur-md z-10 transition-all duration-1000 ${
-            visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-          }`}
-        >
+      <section 
+        ref={(el) => (sectionRefs.current['featured-courses'] = el as HTMLDivElement | null)}
+        data-section-id="featured-courses"
+        className={`relative py-32 bg-gradient-to-br from-white/70 via-stone-50/70 to-slate-50/70 backdrop-blur-md z-10 transition-all duration-1000 ${
+          visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+      >
           <div className="w-full px-4 lg:px-6">
             <div className="max-w-7xl mx-auto">
               <div className="text-center mb-20">
@@ -660,7 +643,7 @@ const Landing: React.FC = () => {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredCourses.map((course, index) => (
+                {featuredCourses.length > 0 ? featuredCourses.map((course, index) => (
                   <Link
                     key={course.id}
                     to={`/courses/${course.id}`}
@@ -735,24 +718,112 @@ const Landing: React.FC = () => {
                       </div>
                     </div>
                   </Link>
-                ))}
+                )) : (
+                  // Placeholder when no courses available
+                  <div className="col-span-full text-center py-12">
+                    <BookOpen className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-600 text-lg">Featured courses coming soon</p>
+                  </div>
+                )}
               </div>
 
-              {featuredCourses.length > 0 && (
-                <div className="text-center mt-12">
-                  <Link
-                    to="/courses"
-                    className="inline-flex items-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    View All Courses
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </div>
-              )}
+              <div className="text-center mt-12">
+                <Link
+                  to="/courses"
+                  className="inline-flex items-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  View All Courses
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
-      )}
+
+      {/* Video Section */}
+      <section 
+        ref={(el) => (sectionRefs.current['video'] = el as HTMLDivElement | null)}
+        data-section-id="video"
+        className={`relative py-32 bg-white/60 backdrop-blur-md z-10 transition-all duration-1000 ${
+          visibleSections.has('video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+      >
+        <div className="w-full px-4 lg:px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-20">
+              <div className={`inline-flex items-center space-x-2 px-4 py-2 bg-[#00FFFF]/25 rounded-full border border-[#00FFFF]/40 backdrop-blur-sm mb-6 transition-all duration-700 delay-200 ${
+                visibleSections.has('video') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}>
+                <PlayCircle className="h-4 w-4 text-[#00FFFF]" />
+                <span className="text-sm font-medium text-slate-700">Watch & Learn</span>
+              </div>
+              <h2 className={`text-4xl md:text-5xl font-bold text-slate-700 mb-6 transition-all duration-700 delay-300 ${
+                visibleSections.has('video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+              }`}>
+                Interactive Video Learning
+              </h2>
+              <p className={`text-lg text-slate-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
+                visibleSections.has('video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+              }`}>
+                Experience engaging video lessons designed to enhance your understanding
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className={`group bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-slate-200/50 transform hover:-translate-y-3 hover:scale-[1.02] cursor-pointer ${
+                visibleSections.has('video') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-10'
+              }`}>
+                <div className="relative h-64 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden group-hover:scale-110 transition-transform duration-500">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-[#00FFFF] rounded-full flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform cursor-pointer group-hover:scale-125">
+                      <PlayCircle className="h-10 w-10 text-white ml-1" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                    <div className="text-white text-sm font-medium">Interactive Video Lessons</div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-slate-700 mb-3 group-hover:text-slate-800 transition-colors">
+                    High-Quality Video Content
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Access professionally produced video lessons covering theology, history, traditions, and more. Each lesson is designed to be engaging and easy to follow.
+                  </p>
+                </div>
+              </div>
+
+              <div className={`group bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-slate-200/50 transform hover:-translate-y-3 hover:scale-[1.02] cursor-pointer ${
+                visibleSections.has('video') 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 translate-y-10'
+              }`}
+              style={{ transitionDelay: '150ms' }}>
+                <div className="relative h-64 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden group-hover:scale-110 transition-transform duration-500">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform cursor-pointer group-hover:scale-125">
+                      <PlayCircle className="h-10 w-10 text-slate-900 ml-1" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                    <div className="text-white text-sm font-medium">Progress Tracking</div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-slate-700 mb-3 group-hover:text-slate-800 transition-colors">
+                    Track Your Progress
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Monitor your learning journey with detailed progress tracking. See which lessons you've completed and pick up exactly where you left off.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Blogs Section */}
       <section 
@@ -906,29 +977,7 @@ const Landing: React.FC = () => {
       {/* Footer */}
       <footer className="relative bg-slate-300/80 backdrop-blur-md text-slate-700 py-16 border-t border-slate-400/40 z-10">
         <div className="w-full px-4 lg:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="p-2 bg-[#39FF14]/20 rounded-lg backdrop-blur-sm">
-                <BookOpen className="h-6 w-6 text-[#39FF14]" />
-              </div>
-              <span className="text-xl font-bold text-slate-700">EOTY Platform</span>
-            </div>
-            <div className="flex space-x-8">
-              <Link
-                to="/login"
-                className="hover:text-slate-800 transition-colors font-medium"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="hover:text-slate-800 transition-colors font-medium"
-              >
-                Sign Up
-              </Link>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-slate-400/40 text-center text-sm">
+          <div className="text-center">
             <p className="text-slate-600">
               &copy; {new Date().getFullYear()} EOTY Platform. All rights reserved.
             </p>

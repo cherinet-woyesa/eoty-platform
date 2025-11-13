@@ -5,7 +5,6 @@ import { dataCache } from '@/hooks/useRealTimeData';
 import { 
   BookOpen, 
   Upload, 
-  ArrowLeft, 
   CheckCircle, 
   Sparkles, 
   Target,
@@ -437,33 +436,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
   return (
     <>
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl shadow-sm p-6 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="h-6 w-6" />
-              <h1 className="text-2xl font-bold">
-                {editMode ? t('courses.creation.edit_course') : t('courses.creation.create_new_course')}
-              </h1>
-            </div>
-            <p className="text-blue-100 text-sm">
-              {t('courses.creation.header_description')}
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-2 mt-4 lg:mt-0">
-            <button
-              onClick={() => navigate('/teacher/courses')}
-              className="inline-flex items-center px-3 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-sm overflow-hidden">
         {/* Error Alert */}
         {errors.submit && (
           <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">

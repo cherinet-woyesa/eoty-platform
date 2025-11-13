@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Loader2, AlertCircle, Search, Menu
+  BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import CourseGrid from './CourseGrid';
-import { useDashboardData } from '@/hooks/useRealTimeData';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSearch from './DashboardSearch';
+import { apiClient } from '@/services/api/apiClient';
 
 // Skeleton loader components
 const DashboardSkeleton: React.FC = React.memo(() => (
@@ -40,22 +40,57 @@ const DashboardSkeleton: React.FC = React.memo(() => (
   </div>
 ));
 
+interface StudentDashboardData {
+  progress: {
+    totalCourses: number;
+    completedCourses: number;
+    totalLessons: number;
+    completedLessons: number;
+    studyStreak: number;
+    totalPoints: number;
+    nextGoal: string;
+    weeklyGoal: number;
+    weeklyProgress: number;
+  };
+  enrolledCourses: any[];
+  recentActivity: any[];
+  recommendations: any[];
+}
+
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [studentData, setStudentData] = useState<StudentDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Enhanced real-time data with error boundaries and retry
-  const { 
-    data: studentData, 
-    error, 
-    isLoading, 
-    refetch, 
-    isFetching,
-    lastUpdated 
-  } = useDashboardData();
+  // Load dashboard data directly from API (same as StudentCourses page)
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.get('/students/dashboard');
+      
+      if (response.data.success) {
+        setStudentData(response.data.data);
+        console.log('✅ Dashboard data loaded from API:', response.data.data);
+      } else {
+        setError('Failed to load dashboard data');
+      }
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   // WebSocket for live updates with optimized settings
   const { lastMessage, isConnected } = useWebSocket('/student/updates', {
@@ -74,7 +109,7 @@ const StudentDashboard: React.FC = () => {
         switch (message.type) {
           case 'COURSE_PROGRESS_UPDATE':
             // Refresh dashboard data
-            refetch();
+            loadDashboardData();
             break;
           default:
             console.log('Unknown message type:', message.type);
@@ -83,13 +118,46 @@ const StudentDashboard: React.FC = () => {
         console.error('Failed to parse WebSocket message:', err);
       }
     }
-  }, [lastMessage, refetch]);
+  }, [lastMessage, loadDashboardData]);
 
   // Update time every minute with cleanup
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  // Transform enrolled courses from API to match CourseGrid interface
+  const transformedCourses = useMemo(() => {
+    if (!studentData?.enrolledCourses || !Array.isArray(studentData.enrolledCourses)) {
+      console.log('📚 No enrolled courses found in studentData:', studentData);
+      return [];
+    }
+    
+    console.log('📚 Transforming enrolled courses from API:', studentData.enrolledCourses);
+    const transformed = studentData.enrolledCourses.map((course: any) => ({
+      id: String(course.id || course.course_id || ''),
+      title: course.title || 'Untitled Course',
+      description: course.description || '',
+      progress: course.progress || 0,
+      totalLessons: course.totalLessons || course.total_lessons || 0,
+      completedLessons: course.completedLessons || course.completed_lessons || 0,
+      lastAccessed: course.lastAccessed || course.last_accessed || new Date().toISOString(),
+      instructor: course.instructor || course.instructor_name || 'Instructor',
+      rating: course.rating || 0,
+      studentCount: course.studentCount || course.student_count || 0,
+      duration: course.duration || 0,
+      thumbnail: course.coverImage || course.cover_image || course.thumbnail || '',
+      category: course.category || 'General',
+      difficulty: (course.difficulty || course.level || 'beginner').toLowerCase() as 'beginner' | 'intermediate' | 'advanced',
+      tags: course.tags || [],
+      isBookmarked: course.isBookmarked || course.is_bookmarked || false,
+      isFeatured: course.isFeatured || course.is_featured || false,
+      status: course.status || course.enrollment_status || 'enrolled'
+    }));
+    
+    console.log('📚 Transformed courses:', transformed);
+    return transformed;
+  }, [studentData?.enrolledCourses]);
 
   // Enhanced stats with real-time updates and memoization
   const stats = useMemo(() => [
@@ -137,8 +205,8 @@ const StudentDashboard: React.FC = () => {
   }, []);
 
   const handleRetry = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleCourseAction = useCallback((courseId: string, action: string) => {
     console.log('Course action:', action, courseId);
@@ -165,8 +233,8 @@ const StudentDashboard: React.FC = () => {
     return <DashboardSkeleton />;
   }
 
-  // Only show error if it's not a canceled request (which is expected during navigation)
-  if (error && !error.includes('canceled') && !error.includes('CanceledError') && !error.includes('ERR_CANCELED')) {
+  // Show error if data failed to load
+  if (error) {
     return (
       <div className="w-full space-y-6 p-6">
         <div className="flex items-center justify-center min-h-96">
@@ -232,7 +300,7 @@ const StudentDashboard: React.FC = () => {
                     <DashboardSearch
                       searchQuery={searchQuery}
                       onSearchChange={setSearchQuery}
-                      resultsCount={studentData?.enrolledCourses?.length || 0}
+                      resultsCount={transformedCourses.length || 0}
                     />
                   </div>
                 </div>
@@ -273,13 +341,13 @@ const StudentDashboard: React.FC = () => {
 
           {/* Enrolled Courses */}
           <CourseGrid 
-            courses={studentData?.enrolledCourses || []} 
+            courses={transformedCourses} 
             compact={false}
             onCourseAction={handleCourseAction}
           />
 
           {/* Empty State for Search */}
-          {searchQuery && studentData?.enrolledCourses?.length === 0 && (
+          {searchQuery && transformedCourses.length === 0 && (
             <div className="text-center py-12">
               <Search className="h-16 w-16 text-stone-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-stone-800 mb-2">No results found</h3>

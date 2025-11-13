@@ -14,22 +14,26 @@ const RecordVideo: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Light beige/silver theme */}
-        <div className="bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-xl bg-white/70 backdrop-blur-sm border border-slate-200/50 shadow-sm">
-                <Video className="h-6 w-6 text-slate-700" />
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                  <Video className="h-6 w-6 text-[#39FF14]" />
+                </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-700">Video Recording Studio</h1>
+                <h1 className="text-3xl font-bold text-stone-800">Video Recording Studio</h1>
+                <p className="text-stone-600 mt-1">Record and upload your lesson videos</p>
               </div>
             </div>
             <Link
               to="/teacher/courses"
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] rounded-lg transition-all font-semibold"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Courses
@@ -68,35 +72,35 @@ const RecordVideo: React.FC = () => {
             </div>
             **/}
 
-            {/* Your Progress - Light theme */}
-            <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center">
+            {/* Your Progress */}
+            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
+              <h3 className="text-sm font-semibold text-stone-800 mb-4 flex items-center">
                 <TrendingUp className="mr-2 h-5 w-5 text-[#39FF14]" />
                 Your Progress
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600">Videos This Month</span>
-                  <span className="font-bold text-lg text-slate-800">{stats.thisMonth}</span>
+                  <span className="text-sm text-stone-600">Videos This Month</span>
+                  <span className="font-bold text-lg text-[#39FF14]">{stats.thisMonth}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600">Total Videos</span>
-                  <span className="font-bold text-lg text-slate-800">{stats.totalVideos}</span>
+                  <span className="text-sm text-stone-600">Total Videos</span>
+                  <span className="font-bold text-lg text-[#00FFC6]">{stats.totalVideos}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600">Students Reached</span>
-                  <span className="font-bold text-lg text-slate-800">{stats.totalStudents}</span>
+                  <span className="text-sm text-stone-600">Students Reached</span>
+                  <span className="font-bold text-lg text-[#00FFFF]">{stats.totalStudents}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600">Average Rating</span>
-                  <span className="font-bold text-lg text-slate-800">{stats.averageRating}/5</span>
+                  <span className="text-sm text-stone-600">Average Rating</span>
+                  <span className="font-bold text-lg text-[#FFD700]">{stats.averageRating}/5</span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions - Light theme */}
-            <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4">Quick Actions</h3>
+            {/* Quick Actions */}
+            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
+              <h3 className="text-sm font-semibold text-stone-800 mb-4">Quick Actions</h3>
               <div className="space-y-2">
                 <Link
                   to="/teacher/courses/new"

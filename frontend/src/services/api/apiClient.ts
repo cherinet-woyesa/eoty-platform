@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse, AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { parseApiError, logError } from '@/utils/errorHandler';
+import { logger } from '@/utils/logger';
 
 // Demo mode flag - set to true to use mock data when backend is unavailable
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || false;
@@ -46,17 +47,15 @@ apiClient.interceptors.request.use(
     }
     
     // Log request in development
-    if (import.meta.env.DEV) {
-      console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-        baseURL: config.baseURL,
-        headers: config.headers
-      });
-    }
+    logger.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+      baseURL: config.baseURL,
+      headers: config.headers
+    });
     
     return config;
   },
   (error: AxiosError) => {
-    console.error('❌ Request interceptor error:', error);
+    logger.error('❌ Request interceptor error:', error);
     return Promise.reject(enhanceError(error));
   }
 );
@@ -68,12 +67,10 @@ const CACHE_DURATION = 30000; // 30 seconds
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log successful responses in development
-    if (import.meta.env.DEV) {
-      console.log(`✅ API Response: ${response.status} ${response.config.url}`, {
-        data: response.data,
-        headers: response.headers
-      });
-    }
+    logger.log(`✅ API Response: ${response.status} ${response.config.url}`, {
+      data: response.data,
+      headers: response.headers
+    });
     
     // Cache GET requests for performance
     if (response.config.method?.toUpperCase() === 'GET') {
@@ -94,7 +91,7 @@ apiClient.interceptors.response.use(
     // Handle specific error cases
     if (error.response?.status === 401) {
       // Token expired or invalid
-      console.warn('🛑 Authentication failed');
+      logger.warn('🛑 Authentication failed');
       const currentPath = window.location.pathname;
       
       // Don't redirect if already on login/register pages
@@ -108,7 +105,7 @@ apiClient.interceptors.response.use(
       
       // Only clear and redirect if we actually had auth data
       if (token || user) {
-        console.warn('Clearing local storage due to 401 error');
+        logger.warn('Clearing local storage due to 401 error');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('userRole');
@@ -127,13 +124,13 @@ apiClient.interceptors.response.use(
       } else {
         // No token/user data, but got 401 - might be a protected endpoint
         // Don't redirect, just reject the error
-        console.warn('401 error but no auth data found - might be accessing protected endpoint without auth');
+        logger.warn('401 error but no auth data found - might be accessing protected endpoint without auth');
       }
     }
     
     // Handle CORS and network errors
     if (error.code === 'ERR_NETWORK' || error.response?.status === 0) {
-      console.error('🌐 Network/CORS Error:', {
+      logger.error('🌐 Network/CORS Error:', {
         code: error.code,
         message: error.message,
         url: error.config?.url
@@ -143,7 +140,7 @@ apiClient.interceptors.response.use(
       if (DEMO_MODE && error.config) {
         const mockData = getMockData(error.config.url || '');
         if (mockData) {
-          console.log('🎭 Using mock data for:', error.config.url);
+          logger.log('🎭 Using mock data for:', error.config.url);
           return Promise.resolve({
             data: mockData,
             status: 200,
@@ -368,7 +365,7 @@ export const apiUtils = {
         const cached = responseCache.get(cacheKey);
         
         if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-          console.log('📦 Using cached response for:', url);
+          logger.log('📦 Using cached response for:', url);
           return cached.data;
         }
       }

@@ -60,15 +60,17 @@ export const ROLE_HIERARCHY: Record<string, number> = {
 /**
  * Admin navigation items
  * Accessible by admin role
+ * Organized by importance and frequency of access
  */
 export const adminNavItems: NavItem[] = [
+  // Tier 1: Core - Most important, accessed daily
   {
     name: 'Dashboard',
     href: '/admin/dashboard',
     icon: LayoutDashboard,
     badge: null,
     description: 'Overview & metrics',
-    color: 'text-blue-600',
+    color: 'text-[#39FF14]',
     requiredRole: 'admin',
   },
   {
@@ -77,7 +79,7 @@ export const adminNavItems: NavItem[] = [
     icon: Users,
     badge: null,
     description: 'Manage users & roles',
-    color: 'text-indigo-600',
+    color: 'text-[#00FFC6]',
     requiredRole: 'admin',
   },
   {
@@ -86,7 +88,7 @@ export const adminNavItems: NavItem[] = [
     icon: BookOpen,
     badge: null,
     description: 'Manage all courses',
-    color: 'text-green-600',
+    color: 'text-[#00FFFF]',
     requiredRole: 'admin',
   },
   {
@@ -95,25 +97,27 @@ export const adminNavItems: NavItem[] = [
     icon: FileText,
     badge: null,
     description: 'Approve uploads',
-    color: 'text-purple-600',
+    color: 'text-[#39FF14]',
     requiredRole: 'admin',
   },
+  
+  // Tier 2: Important - Frequently accessed
   {
     name: 'Moderation',
     href: '/admin/moderation',
     icon: Shield,
     badge: null,
     description: 'Content review',
-    color: 'text-red-600',
+    color: 'text-[#FFD700]',
     requiredRole: 'admin',
   },
   {
-    name: 'Tags & Categories',
-    href: '/admin/tags',
-    icon: Tag,
+    name: 'Teacher Applications',
+    href: '/admin/teacher-applications',
+    icon: Users,
     badge: null,
-    description: 'Organize content',
-    color: 'text-pink-600',
+    description: 'Review applications',
+    color: 'text-[#00FFC6]',
     requiredRole: 'admin',
   },
   {
@@ -122,33 +126,34 @@ export const adminNavItems: NavItem[] = [
     icon: BarChart2,
     badge: null,
     description: 'Platform insights',
-    color: 'text-orange-600',
+    color: 'text-[#00FFFF]',
     requiredRole: 'admin',
   },
-  {
-    name: 'Mux Migration',
-    href: '/admin/mux-migration',
-    icon: Settings,
-    badge: null,
-    description: 'Migrate videos to Mux',
-    color: 'text-purple-600',
-    requiredRole: 'admin',
-  },
+  
+  // Tier 3: Useful - Moderately accessed
   {
     name: 'System Config',
     href: '/admin/config',
     icon: Settings,
     badge: null,
     description: 'Manage system options',
-    color: 'text-gray-600',
+    color: 'text-[#39FF14]',
     requiredRole: 'admin',
     children: [
+      {
+        name: 'Dashboard',
+        href: '/admin/config/dashboard',
+        icon: LayoutDashboard,
+        description: 'Config overview',
+        color: 'text-[#39FF14]',
+        requiredRole: 'admin',
+      },
       {
         name: 'Categories',
         href: '/admin/config/categories',
         icon: FolderTree,
         description: 'Course categories',
-        color: 'text-blue-600',
+        color: 'text-[#00FFC6]',
         requiredRole: 'admin',
       },
       {
@@ -156,7 +161,7 @@ export const adminNavItems: NavItem[] = [
         href: '/admin/config/levels',
         icon: Layers,
         description: 'Difficulty levels',
-        color: 'text-green-600',
+        color: 'text-[#00FFFF]',
         requiredRole: 'admin',
       },
       {
@@ -164,7 +169,7 @@ export const adminNavItems: NavItem[] = [
         href: '/admin/config/durations',
         icon: Timer,
         description: 'Course durations',
-        color: 'text-purple-600',
+        color: 'text-[#FFD700]',
         requiredRole: 'admin',
       },
       {
@@ -172,7 +177,7 @@ export const adminNavItems: NavItem[] = [
         href: '/admin/config/tags',
         icon: Hash,
         description: 'Content tags',
-        color: 'text-pink-600',
+        color: 'text-[#39FF14]',
         requiredRole: 'admin',
       },
       {
@@ -180,25 +185,47 @@ export const adminNavItems: NavItem[] = [
         href: '/admin/config/chapters',
         icon: BookOpen,
         description: 'Chapter management',
-        color: 'text-indigo-600',
+        color: 'text-[#00FFC6]',
         requiredRole: 'admin',
       },
     ],
+  },
+  {
+    name: 'Tags & Categories',
+    href: '/admin/tags',
+    icon: Tag,
+    badge: null,
+    description: 'Organize content',
+    color: 'text-[#00FFFF]',
+    requiredRole: 'admin',
+  },
+  
+  // Tier 4: Reference - Less frequently accessed
+  {
+    name: 'Mux Migration',
+    href: '/admin/mux-migration',
+    icon: Video,
+    badge: null,
+    description: 'Migrate videos to Mux',
+    color: 'text-[#FFD700]',
+    requiredRole: 'admin',
   },
 ];
 
 /**
  * Teacher navigation items
- * Accessible by teacher and admin roles
+ * Ordered by importance and frequency of access
+ * Most important and frequently accessed items appear first
  */
 export const teacherNavItems: NavItem[] = [
+  // Tier 1: Core - Most important, accessed daily
   {
     name: 'Dashboard',
     href: '/teacher/dashboard',
     icon: LayoutDashboard,
     badge: null,
     description: 'Teaching overview',
-    color: 'text-blue-600',
+    color: 'text-[#39FF14]',
     requiredRole: ['teacher', 'admin'],
   },
   {
@@ -207,7 +234,7 @@ export const teacherNavItems: NavItem[] = [
     icon: BookOpen,
     badge: null,
     description: 'Manage courses',
-    color: 'text-green-600',
+    color: 'text-[#00FFC6]',
     requiredRole: ['teacher', 'admin'],
   },
   {
@@ -216,16 +243,7 @@ export const teacherNavItems: NavItem[] = [
     icon: Video,
     badge: null,
     description: 'Create lessons',
-    color: 'text-red-600',
-    requiredRole: ['teacher', 'admin'],
-  },
-  {
-    name: 'Create Course',
-    href: '/courses/new',
-    icon: Sparkles,
-    badge: null,
-    description: 'New course',
-    color: 'text-purple-600',
+    color: 'text-[#00FFFF]',
     requiredRole: ['teacher', 'admin'],
   },
   {
@@ -234,16 +252,47 @@ export const teacherNavItems: NavItem[] = [
     icon: Users,
     badge: null,
     description: 'Manage learners',
-    color: 'text-indigo-600',
+    color: 'text-[#39FF14]',
+    requiredRole: ['teacher', 'admin'],
+  },
+  
+  // Tier 2: Important - Frequently accessed
+  {
+    name: 'Assignments',
+    href: '/teacher/assignments',
+    icon: FileText,
+    badge: null,
+    description: 'Grade work',
+    color: 'text-[#00FFC6]',
+    requiredRole: ['teacher', 'admin'],
+  },
+  {
+    name: 'Create Course',
+    href: '/teacher/courses/new',
+    icon: Sparkles,
+    badge: null,
+    description: 'New course',
+    color: 'text-[#00FFFF]',
     requiredRole: ['teacher', 'admin'],
   },
   {
     name: 'Analytics',
-    href: '/analytics',
+    href: '/teacher/analytics',
     icon: BarChart2,
     badge: null,
     description: 'View reports',
-    color: 'text-orange-600',
+    color: 'text-[#FFD700]',
+    requiredRole: ['teacher', 'admin'],
+  },
+  
+  // Tier 3: Useful - Moderately accessed
+  {
+    name: 'AI Assistant',
+    href: '/ai-assistant',
+    icon: Bot,
+    badge: null,
+    description: 'Get help',
+    color: 'text-[#39FF14]',
     requiredRole: ['teacher', 'admin'],
   },
   {
@@ -252,34 +301,18 @@ export const teacherNavItems: NavItem[] = [
     icon: MessageSquare,
     badge: null,
     description: 'Student chats',
-    color: 'text-pink-600',
+    color: 'text-[#00FFC6]',
     requiredRole: ['teacher', 'admin'],
   },
-  {
-    name: 'Assignments',
-    href: '/assignments',
-    icon: FileText,
-    badge: null,
-    description: 'Grade work',
-    color: 'text-amber-600',
-    requiredRole: ['teacher', 'admin'],
-  },
+  
+  // Tier 4: Reference - Less frequently accessed
   {
     name: 'Resources',
     href: '/resources',
     icon: Upload,
     badge: null,
     description: 'Upload files',
-    color: 'text-emerald-600',
-    requiredRole: ['teacher', 'admin'],
-  },
-  {
-    name: 'AI Assistant',
-    href: '/ai-assistant',
-    icon: Bot,
-    badge: null,
-    description: 'Get help',
-    color: 'text-cyan-600',
+    color: 'text-[#00FFFF]',
     requiredRole: ['teacher', 'admin'],
   },
   {
@@ -288,16 +321,18 @@ export const teacherNavItems: NavItem[] = [
     icon: Award,
     badge: null,
     description: 'View badges',
-    color: 'text-yellow-600',
+    color: 'text-[#FFD700]',
     requiredRole: ['teacher', 'admin'],
   },
 ];
 
 /**
  * Student navigation items
- * Accessible by all authenticated users (role hierarchy applies)
+ * Ordered by importance and frequency of access
+ * Most important and frequently accessed items appear first
  */
 export const studentNavItems: NavItem[] = [
+  // Tier 1: Core - Most important, accessed daily
   {
     name: 'Dashboard',
     href: '/student/dashboard',
@@ -317,8 +352,17 @@ export const studentNavItems: NavItem[] = [
     requiredRole: 'student',
   },
   {
+    name: 'Videos',
+    href: '/student/videos',
+    icon: PlayCircle,
+    badge: null,
+    description: 'Watch your videos',
+    color: 'text-[#39FF14]',
+    requiredRole: 'student',
+  },
+  {
     name: 'Browse Courses',
-    href: '/courses',
+    href: '/student/browse-courses',
     icon: Search,
     badge: null,
     description: 'Discover new courses',
@@ -326,12 +370,23 @@ export const studentNavItems: NavItem[] = [
     requiredRole: 'student',
   },
   {
-    name: 'Study Paths',
-    href: '/student/learning-paths',
-    icon: Target,
+    name: 'AI Assistant',
+    href: '/ai-assistant',
+    icon: Brain,
     badge: null,
-    description: 'Structured learning',
-    color: 'text-indigo-600',
+    description: 'Get help',
+    color: 'text-emerald-600',
+    requiredRole: 'student',
+  },
+  
+  // Tier 2: Important - Frequently accessed
+  {
+    name: 'Progress',
+    href: '/student/progress',
+    icon: BarChart3,
+    badge: null,
+    description: 'Track learning',
+    color: 'text-orange-600',
     requiredRole: 'student',
   },
   {
@@ -343,24 +398,28 @@ export const studentNavItems: NavItem[] = [
     color: 'text-yellow-600',
     requiredRole: 'student',
   },
+  
+  // Tier 3: Useful - Moderately accessed
   {
-    name: 'Study Schedule',
-    href: '/student/schedule',
-    icon: Calendar,
+    name: 'Study Paths',
+    href: '/student/learning-paths',
+    icon: Target,
     badge: null,
-    description: 'Plan your study',
-    color: 'text-pink-600',
+    description: 'Structured learning',
+    color: 'text-indigo-600',
     requiredRole: 'student',
   },
   {
-    name: 'Progress',
-    href: '/student/progress',
-    icon: BarChart3,
+    name: 'Achievements',
+    href: '/student/achievements',
+    icon: Award,
     badge: null,
-    description: 'Track learning',
-    color: 'text-orange-600',
+    description: 'View badges',
+    color: 'text-amber-600',
     requiredRole: 'student',
   },
+  
+  // Tier 4: Social & Support - Less frequently accessed
   {
     name: 'Discussions',
     href: '/forums',
@@ -379,24 +438,8 @@ export const studentNavItems: NavItem[] = [
     color: 'text-teal-600',
     requiredRole: 'student',
   },
-  {
-    name: 'Achievements',
-    href: '/student/achievements',
-    icon: Award,
-    badge: null,
-    description: 'View badges',
-    color: 'text-amber-600',
-    requiredRole: 'student',
-  },
-  {
-    name: 'AI Assistant',
-    href: '/ai-assistant',
-    icon: Brain,
-    badge: null,
-    description: 'Get help',
-    color: 'text-emerald-600',
-    requiredRole: 'student',
-  },
+  
+  // Tier 5: Reference - Least frequently accessed
   {
     name: 'Resources',
     href: '/resources',

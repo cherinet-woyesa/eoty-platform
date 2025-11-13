@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { coursesApi } from '@/services/api';
-import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/services/api/apiClient';
 import { 
   BookOpen, 
   Search, 
-  Filter,
   RefreshCw,
   Plus,
   Eye,
@@ -17,15 +15,12 @@ import {
   Users,
   Video,
   Clock,
-  TrendingUp,
   Calendar,
   LayoutGrid,
   List,
   ChevronLeft,
   ChevronRight,
-  X,
-  MoreVertical,
-  User as UserIcon
+  X
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import type { Course } from '@/types/courses';
@@ -36,7 +31,6 @@ interface CourseWithCreator extends Course {
 }
 
 const AllCourses: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   // State
@@ -186,7 +180,7 @@ const AllCourses: React.FC = () => {
     }
     setActionLoading(courseId.toString());
     try {
-      await coursesApi.deleteCourse(courseId);
+      await coursesApi.deleteCourse(courseId.toString());
       await fetchCourses();
     } catch (err: any) {
       console.error('Failed to delete course:', err);
@@ -263,75 +257,82 @@ const AllCourses: React.FC = () => {
 
   if (loading && courses.length === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading courses..." />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <LoadingSpinner size="lg" text="Loading courses..." />
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-6 p-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <BookOpen className="h-6 w-6" />
-              <h1 className="text-2xl font-bold">Course Management</h1>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <BookOpen className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">Course Management</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">
+                Manage all platform courses, content, and enrollments
+              </p>
+              <p className="text-stone-600 text-xs mt-1">
+                {stats.total} total courses • {stats.published} published • {stats.draft} drafts
+              </p>
             </div>
-            <p className="text-blue-100 text-sm">
-              Manage all platform courses, content, and enrollments
-            </p>
-            <p className="text-blue-200 text-xs mt-1">
-              {stats.total} total courses • {stats.published} published • {stats.draft} drafts
-            </p>
-          </div>
-          <div className="mt-4 lg:mt-0 flex gap-2">
-            <button
-              onClick={fetchCourses}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => navigate('/teacher/courses/new')}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Course
-            </button>
+            <div className="mt-4 lg:mt-0 flex gap-2">
+              <button
+                onClick={fetchCourses}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button
+                onClick={() => navigate('/teacher/courses/new')}
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Course
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {[
-          { name: 'Total Courses', value: stats.total, icon: BookOpen, color: 'from-blue-500 to-blue-600' },
-          { name: 'Published', value: stats.published, icon: CheckCircle, color: 'from-green-500 to-green-600' },
-          { name: 'Drafts', value: stats.draft, icon: XCircle, color: 'from-yellow-500 to-yellow-600' },
-          { name: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-purple-500 to-purple-600' },
-          { name: 'Total Lessons', value: stats.totalLessons, icon: Video, color: 'from-orange-500 to-orange-600' },
-          { name: 'Total Hours', value: stats.totalDuration, icon: Clock, color: 'from-indigo-500 to-indigo-600' },
-        ].map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                <stat.icon className="h-4 w-4 text-white" />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
+            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
+            { name: 'Drafts', value: stats.draft, icon: XCircle, textColor: 'text-[#FFD700]', bgColor: 'bg-[#FFD700]/10', borderColor: 'border-[#FFD700]/30', glowColor: 'bg-[#FFD700]/20' },
+            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#00FFFF]', bgColor: 'bg-[#00FFFF]/10', borderColor: 'border-[#00FFFF]/30', glowColor: 'bg-[#00FFFF]/20' },
+            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
+            { name: 'Total Hours', value: stats.totalDuration, icon: Clock, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
+          ].map((stat, index) => (
+            <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`relative ${stat.textColor}`}>
+                  <div className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}></div>
+                  <div className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}>
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
+              <p className="text-2xl font-bold text-stone-800">{stat.value.toLocaleString()}</p>
+              <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value.toLocaleString()}</p>
-            <p className="text-xs text-gray-600 font-medium">{stat.name}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        {/* Search and Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -344,7 +345,7 @@ const AllCourses: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             />
           </div>
 
@@ -356,7 +357,7 @@ const AllCourses: React.FC = () => {
                 setStatusFilter(e.target.value as 'all' | 'published' | 'draft');
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Status</option>
               <option value="published">Published</option>
@@ -369,7 +370,7 @@ const AllCourses: React.FC = () => {
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Categories</option>
               <option value="faith">Faith & Doctrine</option>
@@ -387,7 +388,7 @@ const AllCourses: React.FC = () => {
                 setSortBy(field as any);
                 setSortOrder(order as 'asc' | 'desc');
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="created_at-desc">Newest First</option>
               <option value="created_at-asc">Oldest First</option>
@@ -400,13 +401,13 @@ const AllCourses: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-gray-300 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -417,7 +418,7 @@ const AllCourses: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center">
             <XCircle className="h-5 w-5 text-red-600 mr-2" />
             <span className="text-red-800">{error}</span>
@@ -430,16 +431,16 @@ const AllCourses: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedCourses.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
           <div className="flex items-center space-x-4">
-            <span className="text-blue-900 font-medium">
+            <span className="text-stone-800 font-semibold">
               {selectedCourses.length} course{selectedCourses.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkPublish(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 disabled:opacity-50 shadow-md"
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Publish
@@ -447,7 +448,7 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={() => handleBulkPublish(false)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-1.5 bg-[#FFD700] text-stone-800 text-sm font-semibold rounded-lg hover:bg-[#FFD700]/90 disabled:opacity-50 shadow-md"
               >
                 <XCircle className="h-4 w-4 mr-1" />
                 Unpublish
@@ -455,7 +456,7 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={handleBulkDelete}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 shadow-md"
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete
@@ -464,7 +465,7 @@ const AllCourses: React.FC = () => {
           </div>
           <button
             onClick={() => setSelectedCourses([])}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-stone-600 hover:text-stone-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -552,7 +553,7 @@ const AllCourses: React.FC = () => {
                         <td className="px-4 py-3">
                           <div className="text-sm text-gray-900 flex items-center">
                             <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                            {formatDate(course.created_at)}
+                            {formatDate(typeof course.created_at === 'string' ? course.created_at : course.created_at.toString())}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -726,6 +727,7 @@ const AllCourses: React.FC = () => {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

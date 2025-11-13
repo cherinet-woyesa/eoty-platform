@@ -238,6 +238,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       
+      // Clear any existing session before attempting new login
+      // This ensures a fresh login and prevents session conflicts
+      const storageKeys = [
+        'token', 'user', 'userRole', 'auth_persist', 'session_data',
+        'user_permissions', 'auth_timestamp', 'dashboard_cache'
+      ];
+      storageKeys.forEach(key => localStorage.removeItem(key));
+      sessionStorage.clear();
+      setUser(null);
+      setToken(null);
+      setPermissions([]);
+      
       const response = await authApi.login(email, password);
       
       if (response.success && response.data) {
@@ -307,6 +319,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: any): Promise<void> => {
     try {
       setIsLoading(true);
+      
+      // Clear any existing session before attempting new registration
+      // This ensures a fresh registration and prevents session conflicts
+      const storageKeys = [
+        'token', 'user', 'userRole', 'auth_persist', 'session_data',
+        'user_permissions', 'auth_timestamp', 'dashboard_cache'
+      ];
+      storageKeys.forEach(key => localStorage.removeItem(key));
+      sessionStorage.clear();
+      setUser(null);
+      setToken(null);
+      setPermissions([]);
+      
       const response = await authApi.register(userData);
       
       if (response.success && response.data) {

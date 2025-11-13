@@ -68,11 +68,11 @@ const AnalyticsDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-96 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading Analytics Dashboard...</p>
-          <p className="text-sm text-gray-500 mt-1">Gathering platform insights</p>
+          <div className="w-16 h-16 border-4 border-[#39FF14]/20 border-t-[#39FF14] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-stone-700 font-semibold">Loading Analytics Dashboard...</p>
+          <p className="text-sm text-stone-600 mt-1">Gathering platform insights</p>
         </div>
       </div>
     );
@@ -80,36 +80,40 @@ const AnalyticsDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-6 text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <XCircle className="h-8 w-8 text-red-600" />
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white/90 backdrop-blur-md border border-red-200 rounded-2xl p-8 text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">Unable to Load Analytics</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchAnalytics}
+            className="px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            Try Again
+          </button>
         </div>
-        <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Analytics</h3>
-        <p className="text-red-600 mb-4">{error}</p>
-        <button
-          onClick={fetchAnalytics}
-          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-        >
-          Try Again
-        </button>
       </div>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="text-center py-12">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <BarChart2 className="h-10 w-10 text-gray-400" />
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 max-w-md">
+          <div className="w-24 h-24 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BarChart2 className="h-10 w-10 text-stone-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">No Data Available</h3>
+          <p className="text-stone-600 mb-4">Analytics data will appear here once available</p>
+          <button
+            onClick={fetchAnalytics}
+            className="px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            Check Again
+          </button>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Available</h3>
-        <p className="text-gray-500 mb-4">Analytics data will appear here once available</p>
-        <button
-          onClick={fetchAnalytics}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
-          Check Again
-        </button>
       </div>
     );
   }
@@ -117,38 +121,47 @@ const AnalyticsDashboard: React.FC = () => {
   const metrics = analytics.metrics;
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl p-6 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold mb-2">Analytics Dashboard</h1>
-            <p className="text-blue-100 opacity-90">
-              Real-time insights and platform performance metrics
-            </p>
-          </div>
-          <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-            <button
-              onClick={handleExport}
-              className="flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </button>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <BarChart2 className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">Analytics Dashboard</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">
+                Real-time insights and platform performance metrics
+              </p>
+            </div>
+            <div className="flex items-center space-x-3 mt-4 lg:mt-0">
+              <button
+                onClick={handleExport}
+                className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50"
+              >
+                <Download className="h-4 w-4 mr-2 text-[#39FF14]" />
+                Export
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Timeframe Selector */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        {/* Timeframe Selector */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-stone-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center space-x-2 mb-4 lg:mb-0">
             <Filter className="h-5 w-5 text-gray-600" />
@@ -465,8 +478,10 @@ const AnalyticsDashboard: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
 
 export default AnalyticsDashboard;
+export { AnalyticsDashboard };

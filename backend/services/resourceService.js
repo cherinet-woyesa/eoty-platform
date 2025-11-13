@@ -140,6 +140,92 @@ class ResourceService {
   }
 
   /**
+   * Get all resources accessible to a user
+   * @param {number} userId - User ID
+   * @param {string} userRole - User role
+   * @returns {Promise<Array>} Array of resource objects
+   */
+  async getAllUserResources(userId, userRole) {
+    try {
+      let query = db('lesson_resources')
+        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
+        .join('courses', 'lessons.course_id', 'courses.id')
+        .select(
+          'lesson_resources.id',
+          'lesson_resources.lesson_id',
+          'lesson_resources.filename',
+          'lesson_resources.original_filename',
+          'lesson_resources.file_type',
+          'lesson_resources.file_size',
+          'lesson_resources.file_url',
+          'lesson_resources.description',
+          'lesson_resources.download_count',
+          'lesson_resources.created_at',
+          'lessons.title as lesson_title',
+          'courses.id as course_id',
+          'courses.title as course_title'
+        );
+
+      // If user is admin, return all resources
+      if (userRole === 'admin' || userRole === 'platform_admin' || userRole === 'chapter_admin') {
+        return await query.orderBy('lesson_resources.created_at', 'desc');
+      }
+
+      // If user is teacher, return resources from their courses
+      if (userRole === 'teacher') {
+        query = query.where('courses.created_by', userId);
+      } else {
+        // If user is student, return resources from enrolled courses
+        query = query
+          .join('user_course_enrollments', function() {
+            this.on('courses.id', '=', 'user_course_enrollments.course_id')
+                .andOn('user_course_enrollments.user_id', '=', db.raw('?', [userId]));
+          });
+      }
+
+      const resources = await query.orderBy('lesson_resources.created_at', 'desc');
+
+      console.log(`Retrieved ${resources.length} resources for user ${userId}`);
+
+      return resources;
+    } catch (error) {
+      console.error('Get all user resources error:', error);
+      throw new Error('Failed to retrieve resources');
+    }
+  }
+
+  /**
+   * Get filter options for resources
+   * @returns {Promise<Object>} Filter options
+   */
+  async getFilterOptions() {
+    try {
+      const fileTypes = await db('lesson_resources')
+        .distinct('file_type')
+        .whereNotNull('file_type')
+        .pluck('file_type');
+
+      const courses = await db('lesson_resources')
+        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
+        .join('courses', 'lessons.course_id', 'courses.id')
+        .distinct('courses.id', 'courses.title')
+        .select('courses.id', 'courses.title')
+        .orderBy('courses.title');
+
+      return {
+        fileTypes: fileTypes.sort(),
+        courses: courses
+      };
+    } catch (error) {
+      console.error('Get filter options error:', error);
+      return {
+        fileTypes: [],
+        courses: []
+      };
+    }
+  }
+
+  /**
    * Generate download URL for a resource
    * @param {number} resourceId - Resource ID
    * @param {number} userId - User ID requesting download

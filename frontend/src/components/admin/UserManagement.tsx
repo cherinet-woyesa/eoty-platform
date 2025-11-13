@@ -300,75 +300,82 @@ const UserManagement: React.FC = () => {
 
   if (loading && users.length === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading users..." />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <LoadingSpinner size="lg" text="Loading users..." />
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-6 p-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <Users className="h-6 w-6" />
-              <h1 className="text-2xl font-bold">User Management</h1>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <Users className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">User Management</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">
+                Manage platform users, roles, and permissions
+              </p>
+              <p className="text-stone-600 text-xs mt-1">
+                {stats.total} total users • {stats.active} active • {stats.inactive} inactive
+              </p>
             </div>
-            <p className="text-blue-100 text-sm">
-              Manage platform users, roles, and permissions
-            </p>
-            <p className="text-blue-200 text-xs mt-1">
-              {stats.total} total users • {stats.active} active • {stats.inactive} inactive
-            </p>
-          </div>
-          <div className="mt-4 lg:mt-0 flex gap-2">
-            <button
-              onClick={fetchUsers}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New User
-            </button>
+            <div className="mt-4 lg:mt-0 flex gap-2">
+              <button
+                onClick={fetchUsers}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New User
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {[
-          { name: 'Total', value: stats.total, icon: Users, color: 'from-blue-500 to-blue-600' },
-          { name: 'Active', value: stats.active, icon: CheckCircle, color: 'from-green-500 to-green-600' },
-          { name: 'Inactive', value: stats.inactive, icon: XCircle, color: 'from-red-500 to-red-600' },
-          { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, color: 'from-purple-500 to-purple-600' },
-          { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, color: 'from-orange-500 to-orange-600' },
-          { name: 'Admins', value: stats.admins, icon: Shield, color: 'from-indigo-500 to-indigo-600' },
-        ].map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color}`}>
-                <stat.icon className="h-4 w-4 text-white" />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
+            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
+            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', glowColor: 'bg-red-500/20' },
+            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#00FFFF]', bgColor: 'bg-[#00FFFF]/10', borderColor: 'border-[#00FFFF]/30', glowColor: 'bg-[#00FFFF]/20' },
+            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#FFD700]', bgColor: 'bg-[#FFD700]/10', borderColor: 'border-[#FFD700]/30', glowColor: 'bg-[#FFD700]/20' },
+            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
+          ].map((stat, index) => (
+            <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`relative ${stat.textColor}`}>
+                  <div className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}></div>
+                  <div className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}>
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
+              <p className="text-2xl font-bold text-stone-800">{stat.value}</p>
+              <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-xs text-gray-600 font-medium">{stat.name}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        {/* Search and Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -381,7 +388,7 @@ const UserManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             />
           </div>
 
@@ -393,7 +400,7 @@ const UserManagement: React.FC = () => {
                 setRoleFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Roles</option>
               <option value="student">Students</option>
@@ -407,7 +414,7 @@ const UserManagement: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -417,13 +424,13 @@ const UserManagement: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-gray-300 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -434,7 +441,7 @@ const UserManagement: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center">
             <XCircle className="h-5 w-5 text-red-600 mr-2" />
             <span className="text-red-800">{error}</span>
@@ -447,16 +454,16 @@ const UserManagement: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
           <div className="flex items-center space-x-4">
-            <span className="text-blue-900 font-medium">
+            <span className="text-stone-800 font-semibold">
               {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkStatusChange(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 disabled:opacity-50 shadow-md"
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Activate
@@ -464,7 +471,7 @@ const UserManagement: React.FC = () => {
               <button
                 onClick={() => handleBulkStatusChange(false)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 shadow-md"
               >
                 <UserX className="h-4 w-4 mr-1" />
                 Deactivate
@@ -473,7 +480,7 @@ const UserManagement: React.FC = () => {
           </div>
           <button
             onClick={() => setSelectedUsers([])}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-stone-600 hover:text-stone-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -482,15 +489,15 @@ const UserManagement: React.FC = () => {
 
       {/* Create User Form */}
       {showCreateForm && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <UserPlus className="h-5 w-5 mr-2 text-blue-600" />
+            <h3 className="text-lg font-semibold text-stone-800 flex items-center">
+              <UserPlus className="h-5 w-5 mr-2 text-[#39FF14]" />
               Create New User
             </h3>
             <button
               onClick={() => setShowCreateForm(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-stone-400 hover:text-stone-600"
             >
               <X className="h-5 w-5" />
             </button>
@@ -944,6 +951,7 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

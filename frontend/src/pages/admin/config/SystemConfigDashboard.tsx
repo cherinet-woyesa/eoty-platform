@@ -32,7 +32,7 @@ export const SystemConfigDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <CardSkeleton />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
@@ -50,9 +50,9 @@ export const SystemConfigDashboard = () => {
 
   if (!metrics) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+          <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4 text-red-800">
             Failed to load system configuration metrics
           </div>
         </div>
@@ -61,21 +61,26 @@ export const SystemConfigDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg shadow-sm p-6 text-white">
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Settings className="h-8 w-8" />
-                System Configuration
-              </h1>
-              <p className="text-blue-100 mt-2">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <Settings className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">System Configuration</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">
                 Manage course categories, levels, durations, tags, and chapters
               </p>
             </div>
-            <Activity className="h-16 w-16 opacity-20" />
+            <Activity className="h-16 w-16 text-[#39FF14]/20" />
           </div>
         </div>
 
@@ -119,8 +124,8 @@ export const SystemConfigDashboard = () => {
         </div>
 
         {/* Info Message */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
+        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 backdrop-blur-sm">
+          <p className="text-sm text-stone-700 font-medium">
             Click on any card above to manage that configuration type. Changes are tracked in the audit log.
           </p>
         </div>
@@ -150,15 +155,27 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, icon, metrics, link, col
 
   const activePercentage = metrics.total > 0 ? (metrics.active / metrics.total) * 100 : 0;
 
+  const neonColorClasses = {
+    blue: { gradient: 'from-[#00FFFF] to-[#00FFC6]', text: 'text-[#00FFFF]', bg: 'bg-[#00FFFF]/10', border: 'border-[#00FFFF]/30' },
+    green: { gradient: 'from-[#39FF14] to-[#00FFC6]', text: 'text-[#39FF14]', bg: 'bg-[#39FF14]/10', border: 'border-[#39FF14]/30' },
+    purple: { gradient: 'from-[#00FFC6] to-[#00FFFF]', text: 'text-[#00FFC6]', bg: 'bg-[#00FFC6]/10', border: 'border-[#00FFC6]/30' },
+    orange: { gradient: 'from-[#FFD700] to-[#39FF14]', text: 'text-[#FFD700]', bg: 'bg-[#FFD700]/10', border: 'border-[#FFD700]/30' },
+    pink: { gradient: 'from-[#00FFFF] to-[#39FF14]', text: 'text-[#00FFFF]', bg: 'bg-[#00FFFF]/10', border: 'border-[#00FFFF]/30' },
+  };
+
+  const neonColors = neonColorClasses[color];
+
   return (
     <Link
       to={link}
-      className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden group"
+      className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-sm hover:shadow-lg transition-all overflow-hidden group"
     >
-      <div className={`bg-gradient-to-r ${colorClasses[color]} p-4 text-white`}>
+      <div className={`bg-gradient-to-r ${neonColors.gradient} p-4 text-stone-800`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {icon}
+            <div className={`p-2 ${neonColors.bg} rounded-lg border ${neonColors.border}`}>
+              {icon}
+            </div>
             <h3 className="font-semibold">{title}</h3>
           </div>
           <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -166,22 +183,22 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, icon, metrics, link, col
       </div>
       <div className="p-4">
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-3xl font-bold text-gray-900">{metrics.total}</span>
-          <span className="text-sm text-gray-500">total</span>
+          <span className="text-3xl font-bold text-stone-800">{metrics.total}</span>
+          <span className="text-sm text-stone-600">total</span>
         </div>
         <div className="flex items-center justify-between text-sm mb-2">
-          <div className="flex items-center gap-1 text-green-600">
+          <div className={`flex items-center gap-1 ${neonColors.text}`}>
             <TrendingUp className="h-4 w-4" />
-            <span>{metrics.active} active</span>
+            <span className="font-semibold">{metrics.active} active</span>
           </div>
-          <div className="flex items-center gap-1 text-gray-500">
+          <div className="flex items-center gap-1 text-stone-500">
             <TrendingDown className="h-4 w-4" />
             <span>{metrics.inactive} inactive</span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-stone-200 rounded-full h-2">
           <div
-            className={`bg-gradient-to-r ${colorClasses[color]} h-2 rounded-full transition-all`}
+            className={`bg-gradient-to-r ${neonColors.gradient} h-2 rounded-full transition-all`}
             style={{ width: `${activePercentage}%` }}
           />
         </div>

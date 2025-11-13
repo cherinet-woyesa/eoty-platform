@@ -14,6 +14,62 @@ const {
 router.use(authenticateToken);
 
 /**
+ * GET /api/resources
+ * Get all resources (general resource library)
+ * Accessible by: all authenticated users
+ */
+router.get(
+  '/',
+  async (req, res) => {
+    try {
+      // Get all resources for the user
+      const resourceService = require('../services/resourceService');
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+      
+      // Get all resources accessible to the user
+      const resources = await resourceService.getAllUserResources(userId, userRole);
+      
+      res.json({
+        success: true,
+        data: { resources }
+      });
+    } catch (error) {
+      console.error('Get all resources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve resources'
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/resources/filters
+ * Get filter options for resources
+ */
+router.get(
+  '/filters',
+  async (req, res) => {
+    try {
+      const resourceService = require('../services/resourceService');
+      const filters = await resourceService.getFilterOptions();
+      
+      res.json({
+        success: true,
+        data: filters
+      });
+    } catch (error) {
+      console.error('Get resource filters error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve filter options'
+      });
+    }
+  }
+);
+
+/**
  * GET /api/courses/lessons/:lessonId/resources
  * Get all resources for a lesson
  * Accessible by: students (enrolled), teachers (course owner), admins

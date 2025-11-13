@@ -94,17 +94,19 @@ const TeacherDashboard: React.FC = () => {
   }, [user, loadDashboardData]);
 
   // WebSocket for live dashboard updates
+  // Only connect if WebSocket is enabled and user is available
   const dashboardWsUrl = user?.id ? `?type=dashboard&userId=${user.id}` : '';
   const { lastMessage, isConnected } = useWebSocket(dashboardWsUrl, {
-    reconnectAttempts: 5,
-    reconnectInterval: 3000,
+    reconnectAttempts: 3,
+    reconnectInterval: 5000,
     heartbeatInterval: 30000,
-    disableReconnect: !user?.id,
+    disableReconnect: !user?.id || import.meta.env.VITE_ENABLE_WS === 'false',
     onOpen: () => {
       console.log('✅ Dashboard WebSocket connected');
     },
     onError: (error) => {
-      console.error('❌ Dashboard WebSocket error:', error);
+      // Silently handle WebSocket errors - they're not critical for dashboard functionality
+      console.warn('⚠️ Dashboard WebSocket error (non-critical):', error);
     },
     onMessage: (message) => {
       console.log('📨 Dashboard WebSocket message received:', message);
@@ -225,18 +227,18 @@ const TeacherDashboard: React.FC = () => {
 
   if (!user || user.role !== 'teacher') {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center max-w-md">
+      <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-md">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">
             Access Denied
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-stone-600 mb-4">
             You must be logged in as a teacher to view this dashboard.
           </p>
           <Link 
             to="/login"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
           >
             Go to Login
           </Link>
@@ -247,7 +249,7 @@ const TeacherDashboard: React.FC = () => {
 
   if (isLoading && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
+      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-96">
           <LoadingSpinner size="lg" text="Loading dashboard..." />
         </div>
@@ -257,20 +259,21 @@ const TeacherDashboard: React.FC = () => {
 
   if (error && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="w-full space-y-6 p-6">
+      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-96">
-          <div className="text-center max-w-md">
+          <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-red-200 shadow-md">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-stone-800 mb-2">
               Unable to Load Dashboard
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-stone-600 mb-4">
               {error || 'We encountered an error while loading your dashboard data.'}
             </p>
             <button 
               onClick={handleRetry}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
             >
+              <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </button>
           </div>
@@ -281,41 +284,42 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-6 p-6">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-3xl font-bold text-stone-800">
                   Welcome back, {user?.firstName}!
                 </h1>
                 {isConnected && (
-                  <div className="flex items-center space-x-2 text-blue-100">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">Live</span>
+                  <div className="flex items-center space-x-2 bg-[#39FF14]/20 px-2 py-1 rounded-full border border-[#39FF14]/50">
+                    <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-stone-700">Live</span>
                   </div>
                 )}
               </div>
-              <p className="text-blue-100">
+              <p className="text-stone-600 font-medium">
                 {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
-              <p className="text-blue-200 text-sm mt-1">
-                {teacherData.totalStudentsEnrolled} students enrolled in {teacherData.totalCourses} courses
+              <p className="text-stone-700 text-sm mt-2">
+                <span className="font-semibold text-[#39FF14]">{teacherData.totalStudentsEnrolled}</span> students enrolled in{' '}
+                <span className="font-semibold text-[#00FFC6]">{teacherData.totalCourses}</span> courses
               </p>
             </div>
             <div className="mt-4 lg:mt-0 lg:ml-6">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
-                  to="/record"
-                  className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+                  to="/teacher/record"
+                  className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Video className="h-4 w-4 mr-2" />
-                  Record New Video
+                  Record Video
                 </Link>
                 <Link
-                  to="/courses/new"
-                  className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+                  to="/teacher/courses/new"
+                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] text-sm font-semibold rounded-lg transition-all duration-200"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Course
@@ -329,29 +333,38 @@ const TeacherDashboard: React.FC = () => {
         <TeacherMetrics stats={teacherData} />
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-6">
+          <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center gap-2">
+            <span className="w-1 h-6 bg-gradient-to-b from-[#39FF14] to-[#00FFC6] rounded-full"></span>
+            Quick Actions
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/teacher/courses"
-              className="flex flex-col items-center justify-center p-6 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 hover:from-[#39FF14]/20 hover:to-[#00FFC6]/20 rounded-xl border border-[#39FF14]/30 hover:border-[#39FF14]/50 transition-all group"
             >
-              <BookOpen className="h-8 w-8 text-blue-600 mb-2" />
-              <span className="font-medium text-blue-900">Manage Courses</span>
+              <div className="p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg mb-3 group-hover:scale-110 transition-transform">
+                <BookOpen className="h-8 w-8 text-[#39FF14]" />
+              </div>
+              <span className="font-semibold text-stone-800">Manage Courses</span>
             </Link>
             <Link
               to="/teacher/students"
-              className="flex flex-col items-center justify-center p-6 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
+              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#00FFC6]/10 to-[#00FFFF]/10 hover:from-[#00FFC6]/20 hover:to-[#00FFFF]/20 rounded-xl border border-[#00FFC6]/30 hover:border-[#00FFC6]/50 transition-all group"
             >
-              <Users className="h-8 w-8 text-green-600 mb-2" />
-              <span className="font-medium text-green-900">View Students</span>
+              <div className="p-3 bg-gradient-to-br from-[#00FFC6]/20 to-[#00FFFF]/20 rounded-lg mb-3 group-hover:scale-110 transition-transform">
+                <Users className="h-8 w-8 text-[#00FFC6]" />
+              </div>
+              <span className="font-semibold text-stone-800">View Students</span>
             </Link>
             <button
               onClick={handleRetry}
-              className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+              className="flex flex-col items-center justify-center p-6 bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 hover:border-stone-300 transition-all group"
             >
-              <RefreshCw className="h-8 w-8 text-gray-600 mb-2" />
-              <span className="font-medium text-gray-900">Refresh Data</span>
+              <div className="p-3 bg-stone-100 rounded-lg mb-3 group-hover:scale-110 transition-transform">
+                <RefreshCw className="h-8 w-8 text-stone-600" />
+              </div>
+              <span className="font-semibold text-stone-700">Refresh Data</span>
             </button>
           </div>
         </div>

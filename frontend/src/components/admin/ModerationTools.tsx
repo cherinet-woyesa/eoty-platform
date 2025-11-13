@@ -38,86 +38,100 @@ const ModerationTools: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="w-8 h-8 border-t-2 border-[#39FF14] border-solid rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Content Moderation</h2>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-          {error}
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                <AlertTriangle className="h-6 w-6 text-[#39FF14]" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-stone-800">Content Moderation</h1>
+          </div>
+          <p className="text-stone-700 text-sm mt-2">
+            Review and manage flagged content
+          </p>
         </div>
-      )}
 
-      {/* Status Filter */}
-      <div className="mb-6">
-        <div className="flex space-x-2">
-          {['pending', 'reviewed', 'action_taken', 'dismissed'].map(status => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                statusFilter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
+        {error && (
+          <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Status Filter */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {['pending', 'reviewed', 'action_taken', 'dismissed'].map(status => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  statusFilter === status
+                    ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 shadow-md'
+                    : 'bg-white/90 text-stone-700 hover:bg-stone-50 border border-stone-200'
+                }`}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-stone-200">
+              <thead className="bg-gradient-to-r from-stone-50 to-neutral-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flagged By</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Content</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Flagged By</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Reason</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-stone-200">
             {flaggedContent.map((flag) => (
               <tr key={flag.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-semibold text-stone-800">
                     {flag.content_type} #{flag.content_id}
                   </div>
-                  <div className="text-sm text-gray-500">{flag.flag_details?.substring(0, 50)}...</div>
+                  <div className="text-sm text-stone-600">{flag.flag_details?.substring(0, 50)}...</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-stone-600">
                     {flag.flagger_first_name} {flag.flagger_last_name}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{flag.flag_reason}</div>
+                  <div className="text-sm text-stone-600">{flag.flag_reason}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    flag.status === 'action_taken' ? 'bg-green-100 text-green-800' :
-                    flag.status === 'dismissed' ? 'bg-gray-100 text-gray-800' :
-                    'bg-yellow-100 text-yellow-800'
+                  <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    flag.status === 'action_taken' ? 'bg-[#00FFC6]/20 text-[#00FFC6] border border-[#00FFC6]/30' :
+                    flag.status === 'dismissed' ? 'bg-stone-100 text-stone-700 border border-stone-200' :
+                    'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30'
                   }`}>
-                    {flag.status}
+                    {flag.status.replace('_', ' ')}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {flag.status === 'pending' && (
                     <div className="flex flex-col space-y-2">
                       <button
                         onClick={() => handleReview(flag.id, 'dismiss')}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="px-3 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold transition-colors"
                       >
                         Dismiss
                       </button>
@@ -128,7 +142,7 @@ const ModerationTools: React.FC = () => {
                             handleReview(flag.id, 'warn', notes);
                           }
                         }}
-                        className="text-yellow-600 hover:text-yellow-900"
+                        className="px-3 py-1 bg-[#FFD700]/20 hover:bg-[#FFD700]/30 text-[#FFD700] rounded-lg text-xs font-semibold transition-colors border border-[#FFD700]/30"
                       >
                         Warn User
                       </button>
@@ -138,14 +152,14 @@ const ModerationTools: React.FC = () => {
                             handleReview(flag.id, 'remove');
                           }
                         }}
-                        className="text-red-600 hover:text-red-900"
+                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
                       >
                         Remove Content
                       </button>
                     </div>
                   )}
                   {flag.status !== 'pending' && (
-                    <div className="text-sm">
+                    <div className="text-sm text-stone-600">
                       <div>Reviewed by: {flag.reviewer_first_name} {flag.reviewer_last_name}</div>
                       <div>Notes: {flag.review_notes || 'No notes'}</div>
                     </div>
@@ -153,8 +167,10 @@ const ModerationTools: React.FC = () => {
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+        </div>
       </div>
     </div>
   );

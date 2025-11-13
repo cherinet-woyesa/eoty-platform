@@ -159,79 +159,89 @@ const TeacherApplications: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-700 flex items-center">
-            <GraduationCap className="h-6 w-6 mr-2 text-[#00FFFF]" />
-            Teacher Applications
-          </h2>
-          <p className="text-slate-600 mt-1">Review and manage teacher role applications</p>
-        </div>
-        <button
-          onClick={fetchApplications}
-          className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white transition-all"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </button>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or chapter..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-300/50 rounded-lg focus:ring-2 focus:ring-[#00FFFF]/20 focus:border-[#00FFFF]"
-          />
-        </div>
-        <div className="flex gap-2">
-          {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <GraduationCap className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">Teacher Applications</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">Review and manage teacher role applications</p>
+            </div>
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
-                statusFilter === status
-                  ? 'bg-[#00FFFF] text-slate-900'
-                  : 'bg-white/90 backdrop-blur-sm text-slate-700 border border-slate-300/50 hover:bg-white'
-              }`}
+              onClick={fetchApplications}
+              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-stone-800 rounded-lg border border-[#39FF14]/30 hover:bg-white transition-all shadow-sm hover:shadow-md hover:border-[#39FF14]/50"
             >
-              {status}
+              <RefreshCw className="h-4 w-4 mr-2 text-[#39FF14]" />
+              Refresh
             </button>
-          ))}
+          </div>
         </div>
-      </div>
+
+        {error && (
+          <div className="p-4 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <input
+                type="text"
+                placeholder="Search by name, email, or chapter..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all capitalize ${
+                    statusFilter === status
+                      ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 shadow-md'
+                      : 'bg-white/90 backdrop-blur-sm text-stone-700 border border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
       {/* Applications List */}
       {filteredApplications.length === 0 ? (
-        <div className="text-center py-12 bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200/50">
-          <GraduationCap className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-600">No {statusFilter === 'all' ? '' : statusFilter} applications found</p>
+        <div className="text-center py-12 bg-white/90 backdrop-blur-md rounded-xl border border-stone-200">
+          <GraduationCap className="h-12 w-12 text-stone-400 mx-auto mb-4" />
+          <p className="text-stone-600">No {statusFilter === 'all' ? '' : statusFilter} applications found</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {filteredApplications.map((app) => (
             <div
               key={app.id}
-              className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-slate-200/50 shadow-lg hover:shadow-xl transition-all"
+              className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-lg hover:shadow-xl transition-all"
             >
               <div className="flex flex-col lg:flex-row justify-between gap-4">
                 {/* Left: Applicant Info */}
@@ -455,6 +465,7 @@ const TeacherApplications: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

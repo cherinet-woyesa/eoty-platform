@@ -44,6 +44,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   const isConnectingRef = useRef(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [usePolling, setUsePolling] = useState(false);
+  const pollCountRef = useRef<number>(0);
+  const maxPollTimeRef = useRef<number>(15 * 60 * 1000); // 15 minutes max
+  const maxPollCountRef = useRef<number>(180); // Max 180 polls (15 min / 5 sec intervals)
 
   // Enhanced WebSocket connection with retry logic
   const connectWebSocket = useCallback(() => {
@@ -239,6 +242,42 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   const pollMuxStatus = useCallback(async () => {
     if (!lessonId || !isOpen) return;
 
+    // Check timeout - if processing has been going for more than 15 minutes, stop
+    const elapsedTime = Date.now() - startTimeRef.current;
+    if (elapsedTime > maxPollTimeRef.current) {
+      console.warn('[VideoProcessingStatus] Processing timeout exceeded (15 minutes)');
+      setProcessingState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: 'Video processing is taking longer than expected. Please check back later or contact support.',
+        currentStep: 'Processing timeout - video may still be processing in the background'
+      }));
+      // Stop polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Check max poll count
+    pollCountRef.current += 1;
+    if (pollCountRef.current > maxPollCountRef.current) {
+      console.warn('[VideoProcessingStatus] Maximum poll count reached');
+      setProcessingState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: 'Video processing is taking longer than expected. Please check back later.',
+        currentStep: 'Maximum retry limit reached'
+      }));
+      // Stop polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
     try {
       const response = await coursesApi.getVideoStatus(lessonId);
       console.log('[VideoProcessingStatus] Poll response:', response);
@@ -257,7 +296,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         videoStatus,
         muxStatus,
         muxPlaybackId,
-        fullData: statusData
+        fullData: statusData,
+        pollCount: pollCountRef.current,
+        elapsedSeconds: Math.floor((Date.now() - startTimeRef.current) / 1000)
       });
 
       // Use muxStatus if available, otherwise fall back to videoStatus
@@ -302,37 +343,49 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         }));
       } else if (currentStatus === 'preparing') {
         console.log('[VideoProcessingStatus] Video preparing...');
-        setProcessingState(prev => {
-          // Calculate time-based progress if stuck at preparing
-          // Progress increases based on elapsed time:
-          // - 0-30s: 10-30%
-          // - 30-60s: 30-50%
-          // - 60-120s: 50-70%
-          // - 120s+: 70-85% (max while preparing)
-          let timeBasedProgress = 10;
-          if (elapsedSeconds < 30) {
-            timeBasedProgress = 10 + (elapsedSeconds / 30) * 20; // 10-30%
-          } else if (elapsedSeconds < 60) {
-            timeBasedProgress = 30 + ((elapsedSeconds - 30) / 30) * 20; // 30-50%
-          } else if (elapsedSeconds < 120) {
-            timeBasedProgress = 50 + ((elapsedSeconds - 60) / 60) * 20; // 50-70%
-          } else {
-            timeBasedProgress = 70 + Math.min((elapsedSeconds - 120) / 60 * 15, 15); // 70-85%
-          }
-          
-          // Use the higher of time-based or current progress
-          const newProgress = Math.max(prev.progress, Math.min(Math.floor(timeBasedProgress), 85));
-          
-          return {
+        
+        // If stuck in preparing for more than 10 minutes, show warning
+        if (elapsedSeconds > 600) {
+          setProcessingState(prev => ({
             ...prev,
             status: 'processing',
-            progress: newProgress,
-            currentStep: elapsedSeconds > 60 
-              ? 'Mux is processing your video...' 
-              : 'Preparing video for processing...',
+            progress: Math.min(prev.progress + 1, 90),
+            currentStep: 'Video is still preparing. This may take a while for large files. You can close this window and check back later.',
             provider: 'mux'
-          };
-        });
+          }));
+        } else {
+          setProcessingState(prev => {
+            // Calculate time-based progress if stuck at preparing
+            // Progress increases based on elapsed time:
+            // - 0-30s: 10-30%
+            // - 30-60s: 30-50%
+            // - 60-120s: 50-70%
+            // - 120s+: 70-85% (max while preparing)
+            let timeBasedProgress = 10;
+            if (elapsedSeconds < 30) {
+              timeBasedProgress = 10 + (elapsedSeconds / 30) * 20; // 10-30%
+            } else if (elapsedSeconds < 60) {
+              timeBasedProgress = 30 + ((elapsedSeconds - 30) / 30) * 20; // 30-50%
+            } else if (elapsedSeconds < 120) {
+              timeBasedProgress = 50 + ((elapsedSeconds - 60) / 60) * 20; // 50-70%
+            } else {
+              timeBasedProgress = 70 + Math.min((elapsedSeconds - 120) / 60 * 15, 15); // 70-85%
+            }
+            
+            // Use the higher of time-based or current progress
+            const newProgress = Math.max(prev.progress, Math.min(Math.floor(timeBasedProgress), 85));
+            
+            return {
+              ...prev,
+              status: 'processing',
+              progress: newProgress,
+              currentStep: elapsedSeconds > 60 
+                ? 'Mux is processing your video...' 
+                : 'Preparing video for processing...',
+              provider: 'mux'
+            };
+          });
+        }
       } else {
         console.log('[VideoProcessingStatus] Unknown status:', currentStatus);
         // If status is unknown but we have a video, assume it's processing
@@ -374,6 +427,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       
       // Reset start time when component opens
       startTimeRef.current = Date.now();
+      pollCountRef.current = 0; // Reset poll count
       
       // Only connect WebSocket once, don't reconnect on every render
       if (!socketRef.current) {
@@ -382,11 +436,17 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       
       // Start polling immediately as a backup
       // This ensures we get updates even if WebSocket fails
-      pollMuxStatus();
-      const backupPolling = setInterval(pollMuxStatus, 5000); // Poll every 5 seconds
+      // Use a single polling interval to avoid duplicate requests
+      if (!pollingIntervalRef.current) {
+        pollMuxStatus(); // Poll immediately
+        pollingIntervalRef.current = setInterval(pollMuxStatus, 5000); // Poll every 5 seconds
+      }
       
       return () => {
-        clearInterval(backupPolling);
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
         // Don't cleanup WebSocket here - let it stay connected
       };
     }

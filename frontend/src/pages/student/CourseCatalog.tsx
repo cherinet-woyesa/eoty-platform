@@ -116,15 +116,15 @@ const CourseCatalog: React.FC = () => {
 
   // Memoize course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: CatalogCourse) => (
-    <div key={course.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
+    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-[#39FF14]/50">
       {/* Course Header */}
       <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white relative`}>
         <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
-        <p className="text-blue-100 text-sm line-clamp-2 opacity-90">
+        <p className="text-white/90 text-sm line-clamp-2 opacity-90">
           {course.description || 'No description provided'}
         </p>
         {course.is_enrolled && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+          <div className="absolute top-2 right-2 bg-[#39FF14] text-stone-900 px-2 py-1 rounded-full text-xs font-bold flex items-center shadow-lg">
             <CheckCircle className="h-3 w-3 mr-1" />
             Enrolled
           </div>
@@ -133,22 +133,22 @@ const CourseCatalog: React.FC = () => {
 
       {/* Course Info */}
       <div className="p-4">
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+        <div className="flex items-center justify-between text-sm text-stone-600 mb-3">
           <div className="flex items-center space-x-1">
-            <Users className="h-4 w-4" />
+            <Users className="h-4 w-4 text-[#00FFC6]" />
             <span>{course.student_count} students</span>
           </div>
           <div className="flex items-center space-x-1">
-            <BookOpen className="h-4 w-4" />
+            <BookOpen className="h-4 w-4 text-[#00FFFF]" />
             <span>{course.lesson_count} lessons</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-sm mb-4">
-          <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
+          <span className="capitalize bg-stone-100 px-2 py-1 rounded text-xs font-medium text-stone-700">
             {course.level || 'Beginner'}
           </span>
-          <span className="text-gray-500 text-xs">
+          <span className="text-stone-500 text-xs">
             by {course.created_by_name}
           </span>
         </div>
@@ -157,7 +157,7 @@ const CourseCatalog: React.FC = () => {
         <div className="flex space-x-2">
           <Link
             to={`/courses/${course.id}`}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-lg text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
           >
             View Details
           </Link>
@@ -166,7 +166,7 @@ const CourseCatalog: React.FC = () => {
             <button
               onClick={() => handleEnroll(course.id)}
               disabled={enrolling === course.id}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#32E60F] hover:to-[#00E6B8] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
             >
               {enrolling === course.id ? (
                 <>
@@ -180,7 +180,7 @@ const CourseCatalog: React.FC = () => {
           ) : (
             <Link
               to={`/courses/${course.id}`}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#00FFC6] to-[#00FFFF] hover:from-[#00E6B8] hover:to-[#00E6E6] transition-all shadow-md hover:shadow-lg"
             >
               Continue Learning
             </Link>
@@ -192,11 +192,11 @@ const CourseCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-96">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">Loading course catalog...</p>
+            <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+            <p className="text-stone-600 text-lg">Loading course catalog...</p>
           </div>
         </div>
       </div>
@@ -205,14 +205,14 @@ const CourseCatalog: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-96">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-600 text-lg mb-4">{error}</p>
             <button 
               onClick={loadCatalog}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:from-[#32E60F] hover:to-[#00E6B8] transition-all font-semibold shadow-md"
             >
               Try Again
             </button>
@@ -223,27 +223,33 @@ const CourseCatalog: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-4 sm:p-6 text-white shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-2">
-              <Sparkles className="h-6 w-6" />
-              <h1 className="text-xl sm:text-2xl font-bold">Course Catalog</h1>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
+                    <Sparkles className="h-6 w-6 text-[#39FF14]" />
+                  </div>
+                </div>
+                <h1 className="text-3xl font-bold text-stone-800">Course Catalog</h1>
+              </div>
+              <p className="text-stone-700 text-sm mt-2">
+                Discover and enroll in courses to expand your knowledge
+              </p>
+              <p className="text-stone-600 text-xs mt-1">
+                {filteredCourses.length} courses available
+              </p>
             </div>
-            <p className="text-blue-100 text-sm sm:text-base">
-              Discover and enroll in courses to expand your knowledge
-            </p>
-            <p className="text-blue-200 text-xs sm:text-sm mt-1">
-              {filteredCourses.length} courses available
-            </p>
           </div>
         </div>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+        {/* Search and Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -280,20 +286,21 @@ const CourseCatalog: React.FC = () => {
         </div>
       </div>
 
-      {/* Course Grid */}
-      {filteredCourses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredCourses.map(renderCourseCard)}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">No courses found</h3>
-          <p className="text-gray-600 text-sm">
-            Try adjusting your search or filter criteria.
-          </p>
-        </div>
-      )}
+        {/* Course Grid */}
+        {filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-8 text-center">
+            <BookOpen className="h-12 w-12 text-stone-400 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-stone-900 mb-2">No courses found</h3>
+            <p className="text-stone-600 text-sm">
+              Try adjusting your search or filter criteria.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

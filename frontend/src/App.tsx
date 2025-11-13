@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Landing from '@/pages/shared/Landing';
 import Login from '@/pages/shared/auth/Login';
 import Register from '@/pages/shared/auth/Register';
@@ -9,10 +9,10 @@ import TeacherDashboard from '@/components/teacher/dashboard/TeacherDashboard';
 import StudentDashboard from '@/components/student/dashboard/StudentDashboard';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import '@/styles/globals.css';
-import RecordVideo from '@/pages/teacher/RecordVideo';
 import MyCourses from '@/pages/teacher/MyCourses';
 import CourseCatalog from '@/pages/student/CourseCatalog';
 import StudentEnrolledCourses from '@/pages/student/StudentEnrolledCourses';
+import StudentVideos from '@/pages/student/StudentVideos';
 import AllCourses from '@/pages/admin/AllCourses';
 import CreateCourse from '@/pages/teacher/CreateCourse';
 import EditCourse from '@/pages/teacher/EditCourse';
@@ -23,7 +23,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
 import { NotificationSystem } from '@/components/shared';
-import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard } from '@/components/routing';
+import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard, DynamicCourses } from '@/components/routing';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ProfileCompletionNotification from '@/components/shared/ProfileCompletionNotification';
 import Forums from '@/pages/shared/social/Forums';
@@ -48,22 +48,43 @@ import LevelManagement from '@/pages/admin/config/LevelManagement';
 import DurationManagement from '@/pages/admin/config/DurationManagement';
 import TagManagement from '@/pages/admin/config/TagManagement';
 import ChapterManagement from '@/pages/admin/config/ChapterManagement';
-import MuxMigration from '@/pages/admin/MuxMigration';
 import ResourceLibrary from '@/pages/shared/resources/ResourceLibrary';
 import ResourceView from '@/pages/shared/resources/ResourceView';
-import QuizDemo from '@/pages/shared/courses/QuizDemo';
-import DiscussionDemo from '@/pages/shared/courses/DiscussionDemo';
 import { CourseDetails } from '@/pages/shared';
 import ProgressPage from '@/pages/student/ProgressPage';
 import StudentManagement from '@/pages/teacher/StudentManagement';
 import LearningPathsPage from '@/pages/student/LearningPathsPage';
 import BookmarksPage from '@/pages/student/BookmarksPage';
-import SchedulePage from '@/pages/student/SchedulePage';
 import StudyGroupsPage from '@/pages/student/StudyGroupsPage';
 import HelpPage from '@/pages/student/HelpPage';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
+import Assignments from '@/pages/teacher/Assignments';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
+
+// Lazy load ReactQueryDevtools only in development
+const LazyReactQueryDevtools = lazy(() => 
+  import('@tanstack/react-query-devtools').then(module => ({
+    default: () => <module.ReactQueryDevtools initialIsOpen={false} />
+  }))
+);
+
+// Loading component for Suspense
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="w-12 h-12 border-t-4 border-[#39FF14] border-solid rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-stone-600">Loading...</p>
+    </div>
+  </div>
+);
+
+// Lazy load heavy pages
+const LazyRecordVideo = lazy(() => import('@/pages/teacher/RecordVideo'));
+const LazyVideoAnalyticsDashboard = lazy(() => import('@/components/teacher/dashboard/VideoAnalyticsDashboard'));
+const LazyMuxMigration = lazy(() => import('@/pages/admin/MuxMigration'));
+const LazyQuizDemo = lazy(() => import('@/pages/shared/courses/QuizDemo'));
+const LazyDiscussionDemo = lazy(() => import('@/pages/shared/courses/DiscussionDemo'));
 
 // Define types
 type ReactNode = React.ReactNode;
@@ -172,9 +193,9 @@ function AppContent() {
           } 
         />
 
-        {/* Student Courses - Browse catalog and enrolled courses */}
+        {/* Student Courses - Browse catalog (students only) */}
         <Route 
-          path="/courses" 
+          path="/student/browse-courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -184,7 +205,7 @@ function AppContent() {
           } 
         />
         
-        {/* Course Catalog - Alias for /courses */}
+        {/* Course Catalog - Alias for student browse courses */}
         <Route 
           path="/catalog" 
           element={
@@ -194,6 +215,12 @@ function AppContent() {
               </DashboardLayout>
             </StudentRoute>
           } 
+        />
+        
+        {/* Legacy /courses route - redirects based on role */}
+        <Route 
+          path="/courses" 
+          element={<DynamicCourses />}
         />
         
         {/* Student Course Routes - Specific routes before parameterized ones */}
@@ -225,6 +252,17 @@ function AppContent() {
             <StudentRoute>
               <DashboardLayout>
                 <CourseDetails />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/videos" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <StudentVideos />
               </DashboardLayout>
             </StudentRoute>
           } 
@@ -270,17 +308,6 @@ function AppContent() {
             <StudentRoute>
               <DashboardLayout>
                 <BookmarksPage />
-              </DashboardLayout>
-            </StudentRoute>
-          } 
-        />
-
-        <Route 
-          path="/student/schedule" 
-          element={
-            <StudentRoute>
-              <DashboardLayout>
-                <SchedulePage />
               </DashboardLayout>
             </StudentRoute>
           } 
@@ -363,7 +390,9 @@ function AppContent() {
           element={
             <TeacherRoute requiredPermission="video:upload">
               <DashboardLayout>
-                <RecordVideo />
+                <Suspense fallback={<PageLoader />}>
+                  <LazyRecordVideo />
+                </Suspense>
               </DashboardLayout>
             </TeacherRoute>
           } 
@@ -385,7 +414,9 @@ function AppContent() {
           element={
             <TeacherRoute>
               <DashboardLayout>
-                <AnalyticsDashboard />
+                <Suspense fallback={<PageLoader />}>
+                  <LazyVideoAnalyticsDashboard />
+                </Suspense>
               </DashboardLayout>
             </TeacherRoute>
           } 
@@ -402,11 +433,23 @@ function AppContent() {
           } 
         />
 
+        <Route 
+          path="/teacher/assignments" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <Assignments />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
         {/* Legacy teacher routes - redirect to namespaced routes */}
         <Route path="/courses/new" element={<Navigate to="/teacher/courses/new" replace />} />
         <Route path="/record" element={<Navigate to="/teacher/record" replace />} />
         <Route path="/students" element={<Navigate to="/teacher/students" replace />} />
         <Route path="/analytics" element={<Navigate to="/teacher/analytics" replace />} />
+        <Route path="/assignments" element={<Navigate to="/teacher/assignments" replace />} />
 
         {/* Demo Routes - Under /teacher for testing */}
 
@@ -534,7 +577,9 @@ function AppContent() {
           element={
             <AdminRoute>
               <DashboardLayout>
-                <MuxMigration />
+                <Suspense fallback={<PageLoader />}>
+                  <LazyMuxMigration />
+                </Suspense>
               </DashboardLayout>
             </AdminRoute>
           } 
@@ -692,7 +737,9 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardLayout>
-                <QuizDemo />
+                <Suspense fallback={<PageLoader />}>
+                  <LazyQuizDemo />
+                </Suspense>
               </DashboardLayout>
             </ProtectedRoute>
           } 
@@ -703,7 +750,9 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <DashboardLayout>
-                <DiscussionDemo />
+                <Suspense fallback={<PageLoader />}>
+                  <LazyDiscussionDemo />
+                </Suspense>
               </DashboardLayout>
             </ProtectedRoute>
           } 
@@ -766,7 +815,11 @@ function App() {
           </AuthProvider>
         </Router>
       </ErrorBoundary>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {import.meta.env.DEV && (
+        <Suspense fallback={null}>
+          <LazyReactQueryDevtools />
+        </Suspense>
+      )}
     </QueryClientProvider>
   );
 }

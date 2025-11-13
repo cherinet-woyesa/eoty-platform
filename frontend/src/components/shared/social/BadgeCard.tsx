@@ -11,30 +11,30 @@ const BadgeCard: React.FC<BadgeCardProps> = ({ badge, showDetails = false }) => 
   const getBadgeIcon = (badgeType: string) => {
     switch (badgeType) {
       case 'completion':
-        return <Target className="h-6 w-6 text-green-600" />;
+        return <Target className="h-6 w-6 text-[#00FFC6]" />;
       case 'leadership':
-        return <Trophy className="h-6 w-6 text-yellow-600" />;
+        return <Trophy className="h-6 w-6 text-[#FFD700]" />;
       case 'special':
-        return <Star className="h-6 w-6 text-purple-600" />;
+        return <Star className="h-6 w-6 text-[#FF6B9D]" />;
       case 'participation':
-        return <Flame className="h-6 w-6 text-red-600" />;
+        return <Flame className="h-6 w-6 text-[#00FFFF]" />;
       default:
-        return <Award className="h-6 w-6 text-blue-600" />;
+        return <Award className="h-6 w-6 text-[#39FF14]" />;
     }
   };
 
   const getBadgeColor = (badgeType: string) => {
     switch (badgeType) {
       case 'completion':
-        return 'bg-green-50 border-green-200';
+        return 'bg-white/90 backdrop-blur-md border-stone-200 hover:border-[#00FFC6]/50';
       case 'leadership':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-white/90 backdrop-blur-md border-stone-200 hover:border-[#FFD700]/50';
       case 'special':
-        return 'bg-purple-50 border-purple-200';
+        return 'bg-white/90 backdrop-blur-md border-stone-200 hover:border-[#FF6B9D]/50';
       case 'participation':
-        return 'bg-red-50 border-red-200';
+        return 'bg-white/90 backdrop-blur-md border-stone-200 hover:border-[#00FFFF]/50';
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-white/90 backdrop-blur-md border-stone-200 hover:border-[#39FF14]/50';
     }
   };
 
@@ -73,47 +73,56 @@ const BadgeCard: React.FC<BadgeCardProps> = ({ badge, showDetails = false }) => 
   };
 
   return (
-    <div className={`relative rounded-lg border-2 p-4 ${getBadgeColor(badge.badge_type)}`}>
+    <div className={`relative rounded-xl border-2 p-5 shadow-md transition-all hover:shadow-lg ${getBadgeColor(badge.badge_type)}`}>
       <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
-          <div className="p-3 bg-white rounded-full shadow-sm">
-            {getBadgeIcon(badge.badge_type)}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-full blur-md"></div>
+            <div className="relative p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-sm border border-stone-200">
+              {getBadgeIcon(badge.badge_type)}
+            </div>
           </div>
         </div>
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold text-stone-800">
               {badge.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </h3>
             
             {badge.rarity && (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1.5 flex-shrink-0 ml-2">
                 {getRarityIcon(badge.rarity)}
-                <span className={`text-xs font-medium ${getRarityColor(badge.rarity)}`}>
+                <span className={`text-xs font-semibold ${getRarityColor(badge.rarity)}`}>
                   {badge.rarity}
                 </span>
               </div>
             )}
           </div>
           
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-stone-600 mb-3 leading-relaxed">
             {badge.description}
           </p>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 text-sm text-gray-500">
-              <span className="flex items-center space-x-1">
-                <Award className="h-4 w-4" />
-                <span>{badge.points} pts</span>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center space-x-4 text-sm">
+              <span className="flex items-center space-x-1.5 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 px-2.5 py-1 rounded-full border border-[#39FF14]/30">
+                <Award className="h-4 w-4 text-[#39FF14]" />
+                <span className="font-semibold text-stone-700">{badge.points} pts</span>
               </span>
               
-              <span className="capitalize">{badge.badge_type}</span>
+              <span className="px-2.5 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium capitalize">
+                {badge.badge_type}
+              </span>
             </div>
             
             {badge.earned_at && (
-              <div className="text-xs text-gray-400">
-                Earned {new Date(badge.earned_at).toLocaleDateString()}
+              <div className="text-xs text-stone-500 font-medium">
+                {new Date(badge.earned_at).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
               </div>
             )}
           </div>
@@ -121,16 +130,20 @@ const BadgeCard: React.FC<BadgeCardProps> = ({ badge, showDetails = false }) => 
       </div>
       
       {showDetails && badge.metadata && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="text-xs text-gray-500">
-            Achievement unlocked!
+        <div className="mt-4 pt-4 border-t border-stone-200">
+          <div className="flex items-center gap-2 text-xs">
+            <div className="w-1.5 h-1.5 bg-[#39FF14] rounded-full"></div>
+            <span className="text-stone-600 font-medium">Achievement unlocked!</span>
           </div>
         </div>
       )}
       
       {badge.badge_type === 'special' && (
-        <div className="absolute top-2 right-2">
-          <Zap className="h-4 w-4 text-yellow-500 fill-current" />
+        <div className="absolute top-3 right-3">
+          <div className="relative">
+            <div className="absolute inset-0 bg-[#FF6B9D]/30 rounded-full blur-sm"></div>
+            <Zap className="relative h-5 w-5 text-[#FF6B9D] fill-current" />
+          </div>
         </div>
       )}
     </div>

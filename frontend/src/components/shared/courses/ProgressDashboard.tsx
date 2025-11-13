@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   TrendingUp, BookOpen, Clock, Award, 
   Target, BarChart3, Calendar, Star,
@@ -22,42 +23,44 @@ const ProgressDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // For now, use mock data since the backend endpoints might not be fully implemented
-      const mockStats = {
-        total_courses_enrolled: 3,
-        total_lessons_completed: 12,
-        total_video_watch_time: 180, // 3 hours
-        total_quiz_attempts: 8,
-        average_quiz_score: 85,
-        study_streak: 7,
-        total_points_earned: 1250,
-        level: 3,
-        next_level_points: 1500
+      // Fetch real data from student dashboard
+      const { default: apiClient } = await import('@/services/api/apiClient');
+      const response = await apiClient.get('/students/dashboard');
+      
+      if (!response.data.success) {
+        throw new Error('Failed to load dashboard data');
+      }
+
+      const dashboardData = response.data.data;
+      const progress = dashboardData.progress || {};
+      const enrolledCourses = dashboardData.enrolledCourses || [];
+
+      // Transform dashboard data to stats format
+      const realStats: UserProgressStats = {
+        total_courses_enrolled: progress.totalCourses || 0,
+        total_lessons_completed: progress.completedLessons || 0,
+        total_video_watch_time: Math.floor((progress.timeSpent || 0) / 60), // Convert to minutes
+        total_quiz_attempts: 0, // Not available in current API
+        average_quiz_score: progress.averageScore || 0,
+        study_streak: progress.studyStreak || 0,
+        total_points_earned: progress.totalPoints || 0,
+        level: progress.level ? parseInt(progress.level.toString().replace(/\D/g, '')) || 1 : 1,
+        next_level_points: progress.nextLevelXp || 1000
       };
 
-      const mockCourses = [
-        {
-          course_id: 1,
-          course_title: 'Introduction to Orthodox Faith',
-          total_lessons: 8,
-          completed_lessons: 5,
-          overall_progress: 62.5,
-          last_accessed: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          lessons: []
-        },
-        {
-          course_id: 2,
-          course_title: 'Church History',
-          total_lessons: 12,
-          completed_lessons: 7,
-          overall_progress: 58.3,
-          last_accessed: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          lessons: []
-        }
-      ];
+      // Transform enrolled courses to progress format
+      const realCourses: CourseProgress[] = enrolledCourses.map((course: any) => ({
+        course_id: course.id,
+        course_title: course.title,
+        total_lessons: course.totalLessons || course.total_lessons || 0,
+        completed_lessons: course.completedLessons || course.completed_lessons || 0,
+        overall_progress: course.progress || 0,
+        last_accessed: course.lastAccessed || course.last_accessed || new Date().toISOString(),
+        lessons: []
+      }));
 
-      setStats(mockStats);
-      setCourses(mockCourses);
+      setStats(realStats);
+      setCourses(realCourses);
 
     } catch (err) {
       console.error('Failed to load progress data:', err);
@@ -118,11 +121,11 @@ const ProgressDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-[#39FF14] via-[#00FFC6] to-[#00FFFF] rounded-xl p-6 text-stone-900 shadow-lg">
         <h1 className="text-2xl font-bold mb-2">Your Learning Progress</h1>
-        <p className="text-blue-100">
+        <p className="text-stone-700">
           Track your learning journey and celebrate your achievements
         </p>
       </div>
@@ -160,15 +163,15 @@ const ProgressDashboard: React.FC = () => {
               bgColor: 'from-yellow-50 to-orange-100'
             }
           ].map((stat, index) => (
-            <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-xl p-4 sm:p-5 border border-white/50 shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5`}>
+            <div key={index} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 border border-stone-200 shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} shadow-sm`}>
-                  <stat.icon className="h-4 w-4 text-white" />
+                <div className="p-2 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] shadow-sm">
+                  <stat.icon className="h-4 w-4 text-stone-900" />
                 </div>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-0.5">{stat.value}</p>
-                <p className="text-sm text-gray-600 font-medium">{stat.name}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-stone-800 mb-0.5">{stat.value}</p>
+                <p className="text-sm text-stone-600 font-medium">{stat.name}</p>
               </div>
             </div>
           ))}
@@ -177,45 +180,45 @@ const ProgressDashboard: React.FC = () => {
 
       {/* Level Progress */}
       {stats && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Trophy className="h-5 w-5 mr-2 text-yellow-600" />
+            <h2 className="text-lg font-semibold text-stone-800 flex items-center">
+              <Trophy className="h-5 w-5 mr-2 text-[#FFD700]" />
               Level Progress
             </h2>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-stone-600">
               Level {stats.level}
             </span>
           </div>
           
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Points Earned</span>
-              <span className="font-semibold text-gray-900">
+              <span className="text-stone-600">Points Earned</span>
+              <span className="font-semibold text-stone-800">
                 {stats.total_points_earned} / {stats.next_level_points}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-stone-200 rounded-full h-3">
               <div 
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-3 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min((stats.total_points_earned / stats.next_level_points) * 100, 100)}%` }}
               />
             </div>
-            <div className="text-xs text-gray-500 text-center">
-              {stats.next_level_points - stats.total_points_earned} points to next level
+            <div className="text-xs text-stone-500 text-center">
+              {Math.max(0, stats.next_level_points - stats.total_points_earned)} points to next level
             </div>
           </div>
         </div>
       )}
 
       {/* Course Progress */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+          <h2 className="text-lg font-semibold text-stone-800 flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2 text-[#39FF14]" />
             Course Progress
           </h2>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-stone-600">
             {courses.length} courses
           </span>
         </div>
@@ -223,22 +226,26 @@ const ProgressDashboard: React.FC = () => {
         <div className="space-y-4">
           {courses.length > 0 ? (
             courses.map((course) => (
-              <div key={course.course_id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+              <Link
+                key={course.course_id}
+                to={`/student/courses/${course.course_id}`}
+                className="block border border-stone-200 rounded-lg p-4 hover:border-[#39FF14] hover:shadow-md transition-all cursor-pointer"
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{course.course_title}</h3>
+                  <h3 className="font-semibold text-stone-800 hover:text-[#39FF14] transition-colors">{course.course_title}</h3>
                   <span className={`text-sm font-medium ${getProgressColor(course.overall_progress)}`}>
                     {Math.round(course.overall_progress)}%
                   </span>
                 </div>
                 
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div className="w-full bg-stone-200 rounded-full h-2 mb-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${getProgressBarColor(course.overall_progress)}`}
+                    className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-2 rounded-full transition-all duration-500"
                     style={{ width: `${course.overall_progress}%` }}
                   />
                 </div>
                 
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center justify-between text-sm text-stone-600">
                   <span>
                     {course.completed_lessons} of {course.total_lessons} lessons completed
                   </span>
@@ -246,10 +253,10 @@ const ProgressDashboard: React.FC = () => {
                     Last accessed: {new Date(course.last_accessed).toLocaleDateString()}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-stone-500">
               <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No courses enrolled yet</p>
               <p className="text-sm">Start your learning journey by enrolling in a course!</p>
@@ -258,45 +265,22 @@ const ProgressDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Calendar className="h-5 w-5 mr-2 text-green-600" />
-          Recent Activity
-        </h2>
-        
-        <div className="space-y-3">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+      {/* Study Streak */}
+      {stats && stats.study_streak > 0 && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-stone-800 mb-2 flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-[#39FF14]" />
+                Study Streak
+              </h2>
+              <p className="text-3xl font-bold text-stone-800">{stats.study_streak} days</p>
+              <p className="text-sm text-stone-600 mt-1">Keep it up! 🔥</p>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Completed lesson</p>
-              <p className="text-xs text-gray-500">2 hours ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <PlayCircle className="h-4 w-4 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Watched video</p>
-              <p className="text-xs text-gray-500">1 day ago</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Award className="h-4 w-4 text-yellow-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Earned points</p>
-              <p className="text-xs text-gray-500">2 days ago</p>
-            </div>
+            <div className="text-6xl">🔥</div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
