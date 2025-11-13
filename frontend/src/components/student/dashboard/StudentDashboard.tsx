@@ -246,7 +246,8 @@ const StudentDashboard: React.FC = () => {
     return <DashboardSkeleton />;
   }
 
-  if (error) {
+  // Only show error if it's not a canceled request (which is expected during navigation)
+  if (error && !error.includes('canceled') && !error.includes('CanceledError') && !error.includes('ERR_CANCELED')) {
     return (
       <div className="w-full space-y-6 p-6">
         <div className="flex items-center justify-center min-h-96">

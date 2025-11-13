@@ -79,8 +79,9 @@ const LoginForm: React.FC = () => {
   }, [touched, validateField, validationTimers]);
 
   // Redirect when authentication state changes
+  // Only redirect if we're on the /login route, not if we're on the landing page
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && window.location.pathname === '/login') {
       const dashboardPath = getRoleDashboard();
       navigate(dashboardPath, { replace: true });
     }

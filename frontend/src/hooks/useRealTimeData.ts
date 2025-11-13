@@ -238,17 +238,18 @@ export function useRealTimeData<T>(
     setIsFetching(true);
     setError(null);
 
-    // Cancel previous request
-    if (abortControllerRef.current) {
+    // Cancel previous request only if it's still pending
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
       abortControllerRef.current.abort();
     }
 
     abortControllerRef.current = new AbortController();
+    const currentController = abortControllerRef.current;
 
     try {
       const response = await apiClient.get(endpoint, {
-        signal: abortControllerRef.current.signal,
-        timeout: 10000,
+        signal: currentController.signal,
+        timeout: 15000, // Increased timeout to 15 seconds
       });
       
       const responseData = response.data;
@@ -273,11 +274,22 @@ export function useRealTimeData<T>(
       });
       
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        return; // Request was cancelled
+      // Only ignore abort errors if the controller was intentionally aborted
+      if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+        // Check if this was an intentional abort (component unmounting)
+        if (currentController.signal.aborted) {
+          console.log(`Request to ${endpoint} was intentionally cancelled`);
+          return;
+        }
+        // If it's a canceled error but not from our controller, it might be a timeout or network issue
+        // Don't treat it as a fatal error - try to use cache
+        console.warn(`Request to ${endpoint} was canceled (possibly timeout or network issue)`);
       }
       
-      console.error(`❌ Fetch error for ${endpoint}:`, err);
+      // Don't log canceled errors as errors - they're expected during navigation
+      if (err.name !== 'AbortError' && err.code !== 'ERR_CANCELED') {
+        console.error(`❌ Fetch error for ${endpoint}:`, err);
+      }
       
       // Try to use cached data on error
       const cached = getCachedData();
@@ -352,7 +364,9 @@ export function useRealTimeData<T>(
       if (intervalId) {
         clearInterval(intervalId);
       }
-      if (abortControllerRef.current) {
+      // Only abort if the request is still pending (not completed)
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        // Mark as intentionally aborted for cleanup
         abortControllerRef.current.abort();
       }
     };

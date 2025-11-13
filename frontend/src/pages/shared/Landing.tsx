@@ -79,11 +79,12 @@ const Landing: React.FC = () => {
   }, []);
 
   // Close form when user successfully authenticates
+  // But don't redirect - let them stay on landing page if they want
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && authMode) {
       setAuthMode(null);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authMode]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -180,30 +181,18 @@ const Landing: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => {
-                  setAuthMode('login');
-                  // Scroll to hero section smoothly
-                  setTimeout(() => {
-                    document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 100);
-                }}
+              <Link
+                to="/login"
                 className="text-slate-600 hover:text-slate-800 font-medium transition-all duration-200 hover:scale-105"
               >
                 Sign In
-              </button>
-              <button
-                onClick={() => {
-                  setAuthMode('register');
-                  // Scroll to hero section smoothly
-                  setTimeout(() => {
-                    document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 100);
-                }}
+              </Link>
+              <Link
+                to="/register"
                 className="px-6 py-2.5 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-lg hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:shadow-[#00FFC6]/30 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
               >
                 Sign Up
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -232,25 +221,19 @@ const Landing: React.FC = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => {
-                    setAuthMode('register');
-                    // Already in hero section, no need to scroll
-                  }}
+                <Link
+                  to="/register"
                   className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-xl hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-300 font-semibold text-lg shadow-2xl hover:shadow-[#00FFC6]/40 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
                 >
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    // Already in hero section, no need to scroll
-                  }}
+                </Link>
+                <Link
+                  to="/login"
                   className="inline-flex items-center justify-center px-8 py-4 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   Sign In
-                </button>
+                </Link>
               </div>
 
               {/* Stats */}
@@ -903,25 +886,19 @@ const Landing: React.FC = () => {
             Start your faith-centered learning journey today
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => {
-                setAuthMode('register');
-                document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
+            <Link
+              to="/register"
               className="group inline-flex items-center justify-center px-10 py-5 bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90 text-white rounded-xl hover:from-[#00E6B8] hover:to-[#42B5E5] transition-all duration-300 font-semibold text-lg shadow-2xl hover:shadow-[#00FFC6]/40 transform hover:scale-105 backdrop-blur-sm border border-[#00FFC6]/30"
             >
               Create Free Account
               <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button
-              onClick={() => {
-                setAuthMode('login');
-                document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
+            </Link>
+            <Link
+              to="/login"
               className="inline-flex items-center justify-center px-10 py-5 bg-white/90 backdrop-blur-sm text-slate-700 rounded-xl border-2 border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               Sign In to Existing Account
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -937,24 +914,18 @@ const Landing: React.FC = () => {
               <span className="text-xl font-bold text-slate-700">EOTY Platform</span>
             </div>
             <div className="flex space-x-8">
-              <button
-                onClick={() => {
-                  setAuthMode('login');
-                  document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+              <Link
+                to="/login"
                 className="hover:text-slate-800 transition-colors font-medium"
               >
                 Sign In
-              </button>
-              <button
-                onClick={() => {
-                  setAuthMode('register');
-                  document.getElementById('hero-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+              </Link>
+              <Link
+                to="/register"
                 className="hover:text-slate-800 transition-colors font-medium"
               >
                 Sign Up
-              </button>
+              </Link>
             </div>
           </div>
           <div className="pt-8 border-t border-slate-400/40 text-center text-sm">

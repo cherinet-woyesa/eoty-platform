@@ -62,8 +62,9 @@ const RegisterForm: React.FC = () => {
   const { register, isAuthenticated } = useAuth();
 
   // Redirect if already authenticated
+  // Only redirect if we're on the /register route, not if we're on the landing page
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && window.location.pathname === '/register') {
       const timer = setTimeout(() => {
         navigate('/dashboard');
       }, 100);
