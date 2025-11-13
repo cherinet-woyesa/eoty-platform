@@ -28,10 +28,24 @@ module.exports = {
       user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME || 'eoty_platform',
-      port: parseInt(process.env.DB_PORT) || 5432
+      port: parseInt(process.env.DB_PORT) || 5432,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      connectTimeout: 10000, // 10 seconds
+      requestTimeout: 30000, // 30 seconds
+    },
+    pool: {
+      min: 2,
+      max: 10,
+      acquireTimeoutMillis: 30000,
+      createTimeoutMillis: 30000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200,
     },
     migrations: {
-      directory: './migrations'
+      directory: './migrations',
+      tableName: 'knex_migrations',
+      timeout: 60000, // 60 seconds per migration
     },
     seeds: {
       directory: './seeds'
