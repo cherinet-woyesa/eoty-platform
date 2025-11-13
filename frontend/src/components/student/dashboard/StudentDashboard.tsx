@@ -27,25 +27,25 @@ import ViewCustomizer from './ViewCustomizer';
 const DashboardSkeleton: React.FC = React.memo(() => (
   <div className="w-full space-y-6 p-6">
     {/* Welcome Section Skeleton */}
-    <div className="bg-gray-200 rounded-xl p-6 animate-pulse h-32"></div>
+    <div className="bg-stone-200 rounded-xl p-6 animate-pulse h-32"></div>
     
     {/* Stats Grid Skeleton */}
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="bg-gray-200 rounded-xl p-4 animate-pulse h-24"></div>
+        <div key={i} className="bg-stone-200 rounded-xl p-4 animate-pulse h-24"></div>
       ))}
     </div>
     
     {/* Main Content Skeleton */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-gray-200 rounded-xl p-6 animate-pulse h-64"></div>
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-stone-200 rounded-xl p-6 animate-pulse h-64"></div>
         ))}
       </div>
       <div className="space-y-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-gray-200 rounded-xl p-6 animate-pulse h-48"></div>
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-stone-200 rounded-xl p-6 animate-pulse h-48"></div>
         ))}
       </div>
     </div>
@@ -135,40 +135,24 @@ const StudentDashboard: React.FC = () => {
       name: 'Courses Enrolled', 
       value: studentData?.progress?.totalCourses.toString() || '0', 
       icon: BookOpen, 
-      change: '+1', 
-      changeType: 'positive',
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'from-blue-50 to-blue-100',
       description: 'Total courses enrolled'
     },
     { 
       name: 'Lessons Completed', 
       value: studentData?.progress?.completedLessons.toString() || '0', 
       icon: CheckCircle, 
-      change: '+3', 
-      changeType: 'positive',
-      color: 'from-green-500 to-green-600',
-      bgColor: 'from-green-50 to-green-100',
       description: 'Lessons finished this month'
     },
     { 
       name: 'Study Streak', 
       value: `${studentData?.progress?.studyStreak || 0} days`, 
       icon: Zap, 
-      change: '+2', 
-      changeType: 'positive',
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'from-purple-50 to-purple-100',
       description: 'Current learning streak'
     },
     { 
       name: 'Total Points', 
       value: studentData?.progress?.totalPoints.toString() || '0', 
       icon: Award, 
-      change: '+50', 
-      changeType: 'positive',
-      color: 'from-orange-500 to-orange-600',
-      bgColor: 'from-orange-50 to-orange-100',
       description: 'Achievement points earned'
     }
   ], [studentData]);
@@ -252,24 +236,18 @@ const StudentDashboard: React.FC = () => {
       <div className="w-full space-y-6 p-6">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center max-w-md">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Dashboard</h2>
-            <p className="text-gray-600 mb-4">
+            <AlertCircle className="h-16 w-16 text-stone-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-stone-800 mb-2">Unable to Load Dashboard</h2>
+            <p className="text-stone-600 mb-4">
               {error || 'We encountered an error while loading your dashboard data.'}
             </p>
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={handleRetry}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
               >
                 <Loader2 className="h-4 w-4 mr-2" />
                 Try Again
-              </button>
-              <button 
-                onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Reload Page
               </button>
             </div>
           </div>
@@ -280,52 +258,41 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-          {/* Header Section with Search and Controls */}
+          {/* Header Section - Simplified */}
           <div className="flex flex-col gap-4">
-            {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-4 sm:p-6 text-white shadow-lg w-full">
+            {/* Welcome Section - Light Beige/Silver */}
+            <div className="bg-gradient-to-r from-stone-100 via-neutral-100 to-slate-100 rounded-2xl p-4 sm:p-6 border border-stone-200/50 shadow-sm w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <button
                       onClick={() => setSidebarOpen(!sidebarOpen)}
-                      className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      className="lg:hidden p-2 hover:bg-stone-200/50 rounded-lg transition-colors text-stone-700"
                     >
                       <Menu className="h-5 w-5" />
                     </button>
-                    <h1 className="text-xl sm:text-2xl font-bold">Welcome back, {user?.firstName}!</h1>
-                    <div className="flex items-center space-x-2">
-                      {isConnected && (
-                        <div className="flex items-center space-x-1 text-blue-100">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-sm">Live</span>
-                        </div>
-                      )}
-                      {isFetching && (
-                        <Loader2 className="h-4 w-4 text-blue-200 animate-spin" />
-                      )}
-                    </div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-stone-800">Welcome back, {user?.firstName}!</h1>
+                    {isConnected && (
+                      <div className="flex items-center space-x-1 text-emerald-600">
+                        <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium">Live</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-blue-100 text-sm sm:text-base">
+                  <p className="text-stone-600 text-sm sm:text-base">
                     {formatDate(currentTime)} • {formatTime(currentTime)}
                   </p>
-                  <p className="text-blue-200 text-xs sm:text-sm mt-1">
-                    {studentData?.progress?.weeklyProgress}/{studentData?.progress?.weeklyGoal} weekly lessons completed
-                    {lastUpdated && (
-                      <span className="ml-2">• Updated {formatTime(lastUpdated)}</span>
-                    )}
-                  </p>
-                  {/* Search Bar - Moved here */}
+                  {/* Search Bar */}
                   <div className="mt-4">
                     <DashboardSearch
                       searchQuery={searchQuery}
@@ -335,99 +302,39 @@ const StudentDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-4 lg:mt-0 lg:ml-6 flex space-x-2">
-                  {/* Notifications */}
-                  <div className="relative">
-                    <button className="relative p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                      <Bell className="h-4 w-4" />
-                      {unreadNotifications > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                          {unreadNotifications}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-
                   <Link
                     to="/courses"
-                    className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     Browse Courses
                   </Link>
-                  <button
-                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                    className="inline-flex items-center px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats Grid */}
+          {/* Stats Grid - Light Beige/Silver */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {stats.map((stat, index) => (
               <div 
                 key={index} 
-                className={`bg-gradient-to-br ${stat.bgColor} rounded-xl p-3 sm:p-4 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer`}
+                className="bg-gradient-to-br from-stone-50 to-neutral-50 rounded-xl p-3 sm:p-4 border border-stone-200/50 shadow-sm hover:shadow-md transition-all duration-200 group"
                 title={stat.description}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} shadow-sm group-hover:scale-110 transition-transform`}>
-                    <stat.icon className="h-4 w-4 text-white" />
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center space-x-1">
-                      <TrendingUp className="h-3 w-3 text-green-600" />
-                      <span className="text-xs font-medium text-green-700">{stat.change}</span>
-                    </div>
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] shadow-sm group-hover:scale-110 transition-transform">
+                    <stat.icon className="h-4 w-4 text-stone-900" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium">{stat.name}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-stone-800 mb-1">{stat.value}</p>
+                  <p className="text-xs sm:text-sm text-stone-600 font-medium">{stat.name}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Quick Stats Bar */}
-          <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-sm font-medium text-gray-900">{studentData?.progress?.averageScore || 0}%</div>
-                <div className="text-xs text-gray-500">Avg. Score</div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">{Math.floor((studentData?.progress?.timeSpent || 0) / 60)}h</div>
-                <div className="text-xs text-gray-500">Study Time</div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">{studentData?.progress?.certificatesEarned || 0}</div>
-                <div className="text-xs text-gray-500">Certificates</div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">{studentData?.progress?.rank || 'N/A'}</div>
-                <div className="text-xs text-gray-500">Global Rank</div>
-              </div>
-            </div>
-          </div>
-
-          {/* View Customizer */}
-          {isSettingsOpen && (
-            <ViewCustomizer
-              activeView={activeView}
-              onViewChange={setActiveView}
-              onClose={() => setIsSettingsOpen(false)}
-            />
-          )}
-
-          <QuickActions 
-            onActionClick={(actionId, action) => console.log('Quick action:', actionId, action)}
-            recentActions={['my-courses', 'ai-assistant']}
-            pinnedActions={['progress', 'achievements']}
-          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Main Content - 2/3 width */}
@@ -470,37 +377,19 @@ const StudentDashboard: React.FC = () => {
           {/* Empty State for Search */}
           {searchQuery && studentData?.enrolledCourses?.length === 0 && (
             <div className="text-center py-12">
-              <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No results found</h3>
-              <p className="text-gray-600 mb-4">
+              <Search className="h-16 w-16 text-stone-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-stone-800 mb-2">No results found</h3>
+              <p className="text-stone-600 mb-4">
                 No courses match your search for "{searchQuery}"
               </p>
               <button
                 onClick={() => setSearchQuery('')}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
               >
                 Clear Search
               </button>
             </div>
           )}
-
-          {/* Motivation Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Rocket className="h-8 w-8 text-purple-600" />
-                <div>
-                  <h3 className="text-lg font-semibold text-purple-900">Keep up the great work!</h3>
-                  <p className="text-purple-700 text-sm">
-                    You're making excellent progress. {studentData?.progress?.studyStreak && studentData.progress.studyStreak >= 5 
-                      ? `Your ${studentData.progress.studyStreak}-day streak is impressive!` 
-                      : 'Complete one more lesson today to maintain your streak.'}
-                  </p>
-                </div>
-              </div>
-              <Sparkles className="h-6 w-6 text-yellow-500" />
-            </div>
-          </div>
         </div>
       </div>
     </ErrorBoundary>

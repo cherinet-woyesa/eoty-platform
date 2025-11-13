@@ -155,10 +155,10 @@ const CourseGrid: React.FC<CourseGridProps> = ({
 
   if (compact) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-gradient-to-br from-stone-50 to-neutral-50 rounded-xl p-6 border border-stone-200/50 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <BookOpen className="h-5 w-5 mr-2 text-blue-500" />
+          <h3 className="text-lg font-semibold text-stone-800 flex items-center">
+            <BookOpen className="h-5 w-5 mr-2 text-stone-600" />
             My Courses ({filteredAndSortedCourses.length})
           </h3>
           <div className="flex items-center space-x-2">
@@ -187,12 +187,12 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             {filteredAndSortedCourses.slice(0, 4).map((course) => (
               <div
                 key={course.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-all duration-200 cursor-pointer group hover:shadow-sm"
+                className="flex items-center justify-between p-3 rounded-lg border border-stone-200/50 hover:border-stone-300/50 bg-white/50 hover:bg-white transition-all duration-200 cursor-pointer group hover:shadow-sm"
                 onClick={() => handleCourseClick(course.id)}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                    <h4 className="font-medium text-stone-800 truncate group-hover:text-stone-900 transition-colors">
                       {course.title}
                     </h4>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getDifficultyColor(course.difficulty)}`}>
@@ -270,7 +270,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             </p>
             <Link
               to="/courses"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-4 w-4 mr-2" />
               {searchQuery ? 'Browse All Courses' : 'Browse Available Courses'}
@@ -309,11 +309,11 @@ const CourseGrid: React.FC<CourseGridProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+    <div className="bg-gradient-to-br from-stone-50 to-neutral-50 rounded-xl p-6 border border-stone-200/50 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">My Courses</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-xl font-bold text-stone-800">My Courses</h2>
+          <p className="text-stone-600 mt-1">
             {filteredAndSortedCourses.length} course{filteredAndSortedCourses.length !== 1 ? 's' : ''} • Continue your learning journey
           </p>
         </div>
@@ -357,7 +357,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
 
           <Link
             to="/courses"
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             <BookOpen className="h-4 w-4 mr-2" />
             Browse Courses
@@ -370,7 +370,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
           {filteredAndSortedCourses.map((course) => (
             <div
               key={course.id}
-              className="border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group"
+              className="border border-stone-200/50 bg-white/50 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group"
               onClick={() => handleCourseClick(course.id)}
             >
               {/* Course Thumbnail */}
@@ -433,7 +433,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               {/* Course Info */}
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 mr-2">
+                  <h3 className="font-semibold text-stone-800 line-clamp-2 group-hover:text-stone-900 transition-colors flex-1 mr-2">
                     {course.title}
                   </h3>
                   <button
@@ -450,15 +450,15 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   </button>
                 </div>
                 
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description}</p>
+                <p className="text-stone-600 text-sm mb-3 line-clamp-2">{course.description}</p>
                 
                 {/* Instructor */}
-                <div className="flex items-center text-xs text-gray-500 mb-3">
+                <div className="flex items-center text-xs text-stone-500 mb-3">
                   <span>by {course.instructor}</span>
                 </div>
                 
                 {/* Metadata */}
-                <div className="space-y-2 text-xs text-gray-500 mb-3">
+                <div className="space-y-2 text-xs text-stone-500 mb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <Users className="h-3 w-3" />
@@ -487,13 +487,13 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                     {course.tags.slice(0, 3).map((tag, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700"
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-stone-100 text-stone-700"
                       >
                         {tag}
                       </span>
                     ))}
                     {course.tags.length > 3 && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-stone-100 text-stone-700">
                         +{course.tags.length - 3} more
                       </span>
                     )}
@@ -501,15 +501,11 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-3 border-t border-stone-200/50">
                   <div className="flex items-center space-x-2">
                     <Link
                       to={`/courses/${course.id}`}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                        course.progress === 100 
-                          ? 'text-green-700 bg-green-50 hover:bg-green-100' 
-                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                      }`}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 hover:shadow-lg transition-all"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {course.progress === 100 ? 'Review' : course.progress > 0 ? 'Continue' : 'Start'}
@@ -557,7 +553,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/courses"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-5 w-5 mr-2" />
               Explore Courses
@@ -569,7 +565,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   setFilterBy('all');
                   setSortBy('recent');
                 }}
-                className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center px-6 py-3 bg-stone-100 text-stone-700 font-medium rounded-lg hover:bg-stone-200 transition-colors"
               >
                 Clear Filters
               </button>
