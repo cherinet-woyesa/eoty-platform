@@ -1,27 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Users, Clock, Star, Target, Award,
-  PlayCircle, CheckCircle, TrendingUp, Calendar,
-  MessageCircle, Bookmark, Zap, Activity,
-  Loader2, AlertCircle, ArrowRight, Brain,
-  Target as TargetIcon, Calendar as CalendarIcon,
-  Search, Filter, Settings, Bell, Download,
-  BarChart3, Rocket, Crown, Sparkles, Menu, X
+  BookOpen, Loader2, AlertCircle, Search, Menu
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import ProgressTracker from './ProgressTracker';
 import CourseGrid from './CourseGrid';
-import StudyStreak from './StudyStreak';
-import QuickActions from './QuickActions';
-import RecentActivity from './RecentActivity';
-import LearningRecommendations from './LearningRecommendations';
 import { useDashboardData } from '@/hooks/useRealTimeData';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSearch from './DashboardSearch';
-import ViewCustomizer from './ViewCustomizer';
 
 // Skeleton loader components
 const DashboardSkeleton: React.FC = React.memo(() => (
@@ -56,14 +44,8 @@ const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeView, setActiveView] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'New course available', read: false },
-    { id: 2, message: 'Study reminder', read: true }
-  ]);
 
   // Enhanced real-time data with error boundaries and retry
   const { 
@@ -91,28 +73,8 @@ const StudentDashboard: React.FC = () => {
         
         switch (message.type) {
           case 'COURSE_PROGRESS_UPDATE':
-            // Show notification for progress updates
-            setNotifications(prev => [{
-              id: Date.now(),
-              message: `Progress updated: ${message.data.courseTitle}`,
-              read: false
-            }, ...prev]);
-            break;
-          case 'NEW_RECOMMENDATION':
-            // Refresh recommendations with debouncing
-            const recommendationTimer = setTimeout(() => {
-              refetch();
-            }, 2000);
-            return () => clearTimeout(recommendationTimer);
-          case 'ACTIVITY_UPDATE':
-            // Refresh activities with debouncing
-            const activityTimer = setTimeout(() => {
-              refetch();
-            }, 2000);
-            return () => clearTimeout(activityTimer);
-          case 'STREAK_MILESTONE':
-            // Show streak celebration
-            console.log('Streak milestone reached:', message.data);
+            // Refresh dashboard data
+            refetch();
             break;
           default:
             console.log('Unknown message type:', message.type);
@@ -196,35 +158,8 @@ const StudentDashboard: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleRecommendationAction = useCallback((recommendationId: string, action: string) => {
-    console.log('Recommendation action:', action, recommendationId);
-    // Handle recommendation actions
-  }, []);
 
-  const handleActivityAction = useCallback((activityId: string, action: string) => {
-    console.log('Activity action:', action, activityId);
-    // Handle activity actions
-  }, []);
 
-  const handleStreakAction = useCallback((action: string, data?: any) => {
-    console.log('Streak action:', action, data);
-    // Handle streak actions
-  }, []);
-
-  const handleExportProgress = useCallback((format: 'pdf' | 'image') => {
-    console.log('Export progress as:', format);
-    // Handle progress export
-  }, []);
-
-  const handleShareProgress = useCallback(() => {
-    console.log('Share progress');
-    // Handle progress sharing
-  }, []);
-
-  const unreadNotifications = useMemo(() => 
-    notifications.filter(n => !n.read).length, 
-    [notifications]
-  );
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -336,43 +271,12 @@ const StudentDashboard: React.FC = () => {
           </div>
 
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Main Content - 2/3 width */}
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              
-              <CourseGrid 
-                courses={studentData?.enrolledCourses || []} 
-                compact={activeView === 'compact'}
-                onCourseAction={handleCourseAction}
-              />
-              
-              <LearningRecommendations 
-                recommendations={studentData?.recommendations || []}
-                onRecommendationAction={handleRecommendationAction}
-              />
-            </div>
-
-            {/* Sidebar - 1/3 width */}
-            <div className="space-y-4 sm:space-y-6">
-              
-              <StudyStreak 
-                streak={studentData?.progress?.studyStreak}
-                onStreakAction={handleStreakAction}
-                userLevel={studentData?.progress?.level ? 2 : 1}
-                totalStudyTime={studentData?.progress?.timeSpent}
-                longestStreak={studentData?.progress?.studyStreak || 0}
-                weeklyGoal={studentData?.progress?.weeklyGoal}
-                weeklyProgress={studentData?.progress?.weeklyProgress}
-              />
-              
-              <RecentActivity 
-                activities={studentData?.recentActivity || []}
-                compact={activeView === 'compact'}
-                onActivityAction={handleActivityAction}
-                onMarkAllRead={() => console.log('Mark all activities read')}
-              />
-            </div>
-          </div>
+          {/* Enrolled Courses */}
+          <CourseGrid 
+            courses={studentData?.enrolledCourses || []} 
+            compact={false}
+            onCourseAction={handleCourseAction}
+          />
 
           {/* Empty State for Search */}
           {searchQuery && studentData?.enrolledCourses?.length === 0 && (
