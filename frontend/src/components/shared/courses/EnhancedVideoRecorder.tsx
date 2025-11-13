@@ -160,6 +160,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // Error/Success State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const persistentSuccessMessageRef = useRef<string | null>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -875,7 +876,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setRecordingDuration(0);
       setUploadSuccess(false);
       setErrorMessage(null);
-      setSuccessMessage(null);
+      // Don't clear processing completion success message
+      if (!persistentSuccessMessageRef.current) {
+        setSuccessMessage(null);
+      }
       setRecordingStats({
         fileSize: 0,
         bitrate: 0,
@@ -992,7 +996,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setUploadProgress(0);
     setUploadSuccess(false);
     setErrorMessage(null);
-    setSuccessMessage(null);
+    // Don't clear processing completion success message
+    if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
+      setSuccessMessage(null);
+    }
     setSelectedFile(null);
     setAutoStopTimer(0);
     setRecordingStatus('idle');
@@ -1110,7 +1117,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setShowProcessingStatus(false);
     
     // Show prominent success message that persists
-    setSuccessMessage('🎉 Video processing completed successfully! Your video is now available for viewing.');
+    const persistentMessage = '🎉 Video processing completed successfully! Your video is now available for viewing.';
+    persistentSuccessMessageRef.current = persistentMessage;
+    setSuccessMessage(persistentMessage);
     
     // If we have a transcoded video URL, notify parent components
     if (transcodedVideoUrl && processingLessonId) {
@@ -1173,7 +1182,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         // Success message will be set after restart completes
         setTimeout(() => {
           setSuccessMessage('Screen sharing added to recording! Both camera and screen are now being recorded.');
-          setTimeout(() => setSuccessMessage(null), 5000);
+          // Don't clear processing completion message
+          if (!persistentSuccessMessageRef.current) {
+            setTimeout(() => setSuccessMessage(null), 5000);
+          }
         }, 2000);
       } else {
         await startScreenShare(); // Use startScreenShare for initial screen sharing
@@ -1190,7 +1202,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     } catch (error) {
       console.error('Failed to start screen share:', error);
       setErrorMessage('Failed to start screen sharing. Please try again.');
-      setSuccessMessage(null);
+      // Don't clear processing completion success message
+      if (!persistentSuccessMessageRef.current) {
+        setSuccessMessage(null);
+      }
     }
   };
 
@@ -1320,7 +1335,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 
                 console.error('Video playback error:', error, errorMessage);
                 setErrorMessage(errorMessage);
-                setSuccessMessage(null);
+                // Don't clear processing completion success message
+                if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
+                  setSuccessMessage(null);
+                }
               }}
               onLoadStart={() => {
                 setErrorMessage(null);
@@ -2118,7 +2136,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <span className="font-semibold text-base">{successMessage}</span>
           </div>
           <button
-            onClick={() => setSuccessMessage('')}
+            onClick={() => {
+              persistentSuccessMessageRef.current = null;
+              setSuccessMessage('');
+            }}
             className="text-emerald-700 hover:text-emerald-900 transition-colors"
             aria-label="Dismiss"
           >

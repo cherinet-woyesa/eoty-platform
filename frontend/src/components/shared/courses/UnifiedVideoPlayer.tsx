@@ -777,8 +777,20 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             console.error('Mux Player error details:', {
               error: event,
               playbackId: lesson.mux_playback_id,
-              lessonId: lesson.id
+              lessonId: lesson.id,
+              muxStatus: lesson.mux_status,
+              videoProvider: lesson.video_provider
             });
+            
+            // If playback ID exists but player fails, log more details
+            if (lesson.mux_playback_id) {
+              console.warn('Mux playback failed despite having playback ID:', {
+                playbackId: lesson.mux_playback_id,
+                status: lesson.mux_status,
+                provider: lesson.video_provider
+              });
+            }
+            
             onError?.(new Error(errorMessage));
           }}
           onLoadedMetadata={(event: any) => {
