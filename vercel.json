@@ -5,8 +5,8 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/((?!api|_next|assets|.*\\..*).*)",
-      "destination": "/frontend/dist/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
