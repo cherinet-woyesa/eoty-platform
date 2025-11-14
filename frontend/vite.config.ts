@@ -34,76 +34,14 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.info', 'console.debug'], // Remove specific console methods
       },
     },
-    // Code splitting - Simplified to prevent React loading issues
+    // Code splitting - DISABLED to prevent React loading issues
+    // All code will be in main bundle to ensure React loads first
+    // This fixes "Cannot read properties of undefined (reading 'useState')" errors
     rollupOptions: {
       output: {
-        // Ensure proper chunk loading order
-        chunkFileNames: (chunkInfo) => {
-          // React core should be in main bundle (no special naming)
-          if (chunkInfo.name === 'react-vendor') {
-            return 'assets/react-vendor-[hash].js';
-          }
-          return 'assets/[name]-[hash].js';
-        },
-        manualChunks: (id) => {
-          // CRITICAL: Keep React in main bundle to ensure it loads first
-          // This prevents "Cannot read properties of undefined (reading 'useState')" errors
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') ||
-              id.includes('node_modules/react-router') ||
-              id.includes('node_modules/react-router-dom') ||
-              id.includes('node_modules/scheduler')) {
-            // Keep React core in main bundle - return undefined
-            return undefined;
-          }
-          
-          // CRITICAL: All React-dependent packages must be in react-vendor chunk
-          // This ensures they load after React is available
-          if (id.includes('node_modules/@tanstack/react-query') ||
-              id.includes('node_modules/react-i18next') ||
-              id.includes('node_modules/@headlessui/react') ||
-              id.includes('node_modules/@mux/mux-player-react') ||
-              id.includes('node_modules/@mux/mux-uploader-react') ||
-              id.includes('node_modules/recharts') ||
-              id.includes('node_modules/framer-motion') ||
-              id.includes('node_modules/@dnd-kit') ||
-              id.includes('node_modules/lucide-react') ||
-              id.includes('node_modules/rc-slider')) {
-            // Group all React-dependent packages together
-            return 'react-vendor';
-          }
-          
-          // Split node_modules into vendor chunks
-          if (id.includes('node_modules')) {
-            // Non-React libraries get their own chunks
-            if (id.includes('socket.io')) {
-              return 'socket-vendor';
-            }
-            if (id.includes('i18next') && !id.includes('react-i18next')) {
-              return 'i18n-vendor';
-            }
-            // Split other large dependencies
-            if (id.includes('axios')) {
-              return 'axios-vendor';
-            }
-            if (id.includes('date-fns')) {
-              return 'date-vendor';
-            }
-            // Group remaining node_modules into a single vendor chunk
-            return 'vendor';
-          }
-          
-          // Split large page components
-          if (id.includes('/pages/teacher/RecordVideo')) {
-            return 'record-video';
-          }
-          if (id.includes('/components/teacher/dashboard/VideoAnalyticsDashboard')) {
-            return 'video-analytics';
-          }
-          if (id.includes('/pages/admin/MuxMigration')) {
-            return 'mux-migration';
-          }
-        },
+        // Disable manual chunking - everything goes in main bundle
+        // This ensures React and all dependencies load together in correct order
+        manualChunks: undefined,
       },
     },
     // Chunk size warnings
