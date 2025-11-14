@@ -34,18 +34,22 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.info', 'console.debug'], // Remove specific console methods
       },
     },
-    // Code splitting
+    // Code splitting - Simplified to prevent React loading issues
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // CRITICAL: Don't split React, react-dom, or react-router into separate chunks
-          // They must be in the main bundle to avoid "Cannot read properties of undefined" errors
-          if (id.includes('node_modules/react/') || 
-              id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/react-router/') ||
-              id.includes('node_modules/react-router-dom/')) {
-            // Keep React in the main bundle - don't return a chunk name
-            return;
+          // CRITICAL: Keep all React-related packages together in one chunk
+          // This prevents "Cannot read properties of undefined (reading 'useState')" errors
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router') ||
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/@tanstack/react-query') ||
+              id.includes('node_modules/react-i18next') ||
+              id.includes('node_modules/@headlessui/react')) {
+            // Group all React-related packages together
+            return 'react-vendor';
           }
           
           // Split node_modules into vendor chunks
@@ -60,13 +64,10 @@ export default defineConfig({
             if (id.includes('socket.io')) {
               return 'socket-vendor';
             }
-            if (id.includes('i18next') || id.includes('react-i18next')) {
+            if (id.includes('i18next')) {
               return 'i18n-vendor';
             }
-            if (id.includes('@tanstack/react-query')) {
-              return 'query-vendor';
-            }
-            if (id.includes('lucide-react') || id.includes('@headlessui')) {
+            if (id.includes('lucide-react')) {
               return 'ui-vendor';
             }
             // Split other large dependencies
@@ -82,26 +83,8 @@ export default defineConfig({
             if (id.includes('@dnd-kit')) {
               return 'dnd-vendor';
             }
-            // Other node_modules - split into smaller chunks
-            if (id.includes('node_modules')) {
-              // Group by package name first letter to create smaller chunks
-              const match = id.match(/node_modules\/(@?[^\/]+)/);
-              if (match) {
-                const packageName = match[1];
-                // Group packages starting with same letter
-                const firstChar = packageName.charAt(0).toLowerCase();
-                if (['a', 'b', 'c', 'd'].includes(firstChar)) {
-                  return 'vendor-a-d';
-                }
-                if (['e', 'f', 'g', 'h'].includes(firstChar)) {
-                  return 'vendor-e-h';
-                }
-                if (['i', 'j', 'k', 'l', 'm'].includes(firstChar)) {
-                  return 'vendor-i-m';
-                }
-                return 'vendor-n-z';
-              }
-            }
+            // Group remaining node_modules into a single vendor chunk
+            // This is safer than aggressive splitting which can cause module resolution issues
             return 'vendor';
           }
           
