@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, getAuthToken } from './apiClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -53,7 +53,7 @@ export const videoApi = {
     }
 
     // FIX: Use fetch directly instead of apiClient to avoid JSON conversion
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     // Create AbortController for timeout handling (5 minutes for large video files)
     const controller = new AbortController();

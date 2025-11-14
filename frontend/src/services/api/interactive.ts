@@ -1,11 +1,12 @@
 import axios from 'axios';
+import { getAuthToken } from './apiClient';
 
 const API_BASE = 'http://localhost:5000/api';
 
 export const interactiveApi = {
   // Quiz methods
   getLessonQuizzes: async (lessonId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/lessons/${lessonId}/quizzes`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -13,7 +14,7 @@ export const interactiveApi = {
   },
 
   getQuizQuestions: async (quizId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/quizzes/${quizId}/questions`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -21,7 +22,7 @@ export const interactiveApi = {
   },
 
   submitQuizAttempt: async (quizId: string, answers: any) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/quizzes/${quizId}/attempt`, {
       answers
     }, {
@@ -32,7 +33,7 @@ export const interactiveApi = {
 
   // Annotation methods
   createAnnotation: async (data: any) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/annotations`, data, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -40,7 +41,7 @@ export const interactiveApi = {
   },
 
   getLessonAnnotations: async (lessonId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/lessons/${lessonId}/annotations`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -49,7 +50,7 @@ export const interactiveApi = {
 
   // Discussion methods
   createDiscussionPost: async (data: any) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/discussions`, data, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -57,7 +58,7 @@ export const interactiveApi = {
   },
 
   getLessonDiscussions: async (lessonId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/lessons/${lessonId}/discussions`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -66,7 +67,7 @@ export const interactiveApi = {
 
   // Moderation methods
   moderateDiscussionPost: async (postId: string, action: 'approve' | 'reject' | 'pin' | 'unpin') => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/discussions/moderate`, {
       postId,
       action
@@ -77,7 +78,7 @@ export const interactiveApi = {
   },
 
   getFlaggedPosts: async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/discussions/flagged`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -86,7 +87,7 @@ export const interactiveApi = {
 
   // Community reporting method
   reportDiscussionPost: async (postId: string, reason: 'inappropriate' | 'spam' | 'harassment' | 'offensive' | 'other') => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/discussions/report`, {
       postId,
       reason
@@ -98,7 +99,7 @@ export const interactiveApi = {
 
   // Progress methods
   updateLessonProgress: async (lessonId: string, data: any) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/lessons/${lessonId}/progress`, data, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -106,7 +107,7 @@ export const interactiveApi = {
   },
 
   getLessonProgress: async (lessonId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/lessons/${lessonId}/progress`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -114,7 +115,7 @@ export const interactiveApi = {
   },
 
   getUserProgress: async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/progress`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -123,7 +124,7 @@ export const interactiveApi = {
 
   // Notification methods
   getUserNotifications: async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/notifications`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -131,7 +132,7 @@ export const interactiveApi = {
   },
 
   markNotificationAsRead: async (notificationId: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/notifications/read`, {
       notificationId
     }, {
@@ -142,7 +143,7 @@ export const interactiveApi = {
 
   // System validation methods
   runAcceptanceValidation: async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/interactive/system/validate`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -150,7 +151,7 @@ export const interactiveApi = {
   },
 
   getValidationHistory: async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/interactive/system/validation-history`, {
       headers: { Authorization: `Bearer ${token}` }
     });

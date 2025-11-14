@@ -1,11 +1,12 @@
 import axios from 'axios';
+import { getAuthToken } from './apiClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 export const aiApi = {
   // Ask a question to AI
   askQuestion: async (question: string, sessionId?: string, context?: any) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/ai/ask`, {
       question,
       sessionId,
@@ -18,7 +19,7 @@ export const aiApi = {
 
   // Get conversation history
   getConversationHistory: async (sessionId?: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.get(`${API_BASE}/ai/conversation`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { sessionId }
@@ -28,7 +29,7 @@ export const aiApi = {
 
   // Clear conversation history
   clearConversation: async (sessionId?: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/ai/conversation/clear`, {
       sessionId
     }, {
@@ -44,7 +45,7 @@ export const aiApi = {
     context?: any;
     moderation?: any;
   }) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/ai/report`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -59,7 +60,7 @@ export const aiApi = {
     success: boolean;
     errorMessage?: string;
   }) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/ai/telemetry`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -75,7 +76,7 @@ export const aiApi = {
     answerLength?: number;
     flagged?: boolean;
   }) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await axios.post(`${API_BASE}/ai/summary`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '@/services/api';
+import { setAuthToken } from '@/services/api/apiClient';
 
 interface User {
   id: string;
@@ -124,128 +125,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(checkInactivity);
   }, [lastActivity]);
 
-  // Enhanced permission loading with caching
+  // Load permissions from API (no caching)
   const loadPermissions = async (): Promise<void> => {
     try {
       const response = await authApi.getUserPermissions();
       if (response.success) {
         setPermissions(response.data.permissions);
-        // Cache permissions for offline use
-        localStorage.setItem('user_permissions', JSON.stringify(response.data.permissions));
       }
     } catch (error) {
       console.error('Failed to load permissions:', error);
-      // Fallback to cached permissions
-      const cached = localStorage.getItem('user_permissions');
-      if (cached) {
-        setPermissions(JSON.parse(cached));
-      } else {
-        setPermissions([]);
-      }
+      setPermissions([]);
     }
   };
 
-  // Enhanced initialization with retry logic and offline support
-  // Optimized: Set user immediately from cache, validate token in background
-  const initializeAuth = async (retryCount = 0): Promise<void> => {
-    try {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      const storedRole = localStorage.getItem('userRole');
-      
-      if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        
-        // Enhanced role change detection with version checking
-        if (storedRole && storedRole !== parsedUser.role) {
-          console.warn('Role change detected. Clearing authentication state.');
-          logout();
-          setIsLoading(false);
-          return;
-        }
-        
-        // OPTIMIZATION: Set user state immediately from cache for faster UI
-        setToken(storedToken);
-        setUser(parsedUser);
-        setLastActivity(new Date());
-        localStorage.setItem('userRole', parsedUser.role);
-        
-        // Load cached permissions immediately
-        const cachedPermissions = localStorage.getItem('user_permissions');
-        if (cachedPermissions) {
-          try {
-            setPermissions(JSON.parse(cachedPermissions));
-          } catch (e) {
-            console.warn('Failed to parse cached permissions:', e);
-          }
-        }
-        
-        // Stop loading immediately - don't wait for token validation
-        setIsLoading(false);
-        
-        // Validate token in background (non-blocking) with timeout
-        // This allows the UI to render immediately while validation happens
-        const validationPromise = authApi.validateToken(storedToken);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Validation timeout')), 10000)
-        );
-        
-        Promise.race([validationPromise, timeoutPromise])
-          .then((isValid) => {
-            if (!isValid) {
-              console.warn('Token validation failed - logging out');
-              logout();
-            } else {
-              // Token is valid, refresh permissions in background
-              loadPermissions().catch(err => {
-                console.warn('Failed to refresh permissions:', err);
-                // Keep using cached permissions
-              });
-            }
-          })
-          .catch((validationError) => {
-            console.warn('Token validation error:', validationError);
-            // On timeout or network error, keep user logged in with cached data
-            // Only logout if we get a clear 401 (unauthorized) response
-            if (validationError.response?.status === 401) {
-              // Token is invalid - logout
-              console.log('Token invalid - logging out');
-              logout();
-            } else {
-              // Network error or timeout - keep user logged in with cached data
-              console.log('Network error/timeout during validation - using cached auth');
-            }
-          });
-      } else {
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-      setIsLoading(false);
-      // Don't retry on parse errors, only on network errors
-      if (retryCount < 2 && error instanceof TypeError && error.message.includes('fetch')) {
-        setTimeout(() => initializeAuth(retryCount + 1), 1000 * (retryCount + 1));
-      }
-    }
-  };
-
+  // Initialize auth - no session persistence, start fresh
   useEffect(() => {
-    initializeAuth();
+    setIsLoading(false);
   }, []);
 
-  // Enhanced login with better error handling and offline support
+  // Login - no session persistence, state only
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
       
-      // Clear any existing session before attempting new login
-      // This ensures a fresh login and prevents session conflicts
-      const storageKeys = [
-        'token', 'user', 'userRole', 'auth_persist', 'session_data',
-        'user_permissions', 'auth_timestamp', 'dashboard_cache'
-      ];
-      storageKeys.forEach(key => localStorage.removeItem(key));
-      sessionStorage.clear();
+      // Clear any existing state
       setUser(null);
       setToken(null);
       setPermissions([]);
@@ -263,11 +166,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(user);
         setLastActivity(new Date());
         
-        // Enhanced storage with expiration
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('userRole', user.role);
-        localStorage.setItem('auth_timestamp', Date.now().toString());
+        // Update apiClient token store
+        setAuthToken(token);
         
         await loadPermissions();
         
@@ -315,19 +215,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Enhanced register with better validation
+  // Register - no session persistence, state only
   const register = async (userData: any): Promise<void> => {
     try {
       setIsLoading(true);
       
-      // Clear any existing session before attempting new registration
-      // This ensures a fresh registration and prevents session conflicts
-      const storageKeys = [
-        'token', 'user', 'userRole', 'auth_persist', 'session_data',
-        'user_permissions', 'auth_timestamp', 'dashboard_cache'
-      ];
-      storageKeys.forEach(key => localStorage.removeItem(key));
-      sessionStorage.clear();
+      // Clear any existing state
       setUser(null);
       setToken(null);
       setPermissions([]);
@@ -341,10 +234,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(user);
         setLastActivity(new Date());
         
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('userRole', user.role);
-        localStorage.setItem('auth_timestamp', Date.now().toString());
+        // Update apiClient token store
+        setAuthToken(token);
         
         await loadPermissions();
         
@@ -372,7 +263,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Enhanced Google login
+  // Google login - no session persistence, state only
   const loginWithGoogle = async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     try {
       setIsLoading(true);
@@ -385,10 +276,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(user);
         setLastActivity(new Date());
         
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('userRole', user.role);
-        localStorage.setItem('auth_timestamp', Date.now().toString());
+        // Update apiClient token store
+        setAuthToken(token);
         
         await loadPermissions();
         
@@ -404,43 +293,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Enhanced logout with comprehensive cleanup
+  // Logout - clear state only (no storage to clear)
   const logout = (): void => {
-    // Clear all auth-related storage
-    const storageKeys = [
-      'token', 'user', 'userRole', 'auth_persist', 'session_data',
-      'user_permissions', 'auth_timestamp', 'dashboard_cache'
-    ];
-    storageKeys.forEach(key => localStorage.removeItem(key));
-    
-    // Clear session storage
-    sessionStorage.clear();
-    
     // Clear state
     setUser(null);
     setToken(null);
     setPermissions([]);
     
+    // Clear apiClient token
+    setAuthToken(null);
+    
     // API cleanup
     authApi.logout();
     
-    // Clear any service worker caches if needed
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => {
-          if (name.includes('auth') || name.includes('user')) {
-            caches.delete(name);
-          }
-        });
-      });
-    }
-
-    // Clear any pending timeouts
-    const highestTimeoutId = setTimeout(() => {}, 0) as unknown as number;
-    for (let i = 0; i < highestTimeoutId; i++) {
-      clearTimeout(i);
-    }
-
     // Track logout for analytics
     console.log('User logged out');
   };
@@ -548,13 +413,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response.success && response.data?.user) {
         const updatedUser = response.data.user;
         setUser(updatedUser);
-        // Update localStorage with fresh user data
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        localStorage.setItem('userRole', updatedUser.role);
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);
-      // Don't throw - allow cached user data to remain
+      throw error;
     }
   };
 
@@ -572,9 +434,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Optionally sync with backend
+      // Sync with backend
       await authApi.updateUserPreferences(preferences);
     } catch (error) {
       console.error('Failed to update user preferences:', error);

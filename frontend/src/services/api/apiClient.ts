@@ -6,6 +6,19 @@ import { logger } from '@/utils/logger';
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || false;
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
+// Token store - in-memory only, no persistence
+let authToken: string | null = null;
+
+// Export function to set token (called by AuthContext)
+export const setAuthToken = (token: string | null): void => {
+  authToken = token;
+};
+
+// Export function to get token
+export const getAuthToken = (): string | null => {
+  return authToken;
+};
+
 // Mock data store for demo mode
 const mockDataStore = new Map<string, any>();
 
@@ -24,11 +37,9 @@ export const apiClient = axios.create({
 // Request interceptor with enhanced CORS handling and performance optimizations
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-    
-    // Add auth token if available
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Get token from in-memory store (no localStorage)
+    if (authToken) {
+      config.headers.Authorization = `Bearer ${authToken}`;
     }
     
     // Handle CORS-safe headers
@@ -99,17 +110,12 @@ apiClient.interceptors.response.use(
         return Promise.reject(enhanceError(error));
       }
       
-      // Check if user is actually logged in (token exists)
-      const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
-      
-      // Only clear and redirect if we actually had auth data
-      if (token || user) {
-        logger.warn('Clearing local storage due to 401 error');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('auth_timestamp');
+      // Check if user is actually logged in (token exists in memory)
+      if (authToken) {
+        logger.warn('Clearing auth token due to 401 error');
+        // Clear in-memory token
+        authToken = null;
+        setAuthToken(null);
         
         // Only redirect if not already on login page
         // Use a small delay to prevent immediate redirect loops
@@ -117,14 +123,14 @@ apiClient.interceptors.response.use(
           // Double-check we're not already on login/register
           const stillOnAuthPage = window.location.pathname.includes('/login') || 
                                    window.location.pathname.includes('/register');
-          if (!stillOnAuthPage && !localStorage.getItem('token')) {
+          if (!stillOnAuthPage && !authToken) {
             window.location.href = '/login?session_expired=true&redirect=' + encodeURIComponent(currentPath);
           }
         }, 500);
       } else {
-        // No token/user data, but got 401 - might be a protected endpoint
+        // No token in memory, but got 401 - might be a protected endpoint
         // Don't redirect, just reject the error
-        logger.warn('401 error but no auth data found - might be accessing protected endpoint without auth');
+        logger.warn('401 error but no auth token found - might be accessing protected endpoint without auth');
       }
     }
     

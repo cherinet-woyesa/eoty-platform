@@ -1,4 +1,5 @@
 // frontend/src/services/api/speechToText.ts
+import { getAuthToken } from './apiClient';
 
 // Enhanced speech-to-text functionality with focused language support
 // Supports Web Speech API (browser-native) and cloud service fallback
@@ -284,7 +285,7 @@ export const speechToText = {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         }
       });
 

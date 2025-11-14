@@ -36,8 +36,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUser = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      // Only load if authenticated (no localStorage check)
+      if (!isAuthenticated) {
         setLoading(false);
         return;
       }
@@ -56,16 +56,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Failed to load user:', error);
-      // Only clear token on 401 (unauthorized) errors, not on 500 (server) errors
+      // On 401, user will be logged out by AuthContext
       if (error?.response?.status === 401) {
-        console.warn('Authentication failed, clearing token');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('userRole');
-      } else {
-        // For 500 errors or other server errors, don't clear token
-        // The user is still authenticated, just the server had an issue
-        console.warn('Server error loading user, but user is still authenticated');
+        console.warn('Authentication failed');
       }
     } finally {
       setLoading(false);
