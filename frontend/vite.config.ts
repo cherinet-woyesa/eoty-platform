@@ -38,6 +38,16 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // CRITICAL: Don't split React, react-dom, or react-router into separate chunks
+          // They must be in the main bundle to avoid "Cannot read properties of undefined" errors
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-router/') ||
+              id.includes('node_modules/react-router-dom/')) {
+            // Keep React in the main bundle - don't return a chunk name
+            return;
+          }
+          
           // Split node_modules into vendor chunks
           if (id.includes('node_modules')) {
             // Large libraries get their own chunks
@@ -58,9 +68,6 @@ export default defineConfig({
             }
             if (id.includes('lucide-react') || id.includes('@headlessui')) {
               return 'ui-vendor';
-            }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
             }
             // Split other large dependencies
             if (id.includes('axios')) {
