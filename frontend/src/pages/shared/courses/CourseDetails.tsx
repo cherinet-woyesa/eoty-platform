@@ -9,7 +9,7 @@ import {
   ArrowLeft, BookOpen, Clock, PlayCircle, Video, Users, BarChart, 
   Search, Filter, CheckCircle, Circle, Star, MessageSquare, 
   Download, Share2, Edit, TrendingUp, Award, Calendar,
-  Loader2
+  Loader2, Plus, Trash2
 } from 'lucide-react';
 
 interface Lesson {
@@ -88,6 +88,11 @@ const CourseDetails: React.FC = () => {
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [markingComplete, setMarkingComplete] = useState<string | null>(null);
   const [updatingProgress, setUpdatingProgress] = useState<string | null>(null);
+  const [isCreatingLesson, setIsCreatingLesson] = useState(false);
+  const [isEditingLesson, setIsEditingLesson] = useState<Lesson | null>(null);
+  const [newLessonTitle, setNewLessonTitle] = useState('');
+  const [newLessonDescription, setNewLessonDescription] = useState('');
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
 
   // Memoized values
   const isAdmin = useMemo(() => user?.role === 'chapter_admin' || user?.role === 'platform_admin', [user?.role]);
@@ -190,6 +195,70 @@ const CourseDetails: React.FC = () => {
       setMarkingComplete(null);
     }
   }, [isStudent, markingComplete, updateProgress]);
+
+  // Create lesson
+  const handleCreateLesson = useCallback(async () => {
+    if (!courseId || !newLessonTitle.trim()) return;
+    
+    try {
+      const response = await coursesApi.createLesson(courseId, {
+        title: newLessonTitle.trim(),
+        description: newLessonDescription.trim() || undefined,
+        order: lessons.length
+      });
+      
+      const newLesson = response.data.lesson;
+      setLessons(prev => [...prev, newLesson].sort((a, b) => (a.order || 0) - (b.order || 0)));
+      setNewLessonTitle('');
+      setNewLessonDescription('');
+      setIsCreatingLesson(false);
+      setSelectedLesson(newLesson);
+    } catch (error) {
+      console.error('Failed to create lesson:', error);
+    }
+  }, [courseId, newLessonTitle, newLessonDescription, lessons.length]);
+
+  // Update lesson
+  const handleUpdateLesson = useCallback(async (lesson: Lesson) => {
+    if (!lesson.id || !newLessonTitle.trim()) return;
+    
+    try {
+      const response = await coursesApi.updateLesson(lesson.id, {
+        title: newLessonTitle.trim(),
+        description: newLessonDescription.trim() || undefined
+      });
+      
+      const updatedLesson = response.data.lesson;
+      setLessons(prev => prev.map(l => l.id === lesson.id ? updatedLesson : l));
+      setNewLessonTitle('');
+      setNewLessonDescription('');
+      setIsEditingLesson(null);
+      setSelectedLesson(updatedLesson);
+    } catch (error) {
+      console.error('Failed to update lesson:', error);
+    }
+  }, [newLessonTitle, newLessonDescription]);
+
+  // Delete lesson
+  const handleDeleteLesson = useCallback(async (lessonId: string) => {
+    if (!window.confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setDeletingLessonId(lessonId);
+      await coursesApi.deleteLesson(lessonId);
+      setLessons(prev => prev.filter(l => l.id !== lessonId));
+      if (selectedLesson?.id === lessonId) {
+        const remainingLessons = lessons.filter(l => l.id !== lessonId);
+        setSelectedLesson(remainingLessons.length > 0 ? remainingLessons[0] : null);
+      }
+    } catch (error) {
+      console.error('Failed to delete lesson:', error);
+    } finally {
+      setDeletingLessonId(null);
+    }
+  }, [lessons, selectedLesson]);
 
   // Memoized filtered lessons
   const filteredLessons = useMemo(() => {
@@ -724,16 +793,82 @@ const CourseDetails: React.FC = () => {
             {/* Lessons List */}
             <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 shadow-sm overflow-hidden">
               <div className="p-3 border-b border-slate-200/50 bg-slate-50/50">
-                <h3 className="text-sm font-semibold text-slate-700 flex items-center justify-between">
-                  <span className="flex items-center">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-700 flex items-center">
                     <PlayCircle className="mr-1.5 h-4 w-4 text-[#FFD700]" />
                     Course Lessons
-                  </span>
-                  <span className="text-xs font-normal text-slate-500 bg-white px-2 py-0.5 rounded-full">
-                    {filteredLessons.length}
-                  </span>
-                </h3>
+                    <span className="ml-2 text-xs font-normal text-slate-500 bg-white px-2 py-0.5 rounded-full">
+                      {filteredLessons.length}
+                    </span>
+                  </h3>
+                  {(isAdmin || isOwner) && (
+                    <button
+                      onClick={() => {
+                        setIsCreatingLesson(true);
+                        setNewLessonTitle('');
+                        setNewLessonDescription('');
+                        setIsEditingLesson(null);
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Add Lesson
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Create/Edit Lesson Form */}
+              {(isCreatingLesson || isEditingLesson) && (
+                <div className="p-4 border-b border-slate-200/50 bg-slate-50/30">
+                  <div className="space-y-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={newLessonTitle}
+                        onChange={(e) => setNewLessonTitle(e.target.value)}
+                        placeholder="Lesson title"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                      />
+                    </div>
+                    <div>
+                      <textarea
+                        value={newLessonDescription}
+                        onChange={(e) => setNewLessonDescription(e.target.value)}
+                        placeholder="Lesson description (optional)"
+                        rows={2}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (isEditingLesson) {
+                            handleUpdateLesson(isEditingLesson);
+                          } else {
+                            handleCreateLesson();
+                          }
+                        }}
+                        disabled={!newLessonTitle.trim()}
+                        className="px-4 py-1.5 text-xs font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isEditingLesson ? 'Update' : 'Create'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsCreatingLesson(false);
+                          setIsEditingLesson(null);
+                          setNewLessonTitle('');
+                          setNewLessonDescription('');
+                        }}
+                        className="px-4 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="max-h-[600px] overflow-y-auto p-3 space-y-2">
                 {filteredLessons.length > 0 ? (
@@ -744,61 +879,99 @@ const CourseDetails: React.FC = () => {
                     const isSelected = selectedLesson?.id === lesson.id;
                     
                     return (
-                      <button
+                      <div
                         key={lesson.id}
-                        onClick={() => setSelectedLesson(lesson)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                        className={`w-full p-3 rounded-lg border transition-all duration-200 ${
                           isSelected
                             ? 'border-[#FFD700] bg-gradient-to-r from-[#FFD700]/10 to-[#FFC107]/10 shadow-sm'
                             : 'border-slate-200/50 hover:border-[#FFD700]/50 hover:bg-slate-50/50'
                         }`}
                       >
-                        <div className="flex items-start space-x-2.5">
-                          <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm ${
-                            isCompleted
-                              ? 'bg-gradient-to-r from-[#39FF14] to-[#00FF41] text-white border border-[#39FF14]/50'
-                              : isSelected
-                              ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-white border border-[#FFD700]/50'
-                              : 'bg-slate-200 text-slate-700 border border-slate-300/50'
-                          }`}>
-                            {isCompleted ? <CheckCircle className="h-4 w-4" /> : (lesson.order !== undefined ? lesson.order + 1 : index + 1)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={`text-sm font-semibold mb-0.5 ${
-                              isSelected ? 'text-slate-900' : 'text-slate-700'
+                        <button
+                          onClick={() => setSelectedLesson(lesson)}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-start space-x-2.5">
+                            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm ${
+                              isCompleted
+                                ? 'bg-gradient-to-r from-[#39FF14] to-[#00FF41] text-white border border-[#39FF14]/50'
+                                : isSelected
+                                ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-white border border-[#FFD700]/50'
+                                : 'bg-slate-200 text-slate-700 border border-slate-300/50'
                             }`}>
-                              {lesson.title}
-                            </h4>
-                            <div className="flex items-center space-x-2 text-xs text-slate-500">
-                              <Clock className="h-3 w-3" />
-                              <span>{formatDuration(lesson.duration || 0)}</span>
-                              {isCompleted && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-[#39FF14] font-bold">Completed</span>
-                                </>
-                              )}
-                              {!isCompleted && progress && lessonProgressPercent > 0 && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-slate-600 font-medium">{lessonProgressPercent}% watched</span>
-                                </>
+                              {isCompleted ? <CheckCircle className="h-4 w-4" /> : (lesson.order !== undefined ? lesson.order + 1 : index + 1)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`text-sm font-semibold mb-0.5 ${
+                                isSelected ? 'text-slate-900' : 'text-slate-700'
+                              }`}>
+                                {lesson.title}
+                              </h4>
+                              <div className="flex items-center space-x-2 text-xs text-slate-500">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDuration(lesson.duration || 0)}</span>
+                                {isCompleted && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-[#39FF14] font-bold">Completed</span>
+                                  </>
+                                )}
+                                {!isCompleted && progress && lessonProgressPercent > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-slate-600 font-medium">{lessonProgressPercent}% watched</span>
+                                  </>
+                                )}
+                              </div>
+                              {progress && !isCompleted && (
+                                <div className="mt-2 w-full bg-slate-200 rounded-full h-2 overflow-hidden shadow-inner">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FF8C00] rounded-full transition-all duration-300 shadow-sm"
+                                    style={{ width: `${lessonProgressPercent}%` }}
+                                  />
+                                </div>
                               )}
                             </div>
-                            {progress && !isCompleted && (
-                              <div className="mt-2 w-full bg-slate-200 rounded-full h-2 overflow-hidden shadow-inner">
-                                <div 
-                                  className="h-full bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FF8C00] rounded-full transition-all duration-300 shadow-sm"
-                                  style={{ width: `${lessonProgressPercent}%` }}
-                                />
-                              </div>
-                            )}
+                            <PlayCircle className={`flex-shrink-0 h-5 w-5 ${
+                              isSelected ? 'text-[#FFD700]' : isCompleted ? 'text-[#39FF14]' : 'text-slate-400'
+                            }`} />
                           </div>
-                          <PlayCircle className={`flex-shrink-0 h-5 w-5 ${
-                            isSelected ? 'text-[#FFD700]' : isCompleted ? 'text-[#39FF14]' : 'text-slate-400'
-                          }`} />
-                        </div>
-                      </button>
+                        </button>
+                        {(isAdmin || isOwner) && (
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/50">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEditingLesson(lesson);
+                                setNewLessonTitle(lesson.title);
+                                setNewLessonDescription(lesson.description || '');
+                                setIsCreatingLesson(false);
+                              }}
+                              className="flex-1 px-2 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors flex items-center justify-center"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteLesson(lesson.id);
+                              }}
+                              disabled={deletingLessonId === lesson.id}
+                              className="flex-1 px-2 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            >
+                              {deletingLessonId === lesson.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })
                 ) : (
@@ -809,10 +982,24 @@ const CourseDetails: React.FC = () => {
                 )}
               </div>
 
-              {lessons.length === 0 && (
+              {lessons.length === 0 && !isCreatingLesson && (
                 <div className="p-6 text-center border-t border-slate-200/50">
                   <Video className="h-10 w-10 text-slate-400 mx-auto mb-2" />
                   <p className="text-slate-600 text-sm mb-3">No lessons yet</p>
+                  {(isAdmin || isOwner) && (
+                    <button
+                      onClick={() => {
+                        setIsCreatingLesson(true);
+                        setNewLessonTitle('');
+                        setNewLessonDescription('');
+                        setIsEditingLesson(null);
+                      }}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Lesson
+                    </button>
+                  )}
                 </div>
               )}
             </div>

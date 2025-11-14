@@ -155,8 +155,18 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const videoProvider = React.useMemo(() => {
     // Check for Mux playback ID (must be non-empty string)
     if (lesson.mux_playback_id && typeof lesson.mux_playback_id === 'string' && lesson.mux_playback_id.trim().length > 0) {
-      // Also check if status is ready or if status is undefined (might be ready but status not updated)
-      if (lesson.mux_status === 'ready' || !lesson.mux_status || lesson.mux_status === 'processing') {
+      // Only use Mux if status is ready - don't try to play processing videos
+      if (lesson.mux_status === 'ready') {
+        return 'mux';
+      }
+      // If status is processing or errored, don't use Mux player
+      if (lesson.mux_status === 'processing' || lesson.mux_status === 'errored' || lesson.mux_status === 'failed') {
+        return 'none';
+      }
+      // If status is undefined, assume it might be ready (for backwards compatibility)
+      // But log a warning
+      if (!lesson.mux_status) {
+        console.warn('Mux playback ID exists but status is unknown. Attempting to play, but may fail if not ready.');
         return 'mux';
       }
     }
@@ -774,24 +784,39 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           onError={(event: any) => {
             console.error('Mux Player error:', event);
             const errorMessage = event?.detail?.message || event?.message || 'Mux playback error';
+            const errorCode = event?.detail?.code || event?.code;
+            
             console.error('Mux Player error details:', {
               error: event,
+              errorCode,
               playbackId: lesson.mux_playback_id,
               lessonId: lesson.id,
               muxStatus: lesson.mux_status,
               videoProvider: lesson.video_provider
             });
             
+            // Handle specific error codes
+            let userFriendlyMessage = 'Video playback error';
+            if (errorCode === 404 || errorMessage?.includes('404')) {
+              userFriendlyMessage = 'Video not found. The video may still be processing or the playback ID is invalid.';
+            } else if (errorCode === 403 || errorMessage?.includes('403')) {
+              userFriendlyMessage = 'Video access denied. The video may not be ready yet or there may be a permission issue.';
+            } else if (lesson.mux_status === 'processing') {
+              userFriendlyMessage = 'Video is still processing. Please wait a few moments and try again.';
+            }
+            
             // If playback ID exists but player fails, log more details
             if (lesson.mux_playback_id) {
               console.warn('Mux playback failed despite having playback ID:', {
                 playbackId: lesson.mux_playback_id,
                 status: lesson.mux_status,
-                provider: lesson.video_provider
+                provider: lesson.video_provider,
+                errorCode,
+                errorMessage
               });
             }
             
-            onError?.(new Error(errorMessage));
+            onError?.(new Error(userFriendlyMessage));
           }}
           onLoadedMetadata={(event: any) => {
             console.log('Mux video loaded:', event);

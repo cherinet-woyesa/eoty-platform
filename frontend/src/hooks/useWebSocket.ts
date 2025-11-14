@@ -55,10 +55,29 @@ export function useWebSocket(
   const WS_ENABLED = import.meta.env.VITE_ENABLE_WS !== 'false'; // Default to true
   // Use the same host as the API, but with ws/wss protocol
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  const apiUrl = new URL(apiBase.replace('/api', ''));
-  const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-  const defaultWsBase = `${wsProtocol}//${apiUrl.hostname}:${apiUrl.port || (apiUrl.protocol === 'https:' ? '443' : '5000')}`;
-  const WS_BASE = (import.meta.env.VITE_WS_URL as string) || defaultWsBase;
+  
+  // Construct WebSocket URL properly
+  let defaultWsBase: string;
+  if (import.meta.env.VITE_WS_URL) {
+    // Use explicit WebSocket URL if provided
+    defaultWsBase = import.meta.env.VITE_WS_URL;
+  } else {
+    // Construct from API base URL
+    try {
+      const apiUrl = new URL(apiBase.replace('/api', ''));
+      const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      // For production, don't include port if it's standard (80/443)
+      const port = apiUrl.port 
+        ? `:${apiUrl.port}` 
+        : (apiUrl.protocol === 'https:' ? '' : (apiUrl.hostname === 'localhost' ? ':5000' : ''));
+      defaultWsBase = `${wsProtocol}//${apiUrl.hostname}${port}`;
+    } catch (error) {
+      console.error('Failed to parse API URL for WebSocket:', error);
+      // Fallback to localhost
+      defaultWsBase = 'ws://localhost:5000';
+    }
+  }
+  const WS_BASE = defaultWsBase;
 
   const cleanup = useCallback(() => {
     if (heartbeatTimer.current) {
