@@ -29,7 +29,10 @@ const muxConfig = {
   ],
   
   // Default playback policy
-  defaultPlaybackPolicy: process.env.MUX_ENVIRONMENT === 'production' ? 'signed' : 'public',
+  // NOTE: Temporarily use public playback everywhere so the frontend can play videos
+  // with just the playbackId and no signed tokens. Once a token-based flow is wired
+  // into the frontend, this can be switched back to 'signed' for production.
+  defaultPlaybackPolicy: 'public',
   
   // Asset settings
   assetSettings: {
