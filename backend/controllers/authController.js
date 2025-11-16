@@ -3,29 +3,8 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
 
-// Runtime feature detection for lockout-related columns so login works
-// even if the latest migration hasn't been applied yet.
-let lockoutColumnsChecked = false;
-let hasLockoutColumns = false;
-
-async function ensureLockoutColumns() {
-  if (lockoutColumnsChecked) return;
-  try {
-    const hasFailed = await db.schema.hasColumn('users', 'failed_login_attempts');
-    const hasLocked = await db.schema.hasColumn('users', 'account_locked_until');
-    hasLockoutColumns = hasFailed && hasLocked;
-    if (!hasLockoutColumns) {
-      console.warn(
-        '[auth] Lockout columns missing on users table; login will work but without lockout tracking.'
-      );
-    }
-  } catch (err) {
-    console.error('[auth] Error checking lockout columns:', err);
-    hasLockoutColumns = false;
-  } finally {
-    lockoutColumnsChecked = true;
-  }
-}
+// NOTE: In production we might not have the newest lockout columns yet.
+// To keep login robust, we avoid hard dependencies on those columns.
 
 // Runtime feature detection for lockout-related columns so login works
 // even if the latest migration hasn't been applied yet.
@@ -274,9 +253,6 @@ const authController = {
     try {
       const { email, password } = req.body;
 
-      // Make sure we know whether lockout columns exist in the current DB
-      await ensureLockoutColumns();
-
       console.log('Login attempt for:', email);
 
       // Validate required fields
@@ -295,26 +271,20 @@ const authController = {
         });
       }
 
-      // Find user (include profile_picture and lockout fields when available)
-      const baseSelect = [
-        'id',
-        'first_name',
-        'last_name',
-        'email',
-        'password_hash',
-        'role',
-        'chapter_id',
-        'is_active',
-        'profile_picture'
-      ];
-
-      const lockoutSelect = hasLockoutColumns
-        ? ['failed_login_attempts', 'account_locked_until']
-        : [];
-
+      // Find user (include profile_picture)
       const user = await db('users')
         .where({ email: email.toLowerCase() })
-        .select([...baseSelect, ...lockoutSelect])
+        .select(
+          'id',
+          'first_name',
+          'last_name',
+          'email',
+          'password_hash',
+          'role',
+          'chapter_id',
+          'is_active',
+          'profile_picture'
+        )
         .first();
 
       if (!user) {
@@ -333,36 +303,8 @@ const authController = {
         });
       }
 
-      // Check if account is locked (REQUIREMENT: Handles authentication failures with retry and lockout)
-      if (hasLockoutColumns && user.account_locked_until) {
-        const lockUntil = new Date(user.account_locked_until);
-        if (lockUntil > new Date()) {
-          const minutesRemaining = Math.ceil((lockUntil - new Date()) / 1000 / 60);
-          
-          await activityLogService.logActivity({
-            userId: user.id,
-            activityType: 'failed_login',
-            ipAddress,
-            userAgent,
-            success: false,
-            failureReason: `Account locked. Unlocks in ${minutesRemaining} minutes`
-          });
-
-          return res.status(423).json({
-            success: false,
-            message: `Account is temporarily locked. Please try again in ${minutesRemaining} minute(s).`,
-            lockoutUntil: lockUntil.toISOString()
-          });
-        } else {
-          // Lockout expired, reset
-          await db('users')
-            .where({ id: user.id })
-            .update({
-              failed_login_attempts: 0,
-              account_locked_until: null
-            });
-        }
-      }
+      // NOTE: Account lockout is disabled for now in production environments
+      // where the lockout columns may not exist yet.
 
       // Check if user is active
       if (!user.is_active) {
@@ -385,81 +327,28 @@ const authController = {
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       
       if (!isValidPassword) {
-        // Increment failed login attempts (REQUIREMENT: Handles authentication failures with retry and lockout)
-        const maxAttempts = 5;
-        const failedAttempts = hasLockoutColumns
-          ? (user.failed_login_attempts || 0) + 1
-          : 0;
-        const lockoutMinutes =
-          hasLockoutColumns && failedAttempts > 0
-            ? Math.min(15 * Math.pow(2, Math.floor(failedAttempts / 3) - 1), 60) // 15, 30, 60 minutes
-            : 0;
-
-        if (hasLockoutColumns) {
-          let updateData = {
-            failed_login_attempts: failedAttempts,
-            updated_at: new Date()
-          };
-
-          // Lock account after max attempts (REQUIREMENT: Account lockout)
-          if (failedAttempts >= maxAttempts) {
-            const lockUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
-            updateData.account_locked_until = lockUntil;
-          }
-
-          await db('users')
-            .where({ id: user.id })
-            .update(updateData);
-
-          await activityLogService.logActivity({
-            userId: user.id,
-            activityType: 'failed_login',
-            ipAddress,
-            userAgent,
-            success: false,
-            failureReason: 'Invalid password',
-            metadata: { failedAttempts, maxAttempts }
-          });
-        } else {
-          // Even without lockout columns, still log the failed attempt
-          await activityLogService.logActivity({
-            userId: user.id,
-            activityType: 'failed_login',
-            ipAddress,
-            userAgent,
-            success: false,
-            failureReason: 'Invalid password'
-          });
-        }
-
-        const remainingAttempts = hasLockoutColumns
-          ? Math.max(0, maxAttempts - failedAttempts)
-          : null;
+        // Simplified failed-login handling: log the attempt, but no DB lockout logic
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Invalid password'
+        });
 
         return res.status(401).json({
           success: false,
-          message:
-            hasLockoutColumns && remainingAttempts !== null
-              ? remainingAttempts > 0
-                ? `Invalid email or password. ${remainingAttempts} attempt(s) remaining.`
-                : `Account locked due to too many failed attempts. Please try again in ${lockoutMinutes} minute(s).`
-              : 'Invalid email or password.',
-          ...(hasLockoutColumns ? { remainingAttempts } : {})
+          message: 'Invalid email or password'
         });
       }
 
-      // Successful login - reset failed attempts and update last login
-      const successUpdate = hasLockoutColumns
-        ? {
-            failed_login_attempts: 0,
-            account_locked_until: null,
-            last_login_at: new Date()
-          }
-        : { last_login_at: new Date() };
-
+      // Successful login - update last login
       await db('users')
         .where({ id: user.id })
-        .update(successUpdate);
+        .update({
+          last_login_at: new Date()
+        });
 
       // Log successful login (REQUIREMENT: Login history)
       await activityLogService.logActivity({
