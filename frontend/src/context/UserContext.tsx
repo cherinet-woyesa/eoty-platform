@@ -7,7 +7,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'student' | 'teacher' | 'chapter_admin' | 'platform_admin';
+  role: 'user' | 'student' | 'teacher' | 'chapter_admin' | 'admin';
   chapter: string;
   permissions: string[];
   bio?: string;
@@ -67,7 +67,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getDefaultPermissions = (role: string): string[] => {
     const permissionMap: { [key: string]: string[] } = {
-      student: [
+      user: [
         'course:view', 'lesson:view', 'quiz:take', 
         'discussion:view', 'discussion:create', 'user:edit_own'
       ],
@@ -89,10 +89,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         'chapter:view', 'chapter:manage',
         'analytics:view'
       ],
-      platform_admin: ['system:admin']
+      admin: ['system:admin']
     };
 
-    return permissionMap[role] || permissionMap.student;
+      return permissionMap[role] || permissionMap.user;
   };
 
   const hasPermission = (permission: string): boolean => {
@@ -103,7 +103,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasRole = (role: string | string[]): boolean => {
     if (!user) return false;
-    if (user.role === 'platform_admin') return true;
+    if (user.role === 'admin') return true;
     
     if (typeof role === 'string') {
       return user.role === role;
@@ -129,7 +129,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         firstName: authUser.firstName,
         lastName: authUser.lastName,
         email: authUser.email,
-        role: authUser.role as 'student' | 'teacher' | 'chapter_admin' | 'platform_admin',
+        role: authUser.role as 'user' | 'student' | 'teacher' | 'chapter_admin' | 'admin',
         chapter: authUser.chapter,
         permissions: getDefaultPermissions(authUser.role)
       };

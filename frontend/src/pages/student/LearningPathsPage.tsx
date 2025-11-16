@@ -194,11 +194,13 @@ const LearningPathsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading learning paths...</p>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
+              <p className="text-stone-600 text-lg">Loading learning paths...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -207,17 +209,19 @@ const LearningPathsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
-              onClick={loadLearningPaths}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
-            >
-              Try Again
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <button 
+                onClick={loadLearningPaths}
+                className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -225,7 +229,8 @@ const LearningPathsPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-stone-800 mb-2">Learning Paths</h1>
@@ -237,7 +242,7 @@ const LearningPathsPage: React.FC = () => {
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
         >
           <option value="all">All Categories</option>
           {categories.map(cat => (
@@ -247,7 +252,7 @@ const LearningPathsPage: React.FC = () => {
         <select
           value={selectedDifficulty}
           onChange={(e) => setSelectedDifficulty(e.target.value)}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
         >
           <option value="all">All Levels</option>
           <option value="beginner">Beginner</option>
@@ -271,16 +276,16 @@ const LearningPathsPage: React.FC = () => {
               className="bg-white/90 backdrop-blur-md rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-stone-200/50"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#39FF14]/10 via-[#00FFC6]/10 to-[#00FFFF]/10 p-6 border-b border-stone-200">
+              <div className="bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#2980B9]/10 p-6 border-b border-stone-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-[#39FF14]" />
+                      <Target className="h-5 w-5 text-[#27AE60]" />
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
                         {path.difficulty}
                       </span>
                       {path.is_enrolled && (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30">
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-[#27AE60]/15 text-[#27AE60] border border-[#27AE60]/30">
                           Enrolled
                         </span>
                       )}
@@ -299,7 +304,7 @@ const LearningPathsPage: React.FC = () => {
                     </div>
                     <div className="w-full bg-stone-200 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-2 rounded-full transition-all"
+                        className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-2 rounded-full transition-all"
                         style={{ width: `${path.progress}%` }}
                       />
                     </div>
@@ -314,7 +319,7 @@ const LearningPathsPage: React.FC = () => {
                     {path.courses.map((course, index) => (
                       <div
                         key={course.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#39FF14] transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#27AE60] transition-colors"
                       >
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-sm font-semibold text-stone-600">
                           {course.order}
@@ -323,17 +328,17 @@ const LearningPathsPage: React.FC = () => {
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-stone-800 text-sm">{course.title}</h3>
                             {course.is_completed ? (
-                              <CheckCircle className="h-4 w-4 text-[#39FF14] flex-shrink-0" />
+                              <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0" />
                             ) : course.is_locked ? (
                               <Lock className="h-4 w-4 text-stone-400 flex-shrink-0" />
                             ) : (
-                              <Unlock className="h-4 w-4 text-[#00FFC6] flex-shrink-0" />
+                              <Unlock className="h-4 w-4 text-[#16A085] flex-shrink-0" />
                             )}
                           </div>
                           {course.progress > 0 && !course.is_completed && (
                             <div className="w-full bg-stone-200 rounded-full h-1 mt-1">
                               <div
-                                className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-1 rounded-full"
+                                className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-1 rounded-full"
                                 style={{ width: `${course.progress}%` }}
                               />
                             </div>
@@ -368,7 +373,7 @@ const LearningPathsPage: React.FC = () => {
                   {path.is_enrolled ? (
                     <Link
                       to={`/student/courses`}
-                      className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
+                      className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
                     >
                       Continue
                       <ArrowRight className="h-4 w-4" />
@@ -376,7 +381,7 @@ const LearningPathsPage: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => handleEnroll(path.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
+                      className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
                     >
                       Start Path
                       <ArrowRight className="h-4 w-4" />
@@ -388,6 +393,7 @@ const LearningPathsPage: React.FC = () => {
           ))}
         </div>
       )}
+    </div>
     </div>
   );
 };

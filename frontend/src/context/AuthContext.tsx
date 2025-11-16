@@ -21,6 +21,9 @@ interface User {
   specialties?: string[];
   teachingExperience?: number;
   education?: string;
+  interests?: string[];
+  learningGoals?: string;
+  dateOfBirth?: string | null;
   profileCompletion?: {
     percentage: number;
     completedFields: number;
@@ -57,11 +60,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Role hierarchy for permission checking
+// NOTE: Base role has been generalized from 'student' to 'user'; 'student' is treated as a legacy alias.
 const ROLE_HIERARCHY: Record<string, number> = {
-  student: 1,
+  user: 1,
+  student: 1, // legacy
   teacher: 2,
-  admin: 3,
-  super_admin: 4
+  admin: 3
 };
 
 // Permission groups for common functionality
@@ -138,20 +142,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth - no session persistence, start fresh
+  // Initialize auth - restore session from localStorage if present
   useEffect(() => {
-    setIsLoading(false);
+    const initializeAuth = async () => {
+      try {
+        const storedToken = localStorage.getItem('auth_token');
+        const storedUser = localStorage.getItem('auth_user');
+
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser: User = JSON.parse(storedUser);
+            setToken(storedToken);
+            setUser(parsedUser);
+            setAuthToken(storedToken);
+            setLastActivity(new Date());
+            await loadPermissions();
+          } catch (parseError) {
+            console.error('Failed to parse stored auth user:', parseError);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth from storage:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void initializeAuth();
   }, []);
 
-  // Login - no session persistence, state only
+  // Login - persist session in memory and localStorage
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
       
-      // Clear any existing state
+      // Clear any existing state and storage
       setUser(null);
       setToken(null);
       setPermissions([]);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
       
       const response = await authApi.login(email, password);
       
@@ -168,6 +200,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Update apiClient token store
         setAuthToken(token);
+        
+        // Persist to localStorage for session restoration
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
         
         await loadPermissions();
         
@@ -215,15 +251,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Register - no session persistence, state only
+  // Register - persist session in memory and localStorage
   const register = async (userData: any): Promise<void> => {
     try {
       setIsLoading(true);
       
-      // Clear any existing state
+      // Clear any existing state and storage
       setUser(null);
       setToken(null);
       setPermissions([]);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
       
       const response = await authApi.register(userData);
       
@@ -236,6 +274,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Update apiClient token store
         setAuthToken(token);
+        
+        // Persist to localStorage for session restoration
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
         
         await loadPermissions();
         
@@ -263,7 +305,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Google login - no session persistence, state only
+  // Google login - persist session in memory and localStorage
   const loginWithGoogle = async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     try {
       setIsLoading(true);
@@ -279,6 +321,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
+        // Persist to localStorage for session restoration
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        
         await loadPermissions();
         
         return;
@@ -293,12 +339,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Logout - clear state only (no storage to clear)
+  // Logout - clear state and localStorage
   const logout = (): void => {
     // Clear state
     setUser(null);
     setToken(null);
     setPermissions([]);
+    
+    // Clear persisted auth
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     
     // Clear apiClient token
     setAuthToken(null);
@@ -343,7 +393,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     switch (user.role) {
       case 'admin':
-      case 'super_admin':
         return '/admin/dashboard';
       case 'teacher':
         return '/teacher/dashboard';

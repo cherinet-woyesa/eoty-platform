@@ -18,8 +18,8 @@ const QuickActions: React.FC = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'platform_admin';
-  const isAdmin = user?.role === 'platform_admin' || user?.role === 'chapter_admin';
+  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'chapter_admin';
 
   const quickActions: QuickAction[] = [
     {
@@ -29,7 +29,7 @@ const QuickActions: React.FC = () => {
       description: 'Create a new course',
       action: () => console.log('Create new course'),
       shortcut: ['ctrl', 'shift', 'c'],
-      roles: ['teacher', 'chapter_admin', 'platform_admin'],
+      roles: ['teacher', 'chapter_admin', 'admin'],
       color: 'from-blue-500 to-blue-600'
     },
     {
@@ -39,7 +39,7 @@ const QuickActions: React.FC = () => {
       description: 'Record a new lesson',
       action: () => console.log('Record video'),
       shortcut: ['ctrl', 'shift', 'r'],
-      roles: ['teacher', 'chapter_admin', 'platform_admin'],
+      roles: ['teacher', 'chapter_admin', 'admin'],
       color: 'from-green-500 to-green-600'
     },
     {
@@ -49,7 +49,7 @@ const QuickActions: React.FC = () => {
       description: 'Invite new user',
       action: () => console.log('Add user'),
       shortcut: ['ctrl', 'shift', 'u'],
-      roles: ['chapter_admin', 'platform_admin'],
+      roles: ['chapter_admin', 'admin'],
       color: 'from-purple-500 to-purple-600'
     },
     {
@@ -59,7 +59,7 @@ const QuickActions: React.FC = () => {
       description: 'View platform analytics',
       action: () => console.log('View analytics'),
       shortcut: ['ctrl', 'shift', 'a'],
-      roles: ['chapter_admin', 'platform_admin'],
+      roles: ['chapter_admin', 'admin'],
       color: 'from-orange-500 to-orange-600'
     },
     {
@@ -68,7 +68,7 @@ const QuickActions: React.FC = () => {
       label: 'New Content',
       description: 'Upload learning materials',
       action: () => console.log('Upload content'),
-      roles: ['teacher', 'chapter_admin', 'platform_admin'],
+      roles: ['teacher', 'chapter_admin', 'admin'],
       color: 'from-indigo-500 to-indigo-600'
     },
     {
@@ -78,7 +78,7 @@ const QuickActions: React.FC = () => {
       description: 'Platform settings',
       action: () => console.log('Open settings'),
       shortcut: ['ctrl', ','],
-      roles: ['platform_admin'],
+      roles: ['admin'],
       color: 'from-gray-500 to-gray-600'
     }
   ];
@@ -119,6 +119,7 @@ const QuickActions: React.FC = () => {
 
   return (
     <div className="relative">
+      {/* Desktop: Button with dropdown */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="hidden lg:flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -128,6 +129,25 @@ const QuickActions: React.FC = () => {
         <Zap className="h-4 w-4" />
         <span>Quick Actions</span>
       </button>
+
+      {/* Mobile: Inline actions list */}
+      <div className="lg:hidden space-y-2">
+        {filteredActions.map((action) => (
+          <button
+            key={action.id}
+            onClick={() => handleActionClick(action)}
+            className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
+          >
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center shadow-sm`}>
+              {action.icon}
+            </div>
+            <div className="text-left flex-1">
+              <div className="font-medium text-gray-900">{action.label}</div>
+              <div className="text-xs text-gray-500">{action.description}</div>
+            </div>
+          </button>
+        ))}
+      </div>
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200/60 py-2 z-50 animate-in slide-in-from-top-2">

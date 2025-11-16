@@ -140,7 +140,7 @@ const TeacherApplications: React.FC = () => {
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#39FF14]/20 text-[#39FF14]">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#27AE60]/20 text-[#27AE60]">
             <CheckCircle className="h-3 w-3 mr-1" />
             Approved
           </span>
@@ -166,17 +166,16 @@ const TeacherApplications: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <GraduationCap className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
+                    <GraduationCap className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">Teacher Applications</h1>
@@ -185,9 +184,9 @@ const TeacherApplications: React.FC = () => {
             </div>
             <button
               onClick={fetchApplications}
-              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-stone-800 rounded-lg border border-[#39FF14]/30 hover:bg-white transition-all shadow-sm hover:shadow-md hover:border-[#39FF14]/50"
+              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-stone-800 rounded-lg border border-[#27AE60]/25 hover:bg-white transition-all shadow-sm hover:shadow-md hover:border-[#27AE60]/50"
             >
-              <RefreshCw className="h-4 w-4 mr-2 text-[#39FF14]" />
+              <RefreshCw className="h-4 w-4 mr-2 text-[#27AE60]" />
               Refresh
             </button>
           </div>
@@ -209,7 +208,7 @@ const TeacherApplications: React.FC = () => {
                 placeholder="Search by name, email, or chapter..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
               />
             </div>
             <div className="flex gap-2">
@@ -219,7 +218,7 @@ const TeacherApplications: React.FC = () => {
                   onClick={() => setStatusFilter(status)}
                   className={`px-4 py-2 rounded-lg font-semibold transition-all capitalize ${
                     statusFilter === status
-                      ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 shadow-md'
+                      ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 shadow-md'
                       : 'bg-white/90 backdrop-blur-sm text-stone-700 border border-stone-200 hover:bg-stone-50'
                   }`}
                 >
@@ -301,7 +300,7 @@ const TeacherApplications: React.FC = () => {
                           setAdminNotes('');
                           setShowModal(true);
                         }}
-                        className="flex items-center justify-center px-4 py-2 bg-[#39FF14] text-slate-900 rounded-lg hover:bg-[#32E60F] transition-all font-semibold"
+                        className="flex items-center justify-center px-4 py-2 bg-[#27AE60] text-slate-900 rounded-lg hover:bg-[#32E60F] transition-all font-semibold"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Quick Approve
@@ -345,7 +344,7 @@ const TeacherApplications: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-4 sm:space-y-6">
               {/* Applicant Info */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -372,7 +371,7 @@ const TeacherApplications: React.FC = () => {
               {/* Application Text */}
               <div>
                 <div className="flex items-center mb-2">
-                  <FileText className="h-4 w-4 text-[#00FFFF] mr-2" />
+                  <FileText className="h-4 w-4 text-[#2980B9] mr-2" />
                   <p className="text-sm font-semibold text-slate-700">Why do you want to teach?</p>
                 </div>
                 <p className="text-slate-600 whitespace-pre-wrap bg-slate-50 p-4 rounded-lg">
@@ -383,7 +382,7 @@ const TeacherApplications: React.FC = () => {
               {/* Qualifications */}
               <div>
                 <div className="flex items-center mb-2">
-                  <Award className="h-4 w-4 text-[#00FFFF] mr-2" />
+                  <Award className="h-4 w-4 text-[#2980B9] mr-2" />
                   <p className="text-sm font-semibold text-slate-700">Qualifications</p>
                 </div>
                 <p className="text-slate-600 whitespace-pre-wrap bg-slate-50 p-4 rounded-lg">
@@ -395,7 +394,7 @@ const TeacherApplications: React.FC = () => {
               {selectedApplication.experience && (
                 <div>
                   <div className="flex items-center mb-2">
-                    <BookOpen className="h-4 w-4 text-[#00FFFF] mr-2" />
+                    <BookOpen className="h-4 w-4 text-[#2980B9] mr-2" />
                     <p className="text-sm font-semibold text-slate-700">Teaching Experience</p>
                   </div>
                   <p className="text-slate-600 whitespace-pre-wrap bg-slate-50 p-4 rounded-lg">
@@ -425,7 +424,7 @@ const TeacherApplications: React.FC = () => {
                     onChange={(e) => setAdminNotes(e.target.value)}
                     placeholder="Add notes about this application..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-slate-300/50 rounded-lg focus:ring-2 focus:ring-[#00FFFF]/20 focus:border-[#00FFFF]"
+                    className="w-full px-3 py-2 border border-slate-300/50 rounded-lg focus:ring-2 focus:ring-[#2980B9]/20 focus:border-[#2980B9]"
                   />
                 </div>
               )}
@@ -454,7 +453,7 @@ const TeacherApplications: React.FC = () => {
                   <button
                     onClick={() => handleApprove(selectedApplication.id)}
                     disabled={actionLoading === selectedApplication.id}
-                    className="flex-1 flex items-center justify-center px-6 py-3 bg-[#39FF14] text-slate-900 rounded-lg hover:bg-[#32E60F] transition-all font-semibold disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center px-6 py-3 bg-[#27AE60] text-slate-900 rounded-lg hover:bg-[#32E60F] transition-all font-semibold disabled:opacity-50"
                   >
                     <CheckCircle className="h-5 w-5 mr-2" />
                     Approve
@@ -465,7 +464,6 @@ const TeacherApplications: React.FC = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

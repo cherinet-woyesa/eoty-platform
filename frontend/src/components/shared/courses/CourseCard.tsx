@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { 
   BookOpen, Users, Clock, PlayCircle, Edit3, Video, 
   MoreVertical, Trash2, Eye, BarChart3,
@@ -33,6 +34,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
   onDelete,
   onPublish 
 }) => {
+  const { user } = useAuth();
+  const role = user?.role;
+  const baseCoursePath =
+    role === 'admin'
+      ? '/admin/courses'
+      : role === 'teacher'
+      ? '/teacher/courses'
+      : '/student/courses';
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -144,14 +153,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
               
               <div className="flex items-center space-x-2 ml-4">
                 <Link
-                  to={`/courses/${course.id}`}
+                  to={`${baseCoursePath}/${course.id}`}
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="View Course"
                 >
                   <Eye className="h-4 w-4" />
                 </Link>
                 <Link
-                  to={`/courses/${course.id}/edit`}
+                  to={`${baseCoursePath}/${course.id}/edit`}
                   className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                   title="Edit Course"
                 >
@@ -232,14 +241,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
           </div>
           <div className="flex space-x-1 ml-2">
             <Link
-              to={`/courses/${course.id}`}
+              to={`${baseCoursePath}/${course.id}`}
               className="p-1.5 bg-white/20 hover:bg-white/30 rounded-md transition-colors"
               title="View Course"
             >
               <Eye className="h-3 w-3" />
             </Link>
             <Link
-              to={`/courses/${course.id}/edit`}
+              to={`${baseCoursePath}/${course.id}/edit`}
               className="p-1.5 bg-white/20 hover:bg-white/30 rounded-md transition-colors"
               title="Edit Course"
             >

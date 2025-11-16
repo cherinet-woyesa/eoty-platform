@@ -22,6 +22,8 @@ export interface ForumTopic {
   author_chapter: string;
   is_pinned: boolean;
   is_locked: boolean;
+  is_private?: boolean; // REQUIREMENT: Private/public threads
+  allowed_chapter_id?: number; // REQUIREMENT: Private/public threads
   view_count: number;
   post_count: number;
   last_post_id?: number;
@@ -123,6 +125,8 @@ export interface CreateTopicRequest {
   forumId: number;
   title: string;
   content: string;
+  isPrivate?: boolean; // REQUIREMENT: Private/public threads
+  allowedChapterId?: number; // REQUIREMENT: Private/public threads
 }
 
 export interface CreatePostRequest {

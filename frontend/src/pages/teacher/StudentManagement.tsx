@@ -136,13 +136,13 @@ const StudentManagement: React.FC = () => {
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
+      <div className="bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 rounded-xl p-6 border border-[#27AE60]/30 shadow-lg">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-              <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                <Users className="h-6 w-6 text-[#39FF14]" />
+              <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
+              <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/30">
+                <Users className="h-6 w-6 text-[#27AE60]" />
               </div>
             </div>
             <div>
@@ -153,14 +153,14 @@ const StudentManagement: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/teacher/students/invite')}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] rounded-lg transition-all font-semibold"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-semibold"
             >
               <Mail className="h-4 w-4 mr-2" />
               Invite
             </button>
             <button
               onClick={fetchStudents}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#00FFC6]/50 text-stone-700 hover:text-[#00FFC6] rounded-lg transition-all font-semibold"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#16A085]/50 text-stone-700 hover:text-[#16A085] rounded-lg transition-all font-semibold"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -171,12 +171,12 @@ const StudentManagement: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#39FF14]/50">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/50">
           <div className="flex items-center justify-between mb-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#39FF14]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 rounded-lg border border-[#39FF14]/30">
-                <Users className="h-5 w-5 text-[#39FF14]" />
+              <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
+                <Users className="h-5 w-5 text-[#27AE60]" />
               </div>
             </div>
           </div>
@@ -184,12 +184,12 @@ const StudentManagement: React.FC = () => {
           <p className="text-sm text-stone-600 mt-1 font-medium">Total Students</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#00FFC6]/50">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#16A085]/50">
           <div className="flex items-center justify-between mb-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#00FFC6]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#00FFC6]/10 to-[#00FFFF]/10 rounded-lg border border-[#00FFC6]/30">
-                <UserCheck className="h-5 w-5 text-[#00FFC6]" />
+              <div className="absolute inset-0 bg-[#16A085]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded-lg border border-[#16A085]/30">
+                <UserCheck className="h-5 w-5 text-[#16A085]" />
               </div>
             </div>
           </div>
@@ -197,12 +197,12 @@ const StudentManagement: React.FC = () => {
           <p className="text-sm text-stone-600 mt-1 font-medium">Active Students</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#00FFFF]/50">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#2980B9]/50">
           <div className="flex items-center justify-between mb-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#00FFFF]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#00FFFF]/10 to-[#39FF14]/10 rounded-lg border border-[#00FFFF]/30">
-                <TrendingUp className="h-5 w-5 text-[#00FFFF]" />
+              <div className="absolute inset-0 bg-[#2980B9]/20 rounded-lg blur-md"></div>
+              <div className="relative p-2 bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded-lg border border-[#2980B9]/30">
+                <TrendingUp className="h-5 w-5 text-[#2980B9]" />
               </div>
             </div>
           </div>
@@ -237,7 +237,7 @@ const StudentManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-sm text-stone-700 placeholder-stone-400 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700 placeholder-stone-400 transition-all"
             />
           </div>
           <div className="flex gap-2">
@@ -247,7 +247,7 @@ const StudentManagement: React.FC = () => {
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-sm text-stone-700"
+              className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -324,7 +324,7 @@ const StudentManagement: React.FC = () => {
                   </div>
                 </div>
                 {student.isActive ? (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30">
                     <UserCheck className="h-3 w-3 mr-1" />
                     Active
                   </span>
@@ -346,7 +346,7 @@ const StudentManagement: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#39FF14] to-[#32E60F] transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-[#27AE60] to-[#32E60F] transition-all duration-300"
                         style={{ width: `${student.avgProgress}%` }}
                       />
                     </div>
@@ -526,7 +526,7 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ student, onCl
                           </div>
                           <div className="mt-2 w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-[#39FF14] to-[#32E60F] transition-all duration-300"
+                              className="h-full bg-gradient-to-r from-[#27AE60] to-[#32E60F] transition-all duration-300"
                               style={{ width: `${course.progress}%` }}
                             />
                           </div>

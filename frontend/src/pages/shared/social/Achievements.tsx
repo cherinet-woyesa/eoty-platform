@@ -10,10 +10,10 @@ const Achievements: React.FC = () => {
   const [sortBy, setSortBy] = useState<'recent' | 'points' | 'name'>('recent');
 
   const categories = [
-    { id: 'all', name: 'All Badges', icon: Trophy, count: badges.length, color: 'text-[#39FF14]' },
-    { id: 'completion', name: 'Completion', icon: Target, count: badges.filter(b => b.badge_type === 'completion').length, color: 'text-[#00FFC6]' },
-    { id: 'participation', name: 'Participation', icon: Users, count: badges.filter(b => b.badge_type === 'participation').length, color: 'text-[#00FFFF]' },
-    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#FFD700]' },
+    { id: 'all', name: 'All Badges', icon: Trophy, count: badges.length, color: 'text-[#27AE60]' },
+    { id: 'completion', name: 'Completion', icon: Target, count: badges.filter(b => b.badge_type === 'completion').length, color: 'text-[#16A085]' },
+    { id: 'participation', name: 'Participation', icon: Users, count: badges.filter(b => b.badge_type === 'participation').length, color: 'text-[#2980B9]' },
+    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#F39C12]' },
     { id: 'special', name: 'Special', icon: Star, count: badges.filter(b => b.badge_type === 'special').length, color: 'text-[#FF6B9D]' },
   ];
 
@@ -87,7 +87,7 @@ const Achievements: React.FC = () => {
             <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={() => refetch()}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg font-semibold hover:shadow-lg transition-all"
+              className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg font-semibold hover:shadow-lg transition-all"
             >
               Try Again
             </button>
@@ -103,9 +103,9 @@ const Achievements: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="relative inline-block mb-4">
-            <div className="absolute inset-0 bg-[#39FF14]/30 rounded-full blur-xl"></div>
-            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-full border-2 border-[#39FF14]/50">
-              <Trophy className="h-10 w-10 text-[#39FF14]" />
+            <div className="absolute inset-0 bg-[#27AE60]/30 rounded-full blur-xl"></div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 rounded-full border-2 border-[#27AE60]/50">
+              <Trophy className="h-10 w-10 text-[#27AE60]" />
             </div>
           </div>
           <h1 className="text-4xl font-bold text-stone-800 mb-2">Your Achievements</h1>
@@ -114,33 +114,33 @@ const Achievements: React.FC = () => {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#39FF14]/50 transition-all">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#27AE60]/50 transition-all">
             <div className="flex items-center justify-center mb-2">
-              <Medal className="h-6 w-6 text-[#39FF14] mr-2" />
+              <Medal className="h-6 w-6 text-[#27AE60] mr-2" />
               <div className="text-3xl font-bold text-stone-800">{earnedBadgesCount}</div>
             </div>
             <div className="text-sm text-stone-600 font-medium">Badges Earned</div>
           </div>
           
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#00FFC6]/50 transition-all">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#16A085]/50 transition-all">
             <div className="flex items-center justify-center mb-2">
-              <Sparkles className="h-6 w-6 text-[#00FFC6] mr-2" />
+              <Sparkles className="h-6 w-6 text-[#16A085] mr-2" />
               <div className="text-3xl font-bold text-stone-800">{totalPoints}</div>
             </div>
             <div className="text-sm text-stone-600 font-medium">Total Points</div>
           </div>
           
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#00FFFF]/50 transition-all">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#2980B9]/50 transition-all">
             <div className="flex items-center justify-center mb-2">
-              <TrendingUp className="h-6 w-6 text-[#00FFFF] mr-2" />
+              <TrendingUp className="h-6 w-6 text-[#2980B9] mr-2" />
               <div className="text-3xl font-bold text-stone-800">{averagePoints}</div>
             </div>
             <div className="text-sm text-stone-600 font-medium">Avg Points/Badge</div>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#FFD700]/50 transition-all">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-md border border-stone-200 text-center hover:border-[#F39C12]/50 transition-all">
             <div className="flex items-center justify-center mb-2">
-              <Crown className="h-6 w-6 text-[#FFD700] mr-2" />
+              <Crown className="h-6 w-6 text-[#F39C12] mr-2" />
               <div className="text-3xl font-bold text-stone-800">{completionRate}</div>
             </div>
             <div className="text-sm text-stone-600 font-medium">Categories</div>
@@ -158,7 +158,7 @@ const Achievements: React.FC = () => {
                 placeholder="Search badges..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-stone-700"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               />
             </div>
 
@@ -168,7 +168,7 @@ const Achievements: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'points' | 'name')}
-                className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14] text-stone-700"
+                className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               >
                 <option value="recent">Most Recent</option>
                 <option value="points">Most Points</option>
@@ -189,8 +189,8 @@ const Achievements: React.FC = () => {
                 onClick={() => setActiveCategory(category.id)}
                 className={`flex items-center space-x-2 px-4 py-2.5 rounded-full border transition-all font-medium ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 border-[#39FF14] shadow-lg'
-                    : 'bg-white/90 backdrop-blur-md text-stone-700 border-stone-200 hover:border-[#39FF14]/50 hover:bg-stone-50'
+                    ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 border-[#27AE60] shadow-lg'
+                    : 'bg-white/90 backdrop-blur-md text-stone-700 border-stone-200 hover:border-[#27AE60]/50 hover:bg-stone-50'
                 }`}
               >
                 <Icon className={`h-4 w-4 ${isActive ? category.color : 'text-stone-500'}`} />
@@ -217,7 +217,7 @@ const Achievements: React.FC = () => {
         ) : (
           <div className="text-center py-16 bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-md">
             <div className="relative inline-block mb-4">
-              <div className="absolute inset-0 bg-[#39FF14]/20 rounded-full blur-xl"></div>
+              <div className="absolute inset-0 bg-[#27AE60]/20 rounded-full blur-xl"></div>
               <Award className="relative h-16 w-16 text-stone-300 mx-auto" />
             </div>
             <h3 className="text-xl font-semibold text-stone-800 mb-2">
@@ -236,15 +236,15 @@ const Achievements: React.FC = () => {
 
         {/* Progress Motivation */}
         {earnedBadgesCount > 0 && (
-          <div className="mt-12 bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-8 border border-[#39FF14]/30 shadow-lg">
+          <div className="mt-12 bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 rounded-xl p-8 border border-[#27AE60]/30 shadow-lg">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-stone-800 mb-2 flex items-center justify-center gap-2">
-                <Sparkles className="h-6 w-6 text-[#39FF14]" />
+                <Sparkles className="h-6 w-6 text-[#27AE60]" />
                 Keep Going!
               </h2>
               <p className="text-stone-700 mb-6 text-lg">
-                You've earned <span className="font-bold text-[#39FF14]">{earnedBadgesCount}</span> badges and{' '}
-                <span className="font-bold text-[#00FFC6]">{totalPoints}</span> points. 
+                You've earned <span className="font-bold text-[#27AE60]">{earnedBadgesCount}</span> badges and{' '}
+                <span className="font-bold text-[#16A085]">{totalPoints}</span> points. 
                 Continue your journey to unlock more achievements!
               </p>
               <div className="max-w-md mx-auto">
@@ -254,7 +254,7 @@ const Achievements: React.FC = () => {
                 </div>
                 <div className="w-full bg-stone-200 rounded-full h-3 overflow-hidden">
                   <div 
-                    className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-3 rounded-full transition-all duration-700 shadow-lg"
+                    className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-3 rounded-full transition-all duration-700 shadow-lg"
                     style={{ width: `${Math.min((earnedBadgesCount / Math.max(20, earnedBadgesCount + 5)) * 100, 100)}%` }}
                   ></div>
                 </div>

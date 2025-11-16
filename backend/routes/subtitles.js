@@ -49,4 +49,25 @@ router.delete(
   subtitleController.deleteSubtitle
 );
 
+/**
+ * GET /api/courses/lessons/:lessonId/subtitles/verify
+ * Verify subtitle language support (REQUIREMENT: Verify all required languages)
+ * Accessible by: teachers (course owner), admins
+ */
+router.get(
+  '/lessons/:lessonId/subtitles/verify',
+  requirePermission('lesson:view'),
+  subtitleController.verifyLanguageSupport
+);
+
+/**
+ * GET /api/subtitles/supported-languages
+ * Get list of supported languages (REQUIREMENT: Verify all required languages)
+ * Accessible by: all authenticated users
+ */
+router.get(
+  '/supported-languages',
+  subtitleController.getSupportedLanguages
+);
+
 module.exports = router;

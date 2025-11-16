@@ -128,14 +128,7 @@ const AdminCourseView: React.FC = () => {
 
           <div className="flex gap-2">
             <Link
-              to={`/courses/${courseId}`}
-              className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Student View
-            </Link>
-            <Link
-              to={`/courses/${courseId}/edit`}
+              to={`/admin/courses/${courseId}/edit`}
               className="inline-flex items-center px-4 py-2 bg-white text-purple-600 hover:bg-purple-50 text-sm font-medium rounded-lg transition-colors"
             >
               <Edit className="h-4 w-4 mr-2" />
@@ -232,7 +225,7 @@ const AdminCourseView: React.FC = () => {
           </h2>
           <div className="space-y-3">
             <Link
-              to={`/courses/${courseId}/edit`}
+              to={`/admin/courses/${courseId}/edit`}
               className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
               <Edit className="h-4 w-4 mr-2" />
@@ -240,7 +233,7 @@ const AdminCourseView: React.FC = () => {
             </Link>
             
             <Link
-              to={`/courses/${courseId}/analytics`}
+              to={`/admin/courses/${courseId}`}
               className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
               <BarChart className="h-4 w-4 mr-2" />

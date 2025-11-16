@@ -1,4 +1,4 @@
-import { forumsApi, achievementsApi } from './community';
+import { forumsApi, achievementsApi, socialFeaturesApi } from './community';
 import { adminApi } from './admin';
 import { teacherApi } from './teacher';
 import { dashboardApi } from './dashboard';
@@ -36,6 +36,12 @@ export const authApi = {
   // Google login
   googleLogin: async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     const response = await apiClient.post('/auth/google-login', googleData);
+    return response.data;
+  },
+
+  // Facebook login (FR7: Facebook OAuth)
+  facebookLogin: async (facebookData: { facebookId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
+    const response = await apiClient.post('/auth/facebook-login', facebookData);
     return response.data;
   },
 
@@ -403,6 +409,12 @@ export const interactiveApi = {
     return response.data;
   },
 
+  // Lesson engagement summary for teachers/admins
+  getLessonSummary: async (lessonId: string) => {
+    const response = await apiClient.get(`/interactive/lessons/${lessonId}/summary`);
+    return response.data;
+  },
+
   // Discussion methods
   createDiscussionPost: async (data: any) => {
     const response = await apiClient.post('/interactive/discussions', data);
@@ -411,6 +423,14 @@ export const interactiveApi = {
 
   getLessonDiscussions: async (lessonId: string) => {
     const response = await apiClient.get(`/interactive/lessons/${lessonId}/discussions`);
+    return response.data;
+  },
+
+  moderateDiscussionPost: async (postId: number, action: 'approve' | 'reject' | 'pin' | 'unpin') => {
+    const response = await apiClient.post('/interactive/discussions/moderate', {
+      postId,
+      action
+    });
     return response.data;
   },
 
@@ -433,6 +453,55 @@ export const interactiveApi = {
 
   getValidationHistory: async () => {
     const response = await apiClient.get(`/interactive/system/validation-history`);
+    return response.data;
+  }
+};
+
+// Journeys API (Spiritual Journeys)
+export const journeysApi = {
+  // List journeys visible to current user
+  getJourneys: async () => {
+    const response = await apiClient.get('/journeys');
+    return response.data;
+  },
+
+  // Get a single journey with items and progress
+  getJourney: async (id: number | string) => {
+    const response = await apiClient.get(`/journeys/${id}`);
+    return response.data;
+  },
+
+  // Admin/Teacher: create journey
+  createJourney: async (payload: {
+    title: string;
+    description?: string;
+    audience?: 'student' | 'teacher' | 'admin' | 'all';
+    chapterId?: number | null;
+    items?: { itemType: 'course' | 'resource'; itemId: number; orderIndex?: number }[];
+  }) => {
+    const response = await apiClient.post('/journeys', payload);
+    return response.data;
+  },
+
+  // Admin/Teacher: update journey
+  updateJourney: async (
+    id: number | string,
+    payload: {
+      title?: string;
+      description?: string;
+      audience?: 'student' | 'teacher' | 'admin' | 'all';
+      chapterId?: number | null;
+      isActive?: boolean;
+      items?: { itemType: 'course' | 'resource'; itemId: number; orderIndex?: number }[];
+    }
+  ) => {
+    const response = await apiClient.put(`/journeys/${id}`, payload);
+    return response.data;
+  },
+
+  // Admin/Teacher: delete journey
+  deleteJourney: async (id: number | string) => {
+    const response = await apiClient.delete(`/journeys/${id}`);
     return response.data;
   }
 };
@@ -500,7 +569,7 @@ export const resourcesApi = {
 export { adminApi };
 export { teacherApi };
 
-export { forumsApi, achievementsApi };
+export { forumsApi, achievementsApi, socialFeaturesApi };
 
 // Export moderation API
 export { moderationApi };
@@ -552,6 +621,7 @@ export default {
   resources: resourcesApi,
   forums: forumsApi,
   achievements: achievementsApi,
+  socialFeatures: socialFeaturesApi,
   moderation: moderationApi,
   admin: adminApi,
   dashboard: dashboardApi,

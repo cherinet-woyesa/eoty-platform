@@ -45,7 +45,8 @@ const UserMenu: React.FC = () => {
         if (user?.role === 'teacher') {
           navigate('/teacher/profile');
         } else {
-          console.log('Navigate to profile');
+          // Base members (user/legacy student) share the student profile area
+          navigate('/student/profile');
         }
         handleCloseProfile();
       },

@@ -110,6 +110,53 @@ const subtitleController = {
   },
 
   /**
+   * GET /api/courses/lessons/:lessonId/subtitles/verify
+   * Verify subtitle language support (REQUIREMENT: Verify all required languages)
+   */
+  async verifyLanguageSupport(req, res) {
+    try {
+      const { lessonId } = req.params;
+      
+      const verification = await subtitleService.verifyLanguageSupport(parseInt(lessonId));
+      
+      res.json({
+        success: true,
+        data: verification
+      });
+    } catch (error) {
+      console.error('Verify language support error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to verify language support'
+      });
+    }
+  },
+
+  /**
+   * GET /api/subtitles/supported-languages
+   * Get list of supported languages (REQUIREMENT: Verify all required languages)
+   */
+  async getSupportedLanguages(req, res) {
+    try {
+      const languages = subtitleService.getSupportedLanguages();
+      
+      res.json({
+        success: true,
+        data: {
+          languages,
+          total: Object.keys(languages).length
+        }
+      });
+    } catch (error) {
+      console.error('Get supported languages error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get supported languages'
+      });
+    }
+  },
+
+  /**
    * DELETE /api/courses/lessons/:lessonId/subtitles/:subtitleId
    * Delete a subtitle (instructor only)
    */

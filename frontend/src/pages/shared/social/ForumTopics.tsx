@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, MessageSquare, Eye, Pin, Lock } from 'lucide-react';
+import { ArrowLeft, Plus, MessageSquare, Eye, Pin, Lock, Shield } from 'lucide-react';
 import { useForumTopics } from '@/hooks/useCommunity';
 import { useAuth } from '@/context/AuthContext';
 
@@ -89,6 +89,9 @@ const ForumTopics: React.FC = () => {
                         )}
                         {topic.is_locked && (
                           <Lock className="h-4 w-4 text-red-500" />
+                        )}
+                        {topic.is_private && (
+                          <Shield className="h-4 w-4 text-blue-500" title="Private topic" />
                         )}
                         <h3 className="text-lg font-semibold text-gray-900">
                           {topic.title}

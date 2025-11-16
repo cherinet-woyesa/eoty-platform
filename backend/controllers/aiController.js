@@ -107,13 +107,39 @@ const aiController = {
       const conversationHistory = await aiService.getConversationHistory(userId, sessionId);
       const historyTime = Date.now() - historyStart;
 
-      // 5. Generate AI response with performance tracking
+      // 5. Generate AI response with performance tracking and timeout enforcement
       const aiStartTime = Date.now();
-      const aiResponse = await aiService.generateResponse(
-        question, 
-        { ...context, userId }, 
-        conversationHistory
-      );
+      let aiResponse;
+      try {
+        aiResponse = await aiService.generateResponse(
+          question, 
+          { ...context, userId }, 
+          conversationHistory
+        );
+      } catch (error) {
+        // Handle timeout or accuracy errors
+        if (error.message.includes('timeout') || error.message.includes('exceeded 3-second')) {
+          return res.status(408).json({
+            success: false,
+            message: 'Response time exceeded 3-second requirement. Please try again or rephrase your question.',
+            data: {
+              error: 'TIMEOUT',
+              suggestion: 'Try asking a shorter, more specific question.'
+            }
+          });
+        }
+        if (error.message.includes('does not meet 90% requirement')) {
+          return res.status(422).json({
+            success: false,
+            message: 'Unable to generate a response that meets accuracy requirements. Please try rephrasing your question.',
+            data: {
+              error: 'ACCURACY_THRESHOLD',
+              suggestion: 'Try asking a more specific question or consult with your local clergy.'
+            }
+          });
+        }
+        throw error; // Re-throw other errors
+      }
       const aiResponseTime = Date.now() - aiStartTime;
 
       // 6. Store conversation
@@ -184,14 +210,21 @@ const aiController = {
         }
       };
 
-      // Add warnings if performance or accuracy is poor
+      // REQUIREMENT: Verify response meets criteria
       if (totalTime > 3000) {
-        response.data.performanceWarning = 'Response took longer than expected. Please try again.';
+        console.warn(`Response took ${totalTime}ms, exceeding 3-second requirement`);
+        // Note: This should not happen due to timeout enforcement, but log if it does
       }
 
+      // REQUIREMENT: Accuracy is now enforced in aiService, but verify here too
       if (accuracyScore < 0.9) {
-        response.data.accuracyWarning = 'Response accuracy may be lower than expected.';
+        console.error(`Response accuracy ${(accuracyScore * 100).toFixed(1)}% does not meet 90% requirement`);
+        // This should not happen due to validation in aiService, but log if it does
       }
+
+      // Add success indicators
+      response.data.performanceMetrics.meetsTimeRequirement = totalTime <= 3000;
+      response.data.performanceMetrics.meetsAccuracyRequirement = accuracyScore >= 0.9;
 
       // If needs moderation, include warning
       if (moderationResult.needsModeration) {

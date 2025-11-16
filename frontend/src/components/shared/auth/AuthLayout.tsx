@@ -122,6 +122,16 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
             <div className="p-8">
               {children}
 
+              {/* Back to landing */}
+              <div className="mt-4 text-center">
+                <Link
+                  to="/"
+                  className="text-sm text-slate-600 hover:text-slate-800 font-medium transition-colors"
+                >
+                  ← Back to landing page
+                </Link>
+              </div>
+
               {/* Footer */}
               <div className="mt-6 pt-6 border-t border-slate-200/50">
                 <div className="flex items-center justify-center space-x-2 text-xs text-slate-500">

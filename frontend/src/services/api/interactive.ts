@@ -156,6 +156,58 @@ export const interactiveApi = {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
+  },
+
+  // Poll methods
+  createPoll: async (lessonId: number, data: any) => {
+    const token = getAuthToken();
+    const response = await axios.post(`${API_BASE}/interactive/lessons/${lessonId}/polls`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  getLessonPolls: async (lessonId: number) => {
+    const token = getAuthToken();
+    const response = await axios.get(`${API_BASE}/interactive/lessons/${lessonId}/polls`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  getPoll: async (pollId: number) => {
+    const token = getAuthToken();
+    const response = await axios.get(`${API_BASE}/interactive/polls/${pollId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  submitPollVote: async (pollId: number, optionId: number, customAnswer?: string) => {
+    const token = getAuthToken();
+    const response = await axios.post(`${API_BASE}/interactive/polls/${pollId}/vote`, {
+      option_id: optionId,
+      custom_answer: customAnswer
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  getPollResults: async (pollId: number) => {
+    const token = getAuthToken();
+    const response = await axios.get(`${API_BASE}/interactive/polls/${pollId}/results`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  deletePoll: async (pollId: number) => {
+    const token = getAuthToken();
+    const response = await axios.delete(`${API_BASE}/interactive/polls/${pollId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };
 

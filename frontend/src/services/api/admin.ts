@@ -80,7 +80,12 @@ export const adminApi = {
     
     if (uploadData.description) formData.append('description', uploadData.description);
     if (uploadData.category) formData.append('category', uploadData.category);
-    if (uploadData.tags.length > 0) formData.append('tags', JSON.stringify(uploadData.tags));
+    // Ensure tags is always a JSON string of an array
+    if (uploadData.tags && uploadData.tags.length > 0) {
+      formData.append('tags', JSON.stringify(Array.isArray(uploadData.tags) ? uploadData.tags : [uploadData.tags]));
+    } else {
+      formData.append('tags', JSON.stringify([]));
+    }
 
     const response = await apiClient.post('/admin/uploads', formData);
     return response.data;
@@ -253,6 +258,68 @@ export const adminApi = {
     const response = await apiClient.post(`/admin/teacher-applications/${applicationId}/reject`, {
       adminNotes
     });
+    return response.data;
+  },
+
+  // FR5: Upload Management Enhancements
+  getUploadPreview: async (uploadId: number): Promise<{ success: boolean; data: { preview: any } }> => {
+    const response = await apiClient.get(`/admin/uploads/${uploadId}/preview`);
+    return response.data;
+  },
+
+  retryUpload: async (uploadId: number): Promise<{ success: boolean; message: string; data: { upload: ContentUpload } }> => {
+    const response = await apiClient.post(`/admin/uploads/${uploadId}/retry`);
+    return response.data;
+  },
+
+  // FR5: Moderation Tools Enhancements
+  banUser: async (userId: number, reason: string, duration?: number): Promise<{ success: boolean; message: string; data: { ban: any } }> => {
+    const response = await apiClient.post(`/admin/users/${userId}/ban`, { reason, duration });
+    return response.data;
+  },
+
+  unbanUser: async (userId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/admin/users/${userId}/unban`);
+    return response.data;
+  },
+
+  banPost: async (postId: number, reason: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/admin/posts/${postId}/ban`, { reason });
+    return response.data;
+  },
+
+  unbanPost: async (postId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/admin/posts/${postId}/unban`);
+    return response.data;
+  },
+
+  editContent: async (contentType: string, contentId: number, updates: any): Promise<{ success: boolean; message: string; data: { content: any } }> => {
+    const response = await apiClient.put(`/admin/content/${contentType}/${contentId}/edit`, updates);
+    return response.data;
+  },
+
+  // FR5: Analytics Enhancements
+  getRetentionMetrics: async (timeframe: string = '30days'): Promise<{ success: boolean; data: { metrics: any } }> => {
+    const response = await apiClient.get(`/admin/analytics/retention?timeframe=${timeframe}`);
+    return response.data;
+  },
+
+  verifyDashboardAccuracy: async (snapshotId: number): Promise<{ success: boolean; data: { accuracy: number; meetsRequirement: boolean } }> => {
+    const response = await apiClient.post(`/admin/analytics/snapshots/${snapshotId}/verify`);
+    return response.data;
+  },
+
+  exportUsageData: async (startDate: string, endDate: string): Promise<{ success: boolean; data: { export: any } }> => {
+    const response = await apiClient.get(`/admin/analytics/export?startDate=${startDate}&endDate=${endDate}`);
+    return response.data;
+  },
+
+  // FR5: Audit & Anomaly Detection
+  getAnomalies: async (severity?: string, limit: number = 50): Promise<{ success: boolean; data: { anomalies: any[] } }> => {
+    const params = new URLSearchParams();
+    if (severity) params.append('severity', severity);
+    params.append('limit', limit.toString());
+    const response = await apiClient.get(`/admin/anomalies?${params}`);
     return response.data;
   }
 };

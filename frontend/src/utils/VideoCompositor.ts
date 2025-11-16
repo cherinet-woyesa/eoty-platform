@@ -207,13 +207,17 @@ export class VideoCompositor {
             const timeout = setTimeout(() => {
               // Don't reject - just resolve and continue (screen sharing can take longer)
               console.warn(`Video metadata load timeout for ${id}, continuing anyway`);
-              resolve();
+              resolve(undefined);
             }, 10000); // Increased to 10 seconds for screen sharing
             
             const existingHandler = video.onloadedmetadata;
-            video.onloadedmetadata = () => {
+            video.onloadedmetadata = (event) => {
               clearTimeout(timeout);
-              if (existingHandler) existingHandler.call(video);
+              if (existingHandler) {
+                if (typeof existingHandler === 'function') {
+                  existingHandler.call(video, event);
+                }
+              }
               resolve();
             };
             
@@ -436,29 +440,68 @@ export class VideoCompositor {
     // Preserve aspect ratios in layout
     const adjustedLayout = this.preserveAspectRatios(layout);
     
+    // CRITICAL: Force clear canvas immediately when layout changes to prevent artifacts
+    if (this.isRunning) {
+      this.ctx.save();
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.fillStyle = '#000000';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.restore();
+    }
+    
     // Enable smooth transition if requested and we have a previous layout
     if (enableTransition && this.currentLayout.sources && Object.keys(this.currentLayout.sources).length > 0) {
       this.previousLayout = JSON.parse(JSON.stringify(this.currentLayout));
       this.isTransitioning = true;
       this.transitionStartTime = performance.now();
+    } else {
+      // If no transition, immediately clear transition state
+      this.isTransitioning = false;
+      this.previousLayout = null;
     }
     
     this.currentLayout = adjustedLayout;
     
     // Update source configurations based on layout
-    if (adjustedLayout.sources.camera && this.videoElements.has('camera')) {
-      this.updateVideoSource('camera', {
-        layout: adjustedLayout.sources.camera
-      });
+    // CRITICAL: Update visibility based on whether source exists in new layout
+    if (adjustedLayout.sources.camera) {
+      if (this.videoElements.has('camera')) {
+        this.updateVideoSource('camera', {
+          layout: adjustedLayout.sources.camera,
+          visible: true
+        });
+      }
+    } else {
+      // Hide camera if not in layout
+      if (this.videoElements.has('camera')) {
+        this.updateVideoSource('camera', {
+          visible: false
+        });
+      }
     }
     
-    if (adjustedLayout.sources.screen && this.videoElements.has('screen')) {
-      this.updateVideoSource('screen', {
-        layout: adjustedLayout.sources.screen
-      });
+    if (adjustedLayout.sources.screen) {
+      if (this.videoElements.has('screen')) {
+        this.updateVideoSource('screen', {
+          layout: adjustedLayout.sources.screen,
+          visible: true
+        });
+      }
+    } else {
+      // Hide screen if not in layout
+      if (this.videoElements.has('screen')) {
+        this.updateVideoSource('screen', {
+          visible: false
+        });
+      }
     }
     
-    console.log('Layout updated', { type: adjustedLayout.type, transition: enableTransition });
+    console.log('Layout updated', { 
+      type: adjustedLayout.type, 
+      transition: enableTransition,
+      hasCamera: !!adjustedLayout.sources.camera,
+      hasScreen: !!adjustedLayout.sources.screen
+    });
   }
   
   /**
@@ -498,6 +541,8 @@ export class VideoCompositor {
   
   /**
    * Preserve aspect ratios of video sources in layout
+   * CRITICAL: For screen sources, use "cover" mode (fill space, crop if needed) to avoid black bars
+   * For camera sources, use "contain" mode (fit within space, preserve aspect)
    */
   private preserveAspectRatios(layout: CompositorLayout): CompositorLayout {
     const adjustedLayout = JSON.parse(JSON.stringify(layout)) as CompositorLayout;
@@ -514,14 +559,24 @@ export class VideoCompositor {
       const videoAspect = video.videoWidth / video.videoHeight;
       const layoutAspect = sourceLayout.width / sourceLayout.height;
       
-      // If aspect ratios don't match, adjust to fit within bounds while preserving aspect
+      // CRITICAL: For screen sources, always fill the space completely - no black bars
+      // Don't adjust layout dimensions - we'll stretch to fill in drawImage
+      if (sourceId === 'screen') {
+        // Screen: Keep layout dimensions as-is, will be stretched to fill completely
+        // This ensures no black spaces - content will fill entire allocated space
+        continue; // Skip aspect ratio adjustment for screen
+      }
+      
+      // Camera: Use object-cover behavior (match CSS object-fit: cover)
+      // This crops from top-center to match preview behavior
       if (Math.abs(videoAspect - layoutAspect) > 0.01) {
         if (videoAspect > layoutAspect) {
-          // Video is wider - fit to width, adjust height
+          // Video is wider - fit to width, crop height from top (like CSS object-cover)
           const newHeight = sourceLayout.width / videoAspect;
-          const heightDiff = sourceLayout.height - newHeight;
           sourceLayout.height = newHeight;
-          sourceLayout.y += heightDiff / 2; // Center vertically
+          // CRITICAL: Don't center vertically - keep at top (like CSS object-cover)
+          // This matches the preview which uses object-cover
+          // sourceLayout.y stays the same (crop from top, not center)
         } else {
           // Video is taller - fit to height, adjust width
           const newWidth = sourceLayout.height * videoAspect;
@@ -627,9 +682,13 @@ export class VideoCompositor {
     const targetFrameTime = 1000 / 30;
     
     if (elapsed >= targetFrameTime) {
-      // Clear canvas with background color
+      // CRITICAL: Always clear the entire canvas first to prevent black areas
+      // Use save/restore to ensure clean state
+      this.ctx.save();
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
       this.ctx.fillStyle = '#000000';
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.restore();
       
       // Draw video sources in z-index order
       this.drawSources();
@@ -690,19 +749,28 @@ export class VideoCompositor {
       .sort((a, b) => a[1].config.layout.zIndex - b[1].config.layout.zIndex);
     
     // Batch drawing operations by grouping similar operations
-    const videosToDrawDirect: Array<{ video: HTMLVideoElement; layout: SourceLayout; opacity: number }> = [];
-    const videosToDrawRounded: Array<{ video: HTMLVideoElement; layout: SourceLayout; opacity: number }> = [];
+    const videosToDrawDirect: Array<{ video: HTMLVideoElement; layout: SourceLayout; opacity: number; sourceId: string }> = [];
+    const videosToDrawRounded: Array<{ video: HTMLVideoElement; layout: SourceLayout; opacity: number; sourceId: string }> = [];
     const bordersToDrawDirect: Array<{ layout: SourceLayout }> = [];
     const bordersToDrawRounded: Array<{ layout: SourceLayout }> = [];
     
     // First pass: categorize drawing operations
     for (const [sourceId, sourceData] of sortedSources) {
       if (!sourceData.config.visible) {
+        // CRITICAL: Skip invisible sources to prevent black areas
         continue;
       }
       
       const video = sourceData.element;
+      // CRITICAL: Get layout from current layout config, not just source config
+      // This ensures layout changes are immediately reflected
       let layout = sourceData.config.layout;
+      
+      // Validate layout exists and has valid dimensions
+      if (!layout || layout.width <= 0 || layout.height <= 0) {
+        console.warn(`Invalid layout for source ${sourceId}:`, layout);
+        continue;
+      }
       
       // ENHANCED: Better handling of video readiness
       // For screen sharing, we need to be more lenient as it may take time to start
@@ -747,6 +815,18 @@ export class VideoCompositor {
         const prevSourceLayout = this.previousLayout.sources[sourceId as 'camera' | 'screen'];
         if (prevSourceLayout) {
           layout = this.interpolateLayout(prevSourceLayout, layout, transitionProgress);
+        } else {
+          // If source wasn't in previous layout but is in new layout, fade in from center
+          // This prevents black areas during transitions
+          const centerX = this.canvas.width / 2 - layout.width / 2;
+          const centerY = this.canvas.height / 2 - layout.height / 2;
+          layout = {
+            ...layout,
+            x: centerX + (layout.x - centerX) * transitionProgress,
+            y: centerY + (layout.y - centerY) * transitionProgress,
+            width: layout.width * transitionProgress,
+            height: layout.height * transitionProgress
+          };
         }
       }
       
@@ -755,12 +835,12 @@ export class VideoCompositor {
       
       // Categorize by drawing type
       if (this.visualEffectsEnabled && intLayout.borderRadius && intLayout.borderRadius > 0) {
-        videosToDrawRounded.push({ video, layout: intLayout, opacity: sourceData.config.opacity });
+        videosToDrawRounded.push({ video, layout: intLayout, opacity: sourceData.config.opacity, sourceId });
         if (intLayout.border) {
           bordersToDrawRounded.push({ layout: intLayout });
         }
       } else {
-        videosToDrawDirect.push({ video, layout: intLayout, opacity: sourceData.config.opacity });
+        videosToDrawDirect.push({ video, layout: intLayout, opacity: sourceData.config.opacity, sourceId });
         if (this.visualEffectsEnabled && intLayout.border) {
           bordersToDrawDirect.push({ layout: intLayout });
         }
@@ -772,7 +852,7 @@ export class VideoCompositor {
     // Draw direct videos (no rounded corners)
     if (videosToDrawDirect.length > 0) {
       this.ctx.save();
-      for (const { video, layout, opacity } of videosToDrawDirect) {
+      for (const { video, layout, opacity, sourceId } of videosToDrawDirect) {
         // Only change state if different from last
         if (this.lastCanvasState.globalAlpha !== opacity) {
           this.ctx.globalAlpha = opacity;
@@ -784,13 +864,76 @@ export class VideoCompositor {
           this.applyCanvasShadow(layout.shadow);
         }
         
-        this.ctx.drawImage(
-          video,
-          layout.x,
-          layout.y,
-          layout.width,
-          layout.height
-        );
+        // CRITICAL: For screen sources, ALWAYS fill the entire layout space completely
+        // Use zoom + stretch to ensure no black/white spaces
+        // For camera sources, use normal drawImage (which will respect aspect ratio from layout)
+        if (sourceId === 'screen') {
+          // Screen: ALWAYS fill entire layout area - no black spaces allowed
+          // Use zoom factor to zoom in, then stretch to fill if needed
+          const zoomFactor = 1.3; // 30% zoom in for better focus
+          
+          const drawWidth = layout.width;
+          const drawHeight = layout.height;
+          const drawX = layout.x;
+          const drawY = layout.y;
+          
+          // Calculate source crop with zoom (crop center portion and scale to fill)
+          // This ensures we get a zoomed-in view that fills the space
+          const sourceWidth = video.videoWidth / zoomFactor;
+          const sourceHeight = video.videoHeight / zoomFactor;
+          const sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
+          const sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
+          
+          // CRITICAL: Always draw to fill the entire layout space
+          // This will stretch the content slightly if needed, but ensures no black spaces
+          this.ctx.drawImage(
+            video,
+            sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (zoomed in, centered)
+            drawX, drawY, drawWidth, drawHeight // Destination: fill entire layout space
+          );
+        } else {
+          // Camera: Use object-cover behavior to match preview
+          // Preview uses CSS object-cover which crops from top-center
+          const videoAspect = video.videoWidth / video.videoHeight;
+          const layoutAspect = layout.width / layout.height;
+          
+          // If aspect ratios don't match, crop to fill (like CSS object-cover)
+          if (Math.abs(videoAspect - layoutAspect) > 0.01) {
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = video.videoWidth;
+            let sourceHeight = video.videoHeight;
+            
+            if (videoAspect > layoutAspect) {
+              // Video is wider - crop width, use full height (crop from center horizontally)
+              sourceHeight = video.videoHeight;
+              sourceWidth = sourceHeight * layoutAspect;
+              sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
+              sourceY = 0; // Crop from top (like CSS object-cover)
+            } else {
+              // Video is taller - crop height, use full width (crop from top)
+              sourceWidth = video.videoWidth;
+              sourceHeight = sourceWidth / layoutAspect;
+              sourceX = 0;
+              sourceY = 0; // Crop from top (like CSS object-cover)
+            }
+            
+            this.ctx.drawImage(
+              video,
+              sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (top-center)
+              layout.x, layout.y, layout.width, layout.height // Destination fill
+            );
+          } else {
+            // Aspect ratios match - draw normally
+            this.ctx.drawImage(
+              video,
+              layout.x,
+              layout.y,
+              layout.width,
+              layout.height
+            );
+          }
+        }
       }
       this.ctx.restore();
       this.lastCanvasState = {}; // Reset state tracking after restore
@@ -799,7 +942,7 @@ export class VideoCompositor {
     // Draw rounded videos
     if (videosToDrawRounded.length > 0) {
       this.ctx.save();
-      for (const { video, layout, opacity } of videosToDrawRounded) {
+      for (const { video, layout, opacity, sourceId } of videosToDrawRounded) {
         // Only change state if different from last
         if (this.lastCanvasState.globalAlpha !== opacity) {
           this.ctx.globalAlpha = opacity;
@@ -811,7 +954,7 @@ export class VideoCompositor {
           this.applyCanvasShadow(layout.shadow);
         }
         
-        this.drawRoundedVideo(video, layout);
+        this.drawRoundedVideo(video, layout, sourceId);
       }
       this.ctx.restore();
       this.lastCanvasState = {}; // Reset state tracking after restore
@@ -905,11 +1048,14 @@ export class VideoCompositor {
    * Interpolate between two layouts for smooth transitions
    */
   private interpolateLayout(from: SourceLayout, to: SourceLayout, progress: number): SourceLayout {
+    // Ensure progress is clamped between 0 and 1
+    const clampedProgress = Math.max(0, Math.min(1, progress));
+    
     return {
-      x: from.x + (to.x - from.x) * progress,
-      y: from.y + (to.y - from.y) * progress,
-      width: from.width + (to.width - from.width) * progress,
-      height: from.height + (to.height - from.height) * progress,
+      x: from.x + (to.x - from.x) * clampedProgress,
+      y: from.y + (to.y - from.y) * clampedProgress,
+      width: from.width + (to.width - from.width) * clampedProgress,
+      height: from.height + (to.height - from.height) * clampedProgress,
       zIndex: to.zIndex,
       borderRadius: to.borderRadius,
       border: to.border,
@@ -929,7 +1075,7 @@ export class VideoCompositor {
   /**
    * Draw video with rounded corners
    */
-  private drawRoundedVideo(video: HTMLVideoElement, layout: SourceLayout): void {
+  private drawRoundedVideo(video: HTMLVideoElement, layout: SourceLayout, sourceId?: string): void {
     if (!layout.borderRadius) return;
     
     // Create clipping path
@@ -943,14 +1089,76 @@ export class VideoCompositor {
     );
     this.ctx.clip();
     
-    // Draw video
-    this.ctx.drawImage(
-      video,
-      layout.x,
-      layout.y,
-      layout.width,
-      layout.height
-    );
+    // CRITICAL: For screen sources, ALWAYS fill the entire layout space completely
+    // Use zoom + stretch to ensure no black/white spaces
+    // For camera sources, use normal drawImage
+    if (sourceId === 'screen') {
+      // Screen: ALWAYS fill entire layout area - no black spaces allowed
+      // Use zoom factor to zoom in, then stretch to fill if needed
+      const zoomFactor = 1.3; // 30% zoom in for better focus
+      
+      const drawWidth = layout.width;
+      const drawHeight = layout.height;
+      const drawX = layout.x;
+      const drawY = layout.y;
+      
+      // Calculate source crop with zoom (crop center portion and scale to fill)
+      // This ensures we get a zoomed-in view that fills the space
+      const sourceWidth = video.videoWidth / zoomFactor;
+      const sourceHeight = video.videoHeight / zoomFactor;
+      const sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
+      const sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
+      
+      // CRITICAL: Always draw to fill the entire layout space
+      // This will stretch the content slightly if needed, but ensures no black spaces
+      this.ctx.drawImage(
+        video,
+        sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (zoomed in, centered)
+        drawX, drawY, drawWidth, drawHeight // Destination: fill entire layout space
+      );
+    } else {
+      // Camera: Use object-cover behavior to match preview
+      // Preview uses CSS object-cover which crops from top-center
+      const videoAspect = video.videoWidth / video.videoHeight;
+      const layoutAspect = layout.width / layout.height;
+      
+      // If aspect ratios don't match, crop to fill (like CSS object-cover)
+      if (Math.abs(videoAspect - layoutAspect) > 0.01) {
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = video.videoWidth;
+        let sourceHeight = video.videoHeight;
+        
+        if (videoAspect > layoutAspect) {
+          // Video is wider - crop width, use full height (crop from center horizontally)
+          sourceHeight = video.videoHeight;
+          sourceWidth = sourceHeight * layoutAspect;
+          sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
+          sourceY = 0; // Crop from top (like CSS object-cover)
+        } else {
+          // Video is taller - crop height, use full width (crop from top)
+          sourceWidth = video.videoWidth;
+          sourceHeight = sourceWidth / layoutAspect;
+          sourceX = 0;
+          sourceY = 0; // Crop from top (like CSS object-cover)
+        }
+        
+        this.ctx.drawImage(
+          video,
+          sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (top-center)
+          layout.x, layout.y, layout.width, layout.height // Destination fill
+        );
+      } else {
+        // Aspect ratios match - draw normally
+        this.ctx.drawImage(
+          video,
+          layout.x,
+          layout.y,
+          layout.width,
+          layout.height
+        );
+      }
+    }
   }
 
   /**

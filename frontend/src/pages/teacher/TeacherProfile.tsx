@@ -213,9 +213,30 @@ const TeacherProfile: React.FC = () => {
       // Update user profile via API
       const response = await authApi.updateUserProfile(profileToUpdate);
       
-      if (response.success) {
-        // Refresh user data in both contexts to get updated profile
-        await Promise.all([refreshUser(), refreshAuthUser()]);
+      if (response.success && response.data?.user) {
+        // Update local state directly from response to avoid session issues
+        const updatedUser = response.data.user;
+        setProfileData(prev => ({
+          ...prev,
+          firstName: updatedUser.firstName || prev.firstName,
+          lastName: updatedUser.lastName || prev.lastName,
+          bio: updatedUser.bio || prev.bio,
+          phone: updatedUser.phone || prev.phone,
+          location: updatedUser.location || prev.location,
+          profilePicture: updatedUser.profilePicture || prev.profilePicture,
+          specialties: updatedUser.specialties || prev.specialties,
+          teachingExperience: updatedUser.teachingExperience || prev.teachingExperience,
+          education: updatedUser.education || prev.education
+        }));
+        
+        // Refresh user contexts in background (non-blocking)
+        // Use try-catch to prevent errors from affecting the UI
+        Promise.all([
+          refreshUser().catch(err => console.warn('Failed to refresh UserContext:', err)),
+          refreshAuthUser().catch(err => console.warn('Failed to refresh AuthContext:', err))
+        ]).catch(() => {
+          // Silently handle any errors - user data is already updated locally
+        });
         
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);

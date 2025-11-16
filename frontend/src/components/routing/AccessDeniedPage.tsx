@@ -57,7 +57,7 @@ const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({
         { name: 'Browse Courses', path: '/student/courses', description: 'Discover new courses' },
         { name: 'My Progress', path: '/student/progress', description: 'Track your learning' }
       );
-    } else if (userRole === 'teacher' || userRole === 'chapter_admin' || userRole === 'platform_admin') {
+    } else if (userRole === 'teacher' || userRole === 'chapter_admin' || userRole === 'admin') {
       routes.push(
         { name: 'Teacher Dashboard', path: '/teacher/dashboard', description: 'Manage your teaching' },
         { name: 'My Courses', path: '/teacher/courses', description: 'View and edit your courses' },
@@ -65,7 +65,7 @@ const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({
       );
     }
 
-    if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+    if (userRole === 'chapter_admin' || userRole === 'admin') {
       routes.push(
         { name: 'Admin Dashboard', path: '/admin/dashboard', description: 'System administration' }
       );

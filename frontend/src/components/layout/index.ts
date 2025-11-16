@@ -3,6 +3,7 @@ export { default as DashboardLayout } from './DashboardLayout';
 
 // Header exports
 export { default as Header } from './Header/Header';
+export { default as Footer } from './Footer/Footer';
 export { default as BreadcrumbNav } from './Header/BreadcrumbNav';
 export { default as NotificationBell } from './Header/NotificationBell';
 export { default as QuickActions as HeaderQuickActions } from './Header/QuickActions';

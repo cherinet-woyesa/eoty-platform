@@ -274,27 +274,27 @@ export const CoursePublisher: React.FC<CoursePublisherProps> = ({
     }
   };
 
-  // Get status badge styling
+  // Get status badge styling - Compact
   const getStatusBadge = () => {
     switch (status) {
       case 'published':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-            <span className="w-2 h-2 mr-2 bg-green-500 rounded-full"></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+            <span className="w-1.5 h-1.5 mr-1.5 bg-green-500 rounded-full"></span>
             Published
           </span>
         );
       case 'scheduled':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-            <span className="w-2 h-2 mr-2 bg-blue-500 rounded-full"></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+            <span className="w-1.5 h-1.5 mr-1.5 bg-blue-500 rounded-full"></span>
             Scheduled
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-            <span className="w-2 h-2 mr-2 bg-gray-500 rounded-full"></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+            <span className="w-1.5 h-1.5 mr-1.5 bg-gray-500 rounded-full"></span>
             Draft
           </span>
         );
@@ -309,118 +309,79 @@ export const CoursePublisher: React.FC<CoursePublisherProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Publishing Status</h3>
-          <p className="text-sm text-gray-600 mt-1">Manage course visibility and publishing</p>
+    <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 shadow-sm overflow-hidden">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between p-4 bg-slate-50/50 border-b border-slate-200/50">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-semibold text-slate-700">Publishing Status</h3>
+          {getStatusBadge()}
         </div>
-        {getStatusBadge()}
+        {status === 'published' ? (
+          <button
+            onClick={handleUnpublish}
+            disabled={isLoading}
+            className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-red-200"
+          >
+            {isLoading ? 'Unpublishing...' : 'Unpublish'}
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowScheduleDialog(true)}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-blue-200"
+            >
+              Schedule
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? 'Publishing...' : 'Publish'}
+            </button>
+          </div>
+        )}
       </div>
+      
+      <div className="p-4">
 
-      {/* Scheduled publish info */}
-      {status === 'scheduled' && localCourse.scheduled_publish_at && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-900">Scheduled for Publishing</p>
-              <p className="text-sm text-blue-700 mt-1">
-                This course will be automatically published on{' '}
-                {new Date(localCourse.scheduled_publish_at).toLocaleString()}
+        {/* Scheduled publish info */}
+        {status === 'scheduled' && localCourse.scheduled_publish_at && (
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs text-blue-700">
+                Scheduled: <span className="font-medium">{new Date(localCourse.scheduled_publish_at).toLocaleString()}</span>
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Validation warnings */}
-      {status === 'draft' && validateCourse().length > 0 && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-yellow-900">Course Not Ready</p>
-              <ul className="text-sm text-yellow-700 mt-1 list-disc list-inside">
-                {validateCourse().map((error, index) => (
-                  <li key={index}>{error.message}</li>
-                ))}
-              </ul>
+        {/* Validation warnings */}
+        {status === 'draft' && validateCourse().length > 0 && (
+          <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-yellow-900 mb-1">Course Not Ready</p>
+                <ul className="text-xs text-yellow-700 space-y-0.5">
+                  {validateCourse().map((error, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-1">•</span>
+                      <span>{error.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Publishing actions */}
-      <div className="space-y-4">
-        {/* Publish/Unpublish toggle */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              {status === 'published' ? 'Course is Live' : 'Publish Course'}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              {status === 'published' 
-                ? 'Students can access this course' 
-                : 'Make this course visible to students'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {status === 'published' ? (
-              <button
-                onClick={handleUnpublish}
-                disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? 'Unpublishing...' : 'Unpublish'}
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => setShowScheduleDialog(true)}
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Schedule
-                </button>
-                <button
-                  onClick={handlePublish}
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? 'Publishing...' : 'Publish Now'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Visibility control */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div>
-            <p className="text-sm font-medium text-gray-900">Course Visibility</p>
-            <p className="text-sm text-gray-600 mt-1">
-              {localCourse.is_public !== false ? 'Public - Anyone can enroll' : 'Private - Invitation only'}
-            </p>
-          </div>
-          <button
-            onClick={handleVisibilityToggle}
-            disabled={isLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              localCourse.is_public !== false ? 'bg-green-600' : 'bg-gray-300'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                localCourse.is_public !== false ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
       </div>
 
       {/* Schedule dialog */}

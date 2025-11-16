@@ -7,9 +7,8 @@ import NotesEditor from '@/components/shared/resources/NotesEditor';
 import AISummaryDisplay from '@/components/shared/resources/AISummaryDisplay';
 import ExportManager from '@/components/shared/resources/ExportManager';
 import ShareResourceModal from '@/components/shared/resources/ShareResourceModal';
-import AIFallbackHandler from '@/components/shared/resources/AIFallbackHandler';
 import ResourceErrorHandler from '@/components/shared/resources/ResourceErrorHandler';
-import { MessageCircle, BookOpen, FileText, ArrowLeft, Share2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 // Memoized loading spinner
 const LoadingSpinner = React.memo(() => (
@@ -24,6 +23,7 @@ const ResourceView: React.FC = () => {
   const [resource, setResource] = useState<Resource | null>(null);
   const [notes, setNotes] = useState<UserNote[]>([]);
   const [publicNotes, setPublicNotes] = useState<UserNote[]>([]);
+  const [sharedNotes, setSharedNotes] = useState<UserNote[]>([]); // REQUIREMENT: Share notes with chapter members
   const [summary, setSummary] = useState<AISummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +32,8 @@ const ResourceView: React.FC = () => {
   const [showNotesEditor, setShowNotesEditor] = useState(false);
   const [editingNote, setEditingNote] = useState<UserNote | null>(null);
   const [anchorPoint, setAnchorPoint] = useState<string | undefined>(undefined);
+  const [sectionText, setSectionText] = useState<string | undefined>(undefined); // REQUIREMENT: Section anchoring
+  const [sectionPosition, setSectionPosition] = useState<number | undefined>(undefined); // REQUIREMENT: Section anchoring
   const [showShareModal, setShowShareModal] = useState(false);
   const [summaryType, setSummaryType] = useState('brief');
 
@@ -42,6 +44,10 @@ const ResourceView: React.FC = () => {
       const response = await resourcesApi.getResource(resourceId);
       if (response.success) {
         setResource(response.data.resource);
+        // REQUIREMENT: Error notification for unsupported file types
+        if (response.data.isUnsupported && response.data.errorMessage) {
+          setError(response.data.errorMessage);
+        }
       } else {
         setError('Failed to load resource');
       }
@@ -57,8 +63,10 @@ const ResourceView: React.FC = () => {
     try {
       const response = await resourcesApi.getNotes(resourceId);
       if (response.success) {
-        setNotes(response.data.user_notes);
-        setPublicNotes(response.data.public_notes);
+        setNotes(response.data.user_notes || []);
+        setPublicNotes(response.data.public_notes || []);
+        // REQUIREMENT: Share notes with chapter members - load shared notes separately
+        setSharedNotes((response.data as any).shared_notes || []);
       }
     } catch (err) {
       console.error('Load notes error:', err);
@@ -74,6 +82,13 @@ const ResourceView: React.FC = () => {
       const response = await resourcesApi.getSummary(parseInt(id), type);
       if (response.success) {
         setSummary(response.data.summary);
+        // REQUIREMENT: Check if summary meets word limit and relevance requirements
+        if (response.data.meetsWordLimit === false) {
+          console.warn('Summary exceeds 250 word limit');
+        }
+        if (response.data.meetsRelevanceRequirement === false) {
+          console.warn('Summary does not meet 98% relevance requirement');
+        }
       } else {
         setSummaryError('Failed to generate summary');
       }
@@ -94,21 +109,27 @@ const ResourceView: React.FC = () => {
   }, [id, loadResource, loadNotes]);
 
   // Memoized event handlers
-  const handleNoteAnchor = useCallback((position: string) => {
+  const handleNoteAnchor = useCallback((position: string, sectionTextParam?: string, sectionPositionParam?: number) => {
     setAnchorPoint(position);
+    setSectionText(sectionTextParam); // REQUIREMENT: Store section text for anchoring
+    setSectionPosition(sectionPositionParam); // REQUIREMENT: Store section position for anchoring
     setEditingNote(null);
     setShowNotesEditor(true);
   }, []);
 
-  const handleSaveNote = useCallback(async (content: string, isPublic: boolean, anchorPoint?: string) => {
+  const handleSaveNote = useCallback(async (content: string, isPublic: boolean, anchorPoint?: string, sectionText?: string, sectionPosition?: number) => {
     if (!id) return;
     
     try {
+      // REQUIREMENT: Anchor notes to sections - send full section anchoring data
       const response = await resourcesApi.createNote({
         resourceId: parseInt(id),
         content,
         isPublic,
-        anchorPoint
+        anchorPoint, // Legacy support
+        sectionAnchor: anchorPoint, // REQUIREMENT: Section anchoring
+        sectionText: sectionText, // REQUIREMENT: Section text excerpt (from state)
+        sectionPosition: sectionPosition // REQUIREMENT: Section position (from state)
       });
       
       if (response.success) {
@@ -116,47 +137,68 @@ const ResourceView: React.FC = () => {
         await loadNotes(parseInt(id));
         setShowNotesEditor(false);
         setAnchorPoint(undefined);
+        setSectionText(undefined); // REQUIREMENT: Clear section context
+        setSectionPosition(undefined); // REQUIREMENT: Clear section context
       }
     } catch (err) {
       console.error('Save note error:', err);
     }
   }, [id, loadNotes]);
 
-  const handleExport = useCallback(async (format: string) => {
+  const handleExport = useCallback(async (exportType: string = 'combined', format: string = 'pdf') => {
     if (!id) return;
     
     try {
-      await resourcesApi.exportContent(parseInt(id), format);
-      // In a real implementation, this would trigger a download
-      alert(`Exported ${resource?.title} as ${format.toUpperCase()}`);
+      // REQUIREMENT: Export notes/summaries - call actual API
+      const response = await resourcesApi.exportContent(parseInt(id), exportType, format);
+      
+      if (response.success && response.data.exportData) {
+        // Create download link
+        const exportData = response.data.exportData;
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${resource?.title || 'resource'}_export_${new Date().getTime()}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // Fallback: show success message
+        alert(`Export prepared for ${resource?.title} as ${format.toUpperCase()}`);
+      }
     } catch (err) {
       console.error('Export error:', err);
+      alert('Failed to export resource. Please try again.');
     }
   }, [id, resource?.title]);
 
-  const handleShare = useCallback(async (method: string, recipients: string[]) => {
-    // In a real implementation, this would call the sharing API
-    alert(`Shared ${resource?.title} with ${method === 'chapter' ? 'chapter members' : recipients.join(', ')}`);
-  }, [resource?.title]);
+  const handleShare = useCallback(async (method: string, _recipients: string[]) => {
+    if (!id) return;
+    
+    try {
+      // REQUIREMENT: Share with chapter members - call actual API
+      if (method === 'chapter') {
+        const response = await resourcesApi.shareResource(parseInt(id), 'view');
+        if (response.success) {
+          alert(`Successfully shared ${resource?.title} with chapter members`);
+        } else {
+          alert('Failed to share resource. Please try again.');
+        }
+      } else {
+        // For specific recipients, we could implement email sharing later
+        alert(`Sharing with specific recipients is not yet implemented. Please use chapter sharing.`);
+      }
+    } catch (err) {
+      console.error('Share error:', err);
+      alert('Failed to share resource. Please try again.');
+    }
+  }, [id, resource?.title]);
 
   const handleRetrySummary = useCallback(() => {
     loadSummary(summaryType);
   }, [loadSummary, summaryType]);
-
-  const handleAskQuestion = useCallback(() => {
-    // Navigate to AI chat with context
-    navigate('/ai/chat', { 
-      state: { 
-        context: `Resource: ${resource?.title}`, 
-        resourceId: id 
-      } 
-    });
-  }, [navigate, resource?.title, id]);
-
-  const handleManualSummary = useCallback(() => {
-    // Scroll to document viewer
-    document.getElementById('document-viewer')?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
 
   const handleSummaryTypeChange = useCallback((type: string) => {
     setSummaryType(type);
@@ -248,37 +290,92 @@ const ResourceView: React.FC = () => {
             loading={summaryLoading}
             error={summaryError}
             onRetry={handleRetrySummary}
-            onAskQuestion={handleAskQuestion}
-            onManualSummary={handleManualSummary}
             onTypeChange={handleSummaryTypeChange}
-            currentType={summaryType}
           />
           
-          <NotesEditor 
-            notes={notes}
-            publicNotes={publicNotes}
-            showEditor={showNotesEditor}
-            editingNote={editingNote}
-            anchorPoint={anchorPoint}
-            onSave={handleSaveNote}
-            onCancel={() => setShowNotesEditor(false)}
+          {showNotesEditor && (
+            <NotesEditor 
+              resourceId={parseInt(id || '0')}
+              notes={notes}
+              publicNotes={[...publicNotes, ...sharedNotes]} // REQUIREMENT: Show shared notes
+              showEditor={showNotesEditor}
+              editingNote={editingNote}
+              anchorPoint={anchorPoint}
+              onSave={(content, isPublic, anchor) => handleSaveNote(content, isPublic, anchor, sectionText, sectionPosition)}
+              onCancel={() => {
+                setShowNotesEditor(false);
+                setAnchorPoint(undefined);
+                setSectionText(undefined);
+                setSectionPosition(undefined);
+              }}
+            />
+          )}
+          
+          {/* Display existing notes */}
+          {!showNotesEditor && (notes.length > 0 || publicNotes.length > 0 || sharedNotes.length > 0) && (
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+              <div className="space-y-3">
+                {notes.map(note => (
+                  <div key={note.id} className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700">{note.content}</p>
+                    {note.section_anchor && (
+                      <p className="text-xs text-gray-500 mt-1">Anchored to: {note.section_anchor}</p>
+                    )}
+                  </div>
+                ))}
+                {[...publicNotes, ...sharedNotes].map(note => (
+                  <div key={note.id} className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-700">{note.content}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      By {note.first_name} {note.last_name}
+                      {note.section_anchor && ` • Anchored to: ${note.section_anchor}`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setShowNotesEditor(true);
+                  setEditingNote(null);
+                }}
+                className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add New Note
+              </button>
+            </div>
+          )}
+          
+          {!showNotesEditor && notes.length === 0 && publicNotes.length === 0 && sharedNotes.length === 0 && (
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+              <p className="text-gray-500 mb-4">No notes yet. Add your first note!</p>
+              <button
+                onClick={() => {
+                  setShowNotesEditor(true);
+                  setEditingNote(null);
+                }}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add First Note
+              </button>
+            </div>
+          )}
+          
+          <ExportManager 
+            resourceId={parseInt(id || '0')}
+            resourceName={resource?.title || 'Resource'}
+            onExport={handleExport}
+            onShare={() => setShowShareModal(true)}
           />
-          
-          <ExportManager onExport={handleExport} />
-          
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <Share2 className="h-5 w-5" />
-            Share Resource
-          </button>
         </div>
       </div>
       
-      {showShareModal && (
+      {showShareModal && resource && (
         <ShareResourceModal 
-          resource={resource}
+          resourceId={resource.id}
+          resourceName={resource.title}
+          isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
           onShare={handleShare}
         />

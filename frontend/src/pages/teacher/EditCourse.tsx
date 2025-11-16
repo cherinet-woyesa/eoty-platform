@@ -27,16 +27,19 @@ const EditCourse: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <CourseEditor
-          courseId={courseId}
-          onSave={(course) => {
-            console.log('Course saved:', course);
-            navigate(`/teacher/courses/${courseId}`);
-          }}
-          onCancel={() => navigate('/teacher/courses')}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Editor Card (includes its own header) */}
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-4 sm:p-6">
+          <CourseEditor
+            courseId={courseId}
+            onSave={(course) => {
+              console.log('Course saved:', course);
+              navigate(`/teacher/courses/${courseId}`);
+            }}
+            onCancel={() => navigate(`/teacher/courses/${courseId}`)}
+          />
+        </div>
       </div>
     </div>
   );

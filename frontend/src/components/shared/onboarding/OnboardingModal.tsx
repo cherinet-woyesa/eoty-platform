@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Play, Check, SkipForward, Award, HelpCircle } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
 import type { OnboardingStep } from '@/services/api/onboarding';
+import { onboardingApi } from '@/services/api/onboarding';
+import CompletionRewards from './CompletionRewards';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -9,10 +11,39 @@ interface OnboardingModalProps {
 }
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
-  const { flow, progress, completeStep, skipStep } = useOnboarding();
+  const { flow, progress, completeStep, skipStep, milestones = [] } = useOnboarding();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [rewards, setRewards] = useState<any[]>([]);
+
+  // Auto-resume: Set current step from progress (REQUIREMENT: Auto-resume)
+  useEffect(() => {
+    if (isOpen && flow && progress && progress.current_step_id) {
+      const steps = flow.steps || [];
+      const currentStepIndex = steps.findIndex(step => step.id === progress.current_step_id);
+      if (currentStepIndex >= 0) {
+        setCurrentStepIndex(currentStepIndex);
+      }
+    }
+  }, [isOpen, flow, progress]);
+
+  // Fetch completion rewards when onboarding is complete (REQUIREMENT: Completion rewards)
+  useEffect(() => {
+    if (isOpen && progress && progress.progress >= 100 && flow) {
+      const fetchRewards = async () => {
+        try {
+          const response = await onboardingApi.getCompletionRewards(flow.id);
+          if (response.success) {
+            setRewards(response.data.rewards || []);
+          }
+        } catch (error) {
+          console.error('Failed to fetch rewards:', error);
+        }
+      };
+      fetchRewards();
+    }
+  }, [isOpen, progress, flow]);
 
   // Timer to track time spent on each step
   useEffect(() => {
@@ -41,6 +72,16 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
     if (!currentStep) return;
     
     await completeStep(currentStep.id, timeSpent, { completed: true });
+    
+    // Check if onboarding is complete (REQUIREMENT: Completion rewards)
+    if (progress && progress.progress >= 100) {
+      // Show completion rewards before closing
+      // The rewards will be displayed via CompletionRewards component
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+      return;
+    }
     
     // Move to next step or close if last step
     if (currentStepIndex < steps.length - 1) {
@@ -86,19 +127,31 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         {currentStep.video_url && (
           <div className="mb-6">
             <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 transition-colors"
+              {isPlaying ? (
+                <video
+                  src={currentStep.video_url}
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Video playback error:', e);
+                    setIsPlaying(false);
+                  }}
                 >
-                  <Play className="h-8 w-8 ml-1" />
-                </button>
-              </div>
-              {isPlaying && (
-                <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                  <div className="text-white text-center">
-                    <p className="text-lg">Video walkthrough would play here</p>
-                    <p className="text-sm mt-2">In a real implementation, this would show the actual video</p>
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button
+                    onClick={() => setIsPlaying(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 transition-colors"
+                    aria-label="Play video walkthrough"
+                  >
+                    <Play className="h-8 w-8 ml-1" />
+                  </button>
+                  <div className="absolute bottom-4 left-4 right-4 text-white text-center">
+                    <p className="text-sm opacity-75">Click to play video walkthrough</p>
                   </div>
                 </div>
               )}
@@ -163,16 +216,68 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
           </button>
         </div>
 
-        {renderStepContent()}
+        {/* Show completion rewards if onboarding is complete (REQUIREMENT: Completion rewards) */}
+        {progress && progress.progress >= 100 ? (
+          <div className="p-6">
+            <div className="text-center mb-6">
+              <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Congratulations!</h3>
+              <p className="text-gray-600">You've completed the onboarding process.</p>
+            </div>
+            <CompletionRewards
+              rewards={rewards}
+              onClaimReward={(rewardId) => {
+                console.log('Claim reward:', rewardId);
+              }}
+            />
+            <div className="mt-6 text-center">
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Continue to Dashboard
+              </button>
+            </div>
+          </div>
+        ) : (
+          renderStepContent()
+        )}
 
         {/* Progress bar */}
         <div className="px-6 pb-6">
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+              style={{ width: `${progress?.progress || 0}%` }}
             ></div>
           </div>
+          <div className="text-xs text-gray-500 text-center">
+            {progress?.progress?.toFixed(0) || 0}% Complete
+          </div>
+          
+          {/* Milestones display (REQUIREMENT: Milestone-based) */}
+          {milestones && milestones.length > 0 && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {milestones.map((milestone, idx) => (
+                <div
+                  key={milestone.id}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                    milestone.is_completed
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                  title={milestone.name}
+                >
+                  {milestone.is_completed ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <div className="h-3 w-3 rounded-full border-2 border-gray-400" />
+                  )}
+                  <span>{milestone.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -651,21 +651,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   }, [dismissNotification]);
 
   // NEW: Performance degradation handler (Task 7.3)
+  // DISABLED: User requested to not show performance warnings
   const handlePerformanceDegradation = useCallback(() => {
-    addNotification(
-      'warning',
-      'Performance Degraded',
-      'Recording performance is below optimal levels. Consider closing other applications or reducing video quality.',
-      {
-        label: 'Reduce Quality',
-        onClick: () => {
-          setRecordingQuality('480p');
-          setSuccessMessage('Recording quality reduced to improve performance');
-        }
-      },
-      false
-    );
-  }, [addNotification]);
+    // Performance warnings disabled - only log to console
+    console.warn('Performance degraded, but warning notification disabled');
+  }, []);
 
   // NEW: Source loss handler (Task 7.3)
   const handleSourceLossNotification = useCallback((sourceType: 'camera' | 'screen') => {

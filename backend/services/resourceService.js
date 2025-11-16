@@ -22,7 +22,7 @@ class ResourceService {
   }
 
   /**
-   * Upload resource file for a lesson
+   * Upload resource file for a lesson (REQUIREMENT: Error notification for unsupported types)
    * @param {Buffer} fileBuffer - The resource file buffer
    * @param {string} originalFilename - Original filename
    * @param {number} lessonId - Lesson ID
@@ -34,8 +34,8 @@ class ResourceService {
     let transaction;
     
     try {
-      // Validate file
-      this.validateResourceFile(fileBuffer, originalFilename);
+      // Validate file (REQUIREMENT: Manages unsupported file types with error notification)
+      this.validateResourceFile(fileBuffer, originalFilename, userId);
 
       // Start database transaction
       transaction = await db.transaction();
@@ -354,12 +354,13 @@ class ResourceService {
   }
 
   /**
-   * Validate resource file type and size
+   * Validate resource file type and size (REQUIREMENT: Error notification for unsupported types)
    * @param {Buffer} fileBuffer - File buffer
    * @param {string} filename - Filename
+   * @param {number} userId - Optional user ID for logging
    * @throws {Error} If validation fails
    */
-  validateResourceFile(fileBuffer, filename) {
+  validateResourceFile(fileBuffer, filename, userId = null) {
     // Size validation
     if (fileBuffer.length > this.maxFileSize) {
       throw new Error(
@@ -367,10 +368,23 @@ class ResourceService {
       );
     }
 
-    // Format validation
+    // Format validation (REQUIREMENT: Manages unsupported file types with error notification)
     const fileExtension = filename.split('.').pop()?.toLowerCase();
     
     if (!fileExtension || !this.allowedFileTypes.includes(fileExtension)) {
+      // Log unsupported file attempt (REQUIREMENT: Error notification)
+      if (userId) {
+        const resourceLibraryService = require('./resourceLibraryService');
+        resourceLibraryService.logUnsupportedFileAttempt(
+          userId,
+          filename,
+          fileExtension,
+          null,
+          fileBuffer.length,
+          `Unsupported file type: ${fileExtension}`
+        ).catch(console.error); // Don't block on logging
+      }
+      
       throw new Error(
         `Unsupported file type: ${fileExtension}. Allowed types: ${this.allowedFileTypes.join(', ')}`
       );

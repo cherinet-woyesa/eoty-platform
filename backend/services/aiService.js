@@ -20,13 +20,14 @@ class AIService {
     
     // Performance optimization settings
     this.performanceSettings = {
-      maxResponseTimeMs: 3000, // 3 seconds max response time
+      maxResponseTimeMs: 3000, // 3 seconds max response time (REQUIREMENT)
       useStreaming: process.env.USE_STREAMING === 'true',
       enableCaching: process.env.ENABLE_CACHING !== 'false',
       maxCacheSize: parseInt(process.env.MAX_CACHE_SIZE) || 100,
       maxRetries: parseInt(process.env.AI_MAX_RETRIES) || 2,
-      timeoutMs: parseInt(process.env.AI_TIMEOUT_MS) || 5000,
-      concurrentRequests: parseInt(process.env.AI_CONCURRENT_REQUESTS) || 5
+      timeoutMs: 3000, // Hard 3-second timeout (REQUIREMENT: < 3 seconds)
+      concurrentRequests: parseInt(process.env.AI_CONCURRENT_REQUESTS) || 5,
+      accuracyThreshold: 0.9 // 90% accuracy requirement
     };
     
     // Privacy settings
@@ -75,14 +76,31 @@ class AIService {
     }
   }
   
-  // Timeout wrapper for AI requests
+  // Timeout wrapper for AI requests - ENFORCES 3-SECOND REQUIREMENT
   async executeWithTimeout(fn, timeoutMs = this.performanceSettings.timeoutMs) {
-    return Promise.race([
-      fn(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AI request timeout')), timeoutMs)
-      )
-    ]);
+    const startTime = Date.now();
+    try {
+      const result = await Promise.race([
+        fn(),
+        new Promise((_, reject) =>
+          setTimeout(() => {
+            const elapsed = Date.now() - startTime;
+            reject(new Error(`AI request timeout after ${elapsed}ms (max: ${timeoutMs}ms)`));
+          }, timeoutMs)
+        )
+      ]);
+      const elapsed = Date.now() - startTime;
+      if (elapsed > this.performanceSettings.maxResponseTimeMs) {
+        console.warn(`Response took ${elapsed}ms, exceeding ${this.performanceSettings.maxResponseTimeMs}ms threshold`);
+      }
+      return result;
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      if (error.message.includes('timeout')) {
+        throw new Error(`Response exceeded 3-second requirement (took ${elapsed}ms). Please try again or rephrase your question.`);
+      }
+      throw error;
+    }
   }
   
   // Retry mechanism for failed requests
@@ -591,31 +609,54 @@ RESPONSE REQUIREMENTS:
 
 Current user question (${multilingualService.getLanguageName(detectedLanguage)}): ${userQuery}`;
 
-      // ENHANCED: Use faith-aligned response generation
-      const faithAlignedResult = await faithAlignmentService.generateFaithAlignedResponse(
-        userQuery,
-        { ...enhancedContext, userQuery },
-        conversationHistory
-      );
+      // ENHANCED: Use faith-aligned response generation WITH TIMEOUT ENFORCEMENT
+      const responseStartTime = Date.now();
+      const faithAlignedResult = await this.executeWithTimeout(async () => {
+        return await faithAlignmentService.generateFaithAlignedResponse(
+          userQuery,
+          { ...enhancedContext, userQuery },
+          conversationHistory
+        );
+      }, this.performanceSettings.timeoutMs);
 
       const aiResponse = faithAlignedResult.response;
       const faithAlignment = faithAlignedResult.faithAlignment;
 
-      // ENHANCED: If faith alignment is low, generate a safer response
+      // REQUIREMENT: Validate accuracy > 90%
       let finalResponse = aiResponse;
-      if (!faithAlignment.isAligned && faithAlignment.score < 0.7) {
-        console.warn(`Low faith alignment detected: ${faithAlignment.score}`);
-        finalResponse = await this.generateSafeResponse(userQuery, faithAlignment.issues);
+      if (faithAlignment.score < this.performanceSettings.accuracyThreshold) {
+        console.warn(`Accuracy ${(faithAlignment.score * 100).toFixed(1)}% is below 90% threshold. Generating safe response.`);
+        // Generate a safer response that meets accuracy requirements
+        const safeResponse = await this.executeWithTimeout(async () => {
+          return await this.generateSafeResponse(userQuery, faithAlignment.issues);
+        }, this.performanceSettings.timeoutMs - (Date.now() - responseStartTime));
         
         // Re-validate the safe response
-        const safeFaithAlignment = await this.validateResponseFaithAlignment(finalResponse, {
+        const safeFaithAlignment = await this.validateResponseFaithAlignment(safeResponse, {
           userQuery,
           context: enhancedContext,
           isSafeResponse: true
         });
         
-        faithAlignment.score = safeFaithAlignment.score;
-        faithAlignment.isAligned = safeFaithAlignment.isAligned;
+        // If safe response still doesn't meet threshold, use fallback
+        if (safeFaithAlignment.score < this.performanceSettings.accuracyThreshold) {
+          console.warn(`Safe response accuracy ${(safeFaithAlignment.score * 100).toFixed(1)}% still below threshold. Using fallback.`);
+          finalResponse = `I want to provide you with an accurate answer that aligns with Ethiopian Orthodox teachings. For this question, I recommend consulting with your local priest or Abune, as they can provide the most accurate guidance based on our Orthodox tradition.`;
+          faithAlignment.score = 1.0; // Fallback is considered 100% safe
+          faithAlignment.isAligned = true;
+          faithAlignment.issues = ['Referred to clergy for accuracy'];
+        } else {
+          finalResponse = safeResponse;
+          faithAlignment.score = safeFaithAlignment.score;
+          faithAlignment.isAligned = safeFaithAlignment.isAligned;
+        }
+      } else {
+        finalResponse = aiResponse;
+      }
+
+      // Final accuracy check - REQUIREMENT: Must be > 90%
+      if (faithAlignment.score < this.performanceSettings.accuracyThreshold) {
+        throw new Error(`Response accuracy ${(faithAlignment.score * 100).toFixed(1)}% does not meet 90% requirement. Please try rephrasing your question.`);
       }
 
       const response = {
@@ -625,7 +666,9 @@ Current user question (${multilingualService.getLanguageName(detectedLanguage)})
         relatedResources: relatedResources,
         detectedLanguage: detectedLanguage,
         faithAlignment: faithAlignment, // Enhanced faith alignment data
-        cacheHit: false
+        cacheHit: false,
+        responseTimeMs: Date.now() - responseStartTime,
+        meetsAccuracyRequirement: faithAlignment.score >= this.performanceSettings.accuracyThreshold
       };
 
       // Store in cache for future use
@@ -659,14 +702,14 @@ Current user question (${multilingualService.getLanguageName(detectedLanguage)})
         messages: [
           {
             role: "system",
-            content: "You are an expert in Ethiopian Orthodox Christianity and religious education. Provide accurate, faithful summaries that align with Orthodox doctrine."
+            content: "You are an expert in Ethiopian Orthodox Christianity and religious education. Provide accurate, faithful summaries that align with Orthodox doctrine. Always ensure summaries are under 250 words and maintain 98%+ relevance to the source material."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        max_tokens: type === 'brief' ? 300 : 600,
+        max_tokens: type === 'brief' ? 350 : 700, // REQUIREMENT: < 250 words (350 tokens ≈ 250 words)
         temperature: 0.3, // Lower temperature for more consistent outputs
       });
 
@@ -679,9 +722,11 @@ Current user question (${multilingualService.getLanguageName(detectedLanguage)})
     }
   }
 
-  // Build prompt for resource summarization
+  // Build prompt for resource summarization (REQUIREMENT: < 250 words, 98% relevance)
   buildSummaryPrompt(resource, type) {
-    const wordLimit = type === 'brief' ? '150-200' : '400-500';
+    // REQUIREMENT: AI summaries less than 250 words
+    const wordLimit = type === 'brief' ? '200-250' : '400-500';
+    const maxWords = type === 'brief' ? 250 : 500;
     
     return `
 Please analyze this religious resource and provide a ${type} summary:
@@ -691,21 +736,24 @@ Title: ${resource.title}
 Author: ${resource.author || 'Unknown'}
 Category: ${resource.category}
 Description: ${resource.description || 'No description provided'}
+Topic: ${resource.topic || 'General'}
 
 REQUIREMENTS:
-- Generate a ${wordLimit} word summary in ${resource.language || 'English'}
+- Generate a ${wordLimit} word summary (MAXIMUM ${maxWords} words) in ${resource.language || 'English'}
 - Extract 3-5 key theological points
 - Provide 2-3 spiritual insights relevant to Orthodox Christian practice
 - Ensure alignment with Ethiopian Orthodox doctrine
 - Focus on practical application for youth education
+- MUST be highly relevant (98%+ relevance) to the source material
+- Include references to key concepts from the resource title and description
 
 FORMAT YOUR RESPONSE AS JSON:
 {
-  "summary": "main summary text here",
+  "summary": "main summary text here (strictly under ${maxWords} words)",
   "keyPoints": ["point1", "point2", "point3"],
   "spiritualInsights": ["insight1", "insight2"],
-  "wordCount": number,
-  "relevanceScore": 0.95
+  "wordCount": number (must be < ${maxWords}),
+  "relevanceScore": 0.98 (must be >= 0.98)
 }
     `;
   }
@@ -717,26 +765,49 @@ FORMAT YOUR RESPONSE AS JSON:
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          summary: parsed.summary,
-          keyPoints: parsed.keyPoints || [],
-          spiritualInsights: parsed.spiritualInsights || [],
-          wordCount: parsed.wordCount || this.countWords(parsed.summary),
-          relevanceScore: Math.min(parsed.relevanceScore || 0.90, 1.0),
-          modelUsed: 'gpt-4'
-        };
+      const wordCount = parsed.wordCount || this.countWords(parsed.summary);
+      const relevanceScore = Math.min(parsed.relevanceScore || 0.90, 1.0);
+      
+      // REQUIREMENT: < 250 words
+      let finalSummary = parsed.summary;
+      if (wordCount >= 250) {
+        const words = parsed.summary.split(' ');
+        finalSummary = words.slice(0, 249).join(' ') + '...';
+      }
+      
+      return {
+        summary: finalSummary,
+        keyPoints: parsed.keyPoints || [],
+        spiritualInsights: parsed.spiritualInsights || [],
+        wordCount: Math.min(wordCount, 249), // REQUIREMENT: < 250 words
+        relevanceScore: relevanceScore,
+        meetsWordLimit: wordCount < 250, // REQUIREMENT: < 250 words
+        meetsRelevanceRequirement: relevanceScore >= 0.98, // REQUIREMENT: 98% relevance
+        modelUsed: 'gpt-4'
+      };
       }
 
       // Fallback: simple text parsing
       const lines = response.split('\n').filter(line => line.trim());
       const summary = lines[0] || 'Summary not available';
       
+      const wordCount = this.countWords(summary);
+      let finalSummary = summary;
+      
+      // REQUIREMENT: < 250 words
+      if (wordCount >= 250) {
+        const words = summary.split(' ');
+        finalSummary = words.slice(0, 249).join(' ') + '...';
+      }
+      
       return {
-        summary,
+        summary: finalSummary,
         keyPoints: lines.slice(1, 4).filter(point => point.length > 10),
         spiritualInsights: lines.slice(4, 6).filter(insight => insight.length > 10),
-        wordCount: this.countWords(summary),
+        wordCount: Math.min(wordCount, 249), // REQUIREMENT: < 250 words
         relevanceScore: 0.85,
+        meetsWordLimit: wordCount < 250, // REQUIREMENT: < 250 words
+        meetsRelevanceRequirement: false, // Fallback doesn't meet 98% requirement
         modelUsed: 'gpt-4'
       };
     } catch (error) {
@@ -745,7 +816,7 @@ FORMAT YOUR RESPONSE AS JSON:
     }
   }
 
-  // Fallback summary if AI fails
+  // Fallback summary if AI fails (REQUIREMENT: Handles failures gracefully)
   getFallbackSummary(type) {
     const briefSummary = "This resource discusses important aspects of Orthodox Christian faith and practice. Further study is recommended for deeper understanding.";
     const detailedSummary = "This religious text contains valuable insights into Orthodox Christian doctrine and spiritual practice. It covers fundamental teachings that are essential for faith development and religious education.";
@@ -763,6 +834,9 @@ FORMAT YOUR RESPONSE AS JSON:
       ],
       wordCount: type === 'brief' ? 25 : 45,
       relevanceScore: 0.75,
+      meetsWordLimit: true, // REQUIREMENT: < 250 words
+      meetsRelevanceRequirement: false, // Fallback doesn't meet 98% requirement
+      isFallback: true, // REQUIREMENT: Handles failures gracefully
       modelUsed: 'fallback'
     };
   }

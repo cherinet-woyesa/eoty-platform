@@ -225,6 +225,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const sessionStartTimeRef = useRef<number>(0);
   const lastChunkSizeRef = useRef<number>(0);
   const isRestartingRef = useRef<boolean>(false); // Flag to prevent onstop from finalizing during restart
+  const shouldStopAfterRestartRef = useRef<boolean>(false); // Flag to stop after restart completes
 
   // FIX: Export setRecordingTime function
   const setRecordingTimeState = useCallback((time: number) => {
@@ -290,14 +291,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       const compositor = new VideoCompositor(width, height, options.enableAudio);
       
       // Set up performance warning callback
+      // DISABLED: User requested to not show performance warnings
       compositor.setPerformanceWarningCallback((message: string) => {
-        console.warn('Compositor performance warning:', message);
-        setError(message);
-        
-        // Clear error after 5 seconds
-        setTimeout(() => {
-          setError(null);
-        }, 5000);
+        // Only log to console, don't show to user
+        console.warn('Compositor performance warning (silenced):', message);
       });
       
       console.log('VideoCompositor initialized successfully', { width, height });
@@ -534,28 +531,26 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       }));
       setIsScreenSharing(true);
 
-      // CRITICAL: Only initialize compositor or add to recording if actually recording
-      // When not recording, just set the screen source - preview will handle it
+      // Since we ALWAYS use compositor from start, we can dynamically add screen without restart
       if (isRecording) {
         if (compositorInstance) {
-          console.log('Adding screen share to active compositor during recording');
+          console.log('Adding screen share to active compositor during recording (NO RESTART NEEDED)');
         
-          // Add screen source to compositor (will replace if already exists)
+          // Add screen source to compositor dynamically - no restart needed!
           compositorInstance.addVideoSource('screen', screenStream, {
             visible: true,
             opacity: 1.0
           });
         
-          // CRITICAL FIX: Wait a moment for video element to be ready before applying layout
-          // This ensures the screen content is actually being captured
+          // Wait a moment for video element to be ready before applying layout
           setTimeout(() => {
-        // Automatically adjust layout to picture-in-picture (500ms transition)
+            // Automatically adjust layout to picture-in-picture (smooth transition)
         const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
             compositorInstance!.applyLayoutByType(newLayout, true);
         setCompositorLayout(newLayout);
         setCurrentLayout(newLayout as RecorderOptions['layout']);
         
-            console.log('Screen share added dynamically with smooth transition:', newLayout, {
+            console.log('✅ Screen share added dynamically (no restart) - layout:', newLayout, {
               screenStreamActive: screenStream.active,
               videoTracks: screenStream.getVideoTracks().length,
               trackStates: screenStream.getVideoTracks().map(t => ({
@@ -566,210 +561,9 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
             });
           }, 200); // Small delay to ensure video element is initialized
         } else {
-          // CRITICAL FIX: No compositor exists - need to restart recording with compositor
-          // MediaRecorder can't dynamically add tracks, so we need to restart with combined stream
-          // BUT: Only do this if we're actually recording!
-          if (!isRecording) {
-            console.log('Not recording - screen share will be available for preview only');
-            // Just set the screen source, preview will handle it
-            // Don't initialize compositor when not recording
-            return;
-          }
-          
-          console.log('No compositor during recording - will restart recording with screen source');
-          
-          // Update layout for preview immediately
-          const layoutType: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
-          setCurrentLayout(layoutType as RecorderOptions['layout']);
-          
-          // Show user-friendly message
-          setError('Adding screen to recording... This will briefly pause recording.');
-          
-          try {
-            // Save current chunks and recording time
-            const previousChunks = [...recordedChunksRef.current];
-            const elapsedTime = recordingTime;
-            
-            // Set restart flag to prevent onstop from finalizing
-            isRestartingRef.current = true;
-            
-            // Stop current recording and wait for it to complete
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-              console.log('Stopping current recording to add screen source');
-              
-              // Request final data chunk before stopping
-              if (mediaRecorderRef.current.state === 'recording') {
-                mediaRecorderRef.current.requestData();
-              }
-              
-              mediaRecorderRef.current.stop();
-              
-              // Wait for recorder to stop (but don't wait for onstop to finalize)
-              await new Promise<void>((resolve) => {
-                const checkStop = setInterval(() => {
-                  if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-                    clearInterval(checkStop);
-                    setTimeout(resolve, 100); // Short delay
-                  }
-                }, 50);
-              });
-            }
-            
-            // Clear recorder ref but keep chunks and DON'T clear recording state
-            mediaRecorderRef.current = null;
-            
-            // CRITICAL: Double-check we're still recording before initializing compositor
-            // This prevents compositor initialization when recording has stopped
-            if (!isRecording) {
-              console.warn('Recording stopped during screen share addition - aborting compositor initialization');
-              isRestartingRef.current = false;
-              setError('Recording was stopped. Please start recording again to add screen sharing.');
-              return;
-            }
-            
-            // Initialize compositor now that we have both sources
-            const compositor = await initializeCompositor();
-            if (compositor) {
-              // Add camera source only if stream is active and has live tracks
-              // CRITICAL: Check stream state before adding to avoid timeout errors
-              if (recordingSources.camera) {
-                const cameraStream = recordingSources.camera;
-                
-                // Verify stream is actually active and has live tracks before adding
-                if (!cameraStream.active) {
-                  console.warn('Camera stream is not active, skipping camera source in compositor (stream was stopped)');
-                } else {
-                  const cameraVideoTracks = cameraStream.getVideoTracks();
-                  const activeCameraTracks = cameraVideoTracks.filter(t => t.readyState === 'live' && t.enabled);
-                  
-                  if (activeCameraTracks.length > 0) {
-                    // Double-check stream is still active before adding (race condition protection)
-                    if (cameraStream.active) {
-                      compositor.addVideoSource('camera', cameraStream, {
-                        visible: true,
-                        opacity: 1.0
-                      });
-                      console.log('Camera source added to compositor for restart');
-                    } else {
-                      console.warn('Camera stream became inactive before adding to compositor');
-                    }
-                  } else {
-                    console.warn('Camera stream has no active tracks, skipping camera source in compositor');
-                  }
-                }
-              } else {
-                console.log('No camera source available for compositor restart');
-              }
-              
-              // Add screen source only if stream is active
-              const screenVideoTracks = screenStream.getVideoTracks();
-              const activeScreenTracks = screenVideoTracks.filter(t => t.readyState === 'live' && t.enabled);
-              
-              if (activeScreenTracks.length > 0 && screenStream.active) {
-                compositor.addVideoSource('screen', screenStream, {
-                  visible: true,
-                  opacity: 1.0
-                });
-                console.log('Screen source added to compositor for restart');
-              } else {
-                console.warn('Screen stream is not active, cannot add to compositor');
-                throw new Error('Screen stream is not active');
-              }
-              
-              // Determine layout based on which sources are actually available
-              // If camera is not active, use screen-only layout
-              const hasActiveCamera = recordingSources.camera && 
-                                      recordingSources.camera.active && 
-                                      recordingSources.camera.getVideoTracks().some(t => t.readyState === 'live' && t.enabled);
-              const finalLayoutType: LayoutType = hasActiveCamera ? layoutType : 'screen-only';
-              
-              // Apply layout
-              compositor.applyLayoutByType(finalLayoutType, false);
-              setCompositorLayout(finalLayoutType);
-              setCurrentLayout(finalLayoutType as RecorderOptions['layout']);
-              
-              // Wait longer for video elements to be ready and playing
-              console.log('Waiting for video sources to be ready and playing...');
-              
-              // Wait for video elements to load and play
-              await new Promise(resolve => setTimeout(resolve, 800));
-              
-              // Verify video sources are ready by checking the compositor's video elements
-              const canvas = compositor.getCanvas();
-              console.log('Compositor canvas ready:', {
-                width: canvas.width,
-                height: canvas.height
-              });
-              
-              // Get composited stream
-              const compositedStream = compositor.start();
-              
-              // Verify stream has tracks
-              const videoTracks = compositedStream.getVideoTracks();
-              const audioTracks = compositedStream.getAudioTracks();
-              
-              console.log('Composited stream verification:', {
-                videoTracks: videoTracks.length,
-                audioTracks: audioTracks.length,
-                videoTrackStates: videoTracks.map(t => ({
-                  label: t.label,
-                  readyState: t.readyState,
-                  enabled: t.enabled
-                }))
-              });
-              
-              if (videoTracks.length === 0) {
-                throw new Error('Composited stream has no video tracks');
-              }
-              
-              // Restart recording with composited stream
-              console.log('Restarting recording with compositor stream:', {
-                videoTracks: videoTracks.length,
-                audioTracks: audioTracks.length,
-                previousChunks: previousChunks.length,
-                elapsedTime
-              });
-              
-              // Restore recording time
-              setRecordingTime(elapsedTime);
-              
-              // Clear restart flag before starting new recording
-              isRestartingRef.current = false;
-              
-              // Start new recording with composited stream
-              await startRecordingWithStream(compositedStream, compositor, previousChunks);
-              
-              setError(null);
-              console.log('Recording restarted successfully with screen source');
-            } else {
-              console.warn('Failed to initialize compositor - screen will not be recorded');
-              isRestartingRef.current = false;
-              setError('Failed to initialize compositor. Screen will not be recorded. Please stop and restart recording.');
-        setCurrentLayout('screen-only');
-              // Resume recording with camera only
-              const combinedStream = createCombinedStream();
-              if (combinedStream) {
-                await startRecordingWithStream(combinedStream, null, previousChunks);
-              }
-            }
-          } catch (error) {
-            console.error('Failed to restart recording with screen:', error);
-            isRestartingRef.current = false;
-            setError('Failed to add screen to recording. Recording continues with camera only.');
-            setCurrentLayout('screen-only');
-            
-            // Try to resume with camera only
-            try {
-              const previousChunks = [...recordedChunksRef.current];
-              const combinedStream = createCombinedStream();
-              if (combinedStream) {
-                await startRecordingWithStream(combinedStream, null, previousChunks);
-              }
-            } catch (resumeError) {
-              console.error('Failed to resume recording:', resumeError);
-              setIsRecording(false);
-            }
-          }
+          // This should never happen since we always use compositor from start
+          console.error('No compositor instance during recording - this should not happen!');
+          setError('Recording error: Compositor not initialized. Please stop and restart recording.');
         }
       }
 
@@ -988,18 +782,32 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     // Clean up screen sharing
     stopScreenShare();
     
-    // Always clean up local state
+    // CRITICAL: Only cleanup if recording is not active and blob is ready
+    // This prevents clearing chunks before blob is created
+    // If recording just stopped, the onstop handler will cleanup after blob is created
+    const shouldCleanup = !isRecording && (videoBlob || recordedVideo);
+    
+    if (shouldCleanup) {
+      console.log('Cleaning up camera - recording stopped and blob ready');
     cleanupLocalStreams();
+    } else if (!isRecording) {
+      console.log('Deferring cleanup - waiting for blob to be created');
+      // Don't cleanup yet - wait for blob to be created
+      // The onstop handler will handle cleanup
+    } else {
+      console.log('Skipping cleanup - recording still active');
+    }
+    
     setRecordingSources({
       camera: null,
       screen: null,
       microphone: null
     });
     setCameraInitialized(false);
-    setIsRecording(false);
     setIsScreenSharing(false);
-    setRecordingTime(0);
-  }, [cleanupLocalStreams, stopScreenShare]);
+    // Don't reset recordingTime here - it's needed for the blob
+    // Don't reset isRecording here - let the onstop handler do it
+  }, [cleanupLocalStreams, stopScreenShare, isRecording, videoBlob, recordedVideo]);
 
   // NEW: Enhanced combined stream creation with production features
   const createCombinedStream = useCallback((): MediaStream | null => {
@@ -1224,34 +1032,34 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     });
   }, [options.quality]);
 
-  // Task 3.3: Enhanced recording with multi-source compositor support
+  // Task 3.3: Enhanced recording - ALWAYS use Canvas compositor (Google Meet approach)
+  // This allows dynamic source addition without restarting recording
   const startRecording = useCallback(async () => {
-    // Detect if both camera and screen are available for compositing
     const hasCamera = !!recordingSources.camera;
     const hasScreen = !!recordingSources.screen;
-    const shouldUseCompositor = hasCamera && hasScreen;
     
-    console.log('Starting recording...', {
+    console.log('Starting recording with Canvas compositor (always)...', {
       hasCamera,
       hasScreen,
-      shouldUseCompositor,
       currentLayout
     });
     
-    let recordingStream: MediaStream | null = null;
+    // ALWAYS use compositor - even for single source
+    // This enables dynamic source addition without restart
     let compositor: VideoCompositor | null = null;
-    
-    // Multi-source compositing path
-    if (shouldUseCompositor) {
-      console.log('Using compositor for multi-source recording');
+    let recordingStream: MediaStream | null = null;
       
       // Initialize compositor
       compositor = await initializeCompositor();
       if (!compositor) {
-        console.warn('Compositor initialization failed, falling back to single-source');
-        // Fall through to single-source recording
-      } else {
-        try {
+      console.error('Compositor initialization failed - cannot record');
+      setError('Failed to initialize video compositor. Please refresh and try again.');
+      return;
+    }
+    
+    try {
+      let sourcesAdded = 0;
+      
           // Add camera source if available and active
           if (recordingSources.camera) {
             const cameraStream = recordingSources.camera;
@@ -1263,6 +1071,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
                 visible: true,
                 opacity: 1.0
               });
+          sourcesAdded++;
               console.log('Camera source added to compositor');
             } else {
               console.warn('Camera stream is not active, skipping camera source');
@@ -1280,26 +1089,81 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
                 visible: true,
                 opacity: 1.0
               });
+          sourcesAdded++;
               console.log('Screen source added to compositor');
             } else {
               console.warn('Screen stream is not active, skipping screen source');
             }
           }
           
-          // Apply current layout
-          const layoutType = currentLayout as LayoutType || 'picture-in-picture';
+      // CRITICAL: Must have at least one video source
+      if (sourcesAdded === 0) {
+        throw new Error('No active video sources available. Please ensure camera or screen is active.');
+      }
+      
+      // Determine layout based on available sources
+      let layoutType: LayoutType;
+      if (hasCamera && hasScreen) {
+        layoutType = (currentLayout as LayoutType) || 'picture-in-picture';
+      } else if (hasScreen) {
+        layoutType = 'screen-only';
+      } else {
+        layoutType = 'camera-only';
+      }
+      
+      // Apply layout
           compositor.applyLayoutByType(layoutType, false);
           setCompositorLayout(layoutType);
+      setCurrentLayout(layoutType as RecorderOptions['layout']);
           console.log('Applied layout:', layoutType);
+      
+      // CRITICAL: Wait for video elements to be ready and playing before starting compositor
+      // This ensures the canvas has actual video frames to capture
+      console.log('Waiting for video sources to be ready and playing...');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Give video elements time to initialize
+      
+      // Additional wait to ensure video is actually playing
+      // The compositor will start rendering even if videos aren't fully ready,
+      // but we want to give them a chance to start playing
+      let readyAttempts = 0;
+      const maxReadyAttempts = 10; // 1 second max wait
+      while (readyAttempts < maxReadyAttempts) {
+        // Check if we have at least one source that should be ready
+        // The compositor will handle rendering even if videos aren't fully ready
+        const canvas = compositor.getCanvas();
+        if (canvas && canvas.width > 0 && canvas.height > 0) {
+          // Canvas is ready, give a bit more time for video frames to start
+          await new Promise(resolve => setTimeout(resolve, 200));
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        readyAttempts++;
+      }
           
           // Start compositor and get composited stream with mixed audio
-          // The compositor now handles audio mixing internally
           recordingStream = compositor.start();
+      
+      // Validate stream has video tracks
+      const videoTracks = recordingStream.getVideoTracks();
+      const audioTracks = recordingStream.getAudioTracks();
           
           console.log('Composited stream created:', {
-            videoTracks: recordingStream.getVideoTracks().length,
-            audioTracks: recordingStream.getAudioTracks().length
-          });
+        videoTracks: videoTracks.length,
+        audioTracks: audioTracks.length,
+        videoTrackStates: videoTracks.map(t => ({
+          label: t.label,
+          readyState: t.readyState,
+          enabled: t.enabled
+        }))
+      });
+      
+      if (videoTracks.length === 0) {
+        throw new Error('Composited stream has no video tracks. Cannot start recording.');
+      }
+      
+      // Store compositor instance for dynamic source management
+      setCompositorInstance(compositor);
+      setIsCompositing(true);
           
           // Start performance monitoring
           const metricsInterval = setInterval(() => {
@@ -1318,47 +1182,24 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
           
         } catch (err: any) {
           console.error('Compositor setup failed:', err);
-          setError('Failed to setup multi-source recording: ' + err.message);
+      setError('Failed to setup recording: ' + err.message);
           if (compositor) {
             compositor.dispose();
           }
           setCompositorInstance(null);
           setIsCompositing(false);
           return;
-        }
-      }
     }
     
-    // Single-source fallback or when compositor not needed
-    if (!recordingStream) {
-      console.log('Using single-source recording (backward compatibility)');
-      const combinedStream = createCombinedStream();
-      if (!combinedStream) {
-        console.error('Failed to create combined stream');
-        return;
-      }
-      
-      // Validate stream has active tracks
-      const activeTracks = combinedStream.getTracks().filter(track => track.readyState === 'live');
-      if (activeTracks.length === 0) {
-        console.error('No active tracks in combined stream');
-        setError('No active media tracks available for recording');
-        return;
-      }
-      
-      recordingStream = combinedStream;
-      console.log('Single-source stream created:', {
-        total: recordingStream.getTracks().length,
-        active: activeTracks.length,
-        video: recordingStream.getVideoTracks().length,
-        audio: recordingStream.getAudioTracks().length
-      });
-    }
-    
-    // Validate final recording stream
+    // Validate recording stream
     if (!recordingStream) {
       console.error('No recording stream available');
       setError('Failed to create recording stream');
+      if (compositor) {
+        compositor.dispose();
+      }
+      setCompositorInstance(null);
+      setIsCompositing(false);
       return;
     }
 
@@ -1435,7 +1276,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         layout: currentLayout,
         resolution: options.resolution,
         quality: options.quality,
-        usingCompositor: shouldUseCompositor
+        usingCompositor: !!compositor
       });
 
       // Enhanced MediaRecorder options based on quality
@@ -1457,8 +1298,39 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
           break;
       }
 
+      // Validate stream before creating MediaRecorder
+      const streamVideoTracks = recordingStream.getVideoTracks();
+      const streamAudioTracks = recordingStream.getAudioTracks();
+      
+      console.log('Creating MediaRecorder with stream:', {
+        videoTracks: streamVideoTracks.length,
+        audioTracks: streamAudioTracks.length,
+        streamActive: recordingStream.active,
+        videoTrackStates: streamVideoTracks.map(t => ({
+          label: t.label,
+          readyState: t.readyState,
+          enabled: t.enabled,
+          muted: t.muted
+        }))
+      });
+      
+      if (streamVideoTracks.length === 0) {
+        throw new Error('Recording stream has no video tracks. Cannot start MediaRecorder.');
+      }
+      
+      // Check if any video track is actually live
+      const liveVideoTracks = streamVideoTracks.filter(t => t.readyState === 'live');
+      if (liveVideoTracks.length === 0) {
+        console.warn('No live video tracks in stream, but proceeding anyway - tracks may become live soon');
+      }
+
       const mediaRecorder = new MediaRecorder(recordingStream, recorderOptions);
       mediaRecorderRef.current = mediaRecorder;
+      
+      console.log('MediaRecorder created successfully:', {
+        mimeType: supportedMimeType,
+        state: mediaRecorder.state
+      });
 
       // Enhanced data available handler with stats tracking
       mediaRecorder.ondataavailable = (event) => {
@@ -1493,16 +1365,13 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       };
 
       mediaRecorder.onstop = () => {
-        // CRITICAL FIX: Don't finalize if we're restarting recording
-        if (isRestartingRef.current) {
-          console.log('Recording stopped for restart - not finalizing');
-          // Just clear the recorder ref, keep chunks and state
-          mediaRecorderRef.current = null;
-          return;
-        }
+        console.log('MediaRecorder onstop handler fired', {
+          chunks: recordedChunksRef.current.length,
+          recorderState: mediaRecorderRef.current?.state
+        });
         
         const finalDuration = (Date.now() - sessionStartTimeRef.current) / 1000;
-        console.log('Recording stopped', {
+        console.log('Recording stopped - finalizing blob', {
           chunks: recordedChunksRef.current.length,
           totalSize: recordedChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0),
           duration: finalDuration,
@@ -1540,23 +1409,34 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
             size: blob.size,
             type: blob.type,
             duration: finalDuration,
+            chunksCount: recordedChunksRef.current.length,
             slideTimestamps: currentSession?.metadata.slides?.timestamps
           });
 
           const url = URL.createObjectURL(blob);
           setRecordedVideo(url);
           setVideoBlob(blob);
+          
+          console.log('✅ Video blob and URL set successfully');
+          
+          // Immediately set isRecording to false so UI updates
+          setIsRecording(false);
+          setIsPaused(false);
         } else {
-          console.warn('No recording chunks available');
+          console.warn('No recording chunks available', {
+            chunksLength: recordedChunksRef.current.length
+          });
           setError('Recording failed - no video data captured');
           setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
-        }
-        
         setIsRecording(false);
         setIsPaused(false);
+        }
         
-        // Clear all timers
+        // CRITICAL: Don't cleanup streams immediately - wait a bit to ensure blob is processed
+        // The component will handle cleanup after blob is ready
+        setTimeout(() => {
         cleanupLocalStreams();
+        }, 500); // Small delay to ensure blob is fully created and set
       };
 
       mediaRecorder.onstart = () => {
@@ -1587,8 +1467,18 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       };
 
       // Start recording with optimized timeslice
+      try {
       mediaRecorder.start(1000); // Collect data every second
-      console.log('Enhanced recording started successfully');
+        console.log('✅ Enhanced recording started successfully', {
+          state: mediaRecorder.state,
+          mimeType: supportedMimeType,
+          streamActive: recordingStream.active,
+          videoTracks: recordingStream.getVideoTracks().length
+        });
+      } catch (startError: any) {
+        console.error('❌ Failed to start MediaRecorder:', startError);
+        throw new Error(`Failed to start recording: ${startError.message || 'Unknown error'}`);
+      }
       
       // Debug: Log stream state periodically
       debugIntervalRef.current = setInterval(() => {
@@ -1600,7 +1490,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
             videoTracks: recordingStream.getVideoTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
             audioTracks: recordingStream.getAudioTracks().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })),
             chunksCollected: recordedChunksRef.current.length,
-            usingCompositor: shouldUseCompositor,
+            usingCompositor: !!compositor,
             compositorMetrics: compositor ? compositor.getPerformanceMetrics() : null
           });
         }
@@ -1625,12 +1515,100 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
   // Enhanced stop recording
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      console.log('Stopping enhanced recording...');
+    console.log('stopRecording called', {
+      hasRecorder: !!mediaRecorderRef.current,
+      isRecording,
+      isRestarting: isRestartingRef.current,
+      recorderState: mediaRecorderRef.current?.state
+    });
+    
+    // CRITICAL: If we're restarting, set flag to stop after restart completes
+    if (isRestartingRef.current) {
+      console.log('Recording is restarting - will stop after restart completes');
+      shouldStopAfterRestartRef.current = true;
+      return;
+    }
+    
+    if (!mediaRecorderRef.current) {
+      console.warn('No media recorder to stop');
+      // If no recorder but we think we're recording, just set state
+      if (isRecording) {
+        setIsRecording(false);
+        setIsPaused(false);
+      }
+      return;
+    }
+    
+    if (!isRecording) {
+      console.warn('Not recording, cannot stop');
+      return;
+    }
+    
+    const recorderState = mediaRecorderRef.current.state;
+    console.log('MediaRecorder state:', recorderState);
+    
+    if (recorderState !== 'recording' && recorderState !== 'paused') {
+      console.warn(`MediaRecorder is in ${recorderState} state, cannot stop`);
+      // If in inactive state, just update UI state
+      if (recorderState === 'inactive') {
+        setIsRecording(false);
+        setIsPaused(false);
+      }
+      return;
+    }
+    
+    console.log('Stopping enhanced recording...', {
+      state: recorderState,
+      chunks: recordedChunksRef.current.length,
+      totalSize: recordedChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0)
+    });
+    
+    // CRITICAL: Reset restart flag when stopping (not restarting)
+    // This ensures the onstop handler will process the final blob
+    isRestartingRef.current = false;
+    
+    try {
+      if (recorderState === 'paused') {
+        console.log('Resuming before stopping...');
+        mediaRecorderRef.current.resume();
+        // Wait a moment for resume to take effect, then stop
+        setTimeout(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.requestData();
       mediaRecorderRef.current.stop();
+            console.log('MediaRecorder stopped after resume');
+          }
+        }, 100);
+        return; // Exit early, stop will happen in setTimeout
+      }
+      
+      // Request final data chunk
+      if (recorderState === 'recording') {
+        mediaRecorderRef.current.requestData();
+      }
+      
+      mediaRecorderRef.current.stop();
+      console.log('MediaRecorder.stop() called successfully');
+    } catch (error) {
+      console.error('Error stopping MediaRecorder:', error);
+      // Force stop by setting state and creating blob from existing chunks
+      setIsRecording(false);
+      setIsPaused(false);
+      
+      // If we have chunks, create blob immediately
+      if (recordedChunksRef.current.length > 0) {
+        const blob = new Blob(recordedChunksRef.current, { 
+          type: recordedChunksRef.current[0].type || 'video/webm'
+        });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideo(url);
+        setVideoBlob(blob);
+        console.log('Created blob from chunks after stop error:', blob.size);
+      }
+    }
+    
       // DON'T call cleanupLocalStreams here - let onstop handler do it
       // This preserves recordingTime for the component to read
-    }
   }, [isRecording]);
 
   // Enhanced pause recording

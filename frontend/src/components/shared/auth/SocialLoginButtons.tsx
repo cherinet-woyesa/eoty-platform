@@ -1,64 +1,239 @@
-import React, { memo } from 'react';
+/**
+ * FR7: Enhanced Social Login Buttons
+ * REQUIREMENT: SSO/Social Login (OAuth2, Google, Facebook)
+ */
+
+import React, { memo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { authApi } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
 const SocialLoginButtons: React.FC = memo(() => {
-  const { loginWithGoogle } = useAuth();
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleLogin = async () => {
-    try {
-      // In a real implementation, this would:
-      // 1. Load the Google OAuth library
-      // 2. Initiate the Google sign-in flow
-      // 3. Get the user's Google profile data
-      // 4. Send that data to our backend
-      
-      // For demonstration purposes, we'll simulate a successful Google login
-      // In a real app, you would use the Google OAuth library:
-      /*
-      // Load the Google OAuth library
+  // Load Google OAuth script
+  useEffect(() => {
+    const loadGoogleScript = () => {
+      if (window.google) return; // Already loaded
+
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
       document.body.appendChild(script);
-      
-      // Initialize Google Auth
-      google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID",
-        callback: handleGoogleCallback
+    };
+
+    loadGoogleScript();
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      setError(null);
+
+      // Check if Google OAuth is available
+      if (!window.google) {
+        throw new Error('Google OAuth library not loaded. Please refresh the page.');
+      }
+
+      // Initialize Google OAuth (REQUIREMENT: OAuth2, Google)
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+        callback: async (response: any) => {
+          try {
+            // Decode JWT token to get user info
+            const tokenParts = response.credential.split('.');
+            const payload = JSON.parse(atob(tokenParts[1]));
+            
+            const googleData = {
+              googleId: payload.sub,
+              email: payload.email,
+              firstName: payload.given_name || '',
+              lastName: payload.family_name || '',
+              profilePicture: payload.picture
+            };
+
+            // Send to backend
+            const apiResponse = await authApi.googleLogin(googleData);
+            
+            if (apiResponse.success && apiResponse.data) {
+              const { token, user } = apiResponse.data;
+              
+              // Use the auth context login method
+              await login(googleData.email, ''); // Password not needed for SSO
+              
+              // Navigate to dashboard
+              navigate('/dashboard');
+            } else {
+              throw new Error(apiResponse.message || 'Google login failed');
+            }
+          } catch (err: any) {
+            console.error('Google callback error:', err);
+            setError(err.message || 'Failed to complete Google login');
+          } finally {
+            setIsGoogleLoading(false);
+          }
+        }
       });
-      
-      // Handle the Google OAuth callback
-      const handleGoogleCallback = (response) => {
-        // Decode the JWT token to get user info
-        const user = jwt_decode(response.credential);
-        
-        // Send to our backend
-        loginWithGoogle({
-          googleId: user.sub,
-          email: user.email,
-          firstName: user.given_name,
-          lastName: user.family_name,
-          profilePicture: user.picture
-        });
-      };
-      */
-      
-      // Simulate Google login for demonstration
-      alert('In a real application, this would initiate the Google OAuth flow. For now, we\'ll simulate a successful login.');
-      
-      // Simulate successful Google login
-      await loginWithGoogle({
-        googleId: '123456789',
-        email: 'user@gmail.com',
-        firstName: 'Google',
-        lastName: 'User',
-        profilePicture: 'https://via.placeholder.com/150'
+
+      // Trigger Google sign-in
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // Fallback: show one-tap sign-in
+          window.google.accounts.id.renderButton(
+            document.getElementById('google-signin-button') || document.body,
+            {
+              theme: 'outline',
+              size: 'large',
+              width: '100%'
+            }
+          );
+        }
       });
+
+      // Alternative: Use popup flow
+      window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+        scope: 'email profile',
+        callback: async (tokenResponse: any) => {
+          // Get user info from Google API
+          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          });
+          const userInfo = await userInfoResponse.json();
+
+          const googleData = {
+            googleId: userInfo.id,
+            email: userInfo.email,
+            firstName: userInfo.given_name || '',
+            lastName: userInfo.family_name || '',
+            profilePicture: userInfo.picture
+          };
+
+          const apiResponse = await authApi.googleLogin(googleData);
+          
+          if (apiResponse.success && apiResponse.data) {
+            await login(googleData.email, '');
+            navigate('/dashboard');
+          }
+        }
+      }).requestAccessToken();
       
     } catch (error: any) {
       console.error('Google login failed:', error);
-      alert('Google login failed: ' + (error.message || 'Unknown error'));
+      setError(error.message || 'Google login failed');
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      setIsFacebookLoading(true);
+      setError(null);
+
+      // Facebook OAuth (REQUIREMENT: Facebook)
+      // Note: This requires Facebook SDK to be loaded
+      if (!window.FB) {
+        // Load Facebook SDK
+        const script = document.createElement('script');
+        script.src = 'https://connect.facebook.net/en_US/sdk.js';
+        script.async = true;
+        script.defer = true;
+        script.crossOrigin = 'anonymous';
+        document.body.appendChild(script);
+
+        script.onload = () => {
+          window.FB.init({
+            appId: import.meta.env.VITE_FACEBOOK_APP_ID || '',
+            cookie: true,
+            xfbml: true,
+            version: 'v18.0'
+          });
+
+          // Trigger login
+          window.FB.login((response: any) => {
+            if (response.authResponse) {
+              // Get user info
+              window.FB.api('/me', { fields: 'id,name,email,picture' }, async (userInfo: any) => {
+                try {
+                  const facebookData = {
+                    facebookId: userInfo.id,
+                    email: userInfo.email || `${userInfo.id}@facebook.com`,
+                    firstName: userInfo.name.split(' ')[0] || '',
+                    lastName: userInfo.name.split(' ').slice(1).join(' ') || '',
+                    profilePicture: userInfo.picture?.data?.url
+                  };
+
+                  // Send to backend (REQUIREMENT: Facebook OAuth)
+                  const apiResponse = await authApi.facebookLogin(facebookData);
+                  
+                  if (apiResponse.success && apiResponse.data) {
+                    const { token, user } = apiResponse.data;
+                    
+                    // Use the auth context login method
+                    await login(facebookData.email, ''); // Password not needed for SSO
+                    
+                    // Navigate to dashboard
+                    navigate('/dashboard');
+                  } else {
+                    throw new Error(apiResponse.message || 'Facebook login failed');
+                  }
+                } catch (err: any) {
+                  console.error('Facebook login error:', err);
+                  setError(err.message || 'Facebook login failed');
+                } finally {
+                  setIsFacebookLoading(false);
+                }
+              });
+            } else {
+              setError('Facebook login cancelled');
+              setIsFacebookLoading(false);
+            }
+          }, { scope: 'email,public_profile' });
+        };
+      } else {
+        // SDK already loaded, trigger login
+        window.FB.login((response: any) => {
+          if (response.authResponse) {
+            window.FB.api('/me', { fields: 'id,name,email,picture' }, async (userInfo: any) => {
+              try {
+                const facebookData = {
+                  facebookId: userInfo.id,
+                  email: userInfo.email || `${userInfo.id}@facebook.com`,
+                  firstName: userInfo.name.split(' ')[0] || '',
+                  lastName: userInfo.name.split(' ').slice(1).join(' ') || '',
+                  profilePicture: userInfo.picture?.data?.url
+                };
+
+                const apiResponse = await authApi.facebookLogin(facebookData);
+                
+                if (apiResponse.success && apiResponse.data) {
+                  await login(facebookData.email, '');
+                  navigate('/dashboard');
+                } else {
+                  throw new Error(apiResponse.message || 'Facebook login failed');
+                }
+              } catch (err: any) {
+                console.error('Facebook login error:', err);
+                setError(err.message || 'Facebook login failed');
+              } finally {
+                setIsFacebookLoading(false);
+              }
+            });
+          } else {
+            setError('Facebook login cancelled');
+            setIsFacebookLoading(false);
+          }
+        }, { scope: 'email,public_profile' });
+      }
+    } catch (error: any) {
+      console.error('Facebook login failed:', error);
+      setError(error.message || 'Facebook login failed');
+      setIsFacebookLoading(false);
     }
   };
 
@@ -75,14 +250,21 @@ const SocialLoginButtons: React.FC = memo(() => {
         </div>
       </div>
 
+      {/* Error message */}
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Responsive grid: 1 column mobile, 2 columns tablet, 3 columns desktop */}
-      <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="group" aria-label="Social login options">
-        {/* Google Login */}
+      <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-label="Social login options">
+        {/* Google Login (REQUIREMENT: Google OAuth) */}
         <button
           onClick={handleGoogleLogin}
+          disabled={isGoogleLoading}
           className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"
           aria-label="Sign in with Google"
-          disabled={false}
         >
           <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -103,54 +285,38 @@ const SocialLoginButtons: React.FC = memo(() => {
             />
           </svg>
           {/* Show text on tablet and desktop, hide on mobile */}
-          <span className="hidden sm:inline">Google</span>
+          <span className="hidden sm:inline">
+            {isGoogleLoading ? 'Connecting...' : 'Google'}
+          </span>
         </button>
 
-        {/* Facebook Login */}
-        <div className="relative group">
-          <button
-            className="w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-400 cursor-not-allowed opacity-60 transition-all duration-200"
-            aria-label="Sign in with Facebook (Coming Soon)"
-            disabled={true}
-            aria-disabled="true"
-          >
-            <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" fill="#1877F2" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-            {/* Show text on tablet and desktop, hide on mobile */}
-            <span className="hidden sm:inline">Facebook</span>
-          </button>
-          {/* Tooltip for disabled state */}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-            Facebook login coming soon
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
-          </div>
-        </div>
+        {/* Facebook Login (REQUIREMENT: Facebook OAuth) */}
+        <button
+          onClick={handleFacebookLogin}
+          disabled={isFacebookLoading}
+          className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"
+          aria-label="Sign in with Facebook"
+        >
+          <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" fill="#1877F2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span className="hidden sm:inline">
+            {isFacebookLoading ? 'Connecting...' : 'Facebook'}
+          </span>
+        </button>
 
-        {/* Apple Login */}
-        <div className="relative group">
-          <button
-            className="w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-400 cursor-not-allowed opacity-60 transition-all duration-200"
-            aria-label="Sign in with Apple (Coming Soon)"
-            disabled={true}
-            aria-disabled="true"
-          >
-            <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-            </svg>
-            {/* Show text on tablet and desktop, hide on mobile */}
-            <span className="hidden sm:inline">Apple</span>
-          </button>
-          {/* Tooltip for disabled state */}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-            Apple login coming soon
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
-          </div>
-        </div>
       </div>
     </div>
   );
 });
+
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    google?: any;
+    FB?: any;
+  }
+}
 
 SocialLoginButtons.displayName = 'SocialLoginButtons';
 

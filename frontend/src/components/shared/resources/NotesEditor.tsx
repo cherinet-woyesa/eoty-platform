@@ -1,32 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { UserNote } from '@/types/resources';
-import { Save, X, Eye, EyeOff, Users, Lock } from 'lucide-react';
+import { Save, X, Eye, EyeOff, Users, Lock, Bold, Italic, Underline, List, Link2, Tag, Hash } from 'lucide-react';
 
 interface NotesEditorProps {
   resourceId: number;
+  notes?: UserNote[];
+  publicNotes?: UserNote[];
+  showEditor?: boolean;
+  editingNote?: UserNote | null;
   anchorPoint?: string;
   existingNote?: UserNote | null;
-  onSave: (content: string, isPublic: boolean, anchorPoint?: string) => void;
+  sectionText?: string;
+  sectionPosition?: number;
+  onSave: (content: string, isPublic: boolean, anchorPoint?: string, sectionText?: string, sectionPosition?: number) => void;
   onCancel: () => void;
 }
 
 const NotesEditor: React.FC<NotesEditorProps> = ({ 
   resourceId, 
   anchorPoint, 
-  existingNote, 
+  existingNote,
+  sectionText,
+  sectionPosition,
   onSave, 
   onCancel 
 }) => {
   const [content, setContent] = useState(existingNote?.content || '');
   const [isPublic, setIsPublic] = useState(existingNote?.is_public || false);
   const [isSaving, setIsSaving] = useState(false);
+  const [tags, setTags] = useState<string[]>(existingNote?.tags || []);
+  const [newTag, setNewTag] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Rich text formatting functions
+  const applyFormat = useCallback((command: string, value?: string) => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      const selectedText = content.substring(start, end);
+      
+      let formattedText = '';
+      switch (command) {
+        case 'bold':
+          formattedText = `**${selectedText || 'bold text'}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText || 'italic text'}*`;
+          break;
+        case 'underline':
+          formattedText = `<u>${selectedText || 'underlined text'}</u>`;
+          break;
+        case 'list':
+          formattedText = selectedText ? selectedText.split('\n').map(line => `- ${line}`).join('\n') : '- List item';
+          break;
+        case 'link':
+          formattedText = `[${selectedText || 'link text'}](${value || 'https://example.com'})`;
+          break;
+        default:
+          formattedText = selectedText;
+      }
+      
+      const newContent = content.substring(0, start) + formattedText + content.substring(end);
+      setContent(newContent);
+      
+      // Restore cursor position
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const newPosition = start + formattedText.length;
+          textareaRef.current.setSelectionRange(newPosition, newPosition);
+        }
+      }, 0);
+    }
+  }, [content]);
+
+  const handleAddTag = useCallback(() => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag('');
+    }
+  }, [newTag, tags]);
+
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  }, [tags]);
 
   const handleSave = async () => {
     if (!content.trim()) return;
     
     setIsSaving(true);
     try {
-      await onSave(content, isPublic, anchorPoint);
+      // REQUIREMENT: Pass section anchoring data if available
+      await onSave(content, isPublic, anchorPoint, sectionText, sectionPosition);
     } catch (error) {
       console.error('Failed to save note:', error);
     } finally {
@@ -57,18 +122,117 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
       </div>
       
       <div className="p-4">
+        {/* Rich Text Toolbar */}
+        <div className="mb-3 flex items-center gap-1 p-2 bg-gray-50 rounded-md border border-gray-200">
+          <button
+            type="button"
+            onClick={() => applyFormat('bold')}
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            title="Bold"
+          >
+            <Bold className="h-4 w-4 text-gray-600" />
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormat('italic')}
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            title="Italic"
+          >
+            <Italic className="h-4 w-4 text-gray-600" />
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormat('underline')}
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            title="Underline"
+          >
+            <Underline className="h-4 w-4 text-gray-600" />
+          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <button
+            type="button"
+            onClick={() => applyFormat('list')}
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            title="Bullet List"
+          >
+            <List className="h-4 w-4 text-gray-600" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const url = prompt('Enter URL:');
+              if (url) applyFormat('link', url);
+            }}
+            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            title="Add Link"
+          >
+            <Link2 className="h-4 w-4 text-gray-600" />
+          </button>
+        </div>
+
         <div className="mb-4">
           <label htmlFor="note-content" className="block text-sm font-medium text-gray-700 mb-2">
             Note Content
           </label>
           <textarea
+            ref={textareaRef}
             id="note-content"
-            rows={6}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Write your note here..."
+            rows={8}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            placeholder="Write your note here... Use Markdown formatting: **bold**, *italic*, - list items"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Supports Markdown: **bold**, *italic*, - lists, [links](url)
+          </p>
+        </div>
+
+        {/* Tags Section */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tags
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs"
+              >
+                <Hash className="h-3 w-3" />
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="ml-1 hover:text-blue-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddTag();
+                }
+              }}
+              placeholder="Add tag..."
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <button
+              type="button"
+              onClick={handleAddTag}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm transition-colors"
+            >
+              <Tag className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         
         <div className="flex items-center justify-between">

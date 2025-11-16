@@ -1,13 +1,14 @@
 // frontend/src/components/ai/AIChatInterface.tsx - COMPLETE ENHANCED VERSION
 
 import * as React from 'react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import useAIChat, { type Message, type UseAIChatReturn } from '@/hooks/useAIChat';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { speechToText } from '@/services/api/speechToText';
+import { aiApi } from '@/services/api';
 import { 
   Send, Bot, User, Trash2, AlertTriangle, 
   BookOpen, Loader, Mic, MicOff,
@@ -15,11 +16,19 @@ import {
   Flag, MessageCircle, X, RotateCcw, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 
-interface AIChatInterfaceProps {
+export interface AIChatInterfaceProps {
   context?: any;
   onClose?: () => void;
   className?: string;
   maxHeight?: string;
+}
+
+export interface AIChatInterfaceHandle {
+  /**
+   * Programmatically ask a quick question from outside the component.
+   * Used by the AI Assistant page for "Quick Questions".
+   */
+  askQuickQuestion: (question: string) => void;
 }
 
 interface TranscriptionResult {
@@ -31,12 +40,12 @@ interface TranscriptionResult {
   originalLanguage?: string;
 }
 
-const AIChatInterface: React.FC<AIChatInterfaceProps> = ({ 
+const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(({ 
   context, 
   onClose, 
   className = '',
   maxHeight = '600px'
-}) => {
+}, ref) => {
   const [input, setInput] = useState<string>('');
   const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
   const [isSlowResponse, setIsSlowResponse] = useState<boolean>(false);
@@ -252,6 +261,16 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({
     }
   };
 
+  // Expose imperative handle for quick questions
+  useImperativeHandle(ref, () => ({
+    askQuickQuestion: (question: string) => {
+      const trimmed = question.trim();
+      if (!trimmed || isProcessing) return;
+      // Fire-and-forget; we don't need to await here
+      void handleSubmitWithText(trimmed);
+    }
+  }));
+
   // Enhanced timestamp formatting
   const formatTimestamp = useCallback((date: Date) => {
     return date.toLocaleTimeString([], { 
@@ -347,11 +366,11 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({
           userId: user?.id, 
           language: i18n.language 
         },
-        moderation: message.metadata?.moderation,
-        timestamp: new Date().toISOString()
+        moderation: message.metadata?.moderation
       };
 
-      console.log('Reporting question to moderators:', reportData);
+      // Send report to backend for moderation workflow
+      await aiApi.reportQuestion(reportData);
       
       // Show success feedback
       setTimeout(() => {
@@ -890,6 +909,6 @@ const AIChatInterface: React.FC<AIChatInterfaceProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default AIChatInterface;

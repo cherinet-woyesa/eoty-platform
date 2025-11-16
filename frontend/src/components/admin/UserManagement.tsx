@@ -91,7 +91,7 @@ const UserManagement: React.FC = () => {
   // Fetch chapters
   const fetchChapters = useCallback(async () => {
     try {
-      const response = await chaptersApi.getAllChapters();
+      const response = await chaptersApi.getChapters();
       if (response.success && response.data?.chapters) {
         setChapters(response.data.chapters);
       } else {
@@ -307,17 +307,16 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <Users className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
+                    <Users className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">User Management</h1>
@@ -333,14 +332,14 @@ const UserManagement: React.FC = () => {
               <button
                 onClick={fetchUsers}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New User
@@ -352,12 +351,12 @@ const UserManagement: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
-            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
-            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', glowColor: 'bg-red-500/20' },
-            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#00FFFF]', bgColor: 'bg-[#00FFFF]/10', borderColor: 'border-[#00FFFF]/30', glowColor: 'bg-[#00FFFF]/20' },
-            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#FFD700]', bgColor: 'bg-[#FFD700]/10', borderColor: 'border-[#FFD700]/30', glowColor: 'bg-[#FFD700]/20' },
-            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
+            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/15' },
+            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/15' },
+            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/25', glowColor: 'bg-red-500/15' },
+            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#2980B9]', bgColor: 'bg-[#2980B9]/10', borderColor: 'border-[#2980B9]/25', glowColor: 'bg-[#2980B9]/15' },
+            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#F39C12]', bgColor: 'bg-[#F39C12]/10', borderColor: 'border-[#F39C12]/25', glowColor: 'bg-[#F39C12]/15' },
+            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/15' },
           ].map((stat, index) => (
             <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
@@ -388,7 +387,7 @@ const UserManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             />
           </div>
 
@@ -400,7 +399,7 @@ const UserManagement: React.FC = () => {
                 setRoleFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Roles</option>
               <option value="student">Students</option>
@@ -414,7 +413,7 @@ const UserManagement: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -424,13 +423,13 @@ const UserManagement: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -454,7 +453,7 @@ const UserManagement: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/25 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
           <div className="flex items-center space-x-4">
             <span className="text-stone-800 font-semibold">
               {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
@@ -463,7 +462,7 @@ const UserManagement: React.FC = () => {
               <button
                 onClick={() => handleBulkStatusChange(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 shadow-md"
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Activate
@@ -492,7 +491,7 @@ const UserManagement: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-stone-800 flex items-center">
-              <UserPlus className="h-5 w-5 mr-2 text-[#39FF14]" />
+              <UserPlus className="h-5 w-5 mr-2 text-[#27AE60]" />
               Create New User
             </h3>
             <button
@@ -951,7 +950,6 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

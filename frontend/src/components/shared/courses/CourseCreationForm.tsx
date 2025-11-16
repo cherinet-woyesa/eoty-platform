@@ -421,7 +421,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
             </button>
             {editMode && courseId && (
               <button
-                onClick={() => navigate(`/courses/${courseId}`)}
+                onClick={() => navigate(`/teacher/courses/${courseId}`)}
                 className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm"
               >
                 <Eye className="mr-2 h-5 w-5" />

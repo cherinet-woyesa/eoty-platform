@@ -194,10 +194,10 @@ const BookmarksPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
             <p className="text-stone-600 text-lg">Loading bookmarks...</p>
           </div>
         </div>
@@ -207,14 +207,14 @@ const BookmarksPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <AlertCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
+            <p className="text-rose-600 text-lg mb-4">{error}</p>
             <button 
               onClick={loadBookmarks}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
             >
               Try Again
             </button>
@@ -240,7 +240,7 @@ const BookmarksPage: React.FC = () => {
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-all ${
               viewMode === 'grid'
-                ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900'
+                ? 'bg-stone-900 text-stone-50'
                 : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
             }`}
           >
@@ -250,7 +250,7 @@ const BookmarksPage: React.FC = () => {
             onClick={() => setViewMode('list')}
             className={`p-2 rounded-lg transition-all ${
               viewMode === 'list'
-                ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900'
+                ? 'bg-stone-900 text-stone-50'
                 : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
             }`}
           >
@@ -267,7 +267,7 @@ const BookmarksPage: React.FC = () => {
               <p className="text-sm text-stone-600">Total Bookmarks</p>
               <p className="text-2xl font-bold text-stone-800">{bookmarks.length}</p>
             </div>
-            <Bookmark className="h-8 w-8 text-[#39FF14]" />
+            <Bookmark className="h-8 w-8 text-[#27AE60]" />
           </div>
         </div>
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-stone-200">
@@ -276,7 +276,7 @@ const BookmarksPage: React.FC = () => {
               <p className="text-sm text-stone-600">Lessons</p>
               <p className="text-2xl font-bold text-stone-800">{lessonCount}</p>
             </div>
-            <PlayCircle className="h-8 w-8 text-[#00FFC6]" />
+            <PlayCircle className="h-8 w-8 text-teal-500" />
           </div>
         </div>
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-stone-200">
@@ -285,7 +285,7 @@ const BookmarksPage: React.FC = () => {
               <p className="text-sm text-stone-600">Courses</p>
               <p className="text-2xl font-bold text-stone-800">{courseCount}</p>
             </div>
-            <BookOpen className="h-8 w-8 text-[#FFD700]" />
+            <BookOpen className="h-8 w-8 text-amber-500" />
           </div>
         </div>
       </div>
@@ -299,7 +299,7 @@ const BookmarksPage: React.FC = () => {
             placeholder="Search bookmarks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]"
           />
           {searchTerm && (
             <button
@@ -313,7 +313,7 @@ const BookmarksPage: React.FC = () => {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as any)}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]"
         >
           <option value="all">All Bookmarks</option>
           <option value="lesson">Lessons</option>
@@ -333,7 +333,7 @@ const BookmarksPage: React.FC = () => {
           </p>
           <Link
             to="/student/browse-courses"
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+            className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
           >
             Browse Courses
           </Link>
@@ -385,8 +385,8 @@ const BookmarksPage: React.FC = () => {
                 <div className="absolute top-2 left-2">
                   <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
                     item.type === 'lesson' 
-                      ? 'bg-[#39FF14]/90 text-stone-900' 
-                      : 'bg-[#00FFC6]/90 text-stone-900'
+                      ? 'bg-[#27AE60]/10 text-[#27AE60]' 
+                      : 'bg-[#2980B9]/10 text-[#2980B9]'
                   }`}>
                     {item.type === 'lesson' ? 'Lesson' : 'Course'}
                   </div>
@@ -403,7 +403,7 @@ const BookmarksPage: React.FC = () => {
               
               {/* Content */}
               <div className="p-4">
-                <h3 className="font-bold text-stone-800 mb-1 line-clamp-2 group-hover:text-[#39FF14] transition-colors">
+                <h3 className="font-bold text-stone-800 mb-1 line-clamp-2 group-hover:text-[#27AE60] transition-colors">
                   {item.title}
                 </h3>
                 {item.course_title && item.type === 'lesson' && (
@@ -478,11 +478,11 @@ const BookmarksPage: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1">
                         <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
                           item.type === 'lesson' 
-                            ? 'bg-[#39FF14]/20 text-[#39FF14]' 
-                            : 'bg-[#00FFC6]/20 text-[#00FFC6]'
+                            ? 'bg-[#27AE60]/10 text-[#27AE60]' 
+                            : 'bg-[#2980B9]/10 text-[#2980B9]'
                         }`}>
                           {item.type === 'lesson' ? 'Lesson' : 'Course'}
                         </span>
@@ -490,7 +490,7 @@ const BookmarksPage: React.FC = () => {
                           <CheckCircle className="h-4 w-4 text-[#FFD700]" />
                         )}
                       </div>
-                      <h3 className="font-bold text-stone-800 mb-1 group-hover:text-[#39FF14] transition-colors">
+                      <h3 className="font-bold text-stone-800 mb-1 group-hover:text-[#27AE60] transition-colors">
                         {item.title}
                       </h3>
                       {item.course_title && item.type === 'lesson' && (
@@ -515,17 +515,17 @@ const BookmarksPage: React.FC = () => {
                           </span>
                         )}
                         {item.progress > 0 && item.type === 'lesson' && (
-                          <span className="text-[#39FF14] font-semibold">
+                          <span className="text-[#27AE60] font-semibold">
                             {Math.round(item.progress)}% watched
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {item.type === 'lesson' ? (
-                        <PlayCircle className="h-6 w-6 text-[#39FF14] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {item.type === 'lesson' ? (
+                        <PlayCircle className="h-6 w-6 text-[#27AE60] opacity-0 group-hover:opacity-100 transition-opacity" />
                       ) : (
-                        <BookOpen className="h-6 w-6 text-[#00FFC6] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <BookOpen className="h-6 w-6 text-[#2980B9] opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
                   </div>

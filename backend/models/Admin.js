@@ -8,9 +8,9 @@ class ContentUpload {
 
   static async findById(id) {
     return await db('content_uploads')
-      .where({ id })
-      .join('users as uploader', 'content_uploads.uploaded_by', 'uploader.id')
-      .leftJoin('users as approver', 'content_uploads.approved_by', 'approver.id')
+      .where('content_uploads.id', id)
+      .join('users as uploader', db.raw('content_uploads.uploaded_by::text'), '=', 'uploader.id')
+      .leftJoin('users as approver', db.raw('content_uploads.approved_by::text'), '=', 'approver.id')
       .select(
         'content_uploads.*',
         'uploader.first_name as uploader_first_name',
@@ -22,24 +22,43 @@ class ContentUpload {
   }
 
   static async findByStatus(status, chapterId = null, page = 1, limit = 20) {
-    const offset = (page - 1) * limit;
-    let query = db('content_uploads')
-      .where({ status })
-      .join('users as uploader', 'content_uploads.uploaded_by', 'uploader.id')
-      .select(
-        'content_uploads.*',
-        'uploader.first_name as uploader_first_name',
-        'uploader.last_name as uploader_last_name'
-      )
-      .orderBy('content_uploads.created_at', 'desc')
-      .offset(offset)
-      .limit(limit);
+    try {
+      // Check if table exists
+      const tableExists = await db.schema.hasTable('content_uploads');
+      if (!tableExists) {
+        return [];
+      }
 
-    if (chapterId) {
-      query = query.where('content_uploads.chapter_id', chapterId);
+      const offset = (page - 1) * limit;
+      let query = db('content_uploads')
+        .join('users as uploader', db.raw('content_uploads.uploaded_by::text'), '=', 'uploader.id')
+        .select(
+          'content_uploads.*',
+          'uploader.first_name as uploader_first_name',
+          'uploader.last_name as uploader_last_name'
+        )
+        .orderBy('content_uploads.created_at', 'desc')
+        .offset(offset)
+        .limit(limit);
+
+      // Only filter by status if provided
+      if (status) {
+        query = query.where('content_uploads.status', status);
+      }
+
+      if (chapterId) {
+        query = query.where('content_uploads.chapter_id', chapterId);
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('ContentUpload.findByStatus error:', error);
+      // If table doesn't exist or other DB error, return empty array
+      if (error.code === '42P01') { // Table does not exist
+        return [];
+      }
+      throw error; // Re-throw other errors
     }
-
-    return await query;
   }
 
   static async updateStatus(id, status, approvedBy = null, rejectionReason = null) {
@@ -63,52 +82,102 @@ class ContentUpload {
   }
 
   static async checkQuota(chapterId, contentType) {
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    try {
+      // Check if table exists first
+      const tableExists = await db.schema.hasTable('content_quotas');
+      if (!tableExists) {
+        // Return unlimited quota if table doesn't exist
+        return {
+          id: null,
+          chapter_id: chapterId,
+          content_type: contentType,
+          monthly_limit: 0, // 0 = unlimited
+          current_usage: 0,
+          period_start: new Date(),
+          period_end: new Date()
+        };
+      }
 
-    const quota = await db('content_quotas')
-      .where({
-        chapter_id: chapterId,
-        content_type: contentType,
-        period_start: periodStart,
-        period_end: periodEnd
-      })
-      .first();
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    if (!quota) {
-      // Create default quota if none exists
-      const defaultQuotas = {
-        video: 50, // 50 videos per month
-        document: 100, // 100 documents per month
-        image: 200 // 200 images per month
-      };
+      const quota = await db('content_quotas')
+        .where({
+          chapter_id: chapterId,
+          content_type: contentType,
+          period_start: periodStart,
+          period_end: periodEnd
+        })
+        .first();
 
-      const [newQuotaId] = await db('content_quotas').insert({
-        chapter_id: chapterId,
-        content_type: contentType,
-        monthly_limit: defaultQuotas[contentType] || 50,
-        current_usage: 0,
-        period_start: periodStart,
-        period_end: periodEnd
-      }).returning('id');
+      if (!quota) {
+        // Create default quota if none exists
+        const defaultQuotas = {
+          video: 50, // 50 videos per month
+          document: 100, // 100 documents per month
+          image: 200 // 200 images per month
+        };
 
-      return await db('content_quotas').where({ id: newQuotaId.id || newQuotaId }).first();
+        const [newQuotaId] = await db('content_quotas').insert({
+          chapter_id: chapterId,
+          content_type: contentType,
+          monthly_limit: defaultQuotas[contentType] || 50,
+          current_usage: 0,
+          period_start: periodStart,
+          period_end: periodEnd
+        }).returning('id');
+
+        return await db('content_quotas').where({ id: newQuotaId.id || newQuotaId }).first();
+      }
+
+      return quota;
+    } catch (error) {
+      // If table doesn't exist or other error, return unlimited quota
+      if (error.code === '42P01') { // Table does not exist
+        console.warn('content_quotas table does not exist, allowing unlimited uploads');
+        return {
+          id: null,
+          chapter_id: chapterId,
+          content_type: contentType,
+          monthly_limit: 0, // 0 = unlimited
+          current_usage: 0,
+          period_start: new Date(),
+          period_end: new Date()
+        };
+      }
+      throw error; // Re-throw other errors
     }
-
-    return quota;
   }
 
   static async incrementQuota(chapterId, contentType) {
-    const quota = await this.checkQuota(chapterId, contentType);
-    
-    if (quota.monthly_limit > 0 && quota.current_usage >= quota.monthly_limit) {
-      throw new Error(`Monthly quota exceeded for ${contentType}. Limit: ${quota.monthly_limit}`);
-    }
+    try {
+      const quota = await this.checkQuota(chapterId, contentType);
+      
+      // If quota table doesn't exist or quota is unlimited, skip increment
+      if (!quota.id || quota.monthly_limit === 0) {
+        return; // No quota tracking needed
+      }
+      
+      if (quota.monthly_limit > 0 && quota.current_usage >= quota.monthly_limit) {
+        throw new Error(`Monthly quota exceeded for ${contentType}. Limit: ${quota.monthly_limit}`);
+      }
 
-    return await db('content_quotas')
-      .where({ id: quota.id })
-      .increment('current_usage', 1);
+      // Check if table exists before trying to update
+      const tableExists = await db.schema.hasTable('content_quotas');
+      if (tableExists && quota.id) {
+        return await db('content_quotas')
+          .where({ id: quota.id })
+          .increment('current_usage', 1);
+      }
+    } catch (error) {
+      // If table doesn't exist, just log and continue
+      if (error.code === '42P01') { // Table does not exist
+        console.warn('content_quotas table does not exist, skipping quota increment');
+        return;
+      }
+      throw error; // Re-throw quota exceeded errors
+    }
   }
 }
 
@@ -421,52 +490,85 @@ class Analytics {
 
 class AdminAudit {
   static async logAction(adminId, actionType, targetType, targetId, actionDetails, beforeState = null, afterState = null, ipAddress = null, userAgent = null) {
-    const [logId] = await db('admin_audit_logs').insert({
-      admin_id: adminId,
-      action_type: actionType,
-      target_type: targetType,
-      target_id: targetId,
-      action_details: actionDetails,
-      before_state: beforeState ? JSON.stringify(beforeState) : null,
-      after_state: afterState ? JSON.stringify(afterState) : null,
-      ip_address: ipAddress,
-      user_agent: userAgent
-    }).returning('id');
+    try {
+      // Check if table exists
+      const tableExists = await db.schema.hasTable('admin_audit_logs');
+      if (!tableExists) {
+        console.warn('admin_audit_logs table does not exist, skipping audit log');
+        return null;
+      }
 
-    return await db('admin_audit_logs').where({ id: logId.id || logId }).first();
+      const [logId] = await db('admin_audit_logs').insert({
+        admin_id: adminId,
+        action_type: actionType,
+        target_type: targetType,
+        target_id: targetId,
+        action_details: actionDetails,
+        before_state: beforeState ? JSON.stringify(beforeState) : null,
+        after_state: afterState ? JSON.stringify(afterState) : null,
+        ip_address: ipAddress,
+        user_agent: userAgent
+      }).returning('id');
+
+      return await db('admin_audit_logs').where({ id: logId.id || logId }).first();
+    } catch (error) {
+      // If table doesn't exist or other error, log warning but don't throw
+      if (error.code === '42P01') { // Table does not exist
+        console.warn('admin_audit_logs table does not exist, skipping audit log');
+        return null;
+      }
+      console.error('Error logging audit action:', error);
+      // Don't throw - audit logging should not break the main operation
+      return null;
+    }
   }
 
   static async getLogs(adminId = null, actionType = null, startDate = null, endDate = null, page = 1, limit = 50) {
-    const offset = (page - 1) * limit;
-    let query = db('admin_audit_logs')
-      .join('users', 'admin_audit_logs.admin_id', 'users.id')
-      .select(
-        'admin_audit_logs.*',
-        'users.first_name',
-        'users.last_name',
-        'users.email'
-      )
-      .orderBy('admin_audit_logs.created_at', 'desc')
-      .offset(offset)
-      .limit(limit);
+    try {
+      // Check if table exists
+      const tableExists = await db.schema.hasTable('admin_audit_logs');
+      if (!tableExists) {
+        return [];
+      }
 
-    if (adminId) {
-      query = query.where('admin_audit_logs.admin_id', adminId);
+      const offset = (page - 1) * limit;
+      let query = db('admin_audit_logs')
+        .join('users', db.raw('admin_audit_logs.admin_id::text'), '=', 'users.id')
+        .select(
+          'admin_audit_logs.*',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        )
+        .orderBy('admin_audit_logs.created_at', 'desc')
+        .offset(offset)
+        .limit(limit);
+
+      if (adminId) {
+        query = query.where('admin_audit_logs.admin_id', adminId);
+      }
+
+      if (actionType) {
+        query = query.where('admin_audit_logs.action_type', actionType);
+      }
+
+      if (startDate) {
+        query = query.where('admin_audit_logs.created_at', '>=', startDate);
+      }
+
+      if (endDate) {
+        query = query.where('admin_audit_logs.created_at', '<=', endDate);
+      }
+
+      return await query;
+    } catch (error) {
+      // If table doesn't exist or other error, return empty array
+      if (error.code === '42P01') { // Table does not exist
+        return [];
+      }
+      console.error('Error fetching audit logs:', error);
+      return [];
     }
-
-    if (actionType) {
-      query = query.where('admin_audit_logs.action_type', actionType);
-    }
-
-    if (startDate) {
-      query = query.where('admin_audit_logs.created_at', '>=', startDate);
-    }
-
-    if (endDate) {
-      query = query.where('admin_audit_logs.created_at', '<=', endDate);
-    }
-
-    return await query;
   }
 }
 

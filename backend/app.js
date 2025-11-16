@@ -227,6 +227,15 @@ app.use('/api/videos', videoRoutes); // Authentication handled inside route file
 app.use('/api/mux-migration', muxMigrationRoutes);
 app.use('/api/mux-costs', require('./routes/muxCostMonitoring'));
 
+// Uptime monitoring routes (REQUIREMENT: 99% uptime tracking)
+app.use('/api/uptime', require('./routes/uptime'));
+
+// Privacy compliance routes (REQUIREMENT: No sensitive data retention)
+app.use('/api/privacy', require('./routes/privacy'));
+
+// Social features routes (REQUIREMENT: FR4)
+app.use('/api/social', require('./routes/socialFeatures'));
+
 // Admin routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/system-config', systemConfigRoutes);
@@ -247,6 +256,7 @@ app.use('/api/achievements', authenticateToken, achievementRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
+app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
 app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video analytics routes (Mux + Platform)
 app.use('/api', videoNotesRoutes); // Video notes routes (authentication handled in route file)

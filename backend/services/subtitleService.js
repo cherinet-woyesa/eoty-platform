@@ -6,6 +6,14 @@ class SubtitleService {
   constructor() {
     this.supportedFormats = ['vtt', 'srt'];
     this.maxFileSize = 5 * 1024 * 1024; // 5MB
+    
+    // Required languages for platform (REQUIREMENT: Multilingual support)
+    this.requiredLanguages = {
+      'en': { code: 'en', name: 'English', iso639: 'en-US' },
+      'am': { code: 'am', name: 'Amharic', iso639: 'am-ET' },
+      'ti': { code: 'ti', name: 'Tigrigna', iso639: 'ti-ET' },
+      'om': { code: 'om', name: 'Oromo', iso639: 'om-ET' }
+    };
   }
 
   /**
@@ -108,6 +116,13 @@ class SubtitleService {
    */
   async getSubtitles(lessonId) {
     try {
+      // Check if subtitles table exists
+      const hasSubtitlesTable = await db.schema.hasTable('subtitles');
+      if (!hasSubtitlesTable) {
+        console.log(`Subtitles table does not exist, returning empty array for lesson ${lessonId}`);
+        return [];
+      }
+
       const subtitles = await db('subtitles')
         .where({ lesson_id: lessonId })
         .select(
@@ -126,6 +141,11 @@ class SubtitleService {
       return subtitles;
     } catch (error) {
       console.error('Get subtitles error:', error);
+      // If table doesn't exist, return empty array instead of throwing
+      if (error.code === '42P01' || error.message.includes('does not exist')) {
+        console.log('Subtitles table does not exist, returning empty array');
+        return [];
+      }
       throw new Error('Failed to retrieve subtitles');
     }
   }
@@ -240,6 +260,59 @@ class SubtitleService {
     // ISO 639-1 codes are 2 lowercase letters
     const iso639Pattern = /^[a-z]{2}$/;
     return iso639Pattern.test(languageCode);
+  }
+
+  /**
+   * Verify subtitle language support for a lesson (REQUIREMENT: Verify all required languages)
+   * @param {number} lessonId - Lesson ID
+   * @returns {Promise<Object>} Language support status
+   */
+  async verifyLanguageSupport(lessonId) {
+    try {
+      const subtitles = await db('subtitles')
+        .where({ lesson_id: lessonId })
+        .select('language_code', 'language');
+
+      const supportedLanguages = subtitles.map(s => s.language_code.toLowerCase());
+      const missingLanguages = [];
+      const supported = {};
+
+      // Check each required language
+      Object.values(this.requiredLanguages).forEach(lang => {
+        const isSupported = supportedLanguages.includes(lang.code.toLowerCase());
+        supported[lang.code] = {
+          code: lang.code,
+          name: lang.name,
+          supported: isSupported,
+          subtitle: subtitles.find(s => s.language_code.toLowerCase() === lang.code.toLowerCase())
+        };
+        
+        if (!isSupported) {
+          missingLanguages.push(lang.name);
+        }
+      });
+
+      return {
+        lessonId,
+        supported,
+        missingLanguages,
+        totalSupported: Object.values(supported).filter(s => s.supported).length,
+        totalRequired: Object.keys(this.requiredLanguages).length,
+        meetsRequirement: missingLanguages.length === 0,
+        verificationDate: new Date()
+      };
+    } catch (error) {
+      console.error('Verify language support error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get supported languages list
+   * @returns {Object} Supported languages
+   */
+  getSupportedLanguages() {
+    return this.requiredLanguages;
   }
 
   /**

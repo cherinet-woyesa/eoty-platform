@@ -185,6 +185,16 @@ const authController = {
         .select('id', 'first_name', 'last_name', 'email', 'role', 'role_requested', 'status', 'chapter_id', 'is_active')
         .first();
 
+      // Initialize onboarding for new user (REQUIREMENT: 100% new users see guided onboarding)
+      try {
+        const onboardingService = require('../services/onboardingService');
+        await onboardingService.initializeOnboardingForUser(userId, userRole);
+        console.log(`Onboarding initialized for new user ${userId}`);
+      } catch (onboardingError) {
+        console.error('Failed to initialize onboarding (non-critical):', onboardingError);
+        // Don't fail registration if onboarding initialization fails
+      }
+
       const responseMessage = role === 'teacher' 
         ? 'Account created successfully! Your teacher application is pending review. You can use the platform as a student while waiting for approval.'
         : 'User registered successfully';
@@ -219,66 +229,162 @@ const authController = {
   },
 
   async login(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+
     try {
       const { email, password } = req.body;
 
       console.log('Login attempt for:', email);
-      console.log('Request body:', req.body);
 
       // Validate required fields
       if (!email || !password) {
+        await activityLogService.logActivity({
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Missing email or password'
+        });
+
         return res.status(400).json({
           success: false,
           message: 'Email and password are required'
         });
       }
 
-      // Find user (include profile_picture)
+      // Find user (include profile_picture and lockout fields)
       const user = await db('users')
         .where({ email: email.toLowerCase() })
-        .select('id', 'first_name', 'last_name', 'email', 'password_hash', 'role', 'chapter_id', 'is_active', 'profile_picture')
+        .select('id', 'first_name', 'last_name', 'email', 'password_hash', 'role', 'chapter_id', 'is_active', 'profile_picture', 'failed_login_attempts', 'account_locked_until')
         .first();
 
       if (!user) {
         console.log('User not found:', email);
+        await activityLogService.logActivity({
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'User not found'
+        });
+
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
         });
       }
 
+      // Check if account is locked (REQUIREMENT: Handles authentication failures with retry and lockout)
+      if (user.account_locked_until) {
+        const lockUntil = new Date(user.account_locked_until);
+        if (lockUntil > new Date()) {
+          const minutesRemaining = Math.ceil((lockUntil - new Date()) / 1000 / 60);
+          
+          await activityLogService.logActivity({
+            userId: user.id,
+            activityType: 'failed_login',
+            ipAddress,
+            userAgent,
+            success: false,
+            failureReason: `Account locked. Unlocks in ${minutesRemaining} minutes`
+          });
+
+          return res.status(423).json({
+            success: false,
+            message: `Account is temporarily locked. Please try again in ${minutesRemaining} minute(s).`,
+            lockoutUntil: lockUntil.toISOString()
+          });
+        } else {
+          // Lockout expired, reset
+          await db('users')
+            .where({ id: user.id })
+            .update({
+              failed_login_attempts: 0,
+              account_locked_until: null
+            });
+        }
+      }
+
       // Check if user is active
       if (!user.is_active) {
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Account deactivated'
+        });
+
         return res.status(401).json({
           success: false,
           message: 'Account is deactivated. Please contact administrator.'
         });
       }
 
-      console.log('User found in database:', {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      });
-
       // Verify password
-      console.log('Password verification - comparing with hash:', user.password_hash);
-      console.log('Password provided:', password);
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
-      console.log('Password validation result:', isValidPassword);
       
       if (!isValidPassword) {
-        console.log('Invalid password for:', email);
+        // Increment failed login attempts (REQUIREMENT: Handles authentication failures with retry and lockout)
+        const failedAttempts = (user.failed_login_attempts || 0) + 1;
+        const maxAttempts = 5;
+        const lockoutMinutes = Math.min(15 * Math.pow(2, Math.floor(failedAttempts / 3) - 1), 60); // Exponential backoff: 15, 30, 60 minutes
+
+        let updateData = {
+          failed_login_attempts: failedAttempts,
+          updated_at: new Date()
+        };
+
+        // Lock account after max attempts (REQUIREMENT: Account lockout)
+        if (failedAttempts >= maxAttempts) {
+          const lockUntil = new Date(Date.now() + lockoutMinutes * 60 * 1000);
+          updateData.account_locked_until = lockUntil;
+        }
+
+        await db('users')
+          .where({ id: user.id })
+          .update(updateData);
+
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Invalid password',
+          metadata: { failedAttempts, maxAttempts }
+        });
+
+        const remainingAttempts = maxAttempts - failedAttempts;
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password'
+          message: remainingAttempts > 0 
+            ? `Invalid email or password. ${remainingAttempts} attempt(s) remaining.`
+            : `Account locked due to too many failed attempts. Please try again in ${lockoutMinutes} minute(s).`,
+          remainingAttempts: Math.max(0, remainingAttempts)
         });
       }
 
-      // Update last login
+      // Successful login - reset failed attempts and update last login
       await db('users')
         .where({ id: user.id })
-        .update({ last_login_at: new Date() });
+        .update({
+          failed_login_attempts: 0,
+          account_locked_until: null,
+          last_login_at: new Date()
+        });
+
+      // Log successful login (REQUIREMENT: Login history)
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'login',
+        ipAddress,
+        userAgent,
+        success: true
+      });
 
       // Generate JWT token
       const token = jwt.sign(
@@ -316,9 +422,99 @@ const authController = {
 
     } catch (error) {
       console.error('Login error:', error);
+      
+      await activityLogService.logActivity({
+        activityType: 'failed_login',
+        ipAddress,
+        userAgent,
+        success: false,
+        failureReason: 'Internal server error'
+      });
+
       res.status(500).json({
         success: false,
         message: 'Internal server error during login'
+      });
+    }
+  },
+
+  // Logout (REQUIREMENT: Activity logs)
+  async logout(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+
+    try {
+      const userId = req.user?.userId;
+
+      if (userId) {
+        // Log logout activity (REQUIREMENT: Login history)
+        await activityLogService.logActivity({
+          userId,
+          activityType: 'logout',
+          ipAddress,
+          userAgent,
+          success: true
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Logout successful'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during logout'
+      });
+    }
+  },
+
+  // Get user activity logs (REQUIREMENT: Login history)
+  async getActivityLogs(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    
+    try {
+      const userId = req.user.userId;
+      const { limit = 50, offset = 0, activityType = null } = req.query;
+
+      const logs = await activityLogService.getUserActivityHistory(userId, {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        activityType: activityType || null
+      });
+
+      res.json({
+        success: true,
+        data: { logs }
+      });
+    } catch (error) {
+      console.error('Get activity logs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch activity logs'
+      });
+    }
+  },
+
+  // Get abnormal activity alerts (REQUIREMENT: Abnormal activity alerts)
+  async getAbnormalActivityAlerts(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    
+    try {
+      const userId = req.user.userId;
+      const alerts = await activityLogService.getUserAlerts(userId);
+
+      res.json({
+        success: true,
+        data: { alerts }
+      });
+    } catch (error) {
+      console.error('Get alerts error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch alerts'
       });
     }
   },
@@ -411,6 +607,20 @@ const authController = {
           .first();
       }
 
+      // Log successful SSO login (REQUIREMENT: Login history)
+      const activityLogService = require('../services/activityLogService');
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.get('user-agent') || 'unknown';
+      
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'login',
+        ipAddress,
+        userAgent,
+        success: true,
+        metadata: { loginMethod: 'google_oauth' }
+      });
+
       // Generate JWT token
       token = jwt.sign(
         { 
@@ -447,6 +657,18 @@ const authController = {
 
     } catch (error) {
       console.error('Google login error:', error);
+      
+      // Log failed SSO login attempt
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        activityType: 'failed_login',
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: false,
+        failureReason: 'Google login error: ' + error.message,
+        metadata: { loginMethod: 'google_oauth' }
+      });
+
       res.status(500).json({
         success: false,
         message: 'Internal server error during Google login'
@@ -624,10 +846,26 @@ const authController = {
       }
 
       const permissionMap = {
+        guest: [
+          'course:view', // Limited view-only access
+          'lesson:view'
+        ],
+        youth: [
+          'course:view', 'lesson:view', 'quiz:take', 
+          'discussion:view', 'discussion:create', 'user:edit_own',
+          'progress:view', 'notes:create', 'notes:view_own'
+        ],
         student: [
           'course:view', 'lesson:view', 'quiz:take', 
           'discussion:view', 'discussion:create', 'user:edit_own',
           'progress:view', 'notes:create', 'notes:view_own'
+        ],
+        moderator: [
+          'course:view', 'lesson:view', 'quiz:take',
+          'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
+          'content:moderate', 'content:flag', 'content:review',
+          'user:view', 'user:edit_own',
+          'analytics:view_own'
         ],
         teacher: [
           'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
@@ -798,6 +1036,212 @@ const authController = {
       res.status(500).json({
         success: false,
         message: 'Failed to update profile'
+      });
+    }
+  },
+
+  // Facebook OAuth login (REQUIREMENT: Facebook)
+  async facebookLogin(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+
+    try {
+      const { facebookId, email, firstName, lastName, profilePicture } = req.body;
+
+      // Validate required fields
+      if (!facebookId || !email || !firstName || !lastName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Facebook ID, email, first name, and last name are required'
+        });
+      }
+
+      // Check if user exists with this Facebook ID via user_sso_accounts
+      const ssoAccount = await db('user_sso_accounts as usa')
+        .join('sso_providers as sp', 'usa.provider_id', 'sp.id')
+        .where('sp.provider_name', 'facebook')
+        .where('usa.provider_user_id', facebookId)
+        .select('usa.user_id')
+        .first();
+
+      let user = null;
+      if (ssoAccount) {
+        user = await db('users')
+          .where({ id: ssoAccount.user_id })
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .first();
+      }
+
+      // If user doesn't exist with Facebook ID, check if they exist with email
+      if (!user) {
+        user = await db('users')
+          .where({ email: email.toLowerCase() })
+          .first();
+      }
+
+      let token;
+      
+      // If user doesn't exist at all, create a new user
+      if (!user) {
+        // Get default chapter (first active chapter) for new users
+        const defaultChapter = await db('chapters')
+          .where({ is_active: true })
+          .orderBy('id', 'asc')
+          .first();
+
+        if (!defaultChapter) {
+          return res.status(500).json({
+            success: false,
+            message: 'No active chapters found. Please contact administrator.'
+          });
+        }
+
+        const userData = {
+          first_name: firstName,
+          last_name: lastName,
+          email: email.toLowerCase(),
+          profile_picture: profilePicture,
+          role: 'student', // Default role for Facebook signups
+          chapter_id: defaultChapter.id,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        // Insert new user
+        const result = await db('users').insert(userData).returning('id');
+        const userId = result[0].id || result[0];
+
+        // Link Facebook account
+        const facebookProvider = await db('sso_providers')
+          .where('provider_name', 'facebook')
+          .first();
+
+        if (facebookProvider) {
+          await db('user_sso_accounts').insert({
+            user_id: userId,
+            provider_id: facebookProvider.id,
+            provider_user_id: facebookId,
+            email: email.toLowerCase(),
+            profile_picture: profilePicture,
+            last_used_at: new Date(),
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+        }
+
+        // Get the created user
+        user = await db('users')
+          .where({ id: userId })
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .first();
+      } else {
+        // Update last login and profile picture
+        await db('users')
+          .where({ id: user.id })
+          .update({ 
+            last_login_at: new Date(),
+            profile_picture: profilePicture || user.profile_picture,
+            updated_at: new Date()
+          });
+        
+        // Update or create SSO account link
+        const facebookProvider = await db('sso_providers')
+          .where('provider_name', 'facebook')
+          .first();
+
+        if (facebookProvider) {
+          const existingSso = await db('user_sso_accounts')
+            .where('user_id', user.id)
+            .where('provider_id', facebookProvider.id)
+            .first();
+
+          if (existingSso) {
+            await db('user_sso_accounts')
+              .where('id', existingSso.id)
+              .update({
+                last_used_at: new Date(),
+                profile_picture: profilePicture,
+                updated_at: new Date()
+              });
+          } else {
+            await db('user_sso_accounts').insert({
+              user_id: user.id,
+              provider_id: facebookProvider.id,
+              provider_user_id: facebookId,
+              email: email.toLowerCase(),
+              profile_picture: profilePicture,
+              last_used_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date()
+            });
+          }
+        }
+        
+        // Refresh user data
+        user = await db('users')
+          .where({ id: user.id })
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .first();
+      }
+
+      // Log successful SSO login (REQUIREMENT: Login history)
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'login',
+        ipAddress,
+        userAgent,
+        success: true,
+        metadata: { loginMethod: 'facebook_oauth' }
+      });
+
+      // Generate JWT token
+      token = jwt.sign(
+        { 
+          userId: user.id, 
+          email: user.email, 
+          role: user.role,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          chapter: user.chapter_id
+        },
+        authConfig.jwtSecret,
+        { expiresIn: authConfig.jwtExpiresIn }
+      );
+
+      res.json({
+        success: true,
+        message: 'Facebook login successful',
+        data: {
+          user: {
+            id: user.id,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            email: user.email,
+            role: user.role,
+            chapter: user.chapter_id,
+            isActive: user.is_active,
+            profilePicture: getProfilePictureUrl(user.profile_picture)
+          },
+          token
+        }
+      });
+
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      
+      await activityLogService.logActivity({
+        activityType: 'failed_login',
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: false,
+        failureReason: 'Facebook login error: ' + error.message
+      });
+
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during Facebook login'
       });
     }
   }

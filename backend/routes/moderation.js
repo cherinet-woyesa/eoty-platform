@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const moderationController = require('../controllers/moderationController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 
 // All routes require moderator or admin role
 router.use(authenticateToken);

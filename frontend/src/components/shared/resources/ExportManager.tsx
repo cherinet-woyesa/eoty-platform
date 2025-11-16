@@ -16,11 +16,13 @@ const ExportManager: React.FC<ExportManagerProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [exportType, setExportType] = useState('combined'); // REQUIREMENT: Export type (notes, summary, combined)
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await onExport(exportFormat);
+      // REQUIREMENT: Export notes/summaries - pass both type and format
+      await onExport(exportType, exportFormat);
     } catch (error) {
       console.error('Export failed:', error);
     } finally {
@@ -42,7 +44,27 @@ const ExportManager: React.FC<ExportManagerProps> = ({
       
       <div className="p-4">
         <div className="mb-6">
-          <h4 className="text-md font-medium text-gray-900 mb-3">Export Options</h4>
+          <h4 className="text-md font-medium text-gray-900 mb-3">Export Type</h4>
+          <div className="space-y-2 mb-4">
+            {['combined', 'notes', 'summary'].map((type) => (
+              <div 
+                key={type}
+                className={`flex items-center p-2 rounded-lg border cursor-pointer ${
+                  exportType === type 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+                onClick={() => setExportType(type)}
+              >
+                <span className="text-sm font-medium text-gray-900 capitalize">{type}</span>
+                {exportType === type && (
+                  <div className="ml-auto w-2 h-2 rounded-full bg-blue-500"></div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <h4 className="text-md font-medium text-gray-900 mb-3">Export Format</h4>
           <div className="space-y-3">
             {exportOptions.map((option) => {
               const Icon = option.icon;

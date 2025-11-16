@@ -15,17 +15,17 @@ const muxService = require('../services/muxService');
  */
 function detectVideoProvider(lesson) {
   // Check for Mux playback ID (most reliable indicator - video is ready)
-  if (lesson.mux_playback_id && lesson.mux_playback_id.trim() !== '') {
+  if (lesson.mux_playback_id && typeof lesson.mux_playback_id === 'string' && lesson.mux_playback_id.trim() !== '') {
     return 'mux';
   }
 
   // Check for Mux asset ID (video is processing or ready)
-  if (lesson.mux_asset_id && lesson.mux_asset_id.trim() !== '') {
+  if (lesson.mux_asset_id && typeof lesson.mux_asset_id === 'string' && lesson.mux_asset_id.trim() !== '') {
     return 'mux';
   }
 
   // Check for Mux upload ID (upload in progress or processing)
-  if (lesson.mux_upload_id && lesson.mux_upload_id.trim() !== '') {
+  if (lesson.mux_upload_id && typeof lesson.mux_upload_id === 'string' && lesson.mux_upload_id.trim() !== '') {
     return 'mux';
   }
 

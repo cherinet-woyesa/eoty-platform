@@ -65,14 +65,33 @@ class ForumTopic {
       .first();
   }
 
-  static async findByForum(forumId, page = 1, limit = 20) {
+  static async findByForum(forumId, page = 1, limit = 20, userId = null) {
     const offset = (page - 1) * limit;
     
-    return await db('forum_topics')
+    let query = db('forum_topics')
       .where({ forum_id: forumId })
       .join('users', 'forum_topics.author_id', 'users.id')
       .leftJoin('forum_posts', 'forum_topics.last_post_id', 'forum_posts.id')
-      .leftJoin('users as last_users', 'forum_posts.author_id', 'last_users.id')
+      .leftJoin('users as last_users', 'forum_posts.author_id', 'last_users.id');
+
+    // REQUIREMENT: Private/public threads - filter based on user access
+    if (userId) {
+      const user = await db('users').where({ id: userId }).select('chapter_id').first();
+      query = query.where(function() {
+        this.where('forum_topics.is_private', false) // Public topics
+          .orWhere(function() {
+            // Private topics accessible to user's chapter
+            this.where('forum_topics.is_private', true)
+              .where('forum_topics.allowed_chapter_id', user?.chapter_id || -1);
+          })
+          .orWhere('forum_topics.author_id', userId); // User's own topics
+      });
+    } else {
+      // If no user, only show public topics
+      query = query.where('forum_topics.is_private', false);
+    }
+    
+    return await query
       .select(
         'forum_topics.*',
         'users.first_name as author_first_name',
@@ -282,6 +301,10 @@ class UserBadge {
 
 class Leaderboard {
   static async updateLeaderboard(userId, chapterId, points, leaderboardType = 'chapter', periodDate = null) {
+    // Get user's anonymity preference (REQUIREMENT: Anonymity opts)
+    const user = await db('users').where({ id: userId }).select('is_anonymous').first();
+    const isAnonymous = user?.is_anonymous || false;
+
     const entry = await db('leaderboard_entries')
       .where({
         user_id: userId,
@@ -294,14 +317,18 @@ class Leaderboard {
     if (entry) {
       await db('leaderboard_entries')
         .where({ id: entry.id })
-        .update({ points: points });
+        .update({ 
+          points: points,
+          is_anonymous: isAnonymous // Update anonymity status
+        });
     } else {
       await db('leaderboard_entries').insert({
         user_id: userId,
         chapter_id: chapterId,
         leaderboard_type: leaderboardType,
         points: points,
-        period_date: periodDate
+        period_date: periodDate,
+        is_anonymous: isAnonymous // REQUIREMENT: Anonymity opts
       });
     }
 
@@ -351,9 +378,9 @@ class Leaderboard {
     return await query;
   }
 
-  static async getGlobalLeaderboard(limit = 100) {
-    // Sum points across all chapters for global ranking
-    return await db('leaderboard_entries')
+  static async getGlobalLeaderboard(limit = 100, includeAnonymous = true) {
+    // Sum points across all chapters for global ranking (REQUIREMENT: Global rankings)
+    let query = db('leaderboard_entries')
       .where({ leaderboard_type: 'chapter' }) // Base on chapter leaderboards
       .join('users', 'leaderboard_entries.user_id', 'users.id')
       .select(
@@ -361,11 +388,19 @@ class Leaderboard {
         'users.first_name',
         'users.last_name',
         'users.chapter_id',
+        'leaderboard_entries.is_anonymous',
         db.raw('SUM(leaderboard_entries.points) as total_points')
       )
-      .groupBy('leaderboard_entries.user_id', 'users.first_name', 'users.last_name', 'users.chapter_id')
+      .groupBy('leaderboard_entries.user_id', 'users.first_name', 'users.last_name', 'users.chapter_id', 'leaderboard_entries.is_anonymous')
       .orderBy('total_points', 'desc')
       .limit(limit);
+
+    // REQUIREMENT: Anonymity opts
+    if (!includeAnonymous) {
+      query = query.where('leaderboard_entries.is_anonymous', false);
+    }
+
+    return await query;
   }
 }
 

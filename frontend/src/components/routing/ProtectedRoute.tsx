@@ -11,12 +11,16 @@ interface ProtectedRouteProps {
 }
 
 // Role hierarchy for access control
+// NOTE: `platform_admin` removed; `admin` is the single top-level admin role.
 const ROLE_HIERARCHY: Record<string, number> = {
+  // Base members
+  user: 1,
+  // Legacy alias kept for compatibility
   student: 1,
+  // Elevated roles
   teacher: 2,
   chapter_admin: 3,
-  admin: 4,
-  platform_admin: 4, // platform_admin has same level as admin
+  admin: 4
 };
 
 /**
@@ -72,7 +76,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!hasRequiredRole) {
       // Get the user's role-appropriate dashboard
       const getRoleDashboard = (): string => {
-        if (user.role === 'admin' || user.role === 'platform_admin') {
+        if (user.role === 'admin') {
           return '/admin/dashboard';
         }
         if (user.role === 'teacher') {
@@ -131,7 +135,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredPermission && !hasPermission(requiredPermission)) {
     // Get the user's role-appropriate dashboard
     const getRoleDashboard = (): string => {
-      if (user.role === 'admin' || user.role === 'platform_admin') {
+      if (user.role === 'admin') {
         return '/admin/dashboard';
       }
       if (user.role === 'teacher') {

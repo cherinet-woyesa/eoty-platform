@@ -3,18 +3,31 @@ const db = require('../config/database');
 
 class AchievementService {
   constructor() {
+    // Enhanced spam keywords (REQUIREMENT: Prevents spam, abusive content)
     this.spamKeywords = [
       'buy now', 'click here', 'make money', 'earn cash',
       'limited offer', 'act now', 'urgent', 'guaranteed',
-      'work from home', 'get rich', 'financial freedom'
+      'work from home', 'get rich', 'financial freedom',
+      'free money', 'no investment', 'guaranteed income',
+      'click this link', 'visit this website', 'sign up now'
     ];
 
+    // Enhanced abusive patterns (REQUIREMENT: Prevents spam, abusive content)
     this.abusivePatterns = [
       /(fuck|shit|asshole|bastard|bitch)/i,
       /(idiot|stupid|moron|retard)/i,
       /(kill yourself|die|suicide)/i,
-      /(hate you|worthless|useless)/i
+      /(hate you|worthless|useless)/i,
+      /(you're dumb|you're stupid|you're an idiot)/i,
+      /(shut up|go away|leave me alone)/i
     ];
+
+    // Rate limiting thresholds
+    this.rateLimits = {
+      postsPerMinute: 5,
+      postsPerHour: 20,
+      topicsPerDay: 10
+    };
   }
 
   // Auto-moderation for forum content
@@ -36,15 +49,38 @@ class AchievementService {
       }
     });
 
-    // Check for excessive posting (rate limiting)
+    // Enhanced rate limiting (REQUIREMENT: Prevents spam, abusive content)
     const recentPosts = await db('forum_posts')
       .where({ author_id: userId })
-      .where('created_at', '>', new Date(Date.now() - 5 * 60 * 1000)) // Last 5 minutes
+      .where('created_at', '>', new Date(Date.now() - 60 * 1000)) // Last 1 minute
       .count('id as count')
       .first();
 
-    if (recentPosts.count >= 5) {
+    if (recentPosts.count >= this.rateLimits.postsPerMinute) {
       flags.push('posting_too_fast');
+    }
+
+    // Check hourly limit
+    const hourlyPosts = await db('forum_posts')
+      .where({ author_id: userId })
+      .where('created_at', '>', new Date(Date.now() - 60 * 60 * 1000)) // Last hour
+      .count('id as count')
+      .first();
+
+    if (hourlyPosts.count >= this.rateLimits.postsPerHour) {
+      flags.push('excessive_posting');
+    }
+
+    // Check for repeated content (spam detection)
+    const similarPosts = await db('forum_posts')
+      .where({ author_id: userId })
+      .where('content', 'like', `%${content.substring(0, 20)}%`)
+      .where('created_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24 hours
+      .count('id as count')
+      .first();
+
+    if (similarPosts.count >= 3) {
+      flags.push('repeated_content');
     }
 
     // Log moderation events
@@ -118,7 +154,7 @@ class AchievementService {
     };
   }
 
-  // Award badge if user is eligible
+  // Award badge if user is eligible (REQUIREMENT: Updates within 1 minute)
   async awardBadgeIfEligible(userId, badgeName) {
     const badge = await db('badges').where({ name: badgeName }).first();
     
@@ -132,6 +168,14 @@ class AchievementService {
       .first();
 
     if (!alreadyAwarded) {
+      // Queue for real-time update (REQUIREMENT: Updates within 1 minute)
+      const socialFeaturesService = require('./socialFeaturesService');
+      await socialFeaturesService.queueBadgeUpdate(userId, badge.id, 'award', {
+        badge_name: badgeName,
+        points: badge.points
+      });
+
+      // Also award immediately for backward compatibility
       await UserBadge.awardBadge(userId, badge.id, {
         points: badge.points,
         awarded_at: new Date().toISOString()
@@ -141,13 +185,19 @@ class AchievementService {
     }
   }
 
-  // Update user points for leaderboard
+  // Update user points for leaderboard (REQUIREMENT: Updates within 1 minute)
   async updateUserPoints(userId) {
     const user = await db('users').where({ id: userId }).select('chapter_id').first();
     const totalPoints = await UserBadge.getUserPoints(userId);
 
     // Update chapter leaderboard
     await Leaderboard.updateLeaderboard(userId, user.chapter_id, totalPoints, 'chapter');
+
+    // Queue for real-time update (REQUIREMENT: Updates within 1 minute)
+    const socialFeaturesService = require('./socialFeaturesService');
+    await socialFeaturesService.queueLeaderboardUpdate(userId, user.chapter_id, 'points_change', 0, {
+      total_points: totalPoints
+    });
 
     // Update weekly leaderboard
     const weekStart = new Date();

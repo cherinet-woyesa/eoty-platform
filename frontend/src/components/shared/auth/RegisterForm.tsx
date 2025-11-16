@@ -41,12 +41,7 @@ const RegisterForm: React.FC = () => {
     password: '',
     confirmPassword: '',
     chapter: '',
-    role: 'student',
-    // Teacher application fields
-    applicationText: '',
-    qualifications: '',
-    experience: '',
-    subjectAreas: ''
+    role: 'user'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +71,7 @@ const RegisterForm: React.FC = () => {
   useEffect(() => {
     const fetchChapters = async () => {
       try {
-        const response = await chaptersApi.getAllChapters();
+        const response = await chaptersApi.getChapters();
         if (response.success) {
           setChapters(response.data.chapters);
           setChapterError(false);
@@ -127,18 +122,6 @@ const RegisterForm: React.FC = () => {
       case 'chapter':
         if (!value) return 'Please select your local chapter';
         return '';
-      case 'applicationText':
-        if (formData.role === 'teacher') {
-          if (!value.trim()) return 'Please explain why you want to teach';
-          if (value.trim().length < 20) return 'Please provide at least 20 characters';
-        }
-        return '';
-      case 'qualifications':
-        if (formData.role === 'teacher') {
-          if (!value.trim()) return 'Please provide your qualifications';
-          if (value.trim().length < 10) return 'Please provide at least 10 characters';
-        }
-        return '';
       default:
         return '';
     }
@@ -148,22 +131,13 @@ const RegisterForm: React.FC = () => {
     const errors: Record<string, string> = {};
     
     Object.keys(formData).forEach(key => {
-      if (key !== 'role' && key !== 'experience' && key !== 'subjectAreas') { // Skip role and optional fields
+      if (key !== 'role') {
         const error = validateField(key, formData[key as keyof typeof formData]);
         if (error) {
           errors[key] = error;
         }
       }
     });
-    
-    // Additional validation for teacher role
-    if (formData.role === 'teacher') {
-      const appError = validateField('applicationText', formData.applicationText);
-      if (appError) errors.applicationText = appError;
-      
-      const qualError = validateField('qualifications', formData.qualifications);
-      if (qualError) errors.qualifications = qualError;
-    }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -200,12 +174,6 @@ const RegisterForm: React.FC = () => {
       chapter: true 
     };
     
-    // Mark teacher fields as touched if teacher role
-    if (formData.role === 'teacher') {
-      touchedFields.applicationText = true;
-      touchedFields.qualifications = true;
-    }
-    
     setTouched(touchedFields);
     
     // Validate form
@@ -233,22 +201,10 @@ const RegisterForm: React.FC = () => {
         role: formData.role
       };
 
-      // Add teacher application fields if teacher role is selected
-      if (formData.role === 'teacher') {
-        registerData.applicationText = formData.applicationText.trim();
-        registerData.qualifications = formData.qualifications.trim();
-        registerData.experience = formData.experience.trim() || undefined;
-        registerData.subjectAreas = formData.subjectAreas.trim() || undefined;
-      }
-
       await register(registerData);
       
-      // Show appropriate success message
-      if (formData.role === 'teacher') {
-        setSuccessMessage('Account created! Your teacher application is pending review. You can use the platform as a student while waiting for approval.');
-      } else {
-        setSuccessMessage('Account created successfully! Redirecting...');
-      }
+      // Show success message
+      setSuccessMessage('Account created successfully! Redirecting...');
       
       // Store flag to show profile completion notification after redirect
       localStorage.setItem('show_profile_completion', 'true');
@@ -425,15 +381,15 @@ const RegisterForm: React.FC = () => {
             <span className="text-red-500 ml-1" aria-label="required">*</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Student Role Card */}
+            {/* User Role Card (base user) */}
             <button
               type="button"
               onClick={() => {
-                setFormData(prev => ({ ...prev, role: 'student' }));
+                setFormData(prev => ({ ...prev, role: 'user' }));
                 setTouched(prev => ({ ...prev, role: true }));
               }}
               className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                formData.role === 'student'
+                formData.role === 'user'
                   ? 'border-[#00FFC6] bg-gradient-to-br from-[#00FFC6]/10 to-[#4FC3F7]/10 shadow-lg scale-[1.02]'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -441,40 +397,23 @@ const RegisterForm: React.FC = () => {
             >
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg ${
-                  formData.role === 'student' 
+                  formData.role === 'user' 
                     ? 'bg-gradient-to-br from-[#00FFC6]/20 to-[#4FC3F7]/20' 
                     : 'bg-slate-100'
                 }`}>
                   <BookOpen className={`h-5 w-5 ${
-                    formData.role === 'student' 
+                    formData.role === 'user' 
                       ? 'text-[#00FFC6]' 
                       : 'text-slate-600'
                   }`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-sm text-slate-700">Student</h3>
-                    {formData.role === 'student' && (
+                    <h3 className="font-semibold text-sm text-slate-700">User</h3>
+                    {formData.role === 'user' && (
                       <Check className="h-5 w-5 text-[#00FFC6]" />
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 mb-2">
-                    Start learning immediately
-                  </p>
-                  <ul className="text-xs text-slate-500 space-y-1">
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Enroll in courses
-                    </li>
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Track progress
-                    </li>
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Join discussions
-                    </li>
-                  </ul>
                 </div>
               </div>
             </button>
@@ -512,27 +451,6 @@ const RegisterForm: React.FC = () => {
                       <Check className="h-5 w-5 text-[#4FC3F7]" />
                     )}
                   </div>
-                  <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium mb-2">
-                    <Shield className="h-3 w-3 mr-1" />
-                    Approval Required
-                  </div>
-                  <p className="text-xs text-slate-600 mb-2">
-                    Share your knowledge
-                  </p>
-                  <ul className="text-xs text-slate-500 space-y-1">
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Create courses
-                    </li>
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Manage students
-                    </li>
-                    <li className="flex items-center">
-                      <span className="mr-1">✓</span>
-                      Access analytics
-                    </li>
-                  </ul>
                 </div>
               </div>
             </button>
@@ -540,161 +458,7 @@ const RegisterForm: React.FC = () => {
           {validationErrors.role && touched.role && (
             <p className="text-xs text-red-600 mt-1">{validationErrors.role}</p>
           )}
-          {formData.role === 'teacher' && (
-            <div className="mt-3 p-3 bg-blue-50/50 border border-blue-200/50 rounded-lg">
-              <p className="text-xs text-blue-700">
-                <strong>Note:</strong> Teacher accounts require admin approval. 
-                You'll be able to use the platform as a student while your application is reviewed.
-              </p>
-            </div>
-          )}
         </div>
-
-        {/* Teacher Application Fields - Shown only when teacher role is selected */}
-        {formData.role === 'teacher' && (
-          <div className="space-y-3 sm:space-y-4 pt-4 border-t border-gray-100">
-            <div className="hidden sm:block">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Teacher Application</h3>
-            </div>
-
-            {/* Application Text */}
-            <div className="space-y-1">
-              <label htmlFor="applicationText" className="block text-xs sm:text-sm font-semibold text-gray-900">
-                Why do you want to teach?
-                <span className="text-red-500 ml-1" aria-label="required">*</span>
-              </label>
-              <textarea
-                id="applicationText"
-                name="applicationText"
-                value={formData.applicationText}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required={formData.role === 'teacher'}
-                placeholder="Tell us about your passion for teaching and why you want to share your knowledge..."
-                rows={4}
-                disabled={isLoading}
-                className={`
-                  block w-full px-3 py-2 sm:py-3
-                  border-2 rounded-lg 
-                  focus:outline-none focus:ring-2 focus:ring-[#00FFFF]/20 
-                  transition-all duration-200 
-                  bg-gray-50/50 focus:bg-white 
-                  text-gray-900
-                  text-sm sm:text-base
-                  resize-y
-                  ${validationErrors.applicationText && touched.applicationText 
-                    ? 'border-red-300 focus:border-red-500' 
-                    : 'border-gray-200 focus:border-[#4FC3F7]'}
-                  ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
-                `}
-                aria-invalid={!!(validationErrors.applicationText && touched.applicationText)}
-                aria-describedby={validationErrors.applicationText && touched.applicationText ? 'applicationText-error' : undefined}
-              />
-              {validationErrors.applicationText && touched.applicationText && (
-                <p id="applicationText-error" className="text-xs sm:text-sm text-red-600" role="alert">
-                  {validationErrors.applicationText}
-                </p>
-              )}
-            </div>
-
-            {/* Qualifications */}
-            <div className="space-y-1">
-              <label htmlFor="qualifications" className="block text-xs sm:text-sm font-semibold text-gray-900">
-                Qualifications
-                <span className="text-red-500 ml-1" aria-label="required">*</span>
-              </label>
-              <textarea
-                id="qualifications"
-                name="qualifications"
-                value={formData.qualifications}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required={formData.role === 'teacher'}
-                placeholder="List your educational background, certifications, degrees, etc."
-                rows={3}
-                disabled={isLoading}
-                className={`
-                  block w-full px-3 py-2 sm:py-3
-                  border-2 rounded-lg 
-                  focus:outline-none focus:ring-2 focus:ring-[#00FFFF]/20 
-                  transition-all duration-200 
-                  bg-gray-50/50 focus:bg-white 
-                  text-gray-900
-                  text-sm sm:text-base
-                  resize-y
-                  ${validationErrors.qualifications && touched.qualifications 
-                    ? 'border-red-300 focus:border-red-500' 
-                    : 'border-gray-200 focus:border-[#4FC3F7]'}
-                  ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
-                `}
-                aria-invalid={!!(validationErrors.qualifications && touched.qualifications)}
-                aria-describedby={validationErrors.qualifications && touched.qualifications ? 'qualifications-error' : undefined}
-              />
-              {validationErrors.qualifications && touched.qualifications && (
-                <p id="qualifications-error" className="text-xs sm:text-sm text-red-600" role="alert">
-                  {validationErrors.qualifications}
-                </p>
-              )}
-            </div>
-
-            {/* Experience (Optional) */}
-            <div className="space-y-1">
-              <label htmlFor="experience" className="block text-xs sm:text-sm font-semibold text-gray-900">
-                Teaching Experience <span className="text-gray-500 font-normal">(Optional)</span>
-              </label>
-              <textarea
-                id="experience"
-                name="experience"
-                value={formData.experience}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Describe your teaching experience, if any..."
-                rows={3}
-                disabled={isLoading}
-                className={`
-                  block w-full px-3 py-2 sm:py-3
-                  border-2 rounded-lg 
-                  focus:outline-none focus:ring-2 focus:ring-[#00FFFF]/20 
-                  transition-all duration-200 
-                  bg-gray-50/50 focus:bg-white 
-                  text-gray-900
-                  text-sm sm:text-base
-                  resize-y
-                  border-gray-200 focus:border-[#00FFFF]
-                  ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
-                `}
-              />
-            </div>
-
-            {/* Subject Areas (Optional) */}
-            <div className="space-y-1">
-              <label htmlFor="subjectAreas" className="block text-xs sm:text-sm font-semibold text-gray-900">
-                Subject Areas of Interest <span className="text-gray-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                id="subjectAreas"
-                name="subjectAreas"
-                type="text"
-                value={formData.subjectAreas}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="e.g., Theology, Church History, Scripture Study, etc."
-                disabled={isLoading}
-                className={`
-                  block w-full px-3 py-2 sm:py-3
-                  border-2 rounded-lg 
-                  focus:outline-none focus:ring-2 focus:ring-[#00FFFF]/20 
-                  transition-all duration-200 
-                  bg-gray-50/50 focus:bg-white 
-                  text-gray-900
-                  text-sm sm:text-base
-                  border-gray-200 focus:border-[#00FFFF]
-                  ${isLoading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
-                `}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Chapter Selection - Native select optimized for mobile */}
         <div className="space-y-1">

@@ -3,7 +3,7 @@ const db = require('../config/database');
 const achievementService = require('../services/achievementService');
 
 const achievementController = {
-  // Get user badges
+  // Get user badges (REQUIREMENT: Badges linked to user profiles)
   async getUserBadges(req, res) {
     try {
       const userId = req.user.userId;
@@ -11,11 +11,17 @@ const achievementController = {
       const badges = await UserBadge.getUserBadges(userId);
       const totalPoints = await UserBadge.getUserPoints(userId);
 
+      // REQUIREMENT: Youth privacy is strictly enforced
+      const youthPrivacyService = require('../services/youthPrivacyService');
+      const isYouth = await youthPrivacyService.isYouthUser(userId);
+
       res.json({
         success: true,
         data: {
           badges,
-          total_points: totalPoints
+          total_points: totalPoints,
+          is_youth: isYouth, // Internal flag for privacy enforcement
+          privacy_enforced: isYouth // REQUIREMENT: Youth privacy is strictly enforced
         }
       });
     } catch (error) {
@@ -71,10 +77,10 @@ const achievementController = {
     }
   },
 
-  // Get leaderboard
+  // Get leaderboard (REQUIREMENT: Per-chapter/global rankings, anonymity opts)
   async getLeaderboard(req, res) {
     try {
-      const { type = 'chapter', period = 'current' } = req.query;
+      const { type = 'chapter', period = 'current', includeAnonymous = 'false' } = req.query;
       const userId = req.user.userId;
       
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
@@ -92,16 +98,35 @@ const achievementController = {
       }
 
       if (type === 'global') {
-        leaderboard = await Leaderboard.getGlobalLeaderboard(100);
+        leaderboard = await Leaderboard.getGlobalLeaderboard(100, includeAnonymous === 'true');
       } else {
+        // REQUIREMENT: Anonymity opts - respect user preference
         leaderboard = await Leaderboard.getLeaderboard(
           user.chapter_id, 
           type, 
           periodDate, 
           100,
-          false // Exclude anonymous for privacy
+          includeAnonymous === 'true' // Include anonymous if requested
         );
       }
+
+      // REQUIREMENT: Limits leaderboard to non-sensitive profile info
+      let sanitizedLeaderboard = leaderboard.map(entry => ({
+        rank: entry.rank,
+        points: entry.points,
+        user_id: entry.is_anonymous ? null : entry.user_id, // Hide user ID if anonymous
+        first_name: entry.is_anonymous ? 'Anonymous' : entry.first_name,
+        last_name: entry.is_anonymous ? '' : entry.last_name,
+        chapter_id: entry.chapter_id,
+        is_anonymous: entry.is_anonymous
+      }));
+
+      // REQUIREMENT: Youth privacy is strictly enforced
+      const youthPrivacyService = require('../services/youthPrivacyService');
+      sanitizedLeaderboard = await youthPrivacyService.enforceYouthPrivacyOnLeaderboard(
+        sanitizedLeaderboard,
+        userId
+      );
 
       // Add user's current rank
       const userRank = leaderboard.findIndex(entry => entry.user_id === userId) + 1;
@@ -109,10 +134,11 @@ const achievementController = {
       res.json({
         success: true,
         data: {
-          leaderboard,
+          leaderboard: sanitizedLeaderboard,
           user_rank: userRank > 0 ? userRank : null,
           leaderboard_type: type,
-          period: period
+          period: period,
+          total_entries: sanitizedLeaderboard.length
         }
       });
     } catch (error) {
@@ -124,7 +150,7 @@ const achievementController = {
     }
   },
 
-  // Update user anonymity preference
+  // Update user anonymity preference (REQUIREMENT: Anonymity opts)
   async updateAnonymity(req, res) {
     try {
       const { isAnonymous } = req.body;
@@ -132,14 +158,23 @@ const achievementController = {
       
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
 
-      // Update all leaderboard entries for this user
+      // Update user preference
+      await db('users')
+        .where({ id: userId })
+        .update({ is_anonymous: isAnonymous });
+
+      // Update all leaderboard entries for this user (REQUIREMENT: Anonymity opts)
       await db('leaderboard_entries')
-        .where({ user_id: userId, chapter_id: user.chapter_id })
+        .where({ user_id: userId })
         .update({ is_anonymous: isAnonymous });
 
       res.json({
         success: true,
-        message: `Anonymity ${isAnonymous ? 'enabled' : 'disabled'} successfully`
+        message: `Anonymity ${isAnonymous ? 'enabled' : 'disabled'} successfully`,
+        data: {
+          is_anonymous: isAnonymous,
+          privacy_note: 'Your name will be hidden from leaderboards when anonymous'
+        }
       });
     } catch (error) {
       console.error('Update anonymity error:', error);

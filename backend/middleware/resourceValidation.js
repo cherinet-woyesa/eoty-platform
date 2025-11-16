@@ -34,11 +34,22 @@ const validateResourceUpload = (req, res, next) => {
       errors.file = `File size exceeds maximum allowed size of 100MB`;
     }
 
-    // Validate file format
+    // Validate file format (REQUIREMENT: Error notification for unsupported types)
     const allowedFormats = resourceService.allowedFileTypes;
     const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
     
     if (!fileExtension || !allowedFormats.includes(fileExtension)) {
+      // Log unsupported file attempt (REQUIREMENT: Error notification)
+      const resourceLibraryService = require('../services/resourceLibraryService');
+      resourceLibraryService.logUnsupportedFileAttempt(
+        req.user?.userId,
+        req.file.originalname,
+        fileExtension,
+        req.file.mimetype,
+        req.file.size,
+        `Unsupported file type: ${fileExtension}`
+      ).catch(console.error); // Don't block on logging
+      
       errors.file = `Invalid file format. Allowed formats: ${allowedFormats.join(', ')}`;
     }
   }

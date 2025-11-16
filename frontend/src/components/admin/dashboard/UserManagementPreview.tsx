@@ -6,7 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'student' | 'teacher' | 'chapter_admin' | 'platform_admin';
+  role: 'student' | 'teacher' | 'chapter_admin' | 'admin';
   status: 'active' | 'pending' | 'suspended' | 'inactive';
   joinDate: string;
   lastActive: string;
@@ -26,7 +26,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
 }) => {
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'platform_admin':
+      case 'admin':
         return 'bg-purple-100 text-purple-800';
       case 'chapter_admin':
         return 'bg-blue-100 text-blue-800';
@@ -56,7 +56,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'platform_admin':
+      case 'admin':
         return <Shield className="h-3 w-3" />;
       case 'chapter_admin':
         return <Shield className="h-3 w-3" />;
@@ -233,7 +233,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
 
       {/* Role Distribution */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {['student', 'teacher', 'chapter_admin', 'platform_admin'].map((role) => {
+        {['student', 'teacher', 'chapter_admin', 'admin'].map((role) => {
           const count = users.filter(user => user.role === role).length;
           return (
             <div key={role} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">

@@ -18,7 +18,7 @@ const DynamicDashboard: React.FC = () => {
   const search = location.search;
 
   // Redirect to role-specific dashboard
-  if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+  if (user?.role === 'chapter_admin' || user?.role === 'admin') {
     return <Navigate to={`/admin/dashboard${search}`} replace />;
   }
 
@@ -26,7 +26,7 @@ const DynamicDashboard: React.FC = () => {
     return <Navigate to={`/teacher/dashboard${search}`} replace />;
   }
 
-  if (user?.role === 'student') {
+  if (user?.role === 'user' || user?.role === 'student') {
     return <Navigate to={`/student/dashboard${search}`} replace />;
   }
 

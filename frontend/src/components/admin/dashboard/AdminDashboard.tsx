@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api/apiClient';
 import { Users, BookOpen, Video, AlertTriangle, TrendingUp, RefreshCw } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import AnomalyAlerts from '@/components/admin/AnomalyAlerts';
 
 interface AdminDashboardProps {
   activeTab?: string;
@@ -39,7 +40,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   // Load admin stats directly from API (same approach as teacher dashboard)
   const loadAdminStats = useCallback(async () => {
-    if (!user || user.role !== 'admin' && user.role !== 'platform_admin') {
+    if (!user || user.role !== 'admin') {
       setIsLoading(false);
       return;
     }
@@ -81,7 +82,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   // Auto-refresh every 60 seconds
   useEffect(() => {
-    if (!user || (user.role !== 'admin' && user.role !== 'platform_admin')) return;
+    if (!user || user.role !== 'admin') return;
     
     const interval = setInterval(() => {
       loadAdminStats();
@@ -210,7 +211,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     loadAdminStats();
   }, [loadAdminStats]);
 
-  if (!user || (user.role !== 'admin' && user.role !== 'platform_admin')) {
+  if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
@@ -239,7 +240,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
           <p className="text-stone-600 mb-4">{error}</p>
           <button 
             onClick={handleRetry}
-            className="px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 transition-all shadow-md hover:shadow-lg"
+            className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-md hover:shadow-lg"
           >
             Try Again
           </button>
@@ -250,23 +251,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
           {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                    <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                      <Users className="h-6 w-6 text-[#39FF14]" />
+                    <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
+                    <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
+                      <Users className="h-6 w-6 text-[#27AE60]" />
                     </div>
                   </div>
                   <h1 className="text-3xl font-bold text-stone-800">Admin Dashboard</h1>
                   {isConnected && (
-                    <div className="flex items-center space-x-2 text-[#39FF14]">
-                      <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                    <div className="flex items-center space-x-2 text-[#27AE60]">
+                      <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium">Live</span>
                     </div>
                   )}
@@ -281,9 +281,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
               <div className="mt-4 lg:mt-0">
                 <button
                   onClick={handleRetry}
-                  className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50"
+                  className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/30 shadow-sm hover:shadow-md hover:border-[#27AE60]/50"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2 text-[#39FF14]" />
+                  <RefreshCw className="h-4 w-4 mr-2 text-[#27AE60]" />
                   Refresh
                 </button>
               </div>
@@ -297,44 +297,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 key={metric.id}
                 to={metric.link || '#'}
                 className={`bg-white/90 backdrop-blur-md rounded-xl border-2 shadow-sm hover:shadow-lg transition-all p-6 group ${
-                  metric.isAlert ? 'border-red-300 ring-2 ring-red-100' : 'border-stone-200 hover:border-[#39FF14]/50'
+                  metric.isAlert ? 'border-red-300 ring-2 ring-red-100' : 'border-stone-200 hover:border-[#27AE60]/40'
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`relative ${
-                    metric.id === 'totalUsers' ? 'text-[#39FF14]' :
-                    metric.id === 'activeUsers' ? 'text-[#00FFC6]' :
-                    metric.id === 'activeCourses' ? 'text-[#00FFFF]' :
-                    metric.id === 'completedLessons' ? 'text-[#FFD700]' :
-                    metric.id === 'newRegistrations' ? 'text-[#39FF14]' :
+                    metric.id === 'totalUsers' ? 'text-[#27AE60]' :
+                    metric.id === 'activeUsers' ? 'text-[#16A085]' :
+                    metric.id === 'activeCourses' ? 'text-[#2980B9]' :
+                    metric.id === 'completedLessons' ? 'text-[#F39C12]' :
+                    metric.id === 'newRegistrations' ? 'text-[#27AE60]' :
                     metric.id === 'flaggedContent' ? 'text-red-500' :
                     'text-amber-500'
                   }`}>
                     <div className={`absolute inset-0 ${
-                      metric.id === 'totalUsers' ? 'bg-[#39FF14]/20' :
-                      metric.id === 'activeUsers' ? 'bg-[#00FFC6]/20' :
-                      metric.id === 'activeCourses' ? 'bg-[#00FFFF]/20' :
-                      metric.id === 'completedLessons' ? 'bg-[#FFD700]/20' :
-                      metric.id === 'newRegistrations' ? 'bg-[#39FF14]/20' :
-                      metric.id === 'flaggedContent' ? 'bg-red-500/20' :
-                      'bg-amber-500/20'
+                      metric.id === 'totalUsers' ? 'bg-[#27AE60]/15' :
+                      metric.id === 'activeUsers' ? 'bg-[#16A085]/15' :
+                      metric.id === 'activeCourses' ? 'bg-[#2980B9]/15' :
+                      metric.id === 'completedLessons' ? 'bg-[#F39C12]/15' :
+                      metric.id === 'newRegistrations' ? 'bg-[#27AE60]/15' :
+                      metric.id === 'flaggedContent' ? 'bg-red-500/15' :
+                      'bg-amber-500/15'
                     } rounded-lg blur-md`}></div>
                     <div className={`relative p-3 ${
-                      metric.id === 'totalUsers' ? 'bg-[#39FF14]/10' :
-                      metric.id === 'activeUsers' ? 'bg-[#00FFC6]/10' :
-                      metric.id === 'activeCourses' ? 'bg-[#00FFFF]/10' :
-                      metric.id === 'completedLessons' ? 'bg-[#FFD700]/10' :
-                      metric.id === 'newRegistrations' ? 'bg-[#39FF14]/10' :
-                      metric.id === 'flaggedContent' ? 'bg-red-500/10' :
-                      'bg-amber-500/10'
+                      metric.id === 'totalUsers' ? 'bg-[#27AE60]/8' :
+                      metric.id === 'activeUsers' ? 'bg-[#16A085]/8' :
+                      metric.id === 'activeCourses' ? 'bg-[#2980B9]/8' :
+                      metric.id === 'completedLessons' ? 'bg-[#F39C12]/8' :
+                      metric.id === 'newRegistrations' ? 'bg-[#27AE60]/8' :
+                      metric.id === 'flaggedContent' ? 'bg-red-500/8' :
+                      'bg-amber-500/8'
                     } rounded-lg border ${
-                      metric.id === 'totalUsers' ? 'border-[#39FF14]/30' :
-                      metric.id === 'activeUsers' ? 'border-[#00FFC6]/30' :
-                      metric.id === 'activeCourses' ? 'border-[#00FFFF]/30' :
-                      metric.id === 'completedLessons' ? 'border-[#FFD700]/30' :
-                      metric.id === 'newRegistrations' ? 'border-[#39FF14]/30' :
-                      metric.id === 'flaggedContent' ? 'border-red-500/30' :
-                      'border-amber-500/30'
+                      metric.id === 'totalUsers' ? 'border-[#27AE60]/25' :
+                      metric.id === 'activeUsers' ? 'border-[#16A085]/25' :
+                      metric.id === 'activeCourses' ? 'border-[#2980B9]/25' :
+                      metric.id === 'completedLessons' ? 'border-[#F39C12]/25' :
+                      metric.id === 'newRegistrations' ? 'border-[#27AE60]/25' :
+                      metric.id === 'flaggedContent' ? 'border-red-500/25' :
+                      'border-amber-500/25'
                     } group-hover:scale-105 transition-transform`}>
                       {metric.icon}
                     </div>
@@ -351,22 +351,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
             ))}
           </div>
 
+          {/* FR5: Anomaly Alerts (REQUIREMENT: Warns admins on audit or moderation anomalies) */}
+          <AnomalyAlerts autoRefresh={true} refreshInterval={60000} maxDisplay={3} />
+
           {/* Quick Actions */}
           <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-stone-200 p-6">
             <h3 className="text-lg font-semibold text-stone-800 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Link
                 to="/admin/users"
-                className="flex items-center p-4 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 hover:from-[#39FF14]/20 hover:to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30 transition-all shadow-sm hover:shadow-md"
+                className="flex items-center p-4 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 hover:from-[#27AE60]/20 hover:to-[#16A085]/20 rounded-lg border border-[#27AE60]/25 transition-all shadow-sm hover:shadow-md"
               >
-                <Users className="h-6 w-6 text-[#39FF14] mr-3" />
+                <Users className="h-6 w-6 text-[#27AE60] mr-3" />
                 <span className="font-medium text-stone-800">Manage Users</span>
               </Link>
               <Link
                 to="/admin/courses"
-                className="flex items-center p-4 bg-gradient-to-r from-[#00FFC6]/10 to-[#00FFFF]/10 hover:from-[#00FFC6]/20 hover:to-[#00FFFF]/20 rounded-lg border border-[#00FFC6]/30 transition-all shadow-sm hover:shadow-md"
+                className="flex items-center p-4 bg-gradient-to-r from-[#16A085]/10 to-[#2980B9]/10 hover:from-[#16A085]/20 hover:to-[#2980B9]/20 rounded-lg border border-[#16A085]/25 transition-all shadow-sm hover:shadow-md"
               >
-                <BookOpen className="h-6 w-6 text-[#00FFC6] mr-3" />
+                <BookOpen className="h-6 w-6 text-[#16A085] mr-3" />
                 <span className="font-medium text-stone-800">Manage Courses</span>
               </Link>
               {stats.flaggedContent > 0 && (
@@ -381,7 +384,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
             </div>
           </div>
         </div>
-      </div>
     </ErrorBoundary>
   );
 };

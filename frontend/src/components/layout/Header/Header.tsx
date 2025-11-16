@@ -7,17 +7,15 @@ import { Menu, X } from 'lucide-react';
 import LanguageSelector from '@/components/common/LanguageSelector';
 import BreadcrumbNav from './BreadcrumbNav';
 import QuickActions from './QuickActions';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
   sidebarCollapsed?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) => {
+const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isOnline = useOnlineStatus();
 
   const handleMobileMenuToggle = useCallback(() => {
     setIsMobileMenuOpen(prev => !prev);
@@ -28,11 +26,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) =>
   }, []);
 
   return (
-    <header className="bg-white/95 backdrop-blur-lg border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
+    <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/70 shadow-sm sticky top-0 z-50">
       <div className="px-3 sm:px-4 lg:px-6">
-        <div className="flex justify-between items-center h-14">
+        <div className="flex justify-between items-center h-14 gap-3">
           {/* Left section - Mobile menu and breadcrumbs */}
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {/* Mobile menu button */}
             <button 
               onClick={onToggleSidebar || handleMobileMenuToggle}
@@ -47,13 +45,18 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) =>
             </button>
             
             {/* Breadcrumb navigation - Hidden on mobile */}
-            <div className="hidden md:block flex-1 min-w-0">
+            <div className="hidden md:block">
               <BreadcrumbNav />
             </div>
           </div>
 
+          {/* Center section - Search Bar (Desktop only) */}
+          <div className="hidden lg:flex flex-1 max-w-2xl mx-4">
+            <SearchBar />
+          </div>
+
           {/* Right section - User actions */}
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             {/* Quick Actions - Hidden on mobile */}
             <div className="hidden lg:block">
               <QuickActions />
@@ -72,9 +75,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) =>
           </div>
         </div>
 
-        {/* Mobile breadcrumb - Only show on mobile */}
-        <div className="md:hidden pb-2">
+        {/* Mobile breadcrumb and search - Only show on mobile */}
+        <div className="md:hidden pb-2 space-y-2">
           <BreadcrumbNav />
+          {/* Mobile search bar */}
+          <div className="lg:hidden">
+            <SearchBar />
+          </div>
         </div>
       </div>
 
@@ -86,9 +93,23 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed }) =>
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 space-y-3">
-              <div className="flex items-center space-x-3">
+              {/* Mobile Search */}
+              <div>
+                <SearchBar />
+              </div>
+              
+              {/* Mobile Quick Actions */}
+              <div className="border-t border-gray-200 pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Quick Actions</p>
+                <QuickActions />
+              </div>
+              
+              {/* Language Selector */}
+              <div className="border-t border-gray-200 pt-3">
                 <LanguageSelector />
               </div>
+              
+              {/* User Info */}
               <div className="border-t border-gray-200 pt-3">
                 <p className="text-sm font-semibold text-gray-900">{user?.firstName} {user?.lastName}</p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>

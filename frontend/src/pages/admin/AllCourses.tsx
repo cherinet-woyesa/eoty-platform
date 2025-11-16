@@ -264,17 +264,16 @@ const AllCourses: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <BookOpen className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
+                    <BookOpen className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">Course Management</h1>
@@ -290,14 +289,14 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={fetchCourses}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <button
                 onClick={() => navigate('/teacher/courses/new')}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Course
@@ -309,12 +308,12 @@ const AllCourses: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
-            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
-            { name: 'Drafts', value: stats.draft, icon: XCircle, textColor: 'text-[#FFD700]', bgColor: 'bg-[#FFD700]/10', borderColor: 'border-[#FFD700]/30', glowColor: 'bg-[#FFD700]/20' },
-            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#00FFFF]', bgColor: 'bg-[#00FFFF]/10', borderColor: 'border-[#00FFFF]/30', glowColor: 'bg-[#00FFFF]/20' },
-            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: 'text-[#39FF14]', bgColor: 'bg-[#39FF14]/10', borderColor: 'border-[#39FF14]/30', glowColor: 'bg-[#39FF14]/20' },
-            { name: 'Total Hours', value: stats.totalDuration, icon: Clock, textColor: 'text-[#00FFC6]', bgColor: 'bg-[#00FFC6]/10', borderColor: 'border-[#00FFC6]/30', glowColor: 'bg-[#00FFC6]/20' },
+            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/20' },
+            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/20' },
+            { name: 'Drafts', value: stats.draft, icon: XCircle, textColor: 'text-[#F39C12]', bgColor: 'bg-[#F39C12]/10', borderColor: 'border-[#F39C12]/25', glowColor: 'bg-[#F39C12]/20' },
+            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#2980B9]', bgColor: 'bg-[#2980B9]/10', borderColor: 'border-[#2980B9]/25', glowColor: 'bg-[#2980B9]/20' },
+            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/20' },
+            { name: 'Total Hours', value: stats.totalDuration, icon: Clock, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/20' },
           ].map((stat, index) => (
             <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
@@ -345,7 +344,7 @@ const AllCourses: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             />
           </div>
 
@@ -357,7 +356,7 @@ const AllCourses: React.FC = () => {
                 setStatusFilter(e.target.value as 'all' | 'published' | 'draft');
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Status</option>
               <option value="published">Published</option>
@@ -370,7 +369,7 @@ const AllCourses: React.FC = () => {
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Categories</option>
               <option value="faith">Faith & Doctrine</option>
@@ -388,7 +387,7 @@ const AllCourses: React.FC = () => {
                 setSortBy(field as any);
                 setSortOrder(order as 'asc' | 'desc');
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="created_at-desc">Newest First</option>
               <option value="created_at-asc">Oldest First</option>
@@ -401,13 +400,13 @@ const AllCourses: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -431,7 +430,7 @@ const AllCourses: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedCourses.length > 0 && (
-        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/25 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
           <div className="flex items-center space-x-4">
             <span className="text-stone-800 font-semibold">
               {selectedCourses.length} course{selectedCourses.length > 1 ? 's' : ''} selected
@@ -440,7 +439,7 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={() => handleBulkPublish(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 shadow-md"
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Publish
@@ -448,7 +447,7 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={() => handleBulkPublish(false)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-[#FFD700] text-stone-800 text-sm font-semibold rounded-lg hover:bg-[#FFD700]/90 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 bg-[#F39C12] text-stone-800 text-sm font-semibold rounded-lg hover:bg-[#F39C12]/90 disabled:opacity-50 shadow-md"
               >
                 <XCircle className="h-4 w-4 mr-1" />
                 Unpublish
@@ -727,7 +726,6 @@ const AllCourses: React.FC = () => {
           )}
         </div>
       )}
-      </div>
     </div>
   );
 };

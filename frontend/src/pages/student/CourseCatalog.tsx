@@ -116,7 +116,7 @@ const CourseCatalog: React.FC = () => {
 
   // Memoize course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: CatalogCourse) => (
-    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-[#39FF14]/50">
+    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-[#27AE60]/40">
       {/* Course Header */}
       <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white relative`}>
         <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
@@ -124,7 +124,7 @@ const CourseCatalog: React.FC = () => {
           {course.description || 'No description provided'}
         </p>
         {course.is_enrolled && (
-          <div className="absolute top-2 right-2 bg-[#39FF14] text-stone-900 px-2 py-1 rounded-full text-xs font-bold flex items-center shadow-lg">
+          <div className="absolute top-2 right-2 bg-[#27AE60] text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center shadow-md">
             <CheckCircle className="h-3 w-3 mr-1" />
             Enrolled
           </div>
@@ -135,11 +135,11 @@ const CourseCatalog: React.FC = () => {
       <div className="p-4">
         <div className="flex items-center justify-between text-sm text-stone-600 mb-3">
           <div className="flex items-center space-x-1">
-            <Users className="h-4 w-4 text-[#00FFC6]" />
+            <Users className="h-4 w-4 text-[#27AE60]" />
             <span>{course.student_count} students</span>
           </div>
           <div className="flex items-center space-x-1">
-            <BookOpen className="h-4 w-4 text-[#00FFFF]" />
+            <BookOpen className="h-4 w-4 text-[#2980B9]" />
             <span>{course.lesson_count} lessons</span>
           </div>
         </div>
@@ -156,7 +156,7 @@ const CourseCatalog: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex space-x-2">
           <Link
-            to={`/courses/${course.id}`}
+            to={`/student/courses/${course.id}`}
             className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-lg text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
           >
             View Details
@@ -166,7 +166,7 @@ const CourseCatalog: React.FC = () => {
             <button
               onClick={() => handleEnroll(course.id)}
               disabled={enrolling === course.id}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#32E60F] hover:to-[#00E6B8] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
             >
               {enrolling === course.id ? (
                 <>
@@ -179,8 +179,8 @@ const CourseCatalog: React.FC = () => {
             </button>
           ) : (
             <Link
-              to={`/courses/${course.id}`}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#00FFC6] to-[#00FFFF] hover:from-[#00E6B8] hover:to-[#00E6E6] transition-all shadow-md hover:shadow-lg"
+              to={`/student/courses/${course.id}`}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-md hover:shadow-lg"
             >
               Continue Learning
             </Link>
@@ -192,10 +192,10 @@ const CourseCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-96">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full flex items-center justify-center min-h-96 p-4 sm:p-6 lg:p-8">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
             <p className="text-stone-600 text-lg">Loading course catalog...</p>
           </div>
         </div>
@@ -205,14 +205,14 @@ const CourseCatalog: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-96">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full flex items-center justify-center min-h-96 p-4 sm:p-6 lg:p-8">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-600 text-lg mb-4">{error}</p>
             <button 
               onClick={loadCatalog}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:from-[#32E60F] hover:to-[#00E6B8] transition-all font-semibold shadow-md"
+              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
             >
               Try Again
             </button>
@@ -223,17 +223,17 @@ const CourseCatalog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <Sparkles className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-white/80 rounded-lg border border-[#27AE60]/40">
+                    <Sparkles className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">Course Catalog</h1>
@@ -252,13 +252,13 @@ const CourseCatalog: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
             <input
               type="text"
               placeholder="Search courses..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-white"
             />
           </div>
 
@@ -266,7 +266,7 @@ const CourseCatalog: React.FC = () => {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white text-sm"
             >
               {categories.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -276,7 +276,7 @@ const CourseCatalog: React.FC = () => {
             <select
               value={filterLevel}
               onChange={(e) => setFilterLevel(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white text-sm"
             >
               {levels.map(level => (
                 <option key={level.value} value={level.value}>{level.label}</option>

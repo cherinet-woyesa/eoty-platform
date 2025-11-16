@@ -6,6 +6,7 @@ interface OnboardingContextType {
   hasOnboarding: boolean;
   flow: OnboardingFlow | null;
   progress: OnboardingProgress | null;
+  milestones: any[] | null;
   isCompleted: boolean;
   isLoading: boolean;
   error: string | null;
@@ -22,6 +23,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [hasOnboarding, setHasOnboarding] = useState(false);
   const [flow, setFlow] = useState<OnboardingFlow | null>(null);
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [milestones, setMilestones] = useState<any[] | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,19 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setFlow(response.data.flow || null);
         setProgress(response.data.progress || null);
         setIsCompleted(response.data.is_completed || false);
+        
+        // Fetch milestones if flow exists (REQUIREMENT: Milestone-based)
+        if (response.data.flow?.id) {
+          try {
+            const milestonesResponse = await onboardingApi.getMilestones(response.data.flow.id);
+            if (milestonesResponse.success) {
+              setMilestones(milestonesResponse.data.milestones || []);
+            }
+          } catch (err) {
+            console.error('Failed to fetch milestones:', err);
+            // Non-critical, continue without milestones
+          }
+        }
       } else {
         setError(response.data.message || 'Failed to fetch onboarding progress');
       }
@@ -133,6 +148,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     hasOnboarding,
     flow,
     progress,
+    milestones,
     isCompleted,
     isLoading,
     error,

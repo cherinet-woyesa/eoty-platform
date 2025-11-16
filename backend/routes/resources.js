@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const resourceController = require('../controllers/resourceController');
+const resourceLibraryController = require('../controllers/resourceLibraryController');
 const { authenticateToken } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/rbac');
 const {
@@ -46,14 +47,14 @@ router.get(
 
 /**
  * GET /api/resources/filters
- * Get filter options for resources
+ * Get enhanced filter options (REQUIREMENT: Tag, type, topic, author, date)
  */
 router.get(
   '/filters',
   async (req, res) => {
     try {
-      const resourceService = require('../services/resourceService');
-      const filters = await resourceService.getFilterOptions();
+      const resourceLibraryService = require('../services/resourceLibraryService');
+      const filters = await resourceLibraryService.getFilterOptions();
       
       res.json({
         success: true,
@@ -67,6 +68,101 @@ router.get(
       });
     }
   }
+);
+
+/**
+ * GET /api/resources/search
+ * Enhanced search with all filters (REQUIREMENT: Tag, type, topic, author, date)
+ * NOTE: Must come before /:id route to avoid route conflict
+ */
+router.get(
+  '/search',
+  resourceLibraryController.searchResources
+);
+
+/**
+ * GET /api/resources/coverage
+ * Get coverage statistics (REQUIREMENT: 80%+ coverage)
+ * NOTE: Must come before /:id route to avoid route conflict
+ */
+router.get(
+  '/coverage',
+  requirePermission('admin:view'),
+  resourceLibraryController.getCoverageStatistics
+);
+
+/**
+ * GET /api/resources/:id
+ * Get single resource with inline viewing capability
+ */
+router.get(
+  '/:id',
+  resourceLibraryController.getResource
+);
+
+/**
+ * POST /api/resources/:id/notes
+ * Create note with section anchoring (REQUIREMENT: Anchor notes to sections)
+ */
+router.post(
+  '/:id/notes',
+  resourceLibraryController.createNote
+);
+
+/**
+ * GET /api/resources/:id/notes
+ * Get resource notes (personal and shared)
+ */
+router.get(
+  '/:id/notes',
+  resourceLibraryController.getNotes
+);
+
+/**
+ * GET /api/resources/:id/summary
+ * Generate AI summary (REQUIREMENT: < 250 words, 98% relevance)
+ */
+router.get(
+  '/:id/summary',
+  resourceLibraryController.generateSummary
+);
+
+/**
+ * GET /api/resources/:id/export
+ * Export resource content (REQUIREMENT: Export notes/summaries)
+ */
+router.get(
+  '/:id/export',
+  resourceLibraryController.exportResource
+);
+
+/**
+ * POST /api/resources/:id/share
+ * Share resource with chapter (REQUIREMENT: Share with chapter members)
+ */
+router.post(
+  '/:id/share',
+  resourceLibraryController.shareResource
+);
+
+/**
+ * POST /api/resources/notes/:noteId/share
+ * Share note with chapter (REQUIREMENT: Share notes with chapter members)
+ * NOTE: Must come before /:id routes to avoid route conflict
+ */
+router.post(
+  '/notes/:noteId/share',
+  resourceLibraryController.shareNote
+);
+
+/**
+ * POST /api/resources/summaries/:summaryId/validate
+ * Admin validate summary relevance (REQUIREMENT: 98% relevance per admin validation)
+ */
+router.post(
+  '/summaries/:summaryId/validate',
+  requirePermission('admin:moderate'),
+  resourceLibraryController.validateSummaryRelevance
 );
 
 /**

@@ -24,14 +24,14 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   const { user, permissions } = useAuth();
   const location = useLocation();
 
-  const isChapterAdmin = user?.role === 'chapter_admin' || user?.role === 'platform_admin';
+  const isChapterAdmin = user?.role === 'chapter_admin' || user?.role === 'admin';
   
   // Filter navigation items based on user role and permissions
   const navigationItems = useMemo(() => {
     return filterNavItems(teacherNavItems, user?.role, permissions);
   }, [user?.role, permissions]);
 
-  // Admin-specific items for chapter_admin and platform_admin
+  // Admin-specific items for chapter_admin and admin
   const adminItems = useMemo(() => {
     if (!isChapterAdmin) return [];
     

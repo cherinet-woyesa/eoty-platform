@@ -104,8 +104,23 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const [hasResumed, setHasResumed] = React.useState(false);
   const progressSaveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const { showNotification } = useNotification();
+  
+  // ADA Compliance: Screen reader announcements (REQUIREMENT: ADA conformant)
+  const [announcements, setAnnouncements] = React.useState<string[]>([]);
+  const announce = React.useCallback((message: string) => {
+    setAnnouncements(prev => [...prev, message]);
+    setTimeout(() => {
+      setAnnouncements(prev => prev.slice(1));
+    }, 5000);
+  }, []);
   const [isDownloading, setIsDownloading] = React.useState(false);
   const playerContainerRef = React.useRef<HTMLDivElement>(null);
+  
+  // Network interruption handling (REQUIREMENT: Resume/retry capability)
+  const [networkStatus, setNetworkStatus] = React.useState<'online' | 'offline' | 'buffering' | 'reconnecting'>('online');
+  const [bufferingProgress, setBufferingProgress] = React.useState(0);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const maxRetries = 3;
 
   // Load watch history and subtitles
   React.useEffect(() => {
@@ -154,24 +169,29 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   // Mux-only video provider detection
   const videoProvider = React.useMemo(() => {
     // Check for Mux playback ID (must be non-empty string)
+    // If playback_id exists, the video is ready to play (playback_id is only assigned when video is ready)
     if (lesson.mux_playback_id && typeof lesson.mux_playback_id === 'string' && lesson.mux_playback_id.trim().length > 0) {
-      // Only use Mux if status is ready - don't try to play processing videos
-      if (lesson.mux_status === 'ready') {
-        return 'mux';
-      }
-      // If status is processing or errored, don't use Mux player
-      if (lesson.mux_status === 'processing' || lesson.mux_status === 'errored' || lesson.mux_status === 'failed') {
+      // If status is explicitly errored or failed, don't play
+      if (lesson.mux_status === 'errored' || lesson.mux_status === 'failed') {
         return 'none';
       }
-      // If status is undefined, assume it might be ready (for backwards compatibility)
-      // But log a warning
-      if (!lesson.mux_status) {
-        console.warn('Mux playback ID exists but status is unknown. Attempting to play, but may fail if not ready.');
+      // If status is processing or preparing, wait
+      if (lesson.mux_status === 'processing' || lesson.mux_status === 'preparing') {
+        return 'none';
+      }
+      // If status is ready OR undefined (but playback_id exists), assume ready
+      // Having a playback_id means Mux has processed the video and it's ready
+      if (lesson.mux_status === 'ready' || !lesson.mux_status) {
         return 'mux';
       }
     }
     
-    // Check for Mux asset ID with ready status
+    // Check for Mux asset ID - if we have asset_id but no playback_id, video is still processing
+    if (lesson.mux_asset_id && !lesson.mux_playback_id) {
+      return 'none'; // Still processing
+    }
+    
+    // If we have asset_id and status is ready, use Mux
     if (lesson.mux_asset_id && lesson.mux_status === 'ready') {
       return 'mux';
     }
@@ -769,6 +789,37 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           </div>
         )}
 
+        {/* ADA Compliance: Screen reader announcements (REQUIREMENT: ADA conformant) */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {announcements.map((msg, index) => (
+            <div key={index}>{msg}</div>
+          ))}
+        </div>
+
+        {/* Network Status Indicator (REQUIREMENT: Resume/retry capability) */}
+        {networkStatus !== 'online' && (
+          <div className="absolute top-4 right-4 z-40 bg-black/80 backdrop-blur-sm text-white rounded-lg p-3 shadow-lg">
+            {networkStatus === 'buffering' && (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span className="text-sm">Buffering...</span>
+              </div>
+            )}
+            {networkStatus === 'reconnecting' && (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span className="text-sm">Reconnecting... (Attempt {retryCount + 1}/{maxRetries})</span>
+              </div>
+            )}
+            {networkStatus === 'offline' && (
+              <div className="flex items-center space-x-2">
+                <X className="h-4 w-4 text-red-400" />
+                <span className="text-sm">Connection lost. Progress saved.</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <MuxPlayer
           ref={muxPlayerRef}
           playbackId={lesson.mux_playback_id || undefined}
@@ -781,6 +832,9 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           autoPlay={autoPlay}
           playbackRates={[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]}
           defaultShowRemainingTime
+          // ADA Compliance: ARIA labels (REQUIREMENT: ADA conformant)
+          aria-label={lesson.title ? `Video player: ${lesson.title}` : 'Educational video content'}
+          aria-describedby={`video-description-${lesson.id}`}
           onError={(event: any) => {
             console.error('Mux Player error:', event);
             const errorMessage = event?.detail?.message || event?.message || 'Mux playback error';
@@ -795,12 +849,35 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               videoProvider: lesson.video_provider
             });
             
+            // Network interruption handling (REQUIREMENT: Resume/retry capability)
+            if (errorCode === 'NETWORK_ERROR' || errorMessage?.includes('network') || errorMessage?.includes('fetch')) {
+              setNetworkStatus('reconnecting');
+              if (retryCount < maxRetries) {
+                setTimeout(() => {
+                  setRetryCount(prev => prev + 1);
+                  const player = muxPlayerRef.current;
+                  if (player) {
+                    player.load();
+                    setNetworkStatus('online');
+                  }
+                }, 2000 * (retryCount + 1)); // Exponential backoff
+              } else {
+                setNetworkStatus('offline');
+                announce('Network connection lost. Please check your internet connection.');
+              }
+            }
+            
             // Handle specific error codes
             let userFriendlyMessage = 'Video playback error';
             if (errorCode === 404 || errorMessage?.includes('404')) {
               userFriendlyMessage = 'Video not found. The video may still be processing or the playback ID is invalid.';
-            } else if (errorCode === 403 || errorMessage?.includes('403')) {
-              userFriendlyMessage = 'Video access denied. The video may not be ready yet or there may be a permission issue.';
+            } else if (errorCode === 403 || errorMessage?.includes('403') || errorMessage?.includes('Forbidden')) {
+              // 403 Forbidden usually means the asset isn't ready or playback ID is incorrect
+              if (lesson.mux_status === 'processing' || !lesson.mux_status) {
+                userFriendlyMessage = 'Video is still processing. Please wait a few moments and try again.';
+              } else {
+                userFriendlyMessage = 'Video access denied. The video may not be ready yet. Please refresh the page or contact support if the issue persists.';
+              }
             } else if (lesson.mux_status === 'processing') {
               userFriendlyMessage = 'Video is still processing. Please wait a few moments and try again.';
             }
@@ -818,6 +895,19 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             
             onError?.(new Error(userFriendlyMessage));
           }}
+          onWaiting={() => {
+            // Network buffering (REQUIREMENT: Resume/retry capability)
+            setNetworkStatus('buffering');
+            announce('Video is buffering. Please wait...');
+          }}
+          onCanPlay={() => {
+            // Network recovered (REQUIREMENT: Resume/retry capability)
+            if (networkStatus === 'buffering' || networkStatus === 'reconnecting') {
+              setNetworkStatus('online');
+              setRetryCount(0);
+              announce('Video playback resumed');
+            }
+          }}
           onLoadedMetadata={(event: any) => {
             console.log('Mux video loaded:', event);
             const player = event.target;
@@ -828,11 +918,15 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               videoHeight: player.videoHeight
             });
             
+            // ADA Compliance: Announce video loaded (REQUIREMENT: ADA conformant)
+            announce(`Video loaded: ${lesson.title || 'Untitled Lesson'}`);
+            
             // Auto-resume if enabled and not already resumed
             if (autoPlay && lastWatchedPosition && !hasResumed && player.readyState >= 2) {
               player.currentTime = lastWatchedPosition;
               setCurrentTime(lastWatchedPosition);
               setHasResumed(true);
+              announce(`Resuming from ${formatTime(lastWatchedPosition)}`);
             }
           }}
           onTimeUpdate={(event: any) => {
@@ -848,6 +942,8 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               totalWatchTime: viewingSession.totalWatchTime,
               sessionDuration: Date.now() - viewingSession.startTime
             });
+            // ADA Compliance: Announce video ended (REQUIREMENT: ADA conformant)
+            announce('Video playback completed');
             onComplete?.();
           }}
           onRateChange={(event: any) => {
@@ -909,18 +1005,42 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
             />
           </svg>
-          <h3 className="text-lg font-semibold mb-2">No Video Available</h3>
-          <p className="text-gray-400 text-sm mb-2">
+          <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
+          <p className="text-gray-400 mb-6">
             {lesson.mux_status === 'preparing' || lesson.mux_status === 'processing'
-              ? "Video is being processed. Please check back in a few moments."
-              : lesson.mux_status === 'errored'
-              ? "Video processing failed. Please contact support."
-              : "This lesson doesn't have a video configured yet."
-            }
+              ? 'The video is still being processed. This usually takes a few minutes. You will be notified when it\'s ready.'
+              : lesson.mux_status === 'errored' || lesson.mux_status === 'failed'
+              ? 'The video processing encountered an error. Please contact support or try again later.'
+              : 'This lesson does not have a video yet. Please check back later or contact your instructor.'}
           </p>
-          <p className="text-gray-500 text-xs">
-            Lesson ID: {lesson.id}
-          </p>
+          
+          {/* Enhanced UX: Retry button and status updates (REQUIREMENT: Better error messaging) */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {(lesson.mux_status === 'processing' || lesson.mux_status === 'preparing' || lesson.mux_status === 'errored' || lesson.mux_status === 'failed') && (
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                aria-label="Retry loading video"
+              >
+                Check Again
+              </button>
+            )}
+            <button
+              onClick={() => window.history.back()}
+              className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+              aria-label="Go back"
+            >
+              Go Back
+            </button>
+          </div>
+          
+          {/* Processing status indicator (REQUIREMENT: Processing status updates) */}
+          {(lesson.mux_status === 'processing' || lesson.mux_status === 'preparing') && (
+            <div className="mt-6 flex items-center justify-center space-x-2 text-sm text-gray-400">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+              <span>Video is being processed...</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

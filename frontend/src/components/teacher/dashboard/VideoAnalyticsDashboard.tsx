@@ -242,35 +242,16 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
     return lessons;
   }, [analytics, searchTerm]);
 
-  const engagementScore = useMemo(() => {
-    if (!analytics) return 0;
-    
-    const { averageCompletionRate, averageWatchTime, totalViews, uniqueViewers } = analytics.summary;
-    
-    // Simple engagement calculation (in real app, this would be more sophisticated)
-    const completionWeight = 0.4;
-    const watchTimeWeight = 0.3;
-    const viewWeight = 0.2;
-    const uniqueViewerWeight = 0.1;
-    
-    const maxWatchTime = 3600; // 1 hour as max
-    const normalizedWatchTime = Math.min(averageWatchTime / maxWatchTime, 1) * 100;
-    
-    return Math.round(
-      (averageCompletionRate * completionWeight) +
-      (normalizedWatchTime * watchTimeWeight) +
-      (Math.min(totalViews / 1000, 100) * viewWeight) +
-      (Math.min(uniqueViewers / 100, 100) * uniqueViewerWeight)
-    );
-  }, [analytics]);
 
   if (loading && !analytics) {
     return (
-      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-8 ${className}`}>
-        <div className="flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">{t('analytics.loading_video_analytics')}</p>
+      <div className={`w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen ${className}`}>
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-stone-200 border-t-stone-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-stone-600">{t('analytics.loading_video_analytics')}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -279,21 +260,25 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
   if (error) {
     return (
-      <div className={`bg-white rounded-xl shadow-sm border border-red-200 p-8 ${className}`}>
-        <div className="text-center">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Video className="h-6 w-6 text-red-600" />
+      <div className={`w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen ${className}`}>
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center max-w-md">
+              <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video className="h-6 w-6 text-stone-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-stone-800 mb-2">
+                {t('analytics.failed_to_load_analytics')}
+              </h3>
+              <p className="text-stone-600 mb-4">{error}</p>
+              <button
+                onClick={fetchAnalytics}
+                className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+              >
+                {t('common.try_again')}
+              </button>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t('analytics.failed_to_load_analytics')}
-          </h3>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-          >
-            {t('common.try_again')}
-          </button>
         </div>
       </div>
     );
@@ -304,73 +289,60 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen ${className}`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-2 flex items-center">
-              <Video className="h-6 w-6 mr-2" />
-              {t('analytics.video_analytics')}
-            </h2>
-            <p className="text-purple-100">
+            <div className="flex items-center space-x-3 mb-2">
+              <h1 className="text-3xl font-bold text-stone-800">
+                {t('analytics.video_analytics')}
+              </h1>
+            </div>
+            <p className="text-stone-600 font-medium">
               {t('analytics.insights_from_lessons', {
                 lessons: analytics.totalLessons,
                 courses: analytics.totalCourses
               })}
             </p>
-            
-            {/* Engagement Score */}
-            <div className="mt-4 flex items-center space-x-4">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <div className="flex items-center space-x-2">
-                  <Zap className="h-5 w-5 text-yellow-300" />
-                  <span className="font-semibold">{t('analytics.engagement_score')}</span>
-                </div>
-                <div className="text-2xl font-bold mt-1">{engagementScore}%</div>
-                <div className="text-purple-200 text-sm">
-                  {engagementScore >= 80 ? t('analytics.excellent_engagement') :
-                   engagementScore >= 60 ? t('analytics.good_engagement') :
-                   t('analytics.needs_improvement')}
-                </div>
-              </div>
-            </div>
           </div>
-          <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-            <select
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              {timeframeOptions.map(option => (
-                <option key={option.value} value={option.value} className="text-gray-900">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {t('common.refresh')}
-            </button>
-            {showExport && (
-              <button
-                onClick={handleExport}
-                className="flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+          <div className="mt-4 lg:mt-0 lg:ml-6">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value as Timeframe)}
+                className="px-4 py-2.5 text-sm bg-white/90 backdrop-blur-sm border border-stone-200 hover:border-[#27AE60]/40 rounded-lg text-stone-700 hover:text-[#27AE60] font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50"
               >
-                <Download className="h-4 w-4 mr-2" />
-                {t('common.export')}
+                {timeframeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {t('common.refresh')}
               </button>
-            )}
+              {showExport && (
+                <button
+                  onClick={handleExport}
+                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {t('common.export')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* View Mode Navigation */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-md">
         <div className="flex flex-wrap gap-2">
           {viewModeOptions.map((mode) => {
             const Icon = mode.icon;
@@ -394,48 +366,22 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
       {/* Summary Metrics */}
       {viewMode === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {summaryMetrics.map((metric, index) => {
             const Icon = metric.icon;
             return (
-              <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/40">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 bg-${metric.color}-100 rounded-lg flex items-center justify-center`}>
-                    <Icon className={`h-6 w-6 text-${metric.color}-600`} />
-                  </div>
-                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    metric.change.trend === 'up' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    <TrendingUp className={`h-3 w-3 ${metric.change.trend === 'down' ? 'rotate-180' : ''}`} />
-                    <span>{metric.change.value.toFixed(1)}%</span>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg blur-md"></div>
+                    <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-lg border border-[#27AE60]/25">
+                      <Icon className="h-6 w-6 text-[#27AE60]" />
+                    </div>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {metric.formattedValue}
-                </div>
-                <div className="text-sm text-gray-600 mb-2">{metric.title}</div>
-                <div className="text-xs text-gray-500">{metric.description}</div>
-                
-                {/* Mini trend chart */}
-                <div className="mt-3 flex items-end space-x-1 h-8">
-                  {[30, 45, 60, 75, 65, 80, 90].map((height, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gray-200 rounded-t transition-all duration-300"
-                      style={{ 
-                        height: `${height * 0.3}px`,
-                        background: `linear-gradient(to top, var(--tw-gradient-stops))`,
-                        ['--tw-gradient-from' as any]: metric.color === 'blue' ? '#3b82f6' : 
-                                     metric.color === 'green' ? '#10b981' :
-                                     metric.color === 'purple' ? '#8b5cf6' : '#f59e0b',
-                        ['--tw-gradient-to' as any]: metric.color === 'blue' ? '#1d4ed8' : 
-                                     metric.color === 'green' ? '#047857' :
-                                     metric.color === 'purple' ? '#7c3aed' : '#d97706'
-                      }}
-                    />
-                  ))}
+                <div>
+                  <p className="text-3xl font-bold text-stone-800 mb-1">{metric.formattedValue}</p>
+                  <p className="text-stone-600 text-sm font-medium">{metric.title}</p>
                 </div>
               </div>
             );
@@ -445,8 +391,8 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
       {/* Top Performing Lessons */}
       {(viewMode === 'overview' || viewMode === 'lessons') && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-stone-200">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -466,7 +412,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
                   placeholder={t('common.search_lessons')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full lg:w-64"
+                  className="pl-10 pr-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-stone-400 focus:border-stone-400 w-full lg:w-64"
                 />
                 {searchTerm && (
                   <button
@@ -601,7 +547,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
       {/* Trends Chart */}
       {(viewMode === 'overview' || viewMode === 'trends') && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-4 sm:p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -688,10 +634,10 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
       {/* Engagement Heatmap */}
       {selectedLesson && (viewMode === 'overview' || viewMode === 'lessons') && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-4 sm:p-6">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-[#39FF14]" />
+              <TrendingUp className="h-5 w-5 mr-2 text-[#27AE60]" />
               Engagement Heatmap
             </h3>
             <p className="text-sm text-gray-600 mt-1">
@@ -700,7 +646,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
           </div>
           {loadingHeatmap ? (
             <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-4 border-[#39FF14]/20 border-t-[#39FF14] rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-[#27AE60]/20 border-t-[#27AE60] rounded-full animate-spin"></div>
             </div>
           ) : heatmapData ? (
             <EngagementHeatmap
@@ -717,9 +663,9 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
       {/* Audience Insights */}
       {viewMode === 'audience' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Device Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-4 sm:p-6">
             <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
               <Users className="h-5 w-5 mr-2 text-green-600" />
               {t('analytics.audience_insights')}
@@ -745,7 +691,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
           </div>
 
           {/* Performance Tips */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-4 sm:p-6">
             <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
               <Zap className="h-5 w-5 mr-2 text-yellow-600" />
               {t('analytics.performance_tips')}

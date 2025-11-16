@@ -249,7 +249,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                     />
                   </button>
                   <Link
-                    to={`/courses/${course.id}`}
+                    to={`/student/courses/${course.id}`}
                     className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -269,7 +269,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               {searchQuery ? 'Try adjusting your search terms' : 'Start your learning journey today'}
             </p>
             <Link
-              to="/courses"
+              to="/student/browse-courses"
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-4 w-4 mr-2" />

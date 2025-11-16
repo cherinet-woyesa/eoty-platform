@@ -175,5 +175,33 @@ export const onboardingApi = {
   }> => {
     const response = await apiClient.get(`/onboarding/help/popular?audience=${audience}&limit=${limit}`);
     return response.data;
+  },
+
+  // Get milestones (REQUIREMENT: Milestone-based)
+  getMilestones: async (flowId: number): Promise<{ 
+    success: boolean; 
+    data: { milestones: any[] } 
+  }> => {
+    const response = await apiClient.get(`/onboarding/milestones?flowId=${flowId}`);
+    return response.data;
+  },
+
+  // Get user's active reminders (REQUIREMENT: Follow-up reminders)
+  getReminders: async (): Promise<{ 
+    success: boolean; 
+    data: { reminders: any[] } 
+  }> => {
+    const response = await apiClient.get('/onboarding/reminders');
+    return response.data;
+  },
+
+  // Get user's completion rewards (REQUIREMENT: Completion rewards)
+  getCompletionRewards: async (flowId?: number): Promise<{ 
+    success: boolean; 
+    data: { rewards: any[] } 
+  }> => {
+    const params = flowId ? `?flowId=${flowId}` : '';
+    const response = await apiClient.get(`/onboarding/rewards${params}`);
+    return response.data;
   }
 };

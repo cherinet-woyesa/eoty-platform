@@ -135,10 +135,10 @@ const StudentEnrolledCourses: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#FFD700] mx-auto mb-4" />
+            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
             <p className="text-slate-600 text-lg">Loading your courses...</p>
           </div>
         </div>
@@ -148,14 +148,14 @@ const StudentEnrolledCourses: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-[#EF5350] mx-auto mb-4" />
             <p className="text-slate-700 text-lg mb-4">{error}</p>
             <button 
               onClick={loadEnrolledCourses}
-              className="px-4 py-2 bg-gradient-to-r from-[#FFD700]/90 to-[#FFC107]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FFB300] transition-all duration-200 font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
             >
               Try Again
             </button>
@@ -166,40 +166,40 @@ const StudentEnrolledCourses: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Light beige/silver theme */}
-        <div className="bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
+        {/* Header - match Forums/AI Assistant style */}
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-xl bg-white/70 backdrop-blur-sm border border-slate-200/50 shadow-sm">
-                <BookOpen className="h-6 w-6 text-slate-700" />
+              <div className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm">
+                <BookOpen className="h-6 w-6 text-[#27AE60]" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-700">My Enrolled Courses</h1>
-                <p className="text-slate-600 text-sm mt-1">
+                <h1 className="text-3xl font-bold text-stone-800">My Enrolled Courses</h1>
+                <p className="text-stone-600 text-sm mt-1">
                   Continue your learning journey • {user?.firstName} {user?.lastName}
                 </p>
               </div>
             </div>
             <Link
-              to="/courses"
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md"
+              to="/student/browse-courses"
+              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <Search className="h-4 w-4 mr-2" />
-              Browse More
+              Browse Courses
             </Link>
           </div>
         </div>
 
-        {/* Stats Grid - Light cards */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: 'Total Courses', value: stats.total, icon: BookOpen, color: 'from-[#FFD700]/20 to-[#FFC107]/20', iconColor: 'text-[#FFD700]' },
-            { label: 'In Progress', value: stats.inProgress, icon: TrendingUp, color: 'from-[#FF7043]/20 to-[#FF5722]/20', iconColor: 'text-[#FF7043]' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-[#66BB6A]/20 to-[#4CAF50]/20', iconColor: 'text-[#66BB6A]' },
-            { label: 'Favorites', value: stats.favorites, icon: Heart, color: 'from-[#EF5350]/20 to-[#E53935]/20', iconColor: 'text-[#EF5350]' },
-            { label: 'Avg Progress', value: `${stats.avgProgress}%`, icon: BarChart3, color: 'from-[#42A5F5]/20 to-[#2196F3]/20', iconColor: 'text-[#42A5F5]' }
+            { label: 'Total Courses', value: stats.total, icon: BookOpen, color: 'from-[#27AE60]/15 to-[#16A085]/10', iconColor: 'text-[#27AE60]' },
+            { label: 'In Progress', value: stats.inProgress, icon: TrendingUp, color: 'from-[#16A085]/15 to-[#27AE60]/10', iconColor: 'text-[#16A085]' },
+            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-[#2980B9]/15 to-[#16A085]/10', iconColor: 'text-[#2980B9]' },
+            { label: 'Favorites', value: stats.favorites, icon: Heart, color: 'from-[#E74C3C]/15 to-[#E67E22]/10', iconColor: 'text-[#E74C3C]' },
+            { label: 'Avg Progress', value: `${stats.avgProgress}%`, icon: BarChart3, color: 'from-[#2980B9]/15 to-[#34495E]/10', iconColor: 'text-[#2980B9]' }
           ].map((stat, idx) => (
             <div key={idx} className="bg-white/85 backdrop-blur-sm rounded-xl p-5 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
               <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} mb-3 inline-block`}>
@@ -211,7 +211,7 @@ const StudentEnrolledCourses: React.FC = () => {
           ))}
         </div>
 
-        {/* Search and Filters - Light theme */}
+        {/* Search and Filters */}
         <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
@@ -221,13 +221,13 @@ const StudentEnrolledCourses: React.FC = () => {
                 placeholder="Search your courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 focus:border-[#FFD700]/50 text-sm bg-slate-50/50 text-slate-700"
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-slate-50/50 text-slate-700"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 focus:border-[#FFD700]/50 bg-slate-50/50 text-slate-700 text-sm"
+              className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-slate-50/50 text-slate-700 text-sm"
             >
               <option value="all">All Courses ({stats.total})</option>
               <option value="in-progress">In Progress ({stats.inProgress})</option>
@@ -273,7 +273,7 @@ const StudentEnrolledCourses: React.FC = () => {
                   <h3 className="text-lg font-bold text-slate-700 mb-2 line-clamp-2">{course.title}</h3>
                   <p className="text-sm text-slate-600 mb-4 line-clamp-2">{course.description}</p>
 
-                  {/* Progress Bar - Light neon gradient */}
+                  {/* Progress Bar */}
                   <div className="mb-4">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-slate-600">Progress</span>
@@ -281,7 +281,7 @@ const StudentEnrolledCourses: React.FC = () => {
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-[#FFD700] to-[#FFC107] rounded-full transition-all duration-300 shadow-sm"
+                        className="h-full bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full transition-all duration-300 shadow-sm"
                         style={{ width: `${course.progress_percentage || 0}%` }}
                       />
                     </div>
@@ -320,11 +320,11 @@ const StudentEnrolledCourses: React.FC = () => {
                     </button>
                   )}
 
-                  {/* Actions - Light neon buttons */}
+                  {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t border-slate-200/50">
                     <Link
                       to={`/student/courses/${course.id}`}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-[#FFD700]/90 to-[#FFC107]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FFB300] transition-all duration-200 text-center text-sm font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all duration-200 text-center text-sm font-semibold shadow-md hover:shadow-lg backdrop-blur-sm border border-[#27AE60]/30"
                     >
                       {course.progress_percentage > 0 ? (
                         <>
@@ -361,8 +361,8 @@ const StudentEnrolledCourses: React.FC = () => {
               }
             </p>
             <Link
-              to="/courses"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#FFD700]/90 to-[#FFC107]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FFB300] transition-all duration-200 font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+              to="/student/browse-courses"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg backdrop-blur-sm border border-[#27AE60]/30"
             >
               Browse Course Catalog
             </Link>
@@ -410,7 +410,7 @@ const StudentEnrolledCourses: React.FC = () => {
                 <button
                   onClick={handleSubmitRating}
                   disabled={ratingValue === 0}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#FFD700]/90 to-[#FFC107]/90 text-white rounded-lg hover:from-[#FFC107] hover:to-[#FFB300] disabled:opacity-50 transition-all duration-200 font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 transition-all duration-200 font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#27AE60]/30"
                 >
                   Submit Rating
                 </button>

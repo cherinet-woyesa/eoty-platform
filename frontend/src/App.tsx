@@ -24,11 +24,14 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
 import { NotificationSystem } from '@/components/shared';
 import { ProtectedRoute, StudentRoute, TeacherRoute, AdminRoute, DynamicDashboard, DynamicCourses } from '@/components/routing';
+import { DynamicAIAssistant, DynamicForums, DynamicResources, DynamicChapters, DynamicAchievements } from '@/components/routing/DynamicRoutes';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ProfileCompletionNotification from '@/components/shared/ProfileCompletionNotification';
 import Forums from '@/pages/shared/social/Forums';
 import ForumTopics from '@/pages/shared/social/ForumTopics';
 import Achievements from '@/pages/shared/social/Achievements';
+import TeacherAchievements from '@/pages/teacher/TeacherAchievements';
+import UploadResource from '@/pages/teacher/UploadResource';
 import Leaderboards from '@/pages/shared/social/Leaderboards';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import AdminDashboard from '@/components/admin/dashboard/AdminDashboard';
@@ -36,6 +39,7 @@ import ContentManagement from '@/pages/admin/ContentManagement';
 import AdminCourseView from '@/pages/admin/AdminCourseView';
 import { UserProvider } from '@/context/UserContext';
 import { OnboardingProvider } from '@/context/OnboardingContext';
+import { LocalizationProvider } from '@/context/LocalizationContext';
 import ModerationTools from '@/components/admin/ModerationTools';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import TagManager from '@/components/admin/TagManager';
@@ -51,13 +55,20 @@ import ChapterManagement from '@/pages/admin/config/ChapterManagement';
 import ResourceLibrary from '@/pages/shared/resources/ResourceLibrary';
 import ResourceView from '@/pages/shared/resources/ResourceView';
 import { CourseDetails } from '@/pages/shared';
+import ChaptersPage from '@/pages/shared/chapters/ChaptersPage';
+import ActivityLogsPage from '@/pages/shared/activity/ActivityLogsPage';
+import AdminActivityLogs from '@/pages/admin/AdminActivityLogs';
+import LocalizationSettingsPage from '@/pages/shared/settings/LocalizationSettingsPage';
 import ProgressPage from '@/pages/student/ProgressPage';
 import StudentManagement from '@/pages/teacher/StudentManagement';
+import SpiritualJourneys from '@/pages/student/SpiritualJourneys';
+import JourneysAdmin from '@/pages/admin/JourneysAdmin';
 import LearningPathsPage from '@/pages/student/LearningPathsPage';
 import BookmarksPage from '@/pages/student/BookmarksPage';
 import StudyGroupsPage from '@/pages/student/StudyGroupsPage';
 import HelpPage from '@/pages/student/HelpPage';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
+import StudentProfile from '@/pages/student/StudentProfile';
 import Assignments from '@/pages/teacher/Assignments';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
@@ -290,6 +301,17 @@ function AppContent() {
           } 
         />
 
+        <Route 
+          path="/student/journeys" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <SpiritualJourneys />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
         {/* New Student Routes */}
         <Route 
           path="/student/learning-paths" 
@@ -335,10 +357,28 @@ function AppContent() {
           } 
         />
 
+        <Route 
+          path="/student/profile" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <StudentProfile />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
         {/* Legacy student routes - redirect to namespaced routes */}
         <Route path="/courses/:courseId" element={<Navigate to={`/student/courses/${window.location.pathname.split('/')[2]}`} replace />} />
         <Route path="/progress" element={<Navigate to="/student/progress" replace />} />
-        <Route path="/achievements" element={<Navigate to="/student/achievements" replace />} />
+        <Route 
+          path="/achievements" 
+          element={
+            <ProtectedRoute>
+              <DynamicAchievements />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Teacher Routes - All under /teacher prefix */}
         <Route 
@@ -423,6 +463,28 @@ function AppContent() {
         />
 
         <Route 
+          path="/teacher/achievements" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherAchievements />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        <Route 
+          path="/teacher/resources/upload" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <UploadResource />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        <Route 
           path="/teacher/profile" 
           element={
             <TeacherRoute>
@@ -454,14 +516,43 @@ function AppContent() {
         {/* Demo Routes - Under /teacher for testing */}
 
 
-        {/* Shared Routes - Accessible to all authenticated users */}
+        {/* AI Assistant Routes - Role-specific */}
+        <Route 
+          path="/teacher/ai-assistant" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <AIAssistant />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/student/ai-assistant" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <AIAssistant />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        <Route 
+          path="/admin/ai-assistant" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AIAssistant />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+        {/* Legacy route - redirect based on role */}
         <Route 
           path="/ai-assistant" 
           element={
             <ProtectedRoute>
-              <DashboardLayout>
-                <AIAssistant />
-              </DashboardLayout>
+              <DynamicAIAssistant />
             </ProtectedRoute>
           } 
         />
@@ -484,6 +575,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <AdminCourseView />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/courses/:courseId/edit" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <EditCourse />
               </DashboardLayout>
             </AdminRoute>
           } 
@@ -567,6 +669,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <AnalyticsDashboard />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/journeys" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <JourneysAdmin />
               </DashboardLayout>
             </AdminRoute>
           } 
@@ -663,14 +776,43 @@ function AppContent() {
           } 
         />
 
-        {/* Social Features - Accessible to all authenticated users */}
+        {/* Forums Routes - Role-specific */}
+        <Route 
+          path="/teacher/forums" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <Forums />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/student/forums" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <Forums />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        <Route 
+          path="/admin/forums" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <Forums />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+        {/* Legacy route - redirect based on role */}
         <Route 
           path="/forums" 
           element={
             <ProtectedRoute>
-              <DashboardLayout>
-                <Forums />
-              </DashboardLayout>
+              <DynamicForums />
             </ProtectedRoute>
           } 
         />
@@ -708,14 +850,43 @@ function AppContent() {
           } 
         />
 
-        {/* Resource Routes - Accessible to all authenticated users */}
+        {/* Resource Routes - Role-specific */}
+        <Route 
+          path="/teacher/resources" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <ResourceLibrary />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/student/resources" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <ResourceLibrary />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        <Route 
+          path="/admin/resources" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <ResourceLibrary />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+        {/* Legacy route - redirect based on role */}
         <Route 
           path="/resources" 
           element={
             <ProtectedRoute>
-              <DashboardLayout>
-                <ResourceLibrary />
-              </DashboardLayout>
+              <DynamicResources />
             </ProtectedRoute>
           } 
         />
@@ -726,6 +897,82 @@ function AppContent() {
             <ProtectedRoute>
               <DashboardLayout>
                 <ResourceView />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Chapters Routes - Role-specific */}
+        <Route 
+          path="/teacher/chapters" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <ChaptersPage />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/student/chapters" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <ChaptersPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        <Route 
+          path="/admin/chapters" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <ChaptersPage />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/activity-logs" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminActivityLogs />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        {/* Legacy route - redirect based on role */}
+        <Route 
+          path="/chapters" 
+          element={
+            <ProtectedRoute>
+              <DynamicChapters />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Legacy activity-logs route - redirect to admin route for admins */}
+        <Route 
+          path="/activity-logs" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <ActivityLogsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/settings/localization" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <LocalizationSettingsPage />
               </DashboardLayout>
             </ProtectedRoute>
           } 
@@ -802,14 +1049,16 @@ function App() {
           <AuthProvider>
             <UserProvider>
               <OnboardingProvider>
-                <NotificationProvider>
-                  <ConfirmDialogProvider>
-                    <ErrorBoundary>
-                      <AppContent />
-                      <NotificationSystem />
-                    </ErrorBoundary>
-                  </ConfirmDialogProvider>
-                </NotificationProvider>
+                <LocalizationProvider>
+                  <NotificationProvider>
+                    <ConfirmDialogProvider>
+                      <ErrorBoundary>
+                        <AppContent />
+                        <NotificationSystem />
+                      </ErrorBoundary>
+                    </ConfirmDialogProvider>
+                  </NotificationProvider>
+                </LocalizationProvider>
               </OnboardingProvider>
             </UserProvider>
           </AuthProvider>

@@ -12,6 +12,7 @@ router.use(authenticateToken);
 router.get('/', forumController.getForums);
 router.get('/:forumId/topics', forumController.getTopics);
 router.get('/topics/:topicId', forumController.getTopic);
+router.get('/search', forumController.searchForumPosts); // REQUIREMENT: Forum posts indexed for search
 
 // ✅ Topic and post creation
 router.post('/topics', forumController.createTopic);

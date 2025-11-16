@@ -27,6 +27,7 @@ const ContentManager: React.FC = () => {
   const [uploads, setUploads] = useState<ContentUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [newUpload, setNewUpload] = useState({
     title: '',
@@ -44,6 +45,9 @@ const ContentManager: React.FC = () => {
   const [selectedUploads, setSelectedUploads] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [failedUploads, setFailedUploads] = useState<{file: File, data: any, attempts: number}[]>([]);
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const [previewData, setPreviewData] = useState<Record<number, any>>({});
+  const [loadingPreview, setLoadingPreview] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -62,7 +66,18 @@ const ContentManager: React.FC = () => {
     try {
       setLoading(true);
       const response = await adminApi.getUploadQueue(statusFilter);
-      setUploads(response.data.uploads);
+      // Ensure we have the uploads array
+      if (response && response.data) {
+        if (response.data.uploads && Array.isArray(response.data.uploads)) {
+          setUploads(response.data.uploads);
+        } else if (Array.isArray(response.data)) {
+          setUploads(response.data);
+        } else {
+          setUploads([]);
+        }
+      } else {
+        setUploads([]);
+      }
       setError(null);
     } catch (err: any) {
       console.error('Failed to fetch uploads:', err);
@@ -90,6 +105,45 @@ const ContentManager: React.FC = () => {
     }
   };
 
+  // FR5: Get upload preview (REQUIREMENT: Preview functionality)
+  const togglePreview = async (uploadId: number) => {
+    if (previewId === uploadId) {
+      setPreviewId(null);
+      return;
+    }
+
+    setPreviewId(uploadId);
+    setLoadingPreview(uploadId);
+
+    try {
+      const response = await adminApi.getUploadPreview(uploadId);
+      if (response.success) {
+        setPreviewData(prev => ({
+          ...prev,
+          [uploadId]: response.data.preview
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load preview:', error);
+      setError('Failed to load preview');
+    } finally {
+      setLoadingPreview(null);
+    }
+  };
+
+  // FR5: Retry failed upload from queue (REQUIREMENT: Retry functionality)
+  const handleRetryUpload = async (uploadId: number) => {
+    try {
+      const response = await adminApi.retryUpload(uploadId);
+      if (response.success) {
+        fetchUploads(); // Refresh the upload list
+      }
+    } catch (err: any) {
+      console.error('Failed to retry upload:', err);
+      setError('Failed to retry upload: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   // Handle single file upload with retry mechanism
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,8 +162,19 @@ const ContentManager: React.FC = () => {
         file: newUpload.file
       };
 
-      await adminApi.uploadContent(uploadData);
+      const response = await adminApi.uploadContent(uploadData);
       
+      // Check if upload was auto-approved (admin uploads)
+      const isApproved = response.data?.upload?.status === 'approved';
+      const successMsg = isApproved 
+        ? `Successfully uploaded "${uploadData.title}"! The file has been automatically approved.`
+        : `Successfully uploaded "${uploadData.title}"! The file is now pending approval.`;
+      
+      // Show success message
+      setSuccessMessage(successMsg);
+      setError(null);
+      
+      // Reset form
       setNewUpload({
         title: '',
         description: '',
@@ -119,7 +184,25 @@ const ContentManager: React.FC = () => {
         file: null
       });
       setShowUploadForm(false);
-      fetchUploads(); // Refresh the upload list
+      
+      // Ensure we're showing the right status filter
+      // If approved, show approved; otherwise show pending
+      const targetFilter = isApproved ? 'approved' : 'pending';
+      if (statusFilter !== targetFilter && statusFilter !== '') {
+        // Changing filter will trigger useEffect to fetchUploads
+        setStatusFilter(targetFilter);
+      } else {
+        // Refresh the upload list immediately and again after a short delay
+        await fetchUploads();
+        setTimeout(() => {
+          fetchUploads();
+        }, 1000);
+      }
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
     } catch (err: any) {
       console.error('Failed to upload content:', err);
       
@@ -150,7 +233,7 @@ const ContentManager: React.FC = () => {
           title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension for title
           description: `Bulk uploaded file: ${file.name}`,
           category: 'bulk_upload',
-          tags: ['bulk'],
+          tags: ['bulk'], // Ensure it's an array
           chapterId: newUpload.chapterId,
           file: file
         };
@@ -169,7 +252,7 @@ const ContentManager: React.FC = () => {
               title: file.name.replace(/\.[^/.]+$/, ""),
               description: `Bulk uploaded file: ${file.name}`,
               category: 'bulk_upload',
-              tags: ['bulk'],
+              tags: ['bulk'], // Ensure it's an array
               chapterId: newUpload.chapterId,
               file: file
             }, attempts: 1 }
@@ -177,23 +260,38 @@ const ContentManager: React.FC = () => {
       }
     }
 
+    // Show success/error message for bulk upload
+    if (successCount > 0) {
+      setSuccessMessage(`Successfully uploaded ${successCount} file(s)! ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+    
+    if (errorCount > 0 && successCount === 0) {
+      setError(`Failed to upload ${errorCount} file(s). Please try again.`);
+    }
+
     setBulkUploadFiles([]);
     setShowBulkUploadForm(false);
     
-    if (errorCount > 0) {
-      setError(`Uploaded ${successCount} of ${bulkUploadFiles.length} files. ${errorCount} failed.`);
-    }
-    
-    fetchUploads(); // Refresh the upload list
+    // Refresh the upload list after bulk upload
+    setTimeout(() => {
+      fetchUploads();
+    }, 1000);
   };
 
   const handleApprove = async (uploadId: number, action: 'approve' | 'reject', rejectionReason?: string) => {
     try {
-      await adminApi.approveContent(uploadId, action, rejectionReason);
-      fetchUploads(); // Refresh the upload list
+      console.log('Handling approve/reject:', { uploadId, action, rejectionReason });
+      const response = await adminApi.approveContent(uploadId, action, rejectionReason);
+      console.log('Approve response:', response);
+      if (response.success) {
+        fetchUploads(); // Refresh the upload list
+      } else {
+        setError(response.message || 'Failed to process content');
+      }
     } catch (err: any) {
       console.error('Failed to process content:', err);
-      setError('Failed to process content: ' + (err.response?.data?.message || err.message));
+      setError('Failed to process content: ' + (err.response?.data?.message || err.message || 'Unknown error'));
     }
   };
 
@@ -311,7 +409,7 @@ const ContentManager: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
+          <RefreshCw className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
           <p className="text-stone-600 text-lg">Loading content...</p>
         </div>
       </div>
@@ -319,18 +417,16 @@ const ContentManager: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
               <div className="relative">
-                <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                  <Upload className="h-6 w-6 text-[#39FF14]" />
-                </div>
+                <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
+                <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
+                  <Upload className="h-6 w-6 text-[#27AE60]" />
               </div>
               <h1 className="text-3xl font-bold text-stone-800">Content Management</h1>
             </div>
@@ -343,90 +439,107 @@ const ContentManager: React.FC = () => {
           </div>
           <div className="mt-4 lg:mt-0 flex gap-2">
             <button
-              onClick={fetchUploads}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                fetchUploads();
+              }}
               disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#39FF14]/30 shadow-sm hover:shadow-md hover:border-[#39FF14]/50 disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-all border border-gray-300 shadow-sm hover:shadow-md disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 text-[#39FF14] ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
             <button
-              onClick={() => setShowBulkUploadForm(!showBulkUploadForm)}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#00FFC6] to-[#00FFFF] hover:from-[#00FFC6]/90 hover:to-[#00FFFF]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowBulkUploadForm(!showBulkUploadForm);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               <Upload className="h-4 w-4 mr-2" />
               Bulk Upload
             </button>
             <button
-              onClick={() => setShowUploadForm(!showUploadForm)}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowUploadForm(!showUploadForm);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               <Plus className="h-4 w-4 mr-2" />
               Upload
             </button>
           </div>
+          </div>
         </div>
-      </div>
 
       {/* Stats Grid - Compact */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { 
             name: 'Pending', 
             value: uploads.filter(u => u.status === 'pending').length.toString(), 
             icon: Clock, 
-            change: '+2', 
-            changeType: 'positive',
-            color: 'from-blue-500 to-blue-600',
-            bgColor: 'from-blue-50 to-blue-100'
+            color: 'bg-blue-100',
+            iconColor: 'text-blue-600',
+            textColor: 'text-blue-700'
           },
           { 
             name: 'Approved', 
             value: uploads.filter(u => u.status === 'approved').length.toString(), 
             icon: CheckCircle, 
-            change: '+8', 
-            changeType: 'positive',
-            color: 'from-green-500 to-green-600',
-            bgColor: 'from-green-50 to-green-100'
+            color: 'bg-green-100',
+            iconColor: 'text-green-600',
+            textColor: 'text-green-700'
           },
           { 
             name: 'Rejected', 
             value: uploads.filter(u => u.status === 'rejected').length.toString(), 
             icon: XCircle, 
-            change: '-3', 
-            changeType: 'negative',
-            color: 'from-red-500 to-red-600',
-            bgColor: 'from-red-50 to-red-100'
+            color: 'bg-red-100',
+            iconColor: 'text-red-600',
+            textColor: 'text-red-700'
           },
           { 
             name: 'Processing', 
             value: uploads.filter(u => u.status === 'processing').length.toString(), 
             icon: AlertCircle, 
-            change: '+1', 
-            changeType: 'positive',
-            color: 'from-amber-500 to-amber-600',
-            bgColor: 'from-amber-50 to-amber-100'
+            color: 'bg-amber-100',
+            iconColor: 'text-amber-600',
+            textColor: 'text-amber-700'
           }
         ].map((stat, index) => (
-          <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-lg p-2.5 sm:p-3 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200`}>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className={`p-1.5 rounded-md bg-gradient-to-r ${stat.color} shadow-sm`}>
-                <stat.icon className="h-3 w-3 text-white" />
+          <div key={index} className={`${stat.color} rounded-lg p-4 border border-gray-200`}>
+            <div className="flex items-center">
+              <div className={`p-2 ${stat.color} rounded-lg`}>
+                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
               </div>
-              <div className="text-right">
-                <div className="flex items-center space-x-1">
-                  <TrendingUp className={`h-2.5 w-2.5 ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`} />
-                  <span className={`text-xs font-medium ${stat.changeType === 'positive' ? 'text-green-700' : 'text-red-700'}`}>{stat.change}</span>
+              <div className="ml-3">
+                <div className="text-2xl font-bold text-gray-900">
+                  {stat.value}
                 </div>
+                <div className="text-sm text-gray-600">{stat.name}</div>
               </div>
-            </div>
-            <div>
-              <p className="text-lg sm:text-xl font-bold text-gray-900 mb-0.5">{stat.value}</p>
-              <p className="text-xs text-gray-600 font-medium">{stat.name}</p>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center">
+            <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+            <span className="text-green-800 text-sm">{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage(null)} className="text-green-600 hover:text-green-800 text-lg">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -462,7 +575,11 @@ const ContentManager: React.FC = () => {
             <div className="sm:w-32">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  const newFilter = e.target.value;
+                  setStatusFilter(newFilter);
+                  // fetchUploads will be called by useEffect when statusFilter changes
+                }}
                 className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
               >
                 <option value="">All Status</option>
@@ -811,175 +928,256 @@ const ContentManager: React.FC = () => {
               </tr>
             ) : (
               filteredUploads.map((upload) => (
-                <tr 
-                  key={upload.id} 
-                  className={selectedUploads.includes(upload.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedUploads.includes(upload.id)}
-                      onChange={() => toggleSelectUpload(upload.id)}
-                      className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getFileIcon(upload.file_type)}
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-900">{upload.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{upload.description?.substring(0, 50)}...</div>
-                        {upload.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {upload.tags.slice(0, 2).map(tag => (
-                              <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <Hash className="h-2.5 w-2.5 mr-1" />
-                                {tag}
-                              </span>
-                            ))}
-                            {upload.tags.length > 2 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                +{upload.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
+                <React.Fragment key={upload.id}>
+                  <tr 
+                    className={selectedUploads.includes(upload.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedUploads.includes(upload.id)}
+                        onChange={() => toggleSelectUpload(upload.id)}
+                        className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getFileIcon(upload.file_type)}
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">{upload.title}</div>
+                          <div className="text-sm text-gray-500 line-clamp-1">{upload.description?.substring(0, 50)}...</div>
+                          {upload.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {upload.tags.slice(0, 2).map(tag => (
+                                <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <Hash className="h-2.5 w-2.5 mr-1" />
+                                  {tag}
+                                </span>
+                              ))}
+                              {upload.tags.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  +{upload.tags.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 capitalize">{upload.file_type}</div>
+                      <div className="text-xs text-gray-400">
+                        {upload.file_size ? `${(parseInt(upload.file_size) / 1024 / 1024).toFixed(2)} MB` : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 capitalize">{upload.chapter_id.replace('-', ' ')}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {upload.uploader_first_name} {upload.uploader_last_name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(upload.created_at).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(upload.status)}`}>
+                        {upload.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        {upload.status === 'pending' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleApprove(upload.id, 'approve');
+                              }}
+                              className="text-green-600 hover:text-green-900 cursor-pointer"
+                              title="Approve"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const reason = prompt('Enter rejection reason:');
+                                if (reason !== null && reason.trim()) {
+                                  handleApprove(upload.id, 'reject', reason);
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-900 cursor-pointer"
+                              title="Reject"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                        {upload.status === 'approved' && (
+                          <span className="text-green-600 flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approved
+                          </span>
+                        )}
+                        {upload.status === 'rejected' && (
+                          <span className="text-red-600 flex items-center">
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Rejected
+                          </span>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            togglePreview(upload.id);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 cursor-pointer" 
+                          title="Preview"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {upload.status === 'failed' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRetryUpload(upload.id);
+                            }}
+                            className="text-green-600 hover:text-green-900 cursor-pointer"
+                            title="Retry"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500 capitalize">{upload.file_type}</div>
-                    <div className="text-xs text-gray-400">
-                      {upload.file_size ? `${(parseInt(upload.file_size) / 1024 / 1024).toFixed(2)} MB` : 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500 capitalize">{upload.chapter_id.replace('-', ' ')}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {upload.uploader_first_name} {upload.uploader_last_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(upload.created_at).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(upload.status)}`}>
-                      {upload.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
-                      {upload.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(upload.id, 'approve')}
-                            className="text-green-600 hover:text-green-900"
-                            title="Approve"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const reason = prompt('Enter rejection reason:');
-                              if (reason !== null) {
-                                handleApprove(upload.id, 'reject', reason);
-                              }
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                            title="Reject"
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
-                      {upload.status === 'approved' && (
-                        <span className="text-green-600 flex items-center">
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approved
-                        </span>
-                      )}
-                      {upload.status === 'rejected' && (
-                        <span className="text-red-600 flex items-center">
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Rejected
-                        </span>
-                      )}
-                      <button className="text-blue-600 hover:text-blue-900" title="Preview">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {/* Preview Row */}
+                  {previewId === upload.id && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                        {loadingPreview === upload.id ? (
+                          <div className="flex items-center justify-center py-8">
+                            <RefreshCw className="h-6 w-6 animate-spin text-blue-600 mr-2" />
+                            <span className="text-gray-600">Loading preview...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Upload Time Display - FR5 Requirement: <5 minutes */}
+                            <div className="flex items-center text-sm text-gray-600 mb-3">
+                              <Clock className="h-4 w-4 mr-2" />
+                              <span>
+                                Uploaded {getTimeAgo(upload.created_at)} • 
+                                {(() => {
+                                  const uploadDate = new Date(upload.created_at);
+                                  const now = new Date();
+                                  const diffMinutes = Math.floor((now.getTime() - uploadDate.getTime()) / (1000 * 60));
+                                  return diffMinutes < 5 ? (
+                                    <span className="text-green-600 font-medium ml-1">✓ Under 5 minutes</span>
+                                  ) : (
+                                    <span className="text-yellow-600 font-medium ml-1">⚠ {diffMinutes} minutes ago</span>
+                                  );
+                                })()}
+                              </span>
+                            </div>
+
+                            {/* Preview Content */}
+                            {upload.file_type === 'video' && (
+                              <div className="bg-gray-900 rounded-lg overflow-hidden">
+                                <div className="relative aspect-video flex items-center justify-center">
+                                  {previewData[upload.id]?.thumbnail_url ? (
+                                    <img 
+                                      src={previewData[upload.id].thumbnail_url} 
+                                      alt={upload.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black flex items-center justify-center">
+                                      <div className="text-center">
+                                        <Video className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+                                        <p className="text-gray-400">Video Preview</p>
+                                        <p className="text-gray-500 text-sm mt-1">File: {upload.file_name}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {upload.file_type === 'image' && (
+                              <div className="bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="aspect-video flex items-center justify-center">
+                                  {previewData[upload.id]?.preview_url ? (
+                                    <img 
+                                      src={previewData[upload.id].preview_url} 
+                                      alt={upload.title}
+                                      className="max-w-full max-h-96 object-contain"
+                                    />
+                                  ) : (
+                                    <div className="text-center">
+                                      <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                      <p className="text-gray-600">Image Preview</p>
+                                      <p className="text-gray-500 text-sm mt-1">File: {upload.file_name}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {upload.file_type !== 'video' && upload.file_type !== 'image' && (
+                              <div className="bg-gray-50 rounded-lg p-6">
+                                <div className="flex items-start">
+                                  <FileText className="h-8 w-8 text-gray-400 mr-3 flex-shrink-0" />
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Document Preview</h4>
+                                    <p className="text-gray-600 text-sm mt-1">File: {upload.file_name}</p>
+                                    {previewData[upload.id]?.preview_url ? (
+                                      <div className="mt-3">
+                                        <iframe 
+                                          src={previewData[upload.id].preview_url} 
+                                          className="w-full h-96 border border-gray-300 rounded"
+                                          title="Document Preview"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <p className="text-gray-500 text-xs mt-2">
+                                        This file type cannot be previewed directly. Click "Download" to view the full content.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Close Preview Button */}
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => setPreviewId(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                              >
+                                Close Preview
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>
         </table>
       </div>
-
-      {/* Stats Summary */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">
-                  {uploads.filter(u => u.status === 'pending').length}
-                </div>
-                <div className="text-sm text-gray-600">Pending</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">
-                  {uploads.filter(u => u.status === 'approved').length}
-                </div>
-                <div className="text-sm text-gray-600">Approved</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">
-                  {uploads.filter(u => u.status === 'rejected').length}
-                </div>
-                <div className="text-sm text-gray-600">Rejected</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-            <div className="flex items-center">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">
-                  {uploads.filter(u => u.status === 'processing').length}
-                </div>
-                <div className="text-sm text-gray-600">Processing</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
+    </div>
     </div>
   );
 };

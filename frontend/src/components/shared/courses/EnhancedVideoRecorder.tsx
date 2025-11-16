@@ -136,6 +136,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const recordedVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isStoppingRef = useRef(false);
   
   // Core UI State
   const [uploading, setUploading] = useState(false);
@@ -145,6 +146,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [micLevel, setMicLevel] = useState(0);
   const audioAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -492,13 +494,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   useEffect(() => {
     // When recording stops and video blob becomes available, show preview
     // This handles the case where videoBlob is set asynchronously by MediaRecorder's onstop handler
+    // Also handle the case where recordingStatus is 'processing' (waiting for blob)
     if (!isRecording && (videoBlob || recordedVideo) && !showPreview && !showLessonForm && !uploading) {
-      console.log('Video blob ready, showing preview', { hasBlob: !!videoBlob, hasUrl: !!recordedVideo, blobSize: videoBlob?.size });
+      console.log('Video blob ready, showing preview', { 
+        hasBlob: !!videoBlob, 
+        hasUrl: !!recordedVideo, 
+        blobSize: videoBlob?.size
+      });
       setShowPreview(true);
       setShowLessonForm(false);
+      setRecordingStatus('idle'); // Ensure status is idle when preview is shown
       setSuccessMessage('Recording completed! Review your video below.');
+      
+      // Now that blob is ready, it's safe to close camera
+      // This ensures cleanup happens after blob is created
+      setTimeout(() => {
+        closeCamera();
+      }, 500);
     }
-  }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading]);
+  }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading, closeCamera]);
 
   // Auto-save drafts during recording
   useEffect(() => {
@@ -638,21 +652,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   }, [dismissNotification]);
 
   // NEW: Performance degradation handler (Task 7.3)
+  // DISABLED: User requested to not show performance warnings
   const handlePerformanceDegradation = useCallback(() => {
-    addNotification(
-      'warning',
-      'Performance Degraded',
-      'Recording performance is below optimal levels. Consider closing other applications or reducing video quality.',
-      {
-        label: 'Reduce Quality',
-        onClick: () => {
-          setRecordingQuality('480p');
-          setSuccessMessage('Recording quality reduced to improve performance');
-        }
-      },
-      false
-    );
-  }, [addNotification]);
+    // Performance warnings disabled - only log to console
+    console.warn('Performance degraded, but warning notification disabled');
+  }, []);
 
   // NEW: Source loss handler (Task 7.3)
   const handleSourceLossNotification = useCallback((sourceType: 'camera' | 'screen') => {
@@ -904,45 +908,72 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   const handleStopRecording = async () => {
-    if (autoStopTimerRef.current) {
-      clearTimeout(autoStopTimerRef.current);
-      autoStopTimerRef.current = null;
-    }
-    
-    // Check minimum recording duration
-    if (recordingTime < 1) {
-      setErrorMessage('Recording too short. Please record for at least 1 second.');
+    // Prevent multiple simultaneous stop calls
+    if (isStopping || isStoppingRef.current) {
+      console.log('Stop already in progress, ignoring duplicate call');
       return;
     }
     
-    // IMPORTANT: Capture the recording time BEFORE stopping (as stopRecording may reset it)
-    const capturedDuration = recordingTime;
-    console.log('Stopping recording with duration:', capturedDuration);
+    if (!isRecording) {
+      console.log('Not recording, ignoring stop call');
+      return;
+    }
     
-    setRecordingStatus('processing');
+    setIsStopping(true);
+    isStoppingRef.current = true;
+    
     try {
-      await stopRecording();
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
+      
+      // Check minimum recording duration
+      if (recordingTime < 1) {
+        setErrorMessage('Recording too short. Please record for at least 1 second.');
+        setIsStopping(false);
+        isStoppingRef.current = false;
+        return;
+      }
+      
+      // IMPORTANT: Capture the recording time BEFORE stopping (as stopRecording may reset it)
+      const capturedDuration = recordingTime;
+      console.log('Stopping recording with duration:', capturedDuration);
+      
+      setRecordingStatus('processing');
+      
+      // Call stopRecording - this is synchronous and will trigger onstop handler
+      stopRecording();
+      
+      // Note: stopRecording() is synchronous, but the blob creation happens in onstop handler
+      // We don't need to await it, but we should wait a moment to ensure it's called
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       setRecordingStatus('idle');
       setRecordingDuration(capturedDuration); // Use captured value BEFORE closing camera
       
-      // Note: videoBlob will be set asynchronously by MediaRecorder's onstop handler
-      // We'll use a useEffect to show preview when videoBlob becomes available
-      // For now, just prepare the UI state
-      setShowPreview(false); // Will be set to true by useEffect when blob is ready
+      // Don't set showPreview to false - let the useEffect handle it when blob is ready
+      // This ensures preview shows even if blob creation is delayed
       setShowLessonForm(false); // Don't show form until user clicks "Upload"
       setSuccessMessage('Processing recording...');
       
-      // Close camera and screen share AFTER setting duration
-      // This provides clear feedback that recording has ended
-      // We do this last so it doesn't interfere with state updates
+      // Don't close camera immediately - let the useEffect handle it when blob is ready
+      // This ensures the blob is created before cleanup happens
+      // The useEffect that watches for videoBlob will call closeCamera() when ready
+      console.log('Waiting for blob to be created before closing camera...');
+      
+      // Reset stopping flag after a delay to allow blob creation
       setTimeout(() => {
-        closeCamera();
-      }, 100); // Small delay to ensure state updates complete
+        setIsStopping(false);
+        isStoppingRef.current = false;
+      }, 2000);
+      
     } catch (error) {
       console.error('Error stopping recording:', error);
       setErrorMessage('Failed to stop recording.');
       setRecordingStatus('idle');
+      setIsStopping(false);
+      isStoppingRef.current = false;
     }
   };
 
@@ -1289,6 +1320,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const renderPreview = () => {
     if (activeTab === 'record') {
       if (recordedVideo) {
+        // For recorded playback, show the full recorded frame (no extra zoom),
+        // so it matches what was actually captured during recording.
         return (
           <div className="relative w-full h-full bg-black">
             <video
@@ -1353,6 +1386,40 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           </div>
         );
       } else {
+        // Special handling for side-by-side layout using simple flex so both camera and screen share space cleanly
+        if (
+          currentLayout === 'side-by-side' &&
+          recordingSources.camera &&
+          recordingSources.screen
+        ) {
+          return (
+            <div className="w-full h-full flex bg-black">
+              <div className="w-1/2 h-full overflow-hidden">
+                <video
+                  ref={screenVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="w-1/2 h-full relative overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  Camera
+                </div>
+              </div>
+              {renderRecordingStats()}
+            </div>
+          );
+        }
+
         return (
           <div className={`w-full h-full relative ${getLayoutClass()}`}>
             {/* Screen Share Preview - Show FIRST when available (priority) */}
@@ -1376,7 +1443,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-contain rounded-lg bg-black"
                   onLoadedMetadata={() => {
                     const video = screenVideoRef.current;
                     if (video) {
@@ -1418,13 +1485,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             
             {/* Camera Preview - Show SECOND (lower priority when screen is active) */}
             {recordingSources.camera && (
-              <div className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`} style={{ zIndex: recordingSources.screen ? 5 : 10 }}>
+              <div
+                className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}
+                style={{ zIndex: recordingSources.screen ? 5 : 10 }}
+              >
                 <video
                   ref={videoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-contain rounded-lg bg-black"
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                   Camera {micLevel > 0.1 && (
@@ -1898,13 +1968,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Main Preview Area */}
       <div className="relative bg-black aspect-video">
-        {/* Always show raw stream preview (not compositor) to ensure preview persists during restart */}
-        {/* The compositor preview can be shown separately if needed, but for reliability, */}
-        {/* we always show the raw streams in the main preview */}
+        {/* Use our custom preview logic (handles side-by-side, PiP, etc.) so framing stays predictable */}
         {renderPreview()}
         
-        {/* Optional: Show compositor preview overlay if enabled (for debugging) */}
-        {showCompositorPreview && isCompositing && compositorInstance && (
+        {/* Optional: Show compositor preview overlay if enabled (for debugging when not recording) */}
+        {showCompositorPreview && !isRecording && isCompositing && compositorInstance && (
           <div className="absolute inset-0 pointer-events-none opacity-50 z-10">
             <CompositorPreview
               compositor={compositorInstance}
@@ -2042,7 +2110,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   {/* Stop Button */}
                   <button 
                     onClick={handleStopRecording} 
-                    disabled={recordingTime < 1}
+                    disabled={recordingTime < 1 || isStopping || !isRecording}
                     className={`bg-gradient-to-r from-[#FF6B35]/90 to-[#FF8C42]/90 text-white rounded-2xl hover:from-[#FF5722] hover:to-[#FF7043] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-[#FF6B35]/40 backdrop-blur-sm border border-[#FF6B35]/30 ${
                         isMobile ? 'p-3' : 'p-4'
                       }`}

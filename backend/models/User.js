@@ -73,10 +73,26 @@ const User = {
     if (!user) return [];
 
     const permissionMap = {
+      guest: [
+        'course:view', // Limited view-only access
+        'lesson:view'
+      ],
+      youth: [
+        'course:view', 'lesson:view', 'quiz:take', 
+        'discussion:view', 'discussion:create', 'user:edit_own',
+        'progress:view', 'notes:create', 'notes:view_own'
+      ],
       student: [
         'course:view', 'lesson:view', 'quiz:take', 
         'discussion:view', 'discussion:create', 'user:edit_own',
         'progress:view', 'notes:create', 'notes:view_own'
+      ],
+      moderator: [
+        'course:view', 'lesson:view', 'quiz:take',
+        'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
+        'content:moderate', 'content:flag', 'content:review',
+        'user:view', 'user:edit_own',
+        'analytics:view_own'
       ],
       teacher: [
         'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
@@ -96,7 +112,7 @@ const User = {
         'chapter:view', 'chapter:manage',
         'analytics:view'
       ],
-      admin: ['system:admin']
+      platform_admin: ['system:admin']
     };
 
     return permissionMap[user.role] || permissionMap.student;

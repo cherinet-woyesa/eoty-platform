@@ -7,6 +7,7 @@ import {
   Loader2, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { progressApi, CourseProgress, UserProgressStats } from '@/services/api/progress';
+import { apiClient } from '@/services/api/apiClient';
 
 const ProgressDashboard: React.FC = () => {
   const [stats, setStats] = useState<UserProgressStats | null>(null);
@@ -24,7 +25,6 @@ const ProgressDashboard: React.FC = () => {
       setError(null);
 
       // Fetch real data from student dashboard
-      const { default: apiClient } = await import('@/services/api/apiClient');
       const response = await apiClient.get('/students/dashboard');
       
       if (!response.data.success) {
@@ -77,25 +77,25 @@ const ProgressDashboard: React.FC = () => {
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'text-green-600';
-    if (percentage >= 75) return 'text-blue-600';
-    if (percentage >= 50) return 'text-yellow-600';
-    return 'text-gray-600';
+    if (percentage >= 100) return 'text-[#27AE60]';
+    if (percentage >= 75) return 'text-[#16A085]';
+    if (percentage >= 50) return 'text-[#2980B9]';
+    return 'text-stone-600';
   };
 
   const getProgressBarColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-green-500';
-    if (percentage >= 75) return 'bg-blue-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-gray-400';
+    if (percentage >= 100) return 'bg-[#27AE60]';
+    if (percentage >= 75) return 'bg-[#16A085]';
+    if (percentage >= 50) return 'bg-[#2980B9]';
+    return 'bg-stone-400';
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-xl">Loading progress...</p>
+          <Loader2 className="h-12 w-12 text-[#27AE60] animate-spin mx-auto mb-4" />
+          <p className="text-stone-600 text-xl">Loading progress...</p>
         </div>
       </div>
     );
@@ -107,10 +107,10 @@ const ProgressDashboard: React.FC = () => {
         <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-red-200">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-red-600 mb-3">Error Loading Progress</h2>
-          <p className="text-gray-700 mb-6">{error}</p>
+          <p className="text-stone-700 mb-6">{error}</p>
           <button
             onClick={loadProgressData}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-semibold rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors duration-200"
           >
             <RefreshCw className="mr-2 h-5 w-5" />
             Retry
@@ -121,9 +121,9 @@ const ProgressDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#39FF14] via-[#00FFC6] to-[#00FFFF] rounded-xl p-6 text-stone-900 shadow-lg">
+      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 text-stone-900 shadow-lg">
         <h1 className="text-2xl font-bold mb-2">Your Learning Progress</h1>
         <p className="text-stone-700">
           Track your learning journey and celebrate your achievements
@@ -162,10 +162,10 @@ const ProgressDashboard: React.FC = () => {
               color: 'from-yellow-500 to-orange-500',
               bgColor: 'from-yellow-50 to-orange-100'
             }
-          ].map((stat, index) => (
-            <div key={index} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 sm:p-5 border border-stone-200 shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
+            ].map((stat, index) => (
+            <div key={index} className="bg-white/90 backdrop-blur-sm rounded-xl p-4 sm:p-5 border border-stone-200 shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-2">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] shadow-sm">
+                <div className="p-2 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#16A085] shadow-sm">
                   <stat.icon className="h-4 w-4 text-stone-900" />
                 </div>
               </div>
@@ -180,7 +180,7 @@ const ProgressDashboard: React.FC = () => {
 
       {/* Level Progress */}
       {stats && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-stone-800 flex items-center">
               <Trophy className="h-5 w-5 mr-2 text-[#FFD700]" />
@@ -200,7 +200,7 @@ const ProgressDashboard: React.FC = () => {
             </div>
             <div className="w-full bg-stone-200 rounded-full h-3">
               <div 
-                className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-3 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-3 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min((stats.total_points_earned / stats.next_level_points) * 100, 100)}%` }}
               />
             </div>
@@ -212,7 +212,7 @@ const ProgressDashboard: React.FC = () => {
       )}
 
       {/* Course Progress */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
+      <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-stone-800 flex items-center">
             <BarChart3 className="h-5 w-5 mr-2 text-[#39FF14]" />
@@ -229,10 +229,10 @@ const ProgressDashboard: React.FC = () => {
               <Link
                 key={course.course_id}
                 to={`/student/courses/${course.course_id}`}
-                className="block border border-stone-200 rounded-lg p-4 hover:border-[#39FF14] hover:shadow-md transition-all cursor-pointer"
+                className="block border border-stone-200 rounded-lg p-4 hover:border-[#27AE60] hover:shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-stone-800 hover:text-[#39FF14] transition-colors">{course.course_title}</h3>
+                  <h3 className="font-semibold text-stone-800 hover:text-[#27AE60] transition-colors">{course.course_title}</h3>
                   <span className={`text-sm font-medium ${getProgressColor(course.overall_progress)}`}>
                     {Math.round(course.overall_progress)}%
                   </span>
@@ -240,7 +240,7 @@ const ProgressDashboard: React.FC = () => {
                 
                 <div className="w-full bg-stone-200 rounded-full h-2 mb-2">
                   <div 
-                    className="bg-gradient-to-r from-[#39FF14] to-[#00FFC6] h-2 rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-2 rounded-full transition-all duration-500"
                     style={{ width: `${course.overall_progress}%` }}
                   />
                 </div>
@@ -267,11 +267,11 @@ const ProgressDashboard: React.FC = () => {
 
       {/* Study Streak */}
       {stats && stats.study_streak > 0 && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-stone-800 mb-2 flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-[#39FF14]" />
+                <Zap className="h-5 w-5 mr-2 text-[#27AE60]" />
                 Study Streak
               </h2>
               <p className="text-3xl font-bold text-stone-800">{stats.study_streak} days</p>

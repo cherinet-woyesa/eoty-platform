@@ -79,9 +79,22 @@ const resourceController = {
       }
       
       if (error.message.includes('exceeds maximum') || error.message.includes('Unsupported file type')) {
+        // REQUIREMENT: Manages unsupported file types with error notification
+        const resourceLibraryService = require('../services/resourceLibraryService');
+        resourceLibraryService.logUnsupportedFileAttempt(
+          userId,
+          req.file?.originalname || 'unknown',
+          req.file?.originalname?.split('.').pop()?.toLowerCase() || 'unknown',
+          req.file?.mimetype,
+          req.file?.size,
+          error.message
+        ).catch(console.error);
+        
         return res.status(400).json({
           success: false,
-          message: error.message
+          message: error.message,
+          errorType: 'UNSUPPORTED_FILE_TYPE',
+          allowedTypes: require('../services/resourceService').allowedFileTypes
         });
       }
 

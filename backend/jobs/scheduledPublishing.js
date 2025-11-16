@@ -11,6 +11,12 @@ const db = require('../config/database');
  */
 async function processScheduledPublications() {
   try {
+    // Check if column exists
+    const hasColumn = await db.schema.hasColumn('courses', 'scheduled_publish_at');
+    if (!hasColumn) {
+      return { success: true, publishedCount: 0, courses: [] }; // Column doesn't exist yet, skip silently
+    }
+
     console.log('[Scheduled Publishing] Starting scheduled publication check...');
 
     // Find courses that are scheduled to be published and the time has come
@@ -93,6 +99,10 @@ async function processScheduledPublications() {
     };
 
   } catch (error) {
+    // Silently fail if column doesn't exist
+    if (error.code === '42703') {
+      return { success: true, publishedCount: 0, courses: [] };
+    }
     console.error('[Scheduled Publishing] Job failed:', error);
     return {
       success: false,

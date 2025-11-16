@@ -1,9 +1,12 @@
 const db = require('../config/database');
 const accessLogService = require('../services/accessLogService');
 
-// Role hierarchy constants
+// Role hierarchy constants (REQUIREMENT: Youth, moderator, admin, guest roles)
 const ROLE_HIERARCHY = {
+  'guest': 0,
+  'youth': 1,
   'student': 1,
+  'moderator': 2,
   'teacher': 2,
   'admin': 3
 };

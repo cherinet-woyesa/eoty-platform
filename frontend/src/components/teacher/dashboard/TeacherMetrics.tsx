@@ -34,11 +34,11 @@ interface MetricItem {
 // Simplified Metrics Card Component
 const MetricsCard: React.FC<{ metric: MetricItem }> = ({ metric }) => {
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#39FF14]/50">
+    <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/40">
       <div className="flex items-center justify-between mb-4">
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg blur-md"></div>
-          <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 rounded-lg border border-[#39FF14]/30">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg blur-md"></div>
+          <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-lg border border-[#27AE60]/25">
             {metric.icon}
           </div>
         </div>
@@ -62,26 +62,26 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
     {
       title: 'Total Courses',
       value: stats?.totalCourses || 0,
-      icon: <BookOpen className="h-6 w-6 text-[#39FF14]" />,
-      color: 'from-[#39FF14] to-[#00FFC6]'
+      icon: <BookOpen className="h-6 w-6 text-[#27AE60]" />,
+      color: 'from-[#27AE60] to-[#16A085]'
     },
     {
       title: 'Active Students',
       value: stats?.totalStudentsEnrolled || 0,
-      icon: <Users className="h-6 w-6 text-[#00FFC6]" />,
-      color: 'from-[#00FFC6] to-[#00FFFF]'
+      icon: <Users className="h-6 w-6 text-[#16A085]" />,
+      color: 'from-[#16A085] to-[#2980B9]'
     },
     {
       title: 'Total Lessons',
       value: stats?.totalLessons || 0,
-      icon: <Video className="h-6 w-6 text-[#00FFFF]" />,
-      color: 'from-[#00FFFF] to-[#39FF14]'
+      icon: <Video className="h-6 w-6 text-[#2980B9]" />,
+      color: 'from-[#2980B9] to-[#27AE60]'
     },
     {
       title: 'Completion Rate',
       value: `${stats?.averageCompletionRate || 0}%`,
-      icon: <Target className="h-6 w-6 text-[#FFD700]" />,
-      color: 'from-[#FFD700] to-[#FFA500]'
+      icon: <Target className="h-6 w-6 text-[#F39C12]" />,
+      color: 'from-[#F39C12] to-[#E67E22]'
     }
   ], [stats]);
 

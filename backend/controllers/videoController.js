@@ -203,6 +203,13 @@ async function handleUploadAssetCreated(uploadData) {
 
     console.log(`✅ Upload created asset: ${uploadId} -> ${assetId}`);
 
+    // Check if Mux columns exist
+    const hasMuxUploadId = await db.schema.hasColumn('lessons', 'mux_upload_id');
+    if (!hasMuxUploadId) {
+      console.warn(`⚠️  Mux columns not available, skipping asset update for upload ${uploadId}`);
+      return;
+    }
+
     // Find lesson by upload ID
     const lesson = await db('lessons')
       .where({ mux_upload_id: uploadId })
@@ -213,15 +220,29 @@ async function handleUploadAssetCreated(uploadData) {
       return;
     }
 
+    // Check which columns exist before updating
+    const hasMuxAssetId = await db.schema.hasColumn('lessons', 'mux_asset_id');
+    const hasMuxStatus = await db.schema.hasColumn('lessons', 'mux_status');
+    const hasMuxCreatedAt = await db.schema.hasColumn('lessons', 'mux_created_at');
+
+    const updateData = {
+      updated_at: db.fn.now()
+    };
+
+    if (hasMuxAssetId) {
+      updateData.mux_asset_id = assetId;
+    }
+    if (hasMuxStatus) {
+      updateData.mux_status = 'processing';
+    }
+    if (hasMuxCreatedAt) {
+      updateData.mux_created_at = db.fn.now();
+    }
+
     // Update lesson with asset ID and status
     await db('lessons')
       .where({ id: lesson.id })
-      .update({
-        mux_asset_id: assetId,
-        mux_status: 'processing',
-        mux_created_at: db.fn.now(),
-        updated_at: db.fn.now()
-      });
+      .update(updateData);
 
     console.log(`✅ Lesson ${lesson.id} linked to asset ${assetId}`);
 
@@ -246,6 +267,13 @@ async function handleUploadError(uploadData) {
 
     console.error(`❌ Upload error: ${uploadId}`, error);
 
+    // Check if Mux columns exist
+    const hasMuxUploadId = await db.schema.hasColumn('lessons', 'mux_upload_id');
+    if (!hasMuxUploadId) {
+      console.warn(`⚠️  Mux columns not available, skipping error update for upload ${uploadId}`);
+      return;
+    }
+
     // Find lesson by upload ID
     const lesson = await db('lessons')
       .where({ mux_upload_id: uploadId })
@@ -256,14 +284,25 @@ async function handleUploadError(uploadData) {
       return;
     }
 
+    // Check which columns exist before updating
+    const hasMuxStatus = await db.schema.hasColumn('lessons', 'mux_status');
+    const hasMuxErrorMessage = await db.schema.hasColumn('lessons', 'mux_error_message');
+
+    const updateData = {
+      updated_at: db.fn.now()
+    };
+
+    if (hasMuxStatus) {
+      updateData.mux_status = 'errored';
+    }
+    if (hasMuxErrorMessage) {
+      updateData.mux_error_message = typeof error === 'string' ? error : JSON.stringify(error);
+    }
+
     // Update lesson with error info
     await db('lessons')
       .where({ id: lesson.id })
-      .update({
-        mux_status: 'errored',
-        mux_error_message: typeof error === 'string' ? error : JSON.stringify(error),
-        updated_at: db.fn.now()
-      });
+      .update(updateData);
 
     console.log(`✅ Lesson ${lesson.id} marked as upload failed`);
 
@@ -868,24 +907,45 @@ const videoController = {
         }
       }
 
-      const lessons = await db('lessons')
-        .leftJoin('videos', 'lessons.video_id', 'videos.id')
-        .where({ 'lessons.course_id': courseId })
-        .select(
-          'lessons.*', 
-          'videos.storage_url as video_url',
-          'videos.status as video_status',
-          'videos.hls_url',
-          'videos.processing_error',
-          // Ensure Mux columns are included (they're already in lessons.*)
-          // but explicitly list them for clarity
-          'lessons.mux_playback_id',
-          'lessons.mux_asset_id',
-          'lessons.video_provider',
-          'lessons.mux_status',
-          'lessons.mux_error_message'
-        )
-        .orderBy('lessons.order', 'asc');
+      // Check if videos table exists
+      const hasVideosTable = await db.schema.hasTable('videos');
+      
+      let lessons;
+      if (hasVideosTable) {
+        // Legacy S3 videos - join with videos table if it exists
+        lessons = await db('lessons')
+          .leftJoin('videos', 'lessons.video_id', 'videos.id')
+          .where({ 'lessons.course_id': courseId })
+          .select(
+            'lessons.*', 
+            'videos.storage_url as video_url',
+            'videos.status as video_status',
+            'videos.hls_url',
+            'videos.processing_error',
+            // Ensure Mux columns are included (they're already in lessons.*)
+            // but explicitly list them for clarity
+            'lessons.mux_playback_id',
+            'lessons.mux_asset_id',
+            'lessons.video_provider',
+            'lessons.mux_status',
+            'lessons.mux_error_message'
+          )
+          .orderBy('lessons.order', 'asc');
+      } else {
+        // Mux-only - no videos table needed
+        lessons = await db('lessons')
+          .where({ 'lessons.course_id': courseId })
+          .select(
+            'lessons.*',
+            // Mux columns
+            'lessons.mux_playback_id',
+            'lessons.mux_asset_id',
+            'lessons.video_provider',
+            'lessons.mux_status',
+            'lessons.mux_error_message'
+          )
+          .orderBy('lessons.order', 'asc');
+      }
 
       // Parse resources JSON for each lesson
       const lessonsWithParsedResources = lessons.map(lesson => {
@@ -1418,18 +1478,31 @@ const videoController = {
       }
     });
 
-    // Update lesson with upload info
+    // Check if Mux columns exist
+    const hasMuxUploadId = await db.schema.hasColumn('lessons', 'mux_upload_id');
+    const hasVideoProvider = await db.schema.hasColumn('lessons', 'video_provider');
+    const hasMuxStatus = await db.schema.hasColumn('lessons', 'mux_status');
+
+    // Update lesson with upload info (only if columns exist)
     const updateData = {
-      mux_upload_id: upload.uploadId,
-      video_provider: 'mux',
-      mux_status: 'preparing',
       updated_at: db.fn.now()
     };
+    
+    if (hasMuxUploadId) {
+      updateData.mux_upload_id = upload.uploadId;
+    }
+    if (hasVideoProvider) {
+      updateData.video_provider = 'mux';
+    }
+    if (hasMuxStatus) {
+      updateData.mux_status = 'preparing';
+    }
     
     console.log(`💾 Updating lesson ${lessonId} with upload data:`, {
       mux_upload_id: upload.uploadId,
       video_provider: 'mux',
-      mux_status: 'preparing'
+      mux_status: 'preparing',
+      columnsExist: { hasMuxUploadId, hasVideoProvider, hasMuxStatus }
     });
     
     await db('lessons')
@@ -1437,9 +1510,14 @@ const videoController = {
       .update(updateData);
 
     // Verify the update
+    const selectFields = ['id', 'title'];
+    if (hasMuxUploadId) selectFields.push('mux_upload_id');
+    if (hasVideoProvider) selectFields.push('video_provider');
+    if (hasMuxStatus) selectFields.push('mux_status');
+    
     const updatedLesson = await db('lessons')
       .where({ id: lessonId })
-      .select('id', 'title', 'mux_upload_id', 'video_provider', 'mux_status')
+      .select(...selectFields)
       .first();
     
     console.log(`✅ Mux upload URL created for lesson ${lessonId}`);

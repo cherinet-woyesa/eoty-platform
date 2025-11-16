@@ -52,7 +52,9 @@ export function useWebSocket(
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const isManualClose = useRef(false); // Track manual closure
 
-  const WS_ENABLED = import.meta.env.VITE_ENABLE_WS !== 'false'; // Default to true
+  // WebSocket is DISABLED by default to avoid noisy errors and perf issues in dev.
+  // Explicitly set VITE_ENABLE_WS=true in your .env to turn it on.
+  const WS_ENABLED = import.meta.env.VITE_ENABLE_WS === 'true';
   // Use the same host as the API, but with ws/wss protocol
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   
@@ -179,7 +181,12 @@ export function useWebSocket(
       };
 
       socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        // Silently handle WebSocket errors - they're not critical for app functionality
+        // Many hosting providers (like Render free tier) don't support WebSocket
+        // The app will fall back to polling/regular API calls
+        if (import.meta.env.DEV) {
+          console.warn('WebSocket connection failed (non-critical):', error);
+        }
         setConnectionStatus('error');
         onError?.(error);
       };
@@ -187,7 +194,10 @@ export function useWebSocket(
       ws.current = socket;
 
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
+      // Silently handle WebSocket connection failures - not critical
+      if (import.meta.env.DEV) {
+        console.warn('WebSocket connection failed (non-critical):', error);
+      }
       setConnectionStatus('error');
       setIsConnected(false);
     }

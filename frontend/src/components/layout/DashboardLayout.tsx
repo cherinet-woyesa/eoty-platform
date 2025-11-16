@@ -2,14 +2,19 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import Header from './Header/Header';
+
 import Sidebar from './Sidebar/BaseSidebar';
 import AdminSidebar from './Sidebar/AdminSidebar';
 import StudentSidebar from './Sidebar/StudentSidebar';
 import TeacherSidebar from './Sidebar/TeacherSidebar';
 import { useOnboarding } from '@/context/OnboardingContext';
 import WelcomeMessage from '@/components/shared/onboarding/WelcomeMessage';
+import ReminderNotification from '@/components/shared/onboarding/ReminderNotification';
+import ContextualHelp from '@/components/shared/onboarding/ContextualHelp';
+import OnboardingModal from '@/components/shared/onboarding/OnboardingModal';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { HelpCircle } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,9 +22,10 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
-  const { hasOnboarding, isCompleted } = useOnboarding();
+  const { hasOnboarding, isCompleted, flow, progress } = useOnboarding();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     // Initialize from localStorage for persistence
     return localStorage.getItem('sidebarCollapsed') === 'true';
@@ -28,13 +34,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   // Determine user roles with memoization
   const isAdminUser = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-  const isStudent = user?.role === 'student';
+  // Base members (user/legacy student) use the student dashboard/sidebar
+  const isStudent = user?.role === 'user' || user?.role === 'student';
   
   // Check if current route is admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   // Show welcome message for new users
   const showWelcome = hasOnboarding && !isCompleted;
+
+  // Show onboarding modal when user has onboarding and it's not completed (REQUIREMENT: 100% new users see guided onboarding)
+  useEffect(() => {
+    if (hasOnboarding && !isCompleted && flow && progress) {
+      // Auto-show modal for new users (REQUIREMENT: Auto-resume)
+      setShowOnboardingModal(true);
+    }
+  }, [hasOnboarding, isCompleted, flow, progress]);
 
   // Persist sidebar state
   useEffect(() => {
@@ -149,11 +164,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         />
         
         {/* Main content - Full width with proper scrolling */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-transparent">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-transparent flex flex-col">
           {/* Content container - Full width, no max-width constraints */}
-          <div className="w-full min-h-full">
+          <div className="w-full flex-1 min-h-full">
             {children}
           </div>
+          
+          {/* Footer */}
+         
         </main>
       </div>
 
@@ -167,16 +185,55 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       )}
 
       {/* Onboarding Components */}
+      {/* Reminder notifications (REQUIREMENT: Follow-up reminders) */}
+      <ReminderNotification 
+        onResume={() => {
+          // Open onboarding modal when user clicks resume (REQUIREMENT: Auto-resume)
+          setShowOnboardingModal(true);
+        }}
+      />
+
       {showWelcome && user && (
         <WelcomeMessage 
           userName={user.firstName}
           onDismiss={handleDismissWelcome}
           onStartOnboarding={() => {
-            // Navigate to onboarding flow
-            console.log('Start onboarding');
+            // Open onboarding modal
+            setShowOnboardingModal(true);
           }}
         />
       )}
+
+      {/* Onboarding Modal (REQUIREMENT: Step-by-step guide, auto-resume) */}
+      {hasOnboarding && flow && progress && (
+        <OnboardingModal
+          isOpen={showOnboardingModal}
+          onClose={() => {
+            setShowOnboardingModal(false);
+            // If onboarding is completed, don't show again
+            if (isCompleted) {
+              setShowOnboardingModal(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Help button - Always accessible (REQUIREMENT: Help content always accessible from dashboard) */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <ContextualHelp
+          component="dashboard"
+          page={location.pathname}
+          position="left"
+        >
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
+            aria-label="Get help"
+            title="Get help"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </button>
+        </ContextualHelp>
+      </div>
 
       {/* Performance monitoring - Only in development */}
       {process.env.NODE_ENV === 'development' && (

@@ -58,7 +58,8 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   const roleNavigationItems: NavigationItem[] = useMemo(() => {
     const items: NavigationItem[] = [];
     
-    if (user?.role === 'student') {
+    // Base members (user/legacy student)
+    if (user?.role === 'user' || user?.role === 'student') {
       items.push(
         {
           name: 'My Courses',
@@ -67,7 +68,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: '5',
           description: 'Continue learning',
           color: 'text-green-600',
-          roles: ['student']
+          roles: ['user', 'student']
         },
         {
           name: 'Bookmarks',
@@ -76,7 +77,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: '12',
           description: 'Saved lessons',
           color: 'text-yellow-600',
-          roles: ['student']
+          roles: ['user', 'student']
         },
         {
           name: 'Study Schedule',
@@ -85,7 +86,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           badge: null,
           description: 'Plan your study',
           color: 'text-purple-600',
-          roles: ['student']
+          roles: ['user', 'student']
         }
       );
     }

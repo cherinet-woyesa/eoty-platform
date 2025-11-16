@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award
+  BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award, Target
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import CourseGrid from './CourseGrid';
@@ -213,7 +213,7 @@ const StudentDashboard: React.FC = () => {
     // Handle different course actions
     switch (action) {
       case 'view':
-        navigate(`/courses/${courseId}`);
+        navigate(`/student/courses/${courseId}`);
         break;
       case 'bookmark':
         // API call to bookmark course
@@ -271,10 +271,10 @@ const StudentDashboard: React.FC = () => {
         )}
 
         <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-          {/* Header Section - Simplified */}
+          {/* Header Section */}
           <div className="flex flex-col gap-4">
-            {/* Welcome Section - Light Beige/Silver */}
-            <div className="bg-gradient-to-r from-stone-100 via-neutral-100 to-slate-100 rounded-2xl p-4 sm:p-6 border border-stone-200/50 shadow-sm w-full">
+            {/* Welcome Section - match Forums/AI Assistant style */}
+            <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
@@ -284,10 +284,10 @@ const StudentDashboard: React.FC = () => {
                     >
                       <Menu className="h-5 w-5" />
                     </button>
-                    <h1 className="text-xl sm:text-2xl font-bold text-stone-800">Welcome back, {user?.firstName}!</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-stone-800">Welcome back, {user?.firstName}!</h1>
                     {isConnected && (
-                      <div className="flex items-center space-x-1 text-emerald-600">
-                        <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                      <div className="flex items-center space-x-1 text-[#27AE60]">
+                        <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
                         <span className="text-xs font-medium">Live</span>
                       </div>
                     )}
@@ -306,18 +306,25 @@ const StudentDashboard: React.FC = () => {
                 </div>
                 <div className="mt-4 lg:mt-0 lg:ml-6 flex space-x-2">
                   <Link
-                    to="/courses"
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+                    to="/student/browse-courses"
+                    className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     Browse Courses
+                  </Link>
+                  <Link
+                    to="/student/journeys"
+                    className="inline-flex items-center px-4 py-2 bg-white/80 hover:bg-white text-stone-800 text-sm font-semibold rounded-lg border border-stone-300 shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <Target className="h-4 w-4 mr-2" />
+                    Spiritual Journeys
                   </Link>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats Grid - Light Beige/Silver */}
+          {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {stats.map((stat, index) => (
               <div 
@@ -326,7 +333,7 @@ const StudentDashboard: React.FC = () => {
                 title={stat.description}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] shadow-sm group-hover:scale-110 transition-transform">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#16A085] shadow-sm group-hover:scale-110 transition-transform">
                     <stat.icon className="h-4 w-4 text-stone-900" />
                   </div>
                 </div>

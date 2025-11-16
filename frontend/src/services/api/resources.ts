@@ -28,8 +28,26 @@ export const resourcesApi = {
     return response.data;
   },
 
-  // Get single resource
-  getResource: async (id: number): Promise<{ success: boolean; data: { resource: Resource } }> => {
+  // Enhanced search with all filters (REQUIREMENT: Tag, type, topic, author, date)
+  searchResources: async (filters: ResourceFilters = {}): Promise<ResourceResponse> => {
+    const params = new URLSearchParams();
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value)) {
+          params.append(key, value.join(','));
+        } else {
+          params.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await apiClient.get(`/resources/search?${params}`);
+    return response.data;
+  },
+
+  // Get single resource with inline viewing capability (REQUIREMENT: Inline viewing)
+  getResource: async (id: number): Promise<{ success: boolean; data: { resource: Resource; canViewInline: boolean; isUnsupported: boolean; errorMessage?: string } }> => {
     const response = await apiClient.get(`/resources/${id}`);
     return response.data;
   },
@@ -40,9 +58,9 @@ export const resourcesApi = {
     return response.data;
   },
 
-  // Create note
+  // Create note with section anchoring (REQUIREMENT: Anchor notes to sections)
   createNote: async (noteData: CreateNoteRequest): Promise<{ success: boolean; data: { note: UserNote } }> => {
-    const response = await apiClient.post('/resources/notes', noteData);
+    const response = await apiClient.post(`/resources/${noteData.resourceId}/notes`, noteData);
     return response.data;
   },
 
@@ -52,15 +70,27 @@ export const resourcesApi = {
     return response.data;
   },
 
-  // Get AI summary
-  getSummary: async (resourceId: number, type: string = 'brief'): Promise<{ success: boolean; data: { summary: AISummary } }> => {
+  // Get AI summary (REQUIREMENT: < 250 words, 98% relevance)
+  getSummary: async (resourceId: number, type: string = 'brief'): Promise<{ success: boolean; data: { summary: AISummary; meetsWordLimit: boolean; meetsRelevanceRequirement: boolean } }> => {
     const response = await apiClient.get(`/resources/${resourceId}/summary?type=${type}`);
     return response.data;
   },
 
-  // Export content
-  exportContent: async (resourceId: number, format: string = 'pdf'): Promise<any> => {
-    const response = await apiClient.get(`/resources/${resourceId}/export?format=${format}`);
+  // Export content (REQUIREMENT: Export notes/summaries)
+  exportContent: async (resourceId: number, type: string = 'combined', format: string = 'pdf'): Promise<any> => {
+    const response = await apiClient.get(`/resources/${resourceId}/export?type=${type}&format=${format}`);
+    return response.data;
+  },
+
+  // Share resource with chapter (REQUIREMENT: Share with chapter members)
+  shareResource: async (resourceId: number, shareType: string = 'view', message?: string): Promise<{ success: boolean; message: string; data: any }> => {
+    const response = await apiClient.post(`/resources/${resourceId}/share`, { shareType, message });
+    return response.data;
+  },
+
+  // Share note with chapter (REQUIREMENT: Share notes with chapter members)
+  shareNote: async (noteId: number): Promise<{ success: boolean; message: string; data: any }> => {
+    const response = await apiClient.post(`/resources/notes/${noteId}/share`, {});
     return response.data;
   }
 };

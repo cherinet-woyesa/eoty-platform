@@ -24,14 +24,42 @@ async function syncMuxAnalytics() {
       };
     }
 
+    // Check if required columns exist
+    const hasVideoProvider = await db.schema.hasColumn('lessons', 'video_provider');
+    const hasMuxAssetId = await db.schema.hasColumn('lessons', 'mux_asset_id');
+    const hasMuxPlaybackId = await db.schema.hasColumn('lessons', 'mux_playback_id');
+    const hasMuxStatus = await db.schema.hasColumn('lessons', 'mux_status');
+    
+    // If required columns don't exist, skip sync
+    if (!hasVideoProvider || !hasMuxAssetId || !hasMuxPlaybackId || !hasMuxStatus) {
+      return {
+        success: true,
+        syncedCount: 0,
+        lessons: []
+      };
+    }
+
     // Get all lessons with Mux videos
-    const muxLessons = await db('lessons')
-      .where({ video_provider: 'mux' })
-      .whereNotNull('mux_asset_id')
-      .whereNotNull('mux_playback_id')
-      .where('mux_status', 'ready')
-      .limit(100)
-      .select('id', 'title', 'mux_asset_id');
+    let muxLessons;
+    try {
+      muxLessons = await db('lessons')
+        .where({ video_provider: 'mux' })
+        .whereNotNull('mux_asset_id')
+        .whereNotNull('mux_playback_id')
+        .where('mux_status', 'ready')
+        .limit(100)
+        .select('id', 'title', 'mux_asset_id');
+    } catch (queryError) {
+      // If query fails due to missing column, return success with no lessons
+      if (queryError.code === '42703' || queryError.message.includes('does not exist')) {
+        return {
+          success: true,
+          syncedCount: 0,
+          lessons: []
+        };
+      }
+      throw queryError;
+    }
 
     if (muxLessons.length === 0) {
       console.log('[Mux Analytics Sync] No Mux videos found to sync');
@@ -84,6 +112,14 @@ async function syncMuxAnalytics() {
       errors: results.failed
     };
   } catch (error) {
+    // Silently fail if column doesn't exist
+    if (error.code === '42703' || error.message.includes('does not exist')) {
+      return {
+        success: true,
+        syncedCount: 0,
+        lessons: []
+      };
+    }
     console.error('[Mux Analytics Sync] Job failed:', error);
     return {
       success: false,
@@ -100,6 +136,12 @@ async function syncMuxAnalytics() {
  */
 async function cleanupOldAnalytics(retentionDays = 90) {
   try {
+    // Check if table exists
+    const tableExists = await db.schema.hasTable('video_analytics');
+    if (!tableExists) {
+      return { success: true, deletedCount: 0 };
+    }
+
     console.log(`[Mux Analytics Cleanup] Removing analytics older than ${retentionDays} days...`);
 
     const cutoffDate = new Date();
@@ -116,6 +158,10 @@ async function cleanupOldAnalytics(retentionDays = 90) {
       deletedCount: deleted
     };
   } catch (error) {
+    // Silently fail if table/column doesn't exist
+    if (error.code === '42703' || error.code === '42P01' || error.message.includes('does not exist')) {
+      return { success: true, deletedCount: 0 };
+    }
     console.error('[Mux Analytics Cleanup] Cleanup failed:', error);
     return {
       success: false,

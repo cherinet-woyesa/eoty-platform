@@ -8,10 +8,10 @@ interface RoleRouteProps {
 }
 
 /**
- * StudentRoute - Accessible by students and all higher roles
+ * MemberRoute - Accessible by base members and all higher roles
  * 
- * Role hierarchy: student (1) <= teacher (2) <= admin (3)
- * This route is accessible by: student, teacher, admin
+ * Role hierarchy: user/student (1) <= teacher (2) <= admin (3)
+ * This route is accessible by: user, student (legacy), teacher, admin
  */
 export const StudentRoute: React.FC<RoleRouteProps> = ({
   children,
@@ -20,7 +20,7 @@ export const StudentRoute: React.FC<RoleRouteProps> = ({
 }) => {
   return (
     <ProtectedRoute
-      allowedRoles={['student', 'teacher', 'admin']}
+      allowedRoles={['user', 'student', 'teacher', 'admin']}
       requiredPermission={requiredPermission}
       redirectTo={redirectTo}
     >

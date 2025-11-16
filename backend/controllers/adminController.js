@@ -1,4 +1,5 @@
 const { ContentUpload, FlaggedContent, Analytics, AdminAudit, ContentTag } = require('../models/Admin');
+const adminToolsService = require('../services/adminToolsService');
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
@@ -358,12 +359,33 @@ const adminController = {
         });
       }
 
-      const uploads = await ContentUpload.findByStatus(
-        status || 'pending',
-        user.role === 'admin' ? user.chapter_id : chapter,
-        parseInt(page),
-        parseInt(limit)
-      );
+      // Check if content_uploads table exists
+      const tableExists = await db.schema.hasTable('content_uploads');
+      if (!tableExists) {
+        return res.json({
+          success: true,
+          data: { uploads: [], message: 'Content uploads table not yet initialized' }
+        });
+      }
+
+      // If no status filter, get all uploads; otherwise filter by status
+      let uploads;
+      if (!status || status === '') {
+        // Get all uploads regardless of status
+        uploads = await ContentUpload.findByStatus(
+          null, // null means get all
+          user.role === 'admin' ? user.chapter_id : chapter,
+          parseInt(page),
+          parseInt(limit)
+        );
+      } else {
+        uploads = await ContentUpload.findByStatus(
+          status,
+          user.role === 'admin' ? user.chapter_id : chapter,
+          parseInt(page),
+          parseInt(limit)
+        );
+      }
 
       res.json({
         success: true,
@@ -371,9 +393,19 @@ const adminController = {
       });
     } catch (error) {
       console.error('Get upload queue error:', error);
+      
+      // Handle specific database errors
+      if (error.code === '42P01') { // Table does not exist
+        return res.json({
+          success: true,
+          data: { uploads: [], message: 'Content uploads table not yet initialized' }
+        });
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch upload queue'
+        message: 'Failed to fetch upload queue',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },
@@ -391,15 +423,45 @@ const adminController = {
         });
       }
 
-      // Get chapter ID - handle both string (chapter name) and integer (chapter_id)
+      // Get chapter ID - handle both string (chapter name/slug) and integer (chapter_id)
       let resolvedChapterId;
       if (typeof chapterId === 'string' && !/^\d+$/.test(chapterId)) {
-        // Look up chapter by name
-        const chapterRecord = await db('chapters').where({ name: chapterId, is_active: true }).first();
+        // Look up chapter by name (case-insensitive) or slug
+        // Try exact match first
+        let chapterRecord = await db('chapters')
+          .where({ name: chapterId, is_active: true })
+          .first();
+        
+        // If not found, try case-insensitive match
+        if (!chapterRecord) {
+          chapterRecord = await db('chapters')
+            .whereRaw('LOWER(name) = LOWER(?)', [chapterId])
+            .where({ is_active: true })
+            .first();
+        }
+        
+        // If still not found, try matching by slug (e.g., "addis-ababa" -> "Addis Ababa Chapter")
+        if (!chapterRecord) {
+          const slugToNameMap = {
+            'addis-ababa': 'Addis Ababa Chapter',
+            'toronto': 'Toronto Chapter',
+            'washington': 'Washington DC Chapter',
+            'london': 'London Chapter',
+            'bahir-dar': 'Bahir Dar Chapter'
+          };
+          
+          const mappedName = slugToNameMap[chapterId.toLowerCase()];
+          if (mappedName) {
+            chapterRecord = await db('chapters')
+              .where({ name: mappedName, is_active: true })
+              .first();
+          }
+        }
+        
         if (!chapterRecord) {
           return res.status(400).json({
             success: false,
-            message: 'Invalid chapter specified'
+            message: `Invalid chapter specified: "${chapterId}". Please use a valid chapter name or ID.`
           });
         }
         resolvedChapterId = chapterRecord.id;
@@ -431,20 +493,69 @@ const adminController = {
         });
       }
 
+      // REQUIREMENT: Track upload time for <5 min requirement
+      const uploadStartTime = Date.now();
+
+      // Generate file path - use file.path if available (disk storage), otherwise generate a path
+      let filePath = file.path;
+      if (!filePath) {
+        // If using memory storage, we need to save the file first
+        const fs = require('fs');
+        const path = require('path');
+        const uploadsDir = path.join(__dirname, '../uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const name = path.basename(file.originalname, ext);
+        filePath = path.join(uploadsDir, `${name}-${uniqueSuffix}${ext}`);
+        fs.writeFileSync(filePath, file.buffer);
+      }
+
+      // Parse tags - handle both string and array formats
+      let parsedTags = [];
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            parsedTags = JSON.parse(tags);
+            // Ensure it's an array
+            if (!Array.isArray(parsedTags)) {
+              // If it's an object, convert to array of keys or values
+              if (typeof parsedTags === 'object') {
+                parsedTags = Object.keys(parsedTags);
+              } else {
+                parsedTags = [];
+              }
+            }
+          } catch (e) {
+            // If parsing fails, treat as single tag
+            parsedTags = [tags];
+          }
+        } else if (Array.isArray(tags)) {
+          parsedTags = tags;
+        }
+      }
+
+      // Check if user is admin - auto-approve admin uploads
+      const user = await db('users').where({ id: userId }).select('role').first();
+      const isAdmin = user && user.role === 'admin';
+      const initialStatus = isAdmin ? 'approved' : 'pending';
+
       // Create upload record
       const upload = await ContentUpload.create({
         title,
         description,
         file_name: file.originalname,
         file_type: fileType,
-        file_path: file.path,
-        file_size: file.size,
+        file_path: filePath,
+        file_size: file.size.toString(),
         mime_type: file.mimetype,
         uploaded_by: userId,
         chapter_id: resolvedChapterId,
-        tags: tags ? JSON.parse(tags) : [],
+        tags: parsedTags,
         category,
-        status: 'pending',
+        status: initialStatus,
         metadata: {
           processing: {
             started_at: new Date(),
@@ -452,6 +563,12 @@ const adminController = {
           }
         }
       });
+
+      // If admin upload, it's already approved (status set above)
+      // No need to call updateStatus again since we set it during creation
+
+      // REQUIREMENT: Track upload time
+      await adminToolsService.trackUploadTime(upload.id, uploadStartTime);
 
       // Increment quota
       await ContentUpload.incrementQuota(resolvedChapterId, fileType);
@@ -634,6 +751,10 @@ const adminController = {
       }
 
       await FlaggedContent.updateStatus(flagId, newStatus, userId, notes, actionTaken);
+
+      // REQUIREMENT: Track review time for 2-hour requirement
+      const reviewStartTime = flag.created_at ? new Date(flag.created_at).getTime() : Date.now();
+      await adminToolsService.trackReviewTime(flagId, reviewStartTime);
 
       // Log audit
       await AdminAudit.logAction(
@@ -1035,7 +1156,7 @@ const adminController = {
         });
       }
 
-      // Get statistics
+      // Get statistics from moderated_content
       const stats = await db('moderated_content')
         .select(
           db.raw("COUNT(*) FILTER (WHERE status = 'pending') as pending"),
@@ -1044,6 +1165,17 @@ const adminController = {
           db.raw("COUNT(*) FILTER (WHERE status = 'escalated') as escalated"),
           db.raw("COUNT(*) FILTER (WHERE faith_alignment_score >= 2) as high_faith_alignment"),
           db.raw("COUNT(*) FILTER (WHERE faith_alignment_score < 2) as low_faith_alignment")
+        )
+        .first();
+
+      // Get escalation statistics (REQUIREMENT: Moderator workflow)
+      const escalationStats = await db('moderation_escalations')
+        .select(
+          db.raw("COUNT(*) FILTER (WHERE status = 'pending') as pending_escalations"),
+          db.raw("COUNT(*) FILTER (WHERE status = 'resolved') as resolved_escalations"),
+          db.raw("COUNT(*) FILTER (WHERE priority = 'high') as high_priority"),
+          db.raw("COUNT(*) FILTER (WHERE priority = 'medium') as medium_priority"),
+          db.raw("COUNT(*) FILTER (WHERE priority = 'low') as low_priority")
         )
         .first();
 
@@ -1062,7 +1194,10 @@ const adminController = {
       res.json({
         success: true,
         data: {
-          stats,
+          stats: {
+            ...stats,
+            ...escalationStats
+          },
           recent_activity: recentActivity
         }
       });
@@ -1071,6 +1206,181 @@ const adminController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch moderation statistics'
+      });
+    }
+  },
+
+  // Get moderation escalations (REQUIREMENT: Moderator workflow)
+  async getModerationEscalations(req, res) {
+    try {
+      const { page = 1, limit = 20, priority, status = 'pending' } = req.query;
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      let query = db('moderation_escalations')
+        .leftJoin('users', 'moderation_escalations.user_id', 'users.id')
+        .select(
+          'moderation_escalations.*',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        )
+        .where('moderation_escalations.status', status);
+
+      if (priority) {
+        query = query.where('moderation_escalations.priority', priority);
+      }
+
+      const escalations = await query
+        .orderBy('moderation_escalations.priority', 'desc')
+        .orderBy('moderation_escalations.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset((parseInt(page) - 1) * parseInt(limit));
+
+      const totalCount = await db('moderation_escalations')
+        .where('status', status)
+        .modify((queryBuilder) => {
+          if (priority) {
+            queryBuilder.where('priority', priority);
+          }
+        })
+        .count('id as count')
+        .first();
+
+      res.json({
+        success: true,
+        data: {
+          escalations,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: parseInt(totalCount.count)
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get moderation escalations error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch moderation escalations'
+      });
+    }
+  },
+
+  // Resolve moderation escalation (REQUIREMENT: Moderator workflow)
+  async resolveEscalation(req, res) {
+    try {
+      const { escalationId } = req.params;
+      const { resolution, status = 'resolved', notes } = req.body;
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      const escalation = await db('moderation_escalations')
+        .where({ id: escalationId })
+        .first();
+
+      if (!escalation) {
+        return res.status(404).json({
+          success: false,
+          message: 'Escalation not found'
+        });
+      }
+
+      await db('moderation_escalations')
+        .where({ id: escalationId })
+        .update({
+          status: status,
+          resolution: resolution,
+          reviewed_by: userId,
+          review_notes: notes,
+          reviewed_at: new Date(),
+          updated_at: new Date()
+        });
+
+      // Mark notification as read
+      await db('moderator_notifications')
+        .where('data', 'like', `%"escalationId":${escalationId}%`)
+        .update({
+          status: 'read',
+          updated_at: new Date()
+        });
+
+      // Log audit
+      await AdminAudit.logAction(
+        userId,
+        'escalation_resolved',
+        'moderation_escalations',
+        escalationId,
+        `Resolved escalation: ${resolution}`,
+        { status: escalation.status },
+        { status: status, resolution: resolution }
+      );
+
+      res.json({
+        success: true,
+        message: 'Escalation resolved successfully'
+      });
+    } catch (error) {
+      console.error('Resolve escalation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to resolve escalation'
+      });
+    }
+  },
+
+  // Get moderator notifications (REQUIREMENT: Moderator workflow)
+  async getModeratorNotifications(req, res) {
+    try {
+      const { limit = 20, unreadOnly = false } = req.query;
+      const userId = req.user.userId;
+
+      // Check admin permissions
+      const user = await db('users').where({ id: userId }).select('role').first();
+      if (user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions'
+        });
+      }
+
+      let query = db('moderator_notifications')
+        .orderBy('created_at', 'desc')
+        .limit(parseInt(limit));
+
+      if (unreadOnly === 'true') {
+        query = query.where('status', 'unread');
+      }
+
+      const notifications = await query.select('*');
+
+      res.json({
+        success: true,
+        data: {
+          notifications
+        }
+      });
+    } catch (error) {
+      console.error('Get moderator notifications error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch notifications'
       });
     }
   },
@@ -1555,6 +1865,258 @@ const adminController = {
       res.status(500).json({
         success: false,
         message: 'Internal server error'
+      });
+    }
+  },
+
+  // FR5: Upload Management Enhancements
+
+  // Get upload preview (REQUIREMENT: Preview functionality)
+  async getUploadPreview(req, res) {
+    try {
+      const { uploadId } = req.params;
+      const preview = await adminToolsService.getUploadPreview(uploadId);
+      
+      res.json({
+        success: true,
+        data: { preview }
+      });
+    } catch (error) {
+      console.error('Get upload preview error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get upload preview'
+      });
+    }
+  },
+
+  // Retry failed upload (REQUIREMENT: Handles failed uploads with retry)
+  async retryUpload(req, res) {
+    try {
+      const { uploadId } = req.params;
+      const userId = req.user.userId;
+      
+      const upload = await adminToolsService.retryUpload(uploadId, userId);
+      
+      res.json({
+        success: true,
+        message: 'Upload queued for retry',
+        data: { upload }
+      });
+    } catch (error) {
+      console.error('Retry upload error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retry upload'
+      });
+    }
+  },
+
+  // FR5: Moderation Tools Enhancements
+
+  // Ban user (REQUIREMENT: Ban/unban users)
+  async banUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const { reason, duration } = req.body; // duration in seconds
+      const adminId = req.user.userId;
+      
+      const banData = await adminToolsService.banUser(userId, adminId, reason, duration);
+      
+      res.json({
+        success: true,
+        message: 'User banned successfully',
+        data: { ban: banData }
+      });
+    } catch (error) {
+      console.error('Ban user error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to ban user'
+      });
+    }
+  },
+
+  // Unban user (REQUIREMENT: Ban/unban users)
+  async unbanUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const adminId = req.user.userId;
+      
+      await adminToolsService.unbanUser(userId, adminId);
+      
+      res.json({
+        success: true,
+        message: 'User unbanned successfully'
+      });
+    } catch (error) {
+      console.error('Unban user error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to unban user'
+      });
+    }
+  },
+
+  // Ban post (REQUIREMENT: Ban/unban posts)
+  async banPost(req, res) {
+    try {
+      const { postId } = req.params;
+      const { reason } = req.body;
+      const adminId = req.user.userId;
+      
+      await adminToolsService.banPost(postId, adminId, reason);
+      
+      res.json({
+        success: true,
+        message: 'Post banned successfully'
+      });
+    } catch (error) {
+      console.error('Ban post error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to ban post'
+      });
+    }
+  },
+
+  // Unban post (REQUIREMENT: Ban/unban posts)
+  async unbanPost(req, res) {
+    try {
+      const { postId } = req.params;
+      const adminId = req.user.userId;
+      
+      await adminToolsService.unbanPost(postId, adminId);
+      
+      res.json({
+        success: true,
+        message: 'Post unbanned successfully'
+      });
+    } catch (error) {
+      console.error('Unban post error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to unban post'
+      });
+    }
+  },
+
+  // Edit content (REQUIREMENT: Edit content)
+  async editContent(req, res) {
+    try {
+      const { contentType, contentId } = req.params;
+      const updates = req.body;
+      const adminId = req.user.userId;
+      
+      const updatedContent = await adminToolsService.editContent(contentType, contentId, updates, adminId);
+      
+      res.json({
+        success: true,
+        message: 'Content edited successfully',
+        data: { content: updatedContent }
+      });
+    } catch (error) {
+      console.error('Edit content error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to edit content'
+      });
+    }
+  },
+
+  // FR5: Analytics Enhancements
+
+  // Get retention metrics (REQUIREMENT: Retention metrics)
+  async getRetentionMetrics(req, res) {
+    try {
+      const { timeframe = '30days' } = req.query;
+      
+      const metrics = await adminToolsService.getRetentionMetrics(timeframe);
+      
+      res.json({
+        success: true,
+        data: { metrics }
+      });
+    } catch (error) {
+      console.error('Get retention metrics error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch retention metrics'
+      });
+    }
+  },
+
+  // Verify dashboard accuracy (REQUIREMENT: 99% dashboard accuracy)
+  async verifyDashboardAccuracy(req, res) {
+    try {
+      const { snapshotId } = req.params;
+      
+      const accuracy = await adminToolsService.verifyDashboardAccuracy(snapshotId);
+      
+      res.json({
+        success: true,
+        data: {
+          accuracy,
+          meetsRequirement: accuracy >= 0.99
+        }
+      });
+    } catch (error) {
+      console.error('Verify dashboard accuracy error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to verify dashboard accuracy'
+      });
+    }
+  },
+
+  // Export usage data (REQUIREMENT: Full export of usage data for annual review)
+  async exportUsageData(req, res) {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Start date and end date are required'
+        });
+      }
+      
+      const data = await adminToolsService.exportUsageData(
+        new Date(startDate),
+        new Date(endDate)
+      );
+      
+      res.json({
+        success: true,
+        data: { export: data }
+      });
+    } catch (error) {
+      console.error('Export usage data error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export usage data'
+      });
+    }
+  },
+
+  // FR5: Audit & Anomaly Detection
+
+  // Get anomalies (REQUIREMENT: Warns admins on audit or moderation anomalies)
+  async getAnomalies(req, res) {
+    try {
+      const { severity, limit = 50 } = req.query;
+      
+      const anomalies = await adminToolsService.getAnomalies(severity, parseInt(limit));
+      
+      res.json({
+        success: true,
+        data: { anomalies }
+      });
+    } catch (error) {
+      console.error('Get anomalies error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch anomalies'
       });
     }
   }

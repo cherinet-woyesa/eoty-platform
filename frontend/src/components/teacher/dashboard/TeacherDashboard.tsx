@@ -238,7 +238,7 @@ const TeacherDashboard: React.FC = () => {
           </p>
           <Link 
             to="/login"
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
           >
             Go to Login
           </Link>
@@ -271,7 +271,7 @@ const TeacherDashboard: React.FC = () => {
             </p>
             <button 
               onClick={handleRetry}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
@@ -286,7 +286,7 @@ const TeacherDashboard: React.FC = () => {
     <ErrorBoundary>
       <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
@@ -294,8 +294,8 @@ const TeacherDashboard: React.FC = () => {
                   Welcome back, {user?.firstName}!
                 </h1>
                 {isConnected && (
-                  <div className="flex items-center space-x-2 bg-[#39FF14]/20 px-2 py-1 rounded-full border border-[#39FF14]/50">
-                    <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+                  <div className="flex items-center space-x-2 bg-[#27AE60]/15 px-2 py-1 rounded-full border border-[#27AE60]/40">
+                    <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
                     <span className="text-xs font-medium text-stone-700">Live</span>
                   </div>
                 )}
@@ -304,22 +304,22 @@ const TeacherDashboard: React.FC = () => {
                 {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
               <p className="text-stone-700 text-sm mt-2">
-                <span className="font-semibold text-[#39FF14]">{teacherData.totalStudentsEnrolled}</span> students enrolled in{' '}
-                <span className="font-semibold text-[#00FFC6]">{teacherData.totalCourses}</span> courses
+                <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> students enrolled in{' '}
+                <span className="font-semibold text-[#16A085]">{teacherData.totalCourses}</span> courses
               </p>
             </div>
             <div className="mt-4 lg:mt-0 lg:ml-6">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
                   to="/teacher/record"
-                  className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Video className="h-4 w-4 mr-2" />
                   Record Video
                 </Link>
                 <Link
                   to="/teacher/courses/new"
-                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#39FF14]/50 text-stone-700 hover:text-[#39FF14] text-sm font-semibold rounded-lg transition-all duration-200"
+                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Course
@@ -329,31 +329,63 @@ const TeacherDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Teacher profile completion helper */}
+        {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (
+          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-stone-800">
+                  Complete your teacher profile
+                </h3>
+                <p className="text-xs text-stone-600 mt-1">
+                  Your profile is {user.profileCompletion.percentage}% complete. Add more details to build trust with students.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-32 sm:w-40">
+                  <div className="w-full bg-stone-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(user.profileCompletion.percentage || 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <Link
+                  to="/teacher/profile"
+                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  Update Profile
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Simplified Teacher Metrics */}
         <TeacherMetrics stats={teacherData} />
 
         {/* Quick Actions */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-6">
           <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-gradient-to-b from-[#39FF14] to-[#00FFC6] rounded-full"></span>
+            <span className="w-1 h-6 bg-gradient-to-b from-[#27AE60] to-[#16A085] rounded-full"></span>
             Quick Actions
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/teacher/courses"
-              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#39FF14]/10 to-[#00FFC6]/10 hover:from-[#39FF14]/20 hover:to-[#00FFC6]/20 rounded-xl border border-[#39FF14]/30 hover:border-[#39FF14]/50 transition-all group"
+              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 hover:from-[#27AE60]/15 hover:to-[#16A085]/15 rounded-xl border border-[#27AE60]/25 hover:border-[#27AE60]/40 transition-all group"
             >
-              <div className="p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg mb-3 group-hover:scale-110 transition-transform">
-                <BookOpen className="h-8 w-8 text-[#39FF14]" />
+              <div className="p-3 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg mb-3 group-hover:scale-110 transition-transform">
+                <BookOpen className="h-8 w-8 text-[#27AE60]" />
               </div>
               <span className="font-semibold text-stone-800">Manage Courses</span>
             </Link>
             <Link
               to="/teacher/students"
-              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#00FFC6]/10 to-[#00FFFF]/10 hover:from-[#00FFC6]/20 hover:to-[#00FFFF]/20 rounded-xl border border-[#00FFC6]/30 hover:border-[#00FFC6]/50 transition-all group"
+              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#16A085]/8 to-[#2980B9]/8 hover:from-[#16A085]/15 hover:to-[#2980B9]/15 rounded-xl border border-[#16A085]/25 hover:border-[#16A085]/40 transition-all group"
             >
-              <div className="p-3 bg-gradient-to-br from-[#00FFC6]/20 to-[#00FFFF]/20 rounded-lg mb-3 group-hover:scale-110 transition-transform">
-                <Users className="h-8 w-8 text-[#00FFC6]" />
+              <div className="p-3 bg-gradient-to-br from-[#16A085]/15 to-[#2980B9]/15 rounded-lg mb-3 group-hover:scale-110 transition-transform">
+                <Users className="h-8 w-8 text-[#16A085]" />
               </div>
               <span className="font-semibold text-stone-800">View Students</span>
             </Link>

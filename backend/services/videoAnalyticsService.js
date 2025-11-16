@@ -73,6 +73,22 @@ class VideoAnalyticsService {
    */
   async getPlatformAnalytics(lessonId, options = {}) {
     try {
+      // Check if video_analytics table exists
+      const hasVideoAnalyticsTable = await db.schema.hasTable('video_analytics');
+      if (!hasVideoAnalyticsTable) {
+        console.log('Video analytics table does not exist, returning empty analytics');
+        return {
+          total_views: 0,
+          unique_viewers: 0,
+          total_watch_time: 0,
+          avg_watch_time: 0,
+          avg_completion_rate: 0,
+          completed_views: 0,
+          total_rebuffers: 0,
+          avg_rebuffer_duration: 0
+        };
+      }
+
       const { timeframe = '7:days', startDate = null, endDate = null } = options;
 
       let dateFilter = db('video_analytics').where({ lesson_id: lessonId });

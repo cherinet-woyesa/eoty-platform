@@ -188,7 +188,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       description: {
         rules: [
           validationRules.required(t('courses.errors.description_required')),
-          validationRules.minLength(50, t('courses.errors.description_too_short')),
+          validationRules.minLength(5, t('courses.errors.description_too_short')),
           validationRules.maxLength(2000, t('courses.errors.description_too_long')),
         ],
       },
@@ -464,7 +464,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Spinner size="lg" />
-          <p className="mt-4 text-gray-600 text-lg">{t('common.loading_course')}</p>
+          <p className="mt-4 text-gray-600 text-lg">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -501,113 +501,112 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-700 px-8 py-6 text-white">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-3">
-              <button
-                onClick={() => navigate('/teacher/courses')}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                title={t('common.back_to_courses')}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <div>
-                <h2 className="text-2xl font-bold mb-1 flex items-center">
-                  <BookOpen className="h-6 w-6 mr-2" />
-                  {course?.title || t('courses.editor.edit_course')}
-                </h2>
-                <p className="text-blue-100 opacity-90 text-sm">
-                  {t('courses.editor.update_course_details')}
-                </p>
-              </div>
-            </div>
-
-            {/* Course Stats */}
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-1">
-                <Users className="h-4 w-4" />
-                <span>{courseStats.totalStudents} {t('common.students')}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Target className="h-4 w-4" />
-                <span>{courseStats.completionRate}% {t('common.completion')}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Zap className="h-4 w-4" />
-                <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <BookOpen className="h-4 w-4" />
-                <span>{courseStats.totalLessons} {t('common.lessons')}</span>
-              </div>
+      <div className="bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#2980B9]/10 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-[#27AE60]/20">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <button
+              onClick={() => navigate('/teacher/courses')}
+              className="p-2 bg-white/80 hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 rounded-lg transition-colors"
+              title={t('common.back_to_courses')}
+            >
+              <ArrowLeft className="h-5 w-5 text-stone-700" />
+            </button>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center text-stone-800">
+                <BookOpen className="h-5 w-5 mr-2 text-[#27AE60]" />
+                {course?.title || t('courses.editor.edit_course')}
+              </h2>
+              <p className="text-sm text-stone-600">
+                {t('courses.editor.update_course_details')}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            {/* Status and Save Indicator */}
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Course Stats */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-stone-700">
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4 text-[#27AE60]" />
+                <span>{courseStats.totalStudents} {t('common.students')}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Target className="h-4 w-4 text-[#16A085]" />
+                <span>{courseStats.completionRate}% {t('common.completion')}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Zap className="h-4 w-4 text-[#2980B9]" />
+                <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4 text-emerald-700" />
+                <span>{courseStats.totalLessons} {t('common.lessons')}</span>
+              </div>
+            </div>
+
+            {/* Status and Actions */}
+            <div className="flex items-center gap-2">
+              {/* Course Status */}
+              <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                course?.status === 'published' 
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                  : 'bg-amber-100 text-amber-800 border border-amber-200'
+              }`}>
+                {course?.status === 'published' ? t('common.published') : t('common.draft')}
+              </div>
+
+              {/* Save Indicator */}
               {isDirty && (
-                <div className="flex items-center text-sm bg-white/10 px-3 py-1.5 rounded-lg">
+                <div className="hidden sm:flex items-center text-xs bg-white/80 px-3 py-1.5 rounded-lg border border-stone-200">
                   {isAutoSaving ? (
                     <>
-                      <Loader className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader className="h-3.5 w-3.5 mr-1 animate-spin text-[#27AE60]" />
                       {t('common.saving')}...
                     </>
                   ) : lastSaved ? (
                     <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
+                      <CheckCircle className="h-3.5 w-3.5 mr-1 text-[#27AE60]" />
                       {t('common.saved')} {lastSaved.toLocaleTimeString()}
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="h-4 w-4 mr-2" />
+                      <AlertCircle className="h-3.5 w-3.5 mr-1 text-amber-500" />
                       {t('common.unsaved_changes')}
                     </>
                   )}
                 </div>
               )}
 
-              {/* Course Status */}
-              <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-                course?.status === 'published' 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-yellow-500 text-white'
-              }`}>
-                {course?.status === 'published' ? t('common.published') : t('common.draft')}
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate(`/teacher/courses/${courseId}`)}
+                  className="inline-flex items-center px-3 py-1.5 border border-stone-200 text-xs font-medium rounded-lg text-stone-700 bg-white hover:border-[#27AE60]/60 hover:text-[#27AE60] transition-colors"
+                >
+                  <Eye className="mr-1.5 h-3.5 w-3.5" />
+                  {t('common.view')}
+                </button>
+                
+                {course?.status === 'draft' && (
+                  <button
+                    onClick={handlePublish}
+                    disabled={publishMutation.isPending}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-[#27AE60] hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                  >
+                    <Globe className="mr-1.5 h-3.5 w-3.5" />
+                    {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
+                  </button>
+                )}
+
+                {onCancel && (
+                  <button
+                    onClick={onCancel}
+                    className="inline-flex items-center px-3 py-1.5 border border-stone-200 text-xs font-medium rounded-lg text-stone-700 bg-white hover:border-rose-300 hover:text-rose-600 transition-colors"
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    {t('common.cancel')}
+                  </button>
+                )}
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigate(`/teacher/courses/${courseId}`)}
-                className="inline-flex items-center px-3 py-1.5 border border-white/30 text-xs font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all"
-              >
-                <Eye className="mr-1.5 h-3.5 w-3.5" />
-                {t('common.view')}
-              </button>
-              
-              {course?.status === 'draft' && (
-                <button
-                  onClick={handlePublish}
-                  disabled={publishMutation.isPending}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-all"
-                >
-                  <Globe className="mr-1.5 h-3.5 w-3.5" />
-                  {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
-                </button>
-              )}
-
-              {onCancel && (
-                <button
-                  onClick={onCancel}
-                  className="inline-flex items-center px-3 py-1.5 border border-white/30 text-xs font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all"
-                >
-                  <X className="mr-1.5 h-3.5 w-3.5" />
-                  {t('common.cancel')}
-                </button>
-              )}
             </div>
           </div>
         </div>

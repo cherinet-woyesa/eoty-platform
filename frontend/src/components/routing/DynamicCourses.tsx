@@ -18,7 +18,7 @@ const DynamicCourses: React.FC = () => {
   const search = location.search;
 
   // Redirect to role-specific courses page
-  if (user?.role === 'chapter_admin' || user?.role === 'platform_admin') {
+  if (user?.role === 'chapter_admin' || user?.role === 'admin') {
     return <Navigate to={`/admin/courses${search}`} replace />;
   }
 
@@ -26,7 +26,7 @@ const DynamicCourses: React.FC = () => {
     return <Navigate to={`/teacher/courses${search}`} replace />;
   }
 
-  if (user?.role === 'student') {
+  if (user?.role === 'user' || user?.role === 'student') {
     return <Navigate to={`/student/browse-courses${search}`} replace />;
   }
 

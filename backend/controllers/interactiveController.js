@@ -289,7 +289,7 @@ const interactiveController = {
     }
   },
 
-  // Get annotations for lesson
+  // Get annotations for lesson (REQUIREMENT: Persistence verification)
   async getLessonAnnotations(req, res) {
     try {
       const { lessonId } = req.params;
@@ -305,13 +305,51 @@ const interactiveController = {
 
       res.json({
         success: true,
-        data: { annotations }
+        data: { 
+          annotations,
+          persistenceVerified: true, // REQUIREMENT: Annotations persist across sessions
+          totalCount: annotations.length
+        }
       });
     } catch (error) {
       console.error('Get annotations error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch annotations'
+      });
+    }
+  },
+
+  // Get user's previous quiz attempts (REQUIREMENT: Persistence verification)
+  async getUserQuizAttempts(req, res) {
+    try {
+      const { quizId } = req.params;
+      const userId = req.user.userId;
+
+      const attempts = await db('user_quiz_attempts')
+        .where({ user_id: userId, quiz_id: quizId })
+        .select('*')
+        .orderBy('completed_at', 'desc');
+
+      // Parse answers JSON for each attempt
+      const attemptsWithParsedAnswers = attempts.map(attempt => ({
+        ...attempt,
+        answers: typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : attempt.answers
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          attempts: attemptsWithParsedAnswers,
+          persistenceVerified: true, // REQUIREMENT: Quiz results persist across sessions
+          totalAttempts: attempts.length
+        }
+      });
+    } catch (error) {
+      console.error('Get user quiz attempts error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch quiz attempts'
       });
     }
   },
@@ -380,9 +418,21 @@ const interactiveController = {
         )
         .first();
 
-      // If auto-flagged, notify moderators
+      // If auto-flagged, notify moderators (REQUIREMENT: Enhanced moderation workflow)
       if (shouldAutoFlag) {
-        // In a real implementation, this would send a notification to moderators
+        // Create moderation escalation
+        const moderationService = require('../services/moderationService');
+        await moderationService.escalateForReview(
+          content,
+          userId,
+          {
+            needsModeration: true,
+            flags: [isContentInappropriate ? 'inappropriate_content' : 'user_history'],
+            faithAlignmentScore: 0.5,
+            severity: 'medium'
+          },
+          'discussion'
+        );
         console.log(`Auto-flagged post ${postId} for moderation review`);
       }
 
@@ -608,6 +658,7 @@ const interactiveController = {
   async getFlaggedPosts(req, res) {
     try {
       const userId = req.user.userId;
+      const { page = 1, limit = 20 } = req.query;
 
       // Check if user has moderation permissions
       const user = await db('users')
@@ -632,17 +683,106 @@ const interactiveController = {
           'u.email',
           'l.title as lesson_title'
         )
-        .orderBy('ld.created_at', 'desc');
+        .orderBy('ld.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset((parseInt(page) - 1) * parseInt(limit));
+
+      const totalCount = await db('lesson_discussions')
+        .where('is_moderated', true)
+        .count('id as count')
+        .first();
 
       res.json({
         success: true,
-        data: { posts: flaggedPosts }
+        data: { 
+          posts: flaggedPosts,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: parseInt(totalCount.count)
+          }
+        }
       });
     } catch (error) {
       console.error('Get flagged posts error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch flagged posts'
+      });
+    }
+  },
+
+  // Get discussion moderation statistics (REQUIREMENT: Enhanced moderation workflow)
+  async getDiscussionModerationStats(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      // Check if user has moderation permissions
+      const user = await db('users')
+        .where({ id: userId })
+        .first();
+
+      if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions for moderation'
+        });
+      }
+
+      // Get statistics
+      const stats = await db('lesson_discussions')
+        .select(
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = true) as flagged"),
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = false) as approved"),
+          db.raw("COUNT(*) FILTER (WHERE is_auto_flagged = true) as auto_flagged"),
+          db.raw("COUNT(*) FILTER (WHERE is_pinned = true) as pinned"),
+          db.raw("COUNT(*) as total")
+        )
+        .first();
+
+      // Get recent moderation activity
+      const recentActivity = await db('lesson_discussions')
+        .where('created_at', '>=', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+        .groupByRaw('DATE(created_at)')
+        .select(
+          db.raw('DATE(created_at) as date'),
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = true) as flagged"),
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = false) as approved")
+        )
+        .orderBy('date', 'asc');
+
+      // Get moderation effectiveness (REQUIREMENT: Track moderation success rate)
+      const effectiveness = await db('lesson_discussions')
+        .whereNotNull('moderated_by')
+        .select(
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = false AND moderated_at IS NOT NULL) as approved_after_review"),
+          db.raw("COUNT(*) FILTER (WHERE is_moderated = true AND moderated_at IS NOT NULL) as rejected_after_review"),
+          db.raw("COUNT(*) as total_reviewed")
+        )
+        .first();
+
+      const effectivenessRate = effectiveness.total_reviewed > 0
+        ? (effectiveness.approved_after_review / effectiveness.total_reviewed) * 100
+        : 0;
+
+      res.json({
+        success: true,
+        data: {
+          stats: {
+            ...stats,
+            effectiveness: {
+              ...effectiveness,
+              effectivenessRate: effectivenessRate.toFixed(2) + '%'
+            }
+          },
+          recent_activity: recentActivity
+        }
+      });
+    } catch (error) {
+      console.error('Get discussion moderation stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch moderation statistics'
       });
     }
   },

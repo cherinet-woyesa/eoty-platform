@@ -180,11 +180,13 @@ const StudyGroupsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading study groups...</p>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
+              <p className="text-stone-600 text-lg">Loading study groups...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -193,17 +195,19 @@ const StudyGroupsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
-              onClick={loadStudyGroups}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
-            >
-              Try Again
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <button 
+                onClick={loadStudyGroups}
+                className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -211,7 +215,8 @@ const StudyGroupsPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -220,7 +225,7 @@ const StudyGroupsPage: React.FC = () => {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg shadow-md hover:shadow-lg transition-all font-semibold flex items-center gap-2"
         >
           <Plus className="h-5 w-5" />
           Create Group
@@ -235,7 +240,7 @@ const StudyGroupsPage: React.FC = () => {
           placeholder="Search study groups..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
         />
       </div>
 
@@ -249,7 +254,7 @@ const StudyGroupsPage: React.FC = () => {
             <p className="text-stone-600 mb-4">Create or join a study group to start collaborating</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
             >
               Create Your First Group
             </button>
@@ -287,7 +292,7 @@ const StudyGroupsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate(`/forums?group=${group.id}`)}
-                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Open Chat
@@ -337,7 +342,7 @@ const StudyGroupsPage: React.FC = () => {
                 <button
                   onClick={() => handleJoinGroup(group)}
                   disabled={group.member_count >= group.max_members}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UserPlus className="h-4 w-4" />
                   {group.member_count >= group.max_members ? 'Full' : 'Join Group'}
@@ -372,7 +377,7 @@ const StudyGroupsPage: React.FC = () => {
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   placeholder="Enter group name..."
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
                 />
               </div>
               
@@ -385,7 +390,7 @@ const StudyGroupsPage: React.FC = () => {
                   onChange={(e) => setNewGroupDescription(e.target.value)}
                   placeholder="Describe your study group..."
                   rows={3}
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
                 />
               </div>
               
@@ -399,7 +404,7 @@ const StudyGroupsPage: React.FC = () => {
                 <button
                   onClick={handleCreateGroup}
                   disabled={!newGroupName.trim()}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Group
                 </button>
@@ -408,6 +413,7 @@ const StudyGroupsPage: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

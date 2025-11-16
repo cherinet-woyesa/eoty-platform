@@ -34,6 +34,25 @@ const relatedVideosController = {
         });
       }
 
+      // Check if thumbnail_url column exists
+      const hasThumbnailUrl = await db.schema.hasColumn('lessons', 'thumbnail_url');
+      
+      // Build select fields
+      const baseSelectFields = [
+        'lessons.id',
+        'lessons.title',
+        'lessons.description',
+        'lessons.duration',
+        'lessons.order',
+        'lessons.mux_playback_id',
+        'lessons.video_provider',
+        'lessons.created_at'
+      ];
+      
+      if (hasThumbnailUrl) {
+        baseSelectFields.push('lessons.thumbnail_url');
+      }
+
       // Get related videos from the same course (excluding current lesson)
       const sameCourseVideos = await db('lessons')
         .where({ course_id: currentLesson.course_id })
@@ -41,21 +60,28 @@ const relatedVideosController = {
         .where('is_published', true)
         .whereNotNull('mux_playback_id')
         .where('mux_status', 'ready')
-        .select(
-          'lessons.id',
-          'lessons.title',
-          'lessons.description',
-          'lessons.duration',
-          'lessons.order',
-          'lessons.thumbnail_url',
-          'lessons.mux_playback_id',
-          'lessons.video_provider',
-          'lessons.created_at'
-        )
+        .select(...baseSelectFields)
         .orderBy('order', 'asc')
         .limit(parseInt(limit));
 
       // Get related videos from similar courses (same category or teacher)
+      const similarSelectFields = [
+        'l.id',
+        'l.title',
+        'l.description',
+        'l.duration',
+        'l.order',
+        'l.mux_playback_id',
+        'l.video_provider',
+        'l.created_at',
+        'c.id as course_id',
+        'c.title as course_title'
+      ];
+      
+      if (hasThumbnailUrl) {
+        similarSelectFields.push('l.thumbnail_url');
+      }
+      
       const similarCourseVideos = await db('lessons as l')
         .join('courses as c', 'l.course_id', 'c.id')
         .where('l.id', '!=', parseInt(lessonId))
@@ -66,19 +92,7 @@ const relatedVideosController = {
           this.where('c.category', course.category)
             .orWhere('c.created_by', course.created_by);
         })
-        .select(
-          'l.id',
-          'l.title',
-          'l.description',
-          'l.duration',
-          'l.order',
-          'l.thumbnail_url',
-          'l.mux_playback_id',
-          'l.video_provider',
-          'l.created_at',
-          'c.id as course_id',
-          'c.title as course_title'
-        )
+        .select(...similarSelectFields)
         .orderBy('l.created_at', 'desc')
         .limit(parseInt(limit));
 

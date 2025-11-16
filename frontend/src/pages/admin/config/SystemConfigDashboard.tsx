@@ -33,7 +33,7 @@ export const SystemConfigDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           <CardSkeleton />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
             <CardSkeleton />
@@ -61,17 +61,16 @@ export const SystemConfigDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <Settings className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
+                    <Settings className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">System Configuration</h1>
@@ -80,7 +79,7 @@ export const SystemConfigDashboard = () => {
                 Manage course categories, levels, durations, tags, and chapters
               </p>
             </div>
-            <Activity className="h-16 w-16 text-[#39FF14]/20" />
+            <Activity className="h-16 w-16 text-[#27AE60]/20" />
           </div>
         </div>
 
@@ -124,12 +123,11 @@ export const SystemConfigDashboard = () => {
         </div>
 
         {/* Info Message */}
-        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4 backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/25 rounded-lg p-4 backdrop-blur-sm">
           <p className="text-sm text-stone-700 font-medium">
             Click on any card above to manage that configuration type. Changes are tracked in the audit log.
           </p>
         </div>
-      </div>
     </div>
   );
 };
@@ -156,11 +154,11 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, icon, metrics, link, col
   const activePercentage = metrics.total > 0 ? (metrics.active / metrics.total) * 100 : 0;
 
   const neonColorClasses = {
-    blue: { gradient: 'from-[#00FFFF] to-[#00FFC6]', text: 'text-[#00FFFF]', bg: 'bg-[#00FFFF]/10', border: 'border-[#00FFFF]/30' },
-    green: { gradient: 'from-[#39FF14] to-[#00FFC6]', text: 'text-[#39FF14]', bg: 'bg-[#39FF14]/10', border: 'border-[#39FF14]/30' },
-    purple: { gradient: 'from-[#00FFC6] to-[#00FFFF]', text: 'text-[#00FFC6]', bg: 'bg-[#00FFC6]/10', border: 'border-[#00FFC6]/30' },
-    orange: { gradient: 'from-[#FFD700] to-[#39FF14]', text: 'text-[#FFD700]', bg: 'bg-[#FFD700]/10', border: 'border-[#FFD700]/30' },
-    pink: { gradient: 'from-[#00FFFF] to-[#39FF14]', text: 'text-[#00FFFF]', bg: 'bg-[#00FFFF]/10', border: 'border-[#00FFFF]/30' },
+    blue: { gradient: 'from-[#2980B9] to-[#16A085]', text: 'text-[#2980B9]', bg: 'bg-[#2980B9]/10', border: 'border-[#2980B9]/25' },
+    green: { gradient: 'from-[#27AE60] to-[#16A085]', text: 'text-[#27AE60]', bg: 'bg-[#27AE60]/10', border: 'border-[#27AE60]/25' },
+    purple: { gradient: 'from-[#16A085] to-[#2980B9]', text: 'text-[#16A085]', bg: 'bg-[#16A085]/10', border: 'border-[#16A085]/25' },
+    orange: { gradient: 'from-[#F39C12] to-[#27AE60]', text: 'text-[#F39C12]', bg: 'bg-[#F39C12]/10', border: 'border-[#F39C12]/25' },
+    pink: { gradient: 'from-[#2980B9] to-[#27AE60]', text: 'text-[#2980B9]', bg: 'bg-[#2980B9]/10', border: 'border-[#2980B9]/25' },
   };
 
   const neonColors = neonColorClasses[color];

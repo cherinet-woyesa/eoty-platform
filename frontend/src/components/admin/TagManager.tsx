@@ -248,23 +248,22 @@ const TagManager: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="w-8 h-8 border-t-2 border-[#39FF14] border-solid rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-t-2 border-[#27AE60] border-solid rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                    <TagIcon className="h-6 w-6 text-[#39FF14]" />
+                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
+                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
+                    <TagIcon className="h-6 w-6 text-[#27AE60]" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">Content Tags</h1>
@@ -290,7 +289,7 @@ const TagManager: React.FC = () => {
               
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] hover:from-[#39FF14]/90 hover:to-[#00FFC6]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Tag
@@ -316,7 +315,7 @@ const TagManager: React.FC = () => {
                   placeholder="Search tags..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
                 />
               </div>
             </div>
@@ -326,7 +325,7 @@ const TagManager: React.FC = () => {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14]/50 focus:border-[#39FF14]/50 bg-white/90 backdrop-blur-sm"
+                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
               >
             <option value="all">All Categories</option>
             <option value="uncategorized">Uncategorized</option>
@@ -339,9 +338,9 @@ const TagManager: React.FC = () => {
         </div>
 
       {showCreateForm && (
-        <form onSubmit={handleCreateTag} className="bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 p-6 rounded-xl mb-6 border border-[#39FF14]/30 backdrop-blur-sm">
+        <form onSubmit={handleCreateTag} className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 p-6 rounded-xl mb-6 border border-[#27AE60]/25 backdrop-blur-sm">
           <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center">
-            <Plus className="h-5 w-5 mr-2 text-[#39FF14]" />
+            <Plus className="h-5 w-5 mr-2 text-[#27AE60]" />
             Create New Tag
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -628,8 +627,7 @@ const TagManager: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-      </div>
+        </div>
     </div>
   );
 };

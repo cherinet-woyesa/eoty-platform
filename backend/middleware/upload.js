@@ -1,5 +1,6 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 // Security: Enhanced file type validation
 const ALLOWED_VIDEO_TYPES = [
@@ -15,6 +16,29 @@ const ALLOWED_SUBTITLE_TYPES = [
   'text/plain',
   'text/vtt',
   'application/x-subrip'
+];
+
+// FR5: Content upload - allow images, documents, and other content types
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml'
+];
+
+const ALLOWED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+  'text/plain',
+  'text/csv',
+  'application/rtf'
 ];
 
 // Enhanced file filter with better error messages
@@ -34,12 +58,33 @@ const createFileFilter = (allowedTypes, fileType) => {
   };
 };
 
-// Configure storage with enhanced security
-const storage = multer.memoryStorage();
+// Configure storage - use disk storage for content uploads
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-// Create upload middleware
+// Disk storage for content uploads
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename: timestamp-originalname
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Memory storage for videos/subtitles (original behavior)
+const memoryStorage = multer.memoryStorage();
+
+// Create upload middleware for videos/subtitles only (original behavior)
 const upload = multer({
-  storage: storage,
+  storage: memoryStorage,
   fileFilter: (req, file, cb) => {
     // Check if file is video
     if (file.mimetype.startsWith('video/')) {
@@ -57,4 +102,48 @@ const upload = multer({
   },
 });
 
+// FR5: Content upload middleware - allows videos, images, documents
+const contentUpload = multer({
+  storage: diskStorage,
+  fileFilter: (req, file, cb) => {
+    const baseMimeType = file.mimetype.split(';')[0];
+    
+    // Allow videos
+    if (file.mimetype.startsWith('video/')) {
+      if (ALLOWED_VIDEO_TYPES.includes(baseMimeType)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Invalid video format. Supported: ${ALLOWED_VIDEO_TYPES.map(t => t.split('/')[1]).join(', ')}`), false);
+      }
+    }
+    // Allow images
+    else if (file.mimetype.startsWith('image/')) {
+      if (ALLOWED_IMAGE_TYPES.includes(baseMimeType)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Invalid image format. Supported: ${ALLOWED_IMAGE_TYPES.map(t => t.split('/')[1]).join(', ')}`), false);
+      }
+    }
+    // Allow documents
+    else if (ALLOWED_DOCUMENT_TYPES.includes(baseMimeType)) {
+      cb(null, true);
+    }
+    // Allow subtitles
+    else if (file.mimetype.startsWith('text/') || file.mimetype === 'application/x-subrip') {
+      if (ALLOWED_SUBTITLE_TYPES.includes(baseMimeType)) {
+        cb(null, true);
+      } else {
+        cb(null, true); // Allow other text files
+      }
+    }
+    else {
+      cb(new Error(`File type not allowed. Allowed types: videos, images, documents (PDF, Word, Excel, PowerPoint), and text files.`), false);
+    }
+  },
+  limits: {
+    fileSize: 2 * 1024 * 1024 * 1024, // 2GB limit
+  },
+});
+
 module.exports = upload;
+module.exports.contentUpload = contentUpload;

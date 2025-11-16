@@ -58,6 +58,14 @@ export const forumsApi = {
   lockTopic: async (topicId: number): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/forums/topics/${topicId}/lock`);
     return response.data;
+  },
+
+  // Search forum posts (REQUIREMENT: Forum posts indexed for search)
+  searchForumPosts: async (query: string, chapterId?: number): Promise<{ success: boolean; data: { results: ForumPost[]; query: string; count: number } }> => {
+    const params = new URLSearchParams({ query });
+    if (chapterId) params.append('chapterId', chapterId.toString());
+    const response = await apiClient.get(`/forums/search?${params.toString()}`);
+    return response.data;
   }
 };
 
@@ -101,6 +109,15 @@ export const achievementsApi = {
   // Mark badge notification as read
   markNotificationAsRead: async (notificationId: number): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/achievements/notifications/${notificationId}/read`);
+    return response.data;
+  }
+};
+
+// Social features API (REQUIREMENT: FR4)
+export const socialFeaturesApi = {
+  // Get forum uptime status (REQUIREMENT: 100% uptime for forum access)
+  getForumUptimeStatus: async (): Promise<{ success: boolean; data: { isHealthy: boolean; activeForums: number; recentPosts: number; uptime: number; lastCheck: string; requirement: string; meetsRequirement: boolean } }> => {
+    const response = await apiClient.get('/social/forum-uptime');
     return response.data;
   }
 };

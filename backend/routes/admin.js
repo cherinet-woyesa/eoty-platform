@@ -17,20 +17,38 @@ router.put('/users/status', requirePermission('user:manage'), adminController.up
 
 // Content Upload Management
 router.get('/uploads', requirePermission('content:view'), adminController.getUploadQueue);
-router.post('/uploads', requirePermission('content:create'), upload.single('file'), adminController.uploadContent);
+router.post('/uploads', requirePermission('content:create'), upload.contentUpload.single('file'), adminController.uploadContent);
 router.post('/uploads/:uploadId/review', requirePermission('content:moderate'), adminController.approveContent);
+// FR5: Upload Management Enhancements
+router.get('/uploads/:uploadId/preview', requirePermission('content:view'), adminController.getUploadPreview);
+router.post('/uploads/:uploadId/retry', requirePermission('content:create'), adminController.retryUpload);
 
 // Content Moderation
 router.get('/moderation/flagged', requirePermission('content:moderate'), adminController.getFlaggedContent);
 router.post('/moderation/flagged/:flagId/review', requirePermission('content:moderate'), adminController.reviewFlaggedContent);
+// FR5: Moderation Tools Enhancements
+router.post('/users/:userId/ban', requirePermission('user:manage'), adminController.banUser);
+router.post('/users/:userId/unban', requirePermission('user:manage'), adminController.unbanUser);
+router.post('/posts/:postId/ban', requirePermission('content:moderate'), adminController.banPost);
+router.post('/posts/:postId/unban', requirePermission('content:moderate'), adminController.unbanPost);
+router.put('/content/:contentType/:contentId/edit', requirePermission('content:manage'), adminController.editContent);
 
 // AI Content Moderation
 router.get('/moderation/ai/pending', requirePermission('content:moderate'), adminController.getPendingAIModeration);
 router.post('/moderation/ai/:itemId/review', requirePermission('content:moderate'), adminController.reviewAIModeration);
 router.get('/moderation/ai/stats', requirePermission('content:view'), adminController.getModerationStats);
 
+// Moderation escalation routes (REQUIREMENT: Moderator workflow)
+router.get('/moderation/escalations', requirePermission('content:moderate'), adminController.getModerationEscalations);
+router.post('/moderation/escalations/:escalationId/resolve', requirePermission('content:moderate'), adminController.resolveEscalation);
+router.get('/moderation/notifications', requirePermission('content:view'), adminController.getModeratorNotifications);
+
 // Analytics Dashboard
 router.get('/analytics', requirePermission('analytics:view'), adminController.getAnalytics);
+// FR5: Analytics Enhancements
+router.get('/analytics/retention', requirePermission('analytics:view'), adminController.getRetentionMetrics);
+router.post('/analytics/snapshots/:snapshotId/verify', requirePermission('analytics:view'), adminController.verifyDashboardAccuracy);
+router.get('/analytics/export', requirePermission('data:export'), adminController.exportUsageData);
 
 // Admin Statistics
 router.get('/stats', requirePermission('analytics:view'), adminController.getStats);
@@ -42,6 +60,8 @@ router.post('/tags/content', requirePermission('content:manage'), adminControlle
 
 // Audit Logs
 router.get('/audit', requirePermission('audit:view'), adminController.getAuditLogs);
+// FR5: Audit & Anomaly Detection
+router.get('/anomalies', requirePermission('audit:view'), adminController.getAnomalies);
 
 // Data Export
 router.get('/export', requirePermission('data:export'), adminController.exportData);

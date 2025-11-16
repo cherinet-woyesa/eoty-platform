@@ -43,3 +43,15 @@ export { NotificationSystem } from './NotificationSystem';
 export { CardSkeleton, Spinner } from './LoadingStates';
 export { DataTable } from './DataTable';
 export type { ColumnDef, SortDirection } from './DataTable';
+
+// FR7: Chapter Support & Authentication
+export { default as ChapterSelection } from './chapters/ChapterSelection';
+export { default as ActivityLogs } from './activity/ActivityLogs';
+export { 
+  RoleBasedAccess, 
+  useRoleAccess,
+  YouthOnly,
+  ModeratorOnly,
+  AdminOnly,
+  GuestOnly
+} from './roles/RoleBasedAccess';
