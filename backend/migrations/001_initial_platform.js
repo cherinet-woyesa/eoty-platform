@@ -20,7 +20,8 @@ exports.up = async function(knex) {
     table.string('last_name').notNullable();
     table.string('email').notNullable().unique();
     table.string('password_hash');
-    table.string('role').notNullable().defaultTo('student');
+    // Base role generalized from 'student' to 'user'
+    table.string('role').notNullable().defaultTo('user');
     table.integer('chapter_id').unsigned().references('id').inTable('chapters').onDelete('SET NULL');
     table.string('phone_number');
     table.string('address');

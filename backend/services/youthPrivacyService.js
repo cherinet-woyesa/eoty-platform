@@ -25,8 +25,8 @@ class YouthPrivacyService {
 
       if (!user) return false;
 
-      // Check if user is under 18 or marked as youth
-      if (user.role === 'student' || user.role === 'youth') {
+      // Check if user is under 18 or marked as youth/base user
+      if (user.role === 'student' || user.role === 'user' || user.role === 'youth') {
         return true;
       }
 

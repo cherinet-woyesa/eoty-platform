@@ -73,7 +73,8 @@ async function runAuthMigrations() {
         table.string('password_hash').notNullable();
         table.string('google_id').unique();
         table.string('profile_picture');
-        table.string('role').notNullable().defaultTo('student');
+        // Base role generalized from 'student' to 'user'
+        table.string('role').notNullable().defaultTo('user');
         table.integer('chapter_id').references('id').inTable('chapters');
         table.boolean('is_active').defaultTo(true);
         table.timestamp('last_login_at');

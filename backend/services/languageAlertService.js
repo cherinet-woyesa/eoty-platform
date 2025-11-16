@@ -10,8 +10,16 @@ class LanguageAlertService {
 
   // Detect and handle unsupported languages
   async handleUnsupportedLanguage(text, userId, sessionId, context = {}) {
-    const detectedLang = await multilingualService.detectLanguage(text, context);
-    const isSupported = this.supportedLanguages.includes(detectedLang);
+    // Prefer language hints from context (e.g. voice recognition or UI locale)
+    let detectedLang = context.detectedLanguage || null;
+
+    if (!detectedLang) {
+      detectedLang = await multilingualService.detectLanguage(text, context);
+    }
+
+    const isSupported =
+      this.supportedLanguages.includes(detectedLang) &&
+      multilingualService.isLanguageSupported(detectedLang);
 
     if (!isSupported) {
       await this.logUnsupportedLanguageAttempt(text, detectedLang, userId, sessionId);

@@ -5,7 +5,17 @@ const resourceLibraryService = require('../services/resourceLibraryService');
 const { Resource, UserNote, AISummary } = require('../models/Resource');
 const db = require('../config/database');
 
+const multer = require('multer');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  }
+});
+
 const resourceLibraryController = {
+  // Multer middleware for file upload
+  uploadMiddleware: upload.single('file'),
   // Enhanced search with all filters (REQUIREMENT: Tag, type, topic, author, date)
   async searchResources(req, res) {
     try {
@@ -405,7 +415,7 @@ const resourceLibraryController = {
 
       // Check admin permission
       const user = await db('users').where({ id: adminId }).select('role').first();
-      if (user.role !== 'admin' && user.role !== 'platform_admin') {
+      if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Only admins can validate summaries'
@@ -436,6 +446,58 @@ const resourceLibraryController = {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to validate summary'
+      });
+    }
+  },
+
+  // Upload resource to library (for teachers)
+  async uploadResource(req, res) {
+    try {
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+
+      // Only teachers and admins can upload
+      if (userRole !== 'teacher' && userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only teachers and admins can upload resources'
+        });
+      }
+
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file provided'
+        });
+      }
+
+      const { title, description, category, tags, language, topic, author_id } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title is required'
+        });
+      }
+
+      const result = await resourceLibraryService.uploadResource(
+        req.file.buffer,
+        req.file.originalname,
+        userId,
+        { title, description, category, tags, language, topic, author_id: author_id || userId }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Resource uploaded successfully',
+        data: { resource: result }
+      });
+    } catch (error) {
+      console.error('Upload resource error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to upload resource'
       });
     }
   }

@@ -1155,8 +1155,19 @@ async function getChapters(req, res) {
     const { active_only } = req.query;
 
     let query = db('chapters')
-      .select('*')
-      .orderBy('display_order', 'asc');
+      .select('*');
+    
+    // Check if display_order column exists
+    try {
+      const hasDisplayOrder = await db.schema.hasColumn('chapters', 'display_order');
+      if (hasDisplayOrder) {
+        query = query.orderBy('display_order', 'asc');
+      } else {
+        query = query.orderBy('name', 'asc');
+      }
+    } catch (err) {
+      query = query.orderBy('name', 'asc');
+    }
 
     if (active_only === 'true') {
       query = query.where('is_active', true);

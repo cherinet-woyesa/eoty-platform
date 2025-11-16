@@ -167,7 +167,7 @@ class ResourceService {
         );
 
       // If user is admin, return all resources
-      if (userRole === 'admin' || userRole === 'platform_admin' || userRole === 'chapter_admin') {
+      if (userRole === 'admin' || userRole === 'chapter_admin') {
         return await query.orderBy('lesson_resources.created_at', 'desc');
       }
 

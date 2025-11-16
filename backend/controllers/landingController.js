@@ -4,9 +4,10 @@ const landingController = {
   // Get public landing page statistics
   async getStats(req, res) {
     try {
-      // Get total active students
+      // Get total active base members (user + legacy student)
       const totalStudents = await db('users')
-        .where({ role: 'student', is_active: true })
+        .whereIn('role', ['user', 'student'])
+        .andWhere({ is_active: true })
         .count('id as count')
         .first();
 

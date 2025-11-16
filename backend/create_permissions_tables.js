@@ -31,7 +31,8 @@ async function createPermissionsTables() {
       console.log('Creating role_permissions table...');
       await db.schema.createTable('role_permissions', function(table) {
         table.increments('id').primary();
-        table.enum('role', ['student', 'teacher', 'chapter_admin', 'platform_admin']).notNullable();
+        // Base role generalized from 'student' to 'user'
+        table.enum('role', ['user', 'teacher', 'chapter_admin', 'admin']).notNullable();
         table.integer('permission_id').references('id').inTable('user_permissions').onDelete('CASCADE');
         table.timestamps(true, true);
         

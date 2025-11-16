@@ -7,7 +7,7 @@ exports.up = async function(knex) {
   await knex.schema.createTable('videos', (table) => {
     table.increments('id').primary();
     table.integer('lesson_id').unsigned().references('id').inTable('lessons').onDelete('CASCADE');
-    table.integer('uploader_id').unsigned().references('id').inTable('users').onDelete('SET NULL');
+    table.string('uploader_id', 255).references('id').inTable('users').onDelete('SET NULL');
     table.text('storage_url').notNullable();
     table.string('s3_key');
     table.string('content_hash'); // For file integrity
@@ -57,7 +57,7 @@ exports.up = async function(knex) {
     table.string('language_name', 50).notNullable();
     table.string('subtitle_url').notNullable();
     table.integer('file_size').unsigned();
-    table.integer('created_by').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('created_by', 255).references('id').inTable('users').onDelete('CASCADE');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     
     table.unique(['lesson_id', 'language_code']);
@@ -87,7 +87,7 @@ exports.up = async function(knex) {
   // Video annotations
   await knex.schema.createTable('video_annotations', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id', 255).references('id').inTable('users').onDelete('CASCADE');
     table.integer('lesson_id').unsigned().references('id').inTable('lessons').onDelete('CASCADE');
     table.float('timestamp');
     table.text('content').notNullable();
@@ -104,7 +104,7 @@ exports.up = async function(knex) {
   // Video availability notifications
   await knex.schema.createTable('video_availability_notifications', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id', 255).references('id').inTable('users').onDelete('CASCADE');
     table.integer('lesson_id').unsigned().references('id').inTable('lessons').onDelete('CASCADE');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('notified_at');

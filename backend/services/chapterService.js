@@ -12,9 +12,19 @@ class ChapterService {
    */
   async getChapters(filters = {}) {
     let query = db('chapters')
-      .where('is_active', true)
-      .orderBy('display_order', 'asc')
-      .orderBy('name', 'asc');
+      .where('is_active', true);
+    
+    // Check if display_order column exists, if not, just order by name
+    try {
+      const hasDisplayOrder = await db.schema.hasColumn('chapters', 'display_order');
+      if (hasDisplayOrder) {
+        query = query.orderBy('display_order', 'asc');
+      }
+    } catch (err) {
+      // Column doesn't exist, continue without it
+    }
+    
+    query = query.orderBy('name', 'asc');
 
     if (filters.country) {
       query = query.where('country', filters.country);

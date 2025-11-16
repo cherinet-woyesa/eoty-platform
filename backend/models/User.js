@@ -10,7 +10,8 @@ const User = {
       password_hash: userData.passwordHash || null,
       google_id: userData.googleId || null,
       profile_picture: userData.profilePicture || null,
-      role: userData.role || 'student',
+      // Base role generalized from 'student' to 'user'
+      role: userData.role || 'user',
       chapter_id: userData.chapterId,
       is_active: true,
       created_at: new Date(),
@@ -63,59 +64,36 @@ const User = {
       });
   },
 
-  // Get user permissions based on role
+  // Get user permissions based on role from database
   async getPermissions(userId) {
-    const user = await db('users')
-      .where({ id: userId })
-      .select('role')
-      .first();
+    try {
+      const user = await db('users')
+        .where({ id: userId })
+        .select('role')
+        .first();
 
-    if (!user) return [];
+      if (!user) return [];
 
-    const permissionMap = {
-      guest: [
-        'course:view', // Limited view-only access
-        'lesson:view'
-      ],
-      youth: [
-        'course:view', 'lesson:view', 'quiz:take', 
-        'discussion:view', 'discussion:create', 'user:edit_own',
-        'progress:view', 'notes:create', 'notes:view_own'
-      ],
-      student: [
-        'course:view', 'lesson:view', 'quiz:take', 
-        'discussion:view', 'discussion:create', 'user:edit_own',
-        'progress:view', 'notes:create', 'notes:view_own'
-      ],
-      moderator: [
-        'course:view', 'lesson:view', 'quiz:take',
-        'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
-        'content:moderate', 'content:flag', 'content:review',
-        'user:view', 'user:edit_own',
-        'analytics:view_own'
-      ],
-      teacher: [
-        'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
-        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
-        'video:upload', 'video:delete_own',
-        'quiz:take', 'quiz:create', 'quiz:edit_own',
-        'discussion:view', 'discussion:create',
-        'user:edit_own', 'analytics:view_own'
-      ],
-      admin: [
-        'course:view', 'course:create', 'course:edit_own', 'course:edit_any', 'course:delete_own', 'course:delete_any',
-        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:edit_any', 'lesson:delete_own', 'lesson:delete_any',
-        'video:upload', 'video:delete_own', 'video:delete_any',
-        'quiz:take', 'quiz:create', 'quiz:edit_own', 'quiz:edit_any',
-        'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
-        'user:view', 'user:edit_own', 'user:edit_any',
-        'chapter:view', 'chapter:manage',
-        'analytics:view'
-      ],
-      platform_admin: ['system:admin']
-    };
+      // Admins have system:admin which grants all permissions
+      if (user.role === 'admin') {
+        // For admins, return all permissions
+        const allPermissions = await db('user_permissions')
+          .select('permission_key');
+        return allPermissions.map(p => p.permission_key);
+      }
 
-    return permissionMap[user.role] || permissionMap.student;
+      // For other roles, fetch role-specific permissions from database
+      const userPermissions = await db('role_permissions as rp')
+        .join('user_permissions as up', 'rp.permission_id', 'up.id')
+        .where('rp.role', user.role)
+        .select('up.permission_key');
+
+      return userPermissions.map(p => p.permission_key);
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      // Fallback to empty array on error
+      return [];
+    }
   }
 };
 

@@ -29,14 +29,14 @@ const courseController = {
         });
       }
 
-      // Check permissions: teacher owns course OR admin OR student enrolled
+      // Check permissions: teacher owns course OR admin OR base user enrolled
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
-        userRole === 'admin' ||
         userRole === 'admin';
 
-      if (!hasPermission && userRole === 'student') {
-        // Check if student is enrolled
+      // Base members (user/student) must be enrolled
+      if (!hasPermission && (userRole === 'user' || userRole === 'student')) {
+        // Check if user is enrolled
         const enrollment = await db('user_course_enrollments')
           .where({ user_id: userId, course_id: courseId })
           .first();
@@ -85,7 +85,7 @@ const courseController = {
         )
         .orderBy('c.created_at', 'desc');
 
-      if (userRole === 'student') {
+      if (userRole === 'user' || userRole === 'student') {
         coursesQuery = coursesQuery
           .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
           .where('uce.user_id', userId);
@@ -124,16 +124,27 @@ const courseController = {
         });
       }
 
-      const courseIdResult = await db('courses').insert({
-        title,
-        description,
-        category,
-        level,
-        cover_image,
-        created_by: teacherId,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).returning('id');
+      // Prepare metadata for optional fields that don't have dedicated columns
+      const metadata = {};
+      if (level) {
+        metadata.level = level;
+      }
+      if (cover_image) {
+        metadata.coverImage = cover_image;
+      }
+
+      // Insert course using only columns that actually exist on the courses table
+      const courseIdResult = await db('courses')
+        .insert({
+          title,
+          description,
+          category,
+          created_by: teacherId,
+          metadata: Object.keys(metadata).length > 0 ? metadata : null,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning('id');
       const courseId = courseIdResult[0].id;
 
       // Fetch course with statistics
@@ -409,7 +420,7 @@ const courseController = {
         });
       }
 
-      // Build update object with only provided fields
+      // Build update object with only provided fields that map to REAL columns
       const updateData = {
         updated_at: new Date()
       };
@@ -417,8 +428,30 @@ const courseController = {
       if (title !== undefined) updateData.title = title;
       if (description !== undefined) updateData.description = description;
       if (category !== undefined) updateData.category = category;
-      if (level !== undefined) updateData.level = level;
-      if (cover_image !== undefined) updateData.cover_image = cover_image;
+
+      // Handle metadata-based fields (level, cover_image) via JSONB metadata column
+      let metadata = {};
+      try {
+        if (course.metadata) {
+          metadata =
+            typeof course.metadata === 'string'
+              ? JSON.parse(course.metadata)
+              : course.metadata;
+        }
+      } catch (e) {
+        metadata = {};
+      }
+
+      if (level !== undefined) {
+        metadata.level = level;
+      }
+      if (cover_image !== undefined) {
+        metadata.coverImage = cover_image;
+      }
+
+      if (Object.keys(metadata).length > 0) {
+        updateData.metadata = metadata;
+      }
       if (is_published !== undefined) {
         updateData.is_published = is_published;
         if (is_published && !course.is_published) {
@@ -1024,7 +1057,7 @@ const courseController = {
           'l.title',
           'l.order',
           db.raw('COUNT(DISTINCT ulp.user_id) as views'),
-          db.raw('COUNT(DISTINCT CASE WHEN ulp.completed = true THEN ulp.user_id END) as completions')
+          db.raw("COUNT(DISTINCT CASE WHEN ulp.is_completed = true THEN ulp.user_id END) as completions")
         )
         .orderBy('l.order');
 

@@ -105,7 +105,7 @@ const checkLessonOwnership = async (req, res, next) => {
     const { lessonId, courseId } = req.params;
 
     // Admins can modify any lesson
-    if (userRole === 'chapter_admin' || userRole === 'platform_admin') {
+    if (userRole === 'chapter_admin' || userRole === 'admin') {
       return next();
     }
 

@@ -63,7 +63,7 @@ async function seedChapters() {
       last_name: 'User',
       email: 'admin@eoty.org',
       password_hash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S', // password: admin123
-      role: 'platform_admin',
+      role: 'admin',
       chapter_id: insertedChapters[0].id, // assign to first chapter
       is_active: true,
       created_at: new Date(),

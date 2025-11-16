@@ -564,12 +564,12 @@ class OnboardingService {
    */
   getAudienceForRole(role) {
     switch (role) {
-      case 'student':
+      case 'user':
+      case 'student': // legacy alias
         return 'new_user';
       case 'teacher':
         return 'new_teacher';
       case 'admin':
-      case 'platform_admin':
         return 'new_admin';
       default:
         return 'new_user';

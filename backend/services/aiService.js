@@ -512,8 +512,11 @@ User question: ${userQuery}
       // ENHANCED: Get comprehensive context
       const enhancedContext = await this.getEnhancedContext(context.userId, context);
 
-      // ENHANCED: Multilingual language detection
-      const detectedLanguage = await multilingualService.detectLanguage(userQuery, context);
+      // ENHANCED: Multilingual language detection (respect frontend hints)
+      let detectedLanguage = context.detectedLanguage || context.language || null;
+      if (!detectedLanguage || !multilingualService.isLanguageSupported(detectedLanguage)) {
+        detectedLanguage = await multilingualService.detectLanguage(userQuery, context);
+      }
       
       // Search for relevant content with performance optimizations
       const relevantContent = await this.searchRelevantContent(userQuery, context);

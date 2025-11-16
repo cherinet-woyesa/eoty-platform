@@ -72,7 +72,7 @@ class ForumTopic {
       .where({ forum_id: forumId })
       .join('users', 'forum_topics.author_id', 'users.id')
       .leftJoin('forum_posts', 'forum_topics.last_post_id', 'forum_posts.id')
-      .leftJoin('users as last_users', 'forum_posts.author_id', 'last_users.id');
+      .leftJoin('users as last_users', 'forum_posts.user_id', 'last_users.id');
 
     // REQUIREMENT: Private/public threads - filter based on user access
     if (userId) {
@@ -138,7 +138,7 @@ class ForumPost {
   static async findById(id) {
     return await db('forum_posts')
       .where({ id })
-      .join('users', 'forum_posts.author_id', 'users.id')
+      .join('users', 'forum_posts.user_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',
@@ -154,7 +154,7 @@ class ForumPost {
     return await db('forum_posts')
       .where({ topic_id: topicId })
       .whereNull('parent_id') // Only top-level posts
-      .join('users', 'forum_posts.author_id', 'users.id')
+      .join('users', 'forum_posts.user_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',
@@ -169,7 +169,7 @@ class ForumPost {
   static async getReplies(parentId) {
     return await db('forum_posts')
       .where({ parent_id: parentId })
-      .join('users', 'forum_posts.author_id', 'users.id')
+      .join('users', 'forum_posts.user_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',
@@ -274,6 +274,12 @@ class UserBadge {
   }
 
   static async getUserBadges(userId) {
+    // Check if user_badges table exists
+    const hasTable = await db.schema.hasTable('user_badges');
+    if (!hasTable) {
+      console.warn('user_badges table does not exist. Returning empty array.');
+      return [];
+    }
     return await db('user_badges')
       .where({ 'user_badges.user_id': userId })
       .join('badges', 'user_badges.badge_id', 'badges.id')
@@ -289,13 +295,20 @@ class UserBadge {
   }
 
   static async getUserPoints(userId) {
+    // Check if user_badges table exists
+    const hasTable = await db.schema.hasTable('user_badges');
+    if (!hasTable) {
+      console.warn('user_badges table does not exist. Returning 0 points.');
+      return 0;
+    }
+    
     const result = await db('user_badges')
       .where({ 'user_badges.user_id': userId })
       .join('badges', 'user_badges.badge_id', 'badges.id')
       .sum('badges.points as total_points')
       .first();
 
-    return result.total_points || 0;
+    return result?.total_points || 0;
   }
 }
 

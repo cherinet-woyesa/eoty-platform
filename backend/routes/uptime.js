@@ -15,7 +15,7 @@ router.get('/health', (req, res) => {
 
 // Protected uptime monitoring endpoints (admin only)
 router.use(authenticateToken);
-router.use(requireRole(['platform_admin', 'chapter_admin']));
+router.use(requireRole(['admin', 'chapter_admin']));
 
 router.get('/stats', uptimeController.getUptimeStats);
 router.post('/health-check', uptimeController.performHealthCheck);

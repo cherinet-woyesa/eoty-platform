@@ -46,6 +46,17 @@ router.get(
 );
 
 /**
+ * POST /api/resources/upload
+ * Upload a resource to the library (teachers and admins only)
+ */
+router.post(
+  '/upload',
+  requirePermission('content:manage'),
+  resourceLibraryController.uploadMiddleware,
+  resourceLibraryController.uploadResource
+);
+
+/**
  * GET /api/resources/filters
  * Get enhanced filter options (REQUIREMENT: Tag, type, topic, author, date)
  */

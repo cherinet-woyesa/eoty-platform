@@ -144,6 +144,30 @@ app.use(compression({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Lightweight performance logger for slow requests
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint ? process.hrtime.bigint() : BigInt(Date.now());
+
+  res.on('finish', () => {
+    try {
+      const end = process.hrtime.bigint ? process.hrtime.bigint() : BigInt(Date.now());
+      const diffMs = Number(end - start) / 1_000_000; // convert ns to ms
+
+      if (diffMs > 500) {
+        console.warn(
+          `[SLOW] ${req.method} ${req.originalUrl || req.url} ` +
+          `status=${res.statusCode} time=${diffMs.toFixed(1)}ms`
+        );
+      }
+    } catch (err) {
+      // Fail silently – perf logging should never break the app
+      console.error('Error in slow-request logger:', err);
+    }
+  });
+
+  next();
+});
+
 // Rate limiting - exclude video streaming, health checks, and all /api/admin/* routes from rate limits
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -257,6 +281,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes
+app.use('/api/journeys', require('./routes/journeys')); // Spiritual Journeys
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)
 app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video analytics routes (Mux + Platform)
 app.use('/api', videoNotesRoutes); // Video notes routes (authentication handled in route file)

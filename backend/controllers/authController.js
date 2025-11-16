@@ -21,7 +21,8 @@ const authController = {
         email, 
         password, 
         chapter, 
-        role = 'student',
+        // NOTE: Base role has been generalized from 'student' to 'user'
+        role = 'user',
         // Teacher application fields
         applicationText,
         qualifications,
@@ -56,8 +57,8 @@ const authController = {
         });
       }
 
-      // Validate role
-      const validRoles = ['student', 'teacher'];
+      // Validate role - base role is now 'user' (generic member)
+      const validRoles = ['user', 'teacher'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,
@@ -65,20 +66,10 @@ const authController = {
         });
       }
 
-      // If teacher role, validate application fields
-      if (role === 'teacher') {
-        if (!applicationText || !qualifications) {
-          return res.status(400).json({
-            success: false,
-            message: 'Application text and qualifications are required for teacher registration'
-          });
-        }
-      }
-
-      // Users always start as 'student' role, but we track requested role
-      // If teacher, status will be 'pending_teacher' until approved
-      const userRole = 'student';
-      const userStatus = role === 'teacher' ? 'pending_teacher' : 'active';
+      // Role assignment
+      // - Base members are 'user'
+      // - Teachers are fully self-service (no pending_teacher gating)
+      const userRole = role === 'teacher' ? 'teacher' : 'user';
 
       // Check if user already exists
       const existingUser = await db('users').where({ email }).first();
@@ -117,8 +108,6 @@ const authController = {
         email: email.toLowerCase(),
         password_hash: passwordHash,
         role: userRole,
-        role_requested: role, // Track requested role
-        status: userStatus, // Set status based on role request
         chapter_id: chapterId, // Use validated chapter ID
         is_active: true,
         created_at: new Date(),
@@ -129,10 +118,10 @@ const authController = {
       const result = await db('users').insert(userData).returning('id');
       const userId = result[0].id;
 
-      console.log('User created with ID:', userId, 'Role:', userRole, 'Status:', userStatus, 'Requested:', role);
+      console.log('User created with ID:', userId, 'Role:', userRole, 'Chapter:', chapterId);
 
-      // If teacher application, create application record
-      if (role === 'teacher') {
+      // If teacher application details are provided, create application record
+      if (role === 'teacher' && applicationText && qualifications) {
         try {
           // Parse subject_areas if it's a string, otherwise use as-is
           let subjectAreasJson = null;
@@ -196,8 +185,8 @@ const authController = {
       }
 
       const responseMessage = role === 'teacher' 
-        ? 'Account created successfully! Your teacher application is pending review. You can use the platform as a student while waiting for approval.'
-        : 'User registered successfully';
+        ? 'Teacher account created successfully! You now have access to creator tools. Additional verification options will be available in future updates.'
+        : 'Account created successfully';
 
       res.status(201).json({
         success: true,
@@ -215,6 +204,7 @@ const authController = {
             isActive: user.is_active
           },
           token,
+          // Kept for backward compatibility; now just informational
           isTeacherApplication: role === 'teacher'
         }
       });
@@ -574,7 +564,7 @@ const authController = {
           email: email.toLowerCase(),
           google_id: googleId,
           profile_picture: profilePicture,
-          role: 'student', // Default role for Google signups
+          role: 'user', // Default role for Google signups (generic member)
           chapter_id: defaultChapter.id, // Use valid chapter ID
           is_active: true,
           created_at: new Date(),
@@ -696,6 +686,9 @@ const authController = {
           db.raw('COALESCE(specialties, NULL) as specialties'),
           db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
           db.raw('COALESCE(education, \'\') as education'),
+          db.raw('COALESCE(interests, NULL) as interests'),
+          db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
+          db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
           'created_at'
         )
         .first();
@@ -718,6 +711,21 @@ const authController = {
           } catch (e) {
             console.warn('Failed to parse specialties JSON:', e.message);
             specialties = [];
+          }
+        }
+      }
+
+      // Parse interests safely (for students)
+      let interests = [];
+      if (user.interests) {
+        if (typeof user.interests === 'object') {
+          interests = Array.isArray(user.interests) ? user.interests : [];
+        } else if (typeof user.interests === 'string' && user.interests.trim()) {
+          try {
+            interests = JSON.parse(user.interests);
+          } catch (e) {
+            console.warn('Failed to parse interests JSON:', e.message);
+            interests = [];
           }
         }
       }
@@ -757,6 +765,9 @@ const authController = {
             specialties: specialties,
             teachingExperience: user.teaching_experience || 0,
             education: user.education || '',
+            interests: interests,
+            learningGoals: user.learning_goals || '',
+            dateOfBirth: user.date_of_birth || null,
             profileCompletion: profileCompletion
           }
         }
@@ -845,50 +856,24 @@ const authController = {
         });
       }
 
-      const permissionMap = {
-        guest: [
-          'course:view', // Limited view-only access
-          'lesson:view'
-        ],
-        youth: [
-          'course:view', 'lesson:view', 'quiz:take', 
-          'discussion:view', 'discussion:create', 'user:edit_own',
-          'progress:view', 'notes:create', 'notes:view_own'
-        ],
-        student: [
-          'course:view', 'lesson:view', 'quiz:take', 
-          'discussion:view', 'discussion:create', 'user:edit_own',
-          'progress:view', 'notes:create', 'notes:view_own'
-        ],
-        moderator: [
-          'course:view', 'lesson:view', 'quiz:take',
-          'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
-          'content:moderate', 'content:flag', 'content:review',
-          'user:view', 'user:edit_own',
-          'analytics:view_own'
-        ],
-        teacher: [
-          'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
-          'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
-          'video:upload', 'video:delete_own',
-          'quiz:take', 'quiz:create', 'quiz:edit_own',
-          'discussion:view', 'discussion:create',
-          'user:edit_own', 'analytics:view_own'
-        ],
-        admin: [
-          'course:view', 'course:create', 'course:edit_own', 'course:edit_any', 'course:delete_own', 'course:delete_any',
-          'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:edit_any', 'lesson:delete_own', 'lesson:delete_any',
-          'video:upload', 'video:delete_own', 'video:delete_any',
-          'quiz:take', 'quiz:create', 'quiz:edit_own', 'quiz:edit_any',
-          'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
-          'user:view', 'user:edit_own', 'user:edit_any',
-          'chapter:view', 'chapter:manage',
-          'analytics:view'
-        ],
-        platform_admin: ['system:admin']
-      };
-
-      const permissions = permissionMap[user.role] || permissionMap.student;
+      // Fetch permissions from database based on role
+      let permissions = [];
+      
+      // Admins have system:admin which grants all permissions
+      if (user.role === 'admin') {
+        // For admins, fetch all permissions
+        const allPermissions = await db('user_permissions')
+          .select('permission_key');
+        permissions = allPermissions.map(p => p.permission_key);
+      } else {
+        // For other roles, fetch role-specific permissions
+        const userPermissions = await db('role_permissions as rp')
+          .join('user_permissions as up', 'rp.permission_id', 'up.id')
+          .where('rp.role', user.role)
+          .select('up.permission_key');
+        
+        permissions = userPermissions.map(p => p.permission_key);
+      }
 
       res.json({
         success: true,
@@ -952,7 +937,7 @@ const authController = {
   // Update user profile
   async updateUserProfile(req, res) {
     try {
-      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education } = req.body;
+      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth } = req.body;
       const userId = req.user.userId;
 
       // Extract relative path from profilePicture if it's a full URL
@@ -969,6 +954,7 @@ const authController = {
       }
 
       // Update user profile in database
+      // For JSON columns, Knex handles conversion automatically - pass arrays/objects directly
       const updateData = {
         first_name: firstName,
         last_name: lastName,
@@ -976,21 +962,41 @@ const authController = {
         phone: phone || null,
         location: location || null,
         profile_picture: profilePicturePath || null,
-        specialties: specialties ? JSON.stringify(specialties) : null,
+        specialties: Array.isArray(specialties) ? specialties : null,
         teaching_experience: teachingExperience || null,
         education: education || null,
+        interests: Array.isArray(interests) ? interests : null,
+        learning_goals: learningGoals && String(learningGoals).trim() ? learningGoals : null,
+        date_of_birth: dateOfBirth && String(dateOfBirth).trim() ? dateOfBirth : null,
         updated_at: new Date()
       };
 
+      // Remove undefined values to avoid issues
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
+      console.log('Updating user profile:', { userId, updateData });
+      
       await db('users')
         .where({ id: userId })
         .update(updateData);
 
+      console.log('Profile update successful, fetching updated user...');
+
       // Get updated user data
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth')
         .first();
+
+      if (!user) {
+        throw new Error('User not found after update');
+      }
+
+      console.log('User data fetched successfully');
 
       res.json({
         success: true,
@@ -1020,12 +1026,30 @@ const authController = {
                 try {
                   return JSON.parse(user.specialties);
                 } catch (e) {
-                  console.warn('Failed to parse specialties JSON:', e.message);
                   return [];
                 }
               }
               return [];
             })(),
+            interests: (() => {
+              if (!user.interests) return [];
+              // If it's already an object/array (PostgreSQL JSON returns as object)
+              if (typeof user.interests === 'object') {
+                return Array.isArray(user.interests) ? user.interests : [];
+              }
+              // If it's a string, try to parse it
+              if (typeof user.interests === 'string' && user.interests.trim()) {
+                try {
+                  return JSON.parse(user.interests);
+                } catch (e) {
+                  console.warn('Failed to parse interests JSON:', e.message);
+                  return [];
+                }
+              }
+              return [];
+            })(),
+            learningGoals: user.learning_goals,
+            dateOfBirth: user.date_of_birth,
             teachingExperience: user.teaching_experience,
             education: user.education
           }
@@ -1033,9 +1057,24 @@ const authController = {
       });
     } catch (error) {
       console.error('Update profile error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        detail: error.detail,
+        constraint: error.constraint,
+        hint: error.hint,
+        position: error.position
+      });
       res.status(500).json({
         success: false,
-        message: 'Failed to update profile'
+        message: 'Failed to update profile',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? {
+          code: error.code,
+          detail: error.detail,
+          constraint: error.constraint
+        } : undefined
       });
     }
   },
@@ -1102,7 +1141,7 @@ const authController = {
           last_name: lastName,
           email: email.toLowerCase(),
           profile_picture: profilePicture,
-          role: 'student', // Default role for Facebook signups
+          role: 'user', // Default role for Facebook signups (generic member)
           chapter_id: defaultChapter.id,
           is_active: true,
           created_at: new Date(),

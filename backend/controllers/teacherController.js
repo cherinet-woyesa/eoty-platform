@@ -96,7 +96,7 @@ const teacherController = {
             .andOn('ulp.lesson_id', '=', 'l.id');
         })
         .where('c.created_by', teacherId)
-        .where('u.role', 'student')
+        .whereIn('u.role', ['user', 'student'])
         .groupBy('u.id', 'u.first_name', 'u.last_name', 'u.email', 'u.is_active', 'u.last_login_at', 'u.profile_picture')
         .select(
           'u.id',
@@ -135,7 +135,7 @@ const teacherController = {
         .join('courses as c', 'uce.course_id', 'c.id')
         .join('users as u', 'uce.user_id', 'u.id')
         .where('c.created_by', teacherId)
-        .where('u.role', 'student');
+        .whereIn('u.role', ['user', 'student']);
 
       // Apply same filters to count query
       if (search) {
@@ -230,7 +230,7 @@ const teacherController = {
       // Get student info
       const student = await db('users')
         .where('id', studentId)
-        .where('role', 'student')
+        .whereIn('role', ['user', 'student'])
         .select('id', 'first_name', 'last_name', 'email', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'created_at')
         .first();
 

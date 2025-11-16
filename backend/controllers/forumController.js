@@ -268,7 +268,7 @@ const forumController = {
 
       const post = await ForumPost.create({
         topic_id: topicId,
-        author_id: userId,
+        user_id: userId,
         content,
         parent_id: parentId
       });

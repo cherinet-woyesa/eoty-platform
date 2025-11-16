@@ -203,19 +203,35 @@ class FlaggedContent {
   }
 
   static async findByStatus(status, page = 1, limit = 20) {
-    const offset = (page - 1) * limit;
-    
-    return await db('flagged_content')
-      .where({ status })
-      .join('users as flagger', 'flagged_content.flagged_by', 'flagger.id')
-      .select(
-        'flagged_content.*',
-        'flagger.first_name as flagger_first_name',
-        'flagger.last_name as flagger_last_name'
-      )
-      .orderBy('flagged_content.created_at', 'asc') // Oldest first for review queue
-      .offset(offset)
-      .limit(limit);
+    try {
+      // Check if table exists
+      const tableExists = await db.schema.hasTable('flagged_content');
+      if (!tableExists) {
+        console.warn('flagged_content table does not exist. Returning empty array.');
+        return [];
+      }
+
+      const offset = (page - 1) * limit;
+      
+      return await db('flagged_content')
+        .where({ status })
+        .join('users as flagger', 'flagged_content.flagged_by', 'flagger.id')
+        .select(
+          'flagged_content.*',
+          'flagger.first_name as flagger_first_name',
+          'flagger.last_name as flagger_last_name'
+        )
+        .orderBy('flagged_content.created_at', 'asc') // Oldest first for review queue
+        .offset(offset)
+        .limit(limit);
+    } catch (error) {
+      console.error('FlaggedContent.findByStatus error:', error);
+      // If table doesn't exist or other DB error, return empty array
+      if (error.code === '42P01') { // Table does not exist
+        return [];
+      }
+      throw error; // Re-throw other errors
+    }
   }
 
   static async updateStatus(id, status, reviewedBy, reviewNotes = null, actionTaken = null) {
@@ -232,12 +248,25 @@ class FlaggedContent {
   }
 
   static async getStats(timeframe = '7days') {
-    const dateFilter = this.getDateFilter(timeframe);
-    
-    const totalFlags = await db('flagged_content')
-      .where('created_at', '>=', dateFilter)
-      .count('id as count')
-      .first();
+    try {
+      // Check if table exists
+      const tableExists = await db.schema.hasTable('flagged_content');
+      if (!tableExists) {
+        console.warn('flagged_content table does not exist. Returning empty stats.');
+        return {
+          total: 0,
+          by_status: {},
+          by_reason: {},
+          avg_review_time: 0
+        };
+      }
+
+      const dateFilter = this.getDateFilter(timeframe);
+      
+      const totalFlags = await db('flagged_content')
+        .where('created_at', '>=', dateFilter)
+        .count('id as count')
+        .first();
 
     const byStatus = await db('flagged_content')
       .where('created_at', '>=', dateFilter)
@@ -251,24 +280,37 @@ class FlaggedContent {
       .select('flag_reason')
       .count('id as count');
 
-    const avgReviewTime = await db.raw(`
-      SELECT AVG(EXTRACT(EPOCH FROM (reviewed_at - created_at))/3600) as avg_hours
-      FROM flagged_content 
-      WHERE status != 'pending' AND created_at >= ?
-    `, [dateFilter]);
+      const avgReviewTime = await db.raw(`
+        SELECT AVG(EXTRACT(EPOCH FROM (reviewed_at - created_at))/3600) as avg_hours
+        FROM flagged_content 
+        WHERE status != 'pending' AND created_at >= ?
+      `, [dateFilter]);
 
-    return {
-      total: parseInt(totalFlags.count) || 0,
-      by_status: byStatus.reduce((acc, item) => {
-        acc[item.status] = parseInt(item.count);
-        return acc;
-      }, {}),
-      by_reason: byReason.reduce((acc, item) => {
-        acc[item.flag_reason] = parseInt(item.count);
-        return acc;
-      }, {}),
-      avg_review_time: parseFloat(avgReviewTime.rows[0]?.avg_hours) || 0
-    };
+      return {
+        total: parseInt(totalFlags.count) || 0,
+        by_status: byStatus.reduce((acc, item) => {
+          acc[item.status] = parseInt(item.count);
+          return acc;
+        }, {}),
+        by_reason: byReason.reduce((acc, item) => {
+          acc[item.flag_reason] = parseInt(item.count);
+          return acc;
+        }, {}),
+        avg_review_time: parseFloat(avgReviewTime.rows[0]?.avg_hours) || 0
+      };
+    } catch (error) {
+      console.error('FlaggedContent.getStats error:', error);
+      // If table doesn't exist or other DB error, return empty stats
+      if (error.code === '42P01') { // Table does not exist
+        return {
+          total: 0,
+          by_status: {},
+          by_reason: {},
+          avg_review_time: 0
+        };
+      }
+      throw error; // Re-throw other errors
+    }
   }
 
   static getDateFilter(timeframe) {
@@ -288,22 +330,28 @@ class FlaggedContent {
 
 class Analytics {
   static async generateDailySnapshot() {
-    const snapshotDate = new Date();
-    snapshotDate.setHours(0, 0, 0, 0);
+    try {
+      const snapshotDate = new Date();
+      snapshotDate.setHours(0, 0, 0, 0);
 
-    const metrics = await this.calculateMetrics(snapshotDate);
-    const chapterComparison = await this.compareChapters(snapshotDate);
-    const trends = await this.calculateTrends(snapshotDate);
+      const metrics = await this.calculateMetrics(snapshotDate);
+      const chapterComparison = await this.compareChapters(snapshotDate);
+      const trends = await this.calculateTrends(snapshotDate);
 
-    const [snapshotId] = await db('analytics_snapshots').insert({
-      snapshot_type: 'daily',
-      snapshot_date: snapshotDate,
-      metrics: JSON.stringify(metrics),
-      chapter_comparison: JSON.stringify(chapterComparison),
-      trends: JSON.stringify(trends)
-    }).returning('id');
+      const [snapshotId] = await db('analytics_snapshots').insert({
+        snapshot_type: 'daily',
+        snapshot_date: snapshotDate,
+        metrics: JSON.stringify(metrics),
+        chapter_comparison: JSON.stringify(chapterComparison),
+        trends: JSON.stringify(trends)
+      }).returning('id');
 
-    return await db('analytics_snapshots').where({ id: snapshotId.id || snapshotId }).first();
+      return await db('analytics_snapshots').where({ id: snapshotId.id || snapshotId }).first();
+    } catch (error) {
+      console.error('Error generating daily snapshot:', error);
+      console.error('Error stack:', error.stack);
+      throw error;
+    }
   }
 
   static async calculateMetrics(date) {
@@ -353,40 +401,61 @@ class Analytics {
   }
 
   static async compareChapters(date) {
-    const chapters = await db('users').distinct('chapter_id').pluck('chapter_id');
-    
-    const comparison = {};
-    
-    for (const chapterId of chapters) {
-      const userCount = await db('users')
-        .where({ chapter_id: chapterId })
-        .count('id as count')
-        .first();
+    try {
+      const chapters = await db('users')
+        .distinct('chapter_id')
+        .whereNotNull('chapter_id')
+        .pluck('chapter_id');
+      
+      const comparison = {};
+      
+      for (const chapterId of chapters) {
+        if (!chapterId) continue; // Skip null values
+        
+        try {
+          const userCount = await db('users')
+            .where({ chapter_id: chapterId })
+            .count('id as count')
+            .first();
 
-      const activeUsers = await db('users')
-        .where({ 
-          chapter_id: chapterId
-        })
-        .where('last_login_at', '>=', new Date(new Date().setDate(new Date().getDate() - 30)))
-        .count('id as count')
-        .first();
+          const activeUsers = await db('users')
+            .where({ 
+              chapter_id: chapterId
+            })
+            .where('last_login_at', '>=', new Date(new Date().setDate(new Date().getDate() - 30)))
+            .count('id as count')
+            .first();
 
-      const forumPosts = await db('forum_posts')
-        .join('users', 'forum_posts.author_id', 'users.id')
-        .where('users.chapter_id', chapterId)
-        .where('forum_posts.created_at', '>=', new Date(new Date().setDate(new Date().getDate() - 7)))
-        .count('forum_posts.id as count')
-        .first();
+          const forumPosts = await db('forum_posts')
+            .join('users', 'forum_posts.user_id', 'users.id')
+            .where('users.chapter_id', chapterId)
+            .where('forum_posts.created_at', '>=', new Date(new Date().setDate(new Date().getDate() - 7)))
+            .count('forum_posts.id as count')
+            .first();
 
-      comparison[chapterId] = {
-        total_users: parseInt(userCount.count) || 0,
-        active_users: parseInt(activeUsers.count) || 0,
-        recent_posts: parseInt(forumPosts.count) || 0,
-        engagement_score: await this.calculateChapterEngagement(chapterId)
-      };
+          comparison[chapterId] = {
+            total_users: parseInt(userCount.count) || 0,
+            active_users: parseInt(activeUsers.count) || 0,
+            recent_posts: parseInt(forumPosts.count) || 0,
+            engagement_score: await this.calculateChapterEngagement(chapterId)
+          };
+        } catch (chapterError) {
+          console.error(`Error processing chapter ${chapterId}:`, chapterError);
+          // Continue with other chapters even if one fails
+          comparison[chapterId] = {
+            total_users: 0,
+            active_users: 0,
+            recent_posts: 0,
+            engagement_score: 0
+          };
+        }
+      }
+
+      return comparison;
+    } catch (error) {
+      console.error('Error in compareChapters:', error);
+      return {};
     }
-
-    return comparison;
   }
 
   static async calculateTrends(date) {
@@ -468,15 +537,121 @@ class Analytics {
     return previous.count > 0 ? ((current.count - previous.count) / previous.count) : 0;
   }
 
-  static async calculateChapterEngagement(chapterId) {
-    // Calculate engagement score based on multiple factors
-    const factors = await Promise.all([
-      this.getUserActivityRate(chapterId),
-      this.getContentConsumption(chapterId),
-      this.getForumParticipation(chapterId)
-    ]);
+  static async getUserActivityRate(chapterId) {
+    try {
+      // Calculate activity rate based on recent logins and engagement
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const totalUsers = await db('users')
+        .where({ chapter_id: chapterId })
+        .count('id as count')
+        .first();
+      
+      const activeUsers = await db('users')
+        .where({ chapter_id: chapterId })
+        .where('last_login_at', '>=', thirtyDaysAgo)
+        .count('id as count')
+        .first();
+      
+      const total = parseInt(totalUsers.count) || 0;
+      const active = parseInt(activeUsers.count) || 0;
+      
+      // Return normalized score (0-1) based on active user percentage
+      return total > 0 ? Math.min(active / total, 1) : 0;
+    } catch (error) {
+      console.error(`Error in getUserActivityRate for chapter ${chapterId}:`, error);
+      return 0;
+    }
+  }
 
-    return factors.reduce((sum, factor) => sum + factor, 0) / factors.length;
+  static async getContentConsumption(chapterId) {
+    try {
+      // Calculate content consumption based on lesson progress and resource views
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const chapterUsers = await db('users')
+        .where({ chapter_id: chapterId })
+        .count('id as count')
+        .first();
+      
+      const totalUsers = parseInt(chapterUsers.count) || 0;
+      
+      if (totalUsers === 0) return 0;
+      
+      // Check if user_lesson_progress table exists
+      const hasTable = await db.schema.hasTable('user_lesson_progress');
+      if (!hasTable) {
+        return 0;
+      }
+      
+      // Get lesson progress activity
+      const progressActivity = await db('user_lesson_progress')
+        .join('users', 'user_lesson_progress.user_id', 'users.id')
+        .where('users.chapter_id', chapterId)
+        .where('user_lesson_progress.last_accessed_at', '>=', sevenDaysAgo)
+        .countDistinct('user_lesson_progress.user_id as count')
+        .first();
+      
+      const activeConsumers = parseInt(progressActivity.count) || 0;
+      
+      // Return normalized score (0-1) based on users consuming content
+      return Math.min(activeConsumers / totalUsers, 1);
+    } catch (error) {
+      console.error(`Error in getContentConsumption for chapter ${chapterId}:`, error);
+      return 0;
+    }
+  }
+
+  static async getForumParticipation(chapterId) {
+    try {
+      // Calculate forum participation based on posts and engagement
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const chapterUsers = await db('users')
+        .where({ chapter_id: chapterId })
+        .count('id as count')
+        .first();
+      
+      const totalUsers = parseInt(chapterUsers.count) || 0;
+      
+      if (totalUsers === 0) return 0;
+      
+      // Get users who posted in forums
+      const forumParticipants = await db('forum_posts')
+        .join('users', 'forum_posts.user_id', 'users.id')
+        .where('users.chapter_id', chapterId)
+        .where('forum_posts.created_at', '>=', sevenDaysAgo)
+        .countDistinct('forum_posts.user_id as count')
+        .first();
+      
+      const activeParticipants = parseInt(forumParticipants.count) || 0;
+      
+      // Return normalized score (0-1) based on forum participation
+      return Math.min(activeParticipants / totalUsers, 1);
+    } catch (error) {
+      console.error(`Error in getForumParticipation for chapter ${chapterId}:`, error);
+      return 0;
+    }
+  }
+
+  static async calculateChapterEngagement(chapterId) {
+    try {
+      // Calculate engagement score based on multiple factors
+      const factors = await Promise.all([
+        this.getUserActivityRate(chapterId),
+        this.getContentConsumption(chapterId),
+        this.getForumParticipation(chapterId)
+      ]);
+
+      const sum = factors.reduce((acc, factor) => acc + (factor || 0), 0);
+      return factors.length > 0 ? sum / factors.length : 0;
+    } catch (error) {
+      console.error(`Error in calculateChapterEngagement for chapter ${chapterId}:`, error);
+      return 0;
+    }
   }
 
   static async calculatePeakHours() {

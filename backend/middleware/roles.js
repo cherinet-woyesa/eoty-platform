@@ -1,3 +1,12 @@
+/**
+ * @deprecated This file is deprecated. Please use '../middleware/rbac' instead.
+ * This file will be removed in a future version.
+ * 
+ * Migration guide:
+ * - Replace `require('../middleware/roles')` with `require('../middleware/rbac')`
+ * - All functions are available in rbac.js with the same names
+ */
+
 const authorize = (roles = []) => {
   if (typeof roles === 'string') {
     roles = [roles];

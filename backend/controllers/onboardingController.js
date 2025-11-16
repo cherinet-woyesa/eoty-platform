@@ -254,7 +254,7 @@ const onboardingController = {
       
       // Get user role for audience
       const user = await db('users').where({ id: userId }).select('role').first();
-      const userAudience = audience || onboardingService.getAudienceForRole(user?.role || 'student');
+      const userAudience = audience || onboardingService.getAudienceForRole(user?.role || 'user');
 
       let helpResource;
 
@@ -361,7 +361,7 @@ const onboardingController = {
 
       // Get user role for audience
       const user = await db('users').where({ id: userId }).select('role').first();
-      const userAudience = audience === 'all' ? onboardingService.getAudienceForRole(user?.role || 'student') : audience;
+      const userAudience = audience === 'all' ? onboardingService.getAudienceForRole(user?.role || 'user') : audience;
 
       const popularHelp = await db('help_resources')
         .where({ audience: userAudience, is_active: true })

@@ -4,6 +4,63 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
 
+// Helper function to check if snapshot is stale
+function isSnapshotStale(snapshotDate) {
+  const now = new Date();
+  const snapshotTime = new Date(snapshotDate);
+  const hoursDiff = (now - snapshotTime) / (1000 * 60 * 60);
+  return hoursDiff > 24; // Consider stale after 24 hours
+}
+
+// Helper function to build system alerts for analytics dashboard
+async function getSystemAlerts() {
+  const alerts = [];
+
+  // Check for quota warnings
+  try {
+    const quotaAlerts = await db('content_quotas')
+      .where('current_usage', '>=', db.raw('monthly_limit * 0.8')) // 80% of quota
+      .where('monthly_limit', '>', 0)
+      .join('users', 'content_quotas.chapter_id', 'users.chapter_id')
+      .select('content_quotas.*')
+      .groupBy('content_quotas.id');
+
+    quotaAlerts.forEach(quota => {
+      alerts.push({
+        type: 'quota_warning',
+        severity: 'warning',
+        message: `Chapter ${quota.chapter_id} is at ${Math.round((quota.current_usage / quota.monthly_limit) * 100)}% of ${quota.content_type} quota`,
+        chapter_id: quota.chapter_id,
+        content_type: quota.content_type
+      });
+    });
+  } catch (err) {
+    console.warn('content_quotas table may not exist:', err.message);
+  }
+
+  // Check for unresolved flags
+  try {
+    const pendingFlags = await db('flagged_content')
+      .where({ status: 'pending' })
+      .where('created_at', '<=', new Date(Date.now() - 2 * 60 * 60 * 1000)) // Older than 2 hours
+      .count('id as count')
+      .first();
+
+    if (pendingFlags && pendingFlags.count > 0) {
+      alerts.push({
+        type: 'pending_flags',
+        severity: 'warning',
+        message: `${pendingFlags.count} flagged items pending review for over 2 hours`,
+        count: pendingFlags.count
+      });
+    }
+  } catch (err) {
+    console.warn('flagged_content table may not exist:', err.message);
+  }
+
+  return alerts;
+}
+
 const adminController = {
   // Create user with specific role (admin only)
   async createUser(req, res) {
@@ -802,8 +859,8 @@ const adminController = {
     
     switch (contentType) {
       case 'forum_post':
-        const post = await db('forum_posts').where({ id: contentId }).select('author_id').first();
-        userId = post.author_id;
+        const post = await db('forum_posts').where({ id: contentId }).select('user_id').first();
+        userId = post.user_id;
         break;
       // Add other content types as needed
     }
@@ -839,7 +896,7 @@ const adminController = {
         .orderBy('snapshot_date', 'desc')
         .first();
 
-      if (!snapshot || this.isSnapshotStale(snapshot.snapshot_date)) {
+      if (!snapshot || isSnapshotStale(snapshot.snapshot_date)) {
         snapshot = await Analytics.generateDailySnapshot();
       }
 
@@ -856,7 +913,7 @@ const adminController = {
         : snapshot.trends;
 
       // Get real-time alerts
-      const alerts = await this.getSystemAlerts();
+      const alerts = await getSystemAlerts();
 
       res.json({
         success: true,
@@ -875,57 +932,6 @@ const adminController = {
         message: 'Failed to fetch analytics'
       });
     }
-  },
-
-  isSnapshotStale(snapshotDate) {
-    const now = new Date();
-    const snapshotTime = new Date(snapshotDate);
-    const hoursDiff = (now - snapshotTime) / (1000 * 60 * 60);
-    return hoursDiff > 24; // Consider stale after 24 hours
-  },
-
-  async getSystemAlerts() {
-    const alerts = [];
-
-    // Check for quota warnings
-    const quotaAlerts = await db('content_quotas')
-      .where('current_usage', '>=', db.raw('monthly_limit * 0.8')) // 80% of quota
-      .where('monthly_limit', '>', 0)
-      .join('users', 'content_quotas.chapter_id', 'users.chapter_id')
-      .select('content_quotas.*')
-      .groupBy('content_quotas.id');
-
-    quotaAlerts.forEach(quota => {
-      alerts.push({
-        type: 'quota_warning',
-        severity: 'warning',
-        message: `Chapter ${quota.chapter_id} is at ${Math.round((quota.current_usage / quota.monthly_limit) * 100)}% of ${quota.content_type} quota`,
-        chapter_id: quota.chapter_id,
-        content_type: quota.content_type
-      });
-    });
-
-    // Check for unresolved flags
-    try {
-      const pendingFlags = await db('flagged_content')
-        .where({ status: 'pending' })
-        .where('created_at', '<=', new Date(Date.now() - 2 * 60 * 60 * 1000)) // Older than 2 hours
-        .count('id as count')
-        .first();
-
-      if (pendingFlags && pendingFlags.count > 0) {
-        alerts.push({
-          type: 'pending_flags',
-          severity: 'warning',
-          message: `${pendingFlags.count} flagged items pending review for over 2 hours`,
-          count: pendingFlags.count
-        });
-      }
-    } catch (err) {
-      console.warn('flagged_content table may not exist:', err.message);
-    }
-
-    return alerts;
   },
 
   // Content tagging

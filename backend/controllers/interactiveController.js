@@ -320,6 +320,128 @@ const interactiveController = {
     }
   },
 
+  // Get aggregated lesson engagement summary for teachers/admins
+  async getLessonSummary(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+
+      // Ensure lesson exists
+      const lesson = await db('lessons')
+        .where({ id: lessonId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // Only allow admin or lesson teacher/owner to view summary
+      if (userRole !== 'admin' && lesson.teacher_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view this lesson summary'
+        });
+      }
+
+      // Quiz stats
+      const quizzes = await db('quizzes')
+        .where({ lesson_id: lessonId, is_published: true })
+        .select('id');
+
+      const quizIds = quizzes.map(q => q.id);
+
+      let quizStats = {
+        quizCount: quizzes.length,
+        totalAttempts: 0,
+        uniqueParticipants: 0,
+        averageScorePercentage: 0
+      };
+
+      if (quizIds.length > 0) {
+        const attemptsAggregate = await db('user_quiz_attempts')
+          .whereIn('quiz_id', quizIds)
+          .select(
+            db.raw('COUNT(*) as total_attempts'),
+            db.raw('COUNT(DISTINCT user_id) as unique_participants'),
+            db.raw('AVG(CASE WHEN max_score > 0 THEN (score::float / max_score) * 100 ELSE NULL END) as avg_score_pct')
+          )
+          .first();
+
+        quizStats = {
+          quizCount: quizzes.length,
+          totalAttempts: parseInt(attemptsAggregate.total_attempts || 0, 10),
+          uniqueParticipants: parseInt(attemptsAggregate.unique_participants || 0, 10),
+          averageScorePercentage: parseFloat(attemptsAggregate.avg_score_pct || 0)
+        };
+      }
+
+      // Annotation stats (all annotations on lesson)
+      const annotationAggregate = await db('video_annotations')
+        .where({ lesson_id: lessonId })
+        .select(
+          db.raw('COUNT(*) as total_annotations'),
+          db.raw('COUNT(DISTINCT user_id) as annotators')
+        )
+        .first();
+
+      const annotationStats = {
+        totalAnnotations: parseInt(annotationAggregate?.total_annotations || 0, 10),
+        annotators: parseInt(annotationAggregate?.annotators || 0, 10)
+      };
+
+      // Discussion stats
+      const discussionAggregate = await db('lesson_discussions')
+        .where({ lesson_id: lessonId })
+        .select(
+          db.raw('COUNT(*) as total_posts'),
+          db.raw('COUNT(DISTINCT user_id) as participants'),
+          db.raw('COUNT(CASE WHEN parent_id IS NULL THEN 1 END) as root_threads')
+        )
+        .first();
+
+      const discussionStats = {
+        totalPosts: parseInt(discussionAggregate?.total_posts || 0, 10),
+        rootThreads: parseInt(discussionAggregate?.root_threads || 0, 10),
+        participants: parseInt(discussionAggregate?.participants || 0, 10)
+      };
+
+      // Poll stats
+      const pollAggregate = await db('polls')
+        .where({ lesson_id: lessonId })
+        .select(
+          db.raw('COUNT(*) as total_polls'),
+          db.raw('COALESCE(SUM(total_responses), 0) as total_responses')
+        )
+        .first();
+
+      const pollStats = {
+        totalPolls: parseInt(pollAggregate?.total_polls || 0, 10),
+        totalResponses: parseInt(pollAggregate?.total_responses || 0, 10)
+      };
+
+      res.json({
+        success: true,
+        data: {
+          lessonId: parseInt(lessonId, 10),
+          quiz: quizStats,
+          annotations: annotationStats,
+          discussions: discussionStats,
+          polls: pollStats
+        }
+      });
+    } catch (error) {
+      console.error('Get lesson summary error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch lesson summary'
+      });
+    }
+  },
+
   // Get user's previous quiz attempts (REQUIREMENT: Persistence verification)
   async getUserQuizAttempts(req, res) {
     try {

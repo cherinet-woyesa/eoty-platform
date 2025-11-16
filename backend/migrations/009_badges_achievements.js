@@ -3,8 +3,12 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if badges table exists
+  const hasBadgesTable = await knex.schema.hasTable("badges");
+  
   // Badges table
-  await knex.schema.createTable("badges", (table) => {
+  if (!hasBadgesTable) {
+    await knex.schema.createTable("badges", (table) => {
     table.increments("id").primary();
     table.string("name").notNullable();
     table.string("icon_url");
@@ -20,10 +24,15 @@ exports.up = async function(knex) {
     
     table.index(["badge_type", "is_active"]);
     table.index(["category", "difficulty"]);
-  });
+    });
+  }
 
+  // Check if achievements table exists
+  const hasAchievementsTable = await knex.schema.hasTable("achievements");
+  
   // Achievements table
-  await knex.schema.createTable("achievements", (table) => {
+  if (!hasAchievementsTable) {
+    await knex.schema.createTable("achievements", (table) => {
     table.increments("id").primary();
     table.string("name").notNullable();
     table.text("description");
@@ -38,12 +47,17 @@ exports.up = async function(knex) {
     table.timestamps(true, true);
     
     table.index(["achievement_type", "is_active"]);
-  });
+    });
+  }
 
+  // Check if user_badges table exists
+  const hasUserBadgesTable = await knex.schema.hasTable("user_badges");
+  
   // User badges junction
-  await knex.schema.createTable("user_badges", (table) => {
+  if (!hasUserBadgesTable) {
+    await knex.schema.createTable("user_badges", (table) => {
     table.increments("id").primary();
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id", 255).references("id").inTable("users").onDelete("CASCADE");
     table.integer("badge_id").unsigned().references("id").inTable("badges").onDelete("CASCADE");
     table.timestamp("earned_at").defaultTo(knex.fn.now());
     table.jsonb("metadata");
@@ -52,12 +66,17 @@ exports.up = async function(knex) {
     table.unique(["user_id", "badge_id"]);
     table.index(["user_id", "earned_at"]);
     table.index(["badge_id"]);
-  });
+    });
+  }
 
+  // Check if user_achievements table exists
+  const hasUserAchievementsTable = await knex.schema.hasTable("user_achievements");
+  
   // User achievements progress
-  await knex.schema.createTable("user_achievements", (table) => {
+  if (!hasUserAchievementsTable) {
+    await knex.schema.createTable("user_achievements", (table) => {
     table.increments("id").primary();
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id", 255).references("id").inTable("users").onDelete("CASCADE");
     table.integer("achievement_id").unsigned().references("id").inTable("achievements").onDelete("CASCADE");
     table.integer("progress").defaultTo(0);
     table.boolean("is_unlocked").defaultTo(false);
@@ -68,93 +87,108 @@ exports.up = async function(knex) {
     table.unique(["user_id", "achievement_id"]);
     table.index(["user_id", "is_unlocked"]);
     table.index(["achievement_id", "is_unlocked"]);
-  });
+    });
+  }
 
-  // Insert sample badges
-  await knex('badges').insert([
-    {
-      name: 'First Steps',
-      description: 'Complete your first lesson',
-      badge_type: 'learning',
-      category: 'beginner',
-      points: 10,
-      requirements: JSON.stringify({ lessons_completed: 1 }),
-      difficulty: 1
-    },
-    {
-      name: 'Quiz Master',
-      description: 'Score 100% on any quiz',
-      badge_type: 'assessment',
-      category: 'academic',
-      points: 25,
-      requirements: JSON.stringify({ perfect_quizzes: 1 }),
-      difficulty: 2
-    },
-    {
-      name: 'Community Helper',
-      description: 'Help other students by answering 10 forum questions',
-      badge_type: 'social',
-      category: 'community',
-      points: 30,
-      requirements: JSON.stringify({ helpful_posts: 10 }),
-      difficulty: 3
-    },
-    {
-      name: 'Course Completer',
-      description: 'Complete your first full course',
-      badge_type: 'milestone',
-      category: 'achievement',
-      points: 50,
-      requirements: JSON.stringify({ courses_completed: 1 }),
-      difficulty: 2
-    },
-    {
-      name: 'Video Scholar',
-      description: 'Watch 100 hours of video content',
-      badge_type: 'engagement',
-      category: 'dedication',
-      points: 75,
-      requirements: JSON.stringify({ hours_watched: 100 }),
-      difficulty: 4
+  // Insert sample badges (only if table is empty)
+  // Check if badges table exists (it should now, either from creation above or already existed)
+  const badgesTableExists = await knex.schema.hasTable("badges");
+  if (badgesTableExists) {
+    const existingBadges = await knex('badges').count('* as count').first();
+    if (parseInt(existingBadges?.count || 0) === 0) {
+      await knex('badges').insert([
+        {
+          name: 'First Steps',
+          description: 'Complete your first lesson',
+          badge_type: 'learning',
+          category: 'beginner',
+          points: 10,
+          requirements: JSON.stringify({ lessons_completed: 1 }),
+          difficulty: 1
+        },
+        {
+          name: 'Quiz Master',
+          description: 'Score 100% on any quiz',
+          badge_type: 'assessment',
+          category: 'academic',
+          points: 25,
+          requirements: JSON.stringify({ perfect_quizzes: 1 }),
+          difficulty: 2
+        },
+        {
+          name: 'Community Helper',
+          description: 'Help other students by answering 10 forum questions',
+          badge_type: 'social',
+          category: 'community',
+          points: 30,
+          requirements: JSON.stringify({ helpful_posts: 10 }),
+          difficulty: 3
+        },
+        {
+          name: 'Course Completer',
+          description: 'Complete your first full course',
+          badge_type: 'milestone',
+          category: 'achievement',
+          points: 50,
+          requirements: JSON.stringify({ courses_completed: 1 }),
+          difficulty: 2
+        },
+        {
+          name: 'Video Scholar',
+          description: 'Watch 100 hours of video content',
+          badge_type: 'engagement',
+          category: 'dedication',
+          points: 75,
+          requirements: JSON.stringify({ hours_watched: 100 }),
+          difficulty: 4
+        }
+      ]);
     }
-  ]);
+  }
 
-  // Insert sample achievements
-  await knex('achievements').insert([
-    {
-      name: 'Learning Pathfinder',
-      description: 'Complete 5 different courses',
-      criteria: 'course_completion',
-      achievement_type: 'milestone',
-      points_value: 100,
-      progress_target: 5
-    },
-    {
-      name: 'Discussion Leader',
-      description: 'Create 50 forum posts with positive engagement',
-      criteria: 'forum_engagement',
-      achievement_type: 'social',
-      points_value: 150,
-      progress_target: 50
-    },
-    {
-      name: 'Perfect Score Streak',
-      description: 'Get perfect scores on 10 consecutive quizzes',
-      criteria: 'quiz_performance',
-      achievement_type: 'academic',
-      points_value: 200,
-      progress_target: 10
-    },
-    {
-      name: 'Early Adopter',
-      description: 'Be among the first 100 users on the platform',
-      criteria: 'platform_usage',
-      achievement_type: 'special',
-      points_value: 500,
-      progress_target: 1,
-      is_secret: true
+  // Insert sample achievements (only if table is empty)
+  // Check if achievements table exists (it should now, either from creation above or already existed)
+  const achievementsTableExists = await knex.schema.hasTable("achievements");
+  if (achievementsTableExists) {
+    const existingAchievements = await knex('achievements').count('* as count').first();
+    if (parseInt(existingAchievements?.count || 0) === 0) {
+      await knex('achievements').insert([
+        {
+          name: 'Learning Pathfinder',
+          description: 'Complete 5 different courses',
+          criteria: 'course_completion',
+          achievement_type: 'milestone',
+          points_value: 100,
+          progress_target: 5
+        },
+        {
+          name: 'Discussion Leader',
+          description: 'Create 50 forum posts with positive engagement',
+          criteria: 'forum_engagement',
+          achievement_type: 'social',
+          points_value: 150,
+          progress_target: 50
+        },
+        {
+          name: 'Perfect Score Streak',
+          description: 'Get perfect scores on 10 consecutive quizzes',
+          criteria: 'quiz_performance',
+          achievement_type: 'academic',
+          points_value: 200,
+          progress_target: 10
+        },
+        {
+          name: 'Early Adopter',
+          description: 'Be among the first 100 users on the platform',
+          criteria: 'platform_usage',
+          achievement_type: 'special',
+          points_value: 500,
+          progress_target: 1,
+          is_secret: true
+        }
+      ]);
     }
-  ]);
+  }
 };
 
 exports.down = async function(knex) {

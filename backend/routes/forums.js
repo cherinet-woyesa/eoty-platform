@@ -3,7 +3,7 @@ const router = express.Router();
 
 const forumController = require('../controllers/forumController');
 const { authenticateToken } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/roles');
+const { requirePermission } = require('../middleware/rbac');
 
 // ✅ All routes require authentication
 router.use(authenticateToken);

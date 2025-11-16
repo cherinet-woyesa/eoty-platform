@@ -882,13 +882,13 @@ const videoController = {
         });
       }
 
-      // Check permissions: teacher owns course OR admin OR student enrolled
+      // Check permissions: teacher owns course OR admin OR base user enrolled
       const isOwner = course.created_by === userId;
       const isAdmin = userRole === 'admin';
       
       if (!isOwner && !isAdmin) {
-        // Check if student is enrolled
-        if (userRole === 'student') {
+        // Check if base user is enrolled
+        if (userRole === 'user' || userRole === 'student') {
           const enrollment = await db('user_course_enrollments')
             .where({ user_id: userId, course_id: courseId })
             .first();

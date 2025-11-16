@@ -2,13 +2,17 @@ const db = require('../config/database');
 const accessLogService = require('../services/accessLogService');
 
 // Role hierarchy constants (REQUIREMENT: Youth, moderator, admin, guest roles)
+// Higher numbers = higher privileges
+// NOTE: Base role has been generalized from 'student' to 'user'; `student` is kept as a legacy alias.
 const ROLE_HIERARCHY = {
-  'guest': 0,
-  'youth': 1,
-  'student': 1,
-  'moderator': 2,
-  'teacher': 2,
-  'admin': 3
+  'guest': 0,          // No authentication, view-only
+  'youth': 1,          // Youth members (same level as base user, with privacy protections)
+  'user': 1,           // Regular platform members (courses, resources, community)
+  'student': 1,        // Legacy base member role, treated same as 'user'
+  'moderator': 2,      // Content moderators
+  'teacher': 2,        // Course creators and teachers
+  'chapter_admin': 3,  // Chapter-level administrators
+  'admin': 4           // Platform administrators (single top-level admin role)
 };
 
 // Helper function to check if user's role is equal to or higher than required role
@@ -65,7 +69,7 @@ const requirePermission = (permission) => {
       
       // Admins have all permissions
       if (userRole === 'admin') {
-        console.log(`[RBAC] Permission ${permission} GRANTED for admin user ${req.user.email}`);
+        console.log(`[RBAC] Permission ${permission} GRANTED for ${userRole} user ${req.user.email}`);
         return next();
       }
       
@@ -77,6 +81,17 @@ const requirePermission = (permission) => {
       
       const userPermissionKeys = userPermissions.map(p => p.permission_key);
       console.log(`[RBAC] User ${req.user.email} (ID: ${userId}, Role: ${userRole}) has permissions: ${userPermissionKeys.join(', ')}`);
+
+      // Special-case: base members (user/student/youth/teacher/admin/...) can always view courses
+      // This ensures course catalog and basic course views are available to all authenticated users.
+      if (permission === 'course:view') {
+        const userLevel = ROLE_HIERARCHY[userRole] || 0;
+        const baseLevel = ROLE_HIERARCHY['user'] || 0;
+        if (userLevel >= baseLevel) {
+          console.log(`[RBAC] Permission ${permission} GRANTED by default for role ${userRole}`);
+          return next();
+        }
+      }
       
       // Check if user has the required permission or system admin
       if (userPermissionKeys.includes(permission) || userPermissionKeys.includes('system:admin')) {
@@ -553,6 +568,14 @@ const requireEnrollment = (options = {}) => {
   };
 };
 
+// Convenience role helpers for backward compatibility
+// `requireStudent` now represents the base member tier (user/student/youth/teacher/admin/...)
+const requireStudent = requireRole(['user', 'student', 'youth', 'teacher', 'admin', 'chapter_admin']);
+const requireTeacher = requireRole(['teacher', 'admin', 'chapter_admin']);
+const requireChapterAdmin = requireRole(['chapter_admin', 'admin']);
+// `platform_admin` has been removed; treat any usages of requirePlatformAdmin as plain admin access.
+const requirePlatformAdmin = requireRole(['admin']);
+
 module.exports = {
   requirePermission,
   requireRole,
@@ -562,5 +585,10 @@ module.exports = {
   requireEnrollment,
   isRoleOrHigher,
   ROLE_HIERARCHY,
-  createErrorResponse
+  createErrorResponse,
+  // Convenience helpers
+  requireStudent,
+  requireTeacher,
+  requireChapterAdmin,
+  requirePlatformAdmin
 };

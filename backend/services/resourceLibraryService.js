@@ -48,9 +48,12 @@ class ResourceLibraryService {
         query = query.where('file_type', filters.type);
       }
 
-      // Filter by topic (REQUIREMENT: Topic filter)
+      // Filter by topic (REQUIREMENT: Topic filter) - only if column exists
       if (filters.topic) {
-        query = query.where('topic', filters.topic);
+        const hasTopic = await db.schema.hasColumn('resources', 'topic');
+        if (hasTopic) {
+          query = query.where('topic', filters.topic);
+        }
       }
 
       // Filter by author (REQUIREMENT: Author filter)
@@ -80,7 +83,7 @@ class ResourceLibraryService {
       const userId = filters.userId;
       const userRole = filters.userRole;
       
-      if (userRole !== 'admin' && userRole !== 'platform_admin') {
+      if (userRole !== 'admin') {
         query = query.where(function() {
           this.where('is_public', true)
             .orWhere('chapter_id', filters.chapterId);
@@ -102,6 +105,9 @@ class ResourceLibraryService {
   // Get enhanced filter options (REQUIREMENT: Tag, type, topic, author, date)
   async getFilterOptions() {
     try {
+      // Check if topic column exists
+      const hasTopic = await db.schema.hasColumn('resources', 'topic');
+      
       const [tags, types, topics, authors, categories, languages] = await Promise.all([
         // Get all unique tags
         db('resources')
@@ -114,11 +120,13 @@ class ResourceLibraryService {
           .whereNotNull('file_type')
           .pluck('file_type'),
         
-        // Get all unique topics
-        db('resources')
-          .distinct('topic')
-          .whereNotNull('topic')
-          .pluck('topic'),
+        // Get all unique topics (only if column exists)
+        hasTopic 
+          ? db('resources')
+              .distinct('topic')
+              .whereNotNull('topic')
+              .pluck('topic')
+          : Promise.resolve([]),
         
         // Get all unique authors
         db('resources')
@@ -608,6 +616,93 @@ class ResourceLibraryService {
       console.error('Validate summary relevance error:', error);
       throw error;
     }
+  }
+
+  // Upload resource to library (for teachers)
+  async uploadResource(fileBuffer, originalFilename, userId, metadata = {}) {
+    try {
+      const cloudStorageService = require('./cloudStorageService');
+      const { title, description, category, tags, language, topic, author_id } = metadata;
+
+      if (!title) {
+        throw new Error('Title is required');
+      }
+
+      // Generate safe filename
+      const fileExtension = originalFilename.split('.').pop()?.toLowerCase();
+      const safeFileName = `resource_${Date.now()}_${originalFilename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      // Upload to cloud storage
+      const uploadResult = await cloudStorageService.uploadVideo(
+        fileBuffer,
+        safeFileName,
+        this.getResourceContentType(originalFilename)
+      );
+
+      // Get author name
+      let authorName = null;
+      if (author_id) {
+        const author = await db('users').where({ id: author_id }).select('first_name', 'last_name').first();
+        if (author) {
+          authorName = `${author.first_name || ''} ${author.last_name || ''}`.trim();
+        }
+      }
+      if (!authorName) {
+        const user = await db('users').where({ id: userId }).select('first_name', 'last_name').first();
+        if (user) {
+          authorName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        }
+      }
+
+      // Prepare resource data
+      const resourceData = {
+        title,
+        description: description || null,
+        author: authorName,
+        author_id: author_id || userId,
+        category: category || null,
+        topic: topic || null,
+        file_type: this.getResourceContentType(originalFilename),
+        file_name: safeFileName,
+        file_size: fileBuffer.length,
+        file_url: uploadResult.url || uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl || uploadResult,
+        language: language || 'en',
+        tags: tags ? (Array.isArray(tags) ? JSON.stringify(tags) : JSON.stringify(tags.split(',').map(t => t.trim()))) : null,
+        is_public: true,
+        chapter_id: null,
+        published_at: new Date(),
+        published_date: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      // Insert into database
+      const [resourceId] = await db('resources').insert(resourceData).returning('id');
+
+      return {
+        id: resourceId,
+        ...resourceData
+      };
+    } catch (error) {
+      console.error('Upload resource error:', error);
+      throw error;
+    }
+  }
+
+  getResourceContentType(filename) {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeTypes = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'txt': 'text/plain',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp'
+    };
+    return mimeTypes[ext || ''] || 'application/octet-stream';
   }
 }
 

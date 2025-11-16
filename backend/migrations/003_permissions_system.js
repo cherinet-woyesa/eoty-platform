@@ -72,11 +72,11 @@ exports.up = async function(knex) {
 
   // Assign permissions to roles
   const rolePermissions = [
-    // Student permissions
-    { role: 'student', permission_id: 4 }, // course:view
-    { role: 'student', permission_id: 9 }, // lesson:view
-    { role: 'student', permission_id: 11 }, // video:stream
-    { role: 'student', permission_id: 14 }, // user:view
+    // Base user permissions (formerly student)
+    { role: 'user', permission_id: 4 }, // course:view
+    { role: 'user', permission_id: 9 }, // lesson:view
+    { role: 'user', permission_id: 11 }, // video:stream
+    { role: 'user', permission_id: 14 }, // user:view
 
     // Teacher permissions
     { role: 'teacher', permission_id: 1 }, // course:create

@@ -444,10 +444,21 @@ class VideoAnalyticsService {
       });
 
       // Get unique viewers across all lessons
-      const uniqueViewers = await db('video_analytics')
-        .whereIn('lesson_id', lessonIds)
-        .distinct('user_id')
-        .whereNotNull('user_id');
+      // Check if video_analytics table exists
+      const hasVideoAnalyticsTable = await db.schema.hasTable('video_analytics');
+      let uniqueViewers = [];
+      
+      if (hasVideoAnalyticsTable && lessonIds.length > 0) {
+        try {
+          uniqueViewers = await db('video_analytics')
+            .whereIn('lesson_id', lessonIds)
+            .distinct('user_id')
+            .whereNotNull('user_id');
+        } catch (error) {
+          console.warn('Error querying video_analytics table for unique viewers:', error.message);
+          uniqueViewers = [];
+        }
+      }
 
       // Get top performing lessons
       const topPerformingLessons = lessonAnalytics
@@ -468,18 +479,27 @@ class VideoAnalyticsService {
         });
 
       // Get recent activity (last 7 days)
-      const recentActivity = await db('video_analytics')
-        .whereIn('lesson_id', lessonIds)
-        .where('session_started_at', '>=', db.raw("NOW() - INTERVAL '7 days'"))
-        .select(
-          db.raw("DATE_TRUNC('day', session_started_at)::date as date"),
-          db.raw('COUNT(DISTINCT id) as views'),
-          db.raw('COUNT(DISTINCT user_id) as unique_viewers'),
-          db.raw('SUM(watch_time_seconds) as watch_time')
-        )
-        .groupBy(db.raw("DATE_TRUNC('day', session_started_at)::date"))
-        .orderBy('date', 'desc')
-        .limit(7);
+      let recentActivity = [];
+      
+      if (hasVideoAnalyticsTable && lessonIds.length > 0) {
+        try {
+          recentActivity = await db('video_analytics')
+            .whereIn('lesson_id', lessonIds)
+            .where('session_started_at', '>=', db.raw("NOW() - INTERVAL '7 days'"))
+            .select(
+              db.raw("DATE_TRUNC('day', session_started_at)::date as date"),
+              db.raw('COUNT(DISTINCT id) as views'),
+              db.raw('COUNT(DISTINCT user_id) as unique_viewers'),
+              db.raw('SUM(watch_time_seconds) as watch_time')
+            )
+            .groupBy(db.raw("DATE_TRUNC('day', session_started_at)::date"))
+            .orderBy('date', 'desc')
+            .limit(7);
+        } catch (error) {
+          console.warn('Error querying video_analytics for recent activity:', error.message);
+          recentActivity = [];
+        }
+      }
 
       return {
         teacherId,
