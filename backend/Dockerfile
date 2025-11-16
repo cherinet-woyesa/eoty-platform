@@ -13,8 +13,10 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies (including dev dependencies for migrations)
-RUN npm ci --legacy-peer-deps
+# Install production dependencies
+# Use npm install instead of npm ci because the lockfile does not include dev-only tooling like Jest,
+# and we don't need devDependencies (tests) in the production image.
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .
