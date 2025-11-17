@@ -326,13 +326,257 @@ const studentsController = {
   ,
   async inviteStudent(req, res) {
     try {
-      const { email } = req.body;
-      if (!email) return res.status(400).json({ success: false, message: 'Email required' });
-      // TODO: persist invitation, send email
-      res.json({ success: true, message: 'Invitation sent' });
+      const { email, courseId } = req.body;
+      const teacherId = req.user.userId;
+
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email required' });
+      }
+
+      const normalizedEmail = String(email).toLowerCase().trim();
+
+      // Optional: check course exists and belongs to teacher (or teacher has access)
+      let course = null;
+      if (courseId) {
+        course = await db('courses')
+          .where({ id: courseId })
+          .first();
+
+        if (!course) {
+          return res.status(404).json({
+            success: false,
+            message: 'Course not found'
+          });
+        }
+      }
+
+      // See if there is already a pending invitation for this email + course
+      const existingInvite = await db('student_invitations')
+        .where({
+          email: normalizedEmail,
+          invited_by: teacherId,
+          course_id: courseId || null,
+          status: 'pending'
+        })
+        .first();
+
+      if (existingInvite) {
+        return res.json({
+          success: true,
+          message: 'An invitation is already pending for this student.',
+          data: { invitation: existingInvite }
+        });
+      }
+
+      // Try to find an existing user with this email
+      const existingUser = await db('users')
+        .whereRaw('LOWER(email) = ?', [normalizedEmail])
+        .first();
+
+      // Create invitation record
+      const insertResult = await db('student_invitations')
+        .insert({
+          email: normalizedEmail,
+          invited_by: teacherId,
+          user_id: existingUser ? existingUser.id : null,
+          course_id: courseId || null,
+          status: 'pending'
+        })
+        .returning('*');
+
+      const invitation = insertResult[0];
+
+      // If the user already exists, create an in-app notification using user_notifications
+      if (existingUser) {
+        try {
+          const title = course
+            ? 'Course invitation'
+            : 'Learning invitation';
+          const message = course
+            ? `You have been invited to join the course "${course.title}".`
+            : 'You have been invited to join a course on the platform.';
+
+          await db('user_notifications').insert({
+            user_id: existingUser.id,
+            title,
+            message,
+            notification_type: 'course',
+            data: JSON.stringify({
+              type: 'course_invitation',
+              invitationId: invitation.id,
+              courseId: course ? course.id : null
+            }),
+            action_url: course ? `/student/invitations` : null,
+            priority: 'normal'
+          });
+        } catch (notifyError) {
+          console.error('Failed to create user notification for invitation:', notifyError);
+          // Non-critical: do not fail the invite because of notification issues
+        }
+      }
+
+      // TODO: Optionally queue an email via email_queue
+
+      res.json({
+        success: true,
+        message: 'Invitation sent successfully',
+        data: { invitation }
+      });
     } catch (error) {
       console.error('Invite student error:', error);
       res.status(500).json({ success: false, message: 'Failed to invite student' });
+    }
+  }
+  ,
+  async getMyInvitations(req, res) {
+    try {
+      const userId = req.user.userId;
+      const user = await db('users')
+        .where({ id: userId })
+        .select('id', 'email')
+        .first();
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const email = (user.email || '').toLowerCase();
+
+      // Invitations can be for this specific user_id or for their email
+      const invitations = await db('student_invitations as si')
+        .leftJoin('courses as c', 'si.course_id', 'c.id')
+        .leftJoin('users as t', 'si.invited_by', 't.id')
+        .where(function () {
+          this.where('si.user_id', userId)
+            .orWhereRaw('LOWER(si.email) = ?', [email]);
+        })
+        .andWhere('si.status', 'pending')
+        .select(
+          'si.id',
+          'si.email',
+          'si.course_id',
+          'si.status',
+          'si.created_at',
+          'c.title as course_title',
+          't.first_name as teacher_first_name',
+          't.last_name as teacher_last_name'
+        )
+        .orderBy('si.created_at', 'desc');
+
+      res.json({
+        success: true,
+        data: { invitations }
+      });
+    } catch (error) {
+      console.error('Get invitations error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch invitations' });
+    }
+  }
+  ,
+  async respondToInvitation(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { invitationId } = req.params;
+      const { action } = req.body; // 'accept' | 'decline'
+
+      if (!['accept', 'decline'].includes(action)) {
+        return res.status(400).json({ success: false, message: 'Invalid action' });
+      }
+
+      const user = await db('users')
+        .where({ id: userId })
+        .select('id', 'email', 'role')
+        .first();
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const email = (user.email || '').toLowerCase();
+
+      const invitation = await db('student_invitations')
+        .where({ id: invitationId })
+        .first();
+
+      if (!invitation) {
+        return res.status(404).json({ success: false, message: 'Invitation not found' });
+      }
+
+      // Ensure this invitation belongs to this user (by user_id or email)
+      if (
+        invitation.user_id &&
+        invitation.user_id !== userId &&
+        (invitation.email || '').toLowerCase() !== email
+      ) {
+        return res.status(403).json({ success: false, message: 'You are not allowed to act on this invitation' });
+      }
+      if (
+        !invitation.user_id &&
+        (invitation.email || '').toLowerCase() !== email
+      ) {
+        return res.status(403).json({ success: false, message: 'You are not allowed to act on this invitation' });
+      }
+
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ success: false, message: `Invitation already ${invitation.status}` });
+      }
+
+      if (action === 'decline') {
+        await db('student_invitations')
+          .where({ id: invitation.id })
+          .update({
+            status: 'declined',
+            declined_at: new Date(),
+            user_id: invitation.user_id || userId
+          });
+
+        return res.json({ success: true, message: 'Invitation declined' });
+      }
+
+      // Accept: mark invitation and enroll user in course if provided
+      await db('student_invitations')
+        .where({ id: invitation.id })
+        .update({
+          status: 'accepted',
+          accepted_at: new Date(),
+          user_id: invitation.user_id || userId
+        });
+
+      // If a course is linked, enroll the user
+      if (invitation.course_id) {
+        try {
+          const existingEnrollment = await db('user_course_enrollments')
+            .where({
+              user_id: userId,
+              course_id: invitation.course_id
+            })
+            .first();
+
+          if (!existingEnrollment) {
+            await db('user_course_enrollments').insert({
+              user_id: userId,
+              course_id: invitation.course_id,
+              enrollment_status: 'active',
+              enrolled_at: new Date()
+            });
+          } else if (existingEnrollment.enrollment_status !== 'active') {
+            await db('user_course_enrollments')
+              .where({ id: existingEnrollment.id })
+              .update({
+                enrollment_status: 'active',
+                updated_at: new Date()
+              });
+          }
+        } catch (enrollError) {
+          console.error('Failed to enroll user from invitation:', enrollError);
+          // Do not fail acceptance if enrollment has issues
+        }
+      }
+
+      res.json({ success: true, message: 'Invitation accepted' });
+    } catch (error) {
+      console.error('Respond to invitation error:', error);
+      res.status(500).json({ success: false, message: 'Failed to respond to invitation' });
     }
   }
   ,

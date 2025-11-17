@@ -24,6 +24,7 @@ const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
 const analyticsRoutes = require('./routes/analytics');
 const systemConfigRoutes = require('./routes/systemConfig');
+const assignmentsRoutes = require('./routes/assignments');
 const subtitleRoutes = require('./routes/subtitles');
 const accessLogRoutes = require('./routes/accessLogs');
 const muxMigrationRoutes = require('./routes/muxMigration');
@@ -280,6 +281,7 @@ app.use('/api/achievements', authenticateToken, achievementRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
+app.use('/api/assignments', assignmentsRoutes);
 app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes
 app.use('/api/journeys', require('./routes/journeys')); // Spiritual Journeys
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)

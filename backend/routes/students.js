@@ -34,6 +34,10 @@ router.get('/', requireRole(['teacher', 'admin']), studentsController.listStuden
 router.post('/invite', requireRole(['teacher', 'admin']), studentsController.inviteStudent);
 router.post('/:studentId/message', requireRole(['teacher', 'admin']), studentsController.messageStudent);
 
+// Student invitations (current user)
+router.get('/invitations', studentsController.getMyInvitations);
+router.post('/invitations/:invitationId/respond', studentsController.respondToInvitation);
+
 module.exports = router;
 
 

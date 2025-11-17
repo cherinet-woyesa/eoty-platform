@@ -532,6 +532,16 @@ export const studentNavItems: NavItem[] = [
     section: 'learning',
   },
   {
+    name: 'Assignments',
+    href: '/student/assignments',
+    icon: FileText,
+    badge: null,
+    description: 'See due work and your grades',
+    color: 'text-emerald-600',
+    requiredRole: 'student',
+    section: 'learning',
+  },
+  {
     name: 'Study Paths',
     href: '/student/learning-paths',
     icon: Target,

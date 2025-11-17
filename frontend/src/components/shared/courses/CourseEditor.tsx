@@ -153,7 +153,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         title: course.title || '',
         description: course.description || '',
         category: course.category || 'faith',
-        level: course.level || 'beginner',
+        level: (course.level as any) || 'beginner',
         cover_image: course.cover_image || '',
         learning_objectives: course.learning_objectives || [''],
         prerequisites: course.prerequisites || '',
@@ -164,14 +164,20 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         certification_available: course.certification_available ?? false,
         welcome_message: course.welcome_message || '',
         price: course.price || 0,
-        status: course.status || 'draft'
+        status: (course.status as any) || 'draft'
       });
       setCoverImagePreview(course.cover_image || '');
-      
-      // Update course stats
-      if (statsData?.data) {
-        setCourseStats(statsData.data);
-      }
+    }
+
+    // Map analytics payload into compact stats used by the header/tabs
+    if (statsData?.data?.analytics) {
+      const analytics = statsData.data.analytics;
+      setCourseStats({
+        totalStudents: analytics.totalEnrollments ?? analytics.activeStudents ?? 0,
+        completionRate: Number(analytics.completionRate ?? 0),
+        averageRating: analytics.averageRating ?? 0,
+        totalLessons: analytics.lessonCount ?? 0
+      });
     }
   }, [course, statsData]);
 
@@ -400,9 +406,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   // Publish course
   const publishMutation = useMutation({
-    mutationFn: () => coursesApi.updateCourse(courseId, { status: 'published' }),
-    onSuccess: () => {
+    mutationFn: () => coursesApi.publishCourse(courseId),
+    onSuccess: (response) => {
+      // Update local cache with the freshly published course
+      if (response?.data?.course) {
+        queryClient.setQueryData(['course', courseId], response);
+      }
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['course-stats', courseId] });
+
       showNotification({
         type: 'success',
         title: t('common.published'),

@@ -7,6 +7,12 @@ export const teacherApi = {
     return response.data;
   },
 
+  // Lightweight stats for recording page (reuses dashboard endpoint)
+  getDashboardStats: async () => {
+    const response = await apiClient.get('/teacher/dashboard');
+    return response.data;
+  },
+
   // Get all students enrolled in teacher's courses
   getStudents: async (params?: {
     search?: string;

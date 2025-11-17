@@ -267,10 +267,6 @@ exports.up = async function(knex) {
       'notes:create',
       'notes:view_own'
     ],
-    
-    // Platform Admin role - highest level access
-      'system:admin'
-    ]
   };
 
   // Insert role-permission mappings

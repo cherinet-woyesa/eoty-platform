@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText, Search, Filter, CheckCircle, Clock, AlertCircle,
@@ -6,16 +6,17 @@ import {
   Loader2, RefreshCw, SortAsc, SortDesc
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { assignmentsApi, type TeacherAssignment } from '@/services/api/assignments';
 
 interface Assignment {
-  id: string;
+  id: number;
   title: string;
-  courseId: string;
+  courseId: number | null;
   courseTitle: string;
-  dueDate: string;
+  dueDate: string | null;
   totalSubmissions: number;
   gradedSubmissions: number;
-  averageScore?: number;
+  averageScore?: number | null;
   status: 'draft' | 'published' | 'closed';
   createdAt: string;
 }
@@ -37,56 +38,27 @@ const Assignments: React.FC = () => {
   const [sortBy, setSortBy] = useState<'dueDate' | 'createdAt' | 'title'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Mock data for now - will be replaced with API call
   const loadAssignments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get('/teacher/assignments');
-      
-      // Mock data
-      const mockAssignments: Assignment[] = [
-        {
-          id: '1',
-          title: 'Scripture Analysis Essay',
-          courseId: '1',
-          courseTitle: 'Introduction to Orthodox Christianity',
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          totalSubmissions: 15,
-          gradedSubmissions: 8,
-          averageScore: 87,
-          status: 'published',
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '2',
-          title: 'Church History Timeline',
-          courseId: '2',
-          courseTitle: 'Ethiopian Church History',
-          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          totalSubmissions: 22,
-          gradedSubmissions: 22,
-          averageScore: 92,
-          status: 'published',
-          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          title: 'Liturgical Practices Quiz',
-          courseId: '1',
-          courseTitle: 'Introduction to Orthodox Christianity',
-          dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          totalSubmissions: 18,
-          gradedSubmissions: 15,
-          averageScore: 85,
-          status: 'closed',
-          createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      
-      setAssignments(mockAssignments);
+
+      const response = await assignmentsApi.listForTeacher();
+      const rows = response.data.assignments || [];
+      const mapped: Assignment[] = rows.map((a: TeacherAssignment) => ({
+        id: a.id,
+        title: a.title,
+        courseId: a.course_id,
+        courseTitle: a.course_title || 'Unassigned course',
+        dueDate: a.due_date,
+        totalSubmissions: Number(a.total_submissions || 0),
+        gradedSubmissions: Number(a.graded_submissions || 0),
+        averageScore: a.average_score,
+        status: a.status as Assignment['status'],
+        createdAt: a.created_at
+      }));
+
+      setAssignments(mapped);
     } catch (err: any) {
       console.error('Failed to load assignments:', err);
       setError(err.message || 'Failed to load assignments');
@@ -95,8 +67,8 @@ const Assignments: React.FC = () => {
     }
   }, []);
 
-  React.useEffect(() => {
-    loadAssignments();
+  useEffect(() => {
+    void loadAssignments();
   }, [loadAssignments]);
 
   const stats: AssignmentStats = useMemo(() => {

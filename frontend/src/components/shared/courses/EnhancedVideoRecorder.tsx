@@ -51,7 +51,8 @@ import {
   Zap, Download,
   Lightbulb, Sparkles, Star,
   Monitor, Save, FolderOpen, Scissors,
-  FileText, Clock, Keyboard, XCircle
+  FileText, Clock, Keyboard, XCircle,
+  BookOpen
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -155,6 +156,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // Course/Lesson State
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState(courseId || '');
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [newCourseTitle, setNewCourseTitle] = useState('');
+  const [isCreatingCourseLoading, setIsCreatingCourseLoading] = useState(false);
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonDescription, setLessonDescription] = useState('');
   const [showLessonForm, setShowLessonForm] = useState(false);
@@ -181,6 +185,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showPresetsManager, setShowPresetsManager] = useState(false);
   const [showEnhancedPreview, setShowEnhancedPreview] = useState(false);
+  // Simple vs advanced mode toggle - default to simple for most teachers
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
   
   // Mux upload state - Mux is now the default and only upload method
   const [useMuxUpload] = useState(true); // Always use Mux - no longer configurable
@@ -237,6 +243,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     },
     enabled: true
   });
+
 
   // Apply default preset when loaded
   useEffect(() => {
@@ -652,10 +659,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   }, [dismissNotification]);
 
   // NEW: Performance degradation handler (Task 7.3)
-  // DISABLED: User requested to not show performance warnings
+  // User requested not to surface performance warnings; keep this a no-op to avoid noisy logs
   const handlePerformanceDegradation = useCallback(() => {
-    // Performance warnings disabled - only log to console
-    console.warn('Performance degraded, but warning notification disabled');
+    // Intentionally left blank
   }, []);
 
   // NEW: Source loss handler (Task 7.3)
@@ -691,16 +697,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         handlePerformanceDegradation();
       }
       
-      // Alert if too many frames dropped
-      if (performanceMetrics.droppedFrames > 50) {
-        addNotification(
-          'warning',
-          'Frames Dropped',
-          `${performanceMetrics.droppedFrames} frames have been dropped. This may affect video quality.`,
-          undefined,
-          true
-        );
-      }
+      // Frames dropped notification disabled per UX request
     }
   }, [performanceMetrics?.fps, performanceMetrics?.droppedFrames, isRecording, handlePerformanceDegradation, addNotification]);
 
@@ -844,6 +841,42 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       isMounted = false;
     };
   }, [courseId]);
+
+  const handleCreateCourseInline = async () => {
+    if (!newCourseTitle.trim()) {
+      setErrorMessage('Please enter a course title.');
+      return;
+    }
+    try {
+      setIsCreatingCourseLoading(true);
+      setErrorMessage(null);
+      const response = await coursesApi.createCourse({
+        title: newCourseTitle.trim(),
+        description: '',
+        category: 'faith',
+      });
+
+      const createdCourse = response.data?.course;
+      if (createdCourse) {
+        // Prepend new course to list and select it
+        setCourses(prev => [createdCourse, ...prev]);
+        setSelectedCourse(String(createdCourse.id));
+        setNewCourseTitle('');
+        setIsCreatingCourse(false);
+        setSuccessMessage('Course created. You can now save this lesson into it.');
+      } else {
+        setErrorMessage('Course was created but no course data was returned.');
+      }
+    } catch (error: any) {
+      console.error('Failed to create course inline:', error);
+      setErrorMessage(
+        error?.response?.data?.message ||
+        'Failed to create course. Please try again or create it from My Courses.'
+      );
+    } finally {
+      setIsCreatingCourseLoading(false);
+    }
+  };
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1599,8 +1632,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             )}
 
-            {/* Saved Drafts Button */}
-            {savedDrafts.length > 0 && (
+            {/* Saved Drafts Button (advanced) */}
+            {showAdvancedTools && savedDrafts.length > 0 && (
               <div className="relative">
                 <button
                   onClick={() => setShowDraftsList(!showDraftsList)}
@@ -1692,8 +1725,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             )}
 
-            {/* Session Management Button */}
-            {savedSessions.length > 0 && (
+            {/* Session Management Button (advanced) */}
+            {showAdvancedTools && savedSessions.length > 0 && (
               <div className="relative">
                 <button
                   onClick={() => setShowSessionMenu(!showSessionMenu)}
@@ -1721,20 +1754,33 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             )}
             
+            {/* Simple vs advanced toggle */}
             <button
-              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-              className="p-2 text-gray-400 hover:text-gray-600"
-              title="Advanced Settings"
+              onClick={() => setShowAdvancedTools(prev => !prev)}
+              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200/70 bg-white/80 text-slate-600 hover:bg-slate-50/80"
             >
-              <Settings className="h-5 w-5" />
+              {showAdvancedTools ? 'Hide advanced tools' : 'Show advanced tools'}
             </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-gray-400 hover:text-gray-600"
-              title="Settings"
-            >
-              <Sparkles className="h-5 w-5" />
-            </button>
+
+            {/* Advanced-only settings shortcuts */}
+            {showAdvancedTools && (
+              <>
+                <button
+                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                  title="Advanced Settings"
+                >
+                  <Settings className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="p-2 text-gray-400 hover:text-gray-600"
+                  title="Tips & guidance"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
         
@@ -1876,8 +1922,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Advanced Settings Panel - Light theme */}
-      {showAdvancedSettings && (
+      {/* Advanced Settings Panel - Light theme (advanced only) */}
+      {showAdvancedTools && showAdvancedSettings && (
         <div className="px-6 py-4 border-b border-slate-200/50 bg-white/85 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-semibold text-slate-700 flex items-center">
@@ -2132,8 +2178,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       </div>
 
-      {/* NEW: Slide Manager */}
-      {showSlideManager && (
+      {/* NEW: Slide Manager (advanced only) */}
+      {showAdvancedTools && showSlideManager && (
         <div className="absolute top-4 right-4 z-40 w-96">
           <SlideManager
             onSlidesChange={handleSlidesChange}
@@ -2142,8 +2188,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
       
-      {/* NEW: Keyboard Shortcuts Panel (Task 7.1, 7.2) */}
-      {showKeyboardShortcuts && (
+      {/* NEW: Keyboard Shortcuts Panel (Task 7.1, 7.2) - advanced only */}
+      {showAdvancedTools && showKeyboardShortcuts && (
         <div className="absolute top-4 left-4 z-40 w-80">
           <KeyboardShortcuts
             isRecording={isRecording}
@@ -2164,8 +2210,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Recording Stats (Task 7.1 - Updated recording status indicators) */}
-      {activeTab === 'record' && recordedVideo && videoBlob && (
+      {/* Recording Stats (Task 7.1 - Updated recording status indicators) - advanced only */}
+      {showAdvancedTools && activeTab === 'record' && recordedVideo && videoBlob && (
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-4">
@@ -2412,17 +2458,84 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-slate-700">Select Course *</label>
-              <select 
-                value={selectedCourse} 
-                onChange={(e) => setSelectedCourse(e.target.value)} 
-                className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent"
-                disabled={uploading}
-              >
-                <option value="">Choose a course...</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2">
+                <select 
+                  value={selectedCourse} 
+                  onChange={(e) => setSelectedCourse(e.target.value)} 
+                  className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent"
+                  disabled={uploading || isCreatingCourseLoading}
+                >
+                  <option value="">Choose a course...</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+                {!isCreatingCourse && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingCourse(true);
+                      setNewCourseTitle('');
+                    }}
+                    className="inline-flex items-center text-xs text-sky-700 hover:text-sky-900 self-start px-2 py-1 rounded-md hover:bg-sky-50 transition-colors"
+                    disabled={uploading}
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    Create new course from here
+                  </button>
+                )}
+                {isCreatingCourse && (
+                  <div className="mt-1 space-y-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      New course title
+                    </label>
+                    <input
+                      type="text"
+                      value={newCourseTitle}
+                      onChange={(e) => setNewCourseTitle(e.target.value)}
+                      placeholder="e.g. Introduction to Orthodox Liturgy"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
+                      disabled={isCreatingCourseLoading}
+                    />
+                    <div className="flex gap-2 justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isCreatingCourseLoading) {
+                            setIsCreatingCourse(false);
+                            setNewCourseTitle('');
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-white"
+                        disabled={isCreatingCourseLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateCourseInline}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60 flex items-center"
+                        disabled={isCreatingCourseLoading || !newCourseTitle.trim()}
+                      >
+                        {isCreatingCourseLoading ? (
+                          <>
+                            <Loader className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            Creating…
+                          </>
+                        ) : (
+                          <>
+                            <BookOpen className="h-3.5 w-3.5 mr-1" />
+                            Create & Select
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      We’ll create a new draft course and attach this lesson to it automatically.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1 text-slate-700">Lesson Title *</label>
@@ -2507,22 +2620,24 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         />
       )}
 
-      {/* Recording Presets Manager Modal */}
-      <RecordingPresetsManager
-        currentSettings={{
-          quality: recordingQuality,
-          frameRate: frameRate,
-          bitrate: bitrate,
-          autoAdjustQuality: autoAdjustQuality,
-          videoDeviceId: recordingSources.camera?.getVideoTracks()[0]?.getSettings().deviceId,
-          audioDeviceId: recordingSources.microphone?.getAudioTracks()[0]?.getSettings().deviceId,
-          enableScreen: isScreenSharing,
-          layout: currentLayout
-        }}
-        onPresetSelect={handlePresetSelect}
-        onClose={() => setShowPresetsManager(false)}
-        isOpen={showPresetsManager}
-      />
+      {/* Recording Presets Manager Modal (advanced only) */}
+      {showAdvancedTools && (
+        <RecordingPresetsManager
+          currentSettings={{
+            quality: recordingQuality,
+            frameRate: frameRate,
+            bitrate: bitrate,
+            autoAdjustQuality: autoAdjustQuality,
+            videoDeviceId: recordingSources.camera?.getVideoTracks()[0]?.getSettings().deviceId,
+            audioDeviceId: recordingSources.microphone?.getAudioTracks()[0]?.getSettings().deviceId,
+            enableScreen: isScreenSharing,
+            layout: currentLayout
+          }}
+          onPresetSelect={handlePresetSelect}
+          onClose={() => setShowPresetsManager(false)}
+          isOpen={showPresetsManager}
+        />
+      )}
     </div>
     </>
   );

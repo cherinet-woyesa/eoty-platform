@@ -152,6 +152,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     // Title validation
     if (!formData.title.trim()) {
       formErrors.title = t('courses.errors.title_required');
+    } else if (formData.title.trim().length < 3) {
+      formErrors.title = t('courses.errors.title_too_short');
     } else if (formData.title.length > 60) {
       formErrors.title = t('courses.errors.title_too_long');
     }
@@ -231,8 +233,44 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       setTimeout(() => navigate('/teacher/courses'), 2000);
     } catch (error: any) {
       console.error('Failed to create course:', error);
-      const errorMessage = error.response?.data?.message || t('courses.errors.creation_failed');
-      setErrors({ submit: errorMessage });
+
+      const apiData = error?.response?.data;
+      // Support both shapes:
+      // { success:false, error:{ code, message, details:{...} } }
+      // and { success:false, message, details:{...} }
+      const details =
+        apiData?.error?.details ||
+        apiData?.details ||
+        apiData?.validationErrors ||
+        apiData?.error?.validationErrors;
+
+      const newErrors: Record<string, string> = {};
+
+      if (details) {
+        if (details.title) {
+          newErrors.title = details.title;
+        }
+        if (details.description) {
+          newErrors.description = details.description;
+        }
+        if (details.category) {
+          newErrors.category = details.category;
+        }
+        if (details.level) {
+          newErrors.level = details.level;
+        }
+        newErrors.submit =
+          apiData?.error?.message ||
+          apiData?.message ||
+          t('courses.errors.creation_failed');
+      } else {
+        newErrors.submit =
+          apiData?.error?.message ||
+          apiData?.message ||
+          t('courses.errors.creation_failed');
+      }
+
+      setErrors(newErrors);
     } finally {
       setIsSubmitting(false);
     }

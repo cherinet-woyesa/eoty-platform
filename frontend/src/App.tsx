@@ -70,6 +70,12 @@ import HelpPage from '@/pages/student/HelpPage';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
 import StudentProfile from '@/pages/student/StudentProfile';
 import Assignments from '@/pages/teacher/Assignments';
+import AssignmentCreate from '@/pages/teacher/AssignmentCreate';
+import AssignmentEdit from '@/pages/teacher/AssignmentEdit';
+import AssignmentDetail from '@/pages/teacher/AssignmentDetail';
+import InviteStudent from '@/pages/teacher/InviteStudent';
+import Invitations from '@/pages/student/Invitations';
+import StudentAssignments from '@/pages/student/Assignments';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
 
@@ -367,6 +373,16 @@ function AppContent() {
             </StudentRoute>
           } 
         />
+        <Route
+          path="/student/invitations"
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <Invitations />
+              </DashboardLayout>
+            </StudentRoute>
+          }
+        />
 
         {/* Legacy student routes - redirect to namespaced routes */}
         <Route path="/courses/:courseId" element={<Navigate to={`/student/courses/${window.location.pathname.split('/')[2]}`} replace />} />
@@ -448,6 +464,16 @@ function AppContent() {
             </TeacherRoute>
           } 
         />
+        <Route 
+          path="/teacher/students/invite" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <InviteStudent />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
 
         <Route 
           path="/teacher/analytics" 
@@ -505,6 +531,36 @@ function AppContent() {
             </TeacherRoute>
           } 
         />
+        <Route 
+          path="/teacher/assignments/new" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <AssignmentCreate />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/assignments/:assignmentId" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <AssignmentDetail />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/assignments/:assignmentId/edit" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <AssignmentEdit />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
 
         {/* Legacy teacher routes - redirect to namespaced routes */}
         <Route path="/courses/new" element={<Navigate to="/teacher/courses/new" replace />} />
@@ -533,6 +589,16 @@ function AppContent() {
             <StudentRoute>
               <DashboardLayout>
                 <AIAssistant />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        <Route 
+          path="/student/assignments" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <StudentAssignments />
               </DashboardLayout>
             </StudentRoute>
           } 

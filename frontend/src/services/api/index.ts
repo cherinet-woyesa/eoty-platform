@@ -14,6 +14,7 @@ import { thumbnailsApi } from './thumbnails';
 import { relatedVideosApi } from './relatedVideos';
 import { recordingPresetsApi } from './recordingPresets';
 import { moderationApi } from './moderation';
+import { assignmentsApi } from './assignments';
 
 // Export apiClient so other modules can import it
 export { apiClient };
@@ -51,7 +52,10 @@ export const authApi = {
   },
 
   getUserPermissions: async () => {
-    const response = await apiClient.get('/auth/permissions');
+    // Use a shorter timeout so the UI isn't blocked too long on slow networks
+    const response = await apiClient.get('/auth/permissions', {
+      timeout: 5000
+    });
     return response.data;
   },
 
@@ -167,6 +171,17 @@ export const coursesApi = {
   // Update course
   updateCourse: async (courseId: string, courseData: any) => {
     const response = await apiClient.put(`/courses/${courseId}`, courseData);
+    return response.data;
+  },
+
+  // Publish / unpublish course
+  publishCourse: async (courseId: string) => {
+    const response = await apiClient.post(`/courses/${courseId}/publish`);
+    return response.data;
+  },
+
+  unpublishCourse: async (courseId: string) => {
+    const response = await apiClient.post(`/courses/${courseId}/unpublish`);
     return response.data;
   },
 
@@ -591,6 +606,7 @@ export { relatedVideosApi };
 export type { RelatedVideo } from './relatedVideos';
 export { recordingPresetsApi };
 export type { RecordingPreset, CreatePresetData, UpdatePresetData } from './recordingPresets';
+export { assignmentsApi };
 
 // Landing Page API (public)
 export const landingApi = {

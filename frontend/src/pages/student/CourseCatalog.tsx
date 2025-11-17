@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { 
   BookOpen, Search, Users, Clock, Star, 
   CheckCircle, Loader2, AlertCircle, Filter,
-  TrendingUp, Award, Sparkles
+  TrendingUp, Award, Sparkles, Mail
 } from 'lucide-react';
+import { studentsApi } from '@/services/api/students';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 
@@ -31,6 +32,7 @@ const CourseCatalog: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterLevel, setFilterLevel] = useState('all');
   const [enrolling, setEnrolling] = useState<number | null>(null);
+  const [pendingInvitesCount, setPendingInvitesCount] = useState<number>(0);
 
   // Memoize categories and levels to prevent re-creation on each render
   const categories = useMemo(() => [
@@ -67,9 +69,21 @@ const CourseCatalog: React.FC = () => {
     }
   }, []);
 
+  const loadInvitations = useCallback(async () => {
+    try {
+      const res = await studentsApi.getInvitations();
+      const invites = res.data?.invitations || res.data?.data?.invitations || [];
+      setPendingInvitesCount(invites.length || 0);
+    } catch (err) {
+      // Silent fail – catalog should still work if invites endpoint has an issue
+      console.warn('Failed to load student invitations count:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadCatalog();
-  }, [loadCatalog]);
+    loadInvitations();
+  }, [loadCatalog, loadInvitations]);
 
   const handleEnroll = useCallback(async (courseId: number) => {
     try {
@@ -226,7 +240,7 @@ const CourseCatalog: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
       <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
@@ -246,6 +260,30 @@ const CourseCatalog: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {pendingInvitesCount > 0 && (
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl bg-white/80 border border-emerald-200 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-100">
+                  <Mail className="h-4 w-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">
+                    You have {pendingInvitesCount} course invitation{pendingInvitesCount > 1 ? 's' : ''}.
+                  </p>
+                  <p className="text-xs text-emerald-700/80">
+                    Accept invitations to join courses your teachers have shared with you.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/student/invitations"
+                className="inline-flex items-center self-start sm:self-auto px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
+              >
+                View invitations
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}

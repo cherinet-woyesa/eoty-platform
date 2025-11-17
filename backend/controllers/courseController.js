@@ -29,6 +29,40 @@ const courseController = {
         });
       }
 
+      // Hydrate metadata fields into top-level properties for the API response
+      // so the frontend can work with a flatter course object.
+      let metadata = {};
+      try {
+        if (course.metadata) {
+          metadata =
+            typeof course.metadata === 'string'
+              ? JSON.parse(course.metadata)
+              : course.metadata;
+        }
+      } catch (e) {
+        console.warn('Failed to parse course metadata, using empty object:', e.message);
+        metadata = {};
+      }
+
+      // Basic extended fields
+      course.level = metadata.level || metadata.levelSlug || null;
+      course.cover_image = metadata.coverImage || metadata.cover_image || null;
+      course.learning_objectives = metadata.learningObjectives || metadata.learning_objectives || null;
+      course.prerequisites = metadata.prerequisites || null;
+      course.estimated_duration = metadata.estimatedDuration || metadata.estimated_duration || null;
+      course.tags = metadata.tags || [];
+      course.language = metadata.language || 'en';
+      course.is_public = metadata.isPublic !== undefined ? metadata.isPublic : true;
+      course.certification_available =
+        metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false;
+      course.welcome_message = metadata.welcomeMessage || '';
+      course.price = metadata.price !== undefined ? metadata.price : 0;
+
+      // Status: derive from is_published, but allow metadata override if present
+      course.status =
+        metadata.status ||
+        (course.is_published ? 'published' : 'draft');
+
       // Check permissions: teacher owns course OR admin OR base user enrolled
       const hasPermission = 
         (userRole === 'teacher' && course.created_by === userId) ||
@@ -395,7 +429,25 @@ const courseController = {
       const userId = req.user.userId;
       const userRole = req.user.role;
       const { courseId } = req.params;
-      const { title, description, category, level, is_published, cover_image } = req.body;
+      const {
+        title,
+        description,
+        category,
+        level,
+        is_published,
+        cover_image,
+        // Extended metadata-backed fields from the editor UI
+        learning_objectives,
+        prerequisites,
+        estimated_duration,
+        tags,
+        language,
+        is_public,
+        certification_available,
+        welcome_message,
+        price,
+        status
+      } = req.body;
 
       // Check if course exists and user has permission
       const course = await db('courses').where({ id: courseId }).first();
@@ -429,7 +481,7 @@ const courseController = {
       if (description !== undefined) updateData.description = description;
       if (category !== undefined) updateData.category = category;
 
-      // Handle metadata-based fields (level, cover_image) via JSONB metadata column
+      // Handle metadata-based fields (level, cover_image, and other editor settings)
       let metadata = {};
       try {
         if (course.metadata) {
@@ -447,6 +499,38 @@ const courseController = {
       }
       if (cover_image !== undefined) {
         metadata.coverImage = cover_image;
+      }
+
+      // Extended editor fields go into metadata only (no dedicated columns)
+      if (learning_objectives !== undefined) {
+        metadata.learningObjectives = learning_objectives;
+      }
+      if (prerequisites !== undefined) {
+        metadata.prerequisites = prerequisites;
+      }
+      if (estimated_duration !== undefined) {
+        metadata.estimatedDuration = estimated_duration;
+      }
+      if (tags !== undefined) {
+        metadata.tags = tags;
+      }
+      if (language !== undefined) {
+        metadata.language = language;
+      }
+      if (is_public !== undefined) {
+        metadata.isPublic = is_public;
+      }
+      if (certification_available !== undefined) {
+        metadata.certificationAvailable = certification_available;
+      }
+      if (welcome_message !== undefined) {
+        metadata.welcomeMessage = welcome_message;
+      }
+      if (price !== undefined) {
+        metadata.price = price;
+      }
+      if (status !== undefined) {
+        metadata.status = status;
       }
 
       if (Object.keys(metadata).length > 0) {

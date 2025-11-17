@@ -95,6 +95,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Controls when we actually show the full-screen splash; avoids flashing it for fast loads
+  const [showInitialLoader, setShowInitialLoader] = useState(false);
   const [lastActivity, setLastActivity] = useState<Date>(new Date());
 
   // Activity tracker to detect inactivity
@@ -144,6 +146,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initialize auth - restore session from localStorage if present
   useEffect(() => {
+    // Only show the big splash screen if initialization takes longer than a short delay
+    const loaderTimeout = setTimeout(() => {
+      setShowInitialLoader(true);
+    }, 400); // 400ms threshold keeps fast loads clean
+
     const initializeAuth = async () => {
       try {
         const storedToken = localStorage.getItem('auth_token');
@@ -156,7 +163,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(parsedUser);
             setAuthToken(storedToken);
             setLastActivity(new Date());
-            await loadPermissions();
+
+            // Load permissions in the background so we don't block the initial UI
+            // If this fails or is slow, the user still sees their dashboard quickly.
+            void loadPermissions().catch(error => {
+              console.error('Failed to load permissions during init:', error);
+              setPermissions([]);
+            });
           } catch (parseError) {
             console.error('Failed to parse stored auth user:', parseError);
             localStorage.removeItem('auth_token');
@@ -171,6 +184,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     void initializeAuth();
+    return () => {
+      clearTimeout(loaderTimeout);
+    };
   }, []);
 
   // Login - persist session in memory and localStorage
@@ -515,13 +531,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     lastActivity
   };
 
+  // While auth is initializing, optionally show a friendly splash.
+  // We wait a short delay before showing it to avoid flashing for very fast loads.
   if (isLoading) {
+    if (!showInitialLoader) {
+      // Keep the screen clean for the first few hundred ms
+      return null;
+    }
+
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your experience...</p>
-          <p className="text-sm text-gray-500 mt-2">Preparing your personalized dashboard</p>
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-700 font-medium">Signing you in…</p>
+          <p className="text-xs text-gray-500 mt-1">This usually only takes a moment.</p>
         </div>
       </div>
     );

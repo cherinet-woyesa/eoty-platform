@@ -201,12 +201,19 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
               <Award className="h-4 w-4 text-white" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">{flow.name}</h2>
+            <div>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                {flow.name || 'Get started as a teacher'}
+              </h2>
+              <p className="text-xs text-gray-500">
+                A short guided checklist to help you set up your teaching space.
+              </p>
+            </div>
           </div>
           <button
             onClick={handleDismiss}
@@ -222,7 +229,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
             <div className="text-center mb-6">
               <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Congratulations!</h3>
-              <p className="text-gray-600">You've completed the onboarding process.</p>
+              <p className="text-gray-600">
+                You’ve completed your onboarding. Your dashboard and tools are now fully unlocked.
+              </p>
             </div>
             <CompletionRewards
               rewards={rewards}
@@ -233,9 +242,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
             <div className="mt-6 text-center">
               <button
                 onClick={onClose}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
               >
-                Continue to Dashboard
+                Go to my dashboard
               </button>
             </div>
           </div>
@@ -251,8 +260,10 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
               style={{ width: `${progress?.progress || 0}%` }}
             ></div>
           </div>
-          <div className="text-xs text-gray-500 text-center">
-            {progress?.progress?.toFixed(0) || 0}% Complete
+          <div className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              {progress?.progress?.toFixed(0) || 0}% complete
+            </span>
           </div>
           
           {/* Milestones display (REQUIREMENT: Milestone-based) */}

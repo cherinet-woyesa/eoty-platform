@@ -654,17 +654,18 @@ const authController = {
       const user = await db('users')
         .where({ id: req.user.userId })
         .select(
-          'id', 
-          'first_name', 
-          'last_name', 
-          'email', 
-          'role', 
-          'chapter_id', 
-          'is_active', 
-          'last_login_at', 
-          'profile_picture', 
+          'id',
+          'first_name',
+          'last_name',
+          'email',
+          'role',
+          'chapter_id',
+          'is_active',
+          'last_login_at',
+          'profile_picture',
+          // NOTE: The initial schema uses `phone_number`; alias it to `phone` for the API
+          db.raw('COALESCE(phone_number, \'\') as phone'),
           db.raw('COALESCE(bio, \'\') as bio'),
-          db.raw('COALESCE(phone, \'\') as phone'),
           db.raw('COALESCE(location, \'\') as location'),
           db.raw('COALESCE(specialties, NULL) as specialties'),
           db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
@@ -942,7 +943,8 @@ const authController = {
         first_name: firstName,
         last_name: lastName,
         bio: bio || null,
-        phone: phone || null,
+        // Align with initial schema column name `phone_number`
+        phone_number: phone || null,
         location: location || null,
         profile_picture: profilePicturePath || null,
         specialties: Array.isArray(specialties) ? specialties : null,

@@ -87,8 +87,14 @@ class OnboardingService {
         .where({ user_id: userId, flow_id: flowId, completed: true })
         .pluck('step_id');
 
-      // Get skipped steps
-      const skippedSteps = JSON.parse(userOnboarding.skipped_steps || '[]');
+      // Get skipped steps (defensive parse – handle bad legacy data gracefully)
+      let skippedSteps;
+      try {
+        skippedSteps = JSON.parse(userOnboarding.skipped_steps || '[]');
+      } catch (e) {
+        console.warn('Failed to parse skipped_steps JSON, defaulting to []:', e.message);
+        skippedSteps = [];
+      }
 
       // Calculate progress
       const totalSteps = steps.length;

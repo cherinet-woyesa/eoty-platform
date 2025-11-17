@@ -1,0 +1,129 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { BookOpen, Calendar, CheckCircle, Loader2 } from 'lucide-react';
+import { assignmentsApi, type StudentAssignment } from '@/services/api/assignments';
+
+const StudentAssignments: React.FC = () => {
+  const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await assignmentsApi.listForStudent();
+        setAssignments(res.data?.assignments || []);
+      } catch (err: any) {
+        console.error('Failed to load student assignments:', err);
+        setError(err?.response?.data?.message || err?.message || 'Failed to load assignments.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = assignments.length;
+    const graded = assignments.filter((a) => a.submission_status === 'graded').length;
+    return { total, graded };
+  }, [assignments]);
+
+  const formatDate = (iso?: string | null) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="flex items-center justify-center min-h-80">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto mb-3" />
+            <p className="text-stone-600 text-sm">Loading assignments…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="bg-gradient-to-r from-emerald-500/90 via-teal-500/90 to-sky-500/90 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/15 rounded-lg">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold">My Assignments</h1>
+              <p className="text-xs sm:text-sm text-emerald-50/80">
+                See upcoming assignments, due dates, and your grades.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs sm:text-sm text-emerald-50/80">
+            {stats.total} total • {stats.graded} graded
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="max-w-3xl mx-auto rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto space-y-3">
+        {assignments.length === 0 ? (
+          <div className="bg-white/95 rounded-2xl border border-stone-200 p-8 text-center shadow-sm">
+            <BookOpen className="h-10 w-10 text-stone-300 mx-auto mb-3" />
+            <p className="text-stone-700 font-medium mb-1">No assignments yet</p>
+            <p className="text-stone-500 text-sm">
+              When your teachers publish assignments in your courses, they’ll appear here.
+            </p>
+          </div>
+        ) : (
+          assignments.map((a) => (
+            <div
+              key={a.id}
+              className="bg-white/95 rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-stone-800">{a.title}</p>
+                <p className="text-xs text-stone-500">
+                  {a.course_title || 'Course'} • Due {formatDate(a.due_date)}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+                <div className="flex items-center gap-1 text-stone-500">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{formatDate(a.due_date)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                  {a.submission_status === 'graded' ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Graded {a.score !== null ? `• ${a.score}/${a.max_points}` : ''}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      {a.submission_status === 'submitted' ? 'Submitted, awaiting grade' : 'Not submitted'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default StudentAssignments;
+
+
