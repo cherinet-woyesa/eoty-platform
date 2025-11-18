@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('courses');
+  if (hasTable) {
+    console.log('✓ courses table already exists, skipping migration');
+    return;
+  }
+
   // Courses - main learning content
   await knex.schema.createTable('courses', function(table) {
     table.increments('id').primary();
@@ -10,7 +17,7 @@ exports.up = async function(knex) {
     table.text('description');
     table.string('category');
     table.integer('chapter_id').unsigned().references('id').inTable('chapters').onDelete('CASCADE');
-    table.integer('created_by').unsigned().references('id').inTable('users').onDelete('SET NULL');
+    table.string('created_by').onDelete('SET NULL');
     table.boolean('is_published').defaultTo(false);
     table.timestamp('published_at');
     table.jsonb('metadata'); // Course settings, prerequisites, etc.
@@ -28,7 +35,7 @@ exports.up = async function(knex) {
     table.integer('course_id').unsigned().references('id').inTable('courses').onDelete('CASCADE');
     table.integer('order').defaultTo(0);
     table.string('video_url');
-    table.integer('created_by').unsigned().references('id').inTable('users').onDelete('SET NULL');
+    table.string('created_by').onDelete('SET NULL');
     table.boolean('is_published').defaultTo(false);
     table.timestamp('published_at');
     table.integer('duration').defaultTo(0); // in minutes

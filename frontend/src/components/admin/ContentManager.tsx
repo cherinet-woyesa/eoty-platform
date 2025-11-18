@@ -34,7 +34,7 @@ const ContentManager: React.FC = () => {
     description: '',
     category: '',
     tags: [] as string[],
-    chapterId: 'addis-ababa',
+    chapterId: '', // Will be set dynamically
     file: null as File | null
   });
   const [bulkUploadFiles, setBulkUploadFiles] = useState<File[]>([]);
@@ -49,6 +49,27 @@ const ContentManager: React.FC = () => {
   const [previewData, setPreviewData] = useState<Record<number, any>>({});
   const [loadingPreview, setLoadingPreview] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
+
+  // Fetch chapters on mount
+  useEffect(() => {
+    const fetchChapters = async () => {
+      try {
+        const { chaptersApi } = await import('@/services/api/chapters');
+        const response = await chaptersApi.getChapters();
+        if (response.success && response.data?.chapters) {
+          setChapters(response.data.chapters);
+          // Set default chapter to first available
+          if (response.data.chapters.length > 0 && !newUpload.chapterId) {
+            setNewUpload(prev => ({ ...prev, chapterId: response.data.chapters[0].id.toString() }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching chapters:', err);
+      }
+    };
+    fetchChapters();
+  }, []);
 
   useEffect(() => {
     fetchUploads();
@@ -705,11 +726,15 @@ const ContentManager: React.FC = () => {
                 value={newUpload.chapterId}
                 onChange={handleInputChange}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                required
               >
-                <option value="addis-ababa">Addis Ababa</option>
-                <option value="toronto">Toronto</option>
-                <option value="washington">Washington DC</option>
-                <option value="london">London</option>
+                {chapters.length === 0 ? (
+                  <option value="">Loading chapters...</option>
+                ) : (
+                  chapters.map((ch) => (
+                    <option key={ch.id} value={ch.id}>{ch.location}</option>
+                  ))
+                )}
               </select>
             </div>
             <div className="md:col-span-2">
@@ -825,11 +850,15 @@ const ContentManager: React.FC = () => {
                 value={newUpload.chapterId}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               >
-                <option value="addis-ababa">Addis Ababa</option>
-                <option value="toronto">Toronto</option>
-                <option value="washington">Washington DC</option>
-                <option value="london">London</option>
+                {chapters.length === 0 ? (
+                  <option value="">Loading chapters...</option>
+                ) : (
+                  chapters.map((ch) => (
+                    <option key={ch.id} value={ch.id}>{ch.location}</option>
+                  ))
+                )}
               </select>
             </div>
             <div>

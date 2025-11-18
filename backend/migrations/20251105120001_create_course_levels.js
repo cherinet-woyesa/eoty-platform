@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('course_levels');
+  if (hasTable) {
+    console.log('✓ course_levels table already exists, skipping migration');
+    return;
+  }
+
   // Create course_levels table
   await knex.schema.createTable('course_levels', function(table) {
     table.increments('id').primary();

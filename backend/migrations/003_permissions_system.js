@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('roles');
+  if (hasTable) {
+    console.log('✓ roles table already exists, skipping migration');
+    return;
+  }
+
   // Roles table
   await knex.schema.createTable('roles', function(table) {
     table.increments('id').primary();
@@ -14,7 +21,7 @@ exports.up = async function(knex) {
   // User roles junction
   await knex.schema.createTable('user_roles', function(table) {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('role_id').unsigned().references('id').inTable('roles').onDelete('CASCADE');
     table.unique(['user_id', 'role_id']);
   });

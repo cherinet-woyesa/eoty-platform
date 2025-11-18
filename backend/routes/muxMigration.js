@@ -20,26 +20,65 @@ router.get('/eligible-videos', async (req, res) => {
     const { page = 1, limit = 50, courseId, search } = req.query;
     const offset = (page - 1) * limit;
 
+    // Some schemas may not have video_url / s3_key / hls_url on lessons; detect what exists
+    const hasVideoUrl = await db.schema.hasColumn('lessons', 'video_url');
+    const hasS3Key = await db.schema.hasColumn('lessons', 's3_key');
+    const hasHlsUrl = await db.schema.hasColumn('lessons', 'hls_url');
+
+    // If we have no way to detect source videos, return an empty list rather than error
+    if (!hasVideoUrl && !hasS3Key && !hasHlsUrl) {
+      console.warn(
+        'Lessons table has no video_url, s3_key, or hls_url columns; returning empty eligible videos list'
+      );
+      return res.json({
+        success: true,
+        data: {
+          videos: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            totalPages: 0
+          }
+        }
+      });
+    }
+
     // Build query for S3 videos
     let query = db('lessons')
       .select(
         'lessons.id',
         'lessons.title',
         'lessons.description',
-        'lessons.video_url',
-        'lessons.s3_key',
-        'lessons.hls_url',
+        // Keep response shape stable even if some columns are missing
+        hasVideoUrl ? 'lessons.video_url' : db.raw('NULL as video_url'),
+        hasS3Key ? 'lessons.s3_key' : db.raw('NULL as s3_key'),
+        hasHlsUrl ? 'lessons.hls_url' : db.raw('NULL as hls_url'),
         'lessons.duration',
         'lessons.video_provider',
         'lessons.created_at',
         'courses.id as course_id',
         'courses.title as course_title',
-        'courses.teacher_id'
+        // Use created_by as a proxy for teacher/owner; keep name for frontend compatibility
+        'courses.created_by as teacher_id'
       )
       .leftJoin('courses', 'lessons.course_id', 'courses.id')
       .where(function() {
-        this.whereNotNull('lessons.video_url')
-          .orWhereNotNull('lessons.s3_key');
+        if (hasVideoUrl) {
+          this.whereNotNull('lessons.video_url');
+        }
+        if (hasS3Key) {
+          // If video_url also exists, treat s3_key as an OR condition
+          if (hasVideoUrl) {
+            this.orWhereNotNull('lessons.s3_key');
+          } else {
+            this.whereNotNull('lessons.s3_key');
+          }
+        }
+        if (!hasVideoUrl && !hasS3Key && hasHlsUrl) {
+          // Last fallback: use hls_url only
+          this.whereNotNull('lessons.hls_url');
+        }
       })
       .where(function() {
         this.where('lessons.video_provider', 's3')

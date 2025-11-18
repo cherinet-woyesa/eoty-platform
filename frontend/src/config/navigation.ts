@@ -14,28 +14,14 @@ import {
   Bot,
   Sparkles,
   Upload,
-  Clock,
-  Star,
-  Target,
-  DollarSign,
-  School,
-  Bookmark,
-  Calendar,
-  HelpCircle,
   Brain,
-  Search,
   FolderTree,
   Layers,
   Timer,
   Hash,
-  Crown,
-  PlayCircle,
-  Zap,
-  BarChart3,
-  MessageCircle,
   Users as UsersIcon,
   Shield as ShieldIcon,
-  Globe as GlobeIcon
+  TrendingUp
 } from 'lucide-react';
 
 export interface NavItem {
@@ -75,7 +61,7 @@ export const ROLE_HIERARCHY: Record<string, number> = {
  * Organized by priority and grouped logically for better UX
  */
 export const adminNavItems: NavItem[] = [
-  // PRIMARY NAVIGATION - Core admin activities (Top 6)
+  // PRIMARY NAVIGATION - Consolidated from 11+ items → 4 items
   {
     name: 'Dashboard',
     href: '/admin/dashboard',
@@ -87,170 +73,34 @@ export const adminNavItems: NavItem[] = [
     section: 'primary',
   },
   {
-    name: 'User Management',
-    href: '/admin/users',
+    name: 'Users & Access',
+    href: '/admin/all-users',
     icon: Users,
     badge: null,
-    description: 'Manage users and roles',
-    color: 'text-[#16A085]',
+    description: 'Users, Chapters & Roles',
+    color: 'text-[#E74C3C]',
     requiredRole: 'admin',
     section: 'primary',
   },
   {
-    name: 'Courses',
-    href: '/admin/courses',
-    icon: BookOpen,
-    badge: null,
-    description: 'Manage all courses',
-    color: 'text-[#2980B9]',
-    requiredRole: 'admin',
-    section: 'primary',
-  },
-  {
-    name: 'Upload Queue',
-    href: '/admin/content',
+    name: 'Content',
+    href: '/admin/all-content',
     icon: FileText,
     badge: null,
-    description: 'Review and approve uploads',
-    color: 'text-[#27AE60]',
-    requiredRole: 'admin',
-    section: 'primary',
-  },
-  {
-    name: 'Moderation',
-    href: '/admin/moderation',
-    icon: Shield,
-    badge: null,
-    description: 'Content moderation and review',
+    description: 'Uploads, Moderation, Tags & Courses',
     color: 'text-[#F39C12]',
     requiredRole: 'admin',
     section: 'primary',
   },
   {
-    name: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart2,
-    badge: null,
-    description: 'Platform analytics and insights',
-    color: 'text-[#2980B9]',
-    requiredRole: 'admin',
-    section: 'primary',
-  },
-  
-  // CONTENT MANAGEMENT SECTION - Content and application management
-  {
-    name: 'Teacher Applications',
-    href: '/admin/teacher-applications',
-    icon: Users,
-    badge: null,
-    description: 'Review teacher applications',
-    color: 'text-[#16A085]',
-    requiredRole: 'admin',
-    section: 'content',
-  },
-  {
-    name: 'Tags & Categories',
-    href: '/admin/tags',
-    icon: Tag,
-    badge: null,
-    description: 'Organize content tags and categories',
-    color: 'text-[#2980B9]',
-    requiredRole: 'admin',
-    section: 'content',
-  },
-  {
-    name: 'System Config',
-    href: '/admin/config',
+    name: 'System',
+    href: '/admin/system',
     icon: Settings,
     badge: null,
-    description: 'System configuration and settings',
-    color: 'text-[#27AE60]',
-    requiredRole: 'admin',
-    section: 'content',
-    children: [
-      {
-        name: 'Dashboard',
-        href: '/admin/config/dashboard',
-        icon: LayoutDashboard,
-        description: 'Config overview',
-        color: 'text-[#27AE60]',
-        requiredRole: 'admin',
-      },
-      {
-        name: 'Categories',
-        href: '/admin/config/categories',
-        icon: FolderTree,
-        description: 'Course categories',
-        color: 'text-[#16A085]',
-        requiredRole: 'admin',
-      },
-      {
-        name: 'Levels',
-        href: '/admin/config/levels',
-        icon: Layers,
-        description: 'Difficulty levels',
-        color: 'text-[#2980B9]',
-        requiredRole: 'admin',
-      },
-      {
-        name: 'Durations',
-        href: '/admin/config/durations',
-        icon: Timer,
-        description: 'Course durations',
-        color: 'text-[#F39C12]',
-        requiredRole: 'admin',
-      },
-      {
-        name: 'Tags',
-        href: '/admin/config/tags',
-        icon: Hash,
-        description: 'Content tags',
-        color: 'text-[#27AE60]',
-        requiredRole: 'admin',
-      },
-      {
-        name: 'Chapters',
-        href: '/admin/config/chapters',
-        icon: BookOpen,
-        description: 'Chapter management',
-        color: 'text-[#16A085]',
-        requiredRole: 'admin',
-      },
-    ],
-  },
-  
-  // SYSTEM TOOLS SECTION - System maintenance and tools
-  {
-    name: 'Mux Migration',
-    href: '/admin/mux-migration',
-    icon: Video,
-    badge: null,
-    description: 'Migrate videos to Mux platform',
-    color: 'text-[#F39C12]',
-    requiredRole: 'admin',
-    section: 'system',
-  },
-  
-  // REFERENCE SECTION - Reference and logs
-  {
-    name: 'Chapters',
-    href: '/admin/chapters',
-    icon: UsersIcon,
-    badge: null,
-    description: 'Manage chapters',
-    color: 'text-[#16A085]',
-    requiredRole: 'admin',
-    section: 'reference',
-  },
-  {
-    name: 'Activity Logs',
-    href: '/admin/activity-logs',
-    icon: ShieldIcon,
-    badge: null,
-    description: 'View system activity logs',
+    description: 'Analytics, Config, Logs & Tools',
     color: 'text-[#2980B9]',
     requiredRole: 'admin',
-    section: 'reference',
+    section: 'primary',
   },
 ];
 
@@ -260,27 +110,9 @@ export const adminNavItems: NavItem[] = [
  */
 export const adminNavSections = {
   primary: {
-    title: null, // No header for primary section
+    title: null, // No header for primary section - all items consolidated
     collapsible: false,
     defaultExpanded: true,
-  },
-  content: {
-    title: 'Content Management',
-    icon: FileText,
-    collapsible: true,
-    defaultExpanded: true,
-  },
-  system: {
-    title: 'System Tools',
-    icon: Settings,
-    collapsible: true,
-    defaultExpanded: false,
-  },
-  reference: {
-    title: 'Reference',
-    icon: Shield,
-    collapsible: true,
-    defaultExpanded: false,
   },
 };
 
@@ -294,7 +126,7 @@ export const adminNavSections = {
  * Organized by priority and grouped logically for better UX
  */
 export const teacherNavItems: NavItem[] = [
-  // PRIMARY NAVIGATION - Core teaching activities (Top 6)
+  // PRIMARY NAVIGATION - Consolidated from 12 items → 6 items
   {
     name: 'Dashboard',
     href: '/teacher/dashboard',
@@ -306,66 +138,34 @@ export const teacherNavItems: NavItem[] = [
     section: 'primary',
   },
   {
-    name: 'My Courses',
-    href: '/teacher/courses',
+    name: 'Courses',
+    href: '/teacher/all-courses',
     icon: BookOpen,
     badge: null,
-    description: 'Manage your courses',
-    color: 'text-[#16A085]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'primary',
-  },
-  {
-    name: 'Create Course',
-    href: '/teacher/courses/new',
-    icon: Sparkles,
-    badge: null,
-    description: 'Create a new course',
-    color: 'text-[#2980B9]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'primary',
-  },
-  {
-    name: 'Record Video',
-    href: '/teacher/record',
-    icon: Video,
-    badge: null,
-    description: 'Record and upload lessons',
+    description: 'My Courses, Create & Browse',
     color: 'text-[#2980B9]',
     requiredRole: ['teacher', 'admin'],
     section: 'primary',
   },
   {
     name: 'Students',
-    href: '/teacher/students',
+    href: '/teacher/all-students',
     icon: Users,
     badge: null,
-    description: 'Manage your students',
+    description: 'Students, Assignments & Analytics',
     color: 'text-[#27AE60]',
     requiredRole: ['teacher', 'admin'],
     section: 'primary',
   },
   {
-    name: 'Analytics',
-    href: '/teacher/analytics',
-    icon: BarChart2,
+    name: 'Content',
+    href: '/teacher/content',
+    icon: Video,
     badge: null,
-    description: 'View course analytics',
-    color: 'text-[#F39C12]',
+    description: 'Record, Upload & Resources',
+    color: 'text-[#2980B9]',
     requiredRole: ['teacher', 'admin'],
     section: 'primary',
-  },
-  
-  // TEACHING TOOLS SECTION - Teaching support tools
-  {
-    name: 'Assignments',
-    href: '/teacher/assignments',
-    icon: FileText,
-    badge: null,
-    description: 'Grade assignments and quizzes',
-    color: 'text-[#16A085]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'teaching',
   },
   {
     name: 'AI Assistant',
@@ -375,51 +175,17 @@ export const teacherNavItems: NavItem[] = [
     description: 'Get teaching help and ideas',
     color: 'text-[#27AE60]',
     requiredRole: ['teacher', 'admin'],
-    section: 'teaching',
+    section: 'primary',
   },
   {
-    name: 'Discussions',
-    href: '/teacher/forums',
+    name: 'Community',
+    href: '/teacher/community',
     icon: MessageSquare,
     badge: null,
-    description: 'Engage with students',
+    description: 'Forums, Chapters & Achievements',
     color: 'text-[#16A085]',
     requiredRole: ['teacher', 'admin'],
-    section: 'teaching',
-  },
-  
-  // COMMUNITY SECTION - Social and collaboration
-  {
-    name: 'Chapters',
-    href: '/teacher/chapters',
-    icon: UsersIcon,
-    badge: null,
-    description: 'Join and manage chapters',
-    color: 'text-[#16A085]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'community',
-  },
-  
-  // RESOURCES SECTION - Support and reference
-  {
-    name: 'Resources',
-    href: '/teacher/resources',
-    icon: Upload,
-    badge: null,
-    description: 'Upload and manage resources',
-    color: 'text-[#2980B9]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'resources',
-  },
-  {
-    name: 'Achievements',
-    href: '/teacher/achievements',
-    icon: Award,
-    badge: null,
-    description: 'View teaching achievements',
-    color: 'text-[#F39C12]',
-    requiredRole: ['teacher', 'admin'],
-    section: 'resources',
+    section: 'primary',
   },
 ];
 
@@ -429,27 +195,9 @@ export const teacherNavItems: NavItem[] = [
  */
 export const teacherNavSections = {
   primary: {
-    title: null, // No header for primary section
+    title: null, // No header for primary section - all items consolidated
     collapsible: false,
     defaultExpanded: true,
-  },
-  teaching: {
-    title: 'Teaching Tools',
-    icon: BookOpen,
-    collapsible: true,
-    defaultExpanded: true,
-  },
-  community: {
-    title: 'Community',
-    icon: Users,
-    collapsible: true,
-    defaultExpanded: false,
-  },
-  resources: {
-    title: 'Resources',
-    icon: Upload,
-    collapsible: true,
-    defaultExpanded: false,
   },
 };
 
@@ -458,7 +206,7 @@ export const teacherNavSections = {
  * Organized by priority and grouped logically for better UX
  */
 export const studentNavItems: NavItem[] = [
-  // PRIMARY NAVIGATION - Core items, always visible (Top 6)
+  // PRIMARY NAVIGATION - Core items, always visible (Top 6 → Reduced to 6)
   {
     name: 'Dashboard',
     href: '/student/dashboard',
@@ -470,31 +218,21 @@ export const studentNavItems: NavItem[] = [
     section: 'primary',
   },
   {
-    name: 'My Courses',
-    href: '/student/courses',
+    name: 'Courses',
+    href: '/student/all-courses',
     icon: BookOpen,
     badge: null,
-    description: 'Your enrolled courses and lessons',
+    description: 'My Courses, Browse, and Bookmarks',
     color: 'text-green-600',
     requiredRole: 'student',
     section: 'primary',
   },
   {
-    name: 'Browse Courses',
-    href: '/student/browse-courses',
-    icon: Search,
+    name: 'Learning',
+    href: '/student/learning',
+    icon: TrendingUp,
     badge: null,
-    description: 'Discover and enroll in new courses',
-    color: 'text-purple-600',
-    requiredRole: 'student',
-    section: 'primary',
-  },
-  {
-    name: 'Progress',
-    href: '/student/progress',
-    icon: BarChart3,
-    badge: null,
-    description: 'Track your learning progress',
+    description: 'Progress, Assignments, Paths & Achievements',
     color: 'text-orange-600',
     requiredRole: 'student',
     section: 'primary',
@@ -510,100 +248,24 @@ export const studentNavItems: NavItem[] = [
     section: 'primary',
   },
   {
-    name: 'Discussions',
-    href: '/student/forums',
-    icon: MessageSquare,
+    name: 'Community',
+    href: '/student/community-hub',
+    icon: Users,
     badge: null,
-    description: 'Ask questions and join discussions',
-    color: 'text-cyan-600',
+    description: 'Feed, Groups, Forums & Chapters',
+    color: 'text-[#27AE60]',
     requiredRole: 'student',
     section: 'primary',
   },
-  
-  // LEARNING SECTION - Learning-related tools
-  {
-    name: 'Bookmarks',
-    href: '/student/bookmarks',
-    icon: Bookmark,
-    badge: null,
-    description: 'Your saved lessons and courses',
-    color: 'text-yellow-600',
-    requiredRole: 'student',
-    section: 'learning',
-  },
-  {
-    name: 'Assignments',
-    href: '/student/assignments',
-    icon: FileText,
-    badge: null,
-    description: 'See due work and your grades',
-    color: 'text-emerald-600',
-    requiredRole: 'student',
-    section: 'learning',
-  },
-  {
-    name: 'Study Paths',
-    href: '/student/learning-paths',
-    icon: Target,
-    badge: null,
-    description: 'Structured learning paths',
-    color: 'text-indigo-600',
-    requiredRole: 'student',
-    section: 'learning',
-  },
-  {
-    name: 'Achievements',
-    href: '/student/achievements',
-    icon: Award,
-    badge: null,
-    description: 'View your badges and achievements',
-    color: 'text-amber-600',
-    requiredRole: 'student',
-    section: 'learning',
-  },
-  
-  // COMMUNITY SECTION - Social and collaboration
-  {
-    name: 'Study Groups',
-    href: '/student/study-groups',
-    icon: Users,
-    badge: null,
-    description: 'Collaborate with study partners',
-    color: 'text-teal-600',
-    requiredRole: 'student',
-    section: 'community',
-  },
-  {
-    name: 'Chapters',
-    href: '/student/chapters',
-    icon: UsersIcon,
-    badge: null,
-    description: 'Join and manage chapters',
-    color: 'text-blue-600',
-    requiredRole: 'student',
-    section: 'community',
-  },
-  
-  // RESOURCES SECTION - Support and reference
   {
     name: 'Resources',
-    href: '/student/resources',
-    icon: FileText,
+    href: '/student/all-resources',
+    icon: FolderTree,
     badge: null,
-    description: 'Study materials and documents',
+    description: 'Library and Help Center',
     color: 'text-gray-600',
     requiredRole: 'student',
-    section: 'resources',
-  },
-  {
-    name: 'Help Center',
-    href: '/student/help',
-    icon: HelpCircle,
-    badge: null,
-    description: 'Get help and support',
-    color: 'text-red-600',
-    requiredRole: 'student',
-    section: 'resources',
+    section: 'primary',
   },
 ];
 
@@ -613,26 +275,8 @@ export const studentNavItems: NavItem[] = [
  */
 export const studentNavSections = {
   primary: {
-    title: null, // No header for primary section
+    title: null, // No header for primary section - all items consolidated
     collapsible: false,
     defaultExpanded: true,
-  },
-  learning: {
-    title: 'Learning',
-    icon: BookOpen,
-    collapsible: true,
-    defaultExpanded: true,
-  },
-  community: {
-    title: 'Community',
-    icon: Users,
-    collapsible: true,
-    defaultExpanded: false,
-  },
-  resources: {
-    title: 'Resources',
-    icon: FileText,
-    collapsible: true,
-    defaultExpanded: false,
   },
 };

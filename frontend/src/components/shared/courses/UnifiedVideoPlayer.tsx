@@ -9,6 +9,8 @@ import { videoApi } from '@/services/api/videos';
 import { useAuth } from '@/context/AuthContext';
 import { formatTime } from '@/utils/formatters';
 import { useNotification } from '@/context/NotificationContext';
+import { quizApi, type QuizTrigger } from '@/services/api/quiz';
+import VideoQuizOverlay from './VideoQuizOverlay';
 // EnhancedVideoPlayer removed - all videos use Mux
 
 // Mobile detection hook
@@ -116,6 +118,12 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const [isDownloading, setIsDownloading] = React.useState(false);
   const playerContainerRef = React.useRef<HTMLDivElement>(null);
   
+  // Quiz Triggers (FR2: In-lesson quiz integration)
+  const [quizTriggers, setQuizTriggers] = React.useState<QuizTrigger[]>([]);
+  const [activeQuiz, setActiveQuiz] = React.useState<QuizTrigger | null>(null);
+  const [completedQuizzes, setCompletedQuizzes] = React.useState<number[]>([]);
+  const [duration, setDuration] = React.useState(0);
+  
   // Network interruption handling (REQUIREMENT: Resume/retry capability)
   const [networkStatus, setNetworkStatus] = React.useState<'online' | 'offline' | 'buffering' | 'reconnecting'>('online');
   const [bufferingProgress, setBufferingProgress] = React.useState(0);
@@ -159,9 +167,22 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       }
     };
 
+    const loadQuizTriggers = async () => {
+      try {
+        const response = await quizApi.getQuizTriggers(parseInt(lesson.id));
+        if (response.success && response.data?.triggers) {
+          setQuizTriggers(response.data.triggers);
+          console.log('Loaded quiz triggers:', response.data.triggers);
+        }
+      } catch (error) {
+        console.warn('Failed to load quiz triggers:', error);
+      }
+    };
+
     if (lesson.id) {
       loadWatchHistory();
       loadSubtitles();
+      loadQuizTriggers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id, user?.id]);
@@ -534,6 +555,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   // FIXED: Render Mux Player ONLY if we have valid playback ID
   if (videoProvider === 'mux' && lesson.mux_playback_id) {
     return (
+      <>
       <div 
         ref={playerContainerRef}
         className={`unified-video-player mux-player-container relative ${isMobile ? 'mobile-player' : ''} ${
@@ -911,6 +933,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           onLoadedMetadata={(event: any) => {
             console.log('Mux video loaded:', event);
             const player = event.target;
+            setDuration(player.duration || 0);
             onLoad?.({ 
               lesson,
               duration: player.duration,
@@ -934,6 +957,23 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             const time = player.currentTime || 0;
             setCurrentTime(time);
             onProgress?.(time);
+            
+            // Check for quiz triggers (FR2: In-lesson quiz integration)
+            if (quizTriggers.length > 0 && !activeQuiz) {
+              const trigger = quizTriggers.find(t => 
+                Math.abs(t.trigger_timestamp - time) < 0.5 &&
+                !completedQuizzes.includes(t.id)
+              );
+              
+              if (trigger) {
+                console.log('Quiz trigger detected at', time, 'seconds:', trigger);
+                if (trigger.pause_video && muxPlayerRef.current) {
+                  muxPlayerRef.current.pause();
+                }
+                setActiveQuiz(trigger);
+                announce(`Quiz question: ${trigger.question_text}`);
+              }
+            }
           }}
           onEnded={() => {
             console.log('Mux video completed');
@@ -973,6 +1013,25 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           playsInline={isMobile}
         />
         
+        {/* Quiz Timeline Markers (FR2: In-lesson quiz integration) */}
+        {quizTriggers.length > 0 && duration > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 pointer-events-none z-20">
+            {quizTriggers.map(trigger => (
+              <div
+                key={trigger.id}
+                className="absolute top-0 w-1 h-2 -mt-0.5 transition-colors"
+                style={{
+                  left: `${(trigger.trigger_timestamp / duration) * 100}%`,
+                  backgroundColor: completedQuizzes.includes(trigger.id)
+                    ? '#27AE60' // Green for completed
+                    : '#F39C12' // Orange for pending
+                }}
+                title={`Quiz: ${trigger.question_text.substring(0, 40)}...`}
+              />
+            ))}
+          </div>
+        )}
+        
         {/* Display current playback rate indicator - Mobile optimized */}
         {currentPlaybackRate !== 1 && (
           <div className={`absolute bg-black/70 text-white rounded-lg font-medium z-10 ${
@@ -984,6 +1043,53 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Quiz Overlay (FR2: In-lesson quiz integration) */}
+      {activeQuiz && (
+        <VideoQuizOverlay
+          trigger={activeQuiz}
+          lessonId={parseInt(lesson.id)}
+          onComplete={(score, passed, correct) => {
+            if (!activeQuiz) return;
+            
+            console.log('Quiz completed:', { score, passed, correct });
+            const quizId = activeQuiz.id;
+            const shouldPause = activeQuiz.pause_video;
+            setCompletedQuizzes([...completedQuizzes, quizId]);
+            setActiveQuiz(null);
+            
+            // Resume video if it was paused
+            if (shouldPause && muxPlayerRef.current) {
+              muxPlayerRef.current.play();
+            }
+            
+            // Show success notification
+            if (correct) {
+              showNotification({
+                type: 'success',
+                title: 'Correct Answer!',
+                message: '🎉 Great job!',
+                duration: 3000
+              });
+            } else if (passed) {
+              showNotification({
+                type: 'info',
+                title: 'Quiz Completed',
+                message: 'Moving on...',
+                duration: 3000
+              });
+            }
+          }}
+          onSkip={!activeQuiz.is_required ? () => {
+            console.log('Quiz skipped');
+            setActiveQuiz(null);
+            if (muxPlayerRef.current) {
+              muxPlayerRef.current.play();
+            }
+          } : undefined}
+        />
+      )}
+    </>
     );
   }
 

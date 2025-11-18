@@ -37,6 +37,7 @@ import CommunityHub from '@/pages/shared/social/CommunityHub';
 import AdminDashboard from '@/components/admin/dashboard/AdminDashboard';
 import ContentManagement from '@/pages/admin/ContentManagement';
 import AdminCourseView from '@/pages/admin/AdminCourseView';
+import AdminProfile from '@/pages/admin/AdminProfile';
 import { UserProvider } from '@/context/UserContext';
 import { OnboardingProvider } from '@/context/OnboardingContext';
 import { LocalizationProvider } from '@/context/LocalizationContext';
@@ -66,7 +67,12 @@ import JourneysAdmin from '@/pages/admin/JourneysAdmin';
 import LearningPathsPage from '@/pages/student/LearningPathsPage';
 import BookmarksPage from '@/pages/student/BookmarksPage';
 import StudyGroupsPage from '@/pages/student/StudyGroupsPage';
+import GroupDetailPage from '@/pages/student/GroupDetailPage';
 import HelpPage from '@/pages/student/HelpPage';
+import CoursesPage from '@/pages/student/CoursesPage';
+import CommunityPage from '@/pages/student/CommunityPage';
+import LearningPage from '@/pages/student/LearningPage';
+import ResourcesPage from '@/pages/student/ResourcesPage';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
 import StudentProfile from '@/pages/student/StudentProfile';
 import Assignments from '@/pages/teacher/Assignments';
@@ -74,6 +80,13 @@ import AssignmentCreate from '@/pages/teacher/AssignmentCreate';
 import AssignmentEdit from '@/pages/teacher/AssignmentEdit';
 import AssignmentDetail from '@/pages/teacher/AssignmentDetail';
 import InviteStudent from '@/pages/teacher/InviteStudent';
+import TeacherCoursesPage from '@/pages/teacher/TeacherCoursesPage';
+import TeacherStudentsPage from '@/pages/teacher/TeacherStudentsPage';
+import TeacherContentPage from '@/pages/teacher/TeacherContentPage';
+import TeacherCommunityPage from '@/pages/teacher/TeacherCommunityPage';
+import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminContentPage from '@/pages/admin/AdminContentPage';
+import AdminSystemPage from '@/pages/admin/AdminSystemPage';
 import Invitations from '@/pages/student/Invitations';
 import StudentAssignments from '@/pages/student/Assignments';
 import { queryClient } from '@/lib/queryClient';
@@ -209,6 +222,58 @@ function AppContent() {
             </TeacherRoute>
           } 
         />
+
+        {/* ========== CONSOLIDATED STUDENT PAGES ========== */}
+        
+        {/* Consolidated Courses Page - My Courses | Browse | Bookmarks */}
+        <Route 
+          path="/student/all-courses" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <CoursesPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        {/* Consolidated Learning Page - Progress | Assignments | Paths | Achievements */}
+        <Route 
+          path="/student/learning" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <LearningPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        {/* Consolidated Community Page - Feed | Groups | Forums | Chapters */}
+        <Route 
+          path="/student/community-hub" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <CommunityPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+        
+        {/* Consolidated Resources Page - Library | Help */}
+        <Route 
+          path="/student/all-resources" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <ResourcesPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        {/* ========== LEGACY STUDENT ROUTES (Keep for backward compatibility) ========== */}
 
         {/* Student Courses - Browse catalog (students only) */}
         <Route 
@@ -353,6 +418,17 @@ function AppContent() {
         />
 
         <Route 
+          path="/student/study-groups/:groupId" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <GroupDetailPage />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
           path="/student/help" 
           element={
             <StudentRoute>
@@ -395,6 +471,58 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+
+        {/* ========== CONSOLIDATED TEACHER PAGES ========== */}
+        
+        {/* Consolidated Teacher Courses Page - My Courses | Create | Browse */}
+        <Route 
+          path="/teacher/all-courses" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherCoursesPage />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        
+        {/* Consolidated Teacher Students Page - Students | Assignments | Analytics */}
+        <Route 
+          path="/teacher/all-students" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherStudentsPage />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        
+        {/* Consolidated Teacher Content Page - Record | Upload | Resources */}
+        <Route 
+          path="/teacher/content" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherContentPage />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+        
+        {/* Consolidated Teacher Community Page - Discussions | Chapters | Achievements */}
+        <Route 
+          path="/teacher/community" 
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherCommunityPage />
+              </DashboardLayout>
+            </TeacherRoute>
+          } 
+        />
+
+        {/* ========== LEGACY TEACHER ROUTES (Keep for backward compatibility) ========== */}
 
         {/* Teacher Routes - All under /teacher prefix */}
         <Route 
@@ -675,6 +803,57 @@ function AppContent() {
         />
 
         <Route 
+          path="/admin/profile" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminProfile />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        {/* ========== CONSOLIDATED ADMIN PAGES ========== */}
+        
+        {/* Consolidated Admin Users Page - Users | Chapters | Roles */}
+        <Route 
+          path="/admin/all-users" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminUsersPage />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+        
+        {/* Consolidated Admin Content Page - Uploads | Moderation | Tags | Courses */}
+        <Route 
+          path="/admin/all-content" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminContentPage />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+        
+        {/* Consolidated Admin System Page - Analytics | Config | Logs | Mux | Landing */}
+        <Route 
+          path="/admin/system" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminSystemPage />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        {/* ========== LEGACY ADMIN ROUTES (Keep for backward compatibility) ========== */}
+
+        <Route 
           path="/admin/users" 
           element={
             <AdminRoute>
@@ -913,6 +1092,17 @@ function AppContent() {
                 <CommunityHub />
               </DashboardLayout>
             </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/community" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <CommunityHub />
+              </DashboardLayout>
+            </StudentRoute>
           } 
         />
 

@@ -378,15 +378,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Enhanced permission checking with caching and groups
   const hasPermission = (permission: string): boolean => {
-    return permissions.includes(permission);
+    // Check explicit permissions first
+    if (permissions.includes(permission)) {
+      return true;
+    }
+    
+    // Fallback: Grant default permissions based on role if permissions haven't loaded yet
+    if (!user) return false;
+    
+    // Teachers can create, edit, and delete their own courses/lessons/quizzes
+    if (user.role === 'teacher') {
+      const teacherPermissions = [
+        'course:view', 'course:create', 'course:edit_own', 'course:delete_own', 'course:publish',
+        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
+        'video:upload', 'video:stream', 'video:manage', 'video:delete_own',
+        'quiz:take', 'quiz:create', 'quiz:edit_own',
+        'discussion:view', 'discussion:create',
+        'user:edit_own', 'user:view', 'analytics:view_own',
+        'progress:view', 'notes:create', 'notes:view_own'
+      ];
+      if (teacherPermissions.includes(permission)) {
+        return true;
+      }
+    }
+    
+    // Admins have all permissions
+    if (user.role === 'admin') {
+      return true;
+    }
+    
+    return false;
   };
 
   const hasAnyPermission = (requiredPermissions: string[]): boolean => {
-    return requiredPermissions.some(permission => permissions.includes(permission));
+    return requiredPermissions.some(permission => hasPermission(permission));
   };
 
   const hasAllPermissions = (requiredPermissions: string[]): boolean => {
-    return requiredPermissions.every(permission => permissions.includes(permission));
+    return requiredPermissions.every(permission => hasPermission(permission));
   };
 
   const hasRole = (role: string | string[]): boolean => {

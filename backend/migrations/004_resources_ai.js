@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('resources');
+  if (hasTable) {
+    console.log('✓ resources table already exists, skipping migration');
+    return;
+  }
+
   // Resources table
   await knex.schema.createTable('resources', (table) => {
     table.increments('id').primary();
@@ -43,7 +50,7 @@ exports.up = async function(knex) {
   // User notes for resources
   await knex.schema.createTable('user_notes', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('resource_id').unsigned().notNullable().references('id').inTable('resources').onDelete('CASCADE');
     table.string('anchor_point');
     table.text('content').notNullable();
@@ -88,7 +95,7 @@ exports.up = async function(knex) {
   // Resource usage analytics
   await knex.schema.createTable('resource_usage', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('resource_id').unsigned().notNullable().references('id').inTable('resources').onDelete('CASCADE');
     table.string('action');
     table.jsonb('metadata');

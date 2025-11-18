@@ -4,6 +4,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('polls');
+  if (hasTable) {
+    console.log('✓ polls table already exists, skipping migration');
+    return;
+  }
+
   // Polls table - for interactive polls in lessons
   await knex.schema.createTable('polls', function(table) {
     table.increments('id').primary();

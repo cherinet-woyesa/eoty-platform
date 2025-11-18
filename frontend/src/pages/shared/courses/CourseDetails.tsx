@@ -405,7 +405,7 @@ const CourseDetails: React.FC = () => {
                   </span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-700 truncate">{course.title}</h1>
+              <h1 className="text-lg sm:text-xl font-semibold text-slate-700 truncate">{course.title}</h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {(isAdmin || isOwner) && (
@@ -439,57 +439,57 @@ const CourseDetails: React.FC = () => {
           />
         )}
 
-        {/* Stats Grid - Light cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-[#42A5F5]/20 to-[#2196F3]/20">
-              <Users className="h-4 w-4 text-[#42A5F5]" />
+        {/* Stats Grid - Compact cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#42A5F5]/20 to-[#2196F3]/20">
+              <Users className="h-3.5 w-3.5 text-[#42A5F5]" />
             </div>
-            <TrendingUp className="h-3 w-3 text-[#42A5F5]" />
+            <TrendingUp className="h-2.5 w-2.5 text-[#42A5F5]" />
           </div>
           <div>
-            <p className="text-xl font-bold text-slate-800 mb-0.5">{courseStats.totalStudents}</p>
-            <p className="text-xs text-slate-600 font-medium">Total Students</p>
+            <p className="text-base font-bold text-slate-800 mb-0.5">{courseStats.totalStudents}</p>
+            <p className="text-[10px] text-slate-600 font-medium">Total Students</p>
           </div>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-[#66BB6A]/20 to-[#4CAF50]/20">
-              <BarChart className="h-4 w-4 text-[#66BB6A]" />
+        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#66BB6A]/20 to-[#4CAF50]/20">
+              <BarChart className="h-3.5 w-3.5 text-[#66BB6A]" />
             </div>
-            <Award className="h-3 w-3 text-[#66BB6A]" />
+            <Award className="h-2.5 w-2.5 text-[#66BB6A]" />
           </div>
           <div>
-            <p className="text-xl font-bold text-slate-800 mb-0.5">{progressPercentage}%</p>
-            <p className="text-xs text-slate-600 font-medium">Your Progress</p>
+            <p className="text-base font-bold text-slate-800 mb-0.5">{progressPercentage}%</p>
+            <p className="text-[10px] text-slate-600 font-medium">Your Progress</p>
           </div>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-[#FFD700]/20 to-[#FFC107]/20">
-              <Star className="h-4 w-4 text-[#FFD700]" />
+        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#FFD700]/20 to-[#FFC107]/20">
+              <Star className="h-3.5 w-3.5 text-[#FFD700]" />
             </div>
-            <Star className="h-3 w-3 text-[#FFD700] fill-current" />
+            <Star className="h-2.5 w-2.5 text-[#FFD700] fill-current" />
           </div>
           <div>
-            <p className="text-xl font-bold text-slate-800 mb-0.5">{courseStats.averageRating.toFixed(1)}/5</p>
-            <p className="text-xs text-slate-600 font-medium">Average Rating</p>
+            <p className="text-base font-bold text-slate-800 mb-0.5">{courseStats.averageRating.toFixed(1)}/5</p>
+            <p className="text-[10px] text-slate-600 font-medium">Average Rating</p>
           </div>
         </div>
 
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-[#FF7043]/20 to-[#FF5722]/20">
-              <PlayCircle className="h-4 w-4 text-[#FF7043]" />
+        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#FF7043]/20 to-[#FF5722]/20">
+              <PlayCircle className="h-3.5 w-3.5 text-[#FF7043]" />
             </div>
-            <CheckCircle className="h-3 w-3 text-[#FF7043]" />
+            <CheckCircle className="h-2.5 w-2.5 text-[#FF7043]" />
           </div>
           <div>
-            <p className="text-xl font-bold text-slate-800 mb-0.5">{isStudent ? studentProgress.completed : courseStats.completedLessons}/{courseStats.totalLessons}</p>
-            <p className="text-xs text-slate-600 font-medium">Lessons Progress</p>
+            <p className="text-base font-bold text-slate-800 mb-0.5">{isStudent ? studentProgress.completed : courseStats.completedLessons}/{courseStats.totalLessons}</p>
+            <p className="text-[10px] text-slate-600 font-medium">Lessons Progress</p>
           </div>
         </div>
       </div>
@@ -503,7 +503,7 @@ const CourseDetails: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3.5 text-sm font-semibold transition-all relative ${
+                  className={`flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 text-xs font-semibold transition-all relative ${
                     activeTab === tab.id
                       ? 'text-[#39FF14] bg-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -574,7 +574,7 @@ const CourseDetails: React.FC = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <h2 className="text-xl font-bold text-slate-700">{selectedLesson.title}</h2>
+                        <h2 className="text-base font-semibold text-slate-700">{selectedLesson.title}</h2>
                         {isSelectedLessonCompleted && (
                           <span className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-[#39FF14]/20 to-[#00FF41]/20 text-[#39FF14] rounded-full text-xs font-bold border border-[#39FF14]/40 shadow-sm">
                             <CheckCircle className="h-3.5 w-3.5" />
@@ -601,7 +601,7 @@ const CourseDetails: React.FC = () => {
                         <button
                           onClick={() => markLessonComplete(selectedLesson.id)}
                           disabled={isSelectedLessonCompleted || markingComplete === selectedLesson.id}
-                          className={`px-5 py-2.5 rounded-lg transition-all duration-200 text-sm font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
+                          className={`px-3 py-1.5 rounded-lg transition-all duration-200 text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                             isSelectedLessonCompleted
                               ? 'bg-gradient-to-r from-[#39FF14] to-[#00FF41] text-white border border-[#39FF14]/50'
                               : 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white border border-[#FF6B35]/50 hover:from-[#FF8C42] hover:to-[#FFA366]'
@@ -625,7 +625,7 @@ const CourseDetails: React.FC = () => {
                       {/* Ask AI about this lesson */}
                       <Link
                         to={`/ai-assistant?lessonId=${selectedLesson.id}&courseId=${courseId}`}
-                        className="inline-flex items-center px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
                       >
                         <Bot className="h-4 w-4 mr-2 text-[#16A085]" />
                         Ask AI about this lesson
@@ -780,30 +780,30 @@ const CourseDetails: React.FC = () => {
               </div>
             </div>
 
-            {/* Progress Summary - Neon green theme */}
+            {/* Progress Summary - Compact */}
             {isStudent && (
-              <div className="bg-gradient-to-br from-[#39FF14]/10 via-[#00FF41]/10 to-[#00E676]/10 rounded-xl border-2 border-[#39FF14]/30 p-5 shadow-lg">
-                <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                  <TrendingUp className="mr-2 h-5 w-5 text-[#39FF14]" />
+              <div className="bg-gradient-to-br from-[#39FF14]/10 via-[#00FF41]/10 to-[#00E676]/10 rounded-lg border border-[#39FF14]/30 p-3 shadow-sm">
+                <h3 className="text-xs font-semibold text-slate-800 mb-2 flex items-center">
+                  <TrendingUp className="mr-1.5 h-3.5 w-3.5 text-[#39FF14]" />
                   Your Progress
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div>
-                    <div className="flex justify-between text-sm font-bold text-slate-800 mb-2">
+                    <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1.5">
                       <span>Course Completion</span>
-                      <span className="text-[#39FF14] text-lg">
+                      <span className="text-[#39FF14] text-sm">
                         {progressPercentage}%
                       </span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden shadow-inner">
                       <div 
-                        className="bg-gradient-to-r from-[#39FF14] via-[#00FF41] to-[#00E676] h-3 rounded-full transition-all duration-500 shadow-sm"
+                        className="bg-gradient-to-r from-[#39FF14] via-[#00FF41] to-[#00E676] h-2 rounded-full transition-all duration-500 shadow-sm"
                         style={{ 
                           width: `${progressPercentage}%` 
                         }}
                       ></div>
                     </div>
-                    <p className="text-xs text-slate-600 mt-2 font-medium">
+                    <p className="text-[10px] text-slate-600 mt-1.5 font-medium">
                       {studentProgress.completed} of {studentProgress.total} lessons completed
                     </p>
                   </div>
@@ -912,24 +912,24 @@ const CourseDetails: React.FC = () => {
                           onClick={() => setSelectedLesson(lesson)}
                           className="w-full text-left"
                         >
-                          <div className="flex items-start space-x-2.5">
-                            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm ${
+                          <div className="flex items-start space-x-2">
+                            <div className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-sm ${
                               isCompleted
                                 ? 'bg-gradient-to-r from-[#39FF14] to-[#00FF41] text-white border border-[#39FF14]/50'
                                 : isSelected
                                 ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-white border border-[#FFD700]/50'
                                 : 'bg-slate-200 text-slate-700 border border-slate-300/50'
                             }`}>
-                              {isCompleted ? <CheckCircle className="h-4 w-4" /> : (lesson.order !== undefined ? lesson.order + 1 : index + 1)}
+                              {isCompleted ? <CheckCircle className="h-3.5 w-3.5" /> : (lesson.order !== undefined ? lesson.order + 1 : index + 1)}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className={`text-sm font-semibold mb-0.5 ${
+                              <h4 className={`text-xs font-semibold mb-0.5 ${
                                 isSelected ? 'text-slate-900' : 'text-slate-700'
                               }`}>
                                 {lesson.title}
                               </h4>
-                              <div className="flex items-center space-x-2 text-xs text-slate-500">
-                                <Clock className="h-3 w-3" />
+                              <div className="flex items-center space-x-1.5 text-[10px] text-slate-500">
+                                <Clock className="h-2.5 w-2.5" />
                                 <span>{formatDuration(lesson.duration || 0)}</span>
                                 {isCompleted && (
                                   <>
@@ -1031,7 +1031,7 @@ const CourseDetails: React.FC = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
         <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-4 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-700 mb-3">Course Overview</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-2">Course Overview</h2>
           <p className="text-sm text-slate-700 mb-4">{course.description}</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1081,7 +1081,7 @@ const CourseDetails: React.FC = () => {
         {/* Resources Tab */}
         {activeTab === 'resources' && (
         <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-4 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-700 mb-4">Course Resources</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-3">Course Resources</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center justify-between p-3 border border-slate-200/50 rounded-lg hover:border-[#FFD700]/50 hover:bg-[#FFD700]/5 transition-all">
@@ -1106,7 +1106,7 @@ const CourseDetails: React.FC = () => {
         {/* Discussions Tab */}
         {activeTab === 'discussions' && (
         <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-4 sm:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-700 mb-4">Course Discussions</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-3">Course Discussions</h2>
           <div className="text-center py-8">
             <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-3" />
             <h3 className="text-base font-semibold text-slate-700 mb-2">No Discussions Yet</h3>

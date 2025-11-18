@@ -33,6 +33,7 @@ interface User {
   email: string;
   role: string;
   chapter: string | number;
+  chapterId?: number;
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -58,6 +59,8 @@ const UserManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   // New user form
   const [newUser, setNewUser] = useState({
@@ -65,7 +68,7 @@ const UserManagement: React.FC = () => {
     lastName: '',
     email: '',
     password: '',
-    chapter: '1',
+    chapter: '', // Will be set when chapters are loaded
     role: 'student'
   });
 
@@ -94,24 +97,19 @@ const UserManagement: React.FC = () => {
       const response = await chaptersApi.getChapters();
       if (response.success && response.data?.chapters) {
         setChapters(response.data.chapters);
+        // Set default chapter to first available chapter
+        if (response.data.chapters.length > 0 && !newUser.chapter) {
+          setNewUser(prev => ({ ...prev, chapter: response.data.chapters[0].id.toString() }));
+        }
       } else {
-        setChapters([
-          { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
-          { id: 2, name: 'toronto', location: 'Toronto, Canada' },
-          { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
-          { id: 4, name: 'london', location: 'London, UK' },
-        ]);
+        console.warn('Failed to fetch chapters, using empty list');
+        setChapters([]);
       }
     } catch (err) {
       console.error('Error fetching chapters:', err);
-      setChapters([
-        { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
-        { id: 2, name: 'toronto', location: 'Toronto, Canada' },
-        { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
-        { id: 4, name: 'london', location: 'London, UK' },
-      ]);
+      setChapters([]);
     }
-  }, []);
+  }, [newUser.chapter]);
 
   useEffect(() => {
     fetchUsers();
@@ -216,6 +214,37 @@ const UserManagement: React.FC = () => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    setActionLoading('edit');
+    try {
+      await adminApi.updateUser({
+        userId: editingUser.id,
+        firstName: editingUser.firstName,
+        lastName: editingUser.lastName,
+        email: editingUser.email,
+        role: editingUser.role,
+        chapter: editingUser.chapterId || editingUser.chapter,
+        isActive: editingUser.isActive
+      });
+      setShowEditModal(false);
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (err: any) {
+      console.error('Failed to update user:', err);
+      setError(err.response?.data?.message || 'Failed to update user');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser({...user});
+    setShowEditModal(true);
   };
 
   const handleBulkStatusChange = async (isActive: boolean) => {
@@ -714,6 +743,7 @@ const UserManagement: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
+                              onClick={() => openEditModal(user)}
                               className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                               title="Edit"
                             >
@@ -854,7 +884,10 @@ const UserManagement: React.FC = () => {
                         <Eye className="mr-1 h-3 w-3" />
                         View
                       </button>
-                      <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                      <button 
+                        onClick={() => openEditModal(user)}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                      >
                         <Edit className="h-3 w-3" />
                       </button>
                     </div>
@@ -947,6 +980,126 @@ const UserManagement: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Edit className="h-5 w-5 mr-2 text-blue-600" />
+                Edit User
+              </h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingUser(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEditUser} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={editingUser.firstName}
+                    onChange={(e) => setEditingUser({...editingUser, firstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={editingUser.lastName}
+                    onChange={(e) => setEditingUser({...editingUser, lastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    value={editingUser.role}
+                    onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={String(editingUser.id) === String(currentUser?.id)}
+                  >
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  {String(editingUser.id) === String(currentUser?.id) && (
+                    <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Chapter</label>
+                  <select
+                    value={editingUser.chapterId || editingUser.chapter}
+                    onChange={(e) => setEditingUser({...editingUser, chapterId: parseInt(e.target.value), chapter: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {chapters.map((ch) => (
+                      <option key={ch.id} value={ch.id}>{ch.location}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editingUser.isActive}
+                      onChange={(e) => setEditingUser({...editingUser, isActive: e.target.checked})}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Active Account</span>
+                  </label>
+                </div>
+              </div>
+              <div className="flex space-x-2 pt-4 mt-4 border-t border-gray-200">
+                <button
+                  type="submit"
+                  disabled={actionLoading === 'edit'}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {actionLoading === 'edit' ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Edit className="h-4 w-4 mr-2" />
+                  )}
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

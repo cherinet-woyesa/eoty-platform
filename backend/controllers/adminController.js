@@ -112,27 +112,31 @@ const adminController = {
 
       // Get chapter ID - handle both string (chapter name) and integer (chapter_id)
       let chapterId;
-      if (typeof chapter === 'string') {
-        // Look up chapter by name
-        const chapterRecord = await db('chapters').where({ name: chapter, is_active: true }).first();
-        if (!chapterRecord) {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid chapter specified'
-          });
-        }
-        chapterId = chapterRecord.id;
-      } else if (typeof chapter === 'number' || !isNaN(parseInt(chapter))) {
-        // It's already a chapter ID
+      
+      // First, try to parse as number (most common case from frontend)
+      if (!isNaN(parseInt(chapter))) {
         chapterId = parseInt(chapter);
         const chapterRecord = await db('chapters').where({ id: chapterId, is_active: true }).first();
         if (!chapterRecord) {
+          console.log('Chapter not found by ID:', chapterId);
           return res.status(400).json({
             success: false,
-            message: 'Invalid chapter ID specified'
+            message: `Invalid chapter ID specified: ${chapterId}`
           });
         }
+      } else if (typeof chapter === 'string') {
+        // Look up chapter by name
+        const chapterRecord = await db('chapters').where({ name: chapter, is_active: true }).first();
+        if (!chapterRecord) {
+          console.log('Chapter not found by name:', chapter);
+          return res.status(400).json({
+            success: false,
+            message: `Invalid chapter specified: ${chapter}`
+          });
+        }
+        chapterId = chapterRecord.id;
       } else {
+        console.log('Invalid chapter format:', typeof chapter, chapter);
         return res.status(400).json({
           success: false,
           message: 'Invalid chapter format'
@@ -255,6 +259,159 @@ const adminController = {
 
     } catch (error) {
       console.error('Get users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
+  // Update user (admin only) - comprehensive update
+  async updateUser(req, res) {
+    try {
+      const { userId, firstName, lastName, email, role, chapter, isActive } = req.body;
+      const requestingUserRole = req.user.role;
+
+      // Check if requesting user is an admin
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to update users'
+        });
+      }
+
+      // Validate userId
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+
+      // Get the user to update
+      const userToUpdate = await db('users').where({ id: userId }).first();
+      if (!userToUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Build update object
+      const updateData = {
+        updated_at: new Date()
+      };
+
+      if (firstName !== undefined) updateData.first_name = firstName;
+      if (lastName !== undefined) updateData.last_name = lastName;
+      if (email !== undefined) updateData.email = email.toLowerCase();
+      if (isActive !== undefined) updateData.is_active = isActive;
+
+      // Handle role update
+      if (role !== undefined) {
+        const validRoles = ['student', 'teacher', 'admin'];
+        if (!validRoles.includes(role)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid role specified'
+          });
+        }
+        
+        // Prevent users from changing their own role
+        if (userId === req.user.userId && role !== userToUpdate.role) {
+          return res.status(403).json({
+            success: false,
+            message: 'Cannot change your own role'
+          });
+        }
+        
+        updateData.role = role;
+      }
+
+      // Handle chapter update
+      if (chapter !== undefined) {
+        let chapterId;
+        
+        // Try to parse as number first
+        if (!isNaN(parseInt(chapter))) {
+          chapterId = parseInt(chapter);
+          const chapterRecord = await db('chapters').where({ id: chapterId, is_active: true }).first();
+          if (!chapterRecord) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid chapter ID specified: ${chapterId}`
+            });
+          }
+        } else if (typeof chapter === 'string') {
+          // Look up chapter by name
+          const chapterRecord = await db('chapters').where({ name: chapter, is_active: true }).first();
+          if (!chapterRecord) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid chapter specified: ${chapter}`
+            });
+          }
+          chapterId = chapterRecord.id;
+        }
+        
+        updateData.chapter_id = chapterId;
+      }
+
+      // Check if email is being changed and if it's already taken
+      if (email && email.toLowerCase() !== userToUpdate.email) {
+        const existingUser = await db('users').where({ email: email.toLowerCase() }).first();
+        if (existingUser) {
+          return res.status(409).json({
+            success: false,
+            message: 'User with this email already exists'
+          });
+        }
+      }
+
+      // Update the user
+      await db('users')
+        .where({ id: userId })
+        .update(updateData);
+
+      // Get updated user
+      const updatedUser = await db('users')
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
+        .where('users.id', userId)
+        .select(
+          'users.id',
+          'users.first_name',
+          'users.last_name',
+          'users.email',
+          'users.role',
+          'users.chapter_id',
+          'users.is_active',
+          'users.created_at',
+          'users.last_login_at',
+          'chapters.name as chapter_name'
+        )
+        .first();
+
+      res.json({
+        success: true,
+        message: 'User updated successfully',
+        data: {
+          user: {
+            id: updatedUser.id,
+            firstName: updatedUser.first_name,
+            lastName: updatedUser.last_name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            chapter: updatedUser.chapter_name || updatedUser.chapter_id || 'N/A',
+            chapterId: updatedUser.chapter_id,
+            isActive: updatedUser.is_active,
+            createdAt: updatedUser.created_at,
+            lastLogin: updatedUser.last_login_at || null
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Update user error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error'
@@ -409,6 +566,12 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role', 'chapter_id').first();
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
       if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -594,6 +757,15 @@ const adminController = {
         }
       }
 
+      // Check if content_uploads table exists
+      const tableExists = await db.schema.hasTable('content_uploads');
+      if (!tableExists) {
+        return res.status(503).json({
+          success: false,
+          message: 'Content upload system is not yet initialized. Please contact administrator.'
+        });
+      }
+
       // Check if user is admin - auto-approve admin uploads
       const user = await db('users').where({ id: userId }).select('role').first();
       const isAdmin = user && user.role === 'admin';
@@ -621,23 +793,44 @@ const adminController = {
         }
       });
 
+      // Verify upload was created successfully
+      if (!upload || !upload.id) {
+        console.error('Upload creation failed - no ID returned');
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to create upload record'
+        });
+      }
+
       // If admin upload, it's already approved (status set above)
       // No need to call updateStatus again since we set it during creation
 
-      // REQUIREMENT: Track upload time
-      await adminToolsService.trackUploadTime(upload.id, uploadStartTime);
+      // REQUIREMENT: Track upload time (optional - don't fail if service unavailable)
+      try {
+        await adminToolsService.trackUploadTime(upload.id, uploadStartTime);
+      } catch (trackError) {
+        console.warn('Failed to track upload time (non-critical):', trackError.message);
+      }
 
-      // Increment quota
-      await ContentUpload.incrementQuota(resolvedChapterId, fileType);
+      // Increment quota (optional - don't fail if this fails)
+      try {
+        await ContentUpload.incrementQuota(resolvedChapterId, fileType);
+      } catch (quotaError) {
+        console.warn('Failed to increment quota (non-critical):', quotaError.message);
+      }
 
-      // Log audit
-      await AdminAudit.logAction(
-        userId,
-        'content_upload',
-        'content',
-        upload.id,
-        `Uploaded ${fileType}: ${title}`
-      );
+      // Log audit (optional - don't fail if this fails)
+      try {
+        await AdminAudit.logAction(
+          userId,
+          'content_upload',
+          'content',
+          upload.id,
+          `Uploaded ${fileType}: ${title}`
+        );
+      } catch (auditError) {
+        console.warn('Failed to log audit (non-critical):', auditError.message);
+      }
 
       res.status(201).json({
         success: true,
@@ -736,6 +929,12 @@ const adminController = {
 
       // Check moderator permissions
       const user = await db('users').where({ id: userId }).select('role').first();
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
       if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -883,6 +1082,12 @@ const adminController = {
 
       // Check admin permissions
       const user = await db('users').where({ id: userId }).select('role').first();
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
       if (user.role !== 'admin') {
         return res.status(403).json({
           success: false,

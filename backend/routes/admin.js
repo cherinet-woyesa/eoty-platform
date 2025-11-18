@@ -12,6 +12,7 @@ router.use(authenticateToken, requireAdmin());
 // Requires admin role (already enforced by router.use above)
 router.post('/users', requirePermission('user:create'), adminController.createUser);
 router.get('/users', requirePermission('user:view'), adminController.getUsers);
+router.put('/users', requirePermission('user:manage'), adminController.updateUser);
 router.put('/users/role', requirePermission('user:manage'), adminController.updateUserRole);
 router.put('/users/status', requirePermission('user:manage'), adminController.updateUserStatus);
 

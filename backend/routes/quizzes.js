@@ -19,4 +19,10 @@ router.get('/lessons/:lessonId/results', quizController.getQuizResults);
 // Progress tracking
 router.get('/lessons/:lessonId/progress', quizController.getLessonProgress);
 
+// Quiz Triggers (FR2 - In-lesson quiz integration)
+router.get('/lessons/:lessonId/triggers', quizController.getQuizTriggers);
+router.post('/lessons/:lessonId/triggers', requirePermission('lesson:create'), quizController.createQuizTrigger);
+router.put('/triggers/:triggerId', requirePermission('lesson:create'), quizController.updateQuizTrigger);
+router.delete('/triggers/:triggerId', requirePermission('lesson:create'), quizController.deleteQuizTrigger);
+
 module.exports = router;

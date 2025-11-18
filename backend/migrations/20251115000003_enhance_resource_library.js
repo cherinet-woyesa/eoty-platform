@@ -90,7 +90,7 @@ exports.up = async function(knex) {
   if (!hasExportTracking) {
     await knex.schema.createTable('resource_exports', (table) => {
       table.increments('id').primary();
-      table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+      table.string('user_id').notNullable().onDelete('CASCADE');
       table.integer('resource_id').unsigned().references('id').inTable('resources').onDelete('SET NULL');
       table.string('export_type').notNullable(); // 'notes', 'summary', 'full', 'combined'
       table.string('format').notNullable(); // 'pdf', 'docx', 'txt', 'json'
@@ -126,7 +126,7 @@ exports.up = async function(knex) {
   if (!hasUnsupportedFiles) {
     await knex.schema.createTable('unsupported_file_attempts', (table) => {
       table.increments('id').primary();
-      table.integer('user_id').unsigned().references('id').inTable('users').onDelete('SET NULL');
+      table.string('user_id').notNullable().onDelete('SET NULL');
       table.string('file_name').notNullable();
       table.string('file_type').notNullable();
       table.string('mime_type').nullable();

@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('chapters');
+  if (hasTable) {
+    console.log('✓ chapters table already exists, skipping migration');
+    return;
+  }
+
   // Chapters - foundation of the platform
   await knex.schema.createTable('chapters', function(table) {
     table.increments('id').primary();
@@ -39,7 +46,7 @@ exports.up = async function(knex) {
   // Google OAuth integration
   await knex.schema.createTable('google_auth', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.string('google_id').unique().notNullable();
     table.string('email').notNullable();
     table.string('profile_picture');
@@ -49,7 +56,7 @@ exports.up = async function(knex) {
   // Onboarding system
   await knex.schema.createTable('onboarding_steps', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.string('step_name').notNullable();
     table.boolean('completed').defaultTo(false);
     table.timestamps(true, true);

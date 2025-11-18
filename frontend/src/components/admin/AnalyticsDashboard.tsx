@@ -323,7 +323,7 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricsCard 
               title="Total Courses" 
-              value={analytics.metrics.content.total} 
+            value={analytics.metrics.content.total} 
               change={12}
               icon={<BookOpen className="h-6 w-6" />}
               color="blue"
@@ -332,7 +332,7 @@ const AnalyticsDashboard: React.FC = () => {
             />
             <MetricsCard 
               title="Active Students" 
-              value={analytics.metrics.users.total} 
+            value={analytics.metrics.users.active} 
               change={8}
               icon={<Users className="h-6 w-6" />}
               color="green"
@@ -341,7 +341,7 @@ const AnalyticsDashboard: React.FC = () => {
             />
             <MetricsCard 
               title="Recorded Videos" 
-              value={156} 
+            value={metrics.video_count ?? metrics.content.total} 
               change={8}
               icon={<Video className="h-6 w-6" />}
               color="purple"
@@ -350,7 +350,7 @@ const AnalyticsDashboard: React.FC = () => {
             />
             <MetricsCard 
               title="Hours Taught" 
-              value={342} 
+            value={metrics.hours_taught ?? Math.round((metrics.engagement.avg_session_minutes || 0) / 60)} 
               change={15}
               icon={<Clock className="h-6 w-6" />}
               color="orange"
@@ -359,7 +359,7 @@ const AnalyticsDashboard: React.FC = () => {
             />
             <MetricsCard 
               title="Rating" 
-              value={4.8} 
+            value={metrics.average_course_rating ?? 0} 
               change={5}
               icon={<Star className="h-6 w-6" />}
               color="indigo"
@@ -379,7 +379,11 @@ const AnalyticsDashboard: React.FC = () => {
             />
             <MetricsCard 
               title="Engagement Score" 
-              value={85} 
+            value={
+              metrics.engagement_score != null
+                ? Math.round(metrics.engagement_score * 100)
+                : Math.round(analytics.metrics.engagement.completion_rate * 100)
+            } 
               change={3}
               icon={<Zap className="h-6 w-6" />}
               color="red"
@@ -473,7 +477,9 @@ const AnalyticsDashboard: React.FC = () => {
                       <div className="font-medium text-gray-900">Pending Reviews</div>
                       <div className="text-sm text-gray-600">Awaiting moderation</div>
                     </div>
-                    <div className="text-2xl font-bold text-amber-600">12</div>
+                    <div className="text-2xl font-bold text-amber-600">
+                      {metrics.pending_reviews ?? 0}
+                    </div>
                   </div>
                 </div>
                 {/* FR5: Retention metrics (REQUIREMENT: Retention metrics) */}

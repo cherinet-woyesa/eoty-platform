@@ -308,7 +308,8 @@ const TeacherDashboard: React.FC = () => {
                 <span className="font-semibold text-[#16A085]">{teacherData.totalCourses}</span> courses
               </p>
             </div>
-            <div className="mt-4 lg:mt-0 lg:ml-6">
+            {/* Shortcut Buttons - Commented out for cleaner UI */}
+            {/* <div className="mt-4 lg:mt-0 lg:ml-6">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
                   to="/teacher/record"
@@ -325,7 +326,7 @@ const TeacherDashboard: React.FC = () => {
                   Create Course
                 </Link>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 

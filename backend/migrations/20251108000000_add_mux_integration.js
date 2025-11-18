@@ -6,6 +6,13 @@
  */
 
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('video_analytics');
+  if (hasTable) {
+    console.log('✓ video_analytics table already exists, skipping migration');
+    return;
+  }
+
   console.log('🎬 Adding Mux integration columns to lessons table...');
   
   // Add Mux-specific columns to lessons table

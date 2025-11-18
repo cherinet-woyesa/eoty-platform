@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('lesson_discussions');
+  if (hasTable) {
+    console.log('✓ lesson_discussions table already exists, skipping migration');
+    return;
+  }
+
   // Forums - organized discussion spaces
   await knex.schema.createTable("forums", (table) => {
     table.increments("id").primary();
@@ -48,7 +55,7 @@ exports.up = async function(knex) {
   await knex.schema.createTable("forum_posts", (table) => {
     table.increments("id").primary();
     table.integer("topic_id").unsigned().references("id").inTable("forum_topics").onDelete("CASCADE");
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id").notNullable();
     table.integer("parent_id").unsigned().references("id").inTable("forum_posts").onDelete("CASCADE");
     table.text("content").notNullable();
     table.integer("like_count").defaultTo(0);
@@ -65,7 +72,7 @@ exports.up = async function(knex) {
   // Lesson discussions (video timestamp-based discussions)
   await knex.schema.createTable('lesson_discussions', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('lesson_id').unsigned().references('id').inTable('lessons').onDelete('CASCADE');
     table.integer('parent_id').unsigned().references('id').inTable('lesson_discussions').onDelete('CASCADE');
     table.text('content').notNullable();
@@ -107,7 +114,7 @@ exports.up = async function(knex) {
   // Post likes
   await knex.schema.createTable('post_likes', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('post_id').unsigned();
     table.string('post_type').notNullable(); // 'forum' or 'lesson'
     table.timestamp('created_at').defaultTo(knex.fn.now());

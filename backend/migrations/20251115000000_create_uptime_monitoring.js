@@ -5,6 +5,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('uptime_monitoring');
+  if (hasTable) {
+    console.log('✓ uptime_monitoring table already exists, skipping migration');
+    return;
+  }
+
   // Uptime monitoring health checks
   await knex.schema.createTable('uptime_monitoring', (table) => {
     table.increments('id').primary();

@@ -36,40 +36,19 @@ const RecordVideo: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
-                <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/30">
-                  <Video className="h-6 w-6 text-[#27AE60]" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">Video Recording Studio</h1>
-                <p className="text-stone-600 mt-1">Record and upload your lesson videos</p>
-              </div>
-            </div>
-            <Link
-              to="/teacher/courses"
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-semibold"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Courses
-            </Link>
-          </div>
-        </div>
       
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
-          {/* Main Recording Area - 3/4 width */}
+      {/* Full width recording area - Sidebar commented out for cleaner UI */}
+      <div className="w-full">
+        <EnhancedVideoRecorder />
+      </div>
+
+      {/* Sidebar with stats and shortcuts - Commented out for cleaner UI */}
+      {/* <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
           <div className="xl:col-span-3">
             <EnhancedVideoRecorder />
           </div>
 
-          {/* Sidebar - 1/4 width */}
           <div className="space-y-4 sm:space-y-6">
-            {/* Your Progress - compact stat cards */}
             <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-stone-800 flex items-center">
@@ -125,7 +104,6 @@ const RecordVideo: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Actions - clean links */}
             <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-stone-800 mb-3">Quick actions</h3>
               <div className="space-y-2.5">
@@ -180,7 +158,7 @@ const RecordVideo: React.FC = () => {
               </div>
             </div>
           </div>
-      </div>
+      </div> */}
     </div>
   );
 };

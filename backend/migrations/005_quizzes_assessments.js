@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('quizzes');
+  if (hasTable) {
+    console.log('✓ quizzes table already exists, skipping migration');
+    return;
+  }
+
   // Quizzes
   await knex.schema.createTable('quizzes', function(table) {
     table.increments('id').primary();
@@ -43,7 +50,7 @@ exports.up = async function(knex) {
   // Quiz sessions (overall attempt tracking)
   await knex.schema.createTable('quiz_sessions', function(table) {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('quiz_id').unsigned().references('id').inTable('quizzes').onDelete('CASCADE');
     table.integer('attempt_number').defaultTo(1);
     table.integer('total_questions').defaultTo(0);

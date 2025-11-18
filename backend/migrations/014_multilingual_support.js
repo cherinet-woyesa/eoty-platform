@@ -3,10 +3,17 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('language_usage_logs');
+  if (hasTable) {
+    console.log('✓ language_usage_logs table already exists, skipping migration');
+    return;
+  }
+
   // Language Usage Tracking
   await knex.schema.createTable('language_usage_logs', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users');
+    table.string('user_id').notNullable();
     table.string('detected_language', 10).notNullable();
     table.text('input_text');
     table.decimal('confidence', 3, 2);
@@ -21,7 +28,7 @@ exports.up = async function(knex) {
   // Translation Logs
   await knex.schema.createTable('translation_logs', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users');
+    table.string('user_id').notNullable();
     table.string('source_language', 10).notNullable();
     table.string('target_language', 10).notNullable();
     table.text('original_text');
@@ -38,7 +45,7 @@ exports.up = async function(knex) {
   // Unsupported Language Logs
   await knex.schema.createTable('unsupported_language_logs', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users');
+    table.string('user_id').notNullable();
     table.string('session_id', 255).notNullable();
     table.string('detected_language', 10).notNullable();
     table.text('input_text').notNullable();
@@ -59,7 +66,7 @@ exports.up = async function(knex) {
     table.text('translated_text').notNullable();
     table.string('translation_status').defaultTo('pending'); // pending, approved, rejected
     table.integer('translated_by').unsigned().references('id').inTable('users');
-    table.integer('reviewed_by').unsigned().references('id').inTable('users');
+    table.string('reviewed_by');
     table.timestamp('reviewed_at');
     table.decimal('quality_score', 3, 2);
     table.jsonb('translation_metadata');
@@ -92,7 +99,7 @@ exports.up = async function(knex) {
   // Language Preferences
   await knex.schema.createTable('language_preferences', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.string('preferred_language', 10).notNullable().defaultTo('en');
     table.string('ui_language', 10).defaultTo('en');
     table.string('content_language', 10).defaultTo('en');

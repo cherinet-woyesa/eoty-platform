@@ -291,11 +291,11 @@ const StudyGroupsPage: React.FC = () => {
                 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate(`/forums?group=${group.id}`)}
-                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1"
+                    onClick={() => navigate(`/student/study-groups/${group.id}`)}
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    Open Chat
+                    Open Group
                   </button>
                   <button
                     onClick={() => handleLeaveGroup(group.id)}

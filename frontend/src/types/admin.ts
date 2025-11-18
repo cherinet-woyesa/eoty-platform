@@ -73,6 +73,12 @@ export interface AnalyticsMetrics {
     uptime: number;
     response_time: number;
   };
+  // Extended metrics for admin analytics dashboard (all optional)
+  video_count?: number;
+  hours_taught?: number;
+  average_course_rating?: number;
+  pending_reviews?: number;
+  engagement_score?: number; // normalized 0–1
   // FR5: Retention metrics
   retention?: {
     new_users: number;

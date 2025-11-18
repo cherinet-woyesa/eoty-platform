@@ -3,10 +3,17 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('user_notifications');
+  if (hasTable) {
+    console.log('✓ Notifications tables already exist, skipping migration');
+    return;
+  }
+
   // User Notifications
   await knex.schema.createTable("user_notifications", (table) => {
     table.increments("id").primary();
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id").notNullable(); // Changed to string to match users table
     table.string("title").notNullable();
     table.text("message").notNullable();
     table.string("notification_type").notNullable(); // system, course, achievement, social, etc.
@@ -43,14 +50,14 @@ exports.up = async function(knex) {
   // Reports System
   await knex.schema.createTable("reports", (table) => {
     table.increments("id").primary();
-    table.integer("reported_by").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("reported_by").notNullable(); // Changed to string to match users table
     table.string("report_type").notNullable(); // content, user, technical, abuse
     table.string("target_type"); // user, lesson, forum_post, comment, etc.
     table.integer("target_id"); // ID of the reported entity
     table.text("description").notNullable();
     table.jsonb("evidence"); // Screenshots, links, etc.
     table.string("status").defaultTo("pending"); // pending, investigating, resolved, dismissed
-    table.integer("assigned_to").unsigned().references("id").inTable("users");
+    table.string("assigned_to"); // Changed to string to match users table
     table.text("resolution_notes");
     table.string("severity").defaultTo('medium'); // low, medium, high, critical
     table.timestamp("resolved_at");
@@ -65,7 +72,7 @@ exports.up = async function(knex) {
   // Analytics Events
   await knex.schema.createTable("analytics_events", (table) => {
     table.increments("id").primary();
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id"); // Changed to string to match users table
     table.string("event_type").notNullable();
     table.string("event_category");
     table.jsonb("event_data");
@@ -96,7 +103,7 @@ exports.up = async function(knex) {
   // Admin Actions Audit
   await knex.schema.createTable("admin_actions", (table) => {
     table.increments("id").primary();
-    table.integer("admin_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("admin_id"); // Foreign key to users.id
     table.string("action_type").notNullable();
     table.string("resource_type"); // user, course, lesson, etc.
     table.integer("resource_id"); // ID of the affected resource
@@ -133,7 +140,7 @@ exports.up = async function(knex) {
   // Push Notifications Subscriptions
   await knex.schema.createTable("push_subscriptions", (table) => {
     table.increments("id").primary();
-    table.integer("user_id").unsigned().references("id").inTable("users").onDelete("CASCADE");
+    table.string("user_id").notNullable();
     table.jsonb("subscription_data").notNullable(); // Web Push subscription object
     table.string("user_agent");
     table.boolean("is_active").defaultTo(true);

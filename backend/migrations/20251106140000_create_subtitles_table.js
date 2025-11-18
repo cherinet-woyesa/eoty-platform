@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('subtitles');
+  if (hasTable) {
+    console.log('✓ subtitles table already exists, skipping migration');
+    return;
+  }
+
   // Create subtitles table
   await knex.schema.createTable('subtitles', function(table) {
     table.increments('id').primary();

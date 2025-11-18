@@ -3,10 +3,17 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('ai_conversations');
+  if (hasTable) {
+    console.log('✓ AI tables already exist, skipping migration');
+    return;
+  }
+
   // AI Conversations
   await knex.schema.createTable('ai_conversations', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable(); // Changed to string to match users table
     table.integer('resource_id').unsigned().references('id').inTable('resources').onDelete('CASCADE');
     table.string('title');
     table.string('context_type'); // lesson, resource, general
@@ -65,13 +72,13 @@ exports.up = async function(knex) {
   // Moderation System
   await knex.schema.createTable('moderation_escalations', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users');
+    table.string('user_id').notNullable(); // Changed to string to match users table
     table.text('content').notNullable();
     table.string('content_type').notNullable();
     table.text('reason').notNullable();
     table.string('priority', 20).defaultTo('medium');
     table.string('status', 50).defaultTo('pending');
-    table.integer('reviewed_by').unsigned().references('id').inTable('users');
+    table.string('reviewed_by'); // Changed to string to match users table
     table.text('resolution_notes');
     table.timestamp('timestamp').defaultTo(knex.fn.now());
     table.timestamp('reviewed_at');
@@ -84,7 +91,7 @@ exports.up = async function(knex) {
   await knex.schema.createTable('moderation_resolution_logs', (table) => {
     table.increments('id').primary();
     table.integer('escalation_id').unsigned().notNullable().references('id').inTable('moderation_escalations');
-    table.integer('moderator_id').unsigned().notNullable().references('id').inTable('users');
+    table.string('moderator_id').notNullable(); // Changed to string to match users table
     table.string('resolution_action', 50).notNullable();
     table.string('resolution_category', 100);
     table.text('resolution_notes');
@@ -96,7 +103,7 @@ exports.up = async function(knex) {
 
   await knex.schema.createTable('auto_moderation_logs', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users');
+    table.string('user_id').notNullable(); // Changed to string to match users table
     table.text('content').notNullable();
     table.string('moderation_decision', 50).notNullable();
     table.jsonb('flags');
@@ -117,7 +124,7 @@ exports.up = async function(knex) {
     table.jsonb('issues');
     table.string('priority', 20).defaultTo('medium');
     table.string('status', 50).defaultTo('pending');
-    table.integer('reviewed_by').unsigned().references('id').inTable('users');
+    table.string('reviewed_by'); // Changed to string to match users table
     table.text('review_notes');
     table.timestamp('timestamp').defaultTo(knex.fn.now());
     table.timestamp('reviewed_at');
@@ -146,7 +153,7 @@ exports.up = async function(knex) {
     table.increments('id').primary();
     table.string('setting_key', 100).notNullable().unique();
     table.jsonb('setting_value').notNullable();
-    table.integer('updated_by').unsigned().references('id').inTable('users');
+    table.string('updated_by'); // Changed to string to match users table
     table.timestamp('updated_at').defaultTo(knex.fn.now());
   });
 

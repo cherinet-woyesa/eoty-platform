@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('system_config_audit');
+  if (hasTable) {
+    console.log('✓ system_config_audit table already exists, skipping migration');
+    return;
+  }
+
   // Create system_config_audit table
   await knex.schema.createTable('system_config_audit', function(table) {
     table.increments('id').primary();

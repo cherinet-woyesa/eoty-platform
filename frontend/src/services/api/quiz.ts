@@ -82,6 +82,48 @@ export interface QuizResults {
   scorePercentage: number;
 }
 
+// Quiz Trigger interfaces (FR2 - In-lesson quiz integration)
+export interface QuizTrigger {
+  id: number;
+  lesson_id: number;
+  question_id: number;
+  trigger_timestamp: number; // Seconds into video
+  is_required: boolean;
+  pause_video: boolean;
+  duration_seconds: number | null;
+  display_mode: 'overlay' | 'sidebar' | 'fullscreen';
+  min_score_to_proceed: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // Joined question data
+  question_text: string;
+  question_type: 'multiple_choice' | 'short_answer' | 'true_false';
+  options?: { [key: string]: string };
+  correct_answer: string;
+  explanation?: string;
+  points: number;
+}
+
+export interface CreateQuizTriggerData {
+  questionId: number;
+  triggerTimestamp: number;
+  isRequired?: boolean;
+  pauseVideo?: boolean;
+  durationSeconds?: number | null;
+  displayMode?: 'overlay' | 'sidebar' | 'fullscreen';
+  minScoreToProceed?: number | null;
+}
+
+export interface UpdateQuizTriggerData {
+  triggerTimestamp?: number;
+  isRequired?: boolean;
+  pauseVideo?: boolean;
+  durationSeconds?: number | null;
+  displayMode?: 'overlay' | 'sidebar' | 'fullscreen';
+  minScoreToProceed?: number | null;
+}
+
 export const quizApi = {
   // Question Management (Teachers)
   createQuestion: async (lessonId: number, questionData: CreateQuestionData) => {
@@ -126,6 +168,36 @@ export const quizApi = {
       type: 'video',
       progress
     });
+    return response.data;
+  },
+
+  // ============================================================================
+  // Quiz Triggers (FR2 - In-lesson quiz integration)
+  // ============================================================================
+
+  // Get all quiz triggers for a lesson
+  getQuizTriggers: async (lessonId: number) => {
+    const response = await apiClient.get<{ success: boolean; data: { triggers: QuizTrigger[] } }>(
+      `/quizzes/lessons/${lessonId}/triggers`
+    );
+    return response.data;
+  },
+
+  // Create a quiz trigger (teachers only)
+  createQuizTrigger: async (lessonId: number, triggerData: CreateQuizTriggerData) => {
+    const response = await apiClient.post(`/quizzes/lessons/${lessonId}/triggers`, triggerData);
+    return response.data;
+  },
+
+  // Update a quiz trigger
+  updateQuizTrigger: async (triggerId: number, triggerData: UpdateQuizTriggerData) => {
+    const response = await apiClient.put(`/quizzes/triggers/${triggerId}`, triggerData);
+    return response.data;
+  },
+
+  // Delete a quiz trigger
+  deleteQuizTrigger: async (triggerId: number) => {
+    const response = await apiClient.delete(`/quizzes/triggers/${triggerId}`);
     return response.data;
   }
 };

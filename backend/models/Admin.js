@@ -377,6 +377,76 @@ class Analytics {
     const completionRate = await this.calculateCompletionRate();
     const avgSessionTime = await this.calculateAvgSessionTime();
 
+    // Additional platform-wide metrics for admin analytics dashboard
+    // Recorded videos & total hours taught (derived from lessons table)
+    let recordedVideos = 0;
+    let hoursTaught = 0;
+    try {
+      const lessonStats = await db('lessons')
+        .count('id as lesson_count')
+        .sum('duration as total_duration')
+        .first();
+
+      recordedVideos = parseInt(lessonStats.lesson_count) || 0;
+      // duration is stored in minutes, convert to hours
+      const totalDurationMinutes = parseInt(lessonStats.total_duration) || 0;
+      hoursTaught = Math.round(totalDurationMinutes / 60);
+    } catch (err) {
+      console.warn('Error calculating lesson-based analytics metrics:', err.message);
+    }
+
+    // Pending reviews (content uploads + teacher applications)
+    let pendingReviews = 0;
+    try {
+      // Pending content uploads
+      const uploadsPending = await db('content_uploads')
+        .where('status', 'pending')
+        .count('id as count')
+        .first();
+
+      // Pending teacher applications (table may not exist in all environments)
+      let teacherAppsPending = { count: 0 };
+      try {
+        teacherAppsPending = await db('teacher_applications')
+          .where('status', 'pending')
+          .count('id as count')
+          .first() || { count: 0 };
+      } catch (innerErr) {
+        console.warn('teacher_applications table may not exist:', innerErr.message);
+      }
+
+      pendingReviews =
+        (parseInt(uploadsPending.count) || 0) +
+        (parseInt(teacherAppsPending.count) || 0);
+    } catch (err) {
+      if (err.code === '42P01') {
+        // content_uploads table might not exist yet in some setups – safe to ignore
+        console.warn('content_uploads table may not exist, skipping pending reviews metric');
+      } else {
+        console.warn('Error calculating pending reviews metric:', err.message);
+      }
+    }
+
+    // Average course rating (from course_stats)
+    let averageCourseRating = 0;
+    try {
+      const courseStatsExists = await db.schema.hasTable('course_stats');
+      if (courseStatsExists) {
+        const ratingRow = await db('course_stats')
+          .where('rating_count', '>', 0)
+          .avg('average_rating as avg_rating')
+          .first();
+        averageCourseRating = ratingRow && ratingRow.avg_rating
+          ? parseFloat(ratingRow.avg_rating)
+          : 0;
+      }
+    } catch (err) {
+      console.warn('Error calculating average course rating metric:', err.message);
+    }
+
+    // Aggregate engagement score (0–1) derived from completion rate for now
+    const engagementScore = completionRate != null ? completionRate : 0;
+
     return {
       users: {
         total: parseInt(totalUsers.count) || 0,
@@ -396,7 +466,13 @@ class Analytics {
       technical: {
         uptime: 99.9, // This would come from monitoring system
         response_time: await this.calculateAvgResponseTime()
-      }
+      },
+      // Extended metrics used by the admin analytics UI – all optional on the frontend
+      video_count: recordedVideos,
+      hours_taught: hoursTaught,
+      average_course_rating: averageCourseRating,
+      pending_reviews: pendingReviews,
+      engagement_score: engagementScore
     };
   }
 

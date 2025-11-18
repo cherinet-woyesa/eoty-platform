@@ -575,6 +575,31 @@ class MuxService {
       console.log('✅ Analytics data retrieved from database');
       return analyticsData;
     } catch (error) {
+      // Handle missing analytics table gracefully
+      if (error.code === '42P01') {
+        console.warn('Video analytics table does not exist, returning empty analytics');
+        return {
+          assetId,
+          lessonId: null,
+          timeframe: options.timeframe || '7:days',
+          summary: {
+            totalViews: 0,
+            uniqueViewers: 0,
+            totalWatchTime: 0,
+            averageWatchTime: 0,
+            averageCompletionRate: 0,
+            completionRate: 0,
+            completedViews: 0,
+            totalRebuffers: 0,
+            averageRebufferDuration: 0
+          },
+          breakdown: {
+            devices: [],
+            geography: []
+          }
+        };
+      }
+
       console.error('❌ Failed to get video analytics:', error.message);
       throw new Error(`Failed to get video analytics: ${error.message}`);
     }
@@ -686,6 +711,12 @@ class MuxService {
         return created;
       }
     } catch (error) {
+      // If analytics table doesn't exist yet, skip recording gracefully
+      if (error.code === '42P01') {
+        console.warn('video_analytics table does not exist, skipping video view record');
+        return null;
+      }
+
       console.error('❌ Failed to record video view:', error.message);
       throw new Error(`Failed to record video view: ${error.message}`);
     }
@@ -1638,10 +1669,50 @@ class MuxService {
     try {
       console.log('Fetching migration status...');
 
+      // Some older lesson tables might not have all video-related columns.
+      // Detect what we have and only reference existing columns to avoid 42703 errors.
+      const hasVideoUrl = await db.schema.hasColumn('lessons', 'video_url');
+      const hasS3Key = await db.schema.hasColumn('lessons', 's3_key');
+      const hasHlsUrl = await db.schema.hasColumn('lessons', 'hls_url');
+
+      // If we have no way to detect video presence, return an empty status instead of failing
+      if (!hasVideoUrl && !hasS3Key && !hasHlsUrl) {
+        console.warn(
+          'Lessons table has no video_url, s3_key, or hls_url columns; returning empty migration status'
+        );
+        return {
+          total: 0,
+          s3: 0,
+          mux: 0,
+          errored: 0,
+          preparing: 0,
+          migrationProgress: 0
+        };
+      }
+
+      // Base queries
+      let s3Query = db('lessons').where({ video_provider: 's3' });
+      let totalQuery = db('lessons');
+
+      // Apply presence filters using whatever columns exist
+      if (hasVideoUrl) {
+        s3Query = s3Query.whereNotNull('video_url');
+        totalQuery = totalQuery.whereNotNull('video_url');
+      } else if (hasS3Key) {
+        s3Query = s3Query.whereNotNull('s3_key');
+        totalQuery = totalQuery.whereNotNull('s3_key');
+      } else if (hasHlsUrl) {
+        s3Query = s3Query.whereNotNull('hls_url');
+        totalQuery = totalQuery.whereNotNull('hls_url');
+      }
+
+      // Always count any lesson that already has a mux asset as part of total
+      totalQuery = totalQuery.orWhereNotNull('mux_asset_id');
+
       const [s3Videos, muxVideos, totalVideos, erroredVideos, preparingVideos] = await Promise.all([
-        db('lessons').where({ video_provider: 's3' }).whereNotNull('video_url').count('* as count').first(),
+        s3Query.count('* as count').first(),
         db('lessons').where({ video_provider: 'mux' }).whereNotNull('mux_asset_id').count('* as count').first(),
-        db('lessons').whereNotNull('video_url').orWhereNotNull('mux_asset_id').count('* as count').first(),
+        totalQuery.count('* as count').first(),
         db('lessons').where({ mux_status: 'errored' }).count('* as count').first(),
         db('lessons').where({ mux_status: 'preparing' }).count('* as count').first()
       ]);

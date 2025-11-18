@@ -6,6 +6,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('teacher_applications');
+  if (hasTable) {
+    console.log('✓ teacher_applications table already exists, skipping migration');
+    return;
+  }
+
   await knex.schema.createTable('teacher_applications', function(table) {
     table.increments('id').primary();
     table.text('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');

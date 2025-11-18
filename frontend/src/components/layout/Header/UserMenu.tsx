@@ -1,12 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, Settings, User, ChevronDown, Mail, CreditCard, HelpCircle, Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
+import { LogOut, User, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -36,60 +34,18 @@ const UserMenu: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [handleCloseProfile]);
 
-  const menuItems = [
-    {
-      icon: User,
-      label: 'Profile',
-      onClick: () => {
-        // Navigate to the appropriate profile page based on user role
-        if (user?.role === 'teacher') {
-          navigate('/teacher/profile');
-        } else {
-          // Base members (user/legacy student) share the student profile area
-          navigate('/student/profile');
-        }
-        handleCloseProfile();
-      },
-      description: 'View and edit your profile'
-    },
-    {
-      icon: Settings,
-      label: 'Settings',
-      onClick: () => {
-        console.log('Navigate to settings');
-        handleCloseProfile();
-      },
-      description: 'Account preferences'
-    },
-    {
-      icon: Mail,
-      label: 'Messages',
-      onClick: () => {
-        console.log('Navigate to messages');
-        handleCloseProfile();
-      },
-      description: 'Check your inbox',
-      badge: '3'
-    },
-    {
-      icon: CreditCard,
-      label: 'Billing',
-      onClick: () => {
-        console.log('Navigate to billing');
-        handleCloseProfile();
-      },
-      description: 'Manage subscription'
-    },
-    {
-      icon: HelpCircle,
-      label: 'Help & Support',
-      onClick: () => {
-        console.log('Navigate to help');
-        handleCloseProfile();
-      },
-      description: 'Get assistance'
+  const handleProfileClick = () => {
+    // Navigate to the appropriate profile page based on user role
+    if (user?.role === 'admin') {
+      navigate('/admin/profile');
+    } else if (user?.role === 'teacher') {
+      navigate('/teacher/profile');
+    } else {
+      // Base members (user/legacy student) share the student profile area
+      navigate('/student/profile');
     }
-  ];
+    handleCloseProfile();
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -163,45 +119,12 @@ const UserMenu: React.FC = () => {
 
           {/* Menu items */}
           <div className="py-2">
-            {menuItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={item.onClick}
-                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 transition-colors duration-150 group focus:outline-none focus:bg-gray-50"
-              >
-                <div className="flex items-center flex-1 min-w-0">
-                  <item.icon className="mr-3 h-4 w-4 text-gray-500" />
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{item.label}</span>
-                      {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{item.description}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Theme toggle */}
-          <div className="px-4 py-2 border-t border-gray-100">
             <button
-              onClick={() => {
-                toggleTheme();
-                handleCloseProfile();
-              }}
-              className="flex items-center w-full px-2 py-2 text-sm text-gray-700 rounded-lg transition-colors duration-150 focus:outline-none focus:bg-gray-50"
+              onClick={handleProfileClick}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 focus:outline-none focus:bg-gray-50"
             >
-              {theme === 'dark' ? (
-                <Sun className="mr-3 h-4 w-4 text-gray-500" />
-              ) : (
-                <Moon className="mr-3 h-4 w-4 text-gray-500" />
-              )}
-              <span>Switch to {theme === 'dark' ? 'light' : 'dark'} theme</span>
+              <User className="mr-3 h-5 w-5 text-blue-600" />
+              <span className="font-medium">Profile</span>
             </button>
           </div>
 
@@ -209,10 +132,10 @@ const UserMenu: React.FC = () => {
           <div className="px-4 py-2 border-t border-gray-100">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-2 py-2 text-sm text-red-600 rounded-lg transition-colors duration-150 focus:outline-none focus:bg-red-50"
+              className="flex items-center w-full px-2 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150 focus:outline-none"
             >
-              <LogOut className="mr-3 h-4 w-4" />
-              Sign out
+              <LogOut className="mr-3 h-5 w-5" />
+              <span className="font-medium">Sign out</span>
             </button>
           </div>
         </div>

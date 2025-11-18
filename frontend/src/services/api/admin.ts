@@ -48,6 +48,20 @@ export const adminApi = {
     return response.data;
   },
 
+  // Update user (comprehensive update)
+  updateUser: async (userData: {
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+    chapter?: string | number;
+    isActive?: boolean;
+  }) => {
+    const response = await apiClient.put('/admin/users', userData);
+    return response.data;
+  },
+
   // Update user role
   updateUserRole: async (userId: string, newRole: string) => {
     const response = await apiClient.put('/admin/users/role', { userId, newRole });
@@ -320,6 +334,17 @@ export const adminApi = {
     if (severity) params.append('severity', severity);
     params.append('limit', limit.toString());
     const response = await apiClient.get(`/admin/anomalies?${params}`);
+    return response.data;
+  },
+
+  // Landing Page Content Management
+  updateLandingContent: async (section: string, content: any) => {
+    const response = await apiClient.put('/landing/content', { section, content });
+    return response.data;
+  },
+
+  getLandingContent: async () => {
+    const response = await apiClient.get('/landing/content');
     return response.data;
   }
 };

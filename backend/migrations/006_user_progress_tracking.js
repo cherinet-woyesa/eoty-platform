@@ -3,10 +3,17 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('user_course_enrollments');
+  if (hasTable) {
+    console.log('✓ user_course_enrollments table already exists, skipping migration');
+    return;
+  }
+
   // User course enrollments
   await knex.schema.createTable('user_course_enrollments', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('course_id').unsigned().notNullable().references('id').inTable('courses').onDelete('CASCADE');
     table.string('enrollment_status').defaultTo('active'); // active, completed, dropped, suspended
     table.timestamp('enrolled_at').defaultTo(knex.fn.now());
@@ -26,7 +33,7 @@ exports.up = async function(knex) {
   // User lesson progress
   await knex.schema.createTable('user_lesson_progress', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('lesson_id').unsigned().references('id').inTable('lessons').onDelete('CASCADE');
     table.float('progress').defaultTo(0); // 0-1 percentage
     table.float('last_watched_timestamp').defaultTo(0);
@@ -46,7 +53,7 @@ exports.up = async function(knex) {
   // User engagement tracking
   await knex.schema.createTable('user_engagement', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.string('engagement_type').notNullable(); // video_watch, quiz_attempt, discussion_post, etc.
     table.string('content_type'); // lesson, course, resource, etc.
     table.integer('content_id'); // ID of the engaged content
@@ -62,7 +69,7 @@ exports.up = async function(knex) {
   // Leaderboard system
   await knex.schema.createTable('leaderboard_entries', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.integer('points').defaultTo(0);
     table.string('period').notNullable(); // daily, weekly, monthly, all_time
     table.integer('rank');
@@ -78,7 +85,7 @@ exports.up = async function(knex) {
   // User preferences and settings
   await knex.schema.createTable('user_preferences', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.string('preferred_language', 10).defaultTo('en-US');
     table.string('learning_pace', 20).defaultTo('moderate');
     table.boolean('email_notifications').defaultTo(true);
@@ -95,7 +102,7 @@ exports.up = async function(knex) {
   // User learning sessions
   await knex.schema.createTable('user_learning_sessions', (table) => {
     table.increments('id').primary();
-    table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').notNullable().onDelete('CASCADE');
     table.timestamp('session_start').notNullable();
     table.timestamp('session_end');
     table.integer('duration_minutes').defaultTo(0);

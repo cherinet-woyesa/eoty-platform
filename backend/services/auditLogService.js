@@ -31,6 +31,13 @@ async function logConfigChange({
   user_agent = null
 }) {
   try {
+    // Check if audit table exists; if not, skip logging gracefully
+    const hasTable = await db.schema.hasTable('system_config_audit');
+    if (!hasTable) {
+      console.warn('system_config_audit table does not exist, skipping config change log');
+      return null;
+    }
+
     const [logId] = await db('system_config_audit').insert({
       admin_id,
       entity_type,
@@ -74,6 +81,19 @@ async function getAuditLogs(filters = {}) {
       page = 1,
       limit = 50
     } = filters;
+
+    // Check if audit table exists; if not, return empty result
+    const hasTable = await db.schema.hasTable('system_config_audit');
+    if (!hasTable) {
+      console.warn('system_config_audit table does not exist, returning empty audit logs');
+      return {
+        logs: [],
+        total: 0,
+        page: 1,
+        limit: filters.limit || 50,
+        pages: 0
+      };
+    }
 
     // Build query
     let query = db('system_config_audit as sca')
@@ -145,6 +165,12 @@ async function getAuditLogs(filters = {}) {
  */
 async function getEntityAuditLogs(entity_type, entity_id, limit = 10) {
   try {
+    const hasTable = await db.schema.hasTable('system_config_audit');
+    if (!hasTable) {
+      console.warn('system_config_audit table does not exist, returning empty entity audit logs');
+      return [];
+    }
+
     const logs = await db('system_config_audit as sca')
       .leftJoin('users as u', 'sca.admin_id', 'u.id')
       .where({
@@ -179,6 +205,12 @@ async function getEntityAuditLogs(entity_type, entity_id, limit = 10) {
  */
 async function getRecentChanges(limit = 10) {
   try {
+    const hasTable = await db.schema.hasTable('system_config_audit');
+    if (!hasTable) {
+      console.warn('system_config_audit table does not exist, returning empty recent changes');
+      return [];
+    }
+
     const changes = await db('system_config_audit as sca')
       .leftJoin('users as u', 'sca.admin_id', 'u.id')
       .select(

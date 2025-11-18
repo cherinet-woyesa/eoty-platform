@@ -112,13 +112,46 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
 
   const handleExport = useCallback(async () => {
     if (!analytics) return;
-    
+
     try {
-      // In real app, this would generate and download a report
-      console.log('Exporting video analytics data...');
-      // Simulate export process
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Export completed');
+      // Build CSV content with summary and top-performing lessons
+      const lines: string[] = [];
+
+      // Summary section
+      lines.push('Section,Metric,Value');
+      lines.push(`Summary,Total Views,${analytics.summary.totalViews}`);
+      lines.push(`Summary,Unique Viewers,${analytics.summary.uniqueViewers}`);
+      lines.push(`Summary,Average Watch Time (seconds),${analytics.summary.averageWatchTime}`);
+      lines.push(`Summary,Average Completion Rate (%),${analytics.summary.averageCompletionRate.toFixed(2)}`);
+      lines.push('');
+
+      // Top lessons section
+      lines.push('Top Lessons,Lesson Title,Course Title,Views,Watch Time (seconds),Completion Rate (%)');
+      analytics.topPerformingLessons.forEach((lesson) => {
+        const safeLessonTitle = `"${lesson.lessonTitle.replace(/"/g, '""')}"`;
+        const safeCourseTitle = `"${lesson.courseTitle.replace(/"/g, '""')}"`;
+        lines.push([
+          'Lesson',
+          safeLessonTitle,
+          safeCourseTitle,
+          lesson.views,
+          Math.round(lesson.watchTime),
+          lesson.completionRate.toFixed(2)
+        ].join(','));
+      });
+
+      const csvContent = lines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.download = `video-analytics-${timestamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Export failed:', error);
     }

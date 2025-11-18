@@ -322,6 +322,218 @@ const quizController = {
         message: 'Failed to fetch lesson progress'
       });
     }
+  },
+
+  // ============================================================================
+  // QUIZ TRIGGERS - FR2: In-Lesson Quiz Integration
+  // ============================================================================
+
+  // Get all quiz triggers for a lesson (with timestamps for video player)
+  async getQuizTriggers(req, res) {
+    try {
+      const { lessonId } = req.params;
+
+      const triggers = await db('quiz_triggers as qt')
+        .join('quiz_questions as qq', 'qt.question_id', 'qq.id')
+        .where('qt.lesson_id', lessonId)
+        .select(
+          'qt.*',
+          'qq.question_text',
+          'qq.question_type',
+          'qq.options',
+          'qq.correct_answer',
+          'qq.explanation',
+          'qq.points'
+        )
+        .orderBy('qt.trigger_timestamp', 'asc');
+
+      // Parse options JSON for each trigger
+      const parsedTriggers = triggers.map(trigger => ({
+        ...trigger,
+        options: trigger.options ? JSON.parse(trigger.options) : null
+      }));
+
+      res.json({
+        success: true,
+        data: { triggers: parsedTriggers }
+      });
+    } catch (error) {
+      console.error('Get quiz triggers error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch quiz triggers'
+      });
+    }
+  },
+
+  // Create a quiz trigger (teachers only)
+  async createQuizTrigger(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { lessonId } = req.params;
+      const {
+        questionId,
+        triggerTimestamp,
+        isRequired = false,
+        pauseVideo = true,
+        durationSeconds = null,
+        displayMode = 'overlay',
+        minScoreToProceed = null
+      } = req.body;
+
+      // Verify the lesson belongs to the teacher
+      const lesson = await db('lessons as l')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where({ 'l.id': lessonId, 'c.created_by': userId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found or access denied'
+        });
+      }
+
+      // Verify the question exists and belongs to this lesson
+      const question = await db('quiz_questions')
+        .where({ id: questionId, lesson_id: lessonId })
+        .first();
+
+      if (!question) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz question not found for this lesson'
+        });
+      }
+
+      // Check if trigger already exists for this question
+      const existingTrigger = await db('quiz_triggers')
+        .where({ lesson_id: lessonId, question_id: questionId })
+        .first();
+
+      if (existingTrigger) {
+        return res.status(400).json({
+          success: false,
+          message: 'A trigger already exists for this question. Please update or delete it first.'
+        });
+      }
+
+      const [triggerId] = await db('quiz_triggers').insert({
+        lesson_id: lessonId,
+        question_id: questionId,
+        trigger_timestamp: triggerTimestamp,
+        is_required: isRequired,
+        pause_video: pauseVideo,
+        duration_seconds: durationSeconds,
+        display_mode: displayMode,
+        min_score_to_proceed: minScoreToProceed,
+        created_by: userId,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).returning('id');
+
+      res.status(201).json({
+        success: true,
+        message: 'Quiz trigger created successfully',
+        data: { triggerId: triggerId.id || triggerId }
+      });
+    } catch (error) {
+      console.error('Create quiz trigger error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create quiz trigger'
+      });
+    }
+  },
+
+  // Update a quiz trigger
+  async updateQuizTrigger(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { triggerId } = req.params;
+      const {
+        triggerTimestamp,
+        isRequired,
+        pauseVideo,
+        durationSeconds,
+        displayMode,
+        minScoreToProceed
+      } = req.body;
+
+      // Verify the trigger exists and user has permission
+      const trigger = await db('quiz_triggers as qt')
+        .join('lessons as l', 'qt.lesson_id', 'l.id')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where({ 'qt.id': triggerId, 'c.created_by': userId })
+        .first();
+
+      if (!trigger) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz trigger not found or access denied'
+        });
+      }
+
+      const updateData = { updated_at: new Date() };
+      if (triggerTimestamp !== undefined) updateData.trigger_timestamp = triggerTimestamp;
+      if (isRequired !== undefined) updateData.is_required = isRequired;
+      if (pauseVideo !== undefined) updateData.pause_video = pauseVideo;
+      if (durationSeconds !== undefined) updateData.duration_seconds = durationSeconds;
+      if (displayMode !== undefined) updateData.display_mode = displayMode;
+      if (minScoreToProceed !== undefined) updateData.min_score_to_proceed = minScoreToProceed;
+
+      await db('quiz_triggers')
+        .where({ id: triggerId })
+        .update(updateData);
+
+      res.json({
+        success: true,
+        message: 'Quiz trigger updated successfully'
+      });
+    } catch (error) {
+      console.error('Update quiz trigger error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update quiz trigger'
+      });
+    }
+  },
+
+  // Delete a quiz trigger
+  async deleteQuizTrigger(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { triggerId } = req.params;
+
+      // Verify the trigger exists and user has permission
+      const trigger = await db('quiz_triggers as qt')
+        .join('lessons as l', 'qt.lesson_id', 'l.id')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where({ 'qt.id': triggerId, 'c.created_by': userId })
+        .first();
+
+      if (!trigger) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz trigger not found or access denied'
+        });
+      }
+
+      await db('quiz_triggers')
+        .where({ id: triggerId })
+        .delete();
+
+      res.json({
+        success: true,
+        message: 'Quiz trigger deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete quiz trigger error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete quiz trigger'
+      });
+    }
   }
 };
 

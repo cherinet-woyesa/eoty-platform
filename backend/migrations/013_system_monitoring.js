@@ -3,6 +3,13 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('system_monitoring');
+  if (hasTable) {
+    console.log('✓ system_monitoring table already exists, skipping migration');
+    return;
+  }
+
   // System Monitoring Metrics
   await knex.schema.createTable('system_monitoring', (table) => {
     table.increments('id').primary();
@@ -62,7 +69,7 @@ exports.up = async function(knex) {
     table.decimal('metric_value', 5, 2).notNullable();
     table.decimal('threshold', 5, 2).notNullable();
     table.string('status').defaultTo('active'); // active, acknowledged, resolved
-    table.integer('acknowledged_by').unsigned().references('id').inTable('users');
+    table.string('acknowledged_by');
     table.timestamp('acknowledged_at');
     table.timestamp('resolved_at');
     table.timestamp('timestamp').defaultTo(knex.fn.now());

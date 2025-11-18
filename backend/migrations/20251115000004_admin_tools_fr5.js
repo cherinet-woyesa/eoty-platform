@@ -4,6 +4,13 @@
  */
 
 exports.up = async function(knex) {
+  // Check if table already exists
+  const hasTable = await knex.schema.hasTable('user_bans');
+  if (hasTable) {
+    console.log('✓ user_bans table already exists, skipping migration');
+    return;
+  }
+
   // User bans table (REQUIREMENT: Ban/unban users)
   await knex.schema.createTable('user_bans', (table) => {
     table.increments('id').primary();

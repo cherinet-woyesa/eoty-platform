@@ -651,31 +651,72 @@ const authController = {
 
   async getCurrentUser(req, res) {
     try {
-      const user = await db('users')
-        .where({ id: req.user.userId })
-        .select(
-          'id',
-          'first_name',
-          'last_name',
-          'email',
-          'role',
-          'chapter_id',
-          'is_active',
-          'last_login_at',
-          'profile_picture',
-          // NOTE: The initial schema uses `phone_number`; alias it to `phone` for the API
-          db.raw('COALESCE(phone_number, \'\') as phone'),
-          db.raw('COALESCE(bio, \'\') as bio'),
-          db.raw('COALESCE(location, \'\') as location'),
-          db.raw('COALESCE(specialties, NULL) as specialties'),
-          db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
-          db.raw('COALESCE(education, \'\') as education'),
-          db.raw('COALESCE(interests, NULL) as interests'),
-          db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
-          db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
-          'created_at'
-        )
-        .first();
+      let user;
+
+      try {
+        // Prefer extended profile fields when the schema supports them
+        user = await db('users')
+          .where({ id: req.user.userId })
+          .select(
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'role',
+            'chapter_id',
+            'is_active',
+            'last_login_at',
+            'profile_picture',
+            // NOTE: The initial schema uses `phone_number`; alias it to `phone` for the API
+            db.raw('COALESCE(phone_number, \'\') as phone'),
+            db.raw('COALESCE(bio, \'\') as bio'),
+            db.raw('COALESCE(location, \'\') as location'),
+            db.raw('COALESCE(specialties, NULL) as specialties'),
+            db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
+            db.raw('COALESCE(education, \'\') as education'),
+            db.raw('COALESCE(interests, NULL) as interests'),
+            db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
+            db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
+            'created_at'
+          )
+          .first();
+      } catch (error) {
+        // Handle missing optional columns (location, specialties, etc.) gracefully
+        if (error.code === '42703') {
+          console.warn(
+            'Optional user profile columns are missing in the database; falling back to basic user fields'
+          );
+
+          user = await db('users')
+            .where({ id: req.user.userId })
+            .select(
+              'id',
+              'first_name',
+              'last_name',
+              'email',
+              'role',
+              'chapter_id',
+              'is_active',
+              'last_login_at',
+              'profile_picture',
+              'created_at'
+            )
+            .first();
+
+          // Provide default values so the rest of the method can safely access these properties
+          user.phone = '';
+          user.bio = '';
+          user.location = '';
+          user.specialties = null;
+          user.teaching_experience = 0;
+          user.education = '';
+          user.interests = null;
+          user.learning_goals = '';
+          user.date_of_birth = null;
+        } else {
+          throw error;
+        }
+      }
 
       if (!user) {
         return res.status(404).json({
@@ -717,7 +758,8 @@ const authController = {
       // Check profile completion
       let profileCompletion;
       try {
-        profileCompletion = this.calculateProfileCompletion(user);
+        // Use the controller helper directly; don't rely on `this` binding
+        profileCompletion = authController.calculateProfileCompletion(user);
       } catch (error) {
         console.error('Error calculating profile completion:', error);
         // Set default completion if calculation fails

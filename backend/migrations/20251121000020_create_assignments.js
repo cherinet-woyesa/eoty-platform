@@ -9,7 +9,7 @@ exports.up = async function (knex) {
     await knex.schema.createTable('assignments', (table) => {
       table.increments('id').primary();
       table.integer('course_id').unsigned().references('id').inTable('courses').onDelete('CASCADE');
-      table.integer('created_by').unsigned().references('id').inTable('users').onDelete('SET NULL');
+      table.string('created_by').onDelete('SET NULL');
       table.string('title').notNullable();
       table.text('description').nullable();
       table.timestamp('due_date').nullable();

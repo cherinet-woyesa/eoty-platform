@@ -40,16 +40,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   // Check if current route is admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
-  // Show welcome message for new users
+  // Show welcome message for new users, but don't auto-open the full training modal.
+  // The user must explicitly start onboarding from the welcome card or reminder to avoid intrusive UI.
   const showWelcome = hasOnboarding && !isCompleted;
-
-  // Show onboarding modal when user has onboarding and it's not completed (REQUIREMENT: 100% new users see guided onboarding)
-  useEffect(() => {
-    if (hasOnboarding && !isCompleted && flow && progress) {
-      // Auto-show modal for new users (REQUIREMENT: Auto-resume)
-      setShowOnboardingModal(true);
-    }
-  }, [hasOnboarding, isCompleted, flow, progress]);
 
   // Persist sidebar state
   useEffect(() => {
@@ -91,39 +84,31 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const renderSidebar = () => {
     if (isAdminRoute && isAdminUser) {
       return (
-        <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-          <AdminSidebar 
-            isCollapsed={sidebarCollapsed} 
-            onToggleCollapse={handleToggleSidebar} 
-          />
-        </div>
+        <AdminSidebar 
+          isCollapsed={sidebarCollapsed} 
+          onToggleCollapse={handleToggleSidebar} 
+        />
       );
     } else if (isTeacher) {
       return (
-        <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-          <TeacherSidebar 
-            isCollapsed={sidebarCollapsed} 
-            onToggleCollapse={handleToggleSidebar} 
-          />
-        </div>
+        <TeacherSidebar 
+          isCollapsed={sidebarCollapsed} 
+          onToggleCollapse={handleToggleSidebar} 
+        />
       );
     } else if (isStudent) {
       return (
-        <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-          <StudentSidebar 
-            isCollapsed={sidebarCollapsed} 
-            onToggleCollapse={handleToggleSidebar} 
-          />
-        </div>
+        <StudentSidebar 
+          isCollapsed={sidebarCollapsed} 
+          onToggleCollapse={handleToggleSidebar} 
+        />
       );
     } else {
       return (
-        <div className="h-full bg-white/95 backdrop-blur-sm border-r border-gray-200/60 shadow-xl">
-          <Sidebar 
-            isCollapsed={sidebarCollapsed} 
-            onToggleCollapse={handleToggleSidebar} 
-          />
-        </div>
+        <Sidebar 
+          isCollapsed={sidebarCollapsed} 
+          onToggleCollapse={handleToggleSidebar} 
+        />
       );
     }
   };

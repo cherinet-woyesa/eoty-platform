@@ -11,7 +11,7 @@ exports.up = async function (knex) {
     table.increments('id').primary();
     table.string('email').notNullable();
     table.integer('invited_by').unsigned().references('id').inTable('users').onDelete('CASCADE');
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('SET NULL');
+    table.string('user_id').notNullable().onDelete('SET NULL');
     table.integer('course_id').unsigned().references('id').inTable('courses').onDelete('SET NULL');
     table.string('status').notNullable().defaultTo('pending'); // pending, accepted, declined
     table.timestamp('accepted_at');
