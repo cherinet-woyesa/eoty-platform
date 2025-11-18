@@ -49,17 +49,17 @@ const AIAssistant: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-stone-800">AI Assistant</h1>
+            <div className="flex items-center space-x-2 mb-1">
+              <h1 className="text-xl font-semibold text-stone-800">AI Assistant</h1>
             </div>
-            <p className="text-stone-600 font-medium">AI-powered guidance for your spiritual journey</p>
+            <p className="text-stone-600 text-sm">AI-powered guidance for your spiritual journey</p>
             {contextLabel && (
-              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-white/80 border border-[#27AE60]/30 text-xs font-semibold text-[#16A085] shadow-sm">
+              <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full bg-white/80 border border-[#27AE60]/30 text-xs font-medium text-[#16A085] shadow-sm">
                 <Sparkles className="h-3 w-3 mr-1" />
                 {contextLabel}
               </div>
@@ -67,42 +67,42 @@ const AIAssistant: React.FC = () => {
           </div>
           <Link
             to={getRoleDashboard()}
-            className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-medium rounded-lg transition-all duration-200"
           >
-            <BookOpen className="h-4 w-4 mr-2" />
+            <BookOpen className="h-3 w-3 mr-1.5" />
             Back to Dashboard
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         {/* Chat Interface - 3/4 width */}
         <div className="lg:col-span-3">
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-lg overflow-hidden">
-            <div className="h-[calc(100vh-300px)] min-h-[600px] max-h-[800px]">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+            <div className="h-[calc(100vh-280px)] min-h-[500px] max-h-[700px]">
               <AIChatInterface ref={chatRef} context={initialContext} />
             </div>
           </div>
         </div>
 
         {/* Features Sidebar - 1/4 width */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* Quick Questions */}
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
-            <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center">
-              <Zap className="mr-2 h-5 w-5 text-[#27AE60]" />
+        <div className="space-y-3">
+          {/* Compact Quick Questions */}
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+            <h3 className="text-sm font-medium text-stone-800 mb-3 flex items-center">
+              <Zap className="mr-1.5 h-4 w-4 text-[#27AE60]" />
               Quick Questions
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
                 {quickQuestions.map((item, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickQuestion(item.question)}
-                  className="w-full text-left p-3 bg-stone-50 hover:bg-gradient-to-r hover:from-[#27AE60]/10 hover:to-[#16A085]/10 rounded-lg border border-stone-200 hover:border-[#27AE60]/50 transition-all group"
+                  className="w-full text-left p-2 bg-stone-50 hover:bg-gradient-to-r hover:from-[#27AE60]/10 hover:to-[#16A085]/10 rounded border border-stone-200 hover:border-[#27AE60]/50 transition-all group"
                 >
-                  <div className="flex items-start gap-2">
-                    <item.icon className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                    <p className="text-sm text-stone-700 group-hover:text-stone-900 font-medium line-clamp-2">
+                  <div className="flex items-start gap-1.5">
+                    <item.icon className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                    <p className="text-xs text-stone-700 group-hover:text-stone-900 font-medium line-clamp-2">
                       {item.question}
                     </p>
                   </div>
@@ -111,101 +111,101 @@ const AIAssistant: React.FC = () => {
             </div>
           </div>
 
-          {/* How It Works */}
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
-            <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center">
-              <Bot className="mr-2 h-5 w-5 text-[#16A085]" />
+          {/* Compact How It Works */}
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+            <h3 className="text-sm font-medium text-stone-800 mb-3 flex items-center">
+              <Bot className="mr-1.5 h-4 w-4 text-[#16A085]" />
               How It Works
             </h3>
-            <div className="space-y-3 text-sm text-stone-600">
-              <div className="flex items-start space-x-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+            <div className="space-y-2 text-xs text-stone-600">
+              <div className="flex items-start space-x-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <p>Ask questions about Orthodox Christianity</p>
               </div>
-              <div className="flex items-start space-x-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+              <div className="flex items-start space-x-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <p>Get faith-aligned answers from trusted sources</p>
               </div>
-              <div className="flex items-start space-x-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+              <div className="flex items-start space-x-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <p>Context-aware responses based on your lessons</p>
               </div>
             </div>
           </div>
 
-          {/* Doctrinal Safety */}
-          <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-xl border border-[#27AE60]/30 p-5 shadow-md">
-            <h3 className="text-lg font-semibold text-stone-800 mb-3 flex items-center">
-              <Shield className="mr-2 h-5 w-5 text-[#27AE60]" />
+          {/* Compact Doctrinal Safety */}
+          <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30 p-3 shadow-sm">
+            <h3 className="text-sm font-medium text-stone-800 mb-2 flex items-center">
+              <Shield className="mr-1.5 h-4 w-4 text-[#27AE60]" />
               Doctrinal Safety
             </h3>
-            <ul className="space-y-2 text-sm text-stone-700">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+            <ul className="space-y-1.5 text-xs text-stone-700">
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <span>Aligned with Ethiopian Orthodox teachings</span>
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <span>Sensitive topics flagged for moderation</span>
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <span>References Scripture and Church Fathers</span>
               </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0 mt-0.5" />
+              <li className="flex items-start gap-1.5">
+                <CheckCircle className="h-3 w-3 text-[#27AE60] flex-shrink-0 mt-0.5" />
                 <span>Encourages consultation with clergy</span>
               </li>
             </ul>
           </div>
 
-          {/* Language Support */}
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
-            <h3 className="text-lg font-semibold text-stone-800 mb-3 flex items-center">
-              <Languages className="mr-2 h-5 w-5 text-[#2980B9]" />
+          {/* Compact Language Support */}
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+            <h3 className="text-sm font-medium text-stone-800 mb-2 flex items-center">
+              <Languages className="mr-1.5 h-4 w-4 text-[#2980B9]" />
               Language Support
             </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-2 bg-stone-50 rounded-lg">
-                <span className="text-sm font-medium text-stone-700">English</span>
-                <span className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 px-2 py-1 rounded text-xs font-semibold">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-1.5 bg-stone-50 rounded">
+                <span className="text-xs font-medium text-stone-700">English</span>
+                <span className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 px-1.5 py-0.5 rounded text-xs font-semibold">
                   Available
                 </span>
               </div>
-              <div className="flex items-center justify-between p-2 bg-stone-50 rounded-lg">
-                <span className="text-sm font-medium text-stone-700">Amharic</span>
-                <span className="bg-[#F39C12]/20 text-[#F39C12] border border-[#F39C12]/30 px-2 py-1 rounded text-xs font-semibold">
+              <div className="flex items-center justify-between p-1.5 bg-stone-50 rounded">
+                <span className="text-xs font-medium text-stone-700">Amharic</span>
+                <span className="bg-[#F39C12]/20 text-[#F39C12] border border-[#F39C12]/30 px-1.5 py-0.5 rounded text-xs font-semibold">
                   Coming Soon
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Ask About */}
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
-            <h3 className="text-lg font-semibold text-stone-800 mb-3 flex items-center">
-              <BookOpen className="mr-2 h-5 w-5 text-[#16A085]" />
+          {/* Compact Ask About */}
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+            <h3 className="text-sm font-medium text-stone-800 mb-2 flex items-center">
+              <BookOpen className="mr-1.5 h-4 w-4 text-[#16A085]" />
               Ask About
             </h3>
-            <div className="space-y-2 text-sm text-stone-600">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full" />
+            <div className="space-y-1 text-xs text-stone-600">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-[#27AE60] rounded-full" />
                 <span>Scripture interpretation</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-[#27AE60] rounded-full" />
                 <span>Church traditions</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-[#27AE60] rounded-full" />
                 <span>Spiritual practices</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-[#27AE60] rounded-full" />
                 <span>Lesson clarification</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-[#27AE60] rounded-full" />
                 <span>Historical context</span>
               </div>
             </div>

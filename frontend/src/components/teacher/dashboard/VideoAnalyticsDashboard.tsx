@@ -322,74 +322,57 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
   }
 
   return (
-    <div className={`w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen ${className}`}>
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-stone-800">
-                {t('analytics.video_analytics')}
-              </h1>
-            </div>
-            <p className="text-stone-600 font-medium">
-              {t('analytics.insights_from_lessons', {
-                lessons: analytics.totalLessons,
-                courses: analytics.totalCourses
-              })}
-            </p>
-          </div>
-          <div className="mt-4 lg:mt-0 lg:ml-6">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-                className="px-4 py-2.5 text-sm bg-white/90 backdrop-blur-sm border border-stone-200 hover:border-[#27AE60]/40 rounded-lg text-stone-700 hover:text-[#27AE60] font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50"
-              >
-                {timeframeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                {t('common.refresh')}
-              </button>
-              {showExport && (
-                <button
-                  onClick={handleExport}
-                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {t('common.export')}
-                </button>
-              )}
-            </div>
-          </div>
+    <div className={`w-full space-y-2 p-2 ${className}`}>
+      {/* Compact Header with Controls */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-2">
+          <select
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value as Timeframe)}
+            className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm border border-stone-200 hover:border-[#27AE60]/40 rounded-lg text-stone-700 hover:text-[#27AE60] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50"
+          >
+            {timeframeOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-xs font-medium rounded-lg transition-all duration-200 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3 w-3 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+            {t('common.refresh')}
+          </button>
+          {showExport && (
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-xs font-medium rounded-lg transition-all duration-200"
+            >
+              <Download className="h-3 w-3 mr-1.5" />
+              {t('common.export')}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* View Mode Navigation */}
-      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-md">
-        <div className="flex flex-wrap gap-2">
+      {/* Compact View Mode Navigation */}
+      <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+        <div className="flex flex-wrap gap-1.5">
           {viewModeOptions.map((mode) => {
             const Icon = mode.icon;
             return (
               <button
                 key={mode.value}
                 onClick={() => setViewMode(mode.value as ViewMode)}
-                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                   viewMode === mode.value
                     ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-transparent'
                 }`}
               >
-                <Icon className="h-4 w-4 mr-2" />
+                <Icon className="h-3 w-3 mr-1.5" />
                 {mode.label}
               </button>
             );
@@ -397,24 +380,24 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
         </div>
       </div>
 
-      {/* Summary Metrics */}
+      {/* Compact Summary Metrics */}
       {viewMode === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {summaryMetrics.map((metric, index) => {
             const Icon = metric.icon;
             return (
-              <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/40">
-                <div className="flex items-center justify-between mb-4">
+              <div key={index} className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40">
+                <div className="flex items-center justify-between mb-3">
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg blur-md"></div>
-                    <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-lg border border-[#27AE60]/25">
-                      <Icon className="h-6 w-6 text-[#27AE60]" />
+                    <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-lg border border-[#27AE60]/25">
+                      <Icon className="h-4 w-4 text-[#27AE60]" />
                     </div>
                   </div>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-stone-800 mb-1">{metric.formattedValue}</p>
-                  <p className="text-stone-600 text-sm font-medium">{metric.title}</p>
+                  <p className="text-xl font-bold text-stone-800 mb-0.5">{metric.formattedValue}</p>
+                  <p className="text-stone-600 text-xs font-medium">{metric.title}</p>
                 </div>
               </div>
             );

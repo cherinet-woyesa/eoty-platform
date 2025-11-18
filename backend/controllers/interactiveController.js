@@ -261,6 +261,16 @@ const interactiveController = {
         userAgent: req.get('User-Agent') || 'Unknown'
       };
 
+      // Check if video_annotations table exists
+      const tableExists = await db.schema.hasTable('video_annotations');
+
+      if (!tableExists) {
+        return res.status(503).json({
+          success: false,
+          message: 'Video annotations feature is not yet available'
+        });
+      }
+
       const [annotationId] = await db('video_annotations').insert({
         user_id: userId,
         lesson_id: lessonId,

@@ -125,110 +125,96 @@ const StudentManagement: React.FC = () => {
 
   if (loading && students.length === 0) {
     return (
-      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading students..." />
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
+          <LoadingSpinner size="md" text="Loading students..." />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 rounded-xl p-6 border border-[#27AE60]/30 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
-              <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/30">
-                <Users className="h-6 w-6 text-[#27AE60]" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-stone-800">Student Management</h1>
-              <p className="text-stone-600 text-sm mt-1">Manage and monitor your students' progress</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate('/teacher/students/invite')}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-semibold"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Invite
-            </button>
-            <button
-              onClick={fetchStudents}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#16A085]/50 text-stone-700 hover:text-[#16A085] rounded-lg transition-all font-semibold"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </button>
-          </div>
+    <div className="w-full space-y-2 p-2">
+      {/* Compact Header with Actions */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/teacher/students/invite')}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-medium text-xs"
+          >
+            <Mail className="h-3 w-3 mr-1.5" />
+            Invite
+          </button>
+          <button
+            onClick={fetchStudents}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#16A085]/50 text-stone-700 hover:text-[#16A085] rounded-lg transition-all font-medium text-xs"
+          >
+            <RefreshCw className="h-3 w-3 mr-1.5" />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/50">
-          <div className="flex items-center justify-between mb-3">
+      {/* Compact Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/50">
+          <div className="flex items-center justify-between mb-2">
             <div className="relative">
               <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
-                <Users className="h-5 w-5 text-[#27AE60]" />
+              <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
+                <Users className="h-4 w-4 text-[#27AE60]" />
               </div>
             </div>
           </div>
-          <p className="text-3xl font-bold text-stone-800">{stats.totalStudents}</p>
-          <p className="text-sm text-stone-600 mt-1 font-medium">Total Students</p>
+          <p className="text-xl font-bold text-stone-800">{stats.totalStudents}</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">Total Students</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#16A085]/50">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#16A085]/50">
+          <div className="flex items-center justify-between mb-2">
             <div className="relative">
               <div className="absolute inset-0 bg-[#16A085]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded-lg border border-[#16A085]/30">
-                <UserCheck className="h-5 w-5 text-[#16A085]" />
+              <div className="relative p-1.5 bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded-lg border border-[#16A085]/30">
+                <UserCheck className="h-4 w-4 text-[#16A085]" />
               </div>
             </div>
           </div>
-          <p className="text-3xl font-bold text-stone-800">{stats.activeStudents}</p>
-          <p className="text-sm text-stone-600 mt-1 font-medium">Active Students</p>
+          <p className="text-xl font-bold text-stone-800">{stats.activeStudents}</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">Active Students</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#2980B9]/50">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#2980B9]/50">
+          <div className="flex items-center justify-between mb-2">
             <div className="relative">
               <div className="absolute inset-0 bg-[#2980B9]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded-lg border border-[#2980B9]/30">
-                <TrendingUp className="h-5 w-5 text-[#2980B9]" />
+              <div className="relative p-1.5 bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded-lg border border-[#2980B9]/30">
+                <TrendingUp className="h-4 w-4 text-[#2980B9]" />
               </div>
             </div>
           </div>
-          <p className="text-3xl font-bold text-stone-800">{stats.avgProgress}%</p>
-          <p className="text-sm text-stone-600 mt-1 font-medium">Avg. Progress</p>
+          <p className="text-xl font-bold text-stone-800">{stats.avgProgress}%</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">Avg. Progress</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#FFD700]/50">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#FFD700]/50">
+          <div className="flex items-center justify-between mb-2">
             <div className="relative">
               <div className="absolute inset-0 bg-[#FFD700]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
-                <BookOpen className="h-5 w-5 text-[#FFD700]" />
+              <div className="relative p-1.5 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
+                <BookOpen className="h-4 w-4 text-[#FFD700]" />
               </div>
             </div>
           </div>
-          <p className="text-3xl font-bold text-stone-800">{stats.avgCourses}</p>
-          <p className="text-sm text-stone-600 mt-1 font-medium">Avg. Courses</p>
+          <p className="text-xl font-bold text-stone-800">{stats.avgCourses}</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">Avg. Courses</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-md">
-        <div className="flex flex-col lg:flex-row gap-4">
+      {/* Compact Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search students by name or email..."
@@ -237,7 +223,7 @@ const StudentManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700 placeholder-stone-400 transition-all"
+              className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700 placeholder-stone-400 transition-all"
             />
           </div>
           <div className="flex gap-2">
@@ -247,7 +233,7 @@ const StudentManagement: React.FC = () => {
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700"
+              className="px-2.5 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-xs text-stone-700"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>

@@ -191,8 +191,11 @@ const resourceLibraryController = {
       // Get shared notes from chapter (REQUIREMENT: Share notes with chapter members)
       const user = await db('users').where({ id: userId }).select('chapter_id').first();
       let sharedNotes = [];
-      
-      if (user?.chapter_id) {
+
+      // Check if shared_resource_notes table exists
+      const hasSharedNotesTable = await db.schema.hasTable('shared_resource_notes');
+
+      if (user?.chapter_id && hasSharedNotesTable) {
         sharedNotes = await db('shared_resource_notes')
           .join('user_notes', 'shared_resource_notes.note_id', 'user_notes.id')
           .join('users', 'user_notes.user_id', 'users.id')

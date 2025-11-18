@@ -194,11 +194,11 @@ const BookmarksPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="p-4">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading bookmarks...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-3" />
+            <p className="text-stone-600 text-sm">Loading bookmarks...</p>
           </div>
         </div>
       </div>
@@ -207,14 +207,14 @@ const BookmarksPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="p-4">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
-            <p className="text-rose-600 text-lg mb-4">{error}</p>
-            <button 
+            <AlertCircle className="h-8 w-8 text-rose-500 mx-auto mb-3" />
+            <p className="text-rose-600 text-sm mb-3">{error}</p>
+            <button
               onClick={loadBookmarks}
-              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+              className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
             >
               Try Again
             </button>
@@ -228,78 +228,89 @@ const BookmarksPage: React.FC = () => {
   const courseCount = bookmarks.filter(b => b.type === 'course').length;
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-stone-800 mb-2">My Bookmarks</h1>
-          <p className="text-stone-600">Your saved lessons and courses</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="w-full space-y-3 p-3">
+      {/* View Mode Toggle */}
+      <div className="flex justify-end">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-1.5 rounded-md transition-all ${
               viewMode === 'grid'
                 ? 'bg-stone-900 text-stone-50'
                 : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
             }`}
           >
-            <Grid className="h-5 w-5" />
+            <Grid className="h-4 w-4" />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-1.5 rounded-md transition-all ${
               viewMode === 'list'
                 ? 'bg-stone-900 text-stone-50'
                 : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
             }`}
           >
-            <List className="h-5 w-5" />
+            <List className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-stone-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-stone-600">Total Bookmarks</p>
-              <p className="text-2xl font-bold text-stone-800">{bookmarks.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-md blur-md"></div>
+              <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-md border border-[#27AE60]/25">
+                <Bookmark className="h-3 w-3 text-stone-700" />
+              </div>
             </div>
-            <Bookmark className="h-8 w-8 text-[#27AE60]" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-stone-800 mb-0.5">{bookmarks.length}</p>
+            <p className="text-stone-600 text-xs font-medium">Total Bookmarks</p>
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-stone-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-stone-600">Lessons</p>
-              <p className="text-2xl font-bold text-stone-800">{lessonCount}</p>
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#16A085]/15 to-[#27AE60]/15 rounded-md blur-md"></div>
+              <div className="relative p-1.5 bg-gradient-to-br from-[#16A085]/8 to-[#27AE60]/8 rounded-md border border-[#16A085]/25">
+                <PlayCircle className="h-3 w-3 text-stone-700" />
+              </div>
             </div>
-            <PlayCircle className="h-8 w-8 text-teal-500" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-stone-800 mb-0.5">{lessonCount}</p>
+            <p className="text-stone-600 text-xs font-medium">Lessons</p>
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-stone-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-stone-600">Courses</p>
-              <p className="text-2xl font-bold text-stone-800">{courseCount}</p>
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#2980B9]/15 to-[#16A085]/15 rounded-md blur-md"></div>
+              <div className="relative p-1.5 bg-gradient-to-br from-[#2980B9]/8 to-[#16A085]/8 rounded-md border border-[#2980B9]/25">
+                <BookOpen className="h-3 w-3 text-stone-700" />
+              </div>
             </div>
-            <BookOpen className="h-8 w-8 text-amber-500" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-stone-800 mb-0.5">{courseCount}</p>
+            <p className="text-stone-600 text-xs font-medium">Courses</p>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
           <input
             type="text"
             placeholder="Search bookmarks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]"
+            className="w-full pl-9 pr-3 py-2 bg-white/90 backdrop-blur-md border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-stone-50/50 text-stone-700"
           />
           {searchTerm && (
             <button
@@ -339,7 +350,7 @@ const BookmarksPage: React.FC = () => {
           </Link>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredBookmarks.map((item) => (
             <div
               key={item.id}

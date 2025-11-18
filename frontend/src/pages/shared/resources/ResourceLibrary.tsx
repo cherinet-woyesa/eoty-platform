@@ -50,10 +50,11 @@ const ResourceLibrary: React.FC = () => {
       setLoading(true);
       // Use enhanced search if filters are applied, otherwise use regular getResources
       const hasFilters = filters.search || filters.type || filters.topic || filters.author || filters.dateFrom || filters.dateTo || filters.tags?.length || filters.category || filters.language;
-      const response = hasFilters 
+      const response = hasFilters
         ? await resourcesApi.searchResources(filters)
         : await resourcesApi.getResources(filters);
       if (response.success) {
+        console.log('Loaded resources:', response.data.resources?.length || 0, 'items');
         setResources(response.data.resources || []);
       }
     } catch (error) {
@@ -75,8 +76,14 @@ const ResourceLibrary: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadResources();
-    loadFilterOptions();
+    // Force refresh resources when component mounts (e.g., after navigation from upload)
+    const refreshResources = async () => {
+      await loadResources();
+      await loadFilterOptions();
+    };
+
+    refreshResources();
+
     // Load recent searches from localStorage
     const savedRecent = localStorage.getItem('resourceRecentSearches');
     if (savedRecent) {

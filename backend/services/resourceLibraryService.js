@@ -250,6 +250,13 @@ class ResourceLibraryService {
         throw new Error('Note not found or access denied');
       }
 
+      // Check if shared_resource_notes table exists
+      const hasSharedNotesTable = await db.schema.hasTable('shared_resource_notes');
+
+      if (!hasSharedNotesTable) {
+        throw new Error('Note sharing feature is not available');
+      }
+
       // Create share record
       const [shareId] = await db('shared_resource_notes').insert({
         note_id: noteId,
@@ -659,9 +666,8 @@ class ResourceLibraryService {
         title,
         description: description || null,
         author: authorName,
-        author_id: author_id || userId,
+        uploaded_by: author_id || userId,
         category: category || null,
-        topic: topic || null,
         file_type: this.getResourceContentType(originalFilename),
         file_name: safeFileName,
         file_size: fileBuffer.length,
@@ -671,7 +677,6 @@ class ResourceLibraryService {
         is_public: true,
         chapter_id: null,
         published_at: new Date(),
-        published_date: new Date(),
         created_at: new Date(),
         updated_at: new Date()
       };

@@ -18,6 +18,18 @@ export const forumsApi = {
     return response.data;
   },
 
+  // Create new forum
+  createForum: async (forumData: {
+    title: string;
+    description?: string;
+    category?: string;
+    isPublic?: boolean;
+    allowedChapterId?: number;
+  }): Promise<{ success: boolean; data: { forum: Forum }; message: string }> => {
+    const response = await apiClient.post('/forums', forumData);
+    return response.data;
+  },
+
   // Get forum topics
   getTopics: async (forumId: number, page: number = 1, limit: number = 20): Promise<{ success: boolean; data: { topics: ForumTopic[] } }> => {
     const response = await apiClient.get(`/forums/${forumId}/topics?page=${page}&limit=${limit}`);

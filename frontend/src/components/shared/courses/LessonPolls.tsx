@@ -74,27 +74,30 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-center py-8">
-          <Loader className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-center py-6">
+          <div className="text-center">
+            <Loader className="h-6 w-6 animate-spin text-blue-600 mx-auto mb-2" />
+            <p className="text-sm text-gray-600">Loading polls...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">Lesson Polls</h2>
+          <MessageSquare className="h-5 w-5 text-blue-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Lesson Polls</h3>
         </div>
         {isTeacherOrAdmin && (
           <button
             onClick={() => setShowCreator(!showCreator)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             {showCreator ? 'Cancel' : 'Create Poll'}
           </button>
         )}
@@ -109,21 +112,24 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {error}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Error:</span>
+            {error}
+          </div>
         </div>
       )}
 
       {polls.length === 0 && !showCreator ? (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-2">No polls available for this lesson</p>
+        <div className="bg-gray-50 rounded-lg p-6 text-center">
+          <MessageSquare className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 text-sm mb-3">No polls available for this lesson</p>
           {isTeacherOrAdmin && (
             <button
               onClick={() => setShowCreator(true)}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
-              Create the first poll
+              Create the first poll →
             </button>
           )}
         </div>

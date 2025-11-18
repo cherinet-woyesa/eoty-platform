@@ -147,43 +147,43 @@ class ResourceService {
    */
   async getAllUserResources(userId, userRole) {
     try {
-      let query = db('lesson_resources')
-        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
-        .join('courses', 'lessons.course_id', 'courses.id')
+      // Query the general resources table (not lesson_resources)
+      let query = db('resources')
+        .leftJoin('users', 'resources.uploaded_by', 'users.id')
         .select(
-          'lesson_resources.id',
-          'lesson_resources.lesson_id',
-          'lesson_resources.filename',
-          'lesson_resources.original_filename',
-          'lesson_resources.file_type',
-          'lesson_resources.file_size',
-          'lesson_resources.file_url',
-          'lesson_resources.description',
-          'lesson_resources.download_count',
-          'lesson_resources.created_at',
-          'lessons.title as lesson_title',
-          'courses.id as course_id',
-          'courses.title as course_title'
+          'resources.id',
+          'resources.title',
+          'resources.description',
+          'resources.file_name',
+          'resources.file_type',
+          'resources.file_size',
+          'resources.file_url',
+          'resources.category',
+          'resources.language',
+          'resources.tags',
+          'resources.is_public',
+          'resources.created_at',
+          'resources.updated_at',
+          'resources.published_at',
+          'users.first_name',
+          'users.last_name'
         );
 
       // If user is admin, return all resources
       if (userRole === 'admin' || userRole === 'chapter_admin') {
-        return await query.orderBy('lesson_resources.created_at', 'desc');
+        return await query.orderBy('resources.created_at', 'desc');
       }
 
-      // If user is teacher, return resources from their courses
+      // Filter resources based on user role and permissions
       if (userRole === 'teacher') {
-        query = query.where('courses.created_by', userId);
+        // Teachers see resources they uploaded
+        query = query.where('resources.uploaded_by', userId);
       } else {
-        // If user is student, return resources from enrolled courses
-        query = query
-          .join('user_course_enrollments', function() {
-            this.on('courses.id', '=', 'user_course_enrollments.course_id')
-                .andOn('user_course_enrollments.user_id', '=', db.raw('?', [userId]));
-          });
+        // Students and other users see public resources
+        query = query.where('resources.is_public', true);
       }
 
-      const resources = await query.orderBy('lesson_resources.created_at', 'desc');
+      const resources = await query.orderBy('resources.created_at', 'desc');
 
       console.log(`Retrieved ${resources.length} resources for user ${userId}`);
 
@@ -200,27 +200,34 @@ class ResourceService {
    */
   async getFilterOptions() {
     try {
-      const fileTypes = await db('lesson_resources')
+      const categories = await db('resources')
+        .distinct('category')
+        .whereNotNull('category')
+        .pluck('category');
+
+      const languages = await db('resources')
+        .distinct('language')
+        .whereNotNull('language')
+        .pluck('language');
+
+      const fileTypes = await db('resources')
         .distinct('file_type')
         .whereNotNull('file_type')
         .pluck('file_type');
 
-      const courses = await db('lesson_resources')
-        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
-        .join('courses', 'lessons.course_id', 'courses.id')
-        .distinct('courses.id', 'courses.title')
-        .select('courses.id', 'courses.title')
-        .orderBy('courses.title');
-
       return {
+        categories: categories.sort(),
+        languages: languages.sort(),
         fileTypes: fileTypes.sort(),
-        courses: courses
+        types: fileTypes.sort() // For backward compatibility
       };
     } catch (error) {
       console.error('Get filter options error:', error);
       return {
+        categories: [],
+        languages: [],
         fileTypes: [],
-        courses: []
+        types: []
       };
     }
   }

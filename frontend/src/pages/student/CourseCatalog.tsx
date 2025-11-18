@@ -128,75 +128,75 @@ const CourseCatalog: React.FC = () => {
     return colors[category] || 'from-gray-500 to-gray-600';
   }, []);
 
-  // Memoize course rendering to prevent unnecessary re-renders
+  // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: CatalogCourse) => (
-    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-xl transition-all duration-200 hover:border-[#27AE60]/40">
-      {/* Course Header */}
-      <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-4 text-white relative`}>
-        <h3 className="text-lg font-bold mb-1 line-clamp-2">{course.title}</h3>
-        <p className="text-white/90 text-sm line-clamp-2 opacity-90">
+    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:border-[#27AE60]/40">
+      {/* Compact Course Header */}
+      <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-3 text-white relative`}>
+        <h3 className="text-sm font-bold mb-0.5 line-clamp-2">{course.title}</h3>
+        <p className="text-white/90 text-xs line-clamp-2 opacity-90">
           {course.description || 'No description provided'}
         </p>
         {course.is_enrolled && (
-          <div className="absolute top-2 right-2 bg-[#27AE60] text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center shadow-md">
-            <CheckCircle className="h-3 w-3 mr-1" />
+          <div className="absolute top-1.5 right-1.5 bg-[#27AE60] text-white px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center shadow-md">
+            <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
             Enrolled
           </div>
         )}
       </div>
 
-      {/* Course Info */}
-      <div className="p-4">
-        <div className="flex items-center justify-between text-sm text-stone-600 mb-3">
+      {/* Compact Course Info */}
+      <div className="p-3">
+        <div className="flex items-center justify-between text-xs text-stone-600 mb-2">
           <div className="flex items-center space-x-1">
-            <Users className="h-4 w-4 text-[#27AE60]" />
+            <Users className="h-3 w-3 text-[#27AE60]" />
             <span>{course.student_count} students</span>
           </div>
           <div className="flex items-center space-x-1">
-            <BookOpen className="h-4 w-4 text-[#2980B9]" />
+            <BookOpen className="h-3 w-3 text-[#2980B9]" />
             <span>{course.lesson_count} lessons</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm mb-4">
-          <span className="capitalize bg-stone-100 px-2 py-1 rounded text-xs font-medium text-stone-700">
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span className="capitalize bg-stone-100 px-1.5 py-0.5 rounded text-[10px] font-medium text-stone-700">
             {course.level || 'Beginner'}
           </span>
-          <span className="text-stone-500 text-xs">
+          <span className="text-stone-500 text-[10px]">
             by {course.created_by_name}
           </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex space-x-2">
+        {/* Compact Action Buttons */}
+        <div className="flex space-x-1.5">
           <Link
             to={`/student/courses/${course.id}`}
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-stone-300 text-sm font-medium rounded-lg text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
+            className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
           >
-            View Details
+            View
           </Link>
-          
+
           {!course.is_enrolled ? (
             <button
               onClick={() => handleEnroll(course.id)}
               disabled={enrolling === course.id}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
             >
               {enrolling === course.id ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
                   Enrolling...
                 </>
               ) : (
-                'Enroll Now'
+                'Enroll'
               )}
             </button>
           ) : (
             <Link
               to={`/student/courses/${course.id}`}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-md hover:shadow-lg"
+              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
             >
-              Continue Learning
+              Continue
             </Link>
           )}
         </div>
@@ -206,11 +206,11 @@ const CourseCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="w-full flex items-center justify-center min-h-96 p-4 sm:p-6 lg:p-8">
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading course catalog...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
+            <p className="text-stone-600 text-sm">Loading course catalog...</p>
           </div>
         </div>
       </div>
@@ -219,14 +219,14 @@ const CourseCatalog: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="w-full flex items-center justify-center min-h-96 p-4 sm:p-6 lg:p-8">
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600 text-sm mb-3">{error}</p>
+            <button
               onClick={loadCatalog}
-              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+              className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
             >
               Try Again
             </button>
@@ -237,57 +237,34 @@ const CourseCatalog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-white/80 rounded-lg border border-[#27AE60]/40">
-                    <Sparkles className="h-6 w-6 text-[#27AE60]" />
-                  </div>
-                </div>
-                <h1 className="text-3xl font-bold text-stone-800">Course Catalog</h1>
+    <div className="w-full space-y-2 p-2">
+        {/* Compact Invitations Alert */}
+        {pendingInvitesCount > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-white/80 border border-emerald-200 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-100">
+                <Mail className="h-3 w-3 text-emerald-700" />
               </div>
-              <p className="text-stone-700 text-sm mt-2">
-                Discover and enroll in courses to expand your knowledge
-              </p>
-              <p className="text-stone-600 text-xs mt-1">
-                {filteredCourses.length} courses available
-              </p>
+              <div>
+                <p className="text-xs font-semibold text-emerald-900">
+                  {pendingInvitesCount} course invitation{pendingInvitesCount > 1 ? 's' : ''}.
+                </p>
+                <p className="text-[10px] text-emerald-700/80">
+                  Accept invitations from your teachers.
+                </p>
+              </div>
             </div>
+            <Link
+              to="/student/invitations"
+              className="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
+            >
+              View
+            </Link>
           </div>
+        )}
 
-          {pendingInvitesCount > 0 && (
-            <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl bg-white/80 border border-emerald-200 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-100">
-                  <Mail className="h-4 w-4 text-emerald-700" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-emerald-900">
-                    You have {pendingInvitesCount} course invitation{pendingInvitesCount > 1 ? 's' : ''}.
-                  </p>
-                  <p className="text-xs text-emerald-700/80">
-                    Accept invitations to join courses your teachers have shared with you.
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/student/invitations"
-                className="inline-flex items-center self-start sm:self-auto px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
-              >
-                View invitations
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-4 border border-stone-200 shadow-sm">
+        {/* Compact Search and Filters */}
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -330,16 +307,16 @@ const CourseCatalog: React.FC = () => {
             {filteredCourses.map(renderCourseCard)}
           </div>
         ) : (
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-8 text-center">
-            <BookOpen className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-stone-900 mb-2">No courses found</h3>
-            <p className="text-stone-600 text-sm">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-6 text-center">
+            <BookOpen className="h-10 w-10 text-stone-400 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-stone-800 mb-1">No courses found</h3>
+            <p className="text-stone-600 text-xs">
               Try adjusting your search or filter criteria.
             </p>
           </div>
         )}
       </div>
-    </div>
+    
   );
 };
 

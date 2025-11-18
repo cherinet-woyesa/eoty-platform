@@ -68,11 +68,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role requirement with hierarchy support
   const roles = allowedRoles || (requiredRole ? (Array.isArray(requiredRole) ? requiredRole : [requiredRole]) : []);
-  
+
   if (roles.length > 0) {
     // Check if user has any of the required roles (with hierarchy)
     const hasRequiredRole = roles.some(role => isRoleOrHigher(user.role, role));
-    
+
     if (!hasRequiredRole) {
       // Get the user's role-appropriate dashboard
       const getRoleDashboard = (): string => {

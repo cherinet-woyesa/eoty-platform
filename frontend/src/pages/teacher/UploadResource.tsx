@@ -100,17 +100,17 @@ const UploadResource: React.FC = () => {
 
   if (success) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-[#27AE60]/50 p-12 text-center shadow-md max-w-2xl mx-auto">
-          <div className="relative inline-block mb-4">
+      <div className="w-full space-y-2 p-2">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg border border-[#27AE60]/50 p-8 text-center shadow-sm max-w-2xl mx-auto">
+          <div className="relative inline-block mb-3">
             <div className="absolute inset-0 bg-[#27AE60]/20 rounded-full blur-xl"></div>
-            <CheckCircle className="relative h-16 w-16 text-[#27AE60] mx-auto" />
+            <CheckCircle className="relative h-12 w-12 text-[#27AE60] mx-auto" />
           </div>
-          <h2 className="text-2xl font-bold text-stone-800 mb-2">Resource Uploaded Successfully!</h2>
-          <p className="text-stone-600 mb-6">Your resource has been uploaded and is now available in the resource library.</p>
+          <h2 className="text-xl font-bold text-stone-800 mb-2">Resource Uploaded Successfully!</h2>
+          <p className="text-sm text-stone-600 mb-4">Your resource has been uploaded and is now available in the resource library.</p>
           <Link
             to="/teacher/resources"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
           >
             Go to Resource Library
           </Link>
@@ -120,29 +120,13 @@ const UploadResource: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-stone-800">Upload Resource</h1>
-            </div>
-            <p className="text-stone-600 font-medium">Share faith-based resources with your students</p>
-          </div>
-          <Link
-            to="/teacher/resources"
-            className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Resources
-          </Link>
-        </div>
-      </div>
+    <div className="w-full space-y-2 p-2">
+    
+      
 
-      {/* Upload Form */}
-      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-md max-w-3xl mx-auto">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Compact Upload Form */}
+      <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-4 shadow-sm max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* File Upload */}
           <div>
             <label className="block text-sm font-semibold text-stone-800 mb-2">
@@ -150,10 +134,10 @@ const UploadResource: React.FC = () => {
             </label>
             <div className="mt-1">
               {!file ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100 transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="h-10 w-10 text-stone-400 mb-3" />
-                    <p className="mb-2 text-sm text-stone-600">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer bg-stone-50 hover:bg-stone-100 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-3 pb-4">
+                    <Upload className="h-8 w-8 text-stone-400 mb-2" />
+                    <p className="mb-1 text-sm text-stone-600">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
                     <p className="text-xs text-stone-500">PDF, DOC, DOCX, Images, etc. (Max 100MB)</p>
@@ -197,7 +181,7 @@ const UploadResource: React.FC = () => {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+              className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               placeholder="Enter resource title"
               required
             />
@@ -211,8 +195,8 @@ const UploadResource: React.FC = () => {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+              rows={3}
+              className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               placeholder="Describe the resource content..."
             />
           </div>
@@ -226,7 +210,7 @@ const UploadResource: React.FC = () => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               >
                 <option value="">Select category</option>
                 <option value="bible">Bible Study</option>
@@ -245,7 +229,7 @@ const UploadResource: React.FC = () => {
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
               >
                 <option value="en">English</option>
                 <option value="am">Amharic</option>
@@ -265,7 +249,7 @@ const UploadResource: React.FC = () => {
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
                 placeholder="e.g., scripture, prayer, faith"
               />
             </div>
@@ -277,7 +261,7 @@ const UploadResource: React.FC = () => {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full px-4 py-2.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
+                className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700"
                 placeholder="e.g., Holy Trinity, Prayer"
               />
             </div>
@@ -291,12 +275,12 @@ const UploadResource: React.FC = () => {
             </div>
           )}
 
-          {/* Submit Button */}
-          <div className="flex gap-4 pt-4">
+          {/* Compact Submit Button */}
+          <div className="flex gap-3 pt-3">
             <button
               type="submit"
               disabled={loading || !file || !title.trim()}
-              className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -312,7 +296,7 @@ const UploadResource: React.FC = () => {
             </button>
             <Link
               to="/teacher/resources"
-              className="inline-flex items-center justify-center px-6 py-3 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
+              className="inline-flex items-center justify-center px-4 py-2 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
             >
               Cancel
             </Link>

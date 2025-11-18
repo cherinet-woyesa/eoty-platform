@@ -167,14 +167,14 @@ const MyCourses: React.FC = () => {
     return courseDate.toLocaleDateString();
   }, []);
 
-  // Memoize course rendering to prevent unnecessary re-renders
+  // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: Course) => (
-    <div key={course.id} className={`relative ${viewMode === 'grid' 
-      ? "bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 hover:border-[#27AE60]/50"
-      : "bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-3 hover:shadow-lg transition-all duration-200 hover:border-[#27AE60]/50"
-    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[#27AE60] bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10' : ''}`}>
+    <div key={course.id} className={`relative ${viewMode === 'grid'
+      ? "bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 hover:border-[#27AE60]/50"
+      : "bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-2 hover:shadow-md transition-all duration-200 hover:border-[#27AE60]/50"
+    } ${selectedCourses.includes(course.id) ? 'ring-1 ring-[#27AE60] bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10' : ''}`}>
       {/* Selection Checkbox */}
-      <div className="absolute top-2 left-2 z-10">
+      <div className="absolute top-1.5 left-1.5 z-10">
         <input
           type="checkbox"
           checked={selectedCourses.includes(course.id)}
@@ -185,92 +185,92 @@ const MyCourses: React.FC = () => {
               setSelectedCourses(selectedCourses.filter(id => id !== course.id));
             }
           }}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
         />
       </div>
       {viewMode === 'grid' ? (
-        // Grid View
+        // Compact Grid View
         <>
           {course.cover_image && (
-            <img 
-              src={course.cover_image} 
+            <img
+              src={course.cover_image}
               alt={`Cover for ${course.title}`}
-              className="w-full h-32 object-cover mb-4 rounded-t-lg"
+              className="w-full h-24 object-cover mb-3 rounded-t-lg"
             />
           )}
           {/* Course Header */}
-          <div className={`bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 p-4 border-b border-[#27AE60]/30`}>
+          <div className={`bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 p-3 border-b border-[#27AE60]/30`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-stone-800 mb-1 line-clamp-2">{course.title}</h3>
-                <p className="text-stone-600 text-sm line-clamp-2">
+                <h3 className="text-sm font-bold text-stone-800 mb-0.5 line-clamp-2">{course.title}</h3>
+                <p className="text-stone-600 text-xs line-clamp-2">
                   {course.description || 'No description provided'}
                 </p>
               </div>
-              <div className="flex space-x-1 ml-3">
+              <div className="flex space-x-0.5 ml-2">
                 <Link
                   to={`/teacher/courses/${course.id}`}
-                  className="p-2 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 rounded-lg transition-all text-stone-700 hover:text-[#27AE60]"
+                  className="p-1.5 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 rounded transition-all text-stone-700 hover:text-[#27AE60]"
                   title="View Course"
                 >
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-3 w-3" />
                 </Link>
                 <Link
                   to={`/teacher/courses/${course.id}/edit`}
-                  className="p-2 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#16A085]/50 rounded-lg transition-all text-stone-700 hover:text-[#16A085]"
+                  className="p-1.5 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#16A085]/50 rounded transition-all text-stone-700 hover:text-[#16A085]"
                   title="Edit Course"
                 >
-                  <Edit3 className="h-4 w-4" />
+                  <Edit3 className="h-3 w-3" />
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Course Stats */}
-          <div className="p-4">
-            <div className="grid grid-cols-3 gap-3 mb-4 text-center">
-              <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg p-3 border border-[#27AE60]/30">
-                <Video className="h-4 w-4 text-[#27AE60] mx-auto mb-1" />
-                <div className="text-lg font-bold text-stone-800">{course.lesson_count}</div>
-                <div className="text-xs text-stone-600">Lessons</div>
+          {/* Compact Course Stats */}
+          <div className="p-3">
+            <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+              <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded p-2 border border-[#27AE60]/30">
+                <Video className="h-3 w-3 text-[#27AE60] mx-auto mb-0.5" />
+                <div className="text-sm font-bold text-stone-800">{course.lesson_count}</div>
+                <div className="text-[10px] text-stone-600">Lessons</div>
               </div>
-              <div className="bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded-lg p-3 border border-[#16A085]/30">
-                <Users className="h-4 w-4 text-[#16A085] mx-auto mb-1" />
-                <div className="text-lg font-bold text-stone-800">{course.student_count}</div>
-                <div className="text-xs text-stone-600">Students</div>
+              <div className="bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded p-2 border border-[#16A085]/30">
+                <Users className="h-3 w-3 text-[#16A085] mx-auto mb-0.5" />
+                <div className="text-sm font-bold text-stone-800">{course.student_count}</div>
+                <div className="text-[10px] text-stone-600">Students</div>
               </div>
-              <div className="bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded-lg p-3 border border-[#2980B9]/30">
-                <Clock className="h-4 w-4 text-[#2980B9] mx-auto mb-1" />
-                <div className="text-lg font-bold text-stone-800">{formatDuration(course.total_duration || 0)}</div>
-                <div className="text-xs text-stone-600">Duration</div>
+              <div className="bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded p-2 border border-[#2980B9]/30">
+                <Clock className="h-3 w-3 text-[#2980B9] mx-auto mb-0.5" />
+                <div className="text-sm font-bold text-stone-800">{formatDuration(course.total_duration || 0)}</div>
+                <div className="text-[10px] text-stone-600">Duration</div>
               </div>
             </div>
 
-            {/* Course Metadata */}
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-              <span className="capitalize bg-gray-100 px-2 py-1 rounded text-xs font-medium">
+            {/* Compact Course Metadata */}
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+              <span className="capitalize bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
                 {course.level || 'Beginner'}
               </span>
-              <span className="text-gray-500 text-xs">
+              <span className="text-gray-500 text-[10px]">
                 {getTimeAgo(course.created_at)}
               </span>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex space-x-2">
+            {/* Compact Action Buttons */}
+            <div className="flex space-x-1.5">
               <Link
                 to={`/teacher/courses/${course.id}`}
-                className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="flex-1 inline-flex items-center justify-center px-2.5 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded transition-all shadow-sm hover:shadow-md"
               >
-                <PlayCircle className="mr-1 h-4 w-4" />
+                <PlayCircle className="mr-1 h-3 w-3" />
                 View
               </Link>
               <Link
                 to={`/teacher/record?course=${course.id}`}
-                className="inline-flex items-center px-3 py-2 border border-stone-200 hover:border-[#27AE60]/50 text-sm font-medium rounded-lg text-stone-700 bg-white/90 hover:bg-white transition-all"
+                className="inline-flex items-center px-2.5 py-1.5 border border-stone-200 hover:border-[#27AE60]/50 text-xs font-medium rounded text-stone-700 bg-white/90 hover:bg-white transition-all"
                 title="Add Lesson"
               >
-                <Video className="h-4 w-4" />
+                <Video className="h-3 w-3" />
               </Link>
             </div>
           </div>
@@ -353,11 +353,11 @@ const MyCourses: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading your courses...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
+            <p className="text-stone-600 text-sm">Loading your courses...</p>
           </div>
         </div>
       </div>
@@ -366,16 +366,16 @@ const MyCourses: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center bg-white/90 backdrop-blur-md rounded-xl p-8 border border-red-200 shadow-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
-            <button 
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
+          <div className="text-center bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600 text-sm mb-3">{error}</p>
+            <button
               onClick={loadCourses}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-3 w-3 mr-1.5" />
               Try Again
             </button>
           </div>
@@ -385,48 +385,10 @@ const MyCourses: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-stone-800 flex items-center gap-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
-                  <BookOpen className="relative h-8 w-8 text-[#27AE60]" />
-                </div>
-                My Courses
-              </h1>
-              <p className="text-stone-600 mt-2">
-                {isTeacher ? 'Manage and organize your teaching content' : 'Continue your learning journey'}
-              </p>
-              <p className="text-stone-700 text-sm mt-1">
-                {user?.firstName} {user?.lastName} • <span className="font-semibold text-[#27AE60]">{stats?.totalCourses || 0}</span> {isTeacher ? 'courses created' : 'courses enrolled'} • Updated {getTimeAgo(lastUpdated.toISOString())}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={loadCourses}
-                disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <Link
-                to="/teacher/courses/new"
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Course
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="w-full space-y-2 p-2">
+      {/* Compact Stats Grid */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {[
             { 
               name: 'Total Courses', 
@@ -473,15 +435,15 @@ const MyCourses: React.FC = () => {
             ];
             const colors = neonColors[index % neonColors.length];
             return (
-              <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-md hover:shadow-lg transition-all p-6 hover:border-[#27AE60]/50">
-                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-3 border ${colors.border} mb-4`}>
-                  <stat.icon className={`h-6 w-6 ${colors.icon}`} />
+              <div key={index} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-all p-4 hover:border-[#27AE60]/50">
+                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-2 border ${colors.border} mb-3`}>
+                  <stat.icon className={`h-5 w-5 ${colors.icon}`} />
                 </div>
-                <p className="text-sm text-stone-600 mb-1 font-medium">{stat.name}</p>
-                <p className="text-3xl font-bold text-stone-800">{stat.value}</p>
-                <p className={`text-sm mt-2 flex items-center ${(stat.change || 0) >= 0 ? 'text-[#27AE60]' : 'text-red-500'}`}>
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  {(stat.change || 0) >= 0 ? '+' : ''}{stat.change}% from last month
+                <p className="text-xs text-stone-600 mb-0.5 font-medium">{stat.name}</p>
+                <p className="text-xl font-bold text-stone-800">{stat.value}</p>
+                <p className={`text-xs mt-1.5 flex items-center ${(stat.change || 0) >= 0 ? 'text-[#27AE60]' : 'text-red-500'}`}>
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {(stat.change || 0) >= 0 ? '+' : ''}{stat.change}%
                 </p>
               </div>
             );
@@ -489,29 +451,29 @@ const MyCourses: React.FC = () => {
           </div>
         )}
 
-        {/* Search and Filter Section */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md">
-          <div className="flex flex-col lg:flex-row gap-4">
+        {/* Compact Search and Filter Section */}
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-3">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
 
             {/* Filter and Sort Controls */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               {/* Category Filter */}
-              <div className="sm:w-48">
+              <div className="sm:w-44">
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
                 >
                   {categories.map(category => (
                     <option key={category.value} value={category.value}>
@@ -522,11 +484,11 @@ const MyCourses: React.FC = () => {
               </div>
 
               {/* Sort */}
-              <div className="sm:w-40">
+              <div className="sm:w-36">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
                 >
                   {sortOptions.map(option => (
                     <option key={option.value} value={option.value}>

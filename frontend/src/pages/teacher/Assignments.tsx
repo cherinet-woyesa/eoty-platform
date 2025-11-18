@@ -158,11 +158,11 @@ const Assignments: React.FC = () => {
 
   if (loading && assignments.length === 0) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-            <p className="text-stone-600 text-lg">Loading assignments...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
+            <p className="text-stone-600 text-sm">Loading assignments...</p>
           </div>
         </div>
       </div>
@@ -171,16 +171,16 @@ const Assignments: React.FC = () => {
 
   if (error && assignments.length === 0) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center bg-white/90 backdrop-blur-md rounded-xl p-8 border border-red-200 shadow-md max-w-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 text-lg mb-4">{error}</p>
+      <div className="w-full space-y-2 p-2">
+        <div className="flex items-center justify-center min-h-64">
+          <div className="text-center bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm max-w-sm">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600 text-sm mb-3">{error}</p>
             <button
               onClick={loadAssignments}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-3 w-3 mr-1.5" />
               Try Again
             </button>
           </div>
@@ -190,99 +190,68 @@ const Assignments: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
-                <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/30">
-                  <FileText className="h-6 w-6 text-[#27AE60]" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">Assignments</h1>
-                <p className="text-stone-600 mt-1">Create and grade student assignments</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={loadAssignments}
-                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-semibold"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </button>
-              <Link
-                to="/teacher/assignments/new"
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all shadow-md hover:shadow-lg font-semibold"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Assignment
-              </Link>
-            </div>
-          </div>
-        </div>
+    <div className="w-full space-y-2 p-2">
+     
+      
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#27AE60]/50">
-            <div className="flex items-center justify-between mb-3">
+      {/* Compact Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/50">
+            <div className="flex items-center justify-between mb-2">
               <div className="relative">
                 <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
-                  <FileText className="h-5 w-5 text-[#27AE60]" />
+                <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
+                  <FileText className="h-4 w-4 text-[#27AE60]" />
                 </div>
               </div>
             </div>
-            <p className="text-3xl font-bold text-stone-800">{stats.totalAssignments}</p>
-            <p className="text-sm text-stone-600 mt-1 font-medium">Total Assignments</p>
+            <p className="text-xl font-bold text-stone-800">{stats.totalAssignments}</p>
+            <p className="text-xs text-stone-600 mt-0.5 font-medium">Total Assignments</p>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#16A085]/50">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#16A085]/50">
+            <div className="flex items-center justify-between mb-2">
               <div className="relative">
                 <div className="absolute inset-0 bg-[#16A085]/20 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#16A085]/10 to-[#00FFFF]/10 rounded-lg border border-[#16A085]/30">
-                  <Clock className="h-5 w-5 text-[#16A085]" />
+                <div className="relative p-1.5 bg-gradient-to-br from-[#16A085]/10 to-[#00FFFF]/10 rounded-lg border border-[#16A085]/30">
+                  <Clock className="h-4 w-4 text-[#16A085]" />
                 </div>
               </div>
             </div>
-            <p className="text-3xl font-bold text-stone-800">{stats.pendingGrading}</p>
-            <p className="text-sm text-stone-600 mt-1 font-medium">Pending Grading</p>
+            <p className="text-xl font-bold text-stone-800">{stats.pendingGrading}</p>
+            <p className="text-xs text-stone-600 mt-0.5 font-medium">Pending Grading</p>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#00FFFF]/50">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#00FFFF]/50">
+            <div className="flex items-center justify-between mb-2">
               <div className="relative">
                 <div className="absolute inset-0 bg-[#00FFFF]/20 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#00FFFF]/10 to-[#27AE60]/10 rounded-lg border border-[#00FFFF]/30">
-                  <TrendingUp className="h-5 w-5 text-[#00FFFF]" />
+                <div className="relative p-1.5 bg-gradient-to-br from-[#00FFFF]/10 to-[#27AE60]/10 rounded-lg border border-[#00FFFF]/30">
+                  <TrendingUp className="h-4 w-4 text-[#00FFFF]" />
                 </div>
               </div>
             </div>
-            <p className="text-3xl font-bold text-stone-800">{stats.averageScore}%</p>
-            <p className="text-sm text-stone-600 mt-1 font-medium">Average Score</p>
+            <p className="text-xl font-bold text-stone-800">{stats.averageScore}%</p>
+            <p className="text-xs text-stone-600 mt-0.5 font-medium">Average Score</p>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md hover:shadow-lg transition-all hover:border-[#FFD700]/50">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#FFD700]/50">
+            <div className="flex items-center justify-between mb-2">
               <div className="relative">
                 <div className="absolute inset-0 bg-[#FFD700]/20 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
-                  <CheckCircle className="h-5 w-5 text-[#FFD700]" />
+                <div className="relative p-1.5 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
+                  <CheckCircle className="h-4 w-4 text-[#FFD700]" />
                 </div>
               </div>
             </div>
-            <p className="text-3xl font-bold text-stone-800">{stats.totalSubmissions}</p>
-            <p className="text-sm text-stone-600 mt-1 font-medium">Total Submissions</p>
+            <p className="text-xl font-bold text-stone-800">{stats.totalSubmissions}</p>
+            <p className="text-xs text-stone-600 mt-0.5 font-medium">Total Submissions</p>
           </div>
         </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md">
-          <div className="flex flex-col lg:flex-row gap-4">
+      {/* Compact Search and Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
               <input

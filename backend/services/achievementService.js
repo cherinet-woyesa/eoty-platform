@@ -51,7 +51,7 @@ class AchievementService {
 
     // Enhanced rate limiting (REQUIREMENT: Prevents spam, abusive content)
     const recentPosts = await db('forum_posts')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .where('created_at', '>', new Date(Date.now() - 60 * 1000)) // Last 1 minute
       .count('id as count')
       .first();
@@ -62,7 +62,7 @@ class AchievementService {
 
     // Check hourly limit
     const hourlyPosts = await db('forum_posts')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .where('created_at', '>', new Date(Date.now() - 60 * 60 * 1000)) // Last hour
       .count('id as count')
       .first();
@@ -73,7 +73,7 @@ class AchievementService {
 
     // Check for repeated content (spam detection)
     const similarPosts = await db('forum_posts')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .where('content', 'like', `%${content.substring(0, 20)}%`)
       .where('created_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24 hours
       .count('id as count')
@@ -133,17 +133,17 @@ class AchievementService {
   // Get user forum statistics
   async getUserForumStats(userId) {
     const totalPosts = await db('forum_posts')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .count('id as count')
       .first();
 
     const totalTopics = await db('forum_topics')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .count('id as count')
       .first();
 
     const maxLikes = await db('forum_posts')
-      .where({ author_id: userId })
+      .where({ user_id: userId })
       .max('like_count as max')
       .first();
 
@@ -231,7 +231,7 @@ class AchievementService {
 
     if (requirements.forum_posts) {
       const posts = await db('forum_posts')
-        .where({ author_id: userId })
+        .where({ user_id: userId })
         .count('id as count')
         .first();
       progress.forum_posts = {

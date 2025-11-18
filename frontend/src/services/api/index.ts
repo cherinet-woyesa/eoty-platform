@@ -120,6 +120,12 @@ export const coursesApi = {
     return response.data;
   },
 
+  // Get specific course by ID
+  getCourseById: async (courseId: string) => {
+    const response = await apiClient.get(`/courses/${courseId}`);
+    return response.data;
+  },
+
   // Create new course
   createCourse: async (courseData: { title: string; description?: string; category?: string; level?: string; cover_image?: string }) => {
     const response = await apiClient.post('/courses', courseData);

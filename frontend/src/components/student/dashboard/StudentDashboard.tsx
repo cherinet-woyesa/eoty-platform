@@ -270,29 +270,29 @@ const StudentDashboard: React.FC = () => {
           />
         )}
 
-        <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
           {/* Header Section */}
           <div className="flex flex-col gap-4">
-            {/* Welcome Section - match Forums/AI Assistant style */}
-            <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg w-full">
+            {/* Welcome Section - match Teacher Dashboard style */}
+            <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-sm w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
+                  <div className="flex items-center space-x-2 mb-1.5">
                     <button
                       onClick={() => setSidebarOpen(!sidebarOpen)}
-                      className="lg:hidden p-2 hover:bg-stone-200/50 rounded-lg transition-colors text-stone-700"
+                      className="lg:hidden p-1.5 hover:bg-stone-200/50 rounded-md transition-colors text-stone-700"
                     >
-                      <Menu className="h-5 w-5" />
+                      <Menu className="h-4 w-4" />
                     </button>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-stone-800">Welcome back, {user?.firstName}!</h1>
+                    <h1 className="text-xl font-semibold text-stone-800">Welcome back, {user?.firstName}!</h1>
                     {isConnected && (
-                      <div className="flex items-center space-x-1 text-[#27AE60]">
-                        <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
-                        <span className="text-xs font-medium">Live</span>
+                      <div className="flex items-center space-x-1.5 bg-[#27AE60]/15 px-2 py-0.5 rounded-full border border-[#27AE60]/40">
+                        <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-medium text-stone-700">Live</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-stone-600 text-sm sm:text-base">
+                  <p className="text-stone-600 font-medium text-sm">
                     {formatDate(currentTime)} • {formatTime(currentTime)}
                   </p>
                   {/* Search Bar */}
@@ -325,21 +325,24 @@ const StudentDashboard: React.FC = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {stats.map((stat, index) => (
-              <div 
-                key={index} 
-                className="bg-gradient-to-br from-stone-50 to-neutral-50 rounded-xl p-3 sm:p-4 border border-stone-200/50 shadow-sm hover:shadow-md transition-all duration-200 group"
+              <div
+                key={index}
+                className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40"
                 title={stat.description}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#16A085] shadow-sm group-hover:scale-110 transition-transform">
-                    <stat.icon className="h-4 w-4 text-stone-900" />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-md blur-md"></div>
+                    <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-md border border-[#27AE60]/25">
+                      <stat.icon className="h-3 w-3 text-stone-700" />
+                    </div>
                   </div>
                 </div>
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold text-stone-800 mb-1">{stat.value}</p>
-                  <p className="text-xs sm:text-sm text-stone-600 font-medium">{stat.name}</p>
+                  <p className="text-lg font-bold text-stone-800 mb-0.5">{stat.value}</p>
+                  <p className="text-stone-600 text-xs font-medium">{stat.name}</p>
                 </div>
               </div>
             ))}
@@ -355,15 +358,15 @@ const StudentDashboard: React.FC = () => {
 
           {/* Empty State for Search */}
           {searchQuery && transformedCourses.length === 0 && (
-            <div className="text-center py-12">
-              <Search className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-stone-800 mb-2">No results found</h3>
-              <p className="text-stone-600 mb-4">
+            <div className="text-center py-8">
+              <Search className="h-12 w-12 text-stone-300 mx-auto mb-3" />
+              <h3 className="text-sm font-semibold text-stone-800 mb-1">No results found</h3>
+              <p className="text-stone-600 text-xs mb-3">
                 No courses match your search for "{searchQuery}"
               </p>
               <button
                 onClick={() => setSearchQuery('')}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-xs font-semibold rounded-lg hover:shadow-md transition-all"
               >
                 Clear Search
               </button>

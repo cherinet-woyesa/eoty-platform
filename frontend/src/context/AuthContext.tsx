@@ -390,10 +390,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user.role === 'teacher') {
       const teacherPermissions = [
         'course:view', 'course:create', 'course:edit_own', 'course:delete_own', 'course:publish',
-        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
+        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own', 'lesson:edit', 'lesson:delete',
         'video:upload', 'video:stream', 'video:manage', 'video:delete_own',
         'quiz:take', 'quiz:create', 'quiz:edit_own',
         'discussion:view', 'discussion:create',
+        'content:manage', 'content:view',
         'user:edit_own', 'user:view', 'analytics:view_own',
         'progress:view', 'notes:create', 'notes:view_own'
       ];

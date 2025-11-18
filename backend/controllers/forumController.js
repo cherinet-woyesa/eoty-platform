@@ -4,6 +4,88 @@ const db = require('../config/database');
 const achievementService = require('../services/achievementService');
 
 const forumController = {
+  // Create new forum (REQUIREMENT: Forum creation for teachers)
+  async createForum(req, res) {
+    try {
+      const { title, description, category, isPublic = false, allowedChapterId = null } = req.body;
+      const userId = req.user.userId;
+
+      // Check if user has permission to create forums
+      const hasPermission = req.user.permissions?.includes('discussion:create') ||
+                           req.user.permissions?.includes('forum:create') ||
+                           req.user.role === 'admin' ||
+                           req.user.role === 'teacher';
+
+      if (!hasPermission) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to create forums'
+        });
+      }
+
+      // Get user's chapter
+      const user = await db('users').where({ id: userId }).select('chapter_id').first();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      if (!user.chapter_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'User must be assigned to a chapter to create forums'
+        });
+      }
+
+      // Auto-moderation check for title and description
+      const achievementService = require('../services/achievementService');
+      const titleModeration = await achievementService.moderateContent(title, userId);
+      const descModeration = await achievementService.moderateContent(description || '', userId);
+
+      if (titleModeration.needsModeration || descModeration.needsModeration) {
+        return res.status(400).json({
+          success: false,
+          message: 'Forum title or description requires moderation',
+          flags: [...(titleModeration.flags || []), ...(descModeration.flags || [])]
+        });
+      }
+
+      const forum = await Forum.create({
+        title,
+        description,
+        chapter_id: user.chapter_id,
+        created_by: userId,
+        is_public: isPublic,
+        is_active: true
+      });
+
+      // Track engagement
+      await db('user_engagement').insert({
+        user_id: userId,
+        engagement_type: 'forum_created',
+        content_type: 'forum',
+        content_id: forum.id,
+        points_earned: 25,
+        metadata: { category, is_public: isPublic }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Forum created successfully',
+        data: { forum }
+      });
+    } catch (error) {
+      console.error('Create forum error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create forum'
+      });
+    }
+  },
+
   // Get forums for user's chapter
   async getForums(req, res) {
     try {
@@ -127,9 +209,7 @@ const forumController = {
         forum_id: forumId,
         title,
         content,
-        author_id: userId,
-        is_private: isPrivate, // REQUIREMENT: Private/public threads
-        allowed_chapter_id: allowedChapter
+        author_id: userId
       });
 
       // Award participation badge with real-time update (REQUIREMENT: Updates within 1 minute)
@@ -147,8 +227,8 @@ const forumController = {
       await db('user_engagement').insert({
         user_id: userId,
         engagement_type: 'forum_topic_created',
-        entity_type: 'forum_topic',
-        entity_id: topic.id,
+        content_type: 'forum_topic',
+        content_id: topic.id,
         points_earned: 10,
         metadata: { forum_id: forumId, is_private: isPrivate }
       });
@@ -289,8 +369,8 @@ const forumController = {
       await db('user_engagement').insert({
         user_id: userId,
         engagement_type: 'forum_post_created',
-        entity_type: 'forum_post',
-        entity_id: post.id,
+        content_type: 'forum_post',
+        content_id: post.id,
         points_earned: 5,
         metadata: { topic_id: topicId, parent_id: parentId }
       });

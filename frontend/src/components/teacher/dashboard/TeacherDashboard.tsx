@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Video, BookOpen, Users, Plus,
+import {
+  BookOpen, Users,
   AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -227,18 +227,18 @@ const TeacherDashboard: React.FC = () => {
 
   if (!user || user.role !== 'teacher') {
     return (
-      <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-md">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-stone-800 mb-2">
+      <div className="flex items-center justify-center min-h-64 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+        <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-stone-200 shadow-sm">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-stone-800 mb-2">
             Access Denied
           </h3>
-          <p className="text-stone-600 mb-4">
+          <p className="text-stone-600 text-xs mb-3">
             You must be logged in as a teacher to view this dashboard.
           </p>
-          <Link 
+          <Link
             to="/login"
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
           >
             Go to Login
           </Link>
@@ -249,9 +249,9 @@ const TeacherDashboard: React.FC = () => {
 
   if (isLoading && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
-          <LoadingSpinner size="lg" text="Loading dashboard..." />
+      <div className="w-full space-y-3 p-3 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+        <div className="flex items-center justify-center min-h-64">
+          <LoadingSpinner size="md" text="Loading dashboard..." />
         </div>
       </div>
     );
@@ -259,21 +259,21 @@ const TeacherDashboard: React.FC = () => {
 
   if (error && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="w-full space-y-6 p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-96">
-          <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-red-200 shadow-md">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-stone-800 mb-2">
+      <div className="w-full space-y-3 p-3 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+        <div className="flex items-center justify-center min-h-64">
+          <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-stone-800 mb-2">
               Unable to Load Dashboard
             </h3>
-            <p className="text-stone-600 mb-4">
+            <p className="text-stone-600 text-xs mb-3">
               {error || 'We encountered an error while loading your dashboard data.'}
             </p>
-            <button 
+            <button
               onClick={handleRetry}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-3 w-3 mr-1.5" />
               Try Again
             </button>
           </div>
@@ -284,26 +284,26 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
+      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+        {/* Compact Welcome Section */}
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <h1 className="text-3xl font-bold text-stone-800">
+              <div className="flex items-center space-x-2 mb-1.5">
+                <h1 className="text-xl font-semibold text-stone-800">
                   Welcome back, {user?.firstName}!
                 </h1>
                 {isConnected && (
-                  <div className="flex items-center space-x-2 bg-[#27AE60]/15 px-2 py-1 rounded-full border border-[#27AE60]/40">
-                    <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
-                    <span className="text-xs font-medium text-stone-700">Live</span>
+                  <div className="flex items-center space-x-1.5 bg-[#27AE60]/15 px-2 py-0.5 rounded-full border border-[#27AE60]/40">
+                    <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full animate-pulse"></div>
+                    <span className="text-[10px] font-medium text-stone-700">Live</span>
                   </div>
                 )}
               </div>
-              <p className="text-stone-600 font-medium">
+              <p className="text-stone-600 font-medium text-sm">
                 {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
-              <p className="text-stone-700 text-sm mt-2">
+              <p className="text-stone-700 text-xs mt-1">
                 <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> students enrolled in{' '}
                 <span className="font-semibold text-[#16A085]">{teacherData.totalCourses}</span> courses
               </p>
@@ -330,30 +330,30 @@ const TeacherDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Teacher profile completion helper */}
+        {/* Compact Teacher profile completion helper */}
         {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-5 shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800">
                   Complete your teacher profile
                 </h3>
-                <p className="text-xs text-stone-600 mt-1">
+                <p className="text-xs text-stone-600 mt-0.5">
                   Your profile is {user.profileCompletion.percentage}% complete. Add more details to build trust with students.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-32 sm:w-40">
-                  <div className="w-full bg-stone-200 rounded-full h-2 overflow-hidden">
+              <div className="flex items-center gap-2">
+                <div className="w-24 sm:w-32">
+                  <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full transition-all duration-500"
+                      className="h-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(user.profileCompletion.percentage || 0, 100)}%` }}
                     />
                   </div>
                 </div>
                 <Link
                   to="/teacher/profile"
-                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   Update Profile
                 </Link>
@@ -365,39 +365,39 @@ const TeacherDashboard: React.FC = () => {
         {/* Simplified Teacher Metrics */}
         <TeacherMetrics stats={teacherData} />
 
-        {/* Quick Actions */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200 p-6">
-          <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-gradient-to-b from-[#27AE60] to-[#16A085] rounded-full"></span>
+        {/* Compact Quick Actions */}
+        <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-stone-200 p-4">
+          <h3 className="text-sm font-semibold text-stone-800 mb-3 flex items-center gap-2">
+            <span className="w-1 h-4 bg-gradient-to-b from-[#27AE60] to-[#16A085] rounded-full"></span>
             Quick Actions
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Link
               to="/teacher/courses"
-              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 hover:from-[#27AE60]/15 hover:to-[#16A085]/15 rounded-xl border border-[#27AE60]/25 hover:border-[#27AE60]/40 transition-all group"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 hover:from-[#27AE60]/15 hover:to-[#16A085]/15 rounded-lg border border-[#27AE60]/25 hover:border-[#27AE60]/40 transition-all group"
             >
-              <div className="p-3 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg mb-3 group-hover:scale-110 transition-transform">
-                <BookOpen className="h-8 w-8 text-[#27AE60]" />
+              <div className="p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg mb-2 group-hover:scale-110 transition-transform">
+                <BookOpen className="h-5 w-5 text-[#27AE60]" />
               </div>
-              <span className="font-semibold text-stone-800">Manage Courses</span>
+              <span className="font-medium text-stone-800 text-sm">Manage Courses</span>
             </Link>
             <Link
               to="/teacher/students"
-              className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#16A085]/8 to-[#2980B9]/8 hover:from-[#16A085]/15 hover:to-[#2980B9]/15 rounded-xl border border-[#16A085]/25 hover:border-[#16A085]/40 transition-all group"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#16A085]/8 to-[#2980B9]/8 hover:from-[#16A085]/15 hover:to-[#2980B9]/15 rounded-lg border border-[#16A085]/25 hover:border-[#16A085]/40 transition-all group"
             >
-              <div className="p-3 bg-gradient-to-br from-[#16A085]/15 to-[#2980B9]/15 rounded-lg mb-3 group-hover:scale-110 transition-transform">
-                <Users className="h-8 w-8 text-[#16A085]" />
+              <div className="p-2 bg-gradient-to-br from-[#16A085]/15 to-[#2980B9]/15 rounded-lg mb-2 group-hover:scale-110 transition-transform">
+                <Users className="h-5 w-5 text-[#16A085]" />
               </div>
-              <span className="font-semibold text-stone-800">View Students</span>
+              <span className="font-medium text-stone-800 text-sm">View Students</span>
             </Link>
             <button
               onClick={handleRetry}
-              className="flex flex-col items-center justify-center p-6 bg-stone-50 hover:bg-stone-100 rounded-xl border border-stone-200 hover:border-stone-300 transition-all group"
+              className="flex flex-col items-center justify-center p-4 bg-stone-50 hover:bg-stone-100 rounded-lg border border-stone-200 hover:border-stone-300 transition-all group"
             >
-              <div className="p-3 bg-stone-100 rounded-lg mb-3 group-hover:scale-110 transition-transform">
-                <RefreshCw className="h-8 w-8 text-stone-600" />
+              <div className="p-2 bg-stone-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
+                <RefreshCw className="h-5 w-5 text-stone-600" />
               </div>
-              <span className="font-semibold text-stone-700">Refresh Data</span>
+              <span className="font-medium text-stone-700 text-sm">Refresh Data</span>
             </button>
           </div>
         </div>

@@ -135,11 +135,11 @@ const StudentEnrolledCourses: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="p-4">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-            <p className="text-slate-600 text-lg">Loading your courses...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-3" />
+            <p className="text-stone-600 text-sm">Loading your courses...</p>
           </div>
         </div>
       </div>
@@ -148,14 +148,14 @@ const StudentEnrolledCourses: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center min-h-96">
+      <div className="p-4">
+        <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-[#EF5350] mx-auto mb-4" />
-            <p className="text-slate-700 text-lg mb-4">{error}</p>
-            <button 
+            <AlertCircle className="h-8 w-8 text-[#EF5350] mx-auto mb-3" />
+            <p className="text-stone-700 text-sm mb-3">{error}</p>
+            <button
               onClick={loadEnrolledCourses}
-              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+              className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
             >
               Try Again
             </button>
@@ -166,34 +166,9 @@ const StudentEnrolledCourses: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Header - match Forums/AI Assistant style */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-xl bg-white/80 backdrop-blur-sm border border-stone-200/60 shadow-sm">
-                <BookOpen className="h-6 w-6 text-[#27AE60]" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">My Enrolled Courses</h1>
-                <p className="text-stone-600 text-sm mt-1">
-                  Continue your learning journey • {user?.firstName} {user?.lastName}
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/student/browse-courses"
-              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Browse Courses
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="w-full space-y-3 p-3">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { label: 'Total Courses', value: stats.total, icon: BookOpen, color: 'from-[#27AE60]/15 to-[#16A085]/10', iconColor: 'text-[#27AE60]' },
             { label: 'In Progress', value: stats.inProgress, icon: TrendingUp, color: 'from-[#16A085]/15 to-[#27AE60]/10', iconColor: 'text-[#16A085]' },
@@ -201,33 +176,40 @@ const StudentEnrolledCourses: React.FC = () => {
             { label: 'Favorites', value: stats.favorites, icon: Heart, color: 'from-[#E74C3C]/15 to-[#E67E22]/10', iconColor: 'text-[#E74C3C]' },
             { label: 'Avg Progress', value: `${stats.avgProgress}%`, icon: BarChart3, color: 'from-[#2980B9]/15 to-[#34495E]/10', iconColor: 'text-[#2980B9]' }
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white/85 backdrop-blur-sm rounded-xl p-5 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} mb-3 inline-block`}>
-                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+            <div key={idx} className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40">
+              <div className="flex items-center justify-between mb-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-md blur-md"></div>
+                  <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-md border border-[#27AE60]/25">
+                    <stat.icon className={`h-3 w-3 ${stat.iconColor}`} />
+                  </div>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-slate-800 mb-1">{stat.value}</p>
-              <p className="text-sm text-slate-600 font-medium">{stat.label}</p>
+              <div>
+                <p className="text-lg font-bold text-stone-800 mb-0.5">{stat.value}</p>
+                <p className="text-stone-600 text-xs font-medium">{stat.label}</p>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/50 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
               <input
                 type="text"
                 placeholder="Search your courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-slate-50/50 text-slate-700"
+                className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-stone-50/50 text-stone-700"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-slate-50/50 text-slate-700 text-sm"
+              className="px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-stone-50/50 text-stone-700 text-sm"
             >
               <option value="all">All Courses ({stats.total})</option>
               <option value="in-progress">In Progress ({stats.inProgress})</option>
@@ -239,7 +221,7 @@ const StudentEnrolledCourses: React.FC = () => {
 
         {/* Courses Grid - Light cards */}
         {filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredCourses.map(course => (
               <div key={course.id} className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm hover:shadow-md hover:border-slate-300/50 transition-all duration-200 overflow-hidden">
                 {/* Course Header */}
@@ -419,7 +401,7 @@ const StudentEnrolledCourses: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+   
   );
 };
 

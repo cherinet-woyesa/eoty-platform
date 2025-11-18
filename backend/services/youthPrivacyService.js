@@ -20,7 +20,7 @@ class YouthPrivacyService {
     try {
       const user = await db('users')
         .where({ id: userId })
-        .select('role', 'age', 'date_of_birth')
+        .select('role', 'date_of_birth')
         .first();
 
       if (!user) return false;

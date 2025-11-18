@@ -14,6 +14,9 @@ router.get('/:forumId/topics', forumController.getTopics);
 router.get('/topics/:topicId', forumController.getTopic);
 router.get('/search', forumController.searchForumPosts); // REQUIREMENT: Forum posts indexed for search
 
+// ✅ Forum creation (teachers and admins)
+router.post('/', forumController.createForum);
+
 // ✅ Topic and post creation
 router.post('/topics', forumController.createTopic);
 router.post('/posts', forumController.createPost);

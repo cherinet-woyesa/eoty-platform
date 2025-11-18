@@ -65,7 +65,7 @@ exports.up = async function(knex) {
     table.string('field_name').notNullable(); // title, description, content, etc.
     table.text('translated_text').notNullable();
     table.string('translation_status').defaultTo('pending'); // pending, approved, rejected
-    table.integer('translated_by').unsigned().references('id').inTable('users');
+    table.string('translated_by');
     table.string('reviewed_by');
     table.timestamp('reviewed_at');
     table.decimal('quality_score', 3, 2);
@@ -86,7 +86,7 @@ exports.up = async function(knex) {
     table.text('description');
     table.text('translated_content');
     table.string('translation_status').defaultTo('pending');
-    table.integer('translated_by').unsigned().references('id').inTable('users');
+    table.string('translated_by');
     table.decimal('translation_quality', 3, 2);
     table.jsonb('translation_metadata');
     table.timestamps(true, true);
@@ -99,7 +99,7 @@ exports.up = async function(knex) {
   // Language Preferences
   await knex.schema.createTable('language_preferences', (table) => {
     table.increments('id').primary();
-    table.string('user_id').notNullable().onDelete('CASCADE');
+    table.string('user_id').notNullable();
     table.string('preferred_language', 10).notNullable().defaultTo('en');
     table.string('ui_language', 10).defaultTo('en');
     table.string('content_language', 10).defaultTo('en');
@@ -121,7 +121,7 @@ exports.up = async function(knex) {
     table.string('domain'); // religious, educational, general, etc.
     table.integer('usage_count').defaultTo(0);
     table.decimal('confidence', 3, 2).defaultTo(1.0);
-    table.integer('added_by').unsigned().references('id').inTable('users');
+    table.string('added_by');
     table.timestamp('last_used_at');
     table.timestamps(true, true);
     

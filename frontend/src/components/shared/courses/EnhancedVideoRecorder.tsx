@@ -12,7 +12,7 @@ const useIsMobile = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -20,6 +20,7 @@ const useIsMobile = () => {
 
   return isMobile;
 };
+
 // videoApi import removed - Mux uploads handled by MuxVideoUploader component
 import { dataCache } from '@/hooks/useRealTimeData';
 import { videoDraftStorage, type VideoDraft } from '@/utils/videoDraftStorage';
@@ -49,7 +50,7 @@ import {
   Settings, Cloud,
   Mic, MicOff, VideoIcon, Timer,
   Zap, Download,
-  Lightbulb, Sparkles, Star,
+  Sparkles, Star,
   Monitor, Save, FolderOpen, Scissors,
   FileText, Clock, Keyboard, XCircle,
   BookOpen
@@ -75,7 +76,8 @@ interface Course {
 const VideoRecorder: FC<VideoRecorderProps> = ({ 
   onRecordingComplete, 
   onUploadComplete,
-  courseId
+  courseId,
+  lessonId
 }) => {
   const isMobile = useIsMobile();
   
@@ -147,9 +149,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isStopping, setIsStopping] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [micLevel, setMicLevel] = useState(0);
+
   const audioAnalyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   
@@ -179,7 +179,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [bitrate, setBitrate] = useState<number>(2500); // kbps
   const [autoAdjustQuality, setAutoAdjustQuality] = useState<boolean>(false);
   const [enableAudio, setEnableAudio] = useState(true);
-  const [recordingTips, setRecordingTips] = useState<string[]>([]);
   const [autoStopTimer, setAutoStopTimer] = useState<number>(0);
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -245,6 +244,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   });
 
 
+
   // Apply default preset when loaded
   useEffect(() => {
     if (defaultPreset && !isRecording) {
@@ -266,22 +266,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   }, [defaultPreset, isRecording, setLayout]);
 
-  // Handle preset selection
-  const handlePresetSelect = useCallback((preset: RecordingPreset) => {
-    if (isRecording) {
-      return; // Don't change settings during recording
-    }
-    setRecordingQuality(preset.quality);
-    setFrameRate(preset.frame_rate);
-    if (preset.bitrate) {
-      setBitrate(preset.bitrate);
-    }
-    setAutoAdjustQuality(preset.auto_adjust_quality);
-    if (preset.layout && ['picture-in-picture', 'side-by-side', 'screen-only', 'camera-only'].includes(preset.layout)) {
-      setLayout(preset.layout as 'picture-in-picture' | 'side-by-side' | 'screen-only' | 'camera-only');
-    }
-    setShowPresetsManager(false);
-  }, [isRecording, setLayout]);
 
 
 
@@ -338,7 +322,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       "Enable screen sharing for presentation mode",
       "Use the slide manager for structured content"
     ];
-    setRecordingTips(tips);
   }, []);
 
   // Update video elements when streams change - Enhanced for screen sharing
@@ -451,7 +434,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             const dataArray = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
             audioAnalyserRef.current.getByteFrequencyData(dataArray);
             const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            setMicLevel(average / 255);
           }
         };
 
@@ -759,20 +741,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const startCountdownAndRecording = useCallback(async () => {
     try {
       setRecordingStatus('countdown');
-      setCountdown(3);
       
       await new Promise<void>((resolve) => {
         let n = 3;
         countdownIntervalRef.current = setInterval(() => {
           n -= 1;
-          setCountdown(n);
           
           if (n <= 0) {
             if (countdownIntervalRef.current) {
               clearInterval(countdownIntervalRef.current);
               countdownIntervalRef.current = null;
             }
-            setCountdown(null);
             resolve();
           }
         }, 1000);
@@ -841,6 +820,71 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       isMounted = false;
     };
   }, [courseId]);
+
+  // Load lesson data when lessonId is provided
+  useEffect(() => {
+    if (!lessonId) return;
+    
+    let isMounted = true;
+    
+    const loadLesson = async () => {
+      try {
+        // Get the course ID from the lesson - we need to find which course this lesson belongs to
+        // First, try to get lessons from the selected course or courseId
+        const targetCourseId = selectedCourse || courseId;
+        if (!targetCourseId) {
+          // If no course selected, we need to find the lesson's course
+          // Try loading from all courses (this is a bit inefficient but works)
+          const response = await coursesApi.getCourses();
+          const allCourses = response.data.courses || [];
+          
+          // Search through courses to find the lesson
+          for (const course of allCourses) {
+            try {
+              const lessonsResponse = await coursesApi.getLessons(course.id);
+              const lessons = lessonsResponse.data.lessons || [];
+              const lesson = lessons.find((l: any) => l.id === lessonId || l.id === parseInt(lessonId));
+              
+              if (lesson) {
+                if (isMounted) {
+                  setSelectedCourse(course.id);
+                  setLessonTitle(lesson.title || '');
+                  setLessonDescription(lesson.description || '');
+                  setShowLessonForm(true);
+                }
+                return;
+              }
+            } catch (err) {
+              // Continue searching
+              console.warn(`Failed to load lessons for course ${course.id}:`, err);
+            }
+          }
+        } else {
+          // Course is known, just load the lesson
+          const lessonsResponse = await coursesApi.getLessons(targetCourseId);
+          const lessons = lessonsResponse.data.lessons || [];
+          const lesson = lessons.find((l: any) => l.id === lessonId || l.id === parseInt(lessonId));
+          
+          if (lesson && isMounted) {
+            setLessonTitle(lesson.title || '');
+            setLessonDescription(lesson.description || '');
+            setShowLessonForm(true);
+          }
+        }
+      } catch (error: any) {
+        console.error('Failed to load lesson:', error);
+        if (isMounted) {
+          setErrorMessage('Failed to load lesson data. You can still record a new video.');
+        }
+      }
+    };
+    
+    loadLesson();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [lessonId, courseId, selectedCourse]);
 
   const handleCreateCourseInline = async () => {
     if (!newCourseTitle.trim()) {
@@ -942,7 +986,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   const handleStopRecording = async () => {
     // Prevent multiple simultaneous stop calls
-    if (isStopping || isStoppingRef.current) {
+    if (isStoppingRef.current) {
       console.log('Stop already in progress, ignoring duplicate call');
       return;
     }
@@ -952,7 +996,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       return;
     }
     
-    setIsStopping(true);
     isStoppingRef.current = true;
     
     try {
@@ -964,7 +1007,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Check minimum recording duration
       if (recordingTime < 1) {
         setErrorMessage('Recording too short. Please record for at least 1 second.');
-        setIsStopping(false);
+        isStoppingRef.current = false;
         isStoppingRef.current = false;
         return;
       }
@@ -997,7 +1040,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       
       // Reset stopping flag after a delay to allow blob creation
       setTimeout(() => {
-        setIsStopping(false);
+        isStoppingRef.current = false;
         isStoppingRef.current = false;
       }, 2000);
       
@@ -1005,7 +1048,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       console.error('Error stopping recording:', error);
       setErrorMessage('Failed to stop recording.');
       setRecordingStatus('idle');
-      setIsStopping(false);
       isStoppingRef.current = false;
     }
   };
@@ -1146,15 +1188,27 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         throw new Error('No video file selected. Please choose a file.');
       }
 
-      // Create the lesson first
-      const lessonResponse = await coursesApi.createLesson(selectedCourse, {
-        title: lessonTitle.trim(),
-        description: lessonDescription.trim() || 'Video lesson',
-        order: 0
-      });
+      // Update existing lesson or create new one
+      let targetLessonId: string;
+      
+      if (lessonId) {
+        // Update existing lesson
+        await coursesApi.updateLesson(lessonId, {
+          title: lessonTitle.trim(),
+          description: lessonDescription.trim() || 'Video lesson'
+        });
+        targetLessonId = lessonId;
+      } else {
+        // Create new lesson
+        const lessonResponse = await coursesApi.createLesson(selectedCourse, {
+          title: lessonTitle.trim(),
+          description: lessonDescription.trim() || 'Video lesson',
+          order: 0
+        });
+        targetLessonId = lessonResponse.data.lesson.id;
+      }
 
-      const newLessonId = lessonResponse.data.lesson.id;
-      setProcessingLessonId(newLessonId);
+      setProcessingLessonId(targetLessonId);
       setUploadProgress(30);
 
       // Clear the teacher dashboard cache to force a refresh of lesson counts
@@ -1163,14 +1217,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }
 
       // All uploads now use Mux direct upload (bypasses server)
-      setMuxUploadLessonId(newLessonId);
+      setMuxUploadLessonId(targetLessonId);
       setShowMuxUploader(true);
       setUploading(false);
       setShowLessonForm(false);
       return;
     } catch (error: any) {
-      console.error('Failed to create lesson:', error);
-      setErrorMessage(error.response?.data?.message || error.message || 'Failed to create lesson. Please try again.');
+      console.error(`Failed to ${lessonId ? 'update' : 'create'} lesson:`, error);
+      setErrorMessage(error.response?.data?.message || error.message || `Failed to ${lessonId ? 'update' : 'create'} lesson. Please try again.`);
       setUploading(false);
       setShowLessonForm(false);
     }
@@ -1530,17 +1584,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   className="w-full h-full object-contain rounded-lg bg-black"
                 />
                 <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                  Camera {micLevel > 0.1 && (
-                    <div className="flex items-center space-x-1">
-                      <Mic className="h-3 w-3" />
-                      <div className="w-12 h-1 bg-gray-600 rounded">
-                        <div 
-                          className="h-1 bg-green-500 rounded transition-all"
-                          style={{ width: `${micLevel * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  Camera
                 </div>
               </div>
             )}
@@ -1592,6 +1636,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
+
   return (
     <>
       {/* Notification Container (Task 7.3) */}
@@ -1599,7 +1644,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         notifications={notifications}
         onDismiss={dismissNotification}
       />
-      
+
+
       <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 overflow-hidden shadow-sm">
       {/* Error Alert */}
       {errorMessage && (
@@ -1611,7 +1657,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           />
         </div>
       )}
-      
+
       {/* Header - Light beige/silver theme */}
       <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90">
         <div className="flex items-center justify-between">
@@ -1843,7 +1889,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
                 disabled={false}
                 isRecording={isRecording}
-                micLevel={micLevel}
               />
               
               {/* Additional controls */}
@@ -1997,20 +2042,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Recording Tips - Light theme */}
-      {showSettings && (
-        <div className="px-6 py-4 border-b border-slate-200/50 bg-white/85 backdrop-blur-sm">
-          <h4 className="font-semibold text-slate-700 mb-3">Recording Tips</h4>
-          <div className="space-y-2">
-            {recordingTips.map((tip, index) => (
-              <div key={index} className="flex items-start space-x-2 text-sm text-slate-600">
-                <Lightbulb className="h-4 w-4 text-[#FFD700] mt-0.5 flex-shrink-0" />
-                <span>{tip}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Main Preview Area */}
       <div className="relative bg-black aspect-video">
@@ -2055,9 +2086,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
 
         {/* Countdown Overlay - Mobile optimized */}
-        {countdown !== null && (
+        {false && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <div className={`text-white font-bold ${isMobile ? 'text-5xl' : 'text-6xl'}`}>{countdown}</div>
+            <div className={`text-white font-bold ${isMobile ? 'text-5xl' : 'text-6xl'}`}>3</div>
           </div>
         )}
 
@@ -2113,16 +2144,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <div className={`absolute left-1/2 -translate-x-1/2 z-30 ${isMobile ? 'bottom-4' : 'bottom-6'}`}>
             {!isRecording ? (
               <div className="text-center">
-                <button 
-                  onClick={handleStartRecording} 
-                  disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
+                <button
+                  onClick={handleStartRecording}
+                  disabled={!recordingSources.camera && !recordingSources.screen}
                   className={`flex items-center space-x-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-blue-500/30 transform hover:scale-105 ${
                     isMobile ? 'px-6 py-3' : 'px-8 py-4'
                   }`}
                 >
                   <Circle className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />
                   <span className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
-                    {countdown !== null ? `Starting...` : 'Start Recording'}
+                    Start Recording
                   </span>
                 </button>
                 <p className={`text-white backdrop-blur-sm ${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} opacity-75`}>
@@ -2133,7 +2164,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <div className="text-center">
                 <div className={`flex items-center justify-center mb-2 ${isMobile ? 'space-x-2' : 'space-x-4'}`}>
                   {/* Session Save Button */}
-                  <button 
+                  <button
                     onClick={handleSaveSession}
                     className={`bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-indigo-500/30 ${
                         isMobile ? 'p-3' : 'p-4'
@@ -2142,21 +2173,21 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   >
                     <Save className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />
                   </button>
-                  
+
                   {/* Pause/Resume Button */}
-                  <button 
-                    onClick={isPaused ? resumeRecording : pauseRecording} 
+                  <button
+                    onClick={isPaused ? resumeRecording : pauseRecording}
                     className={`bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 text-white rounded-2xl hover:from-[#FFC107] hover:to-[#FF8C00] transition-all duration-200 shadow-lg hover:shadow-[#FFD700]/40 backdrop-blur-sm border border-[#FFD700]/30 ${
                         isMobile ? 'p-3' : 'p-4'
                       }`}
                   >
                     {isPaused ? <Play className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} /> : <Pause className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />}
                   </button>
-                  
+
                   {/* Stop Button */}
-                  <button 
-                    onClick={handleStopRecording} 
-                    disabled={recordingTime < 1 || isStopping || !isRecording}
+                  <button
+                    onClick={handleStopRecording}
+                    disabled={recordingTime < 1 || isStoppingRef.current || !isRecording}
                     className={`bg-gradient-to-r from-[#FF6B35]/90 to-[#FF8C42]/90 text-white rounded-2xl hover:from-[#FF5722] hover:to-[#FF7043] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-[#FF6B35]/40 backdrop-blur-sm border border-[#FF6B35]/30 ${
                         isMobile ? 'p-3' : 'p-4'
                       }`}
@@ -2633,7 +2664,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             enableScreen: isScreenSharing,
             layout: currentLayout
           }}
-          onPresetSelect={handlePresetSelect}
+          onPresetSelect={() => {}}
           onClose={() => setShowPresetsManager(false)}
           isOpen={showPresetsManager}
         />

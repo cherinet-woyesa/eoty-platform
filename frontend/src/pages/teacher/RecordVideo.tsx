@@ -1,12 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
+import { Link, useSearchParams } from 'react-router-dom';
+import {
   ArrowLeft, Video, BookOpen, Users, TrendingUp, FileVideo
 } from 'lucide-react';
 import EnhancedVideoRecorder from '@/components/shared/courses/EnhancedVideoRecorder';
 import { teacherApi } from '@/services/api/teacher';
 
-const RecordVideo: React.FC = () => {
+interface RecordVideoProps {
+  courseId?: string;
+  lessonId?: string;
+}
+
+const RecordVideo: React.FC<RecordVideoProps> = ({ courseId: propCourseId, lessonId: propLessonId }) => {
+  const [searchParams] = useSearchParams();
+  const urlLessonId = searchParams.get('lessonId') || undefined;
+  const urlCourseId = searchParams.get('courseId') || undefined;
+
+  // Use props if provided, otherwise fall back to URL params
+  const lessonId = propLessonId || urlLessonId;
+  const courseId = propCourseId || urlCourseId;
+
   const [stats, setStats] = useState({
     totalVideos: 0,
     totalStudents: 0,
@@ -39,7 +52,7 @@ const RecordVideo: React.FC = () => {
       
       {/* Full width recording area - Sidebar commented out for cleaner UI */}
       <div className="w-full">
-        <EnhancedVideoRecorder />
+        <EnhancedVideoRecorder courseId={courseId} lessonId={lessonId} />
       </div>
 
       {/* Sidebar with stats and shortcuts - Commented out for cleaner UI */}

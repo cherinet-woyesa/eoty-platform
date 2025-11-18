@@ -28,20 +28,27 @@ class AccessLogService {
     metadata = {}
   }) {
     try {
-      await db('access_logs').insert({
-        user_id: userId,
-        user_role: userRole,
-        resource,
-        required_role: requiredRole,
-        action,
-        access_granted: false,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        metadata: JSON.stringify(metadata),
-        created_at: new Date()
-      });
+      // Check if access_logs table exists first
+      const tableExists = await db.schema.hasTable('access_logs');
 
-      console.log(`[ACCESS DENIED] User ${userId} (${userRole}) attempted to ${action} ${resource} (requires ${requiredRole})`);
+      if (tableExists) {
+        await db('access_logs').insert({
+          user_id: userId,
+          user_role: userRole,
+          resource,
+          required_role: requiredRole,
+          action,
+          access_granted: false,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          metadata: JSON.stringify(metadata),
+          created_at: new Date()
+        });
+
+        console.log(`[ACCESS DENIED] User ${userId} (${userRole}) attempted to ${action} ${resource} (requires ${requiredRole})`);
+      } else {
+        console.log(`[ACCESS DENIED - NO LOG] User ${userId} (${userRole}) attempted to ${action} ${resource} (requires ${requiredRole}) - access_logs table not ready`);
+      }
     } catch (error) {
       console.error('Error logging access denial:', error);
       // Don't throw - logging failures shouldn't break the application
@@ -62,18 +69,25 @@ class AccessLogService {
     metadata = {}
   }) {
     try {
-      await db('access_logs').insert({
-        user_id: userId,
-        user_role: userRole,
-        resource,
-        required_role: userRole, // User had sufficient role
-        action,
-        access_granted: true,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        metadata: JSON.stringify(metadata),
-        created_at: new Date()
-      });
+      // Check if access_logs table exists first
+      const tableExists = await db.schema.hasTable('access_logs');
+
+      if (tableExists) {
+        await db('access_logs').insert({
+          user_id: userId,
+          user_role: userRole,
+          resource,
+          required_role: userRole, // User had sufficient role
+          action,
+          access_granted: true,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          metadata: JSON.stringify(metadata),
+          created_at: new Date()
+        });
+      } else {
+        console.log(`[ACCESS GRANTED - NO LOG] User ${userId} (${userRole}) accessed ${resource} - access_logs table not ready`);
+      }
     } catch (error) {
       console.error('Error logging access grant:', error);
     }

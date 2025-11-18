@@ -7,6 +7,7 @@ import LessonPolls from '@/components/shared/courses/LessonPolls';
 import QuizButton from '@/components/shared/courses/QuizButton';
 import LessonInteractivePanel from '@/components/shared/courses/LessonInteractivePanel';
 import LessonTeacherAnalytics from '@/components/shared/courses/LessonTeacherAnalytics';
+import LessonResources from '@/components/shared/courses/LessonResources';
 import { CoursePublisher } from '@/components/shared/courses/CoursePublisher';
 import { useAuth } from '@/context/AuthContext';
 import { 
@@ -45,23 +46,23 @@ type TabType = 'overview' | 'lessons' | 'resources' | 'discussions';
 
 // Memoized components
 const LoadingSpinner = React.memo(() => (
-  <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED]">
+  <div className="flex items-center justify-center min-h-64 p-8">
     <div className="text-center">
-      <Loader2 className="w-16 h-16 border-t-2 border-[#FFD700] border-solid rounded-full animate-spin mx-auto mb-4" />
-      <p className="text-slate-600">Loading course content...</p>
+      <Loader2 className="w-8 h-8 border-t-2 border-blue-600 border-solid rounded-full animate-spin mx-auto mb-3" />
+      <p className="text-gray-600 text-sm">Loading course content...</p>
     </div>
   </div>
 ));
 
 const CourseNotFound = React.memo(({ onBack }: { onBack: () => void }) => (
-  <div className="text-center py-12 bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] min-h-96 flex items-center justify-center">
+  <div className="text-center py-8 p-8">
     <div>
-      <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-slate-700 mb-2">Course Not Found</h3>
-      <p className="text-slate-600 mb-4">The course you're looking for doesn't exist.</p>
+      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Not Found</h3>
+      <p className="text-gray-600 text-sm mb-4">The course you're looking for doesn't exist or has been removed.</p>
       <button
         onClick={onBack}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-[#FFD700]/90 to-[#FFC107]/90 hover:from-[#FFC107] hover:to-[#FFB300] transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm border border-[#FFD700]/30"
+        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Courses
@@ -78,6 +79,7 @@ const CourseDetails: React.FC = () => {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('lessons');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCompleted, setFilterCompleted] = useState<'all' | 'completed' | 'incomplete'>('all');
@@ -310,16 +312,16 @@ const CourseDetails: React.FC = () => {
 
     try {
       setLoading(true);
-      
-      // Load course details
-      const coursesResponse = await coursesApi.getCourses();
-      const courseData = coursesResponse.data.courses.find((c: any) => c.id === parseInt(courseId));
+
+      // Load course details using specific course API
+      const courseResponse = await coursesApi.getCourseById(courseId);
+      const courseData = courseResponse.data.course;
       setCourse(courseData);
 
       // Load lessons
       const lessonsResponse = await coursesApi.getLessons(courseId);
       const lessonsData = lessonsResponse.data.lessons || [];
-      
+
       setLessons(lessonsData);
 
       // Load progress for all lessons if student
@@ -334,18 +336,19 @@ const CourseDetails: React.FC = () => {
         setSelectedLesson(lessonsData[0]);
       }
 
-      // Load basic stats (simplified for now)
+      // Load initial stats from course data
       setCourseStats({
-        totalStudents: 0,
-        completionRate: 0,
-        averageRating: 4.5,
-        totalLessons: lessonsData.length,
-        completedLessons: 0,
+        totalStudents: courseData.student_count || 0,
+        completionRate: 0, // Could be calculated from lesson progress if needed
+        averageRating: courseData.average_rating || 4.5,
+        totalLessons: courseData.lesson_count || lessonsData.length,
+        completedLessons: 0, // Will be updated when lesson progress is loaded
         activeStudents: 0
       });
 
     } catch (error) {
       console.error('Failed to load course data:', error);
+      setError('Failed to load course data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -362,6 +365,21 @@ const CourseDetails: React.FC = () => {
     }
   }, [selectedLesson, isStudent, loadLessonProgress]);
 
+  // Update completed lessons count when lesson progress changes
+  useEffect(() => {
+    if (isStudent && lessons.length > 0) {
+      const progressEntries = Object.values(lessonProgress);
+      const completedCount = progressEntries.filter((p: any) =>
+        p.is_completed || (p.progress && p.progress >= 1)
+      ).length;
+
+      setCourseStats(prev => ({
+        ...prev,
+        completedLessons: completedCount
+      }));
+    }
+  }, [lessonProgress, lessons.length, isStudent]);
+
   // Memoized progress percentage
   const progressPercentage = useMemo(() => {
     if (isStudent) {
@@ -376,6 +394,38 @@ const CourseDetails: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Course</h3>
+            <p className="text-gray-600 text-sm mb-4">{error}</p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => navigate(getBackLink())}
+                className="px-4 py-2 bg-gray-200 text-gray-800 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Back to Courses
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!course) {
     return <CourseNotFound onBack={() => navigate(getBackLink())} />;
   }
@@ -384,150 +434,147 @@ const CourseDetails: React.FC = () => {
   const isSelectedLessonCompleted = selectedLessonProgress?.is_completed || selectedLesson?.is_completed;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Compact Design */}
-        <div className="bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-slate-200/50 shadow-sm">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Link
-                  to={getBackLink()}
-                  className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors flex-shrink-0"
-                >
-                  <ArrowLeft className="mr-1 h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{getBackLabel()}</span>
-                </Link>
-                <span className="text-slate-300">•</span>
-                {course.level && (
-                  <span className="px-2 py-0.5 bg-white/70 backdrop-blur-sm text-slate-600 text-xs font-medium rounded border border-slate-200/50">
-                    {course.level}
-                  </span>
-                )}
-              </div>
-              <h1 className="text-lg sm:text-xl font-semibold text-slate-700 truncate">{course.title}</h1>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {(isAdmin || isOwner) && (
-                <Link
-                  to={`/teacher/courses/${courseId}/edit`}
-                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-xs font-medium shadow-sm"
-                  title="Edit Course"
-                >
-                  <Edit className="h-3.5 w-3.5 sm:mr-1.5" />
-                  <span className="hidden sm:inline">Edit</span>
-                </Link>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Top Navigation Bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Link
+              to={getBackLink()}
+              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {getBackLabel()}
+            </Link>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-gray-900 truncate">{course.title}</h1>
+              {course.level && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                  {course.level}
+                </span>
               )}
-              <button 
-                className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-xs font-medium shadow-sm"
-                title="Share Course"
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {(isAdmin || isOwner) && (
+              <Link
+                to={`/teacher/courses/${courseId}/edit`}
+                className="inline-flex items-center px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
               >
-                <Share2 className="h-3.5 w-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Share</span>
-              </button>
-            </div>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Course
+              </Link>
+            )}
+            <button className="inline-flex items-center px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </button>
           </div>
         </div>
 
-        {/* Course Publisher - Only for teachers */}
-        {(isAdmin || isOwner) && (
-          <CoursePublisher 
-            course={course} 
-            onPublishSuccess={(updatedCourse) => {
-              setCourse(updatedCourse);
-            }}
-          />
-        )}
-
-        {/* Stats Grid - Compact cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#42A5F5]/20 to-[#2196F3]/20">
-              <Users className="h-3.5 w-3.5 text-[#42A5F5]" />
-            </div>
-            <TrendingUp className="h-2.5 w-2.5 text-[#42A5F5]" />
-          </div>
-          <div>
-            <p className="text-base font-bold text-slate-800 mb-0.5">{courseStats.totalStudents}</p>
-            <p className="text-[10px] text-slate-600 font-medium">Total Students</p>
-          </div>
-        </div>
-
-        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#66BB6A]/20 to-[#4CAF50]/20">
-              <BarChart className="h-3.5 w-3.5 text-[#66BB6A]" />
-            </div>
-            <Award className="h-2.5 w-2.5 text-[#66BB6A]" />
-          </div>
-          <div>
-            <p className="text-base font-bold text-slate-800 mb-0.5">{progressPercentage}%</p>
-            <p className="text-[10px] text-slate-600 font-medium">Your Progress</p>
-          </div>
-        </div>
-
-        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#FFD700]/20 to-[#FFC107]/20">
-              <Star className="h-3.5 w-3.5 text-[#FFD700]" />
-            </div>
-            <Star className="h-2.5 w-2.5 text-[#FFD700] fill-current" />
-          </div>
-          <div>
-            <p className="text-base font-bold text-slate-800 mb-0.5">{courseStats.averageRating.toFixed(1)}/5</p>
-            <p className="text-[10px] text-slate-600 font-medium">Average Rating</p>
-          </div>
-        </div>
-
-        <div className="bg-white/85 backdrop-blur-sm rounded-lg p-3 border border-slate-200/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-[#FF7043]/20 to-[#FF5722]/20">
-              <PlayCircle className="h-3.5 w-3.5 text-[#FF7043]" />
-            </div>
-            <CheckCircle className="h-2.5 w-2.5 text-[#FF7043]" />
-          </div>
-          <div>
-            <p className="text-base font-bold text-slate-800 mb-0.5">{isStudent ? studentProgress.completed : courseStats.completedLessons}/{courseStats.totalLessons}</p>
-            <p className="text-[10px] text-slate-600 font-medium">Lessons Progress</p>
-          </div>
-        </div>
-      </div>
-
-        {/* Tab Navigation - Light theme with better design */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-slate-200/50 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200/50 bg-slate-50/30">
+        {/* Tab Navigation - Moved to top */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 text-xs font-semibold transition-all relative ${
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-medium transition-colors relative ${
                     activeTab === tab.id
-                      ? 'text-[#39FF14] bg-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  {activeTab === tab.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#39FF14] to-[#00FF41]"></span>
-                  )}
-                  <Icon className={`h-4 w-4 ${activeTab === tab.id ? 'text-[#39FF14]' : ''}`} />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <Icon className={`h-5 w-5 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      activeTab === tab.id 
-                        ? 'bg-gradient-to-r from-[#39FF14]/20 to-[#00FF41]/20 text-[#39FF14] border border-[#39FF14]/30' 
-                        : 'bg-slate-200 text-slate-700'
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      activeTab === tab.id
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-600'
                     }`}>
                       {tab.count}
                     </span>
+                  )}
+                  {activeTab === tab.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
                   )}
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Course Publisher - Only for teachers */}
+        {(isAdmin || isOwner) && activeTab === 'overview' && (
+          <div className="mb-6">
+            <CoursePublisher
+              course={course}
+              onPublishSuccess={(updatedCourse) => {
+                setCourse(updatedCourse);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Stats Grid - Only show on overview tab */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{courseStats.totalStudents}</p>
+            <p className="text-sm text-gray-600">Total Students</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 rounded-lg bg-green-100">
+              <BarChart className="h-4 w-4 text-green-600" />
+            </div>
+            <Award className="h-4 w-4 text-green-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{progressPercentage}%</p>
+            <p className="text-sm text-gray-600">Completion Rate</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 rounded-lg bg-yellow-100">
+              <Star className="h-4 w-4 text-yellow-600" />
+            </div>
+            <Star className="h-4 w-4 text-yellow-600 fill-current" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{courseStats.averageRating.toFixed(1)}/5</p>
+            <p className="text-sm text-gray-600">Average Rating</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 rounded-lg bg-purple-100">
+              <PlayCircle className="h-4 w-4 text-purple-600" />
+            </div>
+            <CheckCircle className="h-4 w-4 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-gray-900">{isStudent ? studentProgress.completed : courseStats.completedLessons}/{courseStats.totalLessons}</p>
+            <p className="text-sm text-gray-600">Lessons Progress</p>
+          </div>
+        </div>
+      </div>
+        )}
 
         {/* Tab Content */}
         {activeTab === 'lessons' && (
@@ -714,7 +761,7 @@ const CourseDetails: React.FC = () => {
 
                   {/* Lesson Polls */}
                   {selectedLesson && (
-                    <div className="mt-6">
+                    <div className="mt-4">
                       <LessonPolls lessonId={parseInt(selectedLesson.id)} />
                     </div>
                   )}
@@ -960,6 +1007,14 @@ const CourseDetails: React.FC = () => {
                         </button>
                         {(isAdmin || isOwner) && (
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200/50">
+                            <Link
+                              to={`/teacher/content?lessonId=${lesson.id}&courseId=${courseId}&tab=record`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 px-2 py-1 text-xs font-medium text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded hover:from-[#16A085] hover:to-[#27AE60] transition-colors flex items-center justify-center shadow-sm"
+                            >
+                              <Video className="h-3 w-3 mr-1" />
+                              Record Video
+                            </Link>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1080,28 +1135,29 @@ const CourseDetails: React.FC = () => {
 
         {/* Resources Tab */}
         {activeTab === 'resources' && (
-        <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/50 p-4 sm:p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700 mb-3">Course Resources</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center justify-between p-3 border border-slate-200/50 rounded-lg hover:border-[#FFD700]/50 hover:bg-[#FFD700]/5 transition-all">
-                <div className="flex items-center space-x-2.5">
-                  <div className="p-2 bg-[#FFD700]/20 rounded-lg">
-                    <Download className="h-4 w-4 text-[#FFD700]" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-700">Resource {i}</h4>
-                    <p className="text-xs text-slate-500">PDF Document</p>
-                  </div>
+          <div className="space-y-6">
+            {selectedLesson ? (
+              <LessonResources
+                lessonId={parseInt(selectedLesson.id)}
+                courseId={courseId}
+                isTeacher={isOwner || isAdmin}
+              />
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="text-center py-12">
+                  <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Course Resources</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Select a lesson to view its resources, or create resources for specific lessons.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Resources are organized by lesson for better learning flow.
+                  </p>
                 </div>
-                <button className="px-4 py-2 bg-gradient-to-r from-[#FF6B9D] to-[#FF8E9B] text-white rounded-lg hover:from-[#FF8E9B] hover:to-[#FFA5B0] transition-all duration-200 text-xs font-bold shadow-lg hover:shadow-xl border border-[#FF6B9D]/50">
-                  Download
-                </button>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        )}
 
         {/* Discussions Tab */}
         {activeTab === 'discussions' && (

@@ -29,6 +29,8 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import ProfileCompletionNotification from '@/components/shared/ProfileCompletionNotification';
 import Forums from '@/pages/shared/social/Forums';
 import ForumTopics from '@/pages/shared/social/ForumTopics';
+import CreateForum from '@/pages/shared/social/CreateForum';
+import CreateTopic from '@/pages/shared/social/CreateTopic';
 import Achievements from '@/pages/shared/social/Achievements';
 import TeacherAchievements from '@/pages/teacher/TeacherAchievements';
 import UploadResource from '@/pages/teacher/UploadResource';
@@ -1062,15 +1064,37 @@ function AppContent() {
           } 
         />
 
-        <Route 
-          path="/forums/:forumId" 
+        <Route
+          path="/forums/create"
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <CreateForum />
+              </DashboardLayout>
+            </TeacherRoute>
+          }
+        />
+
+        <Route
+          path="/forums/:forumId"
           element={
             <ProtectedRoute>
               <DashboardLayout>
                 <ForumTopics />
               </DashboardLayout>
             </ProtectedRoute>
-          } 
+          }
+        />
+
+        <Route
+          path="/forums/:forumId/new-topic"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <CreateTopic />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
         />
 
         <Route 
