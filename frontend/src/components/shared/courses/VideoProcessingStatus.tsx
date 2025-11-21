@@ -44,6 +44,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   const isConnectingRef = useRef(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [usePolling, setUsePolling] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const pollCountRef = useRef<number>(0);
   const maxPollTimeRef = useRef<number>(15 * 60 * 1000); // 15 minutes max
   const maxPollCountRef = useRef<number>(180); // Max 180 polls (15 min / 5 sec intervals)
@@ -93,13 +94,11 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           console.log('Progress update:', data);
 
           switch (data.type) {
-            case 'progress':
+            case 'progress': {
               const newProgress = Math.max(data.progress || 0, 0);
               const newStep = data.currentStep || 'Processing...';
-              console.log(`Updating progress: ${newProgress}% - ${newStep}`);
-              
+
               setProcessingState(prev => {
-                // Only update if progress actually changed
                 if (prev.progress === newProgress && prev.currentStep === newStep) {
                   return prev;
                 }
@@ -113,26 +112,28 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                 };
               });
               break;
-            
-            case 'complete':
+            }
+
+            case 'complete': {
               setProcessingState(prev => ({
                 ...prev,
                 status: 'completed',
                 progress: 100,
-                currentStep: prev.provider === 'mux' 
-                  ? 'Mux processing complete' 
+                currentStep: prev.provider === 'mux'
+                  ? 'Mux processing complete'
                   : 'Processing complete',
                 error: null,
                 playbackId: data.playbackId || prev.playbackId
               }));
-              
+
               // Notify parent component after a short delay
               setTimeout(() => {
                 onProcessingComplete();
               }, 1500);
               break;
-            
-            case 'failed':
+            }
+
+            case 'failed': {
               setProcessingState(prev => ({
                 ...prev,
                 status: 'failed',
@@ -142,6 +143,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                   : 'Processing failed'
               }));
               break;
+            }
 
             default:
               console.log('Unknown message type:', data.type);
@@ -151,49 +153,6 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           setProcessingState(prev => ({
             ...prev,
             error: 'Invalid server response'
-          }));
-        }
-      });
-
-      socket.on('connect_error', (error) => { // Listen for 'connect_error'
-        console.error('WebSocket error:', error);
-        isConnectingRef.current = false;
-        setProcessingState(prev => ({
-          ...prev,
-          error: 'Connection error - retrying...'
-        }));
-      });
-
-      socket.on('disconnect', (reason) => { // Listen for 'disconnect'
-        console.log('WebSocket disconnected:', reason);
-        isConnectingRef.current = false;
-        
-        // If processing was in progress, don't immediately fail - wait a bit
-        if (processingState.status === 'processing' && reason !== 'io client disconnect') {
-          console.log('Disconnected during processing - will attempt reconnect');
-        }
-        
-        // Only attempt reconnect if not a normal closure and component is still open
-        if (reason !== 'io client disconnect' && isOpen && retryCount < 5) { // Check reason
-          console.log(`Attempting to reconnect... (${retryCount + 1}/5)`);
-          
-          setProcessingState(prev => ({
-            ...prev,
-            currentStep: `Reconnecting... (${retryCount + 1}/5)`
-          }));
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setRetryCount(prev => prev + 1);
-            connectWebSocket();
-          }, 2000 * (retryCount + 1)); // Exponential backoff
-        } else if (retryCount >= 5) {
-          // After max retries, fall back to polling
-          console.log('WebSocket failed after max retries - switching to polling');
-          setUsePolling(true);
-          setProcessingState(prev => ({
-            ...prev,
-            currentStep: 'Checking status via API...',
-            error: null // Clear error since we're using fallback
           }));
         }
       });

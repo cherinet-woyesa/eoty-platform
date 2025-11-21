@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Eye, Edit2, Trash2, Plus } from 'lucide-react';
+import { Save, RefreshCw, Eye, Edit2, Trash2, Plus, Play } from 'lucide-react';
 import { adminApi } from '@/services/api/admin';
 
 interface LandingContent {
@@ -8,6 +8,8 @@ interface LandingContent {
     title: string;
     titleGradient: string;
     description: string;
+    videoUrl?: string;
+    showVideo?: boolean;
   };
   about?: {
     badge: string;
@@ -33,12 +35,27 @@ interface LandingContent {
   };
 }
 
+import { useAuth } from '@/context/AuthContext';
+
+// ... existing interfaces ...
+
 const LandingPageEditor: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [content, setContent] = useState<LandingContent>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'hero' | 'about' | 'howItWorks'>('hero');
+  const [activeSection, setActiveSection] = useState<'hero' | 'about' | 'howItWorks' | 'preview'>('hero');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Log authentication status
+  console.log('👤 LandingPageEditor: Auth status:', {
+    isAuthenticated,
+    user: user ? {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    } : null
+  });
 
   useEffect(() => {
     fetchContent();
@@ -47,14 +64,18 @@ const LandingPageEditor: React.FC = () => {
   const fetchContent = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/landing/content');
-      const data = await response.json();
-      if (data.success) {
-        setContent(data.data);
+      const response = await adminApi.getLandingContent();
+      if (response.success) {
+        setContent(response.data);
+      } else {
+        showMessage('error', response.message || 'Failed to load content');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching content:', error);
-      showMessage('error', 'Failed to load content');
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || 'Failed to load content. Please check your connection.';
+      showMessage('error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,14 +84,20 @@ const LandingPageEditor: React.FC = () => {
   const saveSection = async (section: string, sectionContent: any) => {
     try {
       setSaving(true);
+      setMessage(null); // Clear previous messages
       const response = await adminApi.updateLandingContent(section, sectionContent);
+
       if (response.success) {
         showMessage('success', 'Content saved successfully!');
         setContent(response.data);
+      } else {
+        showMessage('error', response.message || 'Failed to save content');
       }
-    } catch (error) {
-      console.error('Error saving content:', error);
-      showMessage('error', 'Failed to save content');
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || 'Failed to save content. Please check your connection and try again.';
+      showMessage('error', errorMessage);
     } finally {
       setSaving(false);
     }
@@ -111,6 +138,46 @@ const LandingPageEditor: React.FC = () => {
       ...prev,
       howItWorks: { ...prev.howItWorks!, [field]: value }
     }));
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      showMessage('error', 'Video file size must be less than 50MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      showMessage('error', 'Please select a valid video file');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('section', 'hero');
+
+      // Upload video using admin API
+      const response = await adminApi.uploadLandingVideo(formData);
+
+      if (response.success) {
+        updateHero('videoUrl', response.data.videoUrl);
+        showMessage('success', 'Video uploaded successfully!');
+      } else {
+        showMessage('error', response.message || 'Failed to upload video');
+      }
+    } catch (error: any) {
+      console.error('Video upload error:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to upload video. Please try again.';
+      showMessage('error', errorMessage);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateStep = (index: number, field: string, value: any) => {
@@ -157,7 +224,8 @@ const LandingPageEditor: React.FC = () => {
           {[
             { id: 'hero', label: 'Hero Section' },
             { id: 'about', label: 'About/Mission' },
-            { id: 'howItWorks', label: 'How It Works' }
+            { id: 'howItWorks', label: 'How It Works' },
+            { id: 'preview', label: 'Preview Landing Page' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -221,6 +289,44 @@ const LandingPageEditor: React.FC = () => {
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#00FFC6] focus:ring-2 focus:ring-[#00FFC6]/20 transition-all"
                   placeholder="Join our faith-centered learning community..."
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Hero Video (Optional)</label>
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => handleVideoUpload(e)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#00FFC6] focus:ring-2 focus:ring-[#00FFC6]/20 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#00FFC6] file:text-gray-900 hover:file:bg-[#00E6B3]"
+                  />
+                  {content.hero.videoUrl && (
+                    <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                      <Play className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-gray-700">Video uploaded: {content.hero.videoUrl.split('/').pop()}</span>
+                      <button
+                        onClick={() => updateHero('videoUrl', '')}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">Upload MP4, WebM, or OGV video files (max 50MB)</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={content.hero.showVideo || false}
+                    onChange={(e) => updateHero('showVideo', e.target.checked)}
+                    className="w-4 h-4 text-[#00FFC6] bg-gray-100 border-gray-300 rounded focus:ring-[#00FFC6] focus:ring-2"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">Show video in hero section</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">If enabled, video will autoplay muted in background</p>
               </div>
 
               <button
@@ -458,7 +564,149 @@ const LandingPageEditor: React.FC = () => {
           </div>
         )}
 
-        {/* Preview Button */}
+        {/* Preview Section */}
+        {activeSection === 'preview' && (
+          <div className="space-y-8">
+            {/* Header */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 shadow-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-800">Landing Page Preview</h2>
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-[#00FFC6] to-[#00D4FF] text-gray-900 font-semibold rounded-lg hover:shadow-lg transition-all shadow-md hover:shadow-xl text-sm"
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>View Live</span>
+                </a>
+              </div>
+              <p className="text-gray-600 mt-2">Preview how your landing page will look to visitors</p>
+            </div>
+
+            {/* Preview Content - Styled like the actual landing page */}
+            <div className="bg-gradient-to-br from-gray-50 to-white min-h-screen rounded-2xl border border-gray-200/50 shadow-xl overflow-hidden">
+
+              {/* Hero Section Preview */}
+              {content.hero && (
+                <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
+                  {/* Background Video or Effects */}
+                  {content.hero.showVideo && content.hero.videoUrl ? (
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <div className="text-center text-gray-400">
+                          <div className="w-16 h-16 mx-auto mb-2 border-2 border-gray-400 rounded-lg flex items-center justify-center">
+                            <Play className="w-8 h-8" />
+                          </div>
+                          <p className="text-sm">Video Background</p>
+                          <p className="text-xs mt-1 truncate max-w-xs">{content.hero.videoUrl}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 opacity-10" style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                    }}></div>
+                  )}
+
+                  <div className="relative z-10 max-w-6xl mx-auto text-center">
+                    <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#FFD700]/20 rounded-full border border-[#FFD700]/40 backdrop-blur-sm mb-8">
+                      <div className="h-4 w-4 rounded-full bg-[#FFD700]"></div>
+                      <span className="text-sm font-medium">{content.hero.badge || 'For Ethiopian Orthodox Youths'}</span>
+                    </div>
+
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                      <span className="block">{content.hero.title || 'Transform Your'}</span>
+                      <span className="block bg-gradient-to-r from-[#00FFC6] via-[#00D4FF] to-[#FF00FF] bg-clip-text text-transparent">
+                        {content.hero.titleGradient || 'Learning Journey'}
+                      </span>
+                    </h1>
+
+                    <p className="text-xl md:text-2xl text-gray-300 leading-relaxed max-w-3xl mx-auto mb-8">
+                      {content.hero.description || 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.'}
+                    </p>
+                  </div>
+                </section>
+              )}
+
+              {/* About Section Preview */}
+              {content.about && (
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                      <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#FFD700]/20 rounded-full border border-[#FFD700]/40 backdrop-blur-sm mb-6">
+                        <div className="h-4 w-4 rounded-full bg-[#FFD700]"></div>
+                        <span className="text-sm font-medium">{content.about.badge || 'Our Mission'}</span>
+                      </div>
+
+                      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
+                        {content.about.title || 'Empowering Ethiopian Orthodox Youths'}
+                      </h2>
+
+                      <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                        {content.about.description || 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.'}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* How It Works Section Preview */}
+              {content.howItWorks && (
+                <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-white">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                      <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#FFD700]/20 rounded-full border border-[#FFD700]/40 backdrop-blur-sm mb-6">
+                        <div className="h-4 w-4 rounded-full bg-[#FFD700]"></div>
+                        <span className="text-sm font-medium">{content.howItWorks.badge || 'Simple Process'}</span>
+                      </div>
+
+                      <h2 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
+                        {content.howItWorks.title || 'How It Works'}
+                      </h2>
+
+                      <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-12">
+                        {content.howItWorks.description || 'Start your learning journey in minutes'}
+                      </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-4 gap-8">
+                      {(content.howItWorks.steps || []).map((step: any, index: number) => {
+                        const colors = ['#00FFC6', '#FF00FF', '#FFD700', '#00D4FF'];
+                        const color = colors[index % colors.length];
+
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200/50 text-center"
+                          >
+                            <div
+                              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                              style={{ backgroundColor: `${color}20` }}
+                            >
+                              <div className="text-2xl font-bold" style={{ color }}>{step.step}</div>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-3">{step.title}</h3>
+                            <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Footer Preview */}
+              <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-900 text-white">
+                <div className="max-w-6xl mx-auto text-center">
+                  <p className="text-gray-400">© 2024 EOTY Platform. All rights reserved.</p>
+                </div>
+              </footer>
+            </div>
+          </div>
+        )}
+
+        {/* Preview Button - Keep for backward compatibility */}
         <div className="mt-8 flex justify-center">
           <a
             href="/"

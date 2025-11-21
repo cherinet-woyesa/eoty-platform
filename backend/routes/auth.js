@@ -33,6 +33,16 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/google-login', authController.googleLogin);
 router.post('/facebook-login', authController.facebookLogin); // FR7: Facebook OAuth
+router.post('/google/callback', authController.googleCallback.bind(authController)); // Google OAuth callback
+
+// Password reset routes
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/verify-reset-token', authController.verifyResetToken);
+
+// Email verification routes
+router.post('/verify-email', authController.verifyEmail);
+router.post('/resend-verification', authController.resendVerificationEmail);
 
 // Protected routes
 router.get('/me', authenticateToken, authController.getCurrentUser);

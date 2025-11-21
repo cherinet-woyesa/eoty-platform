@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Users, 
-  Award, 
+import {
+  BookOpen,
+  Users,
+  Award,
   ArrowRight,
   Sparkles,
   Zap,
@@ -16,7 +16,9 @@ import {
   User,
   ChevronUp,
   Shield,
-  Clock
+  Clock,
+  MessageCircle,
+  Play
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { landingApi } from '@/services/api';
@@ -32,13 +34,104 @@ const Landing: React.FC = () => {
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [featuredCourses, setFeaturedCourses] = useState<any[]>([]);
+  const [landingContent, setLandingContent] = useState<any>({});
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Helper function to render How It Works step
+  const renderHowItWorksStep = (item: any, index: number) => {
+    const iconMap: any = { User, BookOpen, PlayCircle, Award };
+    const IconComponent = iconMap[item.icon] || User;
+    const colors = ['#00FFC6', '#FF00FF', '#FFD700', '#00D4FF'];
+    const color = colors[index % colors.length];
+
+    return (
+      <div
+        key={index}
+        className={`relative group transition-all duration-700 ${
+          visibleSections.has('how-it-works')
+            ? `opacity-100 translate-y-0 delay-${index * 100}`
+            : 'opacity-0 translate-y-10'
+        }`}
+        style={{ transitionDelay: `${index * 100}ms` }}
+      >
+        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200/50 transform hover:-translate-y-2 hover:scale-105 h-full cursor-pointer relative overflow-hidden">
+          {/* Animated background gradient on hover */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{ background: `linear-gradient(135deg, ${color}15, transparent)` }}
+          />
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center backdrop-blur-sm transition-all group-hover:scale-110 group-hover:rotate-3"
+                style={{
+                  backgroundColor: `${color}20`,
+                  borderColor: `${color}40`,
+                  borderWidth: '2px',
+                  boxShadow: `0 0 20px ${color}30`
+                }}
+              >
+                <IconComponent className="h-7 w-7 transition-transform group-hover:scale-110" style={{ color: color }} />
+              </div>
+              <span className="text-3xl font-bold text-gray-300 group-hover:text-gray-400 transition-colors">{item.step}</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-3 transition-colors" style={{ color: visibleSections.has('how-it-works') ? 'inherit' : undefined }}>{item.title}</h3>
+            <p className="text-gray-600 leading-relaxed mb-4">{item.description}</p>
+
+            {/* Feature list */}
+            <div className="space-y-2 pt-3 border-t border-gray-200/50">
+              {item.features.map((feature: string, idx: number) => (
+                <div key={idx} className="flex items-center space-x-2 text-sm">
+                  <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-gray-600">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {index < 3 && (
+          <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
+            <div className="relative">
+              <ArrowRight className="h-6 w-6 text-slate-400 animate-pulse" />
+              <div className="absolute inset-0 bg-[#00FFC6]/20 rounded-full blur-md animate-ping" style={{ animationDuration: '2s' }} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   const { isAuthenticated, getRoleDashboard } = useAuth();
   
   // Three.js refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const particlesRef = useRef<THREE.Points | null>(null);
+
+  // Fetch landing page content
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        console.log('🎬 Landing: Fetching content...');
+        const response = await landingApi.getContent();
+        console.log('📥 Landing: API Response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Landing: Setting content:', response.data);
+          setLandingContent(response.data);
+        } else {
+          console.log('❌ Landing: No success or data in response');
+        }
+      } catch (error) {
+        console.error('Failed to fetch landing content:', error);
+        // Keep empty object on error - will use defaults
+      }
+    };
+
+    fetchContent();
+  }, []);
 
   // Fetch landing page statistics
   useEffect(() => {
@@ -283,23 +376,51 @@ const Landing: React.FC = () => {
         style={{ background: 'linear-gradient(135deg, #F5F5F0 0%, #E8E8E3 50%, #D4D4CE 100%)' }}
       />
 
-      {/* Background Image with Overlay - Optimized with lazy loading */}
-      <div 
-        className="fixed inset-0 z-0 pointer-events-none"
-        style={{
-          backgroundImage: 'url(/eoc.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
-          imageRendering: 'auto',
-          willChange: 'transform',
-          opacity: 0.08
-        }}
-      >
-        {/* Overlay for better text readability - light beige overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F5F5DC]/80 via-[#FAF0E6]/70 to-[#FFF8DC]/80 backdrop-blur-sm" />
-      </div>
+      {/* Background Video or Image - Optimized with lazy loading */}
+      {landingContent.hero?.showVideo && landingContent.hero?.videoUrl ? (
+        <video
+          className="fixed inset-0 z-0 object-cover w-full h-full pointer-events-none"
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            opacity: 0.1,
+            filter: 'brightness(0.4) contrast(0.8)'
+          }}
+        >
+          <source src={landingContent.hero.videoUrl} type="video/mp4" />
+          {/* Fallback to image if video fails */}
+          <div
+            className="fixed inset-0 z-0 pointer-events-none"
+            style={{
+              backgroundImage: 'url(/eoc.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+              opacity: 0.08
+            }}
+          />
+        </video>
+      ) : (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: 'url(/eoc.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+            imageRendering: 'auto',
+            willChange: 'transform',
+            opacity: 0.08
+          }}
+        />
+      )}
+
+      {/* Overlay for better text readability - light beige overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#F5F5DC]/80 via-[#FAF0E6]/70 to-[#FFF8DC]/80 backdrop-blur-sm pointer-events-none" />
 
       {/* Animated Background Elements - Neon accent colors */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -375,18 +496,22 @@ const Landing: React.FC = () => {
             <div className="space-y-8 animate-fade-in bg-white/60 backdrop-blur-2xl rounded-3xl p-8 lg:p-12 border border-gray-200/50 shadow-2xl">
               <div className="inline-flex items-center space-x-2 px-4 py-2 bg-[#FFD700]/20 rounded-full border border-[#FFD700]/40 backdrop-blur-sm">
                 <Sparkles className="h-4 w-4 text-[#FFD700]" />
-                <span className="text-sm font-medium text-gray-700">For Ethiopian Orthodox Youths</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {landingContent.hero?.badge || 'For Ethiopian Orthodox Youths'}
+                </span>
               </div>
-              
+
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                <span className="block text-gray-800 animate-fade-in">Transform Your</span>
+                <span className="block text-gray-800 animate-fade-in">
+                  {landingContent.hero?.title || 'Transform Your'}
+                </span>
                 <span className="block bg-gradient-to-r from-[#00FFC6] via-[#00D4FF] to-[#FF00FF] bg-clip-text text-transparent animate-gradient">
-                  Learning Journey
+                  {landingContent.hero?.titleGradient || 'Learning Journey'}
                 </span>
               </h1>
-              
+
               <p className="text-xl md:text-2xl text-gray-600 leading-relaxed max-w-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.
+                {landingContent.hero?.description || 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.'}
               </p>
 
               {/* CTA Buttons - Neon Colors */}
@@ -476,73 +601,85 @@ const Landing: React.FC = () => {
                   <div className="relative transition-all duration-500 opacity-100 scale-100">
                     <div className="relative bg-white/60 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-gray-200/50 transform hover:scale-[1.02] transition-all duration-500 group">
                       <div className="space-y-6">
-                        {/* Enhanced Video Preview with Overlay - Light Glass */}
-                        <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-gray-100/90 to-gray-200/90 aspect-video backdrop-blur-md group-hover:shadow-2xl transition-shadow border border-gray-300/30">
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <button className="w-20 h-20 bg-gradient-to-r from-[#00FFC6] to-[#00D4FF] rounded-full flex items-center justify-center shadow-2xl transform hover:scale-110 transition-all duration-300 cursor-pointer group-hover:shadow-[#00FFC6]/50">
-                              <PlayCircle className="h-10 w-10 text-gray-900 ml-1" />
-                            </button>
-                          </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4">
-                            <div className="text-white text-sm font-semibold mb-1">Interactive Video Lessons</div>
-                            <div className="flex items-center space-x-2 text-xs text-white/80">
-                              <Clock className="h-3 w-3" />
-                              <span>15 min lesson</span>
-                              <span>•</span>
-                              <Users className="h-3 w-3" />
-                              <span>2.5K watching</span>
-                            </div>
-                          </div>
-                          {/* Live indicator */}
-                          <div className="absolute top-3 left-3 flex items-center space-x-2 px-2 py-1 bg-red-500/90 backdrop-blur-sm rounded-full">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                            <span className="text-xs text-white font-medium">Live</span>
-                          </div>
-                        </div>
-                        
-                        {/* Enhanced Progress Cards - Light Glass with Neon */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-gradient-to-br from-[#00FFC6]/15 to-[#00FFC6]/5 rounded-xl p-4 border border-[#00FFC6]/30 backdrop-blur-md hover:shadow-lg hover:shadow-[#00FFC6]/20 transition-all group/card">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-sm font-semibold text-gray-700">Learning Progress</span>
-                              <span className="text-sm font-bold text-[#00FFC6] group-hover/card:scale-110 transition-transform">75%</span>
-                            </div>
-                            <div className="w-full bg-gray-200/50 rounded-full h-2.5 mb-2 overflow-hidden">
-                              <div 
-                                className="bg-gradient-to-r from-[#00FFC6] to-[#00D4FF] h-2.5 rounded-full transition-all duration-1000 relative overflow-hidden"
-                                style={{ width: '75%' }}
+                        {/* Hero Video Display */}
+                        <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 aspect-video group">
+                          {(() => {
+                            const videoSrc = `http://localhost:5000${landingContent.hero?.videoUrl || ''}`;
+                            console.log('🎥 Video element rendering with src:', videoSrc);
+                            console.log('🎥 Full landingContent.hero:', landingContent.hero);
+                            return (
+                              <video
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                poster="/eoc.jpg"
                               >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                                <source src={videoSrc} type="video/mp4" />
+                                Your browser does not support the video tag.
+                              </video>
+                            );
+                          })()}
+
+                          {/* Overlay Effects */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
+
+                          {/* Play Button Overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 transform scale-75 group-hover:scale-100 transition-all duration-300">
+                              <PlayCircle className="h-8 w-8 text-white ml-1" />
+                            </div>
+                          </div>
+
+                          {/* Video Info Overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-white text-lg font-bold mb-1">Watch Our Story</h3>
+                                <p className="text-white/80 text-sm">Experience our faith-centered learning community</p>
+                              </div>
+                              <div className="flex items-center space-x-2 text-white/80 text-sm">
+                                <Play className="h-4 w-4" />
+                                <span>HD Video</span>
                               </div>
                             </div>
-                            <div className="text-xs text-gray-600">3 of 4 courses completed</div>
                           </div>
-                          <div className="bg-gradient-to-br from-[#FFD700]/15 to-[#FFD700]/5 rounded-xl p-4 border border-[#FFD700]/30 backdrop-blur-md hover:shadow-lg hover:shadow-[#FFD700]/20 transition-all group/card">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-semibold text-gray-700">Achievements</span>
-                              <Star className="h-4 w-4 text-[#FFD700] fill-current group-hover/card:scale-110 transition-transform" />
-                            </div>
-                            <div className="text-3xl font-bold text-gray-800 mb-1 group-hover/card:scale-110 transition-transform">12</div>
-                            <div className="text-xs text-gray-600">Badges earned</div>
+
+                          {/* Duration Badge */}
+                          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full border border-white/20">
+                            Auto-playing
                           </div>
                         </div>
-                        
-                        {/* Quick Stats Row - Light Colors */}
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-200/50">
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-gray-800">24</div>
-                            <div className="text-xs text-gray-600">Hours Learned</div>
+
+                        {/* Video Stats Below */}
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="text-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                            <div className="text-2xl font-bold text-white mb-1">
+                              <span className="inline-flex items-center">
+                                <Play className="h-5 w-5 mr-1" />
+                                4.8K
+                              </span>
+                            </div>
+                            <div className="text-white/80 text-xs">Views</div>
                           </div>
-                          <div className="w-px h-8 bg-gray-200" />
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-gray-800">8</div>
-                            <div className="text-xs text-gray-600">Courses Enrolled</div>
+                          <div className="text-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                            <div className="text-2xl font-bold text-white mb-1">
+                              <span className="inline-flex items-center">
+                                <Heart className="h-5 w-5 mr-1" />
+                                892
+                              </span>
+                            </div>
+                            <div className="text-white/80 text-xs">Likes</div>
                           </div>
-                          <div className="w-px h-8 bg-gray-200" />
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-gray-800">4.9</div>
-                            <div className="text-xs text-gray-600">Avg Rating</div>
+                          <div className="text-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                            <div className="text-2xl font-bold text-white mb-1">
+                              <span className="inline-flex items-center">
+                                <MessageCircle className="h-5 w-5 mr-1" />
+                                156
+                              </span>
+                            </div>
+                            <div className="text-white/80 text-xs">Comments</div>
                           </div>
                         </div>
                       </div>
@@ -570,20 +707,21 @@ const Landing: React.FC = () => {
                 visibleSections.has('about') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}>
                 <Heart className="h-4 w-4 text-[#FFD700]" />
-                <span className="text-sm font-medium text-gray-700">Our Mission</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {landingContent.about?.badge || 'Our Mission'}
+                </span>
               </div>
               <h2 className={`text-4xl md:text-5xl font-bold text-gray-800 mb-6 transition-all duration-700 delay-300 ${
                 visibleSections.has('about') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
               }`}>
-                Empowering Ethiopian Orthodox Youths
+                {landingContent.about?.title || 'Empowering Ethiopian Orthodox Youths'}
               </h2>
             </div>
             
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Empowering Ethiopian Orthodox youths through faith-centered education. 
-                  Nurturing spiritual growth with quality learning that honors our traditions.
+                  {landingContent.about?.description || 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.'}
                 </p>
                 <div className="flex flex-wrap gap-4 pt-4">
                   <div className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg border border-[#00FFC6]/30 hover:border-[#00FFC6]/50 hover:shadow-lg hover:shadow-[#00FFC6]/20 transition-all">
@@ -653,113 +791,53 @@ const Landing: React.FC = () => {
                 visibleSections.has('how-it-works') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}>
                 <Zap className="h-4 w-4 text-[#00FFC6]" />
-                <span className="text-sm font-medium text-gray-700">Simple Process</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {landingContent.howItWorks?.badge || 'Simple Process'}
+                </span>
               </div>
               <h2 className={`text-4xl md:text-5xl font-bold text-gray-800 mb-6 transition-all duration-700 delay-300 ${
                 visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
               }`}>
-                How It Works
+                {landingContent.howItWorks?.title || 'How It Works'}
               </h2>
               <p className={`text-lg text-gray-600 max-w-2xl mx-auto transition-all duration-700 delay-400 ${
                 visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
               }`}>
-                Start your learning journey in minutes
+                {landingContent.howItWorks?.description || 'Start your learning journey in minutes'}
               </p>
             </div>
 
             <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { 
-                  step: '01', 
-                  icon: User, 
-                  title: 'Create Account', 
-                  desc: 'Sign up for free and join our community of learners',
-                  color: '#00FFC6',
+              {(landingContent.howItWorks?.steps || [
+                {
+                  step: '01',
+                  icon: 'User',
+                  title: 'Create Account',
+                  description: 'Sign up for free and join our community of learners',
                   features: ['Free forever', 'No credit card', 'Instant access']
                 },
-                { 
-                  step: '02', 
-                  icon: BookOpen, 
-                  title: 'Browse Courses', 
-                  desc: 'Explore our comprehensive library of faith-based courses',
-                  color: '#FF00FF',
+                {
+                  step: '02',
+                  icon: 'BookOpen',
+                  title: 'Browse Courses',
+                  description: 'Explore our comprehensive library of faith-based courses',
                   features: ['500+ courses', 'Expert teachers', 'Self-paced']
                 },
-                { 
-                  step: '03', 
-                  icon: PlayCircle, 
-                  title: 'Start Learning', 
-                  desc: 'Watch videos, complete lessons, and track your progress',
-                  color: '#FFD700',
+                {
+                  step: '03',
+                  icon: 'PlayCircle',
+                  title: 'Start Learning',
+                  description: 'Watch videos, complete lessons, and track your progress',
                   features: ['HD videos', 'Interactive quizzes', 'Progress tracking']
                 },
-                { 
-                  step: '04', 
-                  icon: Award, 
-                  title: 'Earn Achievements', 
-                  desc: 'Complete courses, earn badges, and grow in your faith journey',
-                  color: '#00D4FF',
+                {
+                  step: '04',
+                  icon: 'Award',
+                  title: 'Earn Achievements',
+                  description: 'Complete courses, earn badges, and grow in your faith journey',
                   features: ['Certificates', 'Badges', 'Leaderboards']
                 },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className={`relative group transition-all duration-700 ${
-                    visibleSections.has('how-it-works') 
-                      ? `opacity-100 translate-y-0 delay-${index * 100}` 
-                      : 'opacity-0 translate-y-10'
-                  }`}
-                  style={{ transitionDelay: `${index * 100}ms` }}
-                >
-                  <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200/50 transform hover:-translate-y-2 hover:scale-105 h-full cursor-pointer relative overflow-hidden">
-                    {/* Animated background gradient on hover */}
-                    <div 
-                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{ background: `linear-gradient(135deg, ${item.color}15, transparent)` }}
-                    />
-                    
-                    <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div 
-                          className="w-14 h-14 rounded-xl flex items-center justify-center backdrop-blur-sm transition-all group-hover:scale-110 group-hover:rotate-3"
-                          style={{ 
-                            backgroundColor: `${item.color}20`, 
-                            borderColor: `${item.color}40`, 
-                            borderWidth: '2px',
-                            boxShadow: `0 0 20px ${item.color}30`
-                          }}
-                        >
-                          <item.icon className="h-7 w-7 transition-transform group-hover:scale-110" style={{ color: item.color }} />
-                      </div>
-                      <span className="text-3xl font-bold text-gray-300 group-hover:text-gray-400 transition-colors">{item.step}</span>
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-3 transition-colors" style={{ color: visibleSections.has('how-it-works') ? 'inherit' : undefined }}>{item.title}</h3>
-                      <p className="text-gray-600 leading-relaxed mb-4">{item.desc}</p>
-                      
-                      {/* Feature list */}
-                      <div className="space-y-2 pt-3 border-t border-gray-200/50">
-                        {item.features.map((feature, idx) => (
-                          <div key={idx} className="flex items-center space-x-2 text-sm">
-                            <div 
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{ backgroundColor: item.color }}
-                            />
-                            <span className="text-gray-600">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  {index < 3 && (
-                    <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                      <div className="relative">
-                        <ArrowRight className="h-6 w-6 text-slate-400 animate-pulse" />
-                        <div className="absolute inset-0 bg-[#00FFC6]/20 rounded-full blur-md animate-ping" style={{ animationDuration: '2s' }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+              ]).map((item: any, index: number) => renderHowItWorksStep(item, index))}
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@ const ResourcesPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'library' && (
               <div className="animate-in fade-in duration-300">
-                <ResourceLibrary />
+                <ResourceLibrary hideHeader={true} />
               </div>
             )}
             {activeTab === 'help' && (

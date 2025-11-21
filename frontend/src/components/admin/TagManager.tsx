@@ -255,46 +255,36 @@ const TagManager: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
-                    <TagIcon className="h-6 w-6 text-[#27AE60]" />
-                  </div>
-                </div>
-                <h1 className="text-3xl font-bold text-stone-800">Content Tags</h1>
-              </div>
-              <p className="text-stone-700 text-sm mt-2">Manage and organize content with tags</p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-stone-200">
-                <Users className="h-4 w-4 text-stone-500 mr-2" />
-                <select
-                  value={selectedChapter}
-                  onChange={(e) => setSelectedChapter(e.target.value)}
-                  className="bg-transparent text-sm font-medium focus:outline-none text-stone-700"
-                >
-                  {chapters.map(chapter => (
-                    <option key={chapter.id} value={chapter.id}>
-                      {chapter.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+        {/* Compact Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-stone-600">
+              Manage and organize content with tags
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-md px-2 py-1 border border-stone-200">
+              <Users className="h-3.5 w-3.5 text-stone-500 mr-1.5" />
+              <select
+                value={selectedChapter}
+                onChange={(e) => setSelectedChapter(e.target.value)}
+                className="bg-transparent text-xs text-stone-700 border-none outline-none"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Tag
-              </button>
+                <option value="">All Chapters</option>
+                {chapters.map(chapter => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.name}
+                  </option>
+                ))}
+              </select>
             </div>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Create Tag
+            </button>
           </div>
         </div>
 

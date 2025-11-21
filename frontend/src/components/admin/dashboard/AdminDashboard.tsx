@@ -132,7 +132,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'totalUsers',
       title: 'Total Users',
       value: stats.totalUsers,
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users className="h-5 w-5" />,
       color: 'from-blue-500 to-blue-600',
       link: '/admin/users'
     },
@@ -140,7 +140,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'activeUsers',
       title: 'Active Users',
       value: stats.activeUsers,
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users className="h-5 w-5" />,
       color: 'from-green-500 to-green-600',
       link: '/admin/users'
     },
@@ -148,7 +148,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'activeCourses',
       title: 'Active Courses',
       value: stats.activeCourses,
-      icon: <BookOpen className="h-6 w-6" />,
+      icon: <BookOpen className="h-5 w-5" />,
       color: 'from-purple-500 to-purple-600',
       link: '/admin/courses'
     },
@@ -156,7 +156,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'completedLessons',
       title: 'Completed Lessons',
       value: stats.completedLessons,
-      icon: <Video className="h-6 w-6" />,
+      icon: <Video className="h-5 w-5" />,
       color: 'from-indigo-500 to-indigo-600',
       link: '/admin/analytics'
     },
@@ -164,7 +164,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'newRegistrations',
       title: 'New This Week',
       value: stats.newRegistrations,
-      icon: <TrendingUp className="h-6 w-6" />,
+      icon: <TrendingUp className="h-5 w-5" />,
       color: 'from-orange-500 to-orange-600',
       link: '/admin/users'
     },
@@ -172,7 +172,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'flaggedContent',
       title: 'Flagged Content',
       value: stats.flaggedContent,
-      icon: <AlertTriangle className="h-6 w-6" />,
+      icon: <AlertTriangle className="h-5 w-5" />,
       color: stats.flaggedContent > 0 ? 'from-red-500 to-red-600' : 'from-gray-400 to-gray-500',
       link: '/admin/moderation',
       isAlert: stats.flaggedContent > 0
@@ -181,7 +181,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       id: 'pendingApprovals',
       title: 'Pending Teacher Apps',
       value: stats.pendingApprovals,
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users className="h-5 w-5" />,
       color: stats.pendingApprovals > 0 ? 'from-amber-500 to-amber-600' : 'from-gray-400 to-gray-500',
       link: '/admin/teacher-applications',
       isAlert: stats.pendingApprovals > 0
@@ -251,19 +251,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+      <div className="w-full space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
           {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
+                <div className="flex items-center space-x-2 mb-1">
                   <div className="relative">
                     <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-                    <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
-                      <Users className="h-6 w-6 text-[#27AE60]" />
+                    <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
+                      <Users className="h-5 w-5 text-[#27AE60]" />
                     </div>
                   </div>
-                  <h1 className="text-3xl font-bold text-stone-800">Admin Dashboard</h1>
+                  <h1 className="text-2xl font-bold text-stone-800">Admin Dashboard</h1>
                   {isConnected && (
                     <div className="flex items-center space-x-2 text-[#27AE60]">
                       <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-pulse"></div>
@@ -271,19 +271,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                     </div>
                   )}
                 </div>
-                <p className="text-stone-700 mt-2">
+                <p className="text-stone-700 text-sm mt-1">
                   Welcome, <span className="font-semibold text-stone-800">{user?.firstName}</span>! {formatDate(currentTime)} • {formatTime(currentTime)}
                 </p>
-                <p className="text-stone-600 text-sm mt-1">
+                <p className="text-stone-600 text-xs">
                   Managing <span className="font-semibold text-stone-800">{stats.totalUsers}</span> users across <span className="font-semibold text-stone-800">{stats.activeCourses}</span> courses
                 </p>
               </div>
-              <div className="mt-4 lg:mt-0">
+              <div className="mt-3 lg:mt-0">
                 <button
                   onClick={handleRetry}
-                  className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/30 shadow-sm hover:shadow-md hover:border-[#27AE60]/50"
+                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/30 shadow-sm hover:shadow-md hover:border-[#27AE60]/50"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2 text-[#27AE60]" />
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-[#27AE60]" />
                   Refresh
                 </button>
               </div>
@@ -291,16 +291,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
           </div>
 
           {/* Essential Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {metrics.map((metric) => (
               <Link
                 key={metric.id}
                 to={metric.link || '#'}
-                className={`bg-white/90 backdrop-blur-md rounded-xl border-2 shadow-sm hover:shadow-lg transition-all p-6 group ${
+                className={`bg-white/90 backdrop-blur-md rounded-xl border-2 shadow-sm hover:shadow-lg transition-all p-4 group ${
                   metric.isAlert ? 'border-red-300 ring-2 ring-red-100' : 'border-stone-200 hover:border-[#27AE60]/40'
                 }`}
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className={`relative ${
                     metric.id === 'totalUsers' ? 'text-[#27AE60]' :
                     metric.id === 'activeUsers' ? 'text-[#16A085]' :
@@ -345,8 +345,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-stone-600 mb-2">{metric.title}</p>
-                <p className="text-3xl font-bold text-stone-800">{metric.value.toLocaleString()}</p>
+                <p className="text-xs text-stone-600 mb-1">{metric.title}</p>
+                <p className="text-2xl font-bold text-stone-800">{metric.value.toLocaleString()}</p>
               </Link>
             ))}
           </div>
@@ -355,30 +355,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
           <AnomalyAlerts autoRefresh={true} refreshInterval={60000} maxDisplay={3} />
 
           {/* Quick Actions */}
-          <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-stone-200 p-6">
-            <h3 className="text-lg font-semibold text-stone-800 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-stone-200 p-4">
+            <h3 className="text-base font-semibold text-stone-800 mb-3">Quick Actions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Link
                 to="/admin/users"
-                className="flex items-center p-4 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 hover:from-[#27AE60]/20 hover:to-[#16A085]/20 rounded-lg border border-[#27AE60]/25 transition-all shadow-sm hover:shadow-md"
+                className="flex items-center p-3 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 hover:from-[#27AE60]/20 hover:to-[#16A085]/20 rounded-lg border border-[#27AE60]/25 transition-all shadow-sm hover:shadow-md"
               >
-                <Users className="h-6 w-6 text-[#27AE60] mr-3" />
-                <span className="font-medium text-stone-800">Manage Users</span>
+                <Users className="h-5 w-5 text-[#27AE60] mr-2" />
+                <span className="font-medium text-stone-800 text-sm">Manage Users</span>
               </Link>
               <Link
                 to="/admin/courses"
-                className="flex items-center p-4 bg-gradient-to-r from-[#16A085]/10 to-[#2980B9]/10 hover:from-[#16A085]/20 hover:to-[#2980B9]/20 rounded-lg border border-[#16A085]/25 transition-all shadow-sm hover:shadow-md"
+                className="flex items-center p-3 bg-gradient-to-r from-[#16A085]/10 to-[#2980B9]/10 hover:from-[#16A085]/20 hover:to-[#2980B9]/20 rounded-lg border border-[#16A085]/25 transition-all shadow-sm hover:shadow-md"
               >
-                <BookOpen className="h-6 w-6 text-[#16A085] mr-3" />
-                <span className="font-medium text-stone-800">Manage Courses</span>
+                <BookOpen className="h-5 w-5 text-[#16A085] mr-2" />
+                <span className="font-medium text-stone-800 text-sm">Manage Courses</span>
               </Link>
               {stats.flaggedContent > 0 && (
                 <Link
                   to="/admin/moderation"
-                  className="flex items-center p-4 bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 rounded-lg border border-red-300 transition-all shadow-sm hover:shadow-md"
+                  className="flex items-center p-3 bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 rounded-lg border border-red-300 transition-all shadow-sm hover:shadow-md"
                 >
-                  <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-                  <span className="font-medium text-stone-800">Review Flagged ({stats.flaggedContent})</span>
+                  <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                  <span className="font-medium text-stone-800 text-sm">Review Flagged ({stats.flaggedContent})</span>
                 </Link>
               )}
             </div>

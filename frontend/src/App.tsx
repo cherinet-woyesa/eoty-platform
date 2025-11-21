@@ -5,6 +5,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import Landing from '@/pages/shared/Landing';
 import Login from '@/pages/shared/auth/Login';
 import Register from '@/pages/shared/auth/Register';
+import ForgotPassword from '@/pages/shared/auth/ForgotPassword';
+import ResetPassword from '@/pages/shared/auth/ResetPassword';
+import EmailVerification from '@/pages/shared/auth/EmailVerification';
+import GoogleCallback from '@/pages/shared/auth/GoogleCallback';
 import TeacherDashboard from '@/components/teacher/dashboard/TeacherDashboard';
 import StudentDashboard from '@/components/student/dashboard/StudentDashboard';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -180,13 +184,41 @@ function AppContent() {
             </PublicRoute>
           } 
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             <PublicRoute>
               <Register />
             </PublicRoute>
-          } 
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <PublicRoute>
+              <EmailVerification />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/auth/google/callback"
+          element={<GoogleCallback />}
         />
 
         {/* Authenticated routes */}

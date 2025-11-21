@@ -5,6 +5,7 @@ import { dashboardApi } from './dashboard';
 import { quizApi } from './quiz';
 import { progressApi } from './progress';
 import { discussionsApi } from './discussions';
+import { studyGroupsApi } from './studyGroups';
 import { apiClient } from './apiClient';
 import { subtitlesApi } from './subtitles';
 import { lessonResourcesApi } from './lessonResources';
@@ -109,6 +110,36 @@ export const authApi = {
       }
       return false;
     }
+  },
+
+  // Forgot Password endpoints
+  forgotPassword: async (email: string) => {
+    const response = await apiClient.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await apiClient.post('/auth/reset-password', {
+      token,
+      password: newPassword
+    });
+    return response.data;
+  },
+
+  verifyResetToken: async (token: string) => {
+    const response = await apiClient.post('/auth/verify-reset-token', { token });
+    return response.data;
+  },
+
+  // Email verification endpoints
+  verifyEmail: async (token: string) => {
+    const response = await apiClient.post('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  resendVerificationEmail: async (email: string) => {
+    const response = await apiClient.post('/auth/resend-verification', { email });
+    return response.data;
   }
 };
 
@@ -616,6 +647,10 @@ export { assignmentsApi };
 
 // Landing Page API (public)
 export const landingApi = {
+  getContent: async () => {
+    const response = await apiClient.get('/landing/content');
+    return response.data;
+  },
   getStats: async () => {
     const response = await apiClient.get('/landing/stats');
     return response.data;
@@ -638,6 +673,7 @@ export default {
   quiz: quizApi,
   progress: progressApi,
   discussions: discussionsApi,
+    studyGroups: studyGroupsApi,
   ai: aiApi,
   interactive: interactiveApi,
   resources: resourcesApi,

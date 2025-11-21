@@ -280,26 +280,20 @@ export const ChapterManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg shadow-sm p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <BookOpen className="h-8 w-8" />
-                Chapter Management
-              </h1>
-              <p className="text-blue-100 mt-2">
-                Manage chapters for organizing courses into logical groupings
-              </p>
-            </div>
-            <button
-              onClick={openCreateForm}
-              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              New Chapter
-            </button>
+        {/* Compact Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-stone-600">
+              Manage chapters for organizing courses into logical groupings
+            </span>
           </div>
+          <button
+            onClick={openCreateForm}
+            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-700 text-white text-xs font-medium rounded-md hover:from-blue-700 hover:to-purple-800 transition-all shadow-sm hover:shadow-md"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            New Chapter
+          </button>
         </div>
 
         {/* Bulk Actions */}

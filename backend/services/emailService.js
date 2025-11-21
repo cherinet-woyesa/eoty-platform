@@ -1,371 +1,442 @@
-const db = require('../config/database');
+const nodemailer = require('nodemailer');
 
-class AnalyticsService {
-  constructor() {
-    this.metricCache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-  }
-
-  // Real-time metrics calculation
-  async calculateRealTimeMetrics() {
-    const cacheKey = 'realtime_metrics';
-    const cached = this.metricCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-
-    const [
-      activeUsersNow,
-      currentUploads,
-      pendingFlags,
-      systemHealth
-    ] = await Promise.all([
-      this.getActiveUsersNow(),
-      this.getCurrentUploads(),
-      this.getPendingFlags(),
-      this.getSystemHealth()
-    ]);
-
-    const metrics = {
-      active_users: activeUsersNow,
-      uploads_in_progress: currentUploads,
-      pending_moderation: pendingFlags,
-      system_health: systemHealth,
-      last_updated: new Date()
-    };
-
-    this.metricCache.set(cacheKey, {
-      timestamp: Date.now(),
-      data: metrics
-    });
-
-    return metrics;
-  }
-
-  async getActiveUsersNow() {
-    // Users active in last 15 minutes
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    
-    const result = await db('users')
-      .where('last_login_at', '>=', fifteenMinutesAgo)
-      .count('id as count')
-      .first();
-
-    return parseInt(result.count) || 0;
-  }
-
-  async getCurrentUploads() {
-    const result = await db('content_uploads')
-      .whereIn('status', ['pending', 'processing'])
-      .count('id as count')
-      .first();
-
-    return parseInt(result.count) || 0;
-  }
-
-  async getPendingFlags() {
-    try {
-      const result = await db('flagged_content')
-        .where({ status: 'pending' })
-        .count('id as count')
-        .first();
-
-      return parseInt(result.count) || 0;
-    } catch (err) {
-      console.warn('flagged_content table may not exist:', err.message);
-      return 0;
-    }
-  }
-
-  async getSystemHealth() {
-    // Check database connection
-    const dbHealth = await this.checkDatabaseHealth();
-    
-    // Check file system (simplified)
-    const storageHealth = await this.checkStorageHealth();
-    
-    // Check external services (AI, etc.)
-    const servicesHealth = await this.checkServicesHealth();
-
-    return {
-      database: dbHealth,
-      storage: storageHealth,
-      services: servicesHealth,
-      overall: dbHealth && storageHealth && servicesHealth ? 'healthy' : 'degraded'
-    };
-  }
-
-  async checkDatabaseHealth() {
-    try {
-      await db.raw('SELECT 1');
-      return true;
-    } catch (error) {
-      console.error('Database health check failed:', error);
-      return false;
-    }
-  }
-
-  async checkStorageHealth() {
-    // Simplified storage check
-    // In production, check disk space, S3 connectivity, etc.
-    return true;
-  }
-
-  async checkServicesHealth() {
-    // Check external services like AI, email, etc.
-    const checks = {
-      ai_service: await this.checkAIService(),
-      email_service: await this.checkEmailService()
-    };
-
-    return Object.values(checks).every(check => check);
-  }
-
-  async checkAIService() {
-    try {
-      // Simple check - in production, ping AI service
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  async checkEmailService() {
-    // Check email service connectivity
-    return true;
-  }
-
-  // Chapter comparison analytics
-  async compareChapterPerformance(timeframe = '30days') {
-    const chapters = await db('users').distinct('chapter_id').pluck('chapter_id');
-    
-    const comparison = {};
-    const dateFilter = this.getDateFilter(timeframe);
-
-    for (const chapterId of chapters) {
-      const metrics = await this.getChapterMetrics(chapterId, dateFilter);
-      comparison[chapterId] = metrics;
-    }
-
-    // Calculate rankings
-    const rankedChapters = this.rankChapters(comparison);
-    
-    return {
-      comparison,
-      rankings: rankedChapters,
-      timeframe
-    };
-  }
-
-  async getChapterMetrics(chapterId, dateFilter) {
-    const [
-      userGrowth,
-      contentActivity,
-      forumEngagement,
-      completionRates
-    ] = await Promise.all([
-      this.calculateUserGrowth(chapterId, dateFilter),
-      this.calculateContentActivity(chapterId, dateFilter),
-      this.calculateForumEngagement(chapterId, dateFilter),
-      this.calculateCompletionRates(chapterId, dateFilter)
-    ]);
-
-    return {
-      user_growth: userGrowth,
-      content_activity: contentActivity,
-      forum_engagement: forumEngagement,
-      completion_rates: completionRates,
-      overall_score: this.calculateOverallScore(userGrowth, contentActivity, forumEngagement, completionRates)
-    };
-  }
-
-  rankChapters(comparison) {
-    const chapters = Object.entries(comparison).map(([chapterId, metrics]) => ({
-      chapter_id: chapterId,
-      score: metrics.overall_score
-    }));
-
-    return chapters
-      .sort((a, b) => b.score - a.score)
-      .map((chapter, index) => ({
-        ...chapter,
-        rank: index + 1
-      }));
-  }
-
-  // Trend analysis
-  async analyzeTrends(metric, timeframe = '90days') {
-    const dateFilter = this.getDateFilter(timeframe);
-    
-    switch (metric) {
-      case 'user_growth':
-        return await this.analyzeUserGrowthTrend(dateFilter);
-      case 'content_consumption':
-        return await this.analyzeContentConsumptionTrend(dateFilter);
-      case 'engagement':
-        return await this.analyzeEngagementTrend(dateFilter);
-      default:
-        return {};
-    }
-  }
-
-  async analyzeUserGrowthTrend(dateFilter) {
-    const dailyGrowth = await db('users')
-      .where('created_at', '>=', dateFilter)
-      .groupByRaw('DATE(created_at)')
-      .select(
-        db.raw('DATE(created_at) as date'),
-        db.raw('COUNT(id) as new_users')
-      )
-      .orderBy('date', 'asc');
-
-    return {
-      data: dailyGrowth,
-      trend: this.calculateTrendDirection(dailyGrowth.map(d => d.new_users)),
-      summary: this.generateTrendSummary(dailyGrowth, 'user growth')
-    };
-  }
-
-  // Alert system for anomalies
-  async checkForAnomalies() {
-    const anomalies = [];
-
-    // Check for sudden drop in activity
-    const activityDrop = await this.checkActivityDrop();
-    if (activityDrop) {
-      anomalies.push({
-        type: 'activity_drop',
-        severity: 'high',
-        message: 'Significant drop in user activity detected',
-        details: activityDrop
-      });
-    }
-
-    // Check for moderation backlog
-    const moderationBacklog = await this.checkModerationBacklog();
-    if (moderationBacklog) {
-      anomalies.push({
-        type: 'moderation_backlog',
-        severity: 'medium',
-        message: 'Moderation queue is growing faster than processing',
-        details: moderationBacklog
-      });
-    }
-
-    // Check for content quality issues
-    const qualityIssues = await this.checkContentQuality();
-    if (qualityIssues) {
-      anomalies.push({
-        type: 'content_quality',
-        severity: 'low',
-        message: 'Potential content quality issues detected',
-        details: qualityIssues
-      });
-    }
-
-    return anomalies;
-  }
-
-  async checkActivityDrop() {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const todayActivity = await db('user_engagement')
-      .where('created_at', '>=', today.setHours(0, 0, 0, 0))
-      .count('id as count')
-      .first();
-
-    const yesterdayActivity = await db('user_engagement')
-      .whereBetween('created_at', [yesterday.setHours(0, 0, 0, 0), yesterday.setHours(23, 59, 59, 999)])
-      .count('id as count')
-      .first();
-
-    const dropPercentage = yesterdayActivity.count > 0 
-      ? ((yesterdayActivity.count - todayActivity.count) / yesterdayActivity.count) * 100
-      : 0;
-
-    return dropPercentage > 50 ? { drop_percentage: dropPercentage } : null;
-  }
-
-  // Utility methods
-  getDateFilter(timeframe) {
-    const now = new Date();
-    switch (timeframe) {
-      case '24hours':
-        return new Date(now.setDate(now.getDate() - 1));
-      case '7days':
-        return new Date(now.setDate(now.getDate() - 7));
-      case '30days':
-        return new Date(now.setDate(now.getDate() - 30));
-      case '90days':
-        return new Date(now.setDate(now.getDate() - 90));
-      default:
-        return new Date(now.setDate(now.getDate() - 30));
-    }
-  }
-
-  calculateTrendDirection(data) {
-    if (data.length < 2) return 'stable';
-    
-    const firstHalf = data.slice(0, Math.floor(data.length / 2));
-    const secondHalf = data.slice(Math.floor(data.length / 2));
-    
-    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
-    const change = ((avgSecond - avgFirst) / avgFirst) * 100;
-    
-    if (change > 10) return 'increasing';
-    if (change < -10) return 'decreasing';
-    return 'stable';
-  }
-
-  generateTrendSummary(data, metric) {
-    const values = data.map(d => d.new_users || d.count || 0);
-    const total = values.reduce((a, b) => a + b, 0);
-    const average = total / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-
-    return {
-      total,
-      average: Math.round(average),
-      peak: max,
-      low: min,
-      variability: ((max - min) / average * 100).toFixed(1) + '%'
-    };
-  }
-
-  calculateOverallScore(userGrowth, contentActivity, forumEngagement, completionRates) {
-    // Weighted scoring algorithm
-    const weights = {
-      user_growth: 0.25,
-      content_activity: 0.30,
-      forum_engagement: 0.25,
-      completion_rates: 0.20
-    };
-
-    const score = 
-      (userGrowth.score * weights.user_growth) +
-      (contentActivity.score * weights.content_activity) +
-      (forumEngagement.score * weights.forum_engagement) +
-      (completionRates.score * weights.completion_rates);
-
-    return Math.min(100, Math.max(0, score));
-  }
-}
-
-module.exports = new AnalyticsService();
-
+/**
+ * Email Service for EOTY Platform
+ * Supports both SMTP and API-based email services
+ */
 class EmailService {
-  async sendWelcomeEmail(user) {
-    // Implementation for welcome emails
+  constructor() {
+    this.transporter = null;
+    this.serviceType = process.env.EMAIL_SERVICE_TYPE || 'smtp'; // 'smtp' or 'api'
+
+    this.initializeService();
   }
 
-  async sendNotification(user, message) {
-    // Implementation for notifications
+  /**
+   * Initialize email service based on configuration
+   */
+  initializeService() {
+    const serviceType = this.serviceType;
+
+    if (serviceType === 'smtp') {
+      this.initializeSMTP();
+    } else if (serviceType === 'api') {
+      this.initializeAPI();
+    } else {
+      console.warn('[EmailService] Unknown service type:', serviceType, '- falling back to SMTP');
+      this.initializeSMTP();
+    }
+  }
+
+  /**
+   * Initialize SMTP transport
+   */
+  initializeSMTP() {
+    const smtpConfig = {
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+      // Additional security options
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates in development
+      },
+    };
+
+    this.transporter = nodemailer.createTransport(smtpConfig);
+
+    // Verify connection
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error('[EmailService] SMTP connection failed:', error);
+      } else {
+        console.log('[EmailService] SMTP server is ready to send emails');
+      }
+    });
+  }
+
+  /**
+   * Initialize API-based email service (SendGrid, Mailgun, etc.)
+   */
+  initializeAPI() {
+    const apiKey = process.env.EMAIL_SERVICE_API_KEY;
+
+    if (!apiKey) {
+      console.error('[EmailService] EMAIL_SERVICE_API_KEY not configured for API email service');
+      return;
+    }
+
+    // For SendGrid, we'll use their API
+    if (apiKey.startsWith('SG.')) {
+      this.serviceName = 'sendgrid';
+      console.log('[EmailService] SendGrid email service initialized');
+    } else {
+      console.log('[EmailService] Generic API email service initialized');
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(email, resetLink) {
+    const subject = 'Reset Your EOTY Platform Password';
+    const html = this.generatePasswordResetHTML(resetLink);
+    const text = this.generatePasswordResetText(resetLink);
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Send email verification email
+   */
+  async sendEmailVerificationEmail(email, verificationLink) {
+    const subject = 'Verify Your EOTY Platform Account';
+    const html = this.generateEmailVerificationHTML(verificationLink);
+    const text = this.generateEmailVerificationText(verificationLink);
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Send welcome email after verification
+   */
+  async sendWelcomeEmail(email, firstName) {
+    const subject = 'Welcome to EOTY Platform!';
+    const html = this.generateWelcomeHTML(firstName);
+    const text = this.generateWelcomeText(firstName);
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Generic email sending method
+   */
+  async sendEmail(to, subject, html, text = null) {
+    try {
+      if (!this.transporter && this.serviceType === 'smtp') {
+        throw new Error('Email service not initialized');
+      }
+
+      const mailOptions = {
+        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@eotyplatform.com',
+        to: to,
+        subject: subject,
+        html: html,
+        text: text || this.htmlToText(html), // Fallback text version
+      };
+
+      if (this.serviceType === 'smtp') {
+        const info = await this.transporter.sendMail(mailOptions);
+        console.log('[EmailService] Email sent successfully:', info.messageId);
+        return { success: true, messageId: info.messageId };
+      } else {
+        // Handle API-based sending (SendGrid)
+        return await this.sendViaAPI(to, subject, html, text);
+      }
+    } catch (error) {
+      console.error('[EmailService] Failed to send email:', error);
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate password reset HTML email
+   */
+  generatePasswordResetHTML(resetLink) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00FFC6, #00D4FF); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #00FFC6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+          .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+          .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🔐 Reset Your Password</h1>
+          <p>EOTY Platform - Ethiopian Orthodox Youth Community</p>
+        </div>
+
+        <div class="content">
+          <h2>Hello!</h2>
+          <p>You have requested to reset your password for your EOTY Platform account. Click the button below to create a new password:</p>
+
+          <div style="text-align: center;">
+            <a href="${resetLink}" class="button">Reset My Password</a>
+          </div>
+
+          <div class="warning">
+            <strong>⚠️ Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, please ignore this email.
+          </div>
+
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 4px;">${resetLink}</p>
+
+          <p>Best regards,<br>The EOTY Platform Team</p>
+        </div>
+
+        <div class="footer">
+          <p>This email was sent to you because a password reset was requested for your EOTY Platform account.</p>
+          <p>If you have any questions, please contact our support team.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate password reset text email
+   */
+  generatePasswordResetText(resetLink) {
+    return `
+EOTY Platform - Password Reset
+
+Hello!
+
+You have requested to reset your password for your EOTY Platform account.
+
+Click this link to reset your password: ${resetLink}
+
+⚠️ Security Notice: This link will expire in 1 hour for your security. If you didn't request this password reset, please ignore this email.
+
+If you have any questions, please contact our support team.
+
+Best regards,
+The EOTY Platform Team
+    `;
+  }
+
+  /**
+   * Generate email verification HTML email
+   */
+  generateEmailVerificationHTML(verificationLink) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Account</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00FFC6, #00D4FF); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #00FFC6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+          .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>✨ Welcome to EOTY Platform!</h1>
+          <p>Ethiopian Orthodox Youth Community</p>
+        </div>
+
+        <div class="content">
+          <h2>Verify Your Email Address</h2>
+          <p>Thank you for joining the EOTY Platform! To complete your registration and start your spiritual learning journey, please verify your email address by clicking the button below:</p>
+
+          <div style="text-align: center;">
+            <a href="${verificationLink}" class="button">Verify My Email</a>
+          </div>
+
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 4px;">${verificationLink}</p>
+
+          <p>Once verified, you'll have access to:</p>
+          <ul>
+            <li>📚 Comprehensive faith-based courses</li>
+            <li>👥 Community discussions and forums</li>
+            <li>📈 Progress tracking and achievements</li>
+            <li>🎯 Personalized learning paths</li>
+          </ul>
+
+          <p>Best regards,<br>The EOTY Platform Team</p>
+        </div>
+
+        <div class="footer">
+          <p>This email was sent to you because you recently created an account on the EOTY Platform.</p>
+          <p>If you have any questions, please contact our support team.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate email verification text email
+   */
+  generateEmailVerificationText(verificationLink) {
+    return `
+EOTY Platform - Email Verification
+
+Thank you for joining the EOTY Platform!
+
+To complete your registration, please verify your email address by clicking this link: ${verificationLink}
+
+Once verified, you'll have access to:
+- Comprehensive faith-based courses
+- Community discussions and forums
+- Progress tracking and achievements
+- Personalized learning paths
+
+Best regards,
+The EOTY Platform Team
+    `;
+  }
+
+  /**
+   * Generate welcome HTML email
+   */
+  generateWelcomeHTML(firstName) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to EOTY Platform!</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00FFC6, #00D4FF); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #00FFC6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+          .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🎉 Welcome ${firstName}!</h1>
+          <p>Your EOTY Platform journey begins now</p>
+        </div>
+
+        <div class="content">
+          <h2>Your Account is Now Active!</h2>
+          <p>Congratulations! Your email has been verified and your account is now fully active on the EOTY Platform.</p>
+
+          <p>Here's what you can do next:</p>
+
+          <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <h3>🚀 Get Started</h3>
+            <ul>
+              <li><strong>Complete your profile</strong> - Add your bio, interests, and learning goals</li>
+              <li><strong>Browse courses</strong> - Explore our comprehensive faith-based curriculum</li>
+              <li><strong>Join the community</strong> - Connect with fellow learners in forums and study groups</li>
+              <li><strong>Track your progress</strong> - Monitor your spiritual learning journey</li>
+            </ul>
+          </div>
+
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" class="button">Start Learning Now</a>
+          </div>
+
+          <p>We can't wait to see your growth and participation in our faith community!</p>
+
+          <p>Best regards,<br>The EOTY Platform Team</p>
+        </div>
+
+        <div class="footer">
+          <p>EOTY Platform - Empowering Ethiopian Orthodox Youth through faith-centered education.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate welcome text email
+   */
+  generateWelcomeText(firstName) {
+    return `
+Welcome ${firstName} to EOTY Platform!
+
+Congratulations! Your email has been verified and your account is now fully active.
+
+Here's what you can do next:
+
+🚀 Get Started
+- Complete your profile - Add your bio, interests, and learning goals
+- Browse courses - Explore our comprehensive faith-based curriculum
+- Join the community - Connect with fellow learners in forums and study groups
+- Track your progress - Monitor your spiritual learning journey
+
+Visit: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard
+
+We can't wait to see your growth and participation in our faith community!
+
+Best regards,
+The EOTY Platform Team
+
+EOTY Platform - Empowering Ethiopian Orthodox Youth through faith-centered education.
+    `;
+  }
+
+  /**
+   * Send email via API (SendGrid)
+   */
+  async sendViaAPI(to, subject, html, text) {
+    try {
+      const apiKey = process.env.EMAIL_SERVICE_API_KEY;
+      const fromEmail = process.env.EMAIL_FROM || 'noreply@eotyplatform.com';
+
+      if (!apiKey) {
+        throw new Error('EMAIL_SERVICE_API_KEY not configured');
+      }
+
+      // SendGrid API call
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(apiKey);
+
+      const msg = {
+        to: to,
+        from: fromEmail,
+        subject: subject,
+        html: html,
+        text: text || this.htmlToText(html),
+      };
+
+      const result = await sgMail.send(msg);
+      console.log('[EmailService] SendGrid email sent successfully:', result[0]?.headers?.['x-message-id']);
+      return { success: true, messageId: result[0]?.headers?.['x-message-id'] };
+
+    } catch (error) {
+      console.error('[EmailService] SendGrid API error:', error);
+      throw new Error(`SendGrid API error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Convert HTML to plain text (basic conversion)
+   */
+  htmlToText(html) {
+    return html
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  }
+
+  /**
+   * Test email service
+   */
+  async testEmail(to) {
+    const subject = 'EOTY Platform - Email Service Test';
+    const html = `
+      <h1>Email Service Test</h1>
+      <p>This is a test email to verify that the EOTY Platform email service is working correctly.</p>
+      <p>Sent at: ${new Date().toISOString()}</p>
+    `;
+
+    return this.sendEmail(to, subject, html);
   }
 }
 

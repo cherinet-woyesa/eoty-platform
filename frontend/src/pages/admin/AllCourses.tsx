@@ -265,43 +265,29 @@ const AllCourses: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
-                    <BookOpen className="h-6 w-6 text-[#27AE60]" />
-                  </div>
-                </div>
-                <h1 className="text-3xl font-bold text-stone-800">Course Management</h1>
-              </div>
-              <p className="text-stone-700 text-sm mt-2">
-                Manage all platform courses, content, and enrollments
-              </p>
-              <p className="text-stone-600 text-xs mt-1">
-                {stats.total} total courses • {stats.published} published • {stats.draft} drafts
-              </p>
-            </div>
-            <div className="mt-4 lg:mt-0 flex gap-2">
-              <button
-                onClick={fetchCourses}
-                disabled={loading}
-                className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <button
-                onClick={() => navigate('/teacher/courses/new')}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Course
-              </button>
-            </div>
+        {/* Compact Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-stone-600">
+              {stats.total} total courses • {stats.published} published • {stats.draft} drafts
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchCourses}
+              disabled={loading}
+              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate('/teacher/courses/new')}
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              New Course
+            </button>
           </div>
         </div>
 

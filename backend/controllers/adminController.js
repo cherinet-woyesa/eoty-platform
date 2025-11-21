@@ -875,10 +875,41 @@ const adminController = {
       if (action === 'approve') {
         newStatus = 'approved';
         actionType = 'content_approve';
-        
+
         // Move file to permanent location and process
-        // This would involve file processing logic
         await ContentUpload.updateStatus(uploadId, newStatus, userId);
+
+        // Move approved content to resources table for library access
+        try {
+          // Get the approved upload
+          const approvedUpload = await ContentUpload.findById(uploadId);
+
+          // Insert into resources table
+          await db('resources').insert({
+            title: approvedUpload.title,
+            description: approvedUpload.description,
+            author: approvedUpload.metadata?.author || 'Unknown',
+            category: approvedUpload.category || 'General',
+            file_name: approvedUpload.file_name,
+            file_type: approvedUpload.file_type,
+            file_path: approvedUpload.file_path,
+            file_size: approvedUpload.file_size,
+            file_url: `/uploads/resources/${approvedUpload.file_name}`,
+            language: approvedUpload.metadata?.language || 'english',
+            tags: approvedUpload.tags ? JSON.stringify(approvedUpload.tags) : JSON.stringify([]),
+            is_public: true,
+            chapter_id: approvedUpload.chapter_id,
+            published_at: new Date(),
+            published_date: new Date(),
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          console.log(`✅ Moved approved content "${approvedUpload.title}" to resources library`);
+        } catch (moveError) {
+          console.error('Failed to move approved content to resources:', moveError);
+          // Don't fail the approval if moving to resources fails
+        }
         
       } else if (action === 'reject') {
         newStatus = 'rejected';

@@ -190,69 +190,61 @@ const AnalyticsDashboard: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
-                <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
-                  <BarChart2 className="h-6 w-6 text-[#27AE60]" />
-                </div>
-              </div>
-              <h1 className="text-3xl font-bold text-stone-800">Analytics Dashboard</h1>
-            </div>
-            <p className="text-stone-700 text-sm mt-2">
-              Real-time insights and platform performance metrics
-            </p>
-          </div>
-          <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-            {/* FR5: Accuracy verification button (REQUIREMENT: 99% dashboard accuracy) */}
-            <button
-              onClick={handleVerifyAccuracy}
-              disabled={isVerifyingAccuracy}
-              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-blue-300 shadow-sm hover:shadow-md disabled:opacity-50"
-            >
-              {isVerifyingAccuracy ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2 text-blue-600" />
-                  Verify Accuracy
-                </>
-              )}
-            </button>
-            {/* FR5: Export button (REQUIREMENT: Full export of usage data) */}
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-50"
-            >
-              {isExporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#27AE60] mr-2"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2 text-[#27AE60]" />
-                  Export
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-sm font-medium rounded-lg transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 text-[#27AE60] ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
+      {/* Compact Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-stone-600">
+            Real-time insights and platform performance metrics
+          </span>
+        </div>
+        <div className="flex gap-2">
+          {/* FR5: Accuracy verification button (REQUIREMENT: 99% dashboard accuracy) */}
+          <button
+            onClick={handleVerifyAccuracy}
+            disabled={isVerifyingAccuracy}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-blue-300 shadow-sm hover:shadow-md disabled:opacity-50"
+          >
+            {isVerifyingAccuracy ? (
+              <>
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-600 mr-1.5"></div>
+                <span className="hidden sm:inline">Verifying...</span>
+                <span className="sm:hidden">Verify</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                <span className="hidden sm:inline">Verify Accuracy</span>
+                <span className="sm:hidden">Verify</span>
+              </>
+            )}
+          </button>
+          {/* FR5: Export button (REQUIREMENT: Full export of usage data) */}
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-[#27AE60] mr-1.5"></div>
+                <span className="hidden sm:inline">Exporting...</span>
+                <span className="sm:hidden">Export</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 mr-1.5 text-[#27AE60]" />
+                Export
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
       </div>
 

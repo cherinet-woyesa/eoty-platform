@@ -61,6 +61,11 @@ interface VideoRecorderProps {
   onUploadComplete?: (lessonId: string, videoUrl: string) => void;
   courseId?: string;
   lessonId?: string;
+  // UI customization props
+  liveHeight?: string; // e.g. '70vh' for live recording preview
+  playbackHeight?: string; // e.g. '55vh' for recorded playback preview
+  useAspectRatio?: boolean; // enforce 16:9 playback when true
+  pipSize?: string; // e.g. '28%' for picture-in-picture camera overlay
 }
 
 interface Course {
@@ -77,7 +82,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   onRecordingComplete, 
   onUploadComplete,
   courseId,
-  lessonId
+  lessonId,
+  liveHeight = '70vh',
+  playbackHeight = '55vh',
+  useAspectRatio = false,
+  pipSize = '28%'
 }) => {
   const isMobile = useIsMobile();
   
@@ -1409,12 +1418,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       if (recordedVideo) {
         // For recorded playback, show the full recorded frame (no extra zoom),
         // so it matches what was actually captured during recording.
+        // Recorded playback should be an intermediate size: larger than normal players
+        // but smaller than the live recording area so users can compare without crowding.
         return (
-          <div className="relative w-full h-full bg-black">
+          <div
+            className="relative w-full"
+            style={{ height: playbackHeight, backgroundColor: 'black', aspectRatio: useAspectRatio ? '16/9' : undefined }}
+          >
             <video
               ref={recordedVideoRef}
               src={recordedVideo}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain bg-transparent"
               controls
               controlsList="nodownload"
               preload="metadata"
@@ -1480,25 +1494,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           recordingSources.screen
         ) {
           return (
-            <div className="w-full h-full flex bg-black">
-              <div className="w-1/2 h-full overflow-hidden">
+            <div className="w-full flex bg-transparent" style={{ height: liveHeight }}>
+              <div className="w-1/2 h-full overflow-hidden bg-black/5">
                 <video
                   ref={screenVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-transparent"
                 />
               </div>
-              <div className="w-1/2 h-full relative overflow-hidden">
+              <div className="w-1/2 h-full relative overflow-hidden bg-black/5">
                 <video
                   ref={videoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-transparent"
                 />
-                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                <div className="absolute top-2 left-2 bg-black/40 text-white px-2 py-1 rounded text-xs">
                   Camera
                 </div>
               </div>
@@ -1508,7 +1522,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         }
 
         return (
-          <div className={`w-full h-full relative ${getLayoutClass()}`}>
+          <div className={`w-full relative ${getLayoutClass()}`} style={{ height: liveHeight }}>
             {/* Screen Share Preview - Show FIRST when available (priority) */}
             {/* When screen sharing is active, prioritize showing screen content */}
             {recordingSources.screen && (
@@ -1522,7 +1536,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   top: 0,
                   left: 0,
                   display: currentLayout === 'camera-only' ? 'none' : 'block',
-                  backgroundColor: '#000'
+                  backgroundColor: 'transparent'
                 }}
               >
                 <video
@@ -1530,7 +1544,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-contain rounded-lg bg-black"
+                  className="w-full h-full object-contain rounded-lg bg-transparent"
                   onLoadedMetadata={() => {
                     const video = screenVideoRef.current;
                     if (video) {
@@ -1574,18 +1588,23 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             {recordingSources.camera && (
               <div
                 className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}
-                style={{ zIndex: recordingSources.screen ? 5 : 10 }}
+                style={ currentLayout === 'picture-in-picture' && recordingSources.screen
+                  ? { position: 'absolute', width: pipSize, height: pipSize, bottom: '1rem', right: '1rem', zIndex: 30, borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.25)'}
+                  : { zIndex: recordingSources.screen ? 5 : 10 }
+                }
               >
                 <video
                   ref={videoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-contain rounded-lg bg-black"
+                  className={`w-full h-full ${currentLayout === 'picture-in-picture' ? 'object-cover' : 'object-contain'} rounded-lg bg-transparent`}
                 />
-                <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                  Camera
-                </div>
+                {currentLayout !== 'picture-in-picture' && (
+                  <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                    Camera
+                  </div>
+                )}
               </div>
             )}
             
@@ -1646,7 +1665,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       />
 
 
-      <div className="bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 overflow-hidden shadow-sm">
+      <div className="relative bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 overflow-hidden shadow-sm">
+        {import.meta.env.MODE !== 'production' && (
+          <div className="absolute top-4 right-4 z-40 text-xs bg-black/70 text-white px-2 py-1 rounded-lg">
+            <div className="leading-tight">live: {liveHeight}</div>
+            <div className="leading-tight">playback: {playbackHeight}</div>
+            <div className="leading-tight">pip: {pipSize}</div>
+          </div>
+        )}
       {/* Error Alert */}
       {errorMessage && (
         <div className="px-6 pt-4">
@@ -2044,7 +2070,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
       {/* Main Preview Area */}
-      <div className="relative bg-black aspect-video">
+      <div
+        className="relative"
+        style={{
+          height: liveHeight,
+          backgroundColor: 'black',
+          aspectRatio: useAspectRatio ? '16/9' : undefined
+        }}
+      >
         {/* Use our custom preview logic (handles side-by-side, PiP, etc.) so framing stays predictable */}
         {renderPreview()}
         

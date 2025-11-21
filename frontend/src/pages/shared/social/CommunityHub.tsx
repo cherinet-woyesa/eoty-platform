@@ -6,6 +6,7 @@ import {
   Edit3, Trash2, Plus, TrendingUp, Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { communityPostsApi } from '@/services/api/communityPosts';
 
 interface Post {
   id: string;
@@ -37,6 +38,9 @@ const CommunityHub: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'feed' | 'my-posts'>('feed');
   const [posts, setPosts] = useState<Post[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video' | 'audio' | 'article' | null>(null);
@@ -81,25 +85,35 @@ const CommunityHub: React.FC = () => {
   }, [user?.id]);
 
   const loadPosts = useCallback(() => {
-    // Load from localStorage (simulated)
-    const savedPosts = localStorage.getItem(`community_posts_${user?.id}`);
-    const savedMyPosts = localStorage.getItem(`my_posts_${user?.id}`);
-    
-    if (savedPosts) {
+    // Fetch from backend
+    let isMounted = true;
+    const fetch = async () => {
+      setLoadingPosts(true);
       try {
-        setPosts(JSON.parse(savedPosts));
-      } catch (e) {
-        console.warn('Failed to parse posts');
+        const resp = await communityPostsApi.fetchPosts();
+        if (!isMounted) return;
+        const serverPosts = resp?.data?.posts || [];
+        setPosts(serverPosts);
+        // derive myPosts from server posts
+        setMyPosts(serverPosts.filter((p: Post) => p.author_id === user?.id));
+      } catch (err) {
+        console.warn('Failed to load posts from server, falling back to localStorage', err);
+        // fallback to localStorage if server unreachable
+        const savedPosts = localStorage.getItem(`community_posts_${user?.id}`);
+        const savedMyPosts = localStorage.getItem(`my_posts_${user?.id}`);
+        if (savedPosts) {
+          try { setPosts(JSON.parse(savedPosts)); } catch (e) { console.warn('Failed to parse posts'); }
+        }
+        if (savedMyPosts) {
+          try { setMyPosts(JSON.parse(savedMyPosts)); } catch (e) { console.warn('Failed to parse my posts'); }
+        }
+      } finally {
+        if (isMounted) setLoadingPosts(false);
       }
-    }
-    
-    if (savedMyPosts) {
-      try {
-        setMyPosts(JSON.parse(savedMyPosts));
-      } catch (e) {
-        console.warn('Failed to parse my posts');
-      }
-    }
+    };
+
+    fetch();
+    return () => { isMounted = false; };
   }, [user?.id]);
 
   const handleMediaSelect = (type: 'image' | 'video' | 'audio' | 'article') => {
@@ -128,36 +142,44 @@ const CommunityHub: React.FC = () => {
   const handleCreatePost = useCallback(() => {
     if (!newPostContent.trim() && !mediaFile) return;
 
-    const newPost: Post = {
-      id: `post_${Date.now()}`,
-      author_id: user?.id || '',
-      author_name: `${user?.firstName} ${user?.lastName}`,
-      author_avatar: user?.profilePicture,
-      content: newPostContent,
-      media_type: selectedMediaType || undefined,
-      media_url: mediaPreview || undefined,
-      created_at: new Date().toISOString(),
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      liked_by_user: false
+    const create = async () => {
+      setSubmissionError(null);
+      try {
+        let mediaUrl: string | undefined = undefined;
+
+        if (mediaFile) {
+          setUploadProgress(0);
+          const uploadResp = await communityPostsApi.uploadMedia(mediaFile, (p) => setUploadProgress(Math.round(p)));
+          mediaUrl = uploadResp?.data?.url || uploadResp?.url;
+          setUploadProgress(null);
+        }
+
+        const resp = await communityPostsApi.createPost({
+          content: newPostContent,
+          mediaType: selectedMediaType || undefined,
+          mediaUrl
+        });
+
+        const created = resp?.data?.post;
+        if (created) {
+          setPosts(prev => [created, ...prev]);
+          if (created.author_id === user?.id) setMyPosts(prev => [created, ...prev]);
+        }
+
+        // Reset form
+        setNewPostContent('');
+        setSelectedMediaType(null);
+        setMediaFile(null);
+        setMediaPreview(null);
+        setShowCreatePost(false);
+      } catch (err: any) {
+        console.error('Failed to create post', err);
+        setSubmissionError(err?.response?.data?.message || err.message || 'Failed to create post');
+        setUploadProgress(null);
+      }
     };
 
-    const updatedPosts = [newPost, ...posts];
-    const updatedMyPosts = [newPost, ...myPosts];
-    
-    setPosts(updatedPosts);
-    setMyPosts(updatedMyPosts);
-    
-    localStorage.setItem(`community_posts_${user?.id}`, JSON.stringify(updatedPosts));
-    localStorage.setItem(`my_posts_${user?.id}`, JSON.stringify(updatedMyPosts));
-
-    // Reset form
-    setNewPostContent('');
-    setSelectedMediaType(null);
-    setMediaFile(null);
-    setMediaPreview(null);
-    setShowCreatePost(false);
+    create();
   }, [newPostContent, mediaFile, mediaPreview, selectedMediaType, posts, myPosts, user]);
 
   const handleLikePost = (postId: string) => {
@@ -620,6 +642,24 @@ const CommunityHub: React.FC = () => {
             </div>
 
             <div className="p-6 border-t border-gray-200 bg-gray-50">
+              {submissionError && (
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  {submissionError}
+                </div>
+              )}
+
+              {uploadProgress !== null && (
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Uploading media</span>
+                    <span>{Math.round(uploadProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="h-2 rounded-full bg-green-600" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={handleCreatePost}
                 disabled={!newPostContent.trim() && !mediaFile}

@@ -36,6 +36,7 @@ interface Submission {
   feedback: string | null;
   status: string;
   graded_at: string | null;
+  content?: string | null;
 }
 
 const AssignmentDetail: React.FC = () => {
@@ -290,6 +291,39 @@ const AssignmentDetail: React.FC = () => {
                               : 'Pending grade'}
                           </span>
                         </div>
+                        {/* Render submitted content (text + optional attachment) */}
+                        {s.content && (
+                          <div className="mt-2 text-sm text-stone-700">
+                            {(() => {
+                              try {
+                                const parsed = JSON.parse(s.content as string);
+                                const text = parsed?.text || null;
+                                const attachment = parsed?.attachment || null;
+                                return (
+                                  <div className="space-y-2">
+                                    {text && <div className="text-sm text-stone-700 whitespace-pre-line">{text}</div>}
+                                    {attachment && attachment.url && (
+                                      <div>
+                                        <a
+                                          href={attachment.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-2 text-sm text-[#27AE60] hover:underline"
+                                        >
+                                          <FileText className="h-4 w-4" />
+                                          <span>{attachment.filename || 'Attachment'}</span>
+                                        </a>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              } catch (e) {
+                                // Not JSON, render raw string
+                                return <div className="text-sm text-stone-700 whitespace-pre-line">{s.content}</div>;
+                              }
+                            })()}
+                          </div>
+                        )}
                       </div>
                       <div className="sm:w-72">
                         {isGrading ? (

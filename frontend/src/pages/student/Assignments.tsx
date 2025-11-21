@@ -31,6 +31,11 @@ const StudentAssignments: React.FC = () => {
     return { total, graded };
   }, [assignments]);
 
+  const [editingSubmissionFor, setEditingSubmissionFor] = useState<number | null>(null);
+  const [submissionText, setSubmissionText] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
+
   const formatDate = (iso?: string | null) => {
     if (!iso) return '—';
     const d = new Date(iso);
@@ -113,6 +118,65 @@ const StudentAssignments: React.FC = () => {
                     <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                       {a.submission_status === 'submitted' ? 'Submitted, awaiting grade' : 'Not submitted'}
                     </span>
+                  )}
+                  {/* Student submit controls */}
+                  {a.submission_status !== 'submitted' && a.submission_status !== 'graded' && (
+                    <div className="ml-3">
+                      {editingSubmissionFor === a.id ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={submissionText}
+                            onChange={(e) => setSubmissionText(e.target.value)}
+                            placeholder="Enter a link or short answer"
+                            className="px-3 py-1 border rounded text-sm"
+                          />
+                          <input
+                            type="file"
+                            onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+                            className="px-2 py-1 text-sm"
+                          />
+                          <button
+                            onClick={async () => {
+                              try {
+                                setSubmitting(true);
+                                setError(null);
+                                const payload: any = { content: submissionText };
+                                if (submissionFile) payload.file = submissionFile;
+                                const res = await assignmentsApi.submit(a.id, payload);
+                                // Update local assignment state
+                                setAssignments((prev) => prev.map((it) => (it.id === a.id ? { ...it, submission_status: 'submitted', submission_id: res.data.submission.id } : it)));
+                                setEditingSubmissionFor(null);
+                                setSubmissionText('');
+                                setSubmissionFile(null);
+                              } catch (err: any) {
+                                console.error('Failed to submit assignment:', err);
+                                setError(err?.response?.data?.message || err?.message || 'Failed to submit.');
+                              } finally {
+                                setSubmitting(false);
+                              }
+                            }}
+                            disabled={submitting}
+                            className="px-3 py-1 bg-emerald-600 text-white rounded text-sm"
+                          >
+                            Submit
+                          </button>
+                          <button
+                            onClick={() => { setEditingSubmissionFor(null); setSubmissionText(''); setSubmissionFile(null); }}
+                            className="px-2 py-1 bg-gray-100 rounded text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setEditingSubmissionFor(a.id); setSubmissionText(''); setSubmissionFile(null); setError(null); }}
+                          className="ml-3 px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                        >
+                          Submit
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

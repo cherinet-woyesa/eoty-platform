@@ -8,6 +8,8 @@
     "deploy:windows": "powershell -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
     "deploy:unix": "bash ./deploy-vercel.sh"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6"
+  }
 }
-

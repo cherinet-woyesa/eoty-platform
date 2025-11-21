@@ -119,13 +119,24 @@ const LoginForm: React.FC = () => {
       }, 500);
     } catch (err: any) {
       console.error('Login error:', err);
-      
+
       // Use error message utility to get user-friendly message
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
-      
-      // Auto-focus on email field for retry
-      if (emailRef.current) {
+
+      // Clear password field on authentication errors (but not network errors)
+      if (passwordRef.current && !errorMessage.includes('Network') && !errorMessage.includes('connection')) {
+        passwordRef.current.value = '';
+        formData.password = '';
+      }
+
+      // Auto-focus on appropriate field for retry
+      if (errorMessage.includes('email') && emailRef.current) {
+        emailRef.current.focus();
+      } else if (errorMessage.includes('password') && passwordRef.current) {
+        passwordRef.current.focus();
+      } else if (emailRef.current) {
+        // Default to email field
         emailRef.current.focus();
       }
     } finally {

@@ -1,7 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
+const emailService = require('../services/emailService');
 
 // NOTE: In production we might not have the newest lockout columns yet.
 // To keep login robust, we avoid hard dependencies on those columns.
@@ -211,9 +213,37 @@ const authController = {
         // Don't fail registration if onboarding initialization fails
       }
 
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(18).toString('base64url');
+      const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+      const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+      // Store email verification token
+      await db('email_verifications').insert({
+        user_id: userId,
+        email: email.toLowerCase(),
+        token_hash: verificationTokenHash,
+        expires_at: verificationExpiresAt,
+        verified: false,
+        used: false,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      // Send verification email
+      const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+
+      try {
+        await emailService.sendEmailVerificationEmail(email.toLowerCase(), verificationLink);
+        console.log(`Email verification sent to ${email.toLowerCase()}`);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Don't fail registration if email fails - user can request resend later
+      }
+
       const responseMessage = role === 'teacher' 
-        ? 'Teacher account created successfully! You now have access to creator tools. Additional verification options will be available in future updates.'
-        : 'Account created successfully';
+        ? 'Teacher account created successfully! Please check your email to verify your account. You now have access to creator tools.'
+        : 'Account created successfully! Please check your email to verify your account.';
 
       res.status(201).json({
         success: true,
@@ -1310,7 +1340,716 @@ const authController = {
         message: 'Internal server error during Facebook login'
       });
     }
-  }
+  },
+
+  // Forgot Password - Request password reset
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      // Validate required fields
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address is required'
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email address format'
+        });
+      }
+
+      // Check if user exists
+      const user = await db('users')
+        .where({ email: email.toLowerCase() })
+        .select('id', 'first_name', 'last_name', 'email', 'is_active')
+        .first();
+
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return res.json({
+          success: true,
+          message: 'If an account with this email exists, a password reset link has been sent.'
+        });
+      }
+
+      // Check if user is active
+      if (!user.is_active) {
+        return res.status(403).json({
+          success: false,
+          message: 'Account is deactivated. Please contact administrator.'
+        });
+      }
+
+      // Generate reset token (24 characters, URL-safe)
+      const resetToken = crypto.randomBytes(18).toString('base64url');
+      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      // Store reset token in database
+      await db('password_resets').insert({
+        user_id: user.id,
+        token_hash: resetTokenHash,
+        expires_at: expiresAt,
+        used: false,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      // Send email with reset link
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+      try {
+        await emailService.sendPasswordResetEmail(user.email, resetLink);
+        console.log(`Password reset email sent successfully to ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Continue with the process even if email fails - user can still use the token
+        // In production, you might want to store this for retry or alert admins
+      }
+
+      // Log password reset request for security
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'password_reset_request',
+        ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: true,
+        metadata: { email: user.email }
+      });
+
+      res.json({
+        success: true,
+        message: 'If an account with this email exists, a password reset link has been sent.'
+      });
+
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during password reset request'
+      });
+    }
+  },
+
+  // Verify Reset Token
+  async verifyResetToken(req, res) {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reset token is required'
+        });
+      }
+
+      // Hash the token to compare with stored hash
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find valid reset token
+      const resetRecord = await db('password_resets')
+        .where({
+          token_hash: tokenHash,
+          used: false
+        })
+        .where('expires_at', '>', new Date())
+        .first();
+
+      if (!resetRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Token is valid'
+      });
+
+    } catch (error) {
+      console.error('Verify reset token error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during token verification'
+      });
+    }
+  },
+
+  // Reset Password
+  async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+
+      // Validate required fields
+      if (!token || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token and new password are required'
+        });
+      }
+
+      // Validate password strength
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long'
+        });
+      }
+
+      if (!/(?=.*[a-z])(?=.*[A-Z])/.test(password)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must contain at least one uppercase and one lowercase letter'
+        });
+      }
+
+      if (!/(?=.*\d)/.test(password)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must contain at least one number'
+        });
+      }
+
+      if (!/(?=.*[^A-Za-z0-9])/.test(password)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must contain at least one special character'
+        });
+      }
+
+      if (/\s/.test(password)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password cannot contain spaces'
+        });
+      }
+
+      // Hash the token to find the reset record
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find valid reset token
+      const resetRecord = await db('password_resets')
+        .where({
+          token_hash: tokenHash,
+          used: false
+        })
+        .where('expires_at', '>', new Date())
+        .first();
+
+      if (!resetRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+
+      // Hash the new password
+      const saltRounds = authConfig.bcryptRounds;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Update user's password
+      await db('users')
+        .where({ id: resetRecord.user_id })
+        .update({
+          password_hash: passwordHash,
+          updated_at: new Date()
+        });
+
+      // Mark reset token as used
+      await db('password_resets')
+        .where({ id: resetRecord.id })
+        .update({
+          used: true,
+          updated_at: new Date()
+        });
+
+      // Log password reset
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        userId: resetRecord.user_id,
+        activityType: 'password_reset',
+        ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: true
+      });
+
+      res.json({
+        success: true,
+        message: 'Password has been reset successfully'
+      });
+
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during password reset'
+      });
+    }
+  },
+
+  // Verify Email
+  async verifyEmail(req, res) {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification token is required'
+        });
+      }
+
+      // Hash the token to compare with stored hash
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find valid email verification token
+      const verificationRecord = await db('email_verifications')
+        .where({
+          token_hash: tokenHash,
+          used: false
+        })
+        .where('expires_at', '>', new Date())
+        .first();
+
+      if (!verificationRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired verification token'
+        });
+      }
+
+      // Check if user exists and is active
+      const user = await db('users')
+        .where({ id: verificationRecord.user_id })
+        .select('id', 'email', 'is_active')
+        .first();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      if (!user.is_active) {
+        return res.status(403).json({
+          success: false,
+          message: 'Account is deactivated'
+        });
+      }
+
+      // Check if email is already verified
+      const existingVerification = await db('email_verifications')
+        .where({
+          user_id: user.id,
+          email: user.email,
+          verified: true
+        })
+        .first();
+
+      if (existingVerification) {
+        // Mark this token as used to prevent reuse
+        await db('email_verifications')
+          .where({ id: verificationRecord.id })
+          .update({
+            used: true,
+            updated_at: new Date()
+          });
+
+        return res.json({
+          success: true,
+          message: 'Email is already verified',
+          data: { email: user.email }
+        });
+      }
+
+      // Mark email as verified
+      await db('email_verifications')
+        .where({ id: verificationRecord.id })
+        .update({
+          verified: true,
+          verified_at: new Date(),
+          used: true,
+          updated_at: new Date()
+        });
+
+      // Log email verification
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'email_verified',
+        ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: true,
+        metadata: { email: user.email }
+      });
+
+      // Send welcome email
+      const userDetails = await db('users')
+        .where({ id: user.id })
+        .select('first_name')
+        .first();
+
+      try {
+        await emailService.sendWelcomeEmail(user.email, userDetails?.first_name || 'User');
+        console.log(`Welcome email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the verification if welcome email fails
+      }
+
+      res.json({
+        success: true,
+        message: 'Email verified successfully',
+        data: { email: user.email }
+      });
+
+    } catch (error) {
+      console.error('Email verification error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during email verification'
+      });
+    }
+  },
+
+  // Resend Verification Email
+  async resendVerificationEmail(req, res) {
+    try {
+      const { email } = req.body;
+
+      // Validate required fields
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address is required'
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid email address format'
+        });
+      }
+
+      // Find user
+      const user = await db('users')
+        .where({ email: email.toLowerCase() })
+        .select('id', 'first_name', 'last_name', 'email', 'is_active')
+        .first();
+
+      if (!user) {
+        // Don't reveal if user exists or not
+        return res.json({
+          success: true,
+          message: 'If an account with this email exists, a verification link has been sent.'
+        });
+      }
+
+      if (!user.is_active) {
+        return res.status(403).json({
+          success: false,
+          message: 'Account is deactivated. Please contact administrator.'
+        });
+      }
+
+      // Check if email is already verified
+      const existingVerification = await db('email_verifications')
+        .where({
+          user_id: user.id,
+          email: user.email,
+          verified: true
+        })
+        .first();
+
+      if (existingVerification) {
+        return res.json({
+          success: true,
+          message: 'Email is already verified.'
+        });
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(18).toString('base64url');
+      const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+      // Store verification token in database
+      await db('email_verifications').insert({
+        user_id: user.id,
+        email: user.email,
+        token_hash: verificationTokenHash,
+        expires_at: expiresAt,
+        verified: false,
+        used: false,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      // Send email with verification link
+      const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+
+      try {
+        await emailService.sendEmailVerificationEmail(user.email, verificationLink);
+        console.log(`Email verification sent successfully to ${user.email}`);
+      } catch (emailError) {
+        console.error('Failed to send email verification:', emailError);
+        // Continue with the process even if email fails - user can still use the token
+      }
+
+      // Log verification email request
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'verification_email_sent',
+        ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        userAgent: req.get('user-agent') || 'unknown',
+        success: true,
+        metadata: { email: user.email }
+      });
+
+      res.json({
+        success: true,
+        message: 'If an account with this email exists, a verification link has been sent.'
+      });
+
+    } catch (error) {
+      console.error('Resend verification email error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during verification email request'
+      });
+    }
+  },
+
+  // Internal function to handle Google login (extracted from googleLogin)
+  async processGoogleLogin(googleData) {
+    try {
+      const { googleId, email, firstName, lastName, profilePicture } = googleData;
+
+      // Check if user exists with this Google ID
+      let user = await db('users')
+        .where({ google_id: googleId })
+        .first();
+
+      // If user doesn't exist with Google ID, check if they exist with email
+      if (!user) {
+        user = await db('users')
+          .where({ email: email.toLowerCase() })
+          .first();
+
+        // If user exists with email but not Google ID, update their Google ID
+        if (user) {
+          await db('users')
+            .where({ id: user.id })
+            .update({ google_id: googleId, updated_at: new Date() });
+        }
+      }
+
+      let token;
+
+      // If user doesn't exist at all, create a new user
+      if (!user) {
+        // Get default chapter (first active chapter) for new users
+        const defaultChapter = await db('chapters')
+          .where({ is_active: true })
+          .orderBy('id', 'asc')
+          .first();
+
+        if (!defaultChapter) {
+          throw new Error('No active chapters found. Please contact administrator.');
+        }
+
+        const userData = {
+          first_name: firstName,
+          last_name: lastName,
+          email: email.toLowerCase(),
+          google_id: googleId,
+          profile_picture: profilePicture,
+          role: 'user',
+          chapter_id: defaultChapter.id,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        // Insert new user
+        const result = await db('users').insert(userData).returning('id');
+        const userId = result[0].id || result[0];
+
+        // Get the created user
+        user = await db('users')
+          .where({ id: userId })
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .first();
+      } else {
+        // Update last login and profile picture
+        await db('users')
+          .where({ id: user.id })
+          .update({
+            last_login_at: new Date(),
+            profile_picture: profilePicture || user.profile_picture,
+            updated_at: new Date()
+          });
+
+        // Refresh user data
+        user = await db('users')
+          .where({ id: user.id })
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .first();
+      }
+
+      // Log successful SSO login
+      const activityLogService = require('../services/activityLogService');
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'login',
+        ipAddress: 'unknown',
+        userAgent: 'Google OAuth',
+        success: true,
+        metadata: { loginMethod: 'google_oauth' }
+      });
+
+      // Generate JWT token
+      token = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          chapter: user.chapter_id
+        },
+        authConfig.jwtSecret,
+        { expiresIn: authConfig.jwtExpiresIn }
+      );
+
+      console.log('Google OAuth login successful for:', email);
+
+      return {
+        success: true,
+        message: 'Google login successful',
+        data: {
+          user: {
+            id: user.id,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            email: user.email,
+            role: user.role,
+            chapter: user.chapter_id,
+            isActive: user.is_active,
+            profilePicture: getProfilePictureUrl(user.profile_picture)
+          },
+          token
+        }
+      };
+
+    } catch (error) {
+      console.error('Google login internal error:', error);
+      throw error;
+    }
+  },
+
+  // Google OAuth callback - exchange authorization code for user data
+  async googleCallback(req, res) {
+    try {
+      const { code } = req.body;
+
+      if (!code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Authorization code is required'
+        });
+      }
+
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({
+          success: false,
+          message: 'Google OAuth not configured on server'
+        });
+      }
+
+      // Exchange authorization code for access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: 'http://localhost:3000/auth/google/callback',
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error('Token exchange failed:', tokenData);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to exchange authorization code'
+        });
+      }
+
+      const { access_token } = tokenData;
+
+      // Get user info from Google
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
+
+      const userData = await userResponse.json();
+
+      if (!userResponse.ok) {
+        console.error('User info fetch failed:', userData);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to get user information from Google'
+        });
+      }
+
+      // Prepare data for our login flow
+      const googleData = {
+        googleId: userData.id,
+        email: userData.email,
+        firstName: userData.given_name || userData.name?.split(' ')[0] || '',
+        lastName: userData.family_name || userData.name?.split(' ').slice(1).join(' ') || '',
+        profilePicture: userData.picture
+      };
+
+      // Process Google login
+      const result = await this.processGoogleLogin(googleData);
+
+      res.json(result);
+
+    } catch (error) {
+      console.error('Google callback error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during Google authentication'
+      });
+    }
+  },
+
 };
 
 module.exports = authController;

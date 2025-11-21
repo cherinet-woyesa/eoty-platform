@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { studyGroupsApi } from '@/services/api/studyGroups';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Users, Plus, Search, MessageCircle, Calendar, 
@@ -44,37 +45,18 @@ const StudyGroupsPage: React.FC = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
 
-  // Load study groups
+  // Load study groups (backend)
   const loadStudyGroups = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // For now, use localStorage to simulate study groups
-      // In a real implementation, this would come from the backend
-      const savedGroups = localStorage.getItem(`study_groups_${user?.id}`);
-      let allGroups: StudyGroup[] = [];
-      
-      if (savedGroups) {
-        try {
-          allGroups = JSON.parse(savedGroups);
-        } catch (e) {
-          console.warn('Failed to parse saved groups:', e);
-        }
-      }
-      
-      // Filter groups user is a member of
-      const userGroups = allGroups.filter(group =>
-        group.members.some(member => member.id === user?.id)
-      );
-      
-      // Filter public groups user is not a member of
-      const publicGroups = allGroups.filter(group =>
-        group.is_public && !group.members.some(member => member.id === user?.id)
-      );
-      
-      setMyGroups(userGroups);
+
+      const resp = await studyGroupsApi.list();
+      const publicGroups: StudyGroup[] = resp?.data?.publicGroups || [];
+      const userGroups: StudyGroup[] = resp?.data?.myGroups || [];
+
       setGroups(publicGroups);
+      setMyGroups(userGroups);
     } catch (err: any) {
       console.error('Failed to load study groups:', err);
       setError('Failed to load study groups. Please try again.');
@@ -88,80 +70,52 @@ const StudyGroupsPage: React.FC = () => {
   }, [loadStudyGroups]);
 
   // Create new study group
-  const handleCreateGroup = useCallback(() => {
+  const handleCreateGroup = useCallback(async () => {
     if (!newGroupName.trim() || !user?.id) return;
-    
-    const newGroup: StudyGroup = {
-      id: `group_${Date.now()}`,
-      name: newGroupName,
-      description: newGroupDescription,
-      member_count: 1,
-      max_members: 20,
-      is_public: true,
-      created_by: user.id,
-      created_by_name: `${user.firstName} ${user.lastName}`,
-      created_at: new Date().toISOString(),
-      members: [{
-        id: user.id,
-        name: `${user.firstName} ${user.lastName}`,
-        role: 'admin',
-        joined_at: new Date().toISOString()
-      }]
-    };
-    
-    const allGroups = [...myGroups, ...groups, newGroup];
-    localStorage.setItem(`study_groups_${user.id}`, JSON.stringify(allGroups));
-    
-    setNewGroupName('');
-    setNewGroupDescription('');
-    setShowCreateModal(false);
-    loadStudyGroups();
-  }, [newGroupName, newGroupDescription, user, myGroups, groups, loadStudyGroups]);
+    try {
+      setLoading(true);
+      await studyGroupsApi.create({ name: newGroupName, description: newGroupDescription, is_public: true, max_members: 50 });
+      setNewGroupName('');
+      setNewGroupDescription('');
+      setShowCreateModal(false);
+      await loadStudyGroups();
+    } catch (err) {
+      console.error('Failed to create group:', err);
+      setError('Failed to create group');
+    } finally {
+      setLoading(false);
+    }
+  }, [newGroupName, newGroupDescription, user, loadStudyGroups]);
 
   // Join group
-  const handleJoinGroup = useCallback((group: StudyGroup) => {
+  const handleJoinGroup = useCallback(async (group: StudyGroup) => {
     if (!user?.id) return;
-    
-    const updatedGroup = {
-      ...group,
-      member_count: group.member_count + 1,
-      members: [
-        ...group.members,
-        {
-          id: user.id,
-          name: `${user.firstName} ${user.lastName}`,
-          role: 'member',
-          joined_at: new Date().toISOString()
-        }
-      ]
-    };
-    
-    const allGroups = [...myGroups, ...groups].map(g =>
-      g.id === group.id ? updatedGroup : g
-    );
-    
-    localStorage.setItem(`study_groups_${user.id}`, JSON.stringify(allGroups));
-    loadStudyGroups();
-  }, [user, myGroups, groups, loadStudyGroups]);
+    try {
+      setLoading(true);
+      await studyGroupsApi.join(Number(group.id));
+      await loadStudyGroups();
+    } catch (err) {
+      console.error('Failed to join group:', err);
+      setError('Failed to join group');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, loadStudyGroups]);
 
   // Leave group
-  const handleLeaveGroup = useCallback((groupId: string) => {
+  const handleLeaveGroup = useCallback(async (groupId: string) => {
     if (!user?.id) return;
-    
-    const allGroups = [...myGroups, ...groups].map(group => {
-      if (group.id === groupId) {
-        return {
-          ...group,
-          member_count: Math.max(0, group.member_count - 1),
-          members: group.members.filter(m => m.id !== user.id)
-        };
-      }
-      return group;
-    });
-    
-    localStorage.setItem(`study_groups_${user.id}`, JSON.stringify(allGroups));
-    loadStudyGroups();
-  }, [user?.id, myGroups, groups, loadStudyGroups]);
+    try {
+      setLoading(true);
+      await studyGroupsApi.leave(Number(groupId));
+      await loadStudyGroups();
+    } catch (err) {
+      console.error('Failed to leave group:', err);
+      setError('Failed to leave group');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, loadStudyGroups]);
 
   // Filtered groups
   const filteredMyGroups = useMemo(() => {

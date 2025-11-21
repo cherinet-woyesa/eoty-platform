@@ -8,51 +8,42 @@ const AdminUsersPage: React.FC = () => {
 
   return (
     <div className="w-full h-full">
-      <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <Users className="h-8 w-8 text-[#E74C3C]" />
-            Users & Access Management
-          </h1>
-          <p className="text-gray-600">Manage users, chapters, and permissions</p>
-        </div>
-
+      <div className="w-full space-y-4 p-3 sm:p-4 lg:p-6">
         {/* Tabs */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
           <nav className="flex border-b border-gray-200 flex-shrink-0">
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'users'
                   ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              <Users className="h-5 w-5" />
-              <span>User Management</span>
+              <Users className="h-4 w-4" />
+              <span className="text-sm">User Management</span>
             </button>
             <button
               onClick={() => setActiveTab('chapters')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'chapters'
                   ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              <ChaptersIcon className="h-5 w-5" />
-              <span>Chapters</span>
+              <ChaptersIcon className="h-4 w-4" />
+              <span className="text-sm">Chapters</span>
             </button>
             <button
               onClick={() => setActiveTab('roles')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'roles'
                   ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              <Shield className="h-5 w-5" />
-              <span>Roles & Permissions</span>
+              <Shield className="h-4 w-4" />
+              <span className="text-sm">Roles & Permissions</span>
             </button>
           </nav>
 

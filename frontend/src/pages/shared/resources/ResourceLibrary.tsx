@@ -21,7 +21,11 @@ const EmptyState = React.memo(() => (
   </div>
 ));
 
-const ResourceLibrary: React.FC = () => {
+interface ResourceLibraryProps {
+  hideHeader?: boolean;
+}
+
+const ResourceLibrary: React.FC<ResourceLibraryProps> = ({ hideHeader = false }) => {
   const { user } = useAuth();
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const [resources, setResources] = useState<Resource[]>([]);
@@ -48,11 +52,8 @@ const ResourceLibrary: React.FC = () => {
   const loadResources = useCallback(async () => {
     try {
       setLoading(true);
-      // Use enhanced search if filters are applied, otherwise use regular getResources
-      const hasFilters = filters.search || filters.type || filters.topic || filters.author || filters.dateFrom || filters.dateTo || filters.tags?.length || filters.category || filters.language;
-      const response = hasFilters
-        ? await resourcesApi.searchResources(filters)
-        : await resourcesApi.getResources(filters);
+      // Always use search API for resource library (FR3 requirement)
+      const response = await resourcesApi.searchResources(filters);
       if (response.success) {
         console.log('Loaded resources:', response.data.resources?.length || 0, 'items');
         setResources(response.data.resources || []);
@@ -268,29 +269,31 @@ const ResourceLibrary: React.FC = () => {
   )), [filterOptions.authors]);
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-stone-800">Resource Library</h1>
+    <div className={`w-full ${hideHeader ? '' : 'space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen'}`}>
+      {/* Header - Only show if not hidden */}
+      {!hideHeader && (
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-3xl font-bold text-stone-800">Resource Library</h1>
+              </div>
+              <p className="text-stone-600 font-medium">
+                {isTeacher ? 'Upload and manage faith-based resources for your students' : 'Search and explore faith-based resources'}
+              </p>
             </div>
-            <p className="text-stone-600 font-medium">
-              {isTeacher ? 'Upload and manage faith-based resources for your students' : 'Search and explore faith-based resources'}
-            </p>
+            {isTeacher && (
+              <Link
+                to="/teacher/resources/upload"
+                className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Resource
+              </Link>
+            )}
           </div>
-          {isTeacher && (
-            <Link
-              to="/teacher/resources/upload"
-              className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Resource
-            </Link>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Enhanced Search and Filters */}
       <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-md">

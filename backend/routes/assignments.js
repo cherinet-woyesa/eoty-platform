@@ -3,6 +3,7 @@ const router = express.Router();
 const assignmentsController = require('../controllers/assignmentsController');
 const { authenticateToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
+const { upload, handleUploadError } = require('../middleware/validation');
 
 // All assignment routes require authentication
 router.use(authenticateToken);
@@ -31,6 +32,12 @@ router.post(
 
 // Student: list own assignments
 router.get('/student/list', assignmentsController.listStudentAssignments);
+
+// Student: submit assignment (allow file upload)
+router.post('/:assignmentId/submit', upload.single('attachment'), assignmentsController.submitAssignment, handleUploadError);
+
+// Student: presign attachment for direct S3 upload
+router.post('/:assignmentId/presign-attachment', assignmentsController.presignAttachment);
 
 module.exports = router;
 

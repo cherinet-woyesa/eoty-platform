@@ -60,7 +60,10 @@ apiClient.interceptors.request.use(
     // Log request in development
     logger.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
       baseURL: config.baseURL,
-      headers: config.headers
+      headers: {
+        ...config.headers,
+        Authorization: config.headers.Authorization ? '[TOKEN PRESENT]' : '[NO TOKEN]'
+      }
     });
     
     return config;

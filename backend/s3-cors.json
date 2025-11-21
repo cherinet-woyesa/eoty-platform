@@ -1,0 +1,26 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "https://eoty-platform.vercel.app"
+      ],
+      "AllowedMethods": [
+        "GET",
+        "PUT",
+        "POST",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "ETag",
+        "x-amz-meta-*"
+      ],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}

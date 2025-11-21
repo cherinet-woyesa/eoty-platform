@@ -32,6 +32,11 @@ interface VideoRecorderProps {
   onUploadComplete?: (lessonId: string, videoUrl: string) => void;
   courseId?: string;
   lessonId?: string;
+  // UI customization
+  liveHeight?: string;
+  playbackHeight?: string;
+  useAspectRatio?: boolean;
+  pipSize?: string;
 }
 
 interface Course {
@@ -301,7 +306,11 @@ const repairWebMHeader = async (blob: Blob): Promise<Blob> => {
 const VideoRecorder: FC<VideoRecorderProps> = ({ 
   onRecordingComplete, 
   onUploadComplete,
-  courseId
+  courseId,
+  liveHeight = '70vh',
+  playbackHeight = '55vh',
+  useAspectRatio = false,
+  pipSize = '28%'
 }) => {
   // Enhanced video recorder hook with production features
   const {
@@ -1255,7 +1264,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (activeTab === 'record') {
       if (recordedVideo) {
         return (
-          <div className="relative w-full h-full bg-black">
+          <div
+            className="relative w-full"
+            style={{ height: playbackHeight, backgroundColor: 'black', aspectRatio: useAspectRatio ? '16/9' : undefined }}
+          >
             <video
               ref={recordedVideoRef}
               src={recordedVideo}
@@ -1279,7 +1291,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         );
       } else {
         return (
-          <div className={`w-full h-full relative ${getLayoutClass()}`}>
+          <div className={`w-full relative ${getLayoutClass()}`} style={{ height: liveHeight }}>
             {/* Camera Preview */}
             {recordingSources.camera && (
               <div className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}>
@@ -1371,7 +1383,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="relative flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
+      {import.meta.env.MODE !== 'production' && (
+        <div className="absolute top-4 right-4 z-40 text-xs bg-black/70 text-white px-2 py-1 rounded-lg">
+          <div className="leading-tight">live: {liveHeight}</div>
+          <div className="leading-tight">playback: {playbackHeight}</div>
+          <div className="leading-tight">pip: {pipSize}</div>
+        </div>
+      )}
       {/* Tab Navigation */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-full max-w-md mx-auto">
@@ -1581,7 +1600,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       )}
 
       {/* Main Preview Area */}
-      <div className="relative bg-black aspect-video">
+      <div className="relative" style={{ height: liveHeight, backgroundColor: 'black' }}>
         {/* Show compositor preview if enabled and compositing (Task 7.1) */}
         {showCompositorPreview && isCompositing && compositorInstance ? (
           <CompositorPreview

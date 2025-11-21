@@ -12,12 +12,13 @@ import { errorMessages } from '@/utils/errorMessages';
 // Password strength calculation
 const calculatePasswordStrength = (password: string): number => {
   let strength = 0;
-  if (password.length >= 6) strength += 1;
   if (password.length >= 8) strength += 1;
+  if (password.length >= 12) strength += 1;
   if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 1;
   if (/[0-9]/.test(password)) strength += 1;
   if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-  return Math.min(strength, 4); // Cap at 4 (0-4 scale)
+  if (!/\s/.test(password)) strength += 1;
+  return Math.min(strength, 5); // Cap at 5 (0-5 scale)
 };
 
 // Password strength criteria
@@ -27,10 +28,12 @@ interface PasswordCriteria {
 }
 
 const passwordCriteria: PasswordCriteria[] = [
-  { label: 'At least 6 characters', test: (p) => p.length >= 6 },
+  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
   { label: 'Contains uppercase letter', test: (p) => /[A-Z]/.test(p) },
+  { label: 'Contains lowercase letter', test: (p) => /[a-z]/.test(p) },
   { label: 'Contains number', test: (p) => /[0-9]/.test(p) },
   { label: 'Contains special character', test: (p) => /[^A-Za-z0-9]/.test(p) },
+  { label: 'No spaces allowed', test: (p) => !/\s/.test(p) },
 ];
 
 const RegisterForm: React.FC = () => {
@@ -110,10 +113,22 @@ const RegisterForm: React.FC = () => {
       case 'email':
         if (!value.trim()) return 'Email address is required';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        // Check for common email typos
+        if (value.includes('gmail.com') && value.includes('@')) {
+          const localPart = value.split('@')[0];
+          if (localPart.includes('..') || localPart.startsWith('.') || localPart.endsWith('.')) {
+            return 'Please check your email address format';
+          }
+        }
         return '';
       case 'password':
         if (!value) return 'Password is required';
-        if (value.length < 6) return 'Password must be at least 6 characters long';
+        if (value.length < 8) return 'Password must be at least 8 characters long';
+        if (!/(?=.*[a-z])(?=.*[A-Z])/.test(value)) return 'Password must contain at least one uppercase and one lowercase letter';
+        if (!/(?=.*\d)/.test(value)) return 'Password must contain at least one number';
+        if (!/(?=.*[^A-Za-z0-9])/.test(value)) return 'Password must contain at least one special character';
+        if (/\s/.test(value)) return 'Password cannot contain spaces';
+        if (value.toLowerCase().includes('password')) return 'Password cannot contain the word "password"';
         return '';
       case 'confirmPassword':
         if (!value) return 'Please confirm your password';
@@ -203,16 +218,18 @@ const RegisterForm: React.FC = () => {
 
       await register(registerData);
       
-      // Show success message
-      setSuccessMessage('Account created successfully! Redirecting...');
-      
+      // Show success message with email verification instruction
+      setSuccessMessage(
+        `Account created successfully! Please check your email (${formData.email}) and click the verification link to activate your account.`
+      );
+
       // Store flag to show profile completion notification after redirect
       localStorage.setItem('show_profile_completion', 'true');
-      
-      // Redirect after 2 seconds (longer for teacher applications to read message)
+
+      // Redirect after 5 seconds (give time to read the message)
       setTimeout(() => {
         navigate('/dashboard');
-      }, formData.role === 'teacher' ? 2000 : 1000);
+      }, 5000);
     } catch (err: any) {
       console.error('Registration error:', err);
       
@@ -275,15 +292,17 @@ const RegisterForm: React.FC = () => {
     switch (passwordStrength) {
       case 0:
       case 1:
-        return { label: 'Weak', color: 'bg-red-500', textColor: 'text-red-600' };
+        return { label: 'Very Weak', color: 'bg-red-500', textColor: 'text-red-600' };
       case 2:
-        return { label: 'Fair', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
+        return { label: 'Weak', color: 'bg-red-400', textColor: 'text-red-600' };
       case 3:
-        return { label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-600' };
+        return { label: 'Fair', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
       case 4:
+        return { label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-600' };
+      case 5:
         return { label: 'Strong', color: 'bg-green-500', textColor: 'text-green-600' };
       default:
-        return { label: 'Weak', color: 'bg-gray-300', textColor: 'text-gray-600' };
+        return { label: 'Very Weak', color: 'bg-gray-300', textColor: 'text-gray-600' };
     }
   }, [passwordStrength]);
 
@@ -577,17 +596,17 @@ const RegisterForm: React.FC = () => {
                   {strengthInfo.label}
                 </span>
               </div>
-              <div className="flex gap-1" role="progressbar" aria-valuenow={passwordStrength} aria-valuemin={0} aria-valuemax={4} aria-label={`Password strength: ${strengthInfo.label}`}>
-                {[1, 2, 3, 4].map((level) => (
-                  <div
-                    key={level}
-                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                      level <= passwordStrength ? strengthInfo.color : 'bg-gray-200'
-                    }`}
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
+                  <div className="flex gap-1" role="progressbar" aria-valuenow={passwordStrength} aria-valuemin={0} aria-valuemax={5} aria-label={`Password strength: ${strengthInfo.label}`}>
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                          level <= passwordStrength ? strengthInfo.color : 'bg-gray-200'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    ))}
+                  </div>
             </div>
             
             {/* Criteria Checklist */}

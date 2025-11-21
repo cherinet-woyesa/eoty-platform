@@ -114,45 +114,34 @@ const ModerationTools: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      {/* Header with view toggle */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
-                <AlertTriangle className="h-6 w-6 text-[#27AE60]" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-stone-800">Moderation</h1>
-              <p className="text-stone-700 text-sm mt-1">
-                Guard both community content and AI‑generated answers.
-              </p>
-            </div>
-          </div>
-          <div className="inline-flex items-center bg-white/80 rounded-full border border-stone-200/70 p-1">
-            <button
-              onClick={() => setViewMode('content')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                viewMode === 'content'
-                  ? 'bg-[#27AE60]/90 text-white shadow-sm'
-                  : 'text-stone-700 hover:bg-stone-100'
-              }`}
-            >
-              User Content
-            </button>
-            <button
-              onClick={() => setViewMode('ai')}
-              className={`ml-1 px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                viewMode === 'ai'
-                  ? 'bg-[#16A085]/90 text-white shadow-sm'
-                  : 'text-stone-700 hover:bg-stone-100'
-              }`}
-            >
-              AI (Faith) Moderation
-            </button>
-          </div>
+      {/* Compact Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-stone-600">
+            Guard both community content and AI‑generated answers
+          </span>
+        </div>
+        <div className="inline-flex items-center bg-white/80 rounded-full border border-stone-200/70 p-1">
+          <button
+            onClick={() => setViewMode('content')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${
+              viewMode === 'content'
+                ? 'bg-[#27AE60]/90 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-100'
+            }`}
+          >
+            User Content
+          </button>
+          <button
+            onClick={() => setViewMode('ai')}
+            className={`ml-1 px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${
+              viewMode === 'ai'
+                ? 'bg-[#16A085]/90 text-white shadow-sm'
+                : 'text-stone-700 hover:bg-stone-100'
+            }`}
+          >
+            AI (Faith) Moderation
+          </button>
         </div>
       </div>
 

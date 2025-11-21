@@ -24,6 +24,7 @@ const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
 const analyticsRoutes = require('./routes/analytics');
 const systemConfigRoutes = require('./routes/systemConfig');
+const studyGroupsRoutes = require('./routes/studyGroups');
 const assignmentsRoutes = require('./routes/assignments');
 const subtitleRoutes = require('./routes/subtitles');
 const accessLogRoutes = require('./routes/accessLogs');
@@ -260,6 +261,12 @@ app.use('/api/privacy', require('./routes/privacy'));
 
 // Social features routes (REQUIREMENT: FR4)
 app.use('/api/social', require('./routes/socialFeatures'));
+
+// Community posts and media
+app.use('/api/community', require('./routes/community'));
+
+// Study groups
+app.use('/api/study-groups', studyGroupsRoutes);
 
 // Admin routes
 app.use('/api/admin', adminRoutes);

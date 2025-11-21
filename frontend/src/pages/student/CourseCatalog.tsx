@@ -21,6 +21,7 @@ interface CatalogCourse {
   is_enrolled: boolean;
   is_published: boolean;
   created_by_name: string;
+  created_by?: number | string;
 }
 
 const CourseCatalog: React.FC = () => {
@@ -169,35 +170,58 @@ const CourseCatalog: React.FC = () => {
 
         {/* Compact Action Buttons */}
         <div className="flex space-x-1.5">
-          <Link
-            to={`/student/courses/${course.id}`}
-            className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
-          >
-            View
-          </Link>
-
-          {!course.is_enrolled ? (
-            <button
-              onClick={() => handleEnroll(course.id)}
-              disabled={enrolling === course.id}
-              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
-            >
-              {enrolling === course.id ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
-                  Enrolling...
-                </>
-              ) : (
-                'Enroll'
+          {/* For teachers, show preview/manage actions. For students, show view/enroll/continue. */}
+          {user?.role === 'teacher' ? (
+            <>
+              <Link
+                to={`/teacher/courses/${course.id}`}
+                className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
+              >
+                Preview
+              </Link>
+              {/* Only show Manage if the current teacher is the course owner */}
+              {String(course.created_by) === String(user?.id) && (
+                <Link
+                  to={`/teacher/courses/${course.id}/edit`}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#2980B9] to-[#00A3FF] hover:from-[#2980B9]/90 hover:to-[#00A3FF]/90 transition-all shadow-sm hover:shadow-md"
+                >
+                  Manage
+                </Link>
               )}
-            </button>
+            </>
           ) : (
-            <Link
-              to={`/student/courses/${course.id}`}
-              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
-            >
-              Continue
-            </Link>
+            <>
+              <Link
+                to={`/student/courses/${course.id}`}
+                className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
+              >
+                View
+              </Link>
+
+              {!course.is_enrolled ? (
+                <button
+                  onClick={() => handleEnroll(course.id)}
+                  disabled={enrolling === course.id}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                >
+                  {enrolling === course.id ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
+                      Enrolling...
+                    </>
+                  ) : (
+                    'Enroll'
+                  )}
+                </button>
+              ) : (
+                <Link
+                  to={`/student/courses/${course.id}`}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+                >
+                  Continue
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>

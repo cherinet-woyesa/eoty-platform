@@ -478,6 +478,37 @@ class VideoAnalyticsService {
           };
         });
 
+      // Fallback: if no platform/mux analytics available, try computing basic metrics
+      // from `user_lesson_progress` so dev/local environments still show useful data.
+      let fallbackTopLessons = topPerformingLessons;
+      if ((Array.isArray(topPerformingLessons) && topPerformingLessons.length === 0)) {
+        try {
+          const progressRows = await db('user_lesson_progress as ulp')
+            .join('lessons as l', 'ulp.lesson_id', 'l.id')
+            .join('courses as c', 'l.course_id', 'c.id')
+            .whereIn('l.course_id', courseIds)
+            .where('ulp.progress', '>', 0)
+            .select('l.id as lesson_id', 'l.title as lesson_title', 'c.title as course_title')
+            .count('ulp.user_id as views')
+            .groupBy('l.id', 'l.title', 'c.title')
+            .orderBy('views', 'desc')
+            .limit(limit);
+
+          if (progressRows && progressRows.length > 0) {
+            fallbackTopLessons = progressRows.map(r => ({
+              lessonId: r.lesson_id,
+              lessonTitle: r.lesson_title,
+              courseTitle: r.course_title,
+              views: parseInt(r.views) || 0,
+              completionRate: 0,
+              watchTime: 0
+            }));
+          }
+        } catch (err) {
+          console.warn('Fallback progress-based top lessons failed:', err.message);
+        }
+      }
+
       // Get recent activity (last 7 days)
       let recentActivity = [];
       
@@ -516,7 +547,7 @@ class VideoAnalyticsService {
             ? summary.totalCompletionRate / summary.lessonsWithViews
             : 0
         },
-        topPerformingLessons,
+        topPerformingLessons: fallbackTopLessons,
         recentActivity: recentActivity.map(a => ({
           date: a.date,
           views: parseInt(a.views),

@@ -343,6 +343,16 @@ export const adminApi = {
     return response.data;
   },
 
+  uploadLandingVideo: async (formData: FormData) => {
+    const response = await apiClient.post('/landing/upload-video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes for large video uploads
+    });
+    return response.data;
+  },
+
   getLandingContent: async () => {
     const response = await apiClient.get('/landing/content');
     return response.data;
