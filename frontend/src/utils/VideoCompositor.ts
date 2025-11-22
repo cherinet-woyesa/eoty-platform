@@ -1315,6 +1315,28 @@ export class VideoCompositor {
   getAvailableLayouts(): LayoutType[] {
     return getAvailableLayoutTypes();
   }
+
+  /**
+   * Return diagnostic information for a specific source
+   * Includes the video element's intrinsic dimensions, the active layout, and an inferred `fit` mode.
+   */
+  getSourceInfo(sourceId: string): { videoWidth: number; videoHeight: number; layout?: SourceLayout | null; fit?: 'contain' | 'cover' } | null {
+    const sourceData = this.videoElements.get(sourceId);
+    if (!sourceData) return null;
+
+    const video = sourceData.element;
+    const layout = sourceData.config?.layout || null;
+
+    // Infer fit: screen => cover (fill), camera => contain (fit)
+    const fit: 'contain' | 'cover' = sourceId === 'screen' ? 'cover' : 'contain';
+
+    return {
+      videoWidth: video.videoWidth || 0,
+      videoHeight: video.videoHeight || 0,
+      layout,
+      fit
+    };
+  }
   
   /**
    * Apply a layout by type

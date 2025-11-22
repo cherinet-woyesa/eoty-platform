@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const upload = require('../middleware/upload');
+const { contentUpload, handleGCSUpload } = require('../middleware/gcs-upload');
 const { authenticateToken } = require('../middleware/auth');
 const { requireAdmin, requirePermission } = require('../middleware/rbac');
 
@@ -18,7 +18,7 @@ router.put('/users/status', requirePermission('user:manage'), adminController.up
 
 // Content Upload Management
 router.get('/uploads', requirePermission('content:view'), adminController.getUploadQueue);
-router.post('/uploads', requirePermission('content:create'), upload.contentUpload.single('file'), adminController.uploadContent);
+router.post('/uploads', requirePermission('content:create'), contentUpload.single('file'), handleGCSUpload('edu-platform-videos'), adminController.uploadContent);
 router.post('/uploads/:uploadId/review', requirePermission('content:moderate'), adminController.approveContent);
 // FR5: Upload Management Enhancements
 router.get('/uploads/:uploadId/preview', requirePermission('content:view'), adminController.getUploadPreview);
@@ -27,6 +27,10 @@ router.post('/uploads/:uploadId/retry', requirePermission('content:create'), adm
 // Content Moderation
 router.get('/moderation/flagged', requirePermission('content:moderate'), adminController.getFlaggedContent);
 router.post('/moderation/flagged/:flagId/review', requirePermission('content:moderate'), adminController.reviewFlaggedContent);
+
+// Forum Moderation
+router.get('/forum-reports', requirePermission('content:moderate'), adminController.getForumReports);
+router.post('/forum-reports/:reportId/moderate', requirePermission('content:moderate'), adminController.moderateForumReport);
 // FR5: Moderation Tools Enhancements
 router.post('/users/:userId/ban', requirePermission('user:manage'), adminController.banUser);
 router.post('/users/:userId/unban', requirePermission('user:manage'), adminController.unbanUser);
@@ -72,5 +76,11 @@ router.get('/teacher-applications', requirePermission('user:view'), adminControl
 router.get('/teacher-applications/:applicationId', requirePermission('user:view'), adminController.getTeacherApplication);
 router.post('/teacher-applications/:applicationId/approve', requirePermission('user:manage'), adminController.approveTeacherApplication);
 router.post('/teacher-applications/:applicationId/reject', requirePermission('user:manage'), adminController.rejectTeacherApplication);
+
+// Roles & Permissions Management
+router.get('/permissions', requirePermission('system:admin'), adminController.getPermissions);
+router.get('/role-permissions', requirePermission('system:admin'), adminController.getRolePermissions);
+router.post('/role-permissions', requirePermission('system:admin'), adminController.addRolePermission);
+router.delete('/role-permissions', requirePermission('system:admin'), adminController.removeRolePermission);
 
 module.exports = router;

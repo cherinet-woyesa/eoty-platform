@@ -328,6 +328,27 @@ export const adminApi = {
     return response.data;
   },
 
+  // Roles & Permissions Management
+  getPermissions: async (): Promise<{ success: boolean; data: { permissions: any[] } }> => {
+    const response = await apiClient.get('/admin/permissions');
+    return response.data;
+  },
+
+  getRolePermissions: async (): Promise<{ success: boolean; data: any[] }> => {
+    const response = await apiClient.get('/admin/role-permissions');
+    return response.data;
+  },
+
+  addRolePermission: async (role: string, permissionId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post('/admin/role-permissions', { role, permissionId });
+    return response.data;
+  },
+
+  removeRolePermission: async (role: string, permissionId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete('/admin/role-permissions', { data: { role, permissionId } });
+    return response.data;
+  },
+
   // FR5: Audit & Anomaly Detection
   getAnomalies: async (severity?: string, limit: number = 50): Promise<{ success: boolean; data: { anomalies: any[] } }> => {
     const params = new URLSearchParams();

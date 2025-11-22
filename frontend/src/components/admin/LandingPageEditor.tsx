@@ -167,7 +167,14 @@ const LandingPageEditor: React.FC = () => {
 
       if (response.success) {
         updateHero('videoUrl', response.data.videoUrl);
-        showMessage('success', 'Video uploaded successfully!');
+        // Automatically save the hero section after successful video upload
+        try {
+          await saveSection('hero', { ...content.hero!, videoUrl: response.data.videoUrl });
+          showMessage('success', 'Video uploaded and saved successfully!');
+        } catch (saveError: any) {
+          console.error('Failed to save video URL:', saveError);
+          showMessage('error', 'Video uploaded but failed to save. Please click "Save Changes" manually.');
+        }
       } else {
         showMessage('error', response.message || 'Failed to upload video');
       }

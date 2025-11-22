@@ -1,10 +1,10 @@
-// backend/controllers/aiController.js - COMPLETE UPDATED VERSION
-const aiService = require('../services/aiService');
+// backend/controllers/aiController.js - GOOGLE CLOUD VERTEX AI VERSION
+const aiService = require('../services/aiService-gcp');
 const performanceService = require('../services/performanceService');
 const analyticsService = require('../services/analyticsService');
 const languageAlertService = require('../services/languageAlertService');
 const contextService = require('../services/contextService');
-const db = require('../config/database');
+const db = require('../config/database-gcp');
 
 const aiController = {
   // ENHANCED: Ask question with comprehensive monitoring and analytics

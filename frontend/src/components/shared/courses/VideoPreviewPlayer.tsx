@@ -210,10 +210,10 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
       </div>
 
       {/* Video Player */}
-      <div className="relative bg-black">
+      <div className="relative bg-black rounded-lg overflow-hidden">
         <video
           ref={videoRef}
-          className="w-full aspect-video"
+          className="w-full h-full object-cover"
           playsInline
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

@@ -37,8 +37,20 @@ const Leaderboards: React.FC = () => {
 
   // Memoized leaderboard types
   const leaderboardTypes = useMemo(() => [
-    { id: 'chapter' as const, name: 'Chapter', icon: Users, description: 'Rank within your chapter' },
-    { id: 'global' as const, name: 'Global', icon: Globe, description: 'Rank across all chapters' },
+    {
+      id: 'chapter' as const,
+      name: 'Chapter Leaders',
+      icon: Users,
+      description: 'Rank within your chapter',
+      color: 'text-[#27AE60]'
+    },
+    {
+      id: 'global' as const,
+      name: 'Global Leaders',
+      icon: Globe,
+      description: 'Rank across all chapters',
+      color: 'text-[#2980B9]'
+    },
   ], []);
 
   // Memoized periods
@@ -72,11 +84,24 @@ const Leaderboards: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
+        {/* Ethiopian Orthodox Themed Header */}
+        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
+          <div className="flex items-center justify-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
+              <Crown className="h-6 w-6 text-white" />
+            </div>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-stone-800">Leaderboards</h1>
+              <p className="text-lg text-stone-600 mt-1">See how you rank in our community</p>
+            </div>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full mb-4 border-4 border-white shadow-lg">
             <Crown className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Leaderboards</h1>
@@ -109,31 +134,33 @@ const Leaderboards: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Leaderboard Type
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {leaderboardTypes.map(type => {
                   const Icon = type.icon;
+                  const isActive = leaderboardType === type.id;
                   return (
                     <button
                       key={type.id}
                       onClick={() => setLeaderboardType(type.id)}
-                      className={`p-4 rounded-lg border transition-all ${
-                        leaderboardType === type.id
-                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                          : 'border-gray-300 hover:border-gray-400'
+                      title={type.description}
+                      className={`p-5 rounded-xl border transition-all group ${
+                        isActive
+                          ? 'border-[#27AE60] bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 ring-2 ring-[#27AE60]/20 shadow-lg'
+                          : 'border-stone-300 hover:border-[#27AE60]/50 bg-white/90 backdrop-blur-md hover:bg-stone-50'
                       }`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <Icon className={`h-5 w-5 ${
-                          leaderboardType === type.id ? 'text-blue-600' : 'text-gray-500'
-                        }`} />
+                      <div className="flex items-center gap-4">
+                        <Icon className={`h-6 w-6 ${
+                          isActive ? 'text-[#27AE60]' : 'text-stone-500 group-hover:text-[#27AE60]'
+                        } transition-colors`} />
                         <div className="text-left">
-                          <div className={`font-medium ${
-                            leaderboardType === type.id ? 'text-blue-900' : 'text-gray-900'
-                          }`}>
+                          <div className={`font-bold text-lg ${
+                            isActive ? 'text-[#27AE60]' : 'text-stone-800 group-hover:text-[#27AE60]'
+                          } transition-colors`}>
                             {type.name}
                           </div>
-                          <div className={`text-sm ${
-                            leaderboardType === type.id ? 'text-blue-700' : 'text-gray-500'
+                          <div className={`text-sm mt-1 ${
+                            isActive ? 'text-[#16A085]' : 'text-stone-600'
                           }`}>
                             {type.description}
                           </div>

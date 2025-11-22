@@ -353,6 +353,24 @@ const authController = {
         });
       }
 
+      // Check if user has a password (not a Google-only account)
+      if (!user.password_hash) {
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Google account - no password login'
+        });
+
+        return res.status(401).json({
+          success: false,
+          message: 'This account was created with Google. Please use "Continue with Google" to sign in.',
+          code: 'GOOGLE_ACCOUNT_NO_PASSWORD'
+        });
+      }
+
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       

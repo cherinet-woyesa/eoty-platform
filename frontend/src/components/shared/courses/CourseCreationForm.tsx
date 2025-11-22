@@ -140,10 +140,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
   const languages = useMemo(() => [
     { value: 'en', label: t('common.english') },
-    { value: 'am', label: t('common.amharic') },
-    { value: 'ar', label: t('common.arabic') },
-    { value: 'fr', label: t('common.french') },
-    { value: 'es', label: t('common.spanish') }
+    { value: 'am', label: t('common.amharic') }
+   
   ], [t]);
 
   const validateForm = useCallback((): boolean => {

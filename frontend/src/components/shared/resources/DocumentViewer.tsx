@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Resource } from '@/types/resources';
-import { FileText, Image as ImageIcon, BookOpen, AlertCircle, Download, RotateCw, Maximize2, Minimize2, Printer, Highlighter, MousePointer } from 'lucide-react';
+import type { Resource } from '@/types/resources';
+import { Image as ImageIcon, Download, Maximize2, Minimize2, Printer, Highlighter, MousePointer } from 'lucide-react';
 
 interface DocumentViewerProps {
   resource: Resource;
   onNoteAnchor?: (position: string, sectionText?: string, sectionPosition?: number) => void; // REQUIREMENT: Section anchoring
+  onExplainSelection?: (text: string) => void;
   id?: string;
 }
 
-const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor }) => {
+const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor, onExplainSelection }) => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -18,8 +18,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionPosition, setSelectionPosition] = useState<{ start: number; end: number } | null>(null);
   const [highlightMode, setHighlightMode] = useState(false);
+  const [highlights, setHighlights] = useState<Array<{ text: string; id: string; range: Range }>>([]);
   const documentRef = useRef<HTMLDivElement>(null);
-  const textContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Simulate loading document
@@ -32,7 +32,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [resource]);
+  }, []);
 
   // Handle text selection for note anchoring
   const handleTextSelection = useCallback(() => {
@@ -44,11 +44,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
       // Get selection range for positioning
       if (selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
-        const container = range.commonAncestorContainer;
-        const textContent = container.textContent || '';
         const startOffset = range.startOffset;
         const endOffset = range.endOffset;
-        
+
         setSelectionPosition({ start: startOffset, end: endOffset });
       }
     } else {
@@ -80,10 +78,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
   // Enhanced note creation with selected text
   const handleAddNoteFromSelection = useCallback(() => {
     if (selectedText && onNoteAnchor) {
-      const position = resource.file_type.includes('pdf') 
-        ? `page-${currentPage}-selection` 
+      const position = resource.file_type.includes('pdf')
+        ? `page-${currentPage}-selection`
         : `section-selection-${selectionPosition?.start || 0}`;
-      
+
       onNoteAnchor(position, selectedText, selectionPosition?.start || currentPage);
       // Clear selection after note creation
       window.getSelection()?.removeAllRanges();
@@ -91,6 +89,93 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
       setSelectionPosition(null);
     }
   }, [selectedText, selectionPosition, currentPage, resource.file_type, onNoteAnchor]);
+
+  const handleHighlightSelection = useCallback(() => {
+    if (selectedText && highlightMode) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+
+        // Create a highlight span
+        const highlightSpan = document.createElement('span');
+        highlightSpan.className = 'inline-highlight';
+        highlightSpan.style.backgroundColor = '#fef3c7'; // yellow-100
+        highlightSpan.style.borderRadius = '2px';
+        highlightSpan.style.padding = '1px 2px';
+        highlightSpan.dataset.highlightId = `highlight-${Date.now()}`;
+
+        try {
+          // Wrap the selected text with the highlight span
+          range.surroundContents(highlightSpan);
+
+          // Add to highlights list for management
+          const newHighlight = {
+            text: selectedText,
+            id: highlightSpan.dataset.highlightId!,
+            range: range // Store range for potential future use
+          };
+          setHighlights(prev => [...prev, newHighlight]);
+
+          // Clear selection after highlighting
+          window.getSelection()?.removeAllRanges();
+          setSelectedText('');
+          setSelectionPosition(null);
+        } catch (error) {
+          // surroundContents can fail if selection spans multiple elements
+          console.warn('Could not highlight selection inline, using fallback');
+          // Fallback to panel-based highlighting
+          const newHighlight = {
+            text: selectedText,
+            id: `highlight-${Date.now()}`,
+            range: range
+          };
+          setHighlights(prev => [...prev, newHighlight]);
+
+          // Clear selection
+          window.getSelection()?.removeAllRanges();
+          setSelectedText('');
+          setSelectionPosition(null);
+        }
+      }
+    }
+  }, [selectedText, highlightMode]);
+
+  const removeHighlight = useCallback((highlightId: string) => {
+    // Remove inline highlight from DOM
+    const highlightElement = document.querySelector(`[data-highlight-id="${highlightId}"]`);
+    if (highlightElement) {
+      // Move contents out of highlight and remove highlight element
+      const parent = highlightElement.parentNode;
+      if (parent) {
+        while (highlightElement.firstChild) {
+          parent.insertBefore(highlightElement.firstChild, highlightElement);
+        }
+        parent.removeChild(highlightElement);
+      }
+    }
+
+    // Remove from highlights list
+    setHighlights(prev => prev.filter(h => h.id !== highlightId));
+  }, []);
+
+  const clearAllHighlights = useCallback(() => {
+    // Remove all inline highlights
+    highlights.forEach(highlight => {
+      const highlightElement = document.querySelector(`[data-highlight-id="${highlight.id}"]`);
+      if (highlightElement) {
+        const parent = highlightElement.parentNode;
+        if (parent) {
+          while (highlightElement.firstChild) {
+            parent.insertBefore(highlightElement.firstChild, highlightElement);
+          }
+          parent.removeChild(highlightElement);
+        }
+      }
+    });
+
+    // Clear highlights list
+    setHighlights([]);
+  }, [highlights]);
 
   const handleDownload = () => {
     // In a real implementation, this would trigger a download of the resource
@@ -141,22 +226,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
       );
     }
 
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-96 bg-red-50 rounded-lg p-8">
-          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-red-800 mb-2">Unable to load document</h3>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-          >
-            <RotateCw className="h-4 w-4" />
-            Retry
-          </button>
-        </div>
-      );
-    }
+    // Document content will be rendered here
 
     // Determine document type and render appropriately
     if (resource.file_type.includes('pdf')) {
@@ -234,26 +304,36 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
           </div>
           
           <div className="flex items-center gap-2">
+            {selectedText && highlightMode && (
+              <button
+                onClick={handleHighlightSelection}
+                className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm transition-colors"
+                title="Highlight selected text"
+              >
+                <Highlighter className="h-4 w-4" />
+                Highlight Selection
+              </button>
+            )}
             <button
               onClick={() => setHighlightMode(!highlightMode)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-                highlightMode 
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                highlightMode
+                  ? 'bg-[#27AE60] text-white hover:bg-[#27AE60]/90'
+                  : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
               }`}
-              title="Toggle highlight mode"
+              title={highlightMode ? "Exit highlight mode" : "Enter highlight mode"}
             >
               <Highlighter className="h-4 w-4" />
-              Highlight
+              {highlightMode ? 'Exit Highlight' : 'Highlight Mode'}
             </button>
             {selectedText && (
               <button
                 onClick={handleAddNoteFromSelection}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
                 title="Add note from selection"
               >
                 <MousePointer className="h-4 w-4" />
-                Note from Selection
+                📝 Note from Selection
               </button>
             )}
             <button
@@ -295,16 +375,27 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
               <span className="text-sm text-blue-700 font-medium">Selected:</span>
               <span className="text-sm text-blue-600 italic line-clamp-1 max-w-md">{selectedText}</span>
             </div>
-            <button
-              onClick={() => {
-                window.getSelection()?.removeAllRanges();
-                setSelectedText('');
-                setSelectionPosition(null);
-              }}
-              className="text-xs text-blue-600 hover:text-blue-800"
-            >
-              Clear
-            </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (onExplainSelection) onExplainSelection(selectedText);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                    title="Explain selection using AI"
+                  >
+                    Explain Selection
+                  </button>
+                  <button
+                    onClick={() => {
+                      window.getSelection()?.removeAllRanges();
+                      setSelectedText('');
+                      setSelectionPosition(null);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    Clear
+                  </button>
+                </div>
           </div>
         )}
         
@@ -323,7 +414,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
             }}
           >
             {/* This would be replaced with actual PDF rendering in a real implementation */}
-            <div className="p-8 h-full" ref={textContentRef}>
+            <div className="p-8 h-full">
               <h2 className="text-2xl font-bold mb-4">{resource.title}</h2>
               <p className="text-gray-600 mb-4">This is a simulated PDF viewer. In a production environment, this would display the actual PDF content.</p>
               <p className="text-gray-500 mb-4">Page {currentPage} content would appear here...</p>
@@ -418,14 +509,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
             <button
               onClick={() => setHighlightMode(!highlightMode)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-                highlightMode 
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                highlightMode
+                  ? 'bg-[#27AE60] text-white hover:bg-[#27AE60]/90'
+                  : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
               }`}
-              title="Toggle highlight mode"
+              title={highlightMode ? "Exit highlight mode" : "Enter highlight mode"}
             >
               <Highlighter className="h-4 w-4" />
-              Highlight
+              {highlightMode ? 'Exit Highlight' : 'Highlight Mode'}
             </button>
           </div>
           
@@ -433,19 +524,19 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
             {selectedText && (
               <button
                 onClick={handleAddNoteFromSelection}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
                 title="Add note from selection"
               >
                 <MousePointer className="h-4 w-4" />
-                Note from Selection
+                📝 Note from Selection
               </button>
             )}
             <button
               onClick={handleAddNote}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
               title="Add note"
             >
-              Add Note
+              📝 Add Note
             </button>
             <button
               onClick={toggleFullscreen}
@@ -474,66 +565,113 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor 
         
         {/* Selection Toolbar */}
         {selectedText && (
-          <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-blue-700 font-medium">Selected:</span>
-              <span className="text-sm text-blue-600 italic line-clamp-1 max-w-md">{selectedText}</span>
+          <div className="px-4 py-3 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border-b border-[#27AE60]/20 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[#27AE60] font-semibold">📝 Selected Text:</span>
+              <span className="text-sm text-stone-700 italic line-clamp-1 max-w-md">"{selectedText}"</span>
             </div>
-            <button
-              onClick={() => {
-                window.getSelection()?.removeAllRanges();
-                setSelectedText('');
-                setSelectionPosition(null);
-              }}
-              className="text-xs text-blue-600 hover:text-blue-800"
-            >
-              Clear
-            </button>
+            <div className="flex items-center gap-2">
+              {highlightMode && (
+                <button
+                  onClick={handleHighlightSelection}
+                  className="flex items-center gap-1 px-3 py-1 bg-yellow-500 text-white text-xs rounded-md hover:bg-yellow-600 transition-colors"
+                  title="Highlight this text"
+                >
+                  <Highlighter className="h-3 w-3" />
+                  Highlight
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  window.getSelection()?.removeAllRanges();
+                  setSelectedText('');
+                  setSelectionPosition(null);
+                }}
+                className="text-xs text-stone-600 hover:text-stone-800 font-medium"
+              >
+                ✕ Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Highlights Panel */}
+        {highlights.length > 0 && (
+          <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-yellow-800 font-semibold flex items-center gap-2">
+                <Highlighter className="h-4 w-4" />
+                Text Highlights ({highlights.length})
+              </span>
+              <button
+                onClick={clearAllHighlights}
+                className="text-xs text-yellow-700 hover:text-yellow-800 font-medium px-2 py-1 bg-yellow-100 hover:bg-yellow-200 rounded"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="text-xs text-yellow-700 mb-2">
+              💡 Highlights are applied directly to the text above
+            </div>
+            <div className="space-y-2">
+              {highlights.map((highlight) => (
+                <div key={highlight.id} className="flex items-start gap-2 p-2 bg-yellow-100 rounded-md">
+                  <span className="text-yellow-700 text-xs mt-0.5">📍</span>
+                  <span className="text-sm text-yellow-900 italic flex-1">"{highlight.text}"</span>
+                  <button
+                    onClick={() => removeHighlight(highlight.id)}
+                    className="text-yellow-600 hover:text-yellow-800 text-xs px-1.5 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded"
+                    title="Remove this highlight"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
         
         {/* Text Content with Selection Support */}
-        <div 
+        <div
           className="flex-1 overflow-auto p-6 bg-white select-text"
           onMouseUp={handleTextSelection}
           onKeyUp={handleTextSelection}
-          ref={textContentRef}
         >
           <h1 className="text-3xl font-bold mb-4">{resource.title}</h1>
-          
+
           {resource.author && (
             <p className="text-gray-600 mb-6">by {resource.author}</p>
           )}
-          
+
           {resource.description && (
             <p className="text-gray-700 mb-6 italic">{resource.description}</p>
           )}
-          
+
           <div className="prose max-w-none">
-            <p className={highlightMode ? 'bg-yellow-100' : ''}>
+            <p>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
             </p>
-            
+
             <h2 className="text-2xl font-semibold mt-8 mb-4">Introduction</h2>
-            <p className={highlightMode ? 'bg-yellow-100' : ''}>
+            <p>
               Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
             </p>
-            
+
             <h2 className="text-2xl font-semibold mt-8 mb-4">Main Content</h2>
-            <p className={highlightMode ? 'bg-yellow-100' : ''}>
+            <p>
               Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
             </p>
-            
-            <blockquote className="border-l-4 border-blue-500 pl-4 my-6 italic text-gray-700">
+
+            <blockquote className="border-l-4 border-[#27AE60] pl-4 my-6 italic text-stone-700 bg-[#27AE60]/5 py-2 px-3 rounded-r-md">
               "This is an important quote from the text that might be worth noting."
             </blockquote>
-            
-            <p className={highlightMode ? 'bg-yellow-100' : ''}>
+
+            <p>
               Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
             </p>
-            
+
             <h2 className="text-2xl font-semibold mt-8 mb-4">Conclusion</h2>
-            <p className={highlightMode ? 'bg-yellow-100' : ''}>
+            <p>
               Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
             </p>
           </div>

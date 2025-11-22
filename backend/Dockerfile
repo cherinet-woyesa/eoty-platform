@@ -1,39 +1,45 @@
-# Use Node.js 18 as the base image
-FROM node:18-alpine
+# Multi-stage Docker build for Google Cloud Run
+FROM node:18-alpine AS base
 
-# Install FFmpeg (includes ffprobe) for video processing
-RUN apk add --no-cache ffmpeg
+# Install dependencies for native modules
+RUN apk add --no-cache python3 make g++ sqlite-dev postgresql-dev
 
-# Verify FFmpeg installation
-RUN ffmpeg -version && ffprobe -version
-
-# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package files
 COPY package*.json ./
 
-# Install production dependencies
-# Use npm install instead of npm ci because the lockfile does not include dev-only tooling like Jest,
-# and we don't need devDependencies (tests) in the production image.
-RUN npm install --omit=dev --legacy-peer-deps
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
 
-# Copy the rest of the application code
+# Production stage
+FROM node:18-alpine AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache postgresql-client sqlite
+
+WORKDIR /app
+
+# Copy installed dependencies from base stage
+COPY --from=base /app/node_modules ./node_modules
+
+# Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p tmp uploads/videos uploads/documents uploads/profiles uploads/subtitles uploads/thumbnails uploads/temp
-
-# Expose the port the app runs on
-EXPOSE 5000
-
-# Create a non-root user
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app
+    adduser -S nodejs -u 1001
 
-# Switch to non-root user
-USER nextjs
+# Change ownership of app directory
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
-# Start the application (migrations run automatically via start script)
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Start the application
 CMD ["npm", "start"]

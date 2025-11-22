@@ -38,8 +38,125 @@ class MuxService {
   }
 
   /**
+   * Upload video buffer directly to Mux (server-side upload)
+   *
+   * @param {Object} options - Upload options
+   * @param {Buffer} options.buffer - Video buffer
+   * @param {string} options.filename - Original filename
+   * @param {string} options.contentType - MIME type
+   * @param {Object} options.metadata - Additional metadata
+   * @returns {Promise<Object>} Asset info with playback URL
+   */
+  async uploadVideoBuffer({ buffer, filename, contentType, metadata = {} }) {
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
+
+    try {
+      console.log('🎬 Starting Mux upload for:', filename, `(Size: ${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+
+      // Create temporary file
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const tempFilename = `mux-upload-${crypto.randomBytes(8).toString('hex')}-${filename}`;
+      const tempFilePath = path.join(tempDir, tempFilename);
+
+      // Write buffer to temporary file
+      fs.writeFileSync(tempFilePath, buffer);
+      console.log('📁 Temporary file created:', tempFilePath);
+
+      try {
+        // Create Mux asset with file URL (we'll need to serve this temporarily)
+        // For now, let's use a simpler approach - create asset and then we'd need to upload via their API
+        // Actually, let's check if Mux supports direct buffer upload
+
+        // Alternative: Use Mux's direct upload but handle it server-side
+        // Create a direct upload URL and then upload the buffer to it
+        const upload = await this.createDirectUpload({
+          corsOrigin: null, // Server-side, no CORS needed
+          metadata: metadata
+        });
+
+        console.log('📤 Direct upload created, uploading buffer...');
+
+        // Upload the buffer to Mux's upload URL
+        const axios = require('axios');
+        await axios.put(upload.uploadUrl, buffer, {
+          headers: {
+            'Content-Type': contentType
+          },
+          timeout: 300000 // 5 minutes
+        });
+
+        console.log('✅ Buffer uploaded to Mux');
+
+        // Wait for upload to be processed and asset to be created
+        console.log('⏳ Waiting for upload to create asset...');
+        let assetId = null;
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes max
+        const pollInterval = 5000; // 5 seconds
+
+        while (attempts < maxAttempts && !assetId) {
+          try {
+            const uploadInfo = await this.getUpload(upload.uploadId);
+            if (uploadInfo.asset_id) {
+              assetId = uploadInfo.asset_id;
+              console.log('✅ Asset created from upload:', assetId);
+              break;
+            }
+            console.log(`⏳ Upload processing... attempt ${attempts + 1}/${maxAttempts}`);
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            attempts++;
+          } catch (error) {
+            console.error(`❌ Error checking upload status:`, error.message);
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+          }
+        }
+
+        if (!assetId) {
+          throw new Error('Upload processing timed out - asset not created');
+        }
+
+        // Wait for asset to be ready
+        console.log('⏳ Waiting for asset processing...');
+        const readyAsset = await this.waitForAssetReady(assetId);
+
+        console.log('✅ Mux asset ready:', readyAsset.id);
+
+        // Get playback URL
+        const playbackUrl = `https://stream.mux.com/${readyAsset.playbackIds[0]?.id}.m3u8`;
+
+        return {
+          assetId: readyAsset.id,
+          playbackId: readyAsset.playbackIds[0]?.id,
+          playbackUrl: playbackUrl,
+          status: readyAsset.status,
+          duration: readyAsset.duration,
+          aspectRatio: readyAsset.aspectRatio
+        };
+
+      } finally {
+        // Clean up temporary file
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+          console.log('🗑️  Temporary file cleaned up');
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to upload video buffer to Mux:', error);
+      throw new Error(`Mux upload failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Create a direct upload URL for video uploads
-   * 
+   *
    * @param {Object} options - Upload options
    * @param {string} options.corsOrigin - CORS origin for the upload
    * @param {Object} options.metadata - Additional metadata for the asset

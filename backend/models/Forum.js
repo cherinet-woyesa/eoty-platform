@@ -12,12 +12,37 @@ class Forum {
 
   static async findByChapter(chapterId, includeInactive = false) {
     let query = db('forums').where({ chapter_id: chapterId });
-    
+
     if (!includeInactive) {
       query = query.where({ is_active: true });
     }
-    
+
     return await query.orderBy('created_at', 'desc');
+  }
+
+  // Get forums accessible to a user (public forums + user's chapter forums)
+  static async findAccessibleForums(userId, includeInactive = false) {
+    const user = await db('users').where({ id: userId }).select('chapter_id').first();
+
+    let query = db('forums')
+      .where(function() {
+        this.where('forums.is_public', true) // Public forums from any chapter
+           .orWhere('forums.chapter_id', user.chapter_id); // Private forums from user's chapter
+      });
+
+    if (!includeInactive) {
+      query = query.where('forums.is_active', true);
+    }
+
+    return await query
+      .leftJoin('users', 'forums.created_by', 'users.id')
+      .select(
+        'forums.*',
+        'users.first_name as creator_first_name',
+        'users.last_name as creator_last_name',
+        'users.chapter_id as creator_chapter'
+      )
+      .orderBy('forums.created_at', 'desc');
   }
 
   static async checkMembership(forumId, userId) {

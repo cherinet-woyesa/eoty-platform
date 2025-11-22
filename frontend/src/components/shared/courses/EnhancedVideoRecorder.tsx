@@ -176,6 +176,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const persistentSuccessMessageRef = useRef<string | null>(null);
+  // Debug helper: transient message to confirm getDisplayMedia invocation
+  const [debugDisplayMediaMessage, setDebugDisplayMediaMessage] = useState<string | null>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -216,6 +218,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Loading states (Task 7.2)
   const [isInitializingCompositor, setIsInitializingCompositor] = useState(false);
   const [layoutChangeNotification, setLayoutChangeNotification] = useState<string | null>(null);
+  // Debug sizes overlay
+  const [showDebugSizes, setShowDebugSizes] = useState(false);
+  const [debugSizes, setDebugSizes] = useState<any>(null);
   
   // NEW: Notification system (Task 7.3)
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -422,6 +427,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Check if recording is active - if so, might be restarting
       if (!isRecording) {
         screenVideoRef.current.srcObject = null;
+        setScreenReady(false);
         console.log('Screen video srcObject cleared');
       }
     }
@@ -462,6 +468,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [stream, recordingSources, enableAudio]);
 
+  // UI ready states to avoid black flicker and enable smooth crossfades
+  const [cameraReady, setCameraReady] = useState(false);
+  const [screenReady, setScreenReady] = useState(false);
+  const [recordedReady, setRecordedReady] = useState(false);
+
   // NEW: Recording stats monitoring with performance alerts (Task 7.3)
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -487,6 +498,60 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }
     };
   }, [isRecording, isPaused]);
+
+  // Reset recorded-ready when a new recorded URL is set so it can fade in when ready
+  useEffect(() => {
+    setRecordedReady(false);
+  }, [recordedVideo]);
+
+  // Option to match preview layout to live layout
+  const [matchLiveLayout, setMatchLiveLayout] = useState(true);
+
+  // Sync compositor draw fit when user toggles match-live option
+  useEffect(() => {
+    try {
+      if (compositorInstance) {
+        const fitMode = matchLiveLayout && currentLayout === 'picture-in-picture' ? 'cover' : 'contain';
+        compositorInstance.updateVideoSource && compositorInstance.updateVideoSource('camera', { fit: fitMode } as any);
+      }
+    } catch (e) {
+      console.warn('Failed to update compositor fit mode:', e);
+    }
+  }, [matchLiveLayout, currentLayout, compositorInstance]);
+
+  // Sync recordedVideo URL to the recorded video element so we get a reliable loadedmetadata event
+  useEffect(() => {
+    const el = recordedVideoRef.current;
+    if (!el) return;
+
+    const handleLoaded = () => setRecordedReady(true);
+
+    // reset
+    setRecordedReady(false);
+    try {
+      if (recordedVideo) {
+        el.src = recordedVideo;
+      }
+      el.addEventListener('loadedmetadata', handleLoaded);
+      el.addEventListener('canplay', handleLoaded);
+    } catch (err) {
+      console.error('Failed to set recorded video src:', err);
+    }
+
+    return () => {
+      el.removeEventListener('loadedmetadata', handleLoaded);
+      el.removeEventListener('canplay', handleLoaded);
+    };
+  }, [recordedVideo]);
+
+  // Reset camera ready flag when camera source is removed/added so we prewarm correctly
+  useEffect(() => {
+    if (recordingSources.camera) {
+      setCameraReady(false);
+    } else {
+      setCameraReady(false);
+    }
+  }, [recordingSources.camera]);
 
   // Show preview when video blob becomes available after recording stops
   useEffect(() => {
@@ -1352,6 +1417,44 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setErrorMessage(null);
   };
 
+  // Debug helper: directly call getDisplayMedia to confirm chooser behavior
+  const handleDebugGetDisplayMedia = async () => {
+    try {
+      setDebugDisplayMediaMessage('Requesting screen-share chooser...');
+      console.log('Debug: calling navigator.mediaDevices.getDisplayMedia from EnhancedVideoRecorder');
+
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+        throw new Error('getDisplayMedia not supported in this browser/context');
+      }
+
+      const s = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: true });
+      console.log('Debug: getDisplayMedia resolved, stream tracks:', s.getTracks());
+      setDebugDisplayMediaMessage('Chooser returned a stream. Check console for details. Stopping test stream.');
+
+      // Stop tracks immediately since this is only a diagnostics test
+      try {
+        s.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+      } catch (e) {
+        console.warn('Debug: failed to stop tracks cleanly', e);
+      }
+
+      setTimeout(() => setDebugDisplayMediaMessage(null), 3500);
+    } catch (err: any) {
+      console.error('Debug getDisplayMedia error:', err);
+      const name = err?.name || err?.message || 'UnknownError';
+      let msg = `getDisplayMedia error: ${name}`;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        msg += ' — permission denied or chooser blocked. Try clicking the page, disable extensions, or use a secure context.';
+      } else if (name === 'AbortError') {
+        msg += ' — chooser dismissed by user.';
+      } else if (name === 'NotFoundError') {
+        msg += ' — no capture sources available.';
+      }
+      setDebugDisplayMediaMessage(msg);
+      setTimeout(() => setDebugDisplayMediaMessage(null), 7000);
+    }
+  };
+
   const handleDeleteRecording = () => {
     if (confirm('Are you sure you want to delete this recording?')) {
       handleReset();
@@ -1421,14 +1524,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         // Recorded playback should be an intermediate size: larger than normal players
         // but smaller than the live recording area so users can compare without crowding.
         return (
-          <div
-            className="relative w-full"
-            style={{ height: playbackHeight, backgroundColor: 'black', aspectRatio: useAspectRatio ? '16/9' : undefined }}
-          >
+          <div className="relative w-full bg-black rounded-lg overflow-hidden">
             <video
               ref={recordedVideoRef}
               src={recordedVideo}
-              className="w-full h-full object-contain bg-transparent"
+              className={`w-full ${matchLiveLayout && currentLayout === 'picture-in-picture' ? 'object-cover' : 'object-contain'} bg-black transition-opacity duration-200 ${recordedReady ? 'opacity-100' : 'opacity-0'}`}
+              style={{ maxHeight: '60vh', transition: 'opacity 200ms ease-in-out' }}
               controls
               controlsList="nodownload"
               preload="metadata"
@@ -1442,12 +1543,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   const duration = Math.floor(video.duration);
                   setRecordingDuration(duration);
                 }
+
+                // Don't force container aspect ratio (causes zoom). Let object-contain do its job.
+                console.log('Recorded video metadata:', video.videoWidth, 'x', video.videoHeight);
+                setRecordedReady(true);
               }}
               onError={(e) => {
                 const video = e.currentTarget;
                 const error = video.error;
                 let errorMessage = 'Failed to load video. ';
-                
+
                 if (error) {
                   switch (error.code) {
                     case MediaError.MEDIA_ERR_ABORTED:
@@ -1466,24 +1571,35 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                       errorMessage += 'Unknown error occurred.';
                   }
                 }
-                
+
                 console.error('Video playback error:', error, errorMessage);
                 setErrorMessage(errorMessage);
-                // Don't clear processing completion success message
                 if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
                   setSuccessMessage(null);
                 }
+                setRecordedReady(false);
               }}
               onLoadStart={() => {
                 setErrorMessage(null);
+                setRecordedReady(false);
               }}
               onCanPlay={() => {
                 // Video is ready to play
                 setErrorMessage(null);
+                setRecordedReady(true);
               }}
             >
               Your browser does not support the video tag.
             </video>
+
+            {/* Match live layout toggle */}
+            <button
+              onClick={() => setMatchLiveLayout(prev => !prev)}
+              className={`absolute top-3 right-3 z-30 px-2 py-1 text-xs rounded-md border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 transition-colors`}
+              title="Toggle preview to match live layout"
+            >
+              {matchLiveLayout ? 'Match Live' : 'Preview Fit'}
+            </button>
           </div>
         );
       } else {
@@ -1496,13 +1612,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           return (
             <div className="w-full flex bg-transparent" style={{ height: liveHeight }}>
               <div className="w-1/2 h-full overflow-hidden bg-black/5">
-                <video
-                  ref={screenVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-contain bg-transparent"
-                />
+                <div className="relative w-full h-full">
+                  <video
+                    ref={screenVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-contain bg-transparent transition-opacity duration-200 ${screenReady ? 'opacity-100' : 'opacity-0'}`}
+                    onLoadedMetadata={() => setScreenReady(true)}
+                    onCanPlay={() => setScreenReady(true)}
+                  />
+                  {!screenReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="w-10 h-10 border-t-4 border-white rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="w-1/2 h-full relative overflow-hidden bg-black/5">
                 <video
@@ -1544,7 +1669,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-contain rounded-lg bg-transparent"
+                  className={`w-full h-full object-cover rounded-lg bg-black transition-opacity duration-200 ${screenReady ? 'opacity-100' : 'opacity-0'}`}
                   onLoadedMetadata={() => {
                     const video = screenVideoRef.current;
                     if (video) {
@@ -1554,24 +1679,27 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         readyState: video.readyState,
                         paused: video.paused
                       });
-                      
-                      // Ensure video is playing
+
+                      // Ensure video is playing (prewarm)
                       if (video.paused) {
                         video.play().catch(err => {
                           console.error('Failed to play screen video:', err);
                           setErrorMessage('Screen sharing video failed to play. Please try again.');
                         });
                       }
+                      setScreenReady(true);
                     }
                   }}
                   onPlaying={() => {
                     console.log('Screen video is now playing');
                     setErrorMessage(null);
+                    setScreenReady(true);
                   }}
                   onError={(e) => {
                     const video = e.currentTarget;
                     console.error('Screen video error:', video.error);
                     setErrorMessage('Screen sharing video error. Please restart screen sharing.');
+                    setScreenReady(false);
                   }}
                 />
                 <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
@@ -1587,19 +1715,35 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             {/* Camera Preview - Show SECOND (lower priority when screen is active) */}
             {recordingSources.camera && (
               <div
-                className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''}`}
+                className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''} transition-all duration-300 ease-in-out`}
                 style={ currentLayout === 'picture-in-picture' && recordingSources.screen
-                  ? { position: 'absolute', width: pipSize, height: pipSize, bottom: '1rem', right: '1rem', zIndex: 30, borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.25)'}
+                  ? { position: 'absolute', width: pipSize, height: pipSize, bottom: '1rem', right: '1rem', zIndex: 30, borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', transform: cameraReady ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.98)', opacity: cameraReady ? 1 : 0.92 }
                   : { zIndex: recordingSources.screen ? 5 : 10 }
                 }
               >
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className={`w-full h-full ${currentLayout === 'picture-in-picture' ? 'object-cover' : 'object-contain'} rounded-lg bg-transparent`}
-                />
+                <div className="relative w-full h-full">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-contain rounded-lg bg-transparent transition-opacity duration-200 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
+                    onLoadedMetadata={() => {
+                      const v = videoRef.current;
+                      if (v) {
+                        // ensure consistent sizing and mark ready
+                        setCameraReady(true);
+                      }
+                    }}
+                    onCanPlay={() => setCameraReady(true)}
+                    onError={() => setCameraReady(false)}
+                  />
+                  {!cameraReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <div className="w-8 h-8 border-t-4 border-white rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
                 {currentLayout !== 'picture-in-picture' && (
                   <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                     Camera
@@ -1633,7 +1777,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       return (
         <div className="w-full h-full flex items-center justify-center">
           {filePreview ? (
-            <video src={filePreview} className="w-full h-full object-cover" controls />
+            <video src={filePreview} className="w-full h-full object-cover bg-black" controls />
           ) : (
             <div className="text-center p-8">
               <Cloud className="h-16 w-16 text-blue-600 mx-auto mb-4" />
@@ -1657,15 +1801,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
   return (
-    <>
-      {/* Notification Container (Task 7.3) */}
+    <div className="h-full bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm overflow-hidden">
       <NotificationContainer
         notifications={notifications}
         onDismiss={dismissNotification}
       />
-
-
-      <div className="relative bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 overflow-hidden shadow-sm">
+      <div className="flex h-full">
+        {/* Main Content Area */}
+        <div className="flex-1 relative min-w-0 h-full overflow-hidden">
         {import.meta.env.MODE !== 'production' && (
           <div className="absolute top-4 right-4 z-40 text-xs bg-black/70 text-white px-2 py-1 rounded-lg">
             <div className="leading-tight">live: {liveHeight}</div>
@@ -1673,6 +1816,27 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <div className="leading-tight">pip: {pipSize}</div>
           </div>
         )}
+          {debugDisplayMediaMessage && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-3 py-2 bg-black/80 text-white rounded-lg text-sm max-w-xl text-center">
+              {debugDisplayMediaMessage}
+            </div>
+          )}
+          {showDebugSizes && (
+            <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 px-3 py-2 bg-black/80 text-white rounded-lg text-xs max-w-xl text-center">
+              <div className="flex items-center justify-center space-x-4">
+                <div>Canvas: <strong>{compositorInstance ? `${compositorInstance.getCanvas().width}x${compositorInstance.getCanvas().height}` : 'n/a'}</strong></div>
+                <div>Camera: <strong>{(() => {
+                  try {
+                    const info = compositorInstance?.getSourceInfo('camera');
+                    if (info) return `${info.videoWidth}x${info.videoHeight} (${info.fit || 'n/a'})`;
+                    if (videoRef.current) return `${videoRef.current.videoWidth || 0}x${videoRef.current.videoHeight || 0}`;
+                    return 'n/a';
+                  } catch (e) { return 'n/a'; }
+                })()}</strong></div>
+                <div>Recorded: <strong>{recordedVideoRef.current ? `${recordedVideoRef.current.videoWidth}x${recordedVideoRef.current.videoHeight}` : 'n/a'}</strong></div>
+              </div>
+            </div>
+          )}
       {/* Error Alert */}
       {errorMessage && (
         <div className="px-6 pt-4">
@@ -1977,6 +2141,24 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     Audio
                   </button>
                 )}
+                {/* Debug: direct getDisplayMedia tester (dev only) */}
+                <button
+                  onClick={handleDebugGetDisplayMedia}
+                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
+                  title="Debug getDisplayMedia chooser"
+                >
+                  <Monitor className="h-4 w-4 inline mr-1" />
+                  Debug Screen Share
+                </button>
+                {/* Debug sizes toggle */}
+                <button
+                  onClick={() => setShowDebugSizes(prev => !prev)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${showDebugSizes ? 'bg-slate-900 text-white' : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'}`}
+                  title="Toggle compositor debug sizes"
+                >
+                  <Timer className="h-4 w-4 inline mr-1" />
+                  Sizes
+                </button>
               </div>
             </div>
             
@@ -2702,9 +2884,226 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           isOpen={showPresetsManager}
         />
       )}
-    </div>
-    </>
-  );
-};
 
+    </div>
+
+          {/* Right Side Controls Panel */}
+        <div className="w-72 border-l border-slate-200/50 bg-gradient-to-b from-slate-50/50 to-white/50 backdrop-blur-sm flex-shrink-0 h-full">
+          <div className="p-3 space-y-3 h-full overflow-y-auto">
+
+            {/* Sources Section */}
+            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
+              <h3 className="text-xs font-semibold text-slate-700 mb-2 flex items-center">
+                <Monitor className="h-3 w-3 mr-1" />
+                Sources
+              </h3>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Camera className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm text-slate-700">Camera</span>
+                  </div>
+                  <button
+                    onClick={() => recordingSources.camera ? closeCamera() : initializeCamera()}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                      recordingSources.camera
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {recordingSources.camera ? 'Active' : 'Start camera'}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Monitor className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm text-slate-700">Screen</span>
+                  </div>
+                  <button
+                    onClick={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                      isScreenSharing
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {isScreenSharing ? 'Active' : 'Start screen sharing'}
+                  </button>
+                </div>
+
+                <div className="text-xs text-slate-500 mt-2">
+                  {recordingSources.camera || isScreenSharing ? (
+                    <span className="text-green-600">✓ Sources active</span>
+                  ) : (
+                    <span>(No sources)</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm text-slate-700">Slides</span>
+                  </div>
+                  <button
+                    onClick={() => setShowSlideManager(!showSlideManager)}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                      currentSlides.length > 0
+                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {currentSlides.length > 0 ? `${currentSlides.length}` : 'Manage'}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Keyboard className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm text-slate-700">Shortcuts</span>
+                  </div>
+                  <button
+                    onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
+                    className="px-3 py-1 text-xs rounded-full font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Layout Options */}
+            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
+              <h3 className="text-xs font-semibold text-slate-700 mb-2 flex items-center">
+                <Square className="h-3 w-3 mr-1" />
+                Layout
+              </h3>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => changeLayout('picture-in-picture')}
+                  className={`p-1.5 text-xs rounded border transition-colors ${
+                    currentLayout === 'picture-in-picture'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto relative">
+                      <div className="absolute inset-0.5 bg-slate-600 rounded-sm"></div>
+                      <div className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-slate-400 rounded-sm"></div>
+                    </div>
+                    <div className="text-[10px] leading-tight">PIP</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => changeLayout('side-by-side')}
+                  className={`p-1.5 text-xs rounded border transition-colors ${
+                    currentLayout === 'side-by-side'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto flex">
+                      <div className="w-1/2 bg-slate-600 rounded-l-sm"></div>
+                      <div className="w-1/2 bg-slate-400 rounded-r-sm"></div>
+                    </div>
+                    <div className="text-[10px] leading-tight">Side</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    // @ts-ignore - changeLayout accepts LayoutType including 'presentation'
+                    changeLayout('presentation');
+                  }}
+                  className={`p-1.5 text-xs rounded border transition-colors ${
+                    currentLayout === 'presentation'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto relative">
+                      <div className="w-full h-1 bg-slate-600 rounded-sm mb-0.5"></div>
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-slate-400 rounded-sm"></div>
+                    </div>
+                    <div className="text-[10px] leading-tight">Pres</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => changeLayout('screen-only')}
+                  className={`p-1.5 text-xs rounded border transition-colors ${
+                    currentLayout === 'screen-only'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto">
+                      <div className="w-full h-full bg-slate-600 rounded-sm"></div>
+                    </div>
+                    <div className="text-[10px] leading-tight">Screen</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => changeLayout('camera-only')}
+                  className={`p-1.5 text-xs rounded border transition-colors col-span-2 ${
+                    currentLayout === 'camera-only'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto">
+                      <div className="w-2.5 h-2.5 bg-slate-400 rounded-full mx-auto mt-0.5"></div>
+                    </div>
+                    <div className="text-[10px] leading-tight">Camera</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Current Status */}
+            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
+              <h3 className="text-xs font-semibold text-slate-700 mb-2">Status</h3>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Recording:</span>
+                  <span className={isRecording ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                    {isRecording ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Layout:</span>
+                  <span className="text-slate-700 font-medium capitalize">
+                    {currentLayout.replace('-', ' ')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Sources:</span>
+                  <span className="text-slate-700">
+                    {[
+                      ...(recordingSources.camera ? ['Camera'] : []),
+                      ...(isScreenSharing ? ['Screen'] : [])
+                    ].join(' + ') || 'None'}
+                  </span>
+                </div>
+                {isRecording && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Duration:</span>
+                    <span className="text-slate-700 font-medium">{formatTime(recordingTime)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div> {/* Close flex container */}
+      </div> {/* Close main container */}
+    </div>
+  );
+}
 export default VideoRecorder;

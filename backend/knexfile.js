@@ -50,5 +50,35 @@ module.exports = {
     seeds: {
       directory: './seeds'
     }
+  },
+  google_cloud: {
+    client: 'pg',
+    connection: {
+      host: process.env.DB_HOST, // /cloudsql/project:region:instance format for Cloud SQL
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      ssl: { rejectUnauthorized: false }, // Required for Cloud SQL
+      connectTimeout: 15000, // 15 seconds
+      requestTimeout: 45000, // 45 seconds for migrations
+    },
+    pool: {
+      min: 1,
+      max: 5,
+      acquireTimeoutMillis: 45000,
+      createTimeoutMillis: 30000,
+      destroyTimeoutMillis: 40000,
+      idleTimeoutMillis: 600000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200,
+    },
+    migrations: {
+      directory: './migrations',
+      tableName: 'knex_migrations',
+      timeout: 90000, // 90 seconds for Cloud SQL migrations
+    },
+    seeds: {
+      directory: './seeds'
+    }
   }
 };

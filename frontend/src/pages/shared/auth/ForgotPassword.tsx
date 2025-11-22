@@ -7,6 +7,7 @@ import FormInput from '@/components/shared/auth/FormInput';
 import FormError from '@/components/shared/auth/FormError';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
 import { useFormValidation, validationRules } from '@/hooks/useFormValidation';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 interface ForgotPasswordFormData {
   email: string;
@@ -71,30 +72,8 @@ const ForgotPassword: React.FC = () => {
     } catch (err: any) {
       console.error('Forgot password error:', err);
 
-      // Handle specific error cases
-      let errorMessage = 'Failed to send password reset email';
-      const status = err.response?.status;
-
-      switch (status) {
-        case 404:
-          errorMessage = 'No account found with this email address';
-          break;
-        case 429:
-          errorMessage = 'Too many password reset requests. Please try again later.';
-          break;
-        case 422:
-          errorMessage = 'Invalid email address format';
-          break;
-        case 500:
-          errorMessage = 'Server error. Please try again later.';
-          break;
-        case 0:
-          errorMessage = 'Network error. Please check your connection.';
-          break;
-        default:
-          errorMessage = err.response?.data?.message || err.message || errorMessage;
-      }
-
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
 
       // Auto-focus on email field for retry
@@ -158,8 +137,9 @@ const ForgotPassword: React.FC = () => {
           {/* Success Message */}
           {successMessage && (
             <FormError
-              type="info"
+              type="success"
               message={successMessage}
+              size="md"
             />
           )}
 
@@ -168,6 +148,18 @@ const ForgotPassword: React.FC = () => {
             <FormError
               type="error"
               message={error}
+              dismissible={true}
+              onDismiss={() => setError(null)}
+              size="md"
+            />
+          )}
+
+          {/* Additional help for common issues */}
+          {error && error.includes('not found') && (
+            <FormError
+              type="info"
+              message="If you're sure this email is registered, please check your spam folder or try again later."
+              size="sm"
             />
           )}
         </div>

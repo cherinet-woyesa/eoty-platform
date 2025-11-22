@@ -10,11 +10,46 @@ const Achievements: React.FC = () => {
   const [sortBy, setSortBy] = useState<'recent' | 'points' | 'name'>('recent');
 
   const categories = [
-    { id: 'all', name: 'All Badges', icon: Trophy, count: badges.length, color: 'text-[#27AE60]' },
-    { id: 'completion', name: 'Completion', icon: Target, count: badges.filter(b => b.badge_type === 'completion').length, color: 'text-[#16A085]' },
-    { id: 'participation', name: 'Participation', icon: Users, count: badges.filter(b => b.badge_type === 'participation').length, color: 'text-[#2980B9]' },
-    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#F39C12]' },
-    { id: 'special', name: 'Special', icon: Star, count: badges.filter(b => b.badge_type === 'special').length, color: 'text-[#FF6B9D]' },
+    {
+      id: 'all',
+      name: 'All Badges',
+      icon: Trophy,
+      count: badges.length,
+      color: 'text-[#27AE60]',
+      description: 'All your achievements'
+    },
+    {
+      id: 'completion',
+      name: 'Completion',
+      icon: Target,
+      count: badges.filter(b => b.badge_type === 'completion').length,
+      color: 'text-[#16A085]',
+      description: 'Course and lesson completion'
+    },
+    {
+      id: 'participation',
+      name: 'Participation',
+      icon: Users,
+      count: badges.filter(b => b.badge_type === 'participation').length,
+      color: 'text-[#2980B9]',
+      description: 'Community engagement'
+    },
+    {
+      id: 'leadership',
+      name: 'Leadership',
+      icon: Crown,
+      count: badges.filter(b => b.badge_type === 'leadership').length,
+      color: 'text-amber-600',
+      description: 'Leadership and mentoring'
+    },
+    {
+      id: 'special',
+      name: 'Special',
+      icon: Star,
+      count: badges.filter(b => b.badge_type === 'special').length,
+      color: 'text-[#FF6B9D]',
+      description: 'Special recognition'
+    },
   ];
 
   const filteredAndSortedBadges = useMemo(() => {
@@ -109,7 +144,7 @@ const Achievements: React.FC = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-stone-800 mb-2">Your Achievements</h1>
-          <p className="text-stone-600 text-lg">Track your progress and celebrate your milestones</p>
+          <p className="text-stone-600 text-lg">🙏 Celebrate your spiritual journey and community contributions</p>
         </div>
 
         {/* Stats Overview */}
@@ -187,15 +222,16 @@ const Achievements: React.FC = () => {
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-full border transition-all font-medium ${
+                title={category.description}
+                className={`flex items-center gap-3 px-5 py-3 rounded-full border transition-all font-medium group ${
                   isActive
                     ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 border-[#27AE60] shadow-lg'
                     : 'bg-white/90 backdrop-blur-md text-stone-700 border-stone-200 hover:border-[#27AE60]/50 hover:bg-stone-50'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? category.color : 'text-stone-500'}`} />
+                <Icon className={`h-5 w-5 ${isActive ? category.color : 'text-stone-500'} transition-colors`} />
                 <span>{category.name}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                   isActive
                     ? 'bg-stone-900/20 text-stone-900'
                     : 'bg-stone-100 text-stone-600'

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Shield, Tag, BookOpen } from 'lucide-react';
 import ContentManagement from './ContentManagement';
 import ModerationTools from '@/components/admin/ModerationTools';
+import ForumModerationDashboard from '@/components/admin/ForumModerationDashboard';
 import TagManager from '@/components/admin/TagManager';
 import AllCourses from './AllCourses';
 
@@ -68,8 +69,16 @@ const AdminContentPage: React.FC = () => {
               </div>
             )}
             {activeTab === 'moderation' && (
-              <div className="animate-in fade-in duration-300">
-                <ModerationTools />
+              <div className="space-y-6">
+                {/* Forum Moderation */}
+                <div className="animate-in fade-in duration-300">
+                  <ForumModerationDashboard />
+                </div>
+
+                {/* General Content Moderation */}
+                <div className="animate-in fade-in duration-300">
+                  <ModerationTools />
+                </div>
               </div>
             )}
             {activeTab === 'tags' && (

@@ -22,6 +22,7 @@ const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   const { login, isAuthenticated, getRoleDashboard } = useAuth();
   const navigate = useNavigate();
@@ -120,6 +121,9 @@ const LoginForm: React.FC = () => {
     } catch (err: any) {
       console.error('Login error:', err);
 
+      // Increment retry count for better user feedback
+      setRetryCount(prev => prev + 1);
+
       // Use error message utility to get user-friendly message
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
@@ -203,16 +207,31 @@ const LoginForm: React.FC = () => {
         {/* Success Message */}
         {successMessage && (
           <FormError
-            type="info"
+            type="success"
             message={successMessage}
+            autoDismiss={true}
+            autoDismissDelay={4000}
+            size="md"
           />
         )}
 
-        {/* Error Message */}
+        {/* Error Message with enhanced feedback */}
         {error && (
           <FormError
             type="error"
             message={error}
+            dismissible={true}
+            size="md"
+            onDismiss={() => setError(null)}
+          />
+        )}
+
+        {/* Retry count warning for multiple failed attempts */}
+        {retryCount > 2 && !error?.includes('Network') && (
+          <FormError
+            type="warning"
+            message={`Having trouble logging in? Try resetting your password or contact support if the problem persists.`}
+            size="sm"
           />
         )}
       </div>

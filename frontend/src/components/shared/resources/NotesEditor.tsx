@@ -100,62 +100,77 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200">
-      <div className="p-4 border-b border-gray-200">
+    <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-stone-200">
+      <div className="p-6 border-b border-stone-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {existingNote ? 'Edit Note' : 'Add New Note'}
-          </h3>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-lg flex items-center justify-center">
+              📝
+            </div>
+            <h3 className="text-xl font-bold text-stone-800">
+              {existingNote ? '✏️ Edit Note' : '📝 Add New Note'}
+            </h3>
+          </div>
           <button
             onClick={onCancel}
-            className="p-1 rounded-md hover:bg-gray-100"
+            className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-stone-500" />
           </button>
         </div>
-        
+
         {anchorPoint && (
-          <div className="mt-2 text-sm text-gray-500">
-            Note anchored to: {anchorPoint}
+          <div className="mt-3 p-3 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/20">
+            <div className="flex items-center gap-2">
+              <span className="text-[#27AE60]">📍</span>
+              <span className="text-sm font-medium text-[#27AE60]">
+                Note anchored to: <span className="font-semibold">{anchorPoint}</span>
+              </span>
+            </div>
+            {sectionText && (
+              <p className="text-xs text-stone-600 mt-1 italic">
+                "{sectionText.substring(0, 100)}{sectionText.length > 100 ? '...' : ''}"
+              </p>
+            )}
           </div>
         )}
       </div>
-      
-      <div className="p-4">
+
+      <div className="p-6">
         {/* Rich Text Toolbar */}
-        <div className="mb-3 flex items-center gap-1 p-2 bg-gray-50 rounded-md border border-gray-200">
+        <div className="mb-4 flex items-center gap-1 p-3 bg-gradient-to-r from-stone-50 to-neutral-50 rounded-lg border border-stone-200">
           <button
             type="button"
             onClick={() => applyFormat('bold')}
-            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            className="p-2 rounded-md hover:bg-[#27AE60]/10 transition-colors"
             title="Bold"
           >
-            <Bold className="h-4 w-4 text-gray-600" />
+            <Bold className="h-4 w-4 text-stone-600" />
           </button>
           <button
             type="button"
             onClick={() => applyFormat('italic')}
-            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            className="p-2 rounded-md hover:bg-[#27AE60]/10 transition-colors"
             title="Italic"
           >
-            <Italic className="h-4 w-4 text-gray-600" />
+            <Italic className="h-4 w-4 text-stone-600" />
           </button>
           <button
             type="button"
             onClick={() => applyFormat('underline')}
-            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            className="p-2 rounded-md hover:bg-[#27AE60]/10 transition-colors"
             title="Underline"
           >
-            <Underline className="h-4 w-4 text-gray-600" />
+            <Underline className="h-4 w-4 text-stone-600" />
           </button>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="w-px h-6 bg-stone-300 mx-2" />
           <button
             type="button"
             onClick={() => applyFormat('list')}
-            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            className="p-2 rounded-md hover:bg-[#27AE60]/10 transition-colors"
             title="Bullet List"
           >
-            <List className="h-4 w-4 text-gray-600" />
+            <List className="h-4 w-4 text-stone-600" />
           </button>
           <button
             type="button"
@@ -163,55 +178,55 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
               const url = prompt('Enter URL:');
               if (url) applyFormat('link', url);
             }}
-            className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+            className="p-2 rounded-md hover:bg-[#27AE60]/10 transition-colors"
             title="Add Link"
           >
-            <Link2 className="h-4 w-4 text-gray-600" />
+            <Link2 className="h-4 w-4 text-stone-600" />
           </button>
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="note-content" className="block text-sm font-medium text-gray-700 mb-2">
-            Note Content
+        <div className="mb-6">
+          <label htmlFor="note-content" className="block text-sm font-semibold text-stone-800 mb-3">
+            ✍️ Note Content
           </label>
           <textarea
             ref={textareaRef}
             id="note-content"
             rows={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] font-mono text-sm bg-white/80 transition-all duration-200"
             placeholder="Write your note here... Use Markdown formatting: **bold**, *italic*, - list items"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Supports Markdown: **bold**, *italic*, - lists, [links](url)
+          <p className="mt-2 text-xs text-stone-600 bg-stone-50 px-3 py-2 rounded-md border border-stone-200">
+            💡 Supports Markdown: **bold**, *italic*, - lists, [links](url)
           </p>
         </div>
 
         {/* Tags Section */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tags
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-stone-800 mb-3">
+            🏷️ Tags
           </label>
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {tags.map((tag, index) => (
               <span
                 key={index}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 text-[#27AE60] border border-[#27AE60]/30 rounded-full text-sm font-medium"
               >
                 <Hash className="h-3 w-3" />
                 {tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="ml-1 hover:text-blue-600"
+                  className="ml-1 hover:text-[#27AE60]/80 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <input
               type="text"
               value={newTag}
@@ -222,79 +237,83 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
                   handleAddTag();
                 }
               }}
-              placeholder="Add tag..."
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Add a tag..."
+              className="flex-1 px-4 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] bg-white/80 transition-all duration-200"
             />
             <button
               type="button"
               onClick={handleAddTag}
-              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm transition-colors"
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors font-medium"
             >
               <Tag className="h-4 w-4" />
             </button>
           </div>
         </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => setIsPublic(!isPublic)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
-                isPublic 
-                  ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              {isPublic ? (
-                <>
-                  <Users className="h-4 w-4" />
-                  Shared with chapter
-                </>
-              ) : (
-                <>
-                  <Lock className="h-4 w-4" />
-                  Private
-                </>
-              )}
-            </button>
-            
-            <div className="ml-3 text-sm text-gray-500">
-              {isPublic ? (
-                <span>Visible to chapter members</span>
-              ) : (
-                <span>Only visible to you</span>
-              )}
+
+        {/* Privacy Settings */}
+        <div className="mb-6 p-4 bg-gradient-to-r from-stone-50 to-neutral-50 rounded-lg border border-stone-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setIsPublic(!isPublic)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isPublic
+                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-200 shadow-sm'
+                    : 'bg-gradient-to-r from-stone-100 to-neutral-100 text-stone-700 border border-stone-300 shadow-sm'
+                }`}
+              >
+                {isPublic ? (
+                  <>
+                    <Users className="h-4 w-4" />
+                    👥 Shared with Chapter
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    🔒 Private Note
+                  </>
+                )}
+              </button>
+
+              <div className="text-sm text-stone-600">
+                {isPublic ? (
+                  <span>📖 Visible to all chapter members for collaborative learning</span>
+                ) : (
+                  <span>👤 Only visible to you for personal reflection</span>
+                )}
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!content.trim() || isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Note
-                </>
-              )}
-            </button>
-          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2.5 text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg font-medium transition-colors"
+          >
+            ❌ Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!content.trim() || isSaving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-900"></div>
+                💾 Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                💾 Save Note
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

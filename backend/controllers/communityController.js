@@ -13,10 +13,13 @@ exports.uploadMedia = async (req, res) => {
     const uploadsDir = path.join(__dirname, '../uploads/community');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-    // If multer already saved file buffer in req.file.path (diskStorage), use that; otherwise write buffer
+    // If multer already saved file to req.file.path (diskStorage), move it to community folder
     let destPath;
     if (req.file.path) {
-      destPath = req.file.path;
+      // Move file from uploads/ to uploads/community/
+      const fileName = path.basename(req.file.path);
+      destPath = path.join(uploadsDir, fileName);
+      fs.renameSync(req.file.path, destPath);
     } else if (req.file.buffer) {
       const uniqueName = `${Date.now()}-${req.file.originalname}`;
       destPath = path.join(uploadsDir, uniqueName);
@@ -25,8 +28,8 @@ exports.uploadMedia = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Uploaded file not available' });
     }
 
-    // Ensure public URL path
-    const publicUrl = `/uploads/community/${path.basename(destPath)}`;
+    // Ensure public URL path - return full backend URL
+    const publicUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/community/${path.basename(destPath)}`;
 
     return res.json({ success: true, data: { url: publicUrl } });
   } catch (error) {
@@ -77,7 +80,7 @@ exports.createPost = async (req, res) => {
     const authorAvatar = user ? user.profilePicture || null : null;
 
     const [inserted] = await db('community_posts').insert({
-      user_id: user ? user.id : null,
+      user_id: user ? user.userId : null,
       author_name: authorName,
       author_avatar: authorAvatar,
       content,
@@ -96,10 +99,601 @@ exports.createPost = async (req, res) => {
 
 exports.fetchPosts = async (req, res) => {
   try {
+    console.log('🔄 fetchPosts called');
+    console.log('👤 User:', req.user ? req.user.userId : 'No user');
+    console.log('📡 Request headers:', req.headers.authorization ? 'Has token' : 'No token');
+
     const posts = await db('community_posts').select('*').orderBy('created_at', 'desc').limit(200);
-    return res.json({ success: true, data: { posts } });
+    console.log('📊 Posts found:', posts.length);
+    console.log('📋 Sample post:', posts[0] || 'No posts');
+
+    const response = { success: true, data: { posts } };
+    console.log('📤 Sending response:', response);
+
+    return res.json(response);
   } catch (error) {
-    console.error('fetchPosts error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to fetch posts' });
+    console.error('❌ fetchPosts error:', error);
+    console.error('❌ Error stack:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch posts',
+      error: error.message
+    });
+  }
+};
+
+exports.deletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Find the post
+    const post = await db('community_posts').where({ id }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Check if user owns the post
+    if (post.user_id !== user.userId) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own posts' });
+    }
+
+    // Delete the post
+    await db('community_posts').where({ id }).del();
+
+    // If there's media, we could delete the file here, but for now we'll leave it
+
+    return res.json({ success: true, message: 'Post deleted successfully' });
+  } catch (error) {
+    console.error('deletePost error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete post' });
+  }
+};
+
+exports.updatePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const user = req.user;
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Content is required' });
+    }
+
+    // Find the post
+    const post = await db('community_posts').where({ id }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Check if user owns the post
+    if (post.user_id !== user.userId) {
+      return res.status(403).json({ success: false, message: 'You can only edit your own posts' });
+    }
+
+    // Update the post
+    const [updated] = await db('community_posts')
+      .where({ id })
+      .update({
+        content,
+        updated_at: new Date()
+      })
+      .returning('*');
+
+    return res.json({ success: true, data: { post: updated }, message: 'Post updated successfully' });
+  } catch (error) {
+    console.error('updatePost error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update post' });
+  }
+};
+
+// Comments functionality
+exports.addComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content, parentCommentId } = req.body;
+    const user = req.user;
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Comment content is required' });
+    }
+
+    // Check if post exists
+    const post = await db('community_posts').where({ id: postId }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    const authorName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Anonymous';
+    const authorAvatar = user ? user.profilePicture || null : null;
+
+    // Insert comment
+    const [comment] = await db('community_post_comments').insert({
+      post_id: postId,
+      author_id: user ? user.userId : null,
+      author_name: authorName,
+      author_avatar: authorAvatar,
+      content,
+      parent_comment_id: parentCommentId || null,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).returning('*');
+
+    // Update comment count on post
+    await db('community_posts')
+      .where({ id: postId })
+      .increment('comments', 1);
+
+    return res.json({ success: true, data: { comment } });
+  } catch (error) {
+    console.error('addComment error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to add comment' });
+  }
+};
+
+exports.fetchComments = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // Check if post exists
+    const post = await db('community_posts').where({ id: postId }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Fetch comments (parent comments first, then replies)
+    const comments = await db('community_post_comments')
+      .where({ post_id: postId })
+      .orderBy('created_at', 'asc')
+      .select('*');
+
+    // Organize comments into parent and replies
+    const parentComments = comments.filter(c => !c.parent_comment_id);
+    const replies = comments.filter(c => c.parent_comment_id);
+
+    // Attach replies to parent comments
+    const commentsWithReplies = parentComments.map(parent => ({
+      ...parent,
+      replies: replies.filter(reply => reply.parent_comment_id === parent.id)
+    }));
+
+    return res.json({ success: true, data: { comments: commentsWithReplies } });
+  } catch (error) {
+    console.error('fetchComments error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch comments' });
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const user = req.user;
+
+    // Find the comment
+    const comment = await db('community_post_comments').where({ id: commentId }).first();
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    // Check if user owns the comment
+    if (comment.author_id !== user.userId) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own comments' });
+    }
+
+    // Get all replies to this comment (and their replies recursively)
+    const getAllReplies = async (parentId) => {
+      const replies = await db('community_post_comments').where({ parent_comment_id: parentId });
+      let allReplies = [...replies];
+      for (const reply of replies) {
+        const nestedReplies = await getAllReplies(reply.id);
+        allReplies = allReplies.concat(nestedReplies);
+      }
+      return allReplies;
+    };
+
+    const allReplies = await getAllReplies(commentId);
+    const totalCommentsToDelete = 1 + allReplies.length; // Include the parent comment
+
+    // Delete comment and all its replies
+    await db('community_post_comments').where({ id: commentId }).del();
+    if (allReplies.length > 0) {
+      await db('community_post_comments').whereIn('id', allReplies.map(r => r.id)).del();
+    }
+
+    // Update comment count on post
+    await db('community_posts')
+      .where({ id: comment.post_id })
+      .decrement('comments', totalCommentsToDelete);
+
+    return res.json({ success: true, message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('deleteComment error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete comment' });
+  }
+};
+
+// Post sharing functionality
+exports.sharePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { sharedWith, chapterId, message, shareType } = req.body;
+    const user = req.user;
+
+    // Check if post exists
+    const post = await db('community_posts').where({ id: postId }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Validate share type
+    const validShareTypes = ['user', 'chapter', 'public'];
+    if (!validShareTypes.includes(shareType)) {
+      return res.status(400).json({ success: false, message: 'Invalid share type' });
+    }
+
+    // Validate sharing targets based on type
+    if (shareType === 'user' && !sharedWith) {
+      return res.status(400).json({ success: false, message: 'sharedWith is required for user shares' });
+    }
+
+    if (shareType === 'chapter' && !chapterId) {
+      return res.status(400).json({ success: false, message: 'chapterId is required for chapter shares' });
+    }
+
+    // Prevent duplicate shares
+    const existingShare = await db('community_post_shares')
+      .where({
+        post_id: postId,
+        shared_by: user.userId,
+        shared_with: shareType === 'user' ? sharedWith : null,
+        chapter_id: shareType === 'chapter' ? chapterId : null
+      })
+      .first();
+
+    if (existingShare) {
+      return res.status(400).json({ success: false, message: 'Post already shared with this target' });
+    }
+
+    // Insert share record
+    const [share] = await db('community_post_shares').insert({
+      post_id: postId,
+      shared_by: user.userId,
+      shared_with: shareType === 'user' ? sharedWith : null,
+      chapter_id: shareType === 'chapter' ? chapterId : null,
+      message: message || null,
+      share_type: shareType,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).returning('*');
+
+    // Update share count on post
+    await db('community_posts')
+      .where({ id: postId })
+      .increment('shares', 1);
+
+    return res.json({ success: true, data: { share } });
+  } catch (error) {
+    console.error('sharePost error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to share post' });
+  }
+};
+
+exports.getSharedPosts = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    // Get posts shared with this user or their chapter
+    const sharedPosts = await db('community_post_shares as s')
+      .join('community_posts as p', 's.post_id', 'p.id')
+      .leftJoin('users as u', 'p.author_id', 'u.id')
+      .where(function() {
+        this.where('s.shared_with', user.userId)
+            .orWhere('s.chapter_id', user.chapter_id)
+            .orWhere('s.share_type', 'public');
+      })
+      .where('s.shared_by', '!=', user.userId) // Don't show posts user shared themselves
+      .select([
+        'p.*',
+        'u.first_name as author_first_name',
+        'u.last_name as author_last_name',
+        'u.profile_picture as author_avatar',
+        's.message as share_message',
+        's.created_at as shared_at'
+      ])
+      .orderBy('s.created_at', 'desc')
+      .limit(100);
+
+    // Format the response
+    const formattedPosts = sharedPosts.map(post => ({
+      id: post.id,
+      author_id: post.author_id,
+      author_name: `${post.author_first_name || ''} ${post.author_last_name || ''}`.trim() || 'Anonymous',
+      author_avatar: post.author_avatar,
+      content: post.content,
+      media_type: post.media_type,
+      media_url: post.media_url,
+      created_at: post.created_at,
+      likes: post.likes,
+      comments: post.comments,
+      shares: post.shares,
+      liked_by_user: false, // Will be set by frontend based on user's likes
+      share_message: post.share_message,
+      shared_at: post.shared_at
+    }));
+
+    return res.json({ success: true, data: { posts: formattedPosts } });
+  } catch (error) {
+    console.error('getSharedPosts error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch shared posts' });
+  }
+};
+
+exports.getPostShares = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // Check if post exists
+    const post = await db('community_posts').where({ id: postId }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Get share details
+    const shares = await db('community_post_shares as s')
+      .leftJoin('users as u', 's.shared_by', 'u.id')
+      .where('s.post_id', postId)
+      .select([
+        's.id',
+        's.share_type',
+        's.message',
+        's.created_at',
+        'u.first_name as sharer_first_name',
+        'u.last_name as sharer_last_name',
+        'u.profile_picture as sharer_avatar'
+      ])
+      .orderBy('s.created_at', 'desc');
+
+    const formattedShares = shares.map(share => ({
+      id: share.id,
+      share_type: share.share_type,
+      message: share.message,
+      created_at: share.created_at,
+      sharer_name: `${share.sharer_first_name || ''} ${share.sharer_last_name || ''}`.trim() || 'Anonymous',
+      sharer_avatar: share.sharer_avatar
+    }));
+
+    return res.json({ success: true, data: { shares: formattedShares } });
+  } catch (error) {
+    console.error('getPostShares error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch post shares' });
+  }
+};
+
+// Search and trending functionality
+exports.searchPosts = async (req, res) => {
+  try {
+    const { q, filter = 'all', sort = 'newest' } = req.query;
+    const user = req.user;
+
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Search query is required' });
+    }
+
+    let query = db('community_posts')
+      .leftJoin('users as u', 'community_posts.author_id', 'u.id')
+      .select([
+        'community_posts.*',
+        'u.first_name as author_first_name',
+        'u.last_name as author_last_name',
+        'u.profile_picture as author_avatar'
+      ]);
+
+    // Add search filter
+    const searchTerm = `%${q.trim()}%`;
+    query = query.where(function() {
+      this.where('community_posts.content', 'ilike', searchTerm)
+          .orWhere('u.first_name', 'ilike', searchTerm)
+          .orWhere('u.last_name', 'ilike', searchTerm);
+    });
+
+    // Add content type filter
+    if (filter !== 'all') {
+      if (filter === 'text') {
+        query = query.whereNull('media_type');
+      } else {
+        query = query.where('media_type', filter);
+      }
+    }
+
+    // Add sorting
+    switch (sort) {
+      case 'oldest':
+        query = query.orderBy('community_posts.created_at', 'asc');
+        break;
+      case 'most_liked':
+        query = query.orderBy('community_posts.likes', 'desc');
+        break;
+      case 'most_commented':
+        query = query.orderBy('community_posts.comments', 'desc');
+        break;
+      case 'newest':
+      default:
+        query = query.orderBy('community_posts.created_at', 'desc');
+        break;
+    }
+
+    const posts = await query.limit(100);
+
+    // Format posts
+    const formattedPosts = posts.map(post => ({
+      id: post.id,
+      author_id: post.author_id,
+      author_name: `${post.author_first_name || ''} ${post.author_last_name || ''}`.trim() || 'Anonymous',
+      author_avatar: post.author_avatar,
+      content: post.content,
+      media_type: post.media_type,
+      media_url: post.media_url,
+      created_at: post.created_at,
+      likes: post.likes,
+      comments: post.comments,
+      shares: post.shares,
+      liked_by_user: false // Will be set by frontend if needed
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        posts: formattedPosts,
+        searchQuery: q,
+        filter,
+        sort,
+        total: formattedPosts.length
+      }
+    });
+  } catch (error) {
+    console.error('searchPosts error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to search posts' });
+  }
+};
+
+exports.getTrendingPosts = async (req, res) => {
+  try {
+    const { period = '24h', limit = 20 } = req.query;
+
+    // Calculate time range based on period
+    const now = new Date();
+    let startDate;
+
+    switch (period) {
+      case '1h':
+        startDate = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case '6h':
+        startDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        break;
+      case '24h':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate trending score based on recent engagement
+    const posts = await db('community_posts')
+      .leftJoin('users as u', 'community_posts.author_id', 'u.id')
+      .select([
+        'community_posts.*',
+        'u.first_name as author_first_name',
+        'u.last_name as author_last_name',
+        'u.profile_picture as author_avatar',
+        // Calculate trending score: likes + comments * 2 + shares * 3 + (age factor)
+        db.raw(`
+          (likes + (comments * 2) + (shares * 3)) *
+          GREATEST(0.1, 1 - EXTRACT(EPOCH FROM (NOW() - created_at)) / (24 * 60 * 60)) as trending_score
+        `)
+      ])
+      .where('community_posts.created_at', '>=', startDate)
+      .orderBy('trending_score', 'desc')
+      .limit(parseInt(limit));
+
+    // Format posts
+    const formattedPosts = posts.map(post => ({
+      id: post.id,
+      author_id: post.author_id,
+      author_name: `${post.author_first_name || ''} ${post.author_last_name || ''}`.trim() || 'Anonymous',
+      author_avatar: post.author_avatar,
+      content: post.content,
+      media_type: post.media_type,
+      media_url: post.media_url,
+      created_at: post.created_at,
+      likes: post.likes,
+      comments: post.comments,
+      shares: post.shares,
+      liked_by_user: false, // Will be set by frontend if needed
+      trending_score: Math.round(post.trending_score * 100) / 100
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        posts: formattedPosts,
+        period,
+        limit: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('getTrendingPosts error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get trending posts' });
+  }
+};
+
+exports.getFeedStats = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Get basic stats
+    const [
+      totalPosts,
+      totalLikes,
+      totalComments,
+      totalShares,
+      todayPosts
+    ] = await Promise.all([
+      db('community_posts').count('id as count').first(),
+      db('community_posts').sum('likes as total').first(),
+      db('community_posts').sum('comments as total').first(),
+      db('community_posts').sum('shares as total').first(),
+      db('community_posts')
+        .whereRaw('DATE(created_at) = CURRENT_DATE')
+        .count('id as count')
+        .first()
+    ]);
+
+    // Get user's engagement stats if authenticated
+    let userStats = null;
+    if (user) {
+      const [
+        userPosts,
+        userLikes,
+        userComments
+      ] = await Promise.all([
+        db('community_posts').where({ author_id: user.userId }).count('id as count').first(),
+        db('community_post_likes').where({ user_id: user.userId }).count('id as count').first(),
+        db('community_post_comments').where({ author_id: user.userId }).count('id as count').first()
+      ]);
+
+      userStats = {
+        posts: parseInt(userPosts.count),
+        likes: parseInt(userLikes.count),
+        comments: parseInt(userComments.count)
+      };
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        global: {
+          totalPosts: parseInt(totalPosts.count),
+          totalLikes: parseInt(totalLikes.total || 0),
+          totalComments: parseInt(totalComments.total || 0),
+          totalShares: parseInt(totalShares.total || 0),
+          todayPosts: parseInt(todayPosts.count)
+        },
+        user: userStats
+      }
+    });
+  } catch (error) {
+    console.error('getFeedStats error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to get feed stats' });
   }
 };

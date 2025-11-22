@@ -76,6 +76,12 @@ export const resourcesApi = {
     return response.data;
   },
 
+  // Explain a specific section / selected text using AI
+  explainSection: async (resourceId: number, text: string, type: string = 'brief'): Promise<{ success: boolean; data: { summary: AISummary } }> => {
+    const response = await apiClient.post(`/resources/${resourceId}/explain`, { text, type });
+    return response.data;
+  },
+
   // Export content (REQUIREMENT: Export notes/summaries)
   exportContent: async (resourceId: number, type: string = 'combined', format: string = 'pdf'): Promise<any> => {
     const response = await apiClient.get(`/resources/${resourceId}/export?type=${type}&format=${format}`);
@@ -86,6 +92,23 @@ export const resourcesApi = {
   shareResource: async (resourceId: number, shareType: string = 'view', message?: string): Promise<{ success: boolean; message: string; data: any }> => {
     const response = await apiClient.post(`/resources/${resourceId}/share`, { shareType, message });
     return response.data;
+  },
+
+  // Request access to a resource (dedicated endpoint if available)
+  requestAccess: async (resourceId: number, message: string): Promise<{ success: boolean; message?: string; data?: any }> => {
+    try {
+      // Preferred dedicated endpoint
+      const response = await apiClient.post(`/resources/${resourceId}/request-access`, { message });
+      return response.data;
+    } catch (err: any) {
+      // Fallback: attempt to use shareResource with a 'request_access' type
+      try {
+        const fallback = await apiClient.post(`/resources/${resourceId}/share`, { shareType: 'request_access', message });
+        return fallback.data;
+      } catch (err2: any) {
+        throw err2;
+      }
+    }
   },
 
   // Share note with chapter (REQUIREMENT: Share notes with chapter members)

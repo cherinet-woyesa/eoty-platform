@@ -164,3 +164,84 @@ export const useLeaderboard = (type: 'chapter' | 'global' = 'chapter', period: '
 
   return { leaderboard, userRank, loading, error, updateAnonymity, refetch: fetchLeaderboard };
 };
+
+// Topic detail hook
+export const useTopicDetail = (topicId: number) => {
+  const [topic, setTopic] = useState<ForumTopic | null>(null);
+  const [replies, setReplies] = useState<ForumPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (topicId) {
+      fetchTopicDetail();
+    }
+  }, [topicId]);
+
+  const fetchTopicDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await forumsApi.getTopic(topicId);
+      setTopic(response.data.topic);
+      setReplies(response.data.replies || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch topic');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const likeTopic = async () => {
+    if (!topic) return;
+    try {
+      await forumsApi.likeTopic(topic.id);
+      // Update local state
+      setTopic(prev => prev ? {
+        ...prev,
+        user_liked: !prev.user_liked,
+        likes_count: prev.user_liked ? (prev.likes_count || 0) - 1 : (prev.likes_count || 0) + 1
+      } : null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to like topic');
+    }
+  };
+
+  const replyToTopic = async (content: string) => {
+    if (!topic) return;
+    try {
+      await forumsApi.createReply(topic.id, { content });
+      // Refresh topic to get updated replies
+      fetchTopicDetail();
+    } catch (err: any) {
+      setError(err.message || 'Failed to post reply');
+    }
+  };
+
+  const shareTopic = async () => {
+    if (!topic) return;
+    try {
+      const response = await forumsApi.shareTopic(topic.id);
+      // Copy share link to clipboard
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(response.data.shareLink);
+      }
+      return response.data;
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate share link');
+      throw err;
+    }
+  };
+
+  const reportTopic = async (reason: string, details?: string) => {
+    if (!topic) return;
+    try {
+      await forumsApi.reportTopic(topic.id, reason, details);
+    } catch (err: any) {
+      setError(err.message || 'Failed to report topic');
+      throw err;
+    }
+  };
+
+  return { topic, replies, loading, error, likeTopic, replyToTopic, shareTopic, reportTopic, refetch: fetchTopicDetail };
+};

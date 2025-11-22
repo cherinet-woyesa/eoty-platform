@@ -7,7 +7,7 @@ import { chaptersApi } from '@/services/api/chapters';
 import FormInput from './FormInput';
 import FormError from './FormError';
 import LoadingButton from './LoadingButton';
-import { errorMessages } from '@/utils/errorMessages';
+import { errorMessages, extractErrorMessage } from '@/utils/errorMessages';
 
 // Password strength calculation
 const calculatePasswordStrength = (password: string): number => {
@@ -232,19 +232,9 @@ const RegisterForm: React.FC = () => {
       }, 5000);
     } catch (err: any) {
       console.error('Registration error:', err);
-      
-      // Map error to user-friendly message
-      let errorMessage = errorMessages.DEFAULT || 'Something went wrong. Please try again.';
-      
-      if (err.response?.status) {
-        const statusCode = err.response.status.toString();
-        errorMessage = errorMessages[statusCode] || errorMessage;
-      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
-        errorMessage = errorMessages.NETWORK_ERROR;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
+
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -313,8 +303,9 @@ const RegisterForm: React.FC = () => {
         {/* Success Message */}
         {successMessage && (
           <FormError
-            type="info"
+            type="success"
             message={successMessage}
+            size="md"
           />
         )}
 
@@ -323,8 +314,20 @@ const RegisterForm: React.FC = () => {
           <FormError
             type="error"
             message={error}
-            dismissible
+            dismissible={true}
             onDismiss={() => setError(null)}
+            size="md"
+          />
+        )}
+
+        {/* Chapter loading error */}
+        {chapterError && (
+          <FormError
+            type="warning"
+            message="Unable to load chapters. You can still register, but please contact support if you encounter issues."
+            size="sm"
+            dismissible={true}
+            onDismiss={() => setChapterError(null)}
           />
         )}
       </div>

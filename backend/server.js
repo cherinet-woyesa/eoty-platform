@@ -7,23 +7,10 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config();
 
-// Ensure upload directories exist
+// In Google Cloud, we use Cloud Storage instead of local directories
+// Upload directories are no longer needed locally
 const ensureUploadDirs = () => {
-  const dirs = [
-    'uploads/videos',
-    'uploads/subtitles',
-    'uploads/thumbnails',
-    'uploads/profiles',
-    'uploads/landing-videos'
-  ];
-  
-  dirs.forEach(dir => {
-    const fullPath = path.join(__dirname, dir);
-    if (!fs.existsSync(fullPath)) {
-      fs.mkdirSync(fullPath, { recursive: true });
-      console.log(`Created directory: ${fullPath}`);
-    }
-  });
+  console.log('Using Google Cloud Storage for file uploads - no local directories needed');
 };
 
 const PORT = process.env.PORT || 5000;
@@ -38,6 +25,12 @@ websocketService.init(server);
 
 // Initialize uptime monitoring service (REQUIREMENT: 99% uptime tracking)
 const uptimeMonitoringService = require('./services/uptimeMonitoringService');
+
+// Initialize scheduler service (boundary conditions and auto-archiving)
+const schedulerService = require('./services/schedulerService');
+
+// Initialize privacy service for user privacy settings
+const privacyService = require('./services/privacyService');
 
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n=== EOTY Server Running ===`);
@@ -65,6 +58,29 @@ server.listen(PORT, '0.0.0.0', async () => {
     console.log(`Privacy Compliance: Active (data retention policies)`);
   } catch (error) {
     console.error('Failed to start privacy compliance service:', error);
+  }
+
+  // Start scheduler service (REQUIREMENT: Auto-archiving, real-time updates)
+  try {
+    schedulerService.start();
+    console.log(`Scheduler Service: Active (auto-archiving, real-time updates)`);
+  } catch (error) {
+    console.error('Failed to start scheduler service:', error);
+  }
+
+  // Initialize privacy settings for existing users (REQUIREMENT: Youth privacy enforcement)
+  try {
+    const db = require('./config/database');
+    const users = await db('users').select('id');
+
+    for (const user of users) {
+      await privacyService.initializeUserPrivacy(user.id);
+    }
+
+    console.log(`Privacy Settings: Initialized (${users.length} users)`);
+  } catch (error) {
+    console.error('Failed to initialize privacy settings:', error);
+    // Don't fail server startup if privacy init fails
   }
   
   // Start social features service (REQUIREMENT: FR4 - Real-time updates)

@@ -36,7 +36,6 @@ export const errorMessages: ErrorMessageMap = {
   
   // Validation errors
   'INVALID_EMAIL': 'Please enter a valid email address.',
-  'WEAK_PASSWORD': 'Password must be at least 6 characters long.',
   'PASSWORD_MISMATCH': 'Passwords do not match.',
   'REQUIRED_FIELD': 'This field is required.',
   'INVALID_INPUT': 'Please check your input and try again.',
@@ -46,7 +45,37 @@ export const errorMessages: ErrorMessageMap = {
   'INVALID_CHAPTER': 'Please select a valid chapter.',
   'INVALID_NAME': 'Please enter a valid name (minimum 2 characters).',
   'PASSWORD_TOO_SHORT': 'Password must be at least 6 characters long.',
-  
+  'EMAIL_EXISTS': 'This email address is already registered. Please try logging in instead.',
+  'WEAK_PASSWORD': 'Password is too weak. Please choose a stronger password.',
+
+  // Password reset specific errors
+  'INVALID_RESET_TOKEN': 'This password reset link is invalid or has expired.',
+  'EXPIRED_RESET_TOKEN': 'This password reset link has expired. Please request a new one.',
+  'RESET_TOKEN_USED': 'This password reset link has already been used.',
+  'EMAIL_NOT_FOUND': 'No account found with this email address.',
+
+  // Email verification errors
+  'INVALID_VERIFICATION_TOKEN': 'This verification link is invalid or has expired.',
+  'EMAIL_ALREADY_VERIFIED': 'This email address is already verified.',
+  'VERIFICATION_EXPIRED': 'This verification link has expired. Please request a new one.',
+
+  // Social login errors
+  'GOOGLE_AUTH_FAILED': 'Google authentication failed. Please try again.',
+  'FACEBOOK_AUTH_FAILED': 'Facebook authentication failed. Please try again.',
+  'SOCIAL_ACCOUNT_EXISTS': 'An account with this email already exists. Please log in with your password.',
+  'GOOGLE_ACCOUNT_NO_PASSWORD': 'This account was created with Google. Please use "Continue with Google" to sign in.',
+
+  // Account status errors
+  'ACCOUNT_SUSPENDED': 'Your account has been suspended. Please contact support.',
+  'ACCOUNT_LOCKED': 'Your account is temporarily locked due to too many failed attempts.',
+  'EMAIL_NOT_VERIFIED': 'Please verify your email address before logging in.',
+  'AUTHENTICATION_REQUIRED': 'Authentication required. Please sign in to continue.',
+
+  // Network and server errors
+  'MAINTENANCE': 'The service is currently under maintenance. Please try again later.',
+  'RATE_LIMITED': 'Too many requests. Please wait a few minutes before trying again.',
+  'SESSION_EXPIRED': 'Your session has expired. Please log in again.',
+
   // Generic fallback
   'UNKNOWN_ERROR': 'Something went wrong. Please try again.',
   'DEFAULT': 'An unexpected error occurred. Please try again.',
@@ -77,16 +106,21 @@ export const extractErrorMessage = (error: any): string => {
     const status = error.response.status;
     const data = error.response.data;
     
+    // Check for user-friendly message first (highest priority)
+    if (data?.userMessage) {
+      return data.userMessage;
+    }
+
     // Check for custom error code in response
     if (data?.code) {
       return getErrorMessage(data.code, data.message);
     }
-    
+
     // Check for error message in response
     if (data?.error) {
       return getErrorMessage(data.error);
     }
-    
+
     if (data?.message) {
       return data.message;
     }

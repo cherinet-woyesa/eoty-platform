@@ -200,9 +200,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Cache-Control');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
     
-    // Cache control for videos
+    // Video streaming headers
     if (path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.ogg')) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Accept-Ranges', 'bytes');
+
+      // Set appropriate content type based on file extension
+      if (path.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      } else if (path.endsWith('.webm')) {
+        res.setHeader('Content-Type', 'video/webm');
+      } else if (path.endsWith('.ogg')) {
+        res.setHeader('Content-Type', 'video/ogg');
+      }
     }
   }
 }));

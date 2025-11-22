@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '@/services/api';
 import { setAuthToken } from '@/services/api/apiClient';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 interface User {
   id: string;
@@ -53,6 +54,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   isLoading: boolean;
   loginWithGoogle: (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => Promise<void>;
+  handleOAuthLogin: (loginResult: { user: any; token: string }) => Promise<void>;
   updateUserPreferences: (preferences: Partial<User['preferences']>) => Promise<void>;
   lastActivity: Date;
 }
@@ -234,32 +236,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      
-      let errorMessage = 'Login failed';
-      const status = error.response?.status;
 
-      switch (status) {
-        case 401:
-          errorMessage = 'Invalid email or password';
-          break;
-        case 403:
-          errorMessage = 'Account is deactivated. Please contact administrator.';
-          break;
-        case 422:
-          errorMessage = 'Validation error. Please check your input.';
-          break;
-        case 429:
-          errorMessage = 'Too many login attempts. Please try again later.';
-          break;
-        case 500:
-          errorMessage = 'Server error. Please try again later.';
-          break;
-        case 0:
-          errorMessage = 'Network error. Please check your connection.';
-          break;
-        default:
-          errorMessage = error.response?.data?.message || error.message || 'Login failed';
-      }
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(error);
 
       throw new Error(errorMessage);
     } finally {
@@ -303,19 +282,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      
-      // Handle specific error cases
-      if (error.response?.status === 409) {
-        throw new Error('An account with this email already exists');
-      }
-      if (error.response?.status === 422) {
-        const errors = error.response.data.errors;
-        if (errors) {
-          throw new Error(Object.values(errors).flat().join(', '));
-        }
-      }
-      
-      throw error;
+
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(error);
+
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -349,7 +320,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      throw error;
+
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(error);
+
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle OAuth login result (for popup-based OAuth flows)
+  const handleOAuthLogin = async (loginResult: { user: any; token: string }) => {
+    try {
+      setIsLoading(true);
+      const { token, user } = loginResult;
+
+      setToken(token);
+      setUser(user);
+      setLastActivity(new Date());
+
+      setAuthToken(token);
+
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+
+      await loadPermissions();
+
+    } catch (error: any) {
+      console.error('OAuth login error:', error);
+
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(error);
+
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -557,6 +561,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     refreshUser,
     isLoading,
     loginWithGoogle,
+    handleOAuthLogin,
     updateUserPreferences,
     lastActivity
   };

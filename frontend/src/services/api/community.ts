@@ -43,7 +43,7 @@ export const forumsApi = {
   },
 
   // Get topic with posts
-  getTopic: async (topicId: number, page: number = 1, limit: number = 50): Promise<{ success: boolean; data: { topic: ForumTopic; posts: ForumPost[] } }> => {
+  getTopic: async (topicId: number, page: number = 1, limit: number = 50): Promise<{ success: boolean; data: { topic: ForumTopic; replies: ForumPost[] } }> => {
     const response = await apiClient.get(`/forums/topics/${topicId}?page=${page}&limit=${limit}`);
     return response.data;
   },
@@ -51,6 +51,30 @@ export const forumsApi = {
   // Create post (reply)
   createPost: async (postData: CreatePostRequest): Promise<{ success: boolean; data: { post: ForumPost } }> => {
     const response = await apiClient.post('/forums/posts', postData);
+    return response.data;
+  },
+
+  // Create reply to topic
+  createReply: async (topicId: number, replyData: { content: string }): Promise<{ success: boolean; data: { reply: ForumPost } }> => {
+    const response = await apiClient.post(`/forums/topics/${topicId}/replies`, replyData);
+    return response.data;
+  },
+
+  // Like a topic
+  likeTopic: async (topicId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/forums/topics/${topicId}/like`);
+    return response.data;
+  },
+
+  // Share a topic
+  shareTopic: async (topicId: number): Promise<{ success: boolean; data: { shareLink: string; topicTitle: string } }> => {
+    const response = await apiClient.post(`/forums/topics/${topicId}/share`);
+    return response.data;
+  },
+
+  // Report a topic
+  reportTopic: async (topicId: number, reason: string, details?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/forums/topics/${topicId}/report`, { reason, details });
     return response.data;
   },
 

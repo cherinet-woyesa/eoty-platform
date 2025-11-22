@@ -40,6 +40,8 @@ const resourceLibraryController = {
         offset: parseInt(req.query.offset) || 0
       };
 
+      console.log('🔍 Backend search filters:', JSON.stringify(filters, null, 2));
+
       const resources = await resourceLibraryService.searchResources(filters);
 
       res.json({

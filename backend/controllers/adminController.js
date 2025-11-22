@@ -2361,6 +2361,256 @@ const adminController = {
         message: 'Failed to fetch anomalies'
       });
     }
+  },
+
+  // Roles & Permissions Management
+
+  // Get all permissions
+  async getPermissions(req, res) {
+    try {
+      const permissions = await db('user_permissions')
+        .select('id', 'permission_key', 'name', 'description', 'category')
+        .orderBy('category', 'permission_key');
+
+      res.json({
+        success: true,
+        data: { permissions }
+      });
+    } catch (error) {
+      console.error('Get permissions error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch permissions'
+      });
+    }
+  },
+
+  // Get role permissions
+  async getRolePermissions(req, res) {
+    try {
+      const rolePermissions = await db('role_permissions as rp')
+        .join('user_permissions as up', 'rp.permission_id', 'up.id')
+        .select(
+          'rp.id',
+          'rp.role',
+          'rp.permission_id',
+          'up.permission_key',
+          'up.name',
+          'up.description',
+          'up.category'
+        )
+        .orderBy('rp.role')
+        .orderBy('up.category')
+        .orderBy('up.name');
+
+      res.json({
+        success: true,
+        data: rolePermissions
+      });
+    } catch (error) {
+      console.error('Get role permissions error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch role permissions'
+      });
+    }
+  },
+
+  // Add permission to role
+  async addRolePermission(req, res) {
+    try {
+      const { role, permissionId } = req.body;
+
+      if (!role || !permissionId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role and permissionId are required'
+        });
+      }
+
+      // Validate role (should be one of: admin, teacher, user)
+      const validRoles = ['admin', 'teacher', 'user'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role'
+        });
+      }
+
+      // Check if permission exists
+      const permission = await db('user_permissions').where('id', permissionId).first();
+      if (!permission) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid permission'
+        });
+      }
+
+      // Check if role already has this permission
+      const existing = await db('role_permissions')
+        .where({ role: role, permission_id: permissionId })
+        .first();
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role already has this permission'
+        });
+      }
+
+      // Add permission to role
+      await db('role_permissions').insert({
+        role: role,
+        permission_id: permissionId,
+        created_at: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: `Permission added to ${role} role`
+      });
+    } catch (error) {
+      console.error('Add role permission error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to add permission to role'
+      });
+    }
+  },
+
+  // Remove permission from role
+  async removeRolePermission(req, res) {
+    try {
+      const { role, permissionId } = req.body;
+
+      if (!role || !permissionId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role and permissionId are required'
+        });
+      }
+
+      // Validate role (should be one of: admin, teacher, user)
+      const validRoles = ['admin', 'teacher', 'user'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role'
+        });
+      }
+
+      // Remove permission from role
+      const deleted = await db('role_permissions')
+        .where({ role: role, permission_id: permissionId })
+        .del();
+
+      if (deleted === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Role does not have this permission'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Permission removed from ${role} role`
+      });
+    } catch (error) {
+      console.error('Remove role permission error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove permission from role'
+      });
+    }
+  },
+
+  // Get forum reports for moderation
+  async getForumReports(req, res) {
+    try {
+      const reports = await db('forum_reports')
+        .leftJoin('forum_topics', 'forum_reports.topic_id', 'forum_topics.id')
+        .leftJoin('users as reporters', 'forum_reports.reported_by', 'reporters.id')
+        .leftJoin('users as authors', 'forum_topics.author_id', 'authors.id')
+        .select(
+          'forum_reports.*',
+          'forum_topics.title as topic_title',
+          'forum_topics.content as topic_content',
+          'reporters.first_name as reporter_first_name',
+          'reporters.last_name as reporter_last_name',
+          'authors.first_name as author_first_name',
+          'authors.last_name as author_last_name',
+          db.raw('COUNT(forum_reports.topic_id) as report_count')
+        )
+        .where('forum_reports.status', 'pending')
+        .groupBy('forum_reports.id', 'forum_topics.title', 'forum_topics.content', 'reporters.first_name', 'reporters.last_name', 'authors.first_name', 'authors.last_name')
+        .orderBy('forum_reports.created_at', 'desc');
+
+      const totalReports = await db('forum_reports').count('id as count').first();
+
+      res.json({
+        success: true,
+        data: {
+          reports,
+          total_reports: totalReports?.count || 0,
+          pending_reports: reports.length,
+          resolved_reports: 0 // TODO: Add resolved count
+        }
+      });
+    } catch (error) {
+      console.error('Get forum reports error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch forum reports'
+      });
+    }
+  },
+
+  // Moderate a forum report
+  async moderateForumReport(req, res) {
+    try {
+      const { reportId } = req.params;
+      const { action, reason } = req.body;
+      const userId = req.user.userId;
+
+      const report = await db('forum_reports')
+        .where({ id: reportId })
+        .first();
+
+      if (!report) {
+        return res.status(404).json({
+          success: false,
+          message: 'Forum report not found'
+        });
+      }
+
+      // Update the report status
+      await db('forum_reports')
+        .where({ id: reportId })
+        .update({
+          status: action === 'approve' ? 'resolved' : 'moderated',
+          moderated_by: userId,
+          moderated_at: new Date(),
+          moderation_notes: reason
+        });
+
+      // If action is 'delete', also delete the topic
+      if (action === 'delete') {
+        await db('forum_topics')
+          .where({ id: report.topic_id })
+          .update({ is_active: false });
+      }
+
+      res.json({
+        success: true,
+        message: `Forum report moderated with action: ${action}`
+      });
+    } catch (error) {
+      console.error('Moderate forum report error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to moderate forum report'
+      });
+    }
   }
 };
 

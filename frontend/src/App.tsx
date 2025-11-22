@@ -34,6 +34,7 @@ import ProfileCompletionNotification from '@/components/shared/ProfileCompletion
 import Forums from '@/pages/shared/social/Forums';
 import ForumTopics from '@/pages/shared/social/ForumTopics';
 import CreateForum from '@/pages/shared/social/CreateForum';
+import TopicDetail from '@/pages/shared/social/TopicDetail';
 import CreateTopic from '@/pages/shared/social/CreateTopic';
 import Achievements from '@/pages/shared/social/Achievements';
 import TeacherAchievements from '@/pages/teacher/TeacherAchievements';
@@ -202,19 +203,11 @@ function AppContent() {
         />
         <Route
           path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
+          element={<ResetPassword />}
         />
         <Route
           path="/verify-email"
-          element={
-            <PublicRoute>
-              <EmailVerification />
-            </PublicRoute>
-          }
+          element={<EmailVerification />}
         />
         <Route
           path="/auth/google/callback"
@@ -1113,6 +1106,17 @@ function AppContent() {
             <ProtectedRoute>
               <DashboardLayout>
                 <ForumTopics />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/forums/:forumId/topics/:topicId"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <TopicDetail />
               </DashboardLayout>
             </ProtectedRoute>
           }

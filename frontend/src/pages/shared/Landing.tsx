@@ -37,6 +37,7 @@ const Landing: React.FC = () => {
   const [landingContent, setLandingContent] = useState<any>({});
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
+
   // Helper function to render How It Works step
   const renderHowItWorksStep = (item: any, index: number) => {
     const iconMap: any = { User, BookOpen, PlayCircle, Award };
@@ -376,48 +377,20 @@ const Landing: React.FC = () => {
         style={{ background: 'linear-gradient(135deg, #F5F5F0 0%, #E8E8E3 50%, #D4D4CE 100%)' }}
       />
 
-      {/* Background Video or Image - Optimized with lazy loading */}
-      {landingContent.hero?.showVideo && landingContent.hero?.videoUrl ? (
-        <video
-          className="fixed inset-0 z-0 object-cover w-full h-full pointer-events-none"
-          autoPlay
-          muted
-          loop
-          playsInline
-          style={{
-            opacity: 0.1,
-            filter: 'brightness(0.4) contrast(0.8)'
-          }}
-        >
-          <source src={landingContent.hero.videoUrl} type="video/mp4" />
-          {/* Fallback to image if video fails */}
-          <div
-            className="fixed inset-0 z-0 pointer-events-none"
-            style={{
-              backgroundImage: 'url(/eoc.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundAttachment: 'fixed',
-              opacity: 0.08
-            }}
-          />
-        </video>
-      ) : (
-        <div
-          className="fixed inset-0 z-0 pointer-events-none"
-          style={{
-            backgroundImage: 'url(/eoc.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundAttachment: 'fixed',
-            imageRendering: 'auto',
-            willChange: 'transform',
-            opacity: 0.08
-          }}
-        />
-      )}
+      {/* Background Image - Temporarily disabled video to fix conflicts */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/eoc.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          imageRendering: 'auto',
+          willChange: 'transform',
+          opacity: 0.08
+        }}
+      />
 
       {/* Overlay for better text readability - light beige overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#F5F5DC]/80 via-[#FAF0E6]/70 to-[#FFF8DC]/80 backdrop-blur-sm pointer-events-none" />

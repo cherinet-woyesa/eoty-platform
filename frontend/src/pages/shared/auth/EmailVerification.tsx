@@ -5,6 +5,7 @@ import { authApi } from '@/services/api';
 import AuthLayout from '@/components/shared/auth/AuthLayout';
 import FormError from '@/components/shared/auth/FormError';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 const EmailVerification: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -46,31 +47,20 @@ const EmailVerification: React.FC = () => {
       } catch (err: any) {
         console.error('Email verification error:', err);
 
-        let errorMessage = 'Email verification failed';
-        const status = err.response?.status;
+        // Use the comprehensive error extraction utility
+        const errorMessage = extractErrorMessage(err);
 
-        switch (status) {
-          case 400:
-            errorMessage = 'Invalid or expired verification link';
-            setVerificationStatus('expired');
-            break;
-          case 409:
-            errorMessage = 'This email is already verified';
-            setVerificationStatus('success');
-            break;
-          case 410:
-            errorMessage = 'Verification link has expired. Please request a new one.';
-            setVerificationStatus('expired');
-            break;
-          case 500:
-            errorMessage = 'Server error. Please try again later.';
-            break;
-          default:
-            errorMessage = err.response?.data?.message || err.message || errorMessage;
+        // Handle specific status codes for UI state
+        const status = err.response?.status;
+        if (status === 400 || status === 410) {
+          setVerificationStatus('expired');
+        } else if (status === 409) {
+          setVerificationStatus('success');
+        } else {
+          setVerificationStatus('error');
         }
 
         setError(errorMessage);
-        setVerificationStatus('error');
       } finally {
         setIsLoading(false);
       }
@@ -101,23 +91,8 @@ const EmailVerification: React.FC = () => {
     } catch (err: any) {
       console.error('Resend verification error:', err);
 
-      let errorMessage = 'Failed to resend verification email';
-      const status = err.response?.status;
-
-      switch (status) {
-        case 404:
-          errorMessage = 'Email address not found. Please sign up again.';
-          break;
-        case 429:
-          errorMessage = 'Too many requests. Please wait before requesting another email.';
-          break;
-        case 500:
-          errorMessage = 'Server error. Please try again later.';
-          break;
-        default:
-          errorMessage = err.response?.data?.message || err.message || errorMessage;
-      }
-
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

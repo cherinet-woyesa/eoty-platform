@@ -49,16 +49,27 @@ class Resource {
       return false;
     }
 
-    // Check specific permissions
-    const permission = await db('resource_permissions')
-      .where({ resource_id: resourceId })
-      .andWhere(function() {
-        this.where({ role: user.role }).orWhere({ role: 'all' });
-      })
-      .andWhere({ permission_type: action })
-      .first();
+    // For public resources, allow view access without specific permissions
+    if (resource.is_public && action === 'view') {
+      return true;
+    }
 
-    return !!permission;
+    // Check specific permissions (only for non-public resources or non-view actions)
+    try {
+      const permission = await db('resource_permissions')
+        .where({ resource_id: resourceId })
+        .andWhere(function() {
+          this.where({ role: user.role }).orWhere({ role: 'all' });
+        })
+        .andWhere({ permission_type: action })
+        .first();
+
+      return !!permission;
+    } catch (error) {
+      // If resource_permissions table doesn't exist, allow access for backward compatibility
+      console.warn('Resource permissions table not found, allowing access for backward compatibility');
+      return resource.is_public || (resource.chapter_id === user.chapter_id);
+    }
   }
 
   static async getCategories() {

@@ -1,33 +1,21 @@
-import { ReactNode } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
   Users,
   FileText,
-  Shield,
-  Tag,
-  BarChart2,
   Settings,
   Video,
   MessageSquare,
-  Award,
   Bot,
-  Sparkles,
-  Upload,
   Brain,
   FolderTree,
-  Layers,
-  Timer,
-  Hash,
-  Users as UsersIcon,
-  Shield as ShieldIcon,
   TrendingUp
 } from 'lucide-react';
 
 export interface NavItem {
   name: string;
   href: string;
-  icon: ReactNode;
+  icon: React.ComponentType<any>;
   badge?: string | number | null;
   description: string;
   color?: string;
@@ -178,12 +166,22 @@ export const teacherNavItems: NavItem[] = [
     section: 'primary',
   },
   {
-    name: 'Community',
-    href: '/teacher/community',
+    name: 'Forums',
+    href: '/teacher/forums',
     icon: MessageSquare,
     badge: null,
-    description: 'Forums, Chapters & Achievements',
+    description: 'Discussion forums and community topics',
     color: 'text-[#16A085]',
+    requiredRole: ['teacher', 'admin'],
+    section: 'primary',
+  },
+  {
+    name: 'Community',
+    href: '/teacher/community',
+    icon: Users,
+    badge: null,
+    description: 'Chapters & Achievements',
+    color: 'text-[#2980B9]',
     requiredRole: ['teacher', 'admin'],
     section: 'primary',
   },

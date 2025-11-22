@@ -24,17 +24,31 @@ class ResourceLibraryService {
   // Enhanced search with all filters (REQUIREMENT: Tag, type, topic, author, date)
   async searchResources(filters = {}) {
     try {
-      let query = db('resources')
-        .where('published_at', '<=', new Date())
-        .orWhereNull('published_at');
+      console.log('🔍 Backend service search filters:', JSON.stringify(filters, null, 2));
 
-      // Search by text (title, description, author)
-      if (filters.search) {
+      // Build query step by step to ensure proper filtering
+      let query = db('resources');
+
+      // Step 1: Published date filter (required for all resources)
+      query = query.where(function() {
+        this.where('published_at', '<=', new Date())
+          .orWhereNull('published_at');
+      });
+
+      // Step 2: Search filter (if provided)
+      if (filters.search && filters.search.trim()) {
+        const searchTerm = filters.search.trim();
+        console.log('🔍 Applying search filter:', searchTerm);
+
         query = query.where(function() {
-          this.where('title', 'ilike', `%${filters.search}%`)
-            .orWhere('description', 'ilike', `%${filters.search}%`)
-            .orWhere('author', 'ilike', `%${filters.search}%`);
+          this.where('title', 'ilike', `%${searchTerm}%`)
+            .orWhere('description', 'ilike', `%${searchTerm}%`)
+            .orWhere('author', 'ilike', `%${searchTerm}%`);
         });
+
+        console.log('🔍 Search query built with term:', searchTerm);
+      } else {
+        console.log('🔍 No search filter applied, returning all resources');
       }
 
       // Filter by tags (REQUIREMENT: Tag filter)
@@ -90,10 +104,54 @@ class ResourceLibraryService {
         });
       }
 
+      // TEMPORARY: Test with raw SQL to verify search works
+      if (filters.search && filters.search.trim()) {
+        const searchTerm = filters.search.trim();
+        const rawQuery = `
+          SELECT * FROM resources
+          WHERE (published_at <= NOW() OR published_at IS NULL)
+          AND (title ILIKE '%${searchTerm}%' OR description ILIKE '%${searchTerm}%' OR author ILIKE '%${searchTerm}%')
+          AND (is_public = true OR chapter_id = ?)
+          ORDER BY created_at DESC
+          LIMIT ?
+        `;
+
+        console.log('🔍 Using raw SQL query for search:', searchTerm);
+        console.log('🔍 Raw SQL:', rawQuery);
+
+        const resources = await db.raw(rawQuery, [filters.chapterId, filters.limit || 50]);
+        console.log('🔍 Raw query results:', resources.rows.length, 'resources');
+
+        return resources.rows;
+      }
+
+      // Debug: Log the query before execution
+      console.log('🔍 Final query SQL:', query.toString());
+
       const resources = await query
         .orderBy('created_at', 'desc')
         .limit(filters.limit || 50)
         .offset(filters.offset || 0);
+
+      console.log('🔍 Query results:', resources.length, 'resources found');
+
+      // Debug: Check each resource against search criteria
+      if (filters.search && filters.search.trim()) {
+        const searchTerm = filters.search.trim().toLowerCase();
+        resources.forEach((resource, index) => {
+          const titleMatch = resource.title?.toLowerCase().includes(searchTerm);
+          const descMatch = resource.description?.toLowerCase().includes(searchTerm);
+          const authorMatch = resource.author?.toLowerCase().includes(searchTerm);
+          const matches = titleMatch || descMatch || authorMatch;
+
+          console.log(`🔍 Resource ${index + 1} (${resource.title}): title=${titleMatch}, desc=${descMatch}, author=${authorMatch}, matches=${matches}`);
+        });
+      }
+
+      if (resources.length > 0) {
+        console.log('🔍 First result title:', resources[0].title);
+        console.log('🔍 All result titles:', resources.map(r => r.title));
+      }
 
       return resources;
     } catch (error) {

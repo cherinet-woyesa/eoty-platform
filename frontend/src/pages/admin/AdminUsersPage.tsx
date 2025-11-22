@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, UsersIcon as ChaptersIcon, Shield } from 'lucide-react';
 import UserManagement from '@/components/admin/UserManagement';
 import ChapterManagement from './config/ChapterManagement';
+import RolesPermissionsManagement from './config/RolesPermissionsManagement';
 
 const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'chapters' | 'roles'>('users');
@@ -60,13 +61,8 @@ const AdminUsersPage: React.FC = () => {
               </div>
             )}
             {activeTab === 'roles' && (
-              <div className="animate-in fade-in duration-300 p-6">
-                <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-lg p-8 text-center">
-                  <Shield className="h-16 w-16 text-[#E74C3C] mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Roles & Permissions</h3>
-                  <p className="text-gray-600">Manage user roles and access permissions</p>
-                  {/* TODO: Implement roles and permissions management */}
-                </div>
+              <div className="animate-in fade-in duration-300">
+                <RolesPermissionsManagement />
               </div>
             )}
           </div>

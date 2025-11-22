@@ -1,0 +1,91 @@
+# Google Cloud Platform Environment Configuration
+# Copy this file to .env and update with your actual values
+
+# Google Cloud Configuration
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+CLOUD_SQL_CONNECTION_NAME=your-project-id:us-central1:eoty-platform-db
+
+# Database Configuration (Cloud SQL)
+DB_HOST=/cloudsql/your-project-id:us-central1:eoty-platform-db
+DB_NAME=eoty-platform
+DB_USER=eoty-platform
+DB_PASSWORD=your-generated-password
+
+# Storage Buckets (Google Cloud Storage)
+GCS_VIDEO_BUCKET=eoty-platform-videos
+GCS_DOCUMENT_BUCKET=eoty-platform-documents
+GCS_AVATAR_BUCKET=eoty-platform-avatars
+GCS_AI_BUCKET=eoty-platform-ai-content
+
+# Frontend URLs
+FRONTEND_URL=https://your-vercel-app.vercel.app
+CORS_ORIGIN=https://your-vercel-app.vercel.app
+
+# Authentication
+JWT_SECRET=your-super-secure-jwt-secret-change-this-in-production
+JWT_EXPIRES_IN=24h
+
+# OAuth Configuration
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+
+# Email Service
+EMAIL_SERVICE_API_KEY=your-sendgrid-api-key
+EMAIL_FROM=noreply@yourplatform.com
+
+# Video Processing
+MUX_TOKEN_ID=your-mux-token-id
+MUX_TOKEN_SECRET=your-mux-token-secret
+
+# AI Configuration
+NODE_ENV=production
+USE_STREAMING=true
+ENABLE_CACHING=true
+MAX_CACHE_SIZE=100
+AI_MAX_RETRIES=2
+AI_CONCURRENT_REQUESTS=5
+RETAIN_CONVERSATION_DATA=true
+CONVERSATION_RETENTION_DAYS=30
+ANONYMIZE_USER_DATA=false
+
+# Server Configuration
+PORT=8080
+ENABLE_HTTPS=true
+
+# Monitoring and Logging
+ENABLE_PROMETHEUS_METRICS=true
+LOG_LEVEL=info
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Security
+SESSION_SECRET=your-session-secret-here
+BCRYPT_ROUNDS=12
+
+# Feature Flags
+ENABLE_AI_ASSISTANT=true
+ENABLE_VIDEO_PROCESSING=true
+ENABLE_ANALYTICS=true
+ENABLE_NOTIFICATIONS=true
+
+# Performance Settings
+MAX_FILE_SIZE_MB=100
+UPLOAD_TIMEOUT_MS=300000
+AI_RESPONSE_TIMEOUT_MS=3000
+
+# Ethiopian Orthodox Content Settings
+ENABLE_ETHIOPIAN_ORTHODOX_CONTENT=true
+FAITH_ALIGNMENT_STRICT_MODE=true
+SUPPORT_AMHARIC_LANGUAGE=true
+SUPPORT_GEEZ_LANGUAGE=true
+
+# Admin Settings
+DEFAULT_ADMIN_EMAIL=admin@yourplatform.com
+DEFAULT_ADMIN_PASSWORD=change-this-immediately
+
+# Backup Configuration
+ENABLE_AUTOMATED_BACKUPS=true
+BACKUP_RETENTION_DAYS=30

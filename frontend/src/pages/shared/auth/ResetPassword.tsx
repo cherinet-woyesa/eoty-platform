@@ -6,6 +6,7 @@ import AuthLayout from '@/components/shared/auth/AuthLayout';
 import FormInput from '@/components/shared/auth/FormInput';
 import FormError from '@/components/shared/auth/FormError';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 // Password strength calculation
 const calculatePasswordStrength = (password: string): number => {
@@ -180,29 +181,8 @@ const ResetPassword: React.FC = () => {
     } catch (err: any) {
       console.error('Password reset error:', err);
 
-      let errorMessage = 'Failed to reset password';
-      const status = err.response?.status;
-
-      switch (status) {
-        case 400:
-          errorMessage = 'Invalid or expired reset token';
-          break;
-        case 422:
-          errorMessage = 'Password does not meet requirements';
-          break;
-        case 429:
-          errorMessage = 'Too many attempts. Please try again later.';
-          break;
-        case 500:
-          errorMessage = 'Server error. Please try again later.';
-          break;
-        case 0:
-          errorMessage = 'Network error. Please check your connection.';
-          break;
-        default:
-          errorMessage = err.response?.data?.message || err.message || errorMessage;
-      }
-
+      // Use the comprehensive error extraction utility
+      const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -304,8 +284,9 @@ const ResetPassword: React.FC = () => {
         <div className="space-y-3">
           {successMessage && (
             <FormError
-              type="info"
+              type="success"
               message={successMessage}
+              size="md"
             />
           )}
 
@@ -313,6 +294,18 @@ const ResetPassword: React.FC = () => {
             <FormError
               type="error"
               message={error}
+              dismissible={true}
+              onDismiss={() => setError(null)}
+              size="md"
+            />
+          )}
+
+          {/* Password requirements reminder */}
+          {!error && !successMessage && (
+            <FormError
+              type="info"
+              message="Choose a strong password with at least 6 characters, including uppercase, lowercase, and numbers."
+              size="sm"
             />
           )}
         </div>

@@ -7,9 +7,10 @@ import React, { memo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 const SocialLoginButtons: React.FC = memo(() => {
-  const { loginWithGoogle } = useAuth();
+  const { handleOAuthLogin } = useAuth();
   const navigate = useNavigate();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isFacebookLoading, setIsFacebookLoading] = useState(false);
@@ -121,8 +122,8 @@ const SocialLoginButtons: React.FC = memo(() => {
               const result = await response.json();
 
               if (result.success) {
-                // Login successful
-                await loginWithGoogle(result.data);
+                // Login successful - use the OAuth login handler
+                await handleOAuthLogin(result.data);
                 navigate('/dashboard');
               } else {
                 console.error('Backend authentication failed:', result.message);
@@ -130,7 +131,8 @@ const SocialLoginButtons: React.FC = memo(() => {
               }
             } catch (backendError) {
               console.error('Backend error:', backendError);
-              setError('Failed to complete authentication. Please try again.');
+              const errorMessage = extractErrorMessage(backendError);
+              setError(errorMessage);
             } finally {
               setIsGoogleLoading(false);
             }

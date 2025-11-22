@@ -47,23 +47,28 @@ const ResourceLibrary: React.FC<ResourceLibraryProps> = ({ hideHeader = false })
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoized load functions - Use enhanced search API (REQUIREMENT: Enhanced search)
-  const loadResources = useCallback(async () => {
+  const loadResources = useCallback(async (searchFilters = filters) => {
     try {
       setLoading(true);
+      console.log('🔍 Searching with filters:', searchFilters);
       // Always use search API for resource library (FR3 requirement)
-      const response = await resourcesApi.searchResources(filters);
+      const response = await resourcesApi.searchResources(searchFilters);
       if (response.success) {
-        console.log('Loaded resources:', response.data.resources?.length || 0, 'items');
+        const resultCount = response.data.resources?.length || 0;
+        console.log('✅ Search results:', resultCount, 'items for search:', searchFilters.search);
         setResources(response.data.resources || []);
+      } else {
+        console.error('❌ Search failed:', response);
       }
     } catch (error) {
-      console.error('Failed to load resources:', error);
+      console.error('❌ Failed to load resources:', error);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []); // Remove filters dependency to avoid circular updates
 
   const loadFilterOptions = useCallback(async () => {
     try {
@@ -96,6 +101,23 @@ const ResourceLibrary: React.FC<ResourceLibraryProps> = ({ hideHeader = false })
       setSavedSearches(JSON.parse(savedSearchesData));
     }
   }, [loadResources, loadFilterOptions]);
+
+  // Trigger search when filters change (debounced to avoid too many API calls)
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = setTimeout(() => {
+      loadResources(filters);
+    }, 300);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [filters, loadResources]);
 
   // Generate search suggestions based on filter options
   const generateSuggestions = useCallback((query: string) => {

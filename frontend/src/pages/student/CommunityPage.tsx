@@ -83,7 +83,7 @@ const CommunityPage: React.FC = () => {
             )}
             {activeTab === 'forums' && (
               <div className="animate-in fade-in duration-300">
-                <Forums />
+                <Forums embedded />
               </div>
             )}
             {activeTab === 'chapters' && (

@@ -38,46 +38,59 @@ const ForumModerationDashboard: React.FC = () => {
   const fetchModerationData = async () => {
     try {
       setLoading(true);
-      // In a real implementation, this would call the actual API
-      // For now, we'll use mock data
-      
-      // Mock data for demonstration
-      const mockStats: ModerationStat = {
-        total_reports: 24,
-        pending_moderation: 8,
-        total_moderation_actions: 16,
-        flagged_content: 12
-      };
-      
-      const mockPosts: ReportedPost[] = [
-        {
-          id: 1,
-          content: "This is inappropriate content that violates community guidelines...",
-          report_count: 5,
-          reports: JSON.stringify([{reason: "Inappropriate content", reporter_id: 123}]),
-          created_at: "2023-05-15T10:30:00Z",
-          first_name: "John",
-          last_name: "Doe",
-          topic_title: "Discussion about faith"
-        },
-        {
-          id: 2,
-          content: "Spam content with links to external sites...",
-          report_count: 3,
-          reports: JSON.stringify([{reason: "Spam", reporter_id: 456}]),
-          created_at: "2023-05-14T14:20:00Z",
-          first_name: "Jane",
-          last_name: "Smith",
-          topic_title: "Resources sharing"
+
+      // Fetch forum reports from the backend
+      const response = await fetch('/api/admin/forum-reports', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      
-      setStats(mockStats);
-      setReportedPosts(mockPosts);
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch forum reports');
+      }
+
+      const data = await response.json();
+
+      // Transform the data to match our interface
+      const transformedPosts: ReportedPost[] = data.reports?.map((report: any) => ({
+        id: report.id,
+        content: report.content || report.topic_content,
+        report_count: report.report_count || 1,
+        reports: JSON.stringify(report.reports || []),
+        created_at: report.created_at,
+        first_name: report.author_first_name || 'Unknown',
+        last_name: report.author_last_name || '',
+        topic_title: report.topic_title || 'Forum Topic'
+      })) || [];
+
+      // Calculate stats
+      const stats: ModerationStat = {
+        total_reports: data.total_reports || transformedPosts.length,
+        pending_moderation: data.pending_reports || transformedPosts.filter(p => p.report_count > 0).length,
+        total_moderation_actions: data.resolved_reports || 0,
+        flagged_content: data.flagged_content || transformedPosts.length
+      };
+
+      setStats(stats);
+      setReportedPosts(transformedPosts);
       setError(null);
     } catch (err: any) {
       console.error('Failed to fetch moderation data:', err);
-      setError('Failed to load moderation data');
+      setError('Failed to load forum moderation data');
+
+      // Fallback to mock data for development
+      const mockStats: ModerationStat = {
+        total_reports: 0,
+        pending_moderation: 0,
+        total_moderation_actions: 0,
+        flagged_content: 0
+      };
+
+      setStats(mockStats);
+      setReportedPosts([]);
     } finally {
       setLoading(false);
     }
@@ -85,21 +98,35 @@ const ForumModerationDashboard: React.FC = () => {
 
   const handleModeratePost = async (postId: number, action: 'delete' | 'hide' | 'warn' | 'approve', reason: string) => {
     try {
-      // In a real implementation, this would call the actual API
-      console.log(`Moderating post ${postId} with action ${action}`);
-      
+      // Call the backend API to moderate the forum report
+      const response = await fetch(`/api/admin/forum-reports/${postId}/moderate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, reason })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to moderate forum report');
+      }
+
       // Remove the moderated post from the list
       setReportedPosts(prev => prev.filter(post => post.id !== postId));
-      
+
       // Update stats
       setStats(prev => ({
         ...prev,
-        pending_moderation: prev.pending_moderation - 1,
+        pending_moderation: Math.max(0, prev.pending_moderation - 1),
         total_moderation_actions: prev.total_moderation_actions + 1
       }));
+
+      // Show success message
+      alert(`Forum report moderated successfully with action: ${action}`);
     } catch (err: any) {
       console.error('Failed to moderate post:', err);
-      setError('Failed to moderate post: ' + (err.response?.data?.message || err.message));
+      setError('Failed to moderate forum report: ' + (err.response?.data?.message || err.message));
     }
   };
 
