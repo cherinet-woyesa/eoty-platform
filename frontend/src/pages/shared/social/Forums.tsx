@@ -51,29 +51,31 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
   return (
     <div className={embedded ? "" : "min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50"}>
       <div className={embedded ? "" : "p-6 lg:p-8"}>
-        {/* Ethiopian Orthodox Themed Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
-                <MessageSquare className="h-6 w-6 text-white" />
+        {/* Ethiopian Orthodox Themed Header - Only show when not embedded */}
+        {!embedded && (
+          <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-stone-800">Chapter Forums</h1>
+                  <p className="text-lg text-stone-600 mt-1">Join faith-based discussions with your Orthodox community</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">Chapter Forums</h1>
-                <p className="text-lg text-stone-600 mt-1">Join faith-based discussions with your Orthodox community</p>
-              </div>
+              {hasPermission('discussion:create') && (
+                <Link
+                  to="/forums/create"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Forum
+                </Link>
+              )}
             </div>
-            {hasPermission('discussion:create') && (
-              <Link
-                to="/forums/create"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Plus className="h-4 w-4" />
-                Create Forum
-              </Link>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Search and Filters */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-md mb-6">
@@ -89,7 +91,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
               />
             </div>
             <div className="flex items-center gap-3">
-              {hasPermission('discussion:create') && (
+              {hasPermission('discussion:create') && !embedded && (
                 <Link
                   to="/forums/create"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
@@ -106,8 +108,9 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
           </div>
         </div>
 
-        {/* Community Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Community Stats - Only show when not embedded */}
+        {!embedded && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#27AE60]/5 rounded-xl p-4 border border-[#27AE60]/20 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-lg flex items-center justify-center">
@@ -144,6 +147,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
             </div>
           </div>
         </div>
+        )}
 
       {/* Forums Grid */}
       <div className="space-y-2">

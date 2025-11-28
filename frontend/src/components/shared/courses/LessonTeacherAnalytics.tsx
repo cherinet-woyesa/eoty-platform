@@ -43,11 +43,14 @@ const LessonTeacherAnalytics: React.FC<LessonTeacherAnalyticsProps> = ({ lessonI
         if (response.success && response.data) {
           setSummary(response.data as LessonSummaryData);
         } else {
-          setError('Failed to load lesson summary');
+          // Don't show error for missing summary - it's optional
+          setSummary(null);
         }
       } catch (err: any) {
         console.error('Failed to load lesson summary:', err);
-        setError(err?.response?.data?.message || 'Failed to load lesson summary');
+        // Don't show error for missing summary - it's optional
+        // setError(err?.response?.data?.message || 'Failed to load lesson summary');
+        setSummary(null); // Just set summary to null without error
       } finally {
         setLoading(false);
       }
@@ -67,12 +70,17 @@ const LessonTeacherAnalytics: React.FC<LessonTeacherAnalyticsProps> = ({ lessonI
     );
   }
 
-  if (error || !summary) {
+  if (error) {
     return (
       <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-        {error || 'Unable to load lesson analytics.'}
+        {error}
       </div>
     );
+  }
+
+  // If no summary data available, don't show anything (optional feature)
+  if (!summary) {
+    return null;
   }
 
   const { quiz, annotations, discussions, polls } = summary;

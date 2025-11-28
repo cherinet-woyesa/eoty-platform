@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Check, SkipForward, Award, HelpCircle } from 'lucide-react';
+import { X, Play, Check, SkipForward, Award } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
 import type { OnboardingStep } from '@/services/api/onboarding';
 import { onboardingApi } from '@/services/api/onboarding';
@@ -145,7 +145,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button
                     onClick={() => setIsPlaying(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 transition-colors"
+                    className="bg-[#27AE60] hover:bg-[#16A085] text-white rounded-full p-4 transition-colors"
                     aria-label="Play video walkthrough"
                   >
                     <Play className="h-8 w-8 ml-1" />
@@ -167,9 +167,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         )}
 
         {currentStep.action_required && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h4 className="font-medium text-blue-900 mb-2">Required Action</h4>
-            <p className="text-blue-800">{currentStep.action_required}</p>
+          <div className="bg-[#27AE60]/10 border border-[#27AE60]/30 rounded-lg p-4 mb-6">
+            <h4 className="font-medium text-[#27AE60] mb-2">Required Action</h4>
+            <p className="text-[#16A085]">{currentStep.action_required}</p>
           </div>
         )}
 
@@ -187,7 +187,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
           <div className="flex space-x-2">
             <button
               onClick={handleCompleteStep}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#16A085] hover:to-[#27AE60] text-white rounded-lg transition-colors"
             >
               <Check className="h-4 w-4 mr-2" />
               {currentStepIndex === steps.length - 1 ? 'Finish' : 'Next'}
@@ -201,9 +201,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#27AE60]/5">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+            <div className="h-9 w-9 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-lg flex items-center justify-center shadow-sm">
               <Award className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -213,6 +213,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
               <p className="text-xs text-gray-500">
                 A short guided checklist to help you set up your teaching space.
               </p>
+              {flow?.version && (
+                <p className="text-xs text-[#27AE60] font-medium">
+                  Version {flow.version}
+                </p>
+              )}
             </div>
           </div>
           <button
@@ -227,11 +232,19 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         {progress && progress.progress >= 100 ? (
           <div className="p-6">
             <div className="text-center mb-6">
-              <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Congratulations!</h3>
-              <p className="text-gray-600">
-                You’ve completed your onboarding. Your dashboard and tools are now fully unlocked.
+              <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4 animate-bounce" />
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">🎉 Congratulations!</h3>
+              <p className="text-gray-600 mb-2">
+                You’ve completed your onboarding successfully!
               </p>
+              <p className="text-sm text-[#27AE60] font-medium">
+                Your dashboard and tools are now fully unlocked.
+              </p>
+              {flow?.version && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Completed onboarding version {flow.version}
+                </div>
+              )}
             </div>
             <CompletionRewards
               rewards={rewards}
@@ -242,9 +255,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
             <div className="mt-6 text-center">
               <button
                 onClick={onClose}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#16A085] hover:to-[#27AE60] text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
               >
-                Go to my dashboard
+                🚀 Go to my dashboard
               </button>
             </div>
           </div>
@@ -256,7 +269,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         <div className="px-6 pb-6">
           <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress?.progress || 0}%` }}
             ></div>
           </div>
@@ -269,12 +282,12 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
           {/* Milestones display (REQUIREMENT: Milestone-based) */}
           {milestones && milestones.length > 0 && (
             <div className="mt-4 flex items-center justify-center gap-2">
-              {milestones.map((milestone, idx) => (
+              {milestones.map((milestone) => (
                 <div
                   key={milestone.id}
                   className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                     milestone.is_completed
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-[#27AE60]/20 text-[#27AE60]'
                       : 'bg-gray-100 text-gray-600'
                   }`}
                   title={milestone.name}

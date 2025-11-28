@@ -13,10 +13,20 @@ const requireLandingAdmin = (req, res, next) => {
     });
   }
 
-  if (req.user.role === 'admin') {
+  console.log('🔐 Checking landing admin access for user:', {
+    userId: req.user.userId,
+    role: req.user.role,
+    email: req.user.email
+  });
+
+  // Allow admin-level roles: admin, chapter_admin, regional_coordinator
+  const adminRoles = ['admin', 'chapter_admin', 'regional_coordinator'];
+  if (adminRoles.includes(req.user.role)) {
+    console.log('✅ User has admin role:', req.user.role);
     return next();
   }
 
+  console.log('❌ User role not allowed:', req.user.role, '- Allowed roles:', adminRoles);
   return res.status(403).json({
     success: false,
     message: 'Admin access required for landing page management'

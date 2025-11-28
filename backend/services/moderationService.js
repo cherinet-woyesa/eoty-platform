@@ -1,6 +1,6 @@
 // backend/services/moderationService.js - ENHANCED VERSION
 const db = require('../config/database');
-const { openai } = require('../config/aiConfig');
+const { vertexAI } = require('../config/aiConfig-gcp');
 
 class ModerationService {
   constructor() {
@@ -76,11 +76,19 @@ class ModerationService {
       await this.logAutoModeration(content, userId, analysis);
     } else if (analysis.needsModeration) {
       // 7. Escalate for human review
-      await this.escalateForReview(content, userId, analysis, contentType);
+      try {
+        await this.escalateForReview(content, userId, analysis, contentType);
+      } catch (error) {
+        console.warn('Failed to escalate for review (non-critical):', error.message);
+      }
     }
 
     // 8. Log moderation event
-    await this.logModerationEvent(content, userId, analysis, contentType);
+    try {
+      await this.logModerationEvent(content, userId, analysis, contentType);
+    } catch (error) {
+      console.warn('Failed to log moderation event (non-critical):', error.message);
+    }
 
     return analysis;
   }
@@ -155,7 +163,7 @@ class ModerationService {
     score -= foundComparative.length * 0.2;
 
     // Use AI for complex faith alignment if available
-    if (openai && content.length > 20) {
+    if (vertexAI && content.length > 20) {
       try {
         const aiAlignment = await this.getAIFaithAlignment(content, context);
         score = (score + aiAlignment) / 2; // Blend with heuristic score
@@ -184,15 +192,25 @@ Score the question on a scale of 0-1 for:
 Respond only with a number between 0 and 1.
     `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 10,
-      temperature: 0
-    });
+    try {
+      const model = vertexAI.preview.getGenerativeModel({
+        model: 'gemini-pro',
+        generationConfig: {
+          maxOutputTokens: 10,
+          temperature: 0,
+        }
+      });
 
-    const score = parseFloat(completion.choices[0].message.content);
-    return isNaN(score) ? 0.7 : score;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.candidates[0].content.parts[0].text;
+      
+      const score = parseFloat(text);
+      return isNaN(score) ? 0.7 : score;
+    } catch (error) {
+      console.error('Vertex AI faith alignment analysis failed:', error);
+      return 0.7; // Default safe score
+    }
   }
 
   // Check user history for pattern detection

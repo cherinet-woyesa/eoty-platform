@@ -83,6 +83,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   );
 
   const [coverImagePreview, setCoverImagePreview] = useState<string>('');
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -107,6 +108,20 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   });
 
   const course = courseData?.data?.course;
+
+  // Debug: Log course data loading
+  console.log('CourseEditor render:', {
+    courseId,
+    isLoadingCourse,
+    courseError,
+    courseData,
+    courseDataType: typeof courseData,
+    courseDataKeys: courseData ? Object.keys(courseData) : null,
+    courseDataData: courseData?.data,
+    courseDataDataKeys: courseData?.data ? Object.keys(courseData.data) : null,
+    course,
+    courseType: typeof course
+  });
 
   // Fetch course statistics
   const { data: statsData } = useQuery({
@@ -148,18 +163,63 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   // Initialize form data when course loads
   useEffect(() => {
-    if (course) {
+    console.log('useEffect check:', {
+      hasCourse: !!course,
+      courseId: course?.id,
+      categoriesLength: categories.length,
+      levelsLength: levels.length,
+      languagesLength: languages.length
+    });
+
+    // Initialize form when course data is available, even if dropdowns aren't loaded yet
+    if (course && course.id) {
+      // Debug logging to see what data we're getting
+      console.log('Course data for form initialization:', {
+        category: course.category,
+        level: course.level,
+        estimated_duration: course.estimated_duration,
+        language: course.language,
+        availableCategories: categories.slice(0, 3).map(c => ({ id: c.id, slug: c.slug, name: c.name })),
+        availableLevels: levels.slice(0, 3).map(l => ({ id: l.id, slug: l.slug, name: l.name })),
+        availableLanguages: languages.slice(0, 3).map(l => ({ code: l.code, name: l.name }))
+      });
+
+      // Find the correct category slug (use raw value if dropdowns not loaded)
+      const categorySlug = categories.length > 0
+        ? (categories.find(cat => cat.slug === course.category_slug || cat.slug === course.category || cat.id === course.category)?.slug || 'faith')
+        : (course.category_slug || course.category || 'faith');
+
+      // Find the correct level slug (use raw value if dropdowns not loaded)
+      const levelSlug = levels.length > 0
+        ? (levels.find(lvl => lvl.slug === course.level_slug || lvl.slug === course.level || lvl.id === course.level)?.slug || 'beginner')
+        : (course.level_slug || course.level || 'beginner');
+
+      // Find the correct language code (use raw value if dropdowns not loaded)
+      const languageCode = languages.length > 0
+        ? (languages.find(lang => lang.code === course.language_code || lang.code === course.language || lang.name === course.language)?.code || 'en')
+        : (course.language_code || course.language || 'en');
+
+      console.log('Setting form data from course:', {
+        title: course.title,
+        description: course.description,
+        category: course.category,
+        level: course.level,
+        cover_image: course.cover_image,
+        learning_objectives: course.learning_objectives,
+        language: course.language
+      });
+
       setFormData({
         title: course.title || '',
         description: course.description || '',
-        category: course.category || 'faith',
-        level: (course.level as any) || 'beginner',
+        category: categorySlug,
+        level: levelSlug,
         cover_image: course.cover_image || '',
         learning_objectives: course.learning_objectives || [''],
         prerequisites: course.prerequisites || '',
         estimated_duration: course.estimated_duration || '',
         tags: course.tags || [],
-        language: course.language || 'en',
+        language: languageCode,
         is_public: course.is_public ?? true,
         certification_available: course.certification_available ?? false,
         welcome_message: course.welcome_message || '',
@@ -167,6 +227,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         status: (course.status as any) || 'draft'
       });
       setCoverImagePreview(course.cover_image || '');
+
+      console.log('Form data set successfully');
     }
 
     // Map analytics payload into compact stats used by the header/tabs
@@ -179,7 +241,33 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         totalLessons: analytics.lessonCount ?? 0
       });
     }
-  }, [course, statsData]);
+  }, [course]); // Only depend on course data, not dropdown data
+
+  // Update form when dropdown data loads (if course is already loaded)
+  useEffect(() => {
+    if (course && course.id && (categories.length > 0 || levels.length > 0 || languages.length > 0)) {
+      console.log('Updating form with loaded dropdown data');
+
+      const categorySlug = categories.length > 0
+        ? (categories.find(cat => cat.slug === course.category_slug || cat.slug === course.category || cat.id === course.category)?.slug || 'faith')
+        : (course.category_slug || course.category || 'faith');
+
+      const levelSlug = levels.length > 0
+        ? (levels.find(lvl => lvl.slug === course.level_slug || lvl.slug === course.level || lvl.id === course.level)?.slug || 'beginner')
+        : (course.level_slug || course.level || 'beginner');
+
+      const languageCode = languages.length > 0
+        ? (languages.find(lang => lang.code === course.language_code || lang.code === course.language || lang.name === course.language)?.code || 'en')
+        : (course.language_code || course.language || 'en');
+
+      setFormData(prev => ({
+        ...prev,
+        category: categorySlug,
+        level: levelSlug,
+        language: languageCode
+      }));
+    }
+  }, [categories, levels, languages, course]);
 
   // Form validation
   const { errors, touched, validateField, validateForm, setFieldTouched, setFieldError, clearFieldError } =
@@ -302,7 +390,41 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     }
 
     try {
-      await updateMutation.mutateAsync(formData);
+      let updatedFormData = { ...formData };
+
+      // Upload cover image if there's a new file
+      if (coverImageFile) {
+        showNotification({
+          type: 'info',
+          title: t('common.uploading'),
+          message: 'Uploading cover image...',
+          duration: 3000,
+        });
+
+        try {
+          const uploadResponse = await coursesApi.uploadCourseImage(courseId, coverImageFile);
+          if (uploadResponse.success && uploadResponse.data.imageUrl) {
+            console.log('Image uploaded successfully:', uploadResponse.data.imageUrl);
+            updatedFormData.cover_image = uploadResponse.data.imageUrl;
+            setCoverImagePreview(uploadResponse.data.imageUrl); // Update preview
+            setCoverImageFile(null); // Clear the file since it's uploaded
+
+            // Invalidate course query to refresh data with new image
+            queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+          }
+        } catch (uploadError: any) {
+          console.error('Cover image upload failed:', uploadError);
+          showNotification({
+            type: 'error',
+            title: 'Image Upload Failed',
+            message: 'Cover image could not be uploaded. Please try again.',
+            duration: 5000,
+          });
+          return; // Don't save course if image upload fails
+        }
+      }
+
+      await updateMutation.mutateAsync(updatedFormData);
     } catch (error) {
       // Error handled in mutation
     }
@@ -335,11 +457,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       return;
     }
 
+    // Store the file for later upload
+    setCoverImageFile(file);
+
+    // Create preview
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setCoverImagePreview(dataUrl);
-      handleChange('cover_image', dataUrl);
+      // Mark as dirty since we have a new image to upload
+      setIsDirty(true);
     };
     reader.onerror = () => {
       showNotification({
@@ -354,7 +481,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const handleRemoveCoverImage = () => {
     setCoverImagePreview('');
+    setCoverImageFile(null);
     handleChange('cover_image', '');
+    setIsDirty(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -626,8 +755,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200">
-        <div className="px-8">
-          <nav className="flex space-x-8">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-4 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             {editorTabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -636,8 +765,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-[#27AE60] text-[#27AE60]'
+                      : 'border-transparent text-stone-600 hover:text-stone-800 hover:border-stone-300'
                   }`}
                 >
                   <Icon className="h-4 w-4 inline mr-2" />
@@ -650,7 +779,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-8">
+      <div className="p-6 sm:p-8">
         {activeTab === 'basic' && (
           <div className="space-y-6">
             {/* Course Title */}
@@ -1095,33 +1224,63 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
         {activeTab === 'analytics' && (
           <div className="space-y-6">
+            {/* Course Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
                 <div className="text-2xl font-bold text-blue-600">{courseStats.totalStudents}</div>
                 <div className="text-sm text-blue-700">{t('common.students')}</div>
               </div>
-              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-4 border border-green-200">
                 <div className="text-2xl font-bold text-green-600">{courseStats.completionRate}%</div>
                 <div className="text-sm text-green-700">{t('common.completion_rate')}</div>
               </div>
-              <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">{courseStats.averageRating}</div>
                 <div className="text-sm text-purple-700">{t('common.average_rating')}</div>
               </div>
-              <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl p-4 border border-orange-200">
                 <div className="text-2xl font-bold text-orange-600">{courseStats.totalLessons}</div>
                 <div className="text-sm text-orange-700">{t('common.lessons')}</div>
               </div>
             </div>
 
-            {/* Analytics placeholder */}
-            <div className="bg-gray-50 rounded-xl p-8 text-center border border-gray-200">
+            {/* Lesson Analytics */}
+            <div className="bg-gradient-to-br from-stone-50 to-white rounded-xl p-6 border border-stone-200">
+              <div className="flex items-center gap-3 mb-4">
+                <BarChart3 className="h-6 w-6 text-[#27AE60]" />
+                <h3 className="text-lg font-semibold text-stone-800">Lesson Performance</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-stone-200">
+                  <div className="text-2xl font-bold text-[#27AE60] mb-1">0</div>
+                  <div className="text-sm text-stone-600">Total Views</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-stone-200">
+                  <div className="text-2xl font-bold text-[#16A085] mb-1">0</div>
+                  <div className="text-sm text-stone-600">Avg. Completion</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-stone-200">
+                  <div className="text-2xl font-bold text-[#2980B9] mb-1">0</div>
+                  <div className="text-sm text-stone-600">Engagement Rate</div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
+                <p className="text-sm text-stone-600">
+                  Detailed lesson analytics will be available once students begin taking this course.
+                </p>
+              </div>
+            </div>
+
+            {/* Future Analytics Features */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-6 text-center border border-gray-200">
               <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {t('courses.editor.analytics_coming_soon')}
+                Advanced Analytics Coming Soon
               </h3>
-              <p className="text-gray-600">
-                {t('courses.editor.detailed_analytics_description')}
+              <p className="text-gray-600 text-sm">
+                We're working on detailed analytics including student progress tracking, engagement metrics, and performance insights.
               </p>
             </div>
           </div>

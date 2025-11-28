@@ -196,12 +196,39 @@ export const onboardingApi = {
   },
 
   // Get user's completion rewards (REQUIREMENT: Completion rewards)
-  getCompletionRewards: async (flowId?: number): Promise<{ 
-    success: boolean; 
-    data: { rewards: any[] } 
+  getCompletionRewards: async (flowId?: number): Promise<{
+    success: boolean;
+    data: { rewards: any[] }
   }> => {
     const params = flowId ? `?flowId=${flowId}` : '';
     const response = await apiClient.get(`/onboarding/rewards${params}`);
+    return response.data;
+  },
+
+  // Initialize onboarding for new user (REQUIREMENT: 100% new users see guided onboarding)
+  initializeForUser: async (role: string): Promise<{
+    success: boolean;
+    message: string;
+    data?: { flow: OnboardingFlow; progress: OnboardingProgress }
+  }> => {
+    const response = await apiClient.post('/onboarding/initialize', {
+      role
+    });
+    return response.data;
+  },
+
+  // Get completion analytics (REQUIREMENT: 95% completion within 7 days)
+  getAnalytics: async (params?: string): Promise<{
+    success: boolean;
+    data: {
+      completionRate: number;
+      sevenDayCompletion: number;
+      avgCompletionTime: number;
+      totalCompletions: number;
+    }
+  }> => {
+    const query = params || '';
+    const response = await apiClient.get(`/onboarding/stats${query}`);
     return response.data;
   }
 };

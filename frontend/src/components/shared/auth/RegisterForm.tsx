@@ -288,7 +288,7 @@ const RegisterForm: React.FC = () => {
       case 3:
         return { label: 'Fair', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
       case 4:
-        return { label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-600' };
+        return { label: 'Good', color: 'bg-[#27AE60]', textColor: 'text-[#27AE60]' };
       case 5:
         return { label: 'Strong', color: 'bg-green-500', textColor: 'text-green-600' };
       default:
@@ -297,7 +297,7 @@ const RegisterForm: React.FC = () => {
   }, [passwordStrength]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate aria-label="Registration form">
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Registration form">
       {/* Messages Section - Prominent positioning at top */}
       <div className="space-y-3">
         {/* Success Message */}
@@ -331,15 +331,26 @@ const RegisterForm: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Social Login Section - Moved to top for better UX */}
+      <div className="space-y-4">
+        <SocialLoginButtons />
+        
+        <div className="flex items-center gap-3 my-2">
+          <div className="h-px flex-1 bg-gray-200"></div>
+          <span className="text-xs sm:text-sm text-gray-500 font-medium">Or register with email</span>
+          <div className="h-px flex-1 bg-gray-200"></div>
+        </div>
+      </div>
       
       {/* Personal Information Section - Grouped inputs */}
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-5">
         <div className="hidden sm:block">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Personal Information</h3>
         </div>
         
         {/* Name Row - Single column on mobile, two columns on larger screens */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormInput
             id="firstName"
             name="firstName"
@@ -412,7 +423,7 @@ const RegisterForm: React.FC = () => {
               }}
               className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 formData.role === 'user'
-                  ? 'border-[#00FFC6] bg-gradient-to-br from-[#00FFC6]/10 to-[#4FC3F7]/10 shadow-lg scale-[1.02]'
+                  ? 'border-[#27AE60] bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 shadow-lg scale-[1.02]'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               disabled={isLoading}
@@ -420,12 +431,12 @@ const RegisterForm: React.FC = () => {
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg ${
                   formData.role === 'user' 
-                    ? 'bg-gradient-to-br from-[#00FFC6]/20 to-[#4FC3F7]/20' 
+                    ? 'bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20' 
                     : 'bg-slate-100'
                 }`}>
                   <BookOpen className={`h-5 w-5 ${
                     formData.role === 'user' 
-                      ? 'text-[#00FFC6]' 
+                      ? 'text-[#27AE60]' 
                       : 'text-slate-600'
                   }`} />
                 </div>
@@ -433,7 +444,7 @@ const RegisterForm: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-sm text-slate-700">User</h3>
                     {formData.role === 'user' && (
-                      <Check className="h-5 w-5 text-[#00FFC6]" />
+                      <Check className="h-5 w-5 text-[#27AE60]" />
                     )}
                   </div>
                 </div>
@@ -449,7 +460,7 @@ const RegisterForm: React.FC = () => {
               }}
               className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 formData.role === 'teacher'
-                  ? 'border-[#4FC3F7] bg-gradient-to-br from-[#4FC3F7]/10 to-[#81D4FA]/10 shadow-lg scale-[1.02]'
+                  ? 'border-[#16A085] bg-gradient-to-br from-[#16A085]/10 to-[#27AE60]/10 shadow-lg scale-[1.02]'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               disabled={isLoading}
@@ -457,12 +468,12 @@ const RegisterForm: React.FC = () => {
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg ${
                   formData.role === 'teacher' 
-                    ? 'bg-gradient-to-br from-[#4FC3F7]/20 to-[#81D4FA]/20' 
+                    ? 'bg-gradient-to-br from-[#16A085]/20 to-[#27AE60]/20' 
                     : 'bg-slate-100'
                 }`}>
                   <GraduationCap className={`h-5 w-5 ${
                     formData.role === 'teacher' 
-                      ? 'text-[#4FC3F7]' 
+                      ? 'text-[#16A085]' 
                       : 'text-slate-600'
                   }`} />
                 </div>
@@ -470,7 +481,7 @@ const RegisterForm: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-sm text-slate-700">Teacher</h3>
                     {formData.role === 'teacher' && (
-                      <Check className="h-5 w-5 text-[#4FC3F7]" />
+                      <Check className="h-5 w-5 text-[#16A085]" />
                     )}
                   </div>
                 </div>
@@ -493,7 +504,7 @@ const RegisterForm: React.FC = () => {
             <MapPin className={`h-4 w-4 transition-colors duration-200 ${
               validationErrors.chapter && touched.chapter 
                 ? 'text-red-400' 
-                : 'text-gray-400 group-focus-within:text-blue-500'
+                : 'text-gray-400 group-focus-within:text-[#27AE60]'
             }`} />
           </div>
           <select
@@ -515,7 +526,7 @@ const RegisterForm: React.FC = () => {
             className={`
               block w-full pl-10 pr-10 py-2 sm:py-3
               border-2 rounded-lg 
-              focus:outline-none focus:ring-2 focus:ring-blue-500/20 
+              focus:outline-none focus:ring-2 focus:ring-[#27AE60]/20 
               transition-all duration-200 
               bg-gray-50/50 focus:bg-white 
               text-gray-900
@@ -524,7 +535,7 @@ const RegisterForm: React.FC = () => {
               appearance-none
               ${validationErrors.chapter && touched.chapter 
                 ? 'border-red-300 focus:border-red-500' 
-                : 'border-gray-200 focus:border-blue-500'}
+                : 'border-gray-200 focus:border-[#27AE60]'}
               ${(isLoading || loadingChapters) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
             `}
             aria-invalid={!!(validationErrors.chapter && touched.chapter)}
@@ -672,27 +683,13 @@ const RegisterForm: React.FC = () => {
         </LoadingButton>
       </div>
 
-      {/* Alternative Login Section */}
-      <div className="space-y-4 pt-2">
-        <div className="relative" role="separator" aria-label="Or continue with social login">
-          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-xs sm:text-sm">
-            <span className="px-3 bg-white text-gray-500 font-medium">Or continue with</span>
-          </div>
-        </div>
-
-        <SocialLoginButtons />
-      </div>
-
       {/* Login Link */}
       <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign in navigation">
         <p className="text-xs sm:text-sm text-gray-600">
           Already have an account?{' '}
           <Link 
             to="/login" 
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1 py-1"
+            className="text-[#27AE60] hover:text-[#16A085] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Sign in to your existing account"
           >
             Sign in here

@@ -1,9 +1,117 @@
 /**
  * Seed data for landing page
- * Creates sample course stats and ratings for featured courses
+ * Creates landing page content and sample course stats and ratings for featured courses
  */
 
 exports.seed = async function(knex) {
+  // Seed landing page content
+  const landingContent = {
+    hero: {
+      badge: 'For Ethiopian Orthodox Youths',
+      title: 'Transform Your',
+      titleGradient: 'Learning Journey',
+      description: 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.',
+      videoUrl: '', // Will be set by admin via upload
+      showVideo: false
+    },
+    about: {
+      badge: 'Our Mission',
+      title: 'Empowering Ethiopian Orthodox Youths',
+      description: 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.',
+      features: [
+        'Faith-Centered Learning',
+        'Traditional Wisdom',
+        'Community Support',
+        'Spiritual Growth'
+      ]
+    },
+    howItWorks: {
+      badge: 'Simple Process',
+      title: 'How It Works',
+      description: 'Start your learning journey in minutes',
+      steps: [
+        {
+          step: '01',
+          icon: 'User',
+          title: 'Create Account',
+          description: 'Sign up for free and join our community of learners',
+          features: ['Free forever', 'No credit card', 'Instant access']
+        },
+        {
+          step: '02',
+          icon: 'BookOpen',
+          title: 'Browse Courses',
+          description: 'Explore our comprehensive library of faith-based courses',
+          features: ['500+ courses', 'Expert teachers', 'Self-paced']
+        },
+        {
+          step: '03',
+          icon: 'PlayCircle',
+          title: 'Start Learning',
+          description: 'Watch videos, complete lessons, and track your progress',
+          features: ['HD videos', 'Interactive quizzes', 'Progress tracking']
+        },
+        {
+          step: '04',
+          icon: 'Award',
+          title: 'Earn Achievements',
+          description: 'Complete courses, earn badges, and grow in your faith journey',
+          features: ['Certificates', 'Badges', 'Leaderboards']
+        }
+      ]
+    },
+    resources: {
+      badge: 'Educational Resources',
+      title: 'Orthodox Learning Materials',
+      description: 'Access a rich library of faith-based educational content, study guides, and spiritual resources shared by Orthodox educators worldwide.'
+    },
+    blogs: {
+      badge: 'Latest Articles',
+      title: 'Insights & Stories',
+      description: 'Discover insights and stories from our community'
+    },
+    testimonials: {
+      badge: 'What Our Students Say',
+      title: 'Trusted by Thousands',
+      description: 'Real experiences from our learning community'
+    },
+    cta: {
+      badge: 'Join Our Community',
+      title: 'Ready to Start Learning?',
+      description: 'Start your faith-centered learning journey today. Join thousands of students already learning and growing.',
+      trustIndicators: [
+        '100% Free to Start',
+        '10K+ Active Students',
+        '98% Satisfaction Rate',
+        '500+ Courses Available'
+      ]
+    }
+  };
+
+  // Insert or update landing page content
+  const existingContent = await knex('landing_page_content').first();
+
+  if (existingContent) {
+    // Update existing content
+    await knex('landing_page_content')
+      .where({ id: existingContent.id })
+      .update({
+        content_json: JSON.stringify(landingContent),
+        updated_at: new Date()
+      });
+    console.log('✅ Landing page content updated');
+  } else {
+    // Insert new content
+    await knex('landing_page_content').insert({
+      content_json: JSON.stringify(landingContent),
+      is_active: true,
+      created_by: null,
+      updated_by: null,
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+    console.log('✅ Landing page content seeded');
+  }
   // Get published courses
   const courses = await knex('courses')
     .where({ is_published: true })

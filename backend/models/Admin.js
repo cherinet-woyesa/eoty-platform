@@ -10,7 +10,7 @@ class ContentUpload {
     return await db('content_uploads')
       .where('content_uploads.id', id)
       .join('users as uploader', db.raw('content_uploads.uploaded_by::text'), '=', 'uploader.id')
-      .leftJoin('users as approver', db.raw('content_uploads.approved_by::text'), '=', 'approver.id')
+        .leftJoin('users as approver', db.raw('content_uploads.approved_by::text'), '=', 'approver.id')
       .select(
         'content_uploads.*',
         'uploader.first_name as uploader_first_name',

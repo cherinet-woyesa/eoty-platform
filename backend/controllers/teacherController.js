@@ -9,58 +9,69 @@ const teacherController = {
       // Start timing for performance monitoring
       const startTime = Date.now();
 
-      // Total courses created by the teacher
-      const totalCoursesResult = await db('courses')
-        .where('created_by', teacherId)
-        .count('id as count')
-        .first();
-      const totalCourses = parseInt(totalCoursesResult.count, 10) || 0;
+      // Execute all queries in parallel for better performance
+      const [
+        totalCoursesResult,
+        totalStudentsResult,
+        totalLessonsResult,
+        lessonsThisMonthResult,
+        averageCompletionRateResult,
+        ratingResult
+      ] = await Promise.all([
+        // Total courses created by the teacher
+        db('courses')
+          .where('created_by', teacherId)
+          .count('id as count')
+          .first(),
 
-      // Total unique students enrolled in the teacher's courses
-      const totalStudentsResult = await db('user_course_enrollments as uce')
-        .join('courses as c', 'uce.course_id', 'c.id')
-        .where('c.created_by', teacherId)
-        .countDistinct('uce.user_id as count').first();
-      const totalStudentsEnrolled = parseInt(totalStudentsResult.count, 10) || 0;
+        // Total unique students enrolled in the teacher's courses
+        db('user_course_enrollments as uce')
+          .join('courses as c', 'uce.course_id', 'c.id')
+          .where('c.created_by', teacherId)
+          .countDistinct('uce.user_id as count')
+          .first(),
 
-      // Total lessons across all courses created by the teacher
-      const totalLessonsResult = await db('lessons as l')
-        .join('courses as c', 'l.course_id', 'c.id')
-        .where('c.created_by', teacherId)
-        .count('l.id as count')
-        .first();
-      const totalLessons = parseInt(totalLessonsResult.count, 10) || 0;
+        // Total lessons across all courses created by the teacher
+        db('lessons as l')
+          .join('courses as c', 'l.course_id', 'c.id')
+          .where('c.created_by', teacherId)
+          .count('l.id as count')
+          .first(),
 
-      // Lessons recorded this month (for progress on recording page)
-      const lessonsThisMonthResult = await db('lessons as l')
-        .join('courses as c', 'l.course_id', 'c.id')
-        .where('c.created_by', teacherId)
-        .andWhere('l.created_at', '>=', db.raw("DATE_TRUNC('month', NOW())"))
-        .count('l.id as count')
-        .first();
-      const lessonsRecordedThisMonth = parseInt(lessonsThisMonthResult.count, 10) || 0;
+        // Lessons recorded this month (for progress on recording page)
+        db('lessons as l')
+          .join('courses as c', 'l.course_id', 'c.id')
+          .where('c.created_by', teacherId)
+          .andWhere('l.created_at', '>=', db.raw("DATE_TRUNC('month', NOW())"))
+          .count('l.id as count')
+          .first(),
 
-      // Average completion rate of lessons across all students in the teacher's courses
-      const averageCompletionRateResult = await db('user_lesson_progress as ulp')
-        .join('lessons as l', 'ulp.lesson_id', 'l.id')
-        .join('courses as c', 'l.course_id', 'c.id')
-        .where('c.created_by', teacherId)
-        .avg('ulp.progress as average')
-        .first();
-      const averageCompletionRate = averageCompletionRateResult.average ? Math.round(parseFloat(averageCompletionRateResult.average)) : 0;
+        // Average completion rate of lessons across all students in the teacher's courses
+        db('user_lesson_progress as ulp')
+          .join('lessons as l', 'ulp.lesson_id', 'l.id')
+          .join('courses as c', 'l.course_id', 'c.id')
+          .where('c.created_by', teacherId)
+          .avg('ulp.progress as average')
+          .first(),
 
-      // Average course rating across teacher's courses (if ratings exist)
-      let averageCourseRating = 0;
-      try {
-        const ratingResult = await db('course_ratings as cr')
+        // Average course rating across teacher's courses (if ratings exist)
+        db('course_ratings as cr')
           .join('courses as c', 'cr.course_id', 'c.id')
           .where('c.created_by', teacherId)
           .avg('cr.rating as avg')
-          .first();
-        averageCourseRating = ratingResult && ratingResult.avg ? parseFloat(ratingResult.avg).toFixed ? parseFloat(ratingResult.avg).toFixed(1) : parseFloat(ratingResult.avg) : 0;
-      } catch (ratingError) {
-        console.warn('Failed to calculate averageCourseRating:', ratingError.message);
-      }
+          .first()
+          .catch(err => {
+            console.warn('Failed to calculate averageCourseRating:', err.message);
+            return { avg: 0 };
+          })
+      ]);
+
+      const totalCourses = parseInt(totalCoursesResult.count, 10) || 0;
+      const totalStudentsEnrolled = parseInt(totalStudentsResult.count, 10) || 0;
+      const totalLessons = parseInt(totalLessonsResult.count, 10) || 0;
+      const lessonsRecordedThisMonth = parseInt(lessonsThisMonthResult.count, 10) || 0;
+      const averageCompletionRate = averageCompletionRateResult && averageCompletionRateResult.average ? Math.round(parseFloat(averageCompletionRateResult.average)) : 0;
+      const averageCourseRating = ratingResult && ratingResult.avg ? parseFloat(ratingResult.avg).toFixed(1) : 0;
 
       // Calculate execution time
       const executionTime = Date.now() - startTime;

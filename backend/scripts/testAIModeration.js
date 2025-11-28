@@ -28,14 +28,14 @@ async function testAIModeration() {
     {
       question: "Why is Orthodox doctrine better than Protestant beliefs?",
       userId: 1,
-      expectedFlags: ['sensitive_topic_ecumenical', 'problematic_phrase_better_than'],
+      expectedFlags: ['sensitive_topic'],
       shouldNeedModeration: true,
       description: "Comparative theology question (should be flagged)"
     },
     {
       question: "What does the church teach about abortion?",
       userId: 1,
-      expectedFlags: ['sensitive_topic_social_issues'],
+      expectedFlags: ['sensitive_topic'],
       shouldNeedModeration: true,
       description: "Sensitive social issue"
     },

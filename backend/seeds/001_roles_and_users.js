@@ -64,11 +64,12 @@ exports.seed = async function(knex) {
       await knex('users').insert(user);
       console.log(`Created user: ${user.email}`);
     } else {
-      // User exists, update password
+      // User exists, update password and chapter_id
       await knex('users').where('email', user.email).update({
-        password_hash: user.password_hash
+        password_hash: user.password_hash,
+        chapter_id: user.chapter_id
       });
-      console.log(`Updated password for user: ${user.email}`);
+      console.log(`Updated password and chapter for user: ${user.email}`);
     }
   }
   

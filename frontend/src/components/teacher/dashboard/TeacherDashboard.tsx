@@ -10,6 +10,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { apiClient } from '@/services/api/apiClient';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import DashboardSkeleton from './DashboardSkeleton';
 
 // Types
 interface TeacherStats {
@@ -248,13 +249,7 @@ const TeacherDashboard: React.FC = () => {
   }
 
   if (isLoading && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
-    return (
-      <div className="w-full space-y-3 p-3 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="md" text="Loading dashboard..." />
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {

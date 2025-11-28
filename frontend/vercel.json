@@ -4,6 +4,12 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
+   
+    {
+      "source": "/api/(.*)",
+      "destination": "https://edu-platform-backend-317256520378.us-central1.run.app/$1"
+    },
+   
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -32,4 +38,3 @@
   "cleanUrls": true,
   "trailingSlash": false
 }
-

@@ -82,4 +82,22 @@ export const aiApi = {
     });
     return response.data;
   }
+  ,
+  // Faith alignment classifier: get heuristic/classifier result for a text
+  faithClassify: async (text: string, context?: any) => {
+    const token = getAuthToken();
+    const response = await axios.post(`${API_BASE}/ai/faith-classify`, { text, context }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // Submit moderator-provided faith alignment label
+  submitFaithLabel: async (payload: { sessionId?: string; text: string; label: number | string; notes?: string }) => {
+    const token = getAuthToken();
+    const response = await axios.post(`${API_BASE}/ai/faith-label`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  }
 };

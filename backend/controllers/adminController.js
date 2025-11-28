@@ -592,16 +592,18 @@ const adminController = {
       let uploads;
       if (!status || status === '') {
         // Get all uploads regardless of status
+        // For admin users, don't filter by chapter (they can see all)
+        // For non-admin users, filter by their chapter or specified chapter
         uploads = await ContentUpload.findByStatus(
           null, // null means get all
-          user.role === 'admin' ? user.chapter_id : chapter,
+          user.role === 'admin' ? null : (chapter || user.chapter_id),
           parseInt(page),
           parseInt(limit)
         );
       } else {
         uploads = await ContentUpload.findByStatus(
           status,
-          user.role === 'admin' ? user.chapter_id : chapter,
+          user.role === 'admin' ? null : (chapter || user.chapter_id),
           parseInt(page),
           parseInt(limit)
         );
@@ -716,10 +718,19 @@ const adminController = {
       // REQUIREMENT: Track upload time for <5 min requirement
       const uploadStartTime = Date.now();
 
-      // Generate file path - use file.path if available (disk storage), otherwise generate a path
-      let filePath = file.path;
-      if (!filePath) {
-        // If using memory storage, we need to save the file first
+      // Handle file storage based on upload method
+      let filePath, publicUrl;
+
+      if (file.gcs) {
+        // GCS upload successful
+        filePath = file.gcs.publicUrl;
+        publicUrl = file.gcs.publicUrl;
+      } else if (file.storage === 'local') {
+        // Local storage fallback
+        filePath = file.gcs?.filePath || file.path;
+        publicUrl = file.gcs?.publicUrl || `/uploads/${path.basename(filePath)}`;
+      } else {
+        // Fallback: save file locally if no storage method worked
         const fs = require('fs');
         const path = require('path');
         const uploadsDir = path.join(__dirname, '../uploads');
@@ -730,6 +741,7 @@ const adminController = {
         const ext = path.extname(file.originalname);
         const name = path.basename(file.originalname, ext);
         filePath = path.join(uploadsDir, `${name}-${uniqueSuffix}${ext}`);
+        publicUrl = `/uploads/${path.basename(filePath)}`;
         fs.writeFileSync(filePath, file.buffer);
       }
 
@@ -766,10 +778,16 @@ const adminController = {
         });
       }
 
-      // Check if user is admin - auto-approve admin uploads
+      // Check user role for auto-approval logic
       const user = await db('users').where({ id: userId }).select('role').first();
       const isAdmin = user && user.role === 'admin';
-      const initialStatus = isAdmin ? 'approved' : 'pending';
+      const isTeacher = user && user.role === 'teacher';
+
+      // Auto-approve logic:
+      // - Admin: always approved
+      // - Teacher: approved (trusted content creators)
+      // - Others: pending (needs review)
+      const initialStatus = (isAdmin || isTeacher) ? 'approved' : 'pending';
 
       // Create upload record
       const upload = await ContentUpload.create({
@@ -778,6 +796,7 @@ const adminController = {
         file_name: file.originalname,
         file_type: fileType,
         file_path: filePath,
+        public_url: publicUrl,
         file_size: file.size.toString(),
         mime_type: file.mimetype,
         uploaded_by: userId,
@@ -785,11 +804,14 @@ const adminController = {
         tags: parsedTags,
         category,
         status: initialStatus,
+        storage_type: file.storage || 'local',
         metadata: {
           processing: {
             started_at: new Date(),
-            status: 'uploaded'
-          }
+            status: file.uploadError ? 'error' : 'uploaded'
+          },
+          upload_error: file.uploadError,
+          storage: file.storage || 'local'
         }
       });
 
@@ -1303,6 +1325,78 @@ const adminController = {
         success: false,
         message: 'Failed to fetch pending moderation items'
       });
+    }
+  },
+
+  // Get AI labeling candidates (recent AI assistant responses)
+  async getAILabelingCandidates(req, res) {
+    try {
+      const { page = 1, limit = 50, days = 14, language } = req.query;
+      const pageNum = parseInt(page);
+      const pageLimit = parseInt(limit);
+      const offset = (pageNum - 1) * pageLimit;
+
+      // Only admins allowed (router already enforces requireAdmin)
+
+      // Build base query: recent assistant messages joined with conversation info
+      const sinceDate = new Date(Date.now() - (parseInt(days) * 24 * 60 * 60 * 1000));
+
+      let query = db('ai_messages')
+        .join('ai_conversations', 'ai_messages.conversation_id', 'ai_conversations.id')
+        .where('ai_messages.role', 'assistant')
+        .andWhere('ai_messages.created_at', '>=', sinceDate)
+        .select(
+          'ai_messages.id as id',
+          'ai_messages.conversation_id as conversation_id',
+          'ai_messages.content as content',
+          'ai_messages.created_at as created_at',
+          'ai_conversations.user_id as user_id',
+          'ai_conversations.session_id as session_id',
+          'ai_conversations.language as language'
+        )
+        .orderBy('ai_messages.created_at', 'desc')
+        .limit(pageLimit)
+        .offset(offset);
+
+      if (language) {
+        query = query.where('ai_conversations.language', language);
+      }
+
+      const items = await query;
+
+      // Get total count for pagination
+      let countQuery = db('ai_messages')
+        .join('ai_conversations', 'ai_messages.conversation_id', 'ai_conversations.id')
+        .where('ai_messages.role', 'assistant')
+        .andWhere('ai_messages.created_at', '>=', sinceDate);
+      if (language) countQuery = countQuery.where('ai_conversations.language', language);
+      const totalCount = await countQuery.count('ai_messages.id as count').first();
+
+      // Redact content lightly for privacy in list view (truncate)
+      const safeItems = items.map(i => ({
+        id: i.id,
+        conversation_id: i.conversation_id,
+        text: i.content && i.content.length > 2000 ? i.content.substring(0, 2000) + '...' : i.content,
+        created_at: i.created_at,
+        user_id: i.user_id, // admin has access - keep user reference
+        session_id: i.session_id,
+        language: i.language
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          items: safeItems,
+          pagination: {
+            page: pageNum,
+            limit: pageLimit,
+            total: parseInt(totalCount.count) || 0
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get AI labeling candidates error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch AI labeling candidates' });
     }
   },
 

@@ -113,11 +113,9 @@ const LoginForm: React.FC = () => {
       await login(formData.email, formData.password);
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
-      // Wait a moment for auth state to update, then redirect
-      setTimeout(() => {
-        const dashboardPath = getRoleDashboard();
-        navigate(dashboardPath, { replace: true });
-      }, 500);
+      // Redirect immediately
+      const dashboardPath = getRoleDashboard();
+      navigate(dashboardPath, { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
 
@@ -126,7 +124,23 @@ const LoginForm: React.FC = () => {
 
       // Use error message utility to get user-friendly message
       const errorMessage = extractErrorMessage(err);
-      setError(errorMessage);
+      
+      // Check for specific Google account error
+      if (err.response?.data?.code === 'GOOGLE_ACCOUNT_NO_PASSWORD') {
+        setError(
+          <span>
+            This account was created with Google. To sign in with a password, please{' '}
+            <Link 
+              to={`/forgot-password?email=${encodeURIComponent(formData.email)}`}
+              className="underline font-semibold hover:text-red-800"
+            >
+              set a password here
+            </Link>.
+          </span> as any
+        );
+      } else {
+        setError(errorMessage);
+      }
 
       // Clear password field on authentication errors (but not network errors)
       if (passwordRef.current && !errorMessage.includes('Network') && !errorMessage.includes('connection')) {
@@ -201,7 +215,7 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate aria-label="Login form">
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Login form">
       {/* Messages Section - Prominent positioning at top */}
       <div className="space-y-3">
         {/* Success Message */}
@@ -237,7 +251,7 @@ const LoginForm: React.FC = () => {
       </div>
       
       {/* Credentials Section - Grouped inputs */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Email Input */}
         <FormInput
           ref={emailRef}
@@ -289,7 +303,7 @@ const LoginForm: React.FC = () => {
             name="remember-me"
             type="checkbox"
             disabled={isLoading}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 text-[#27AE60] focus:ring-[#27AE60] border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             aria-describedby="remember-me-description"
           />
           <label 
@@ -306,7 +320,7 @@ const LoginForm: React.FC = () => {
         <div className="text-xs sm:text-sm min-h-[44px] flex items-center">
           <Link 
             to="/forgot-password" 
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-2"
+            className="text-[#27AE60] hover:text-[#16A085] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 rounded px-2 py-2"
             aria-label="Reset your password"
           >
             Forgot password?
@@ -331,13 +345,10 @@ const LoginForm: React.FC = () => {
 
       {/* Alternative Login Section */}
       <div className="space-y-4 pt-2">
-        <div className="relative" role="separator" aria-label="Or continue with social login">
-          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-xs sm:text-sm">
-            <span className="px-3 bg-white text-gray-500 font-medium">Or continue with</span>
-          </div>
+        <div className="flex items-center gap-3 my-4">
+          <div className="h-px flex-1 bg-gray-200"></div>
+          <span className="text-xs sm:text-sm text-gray-500 font-medium">Or continue with</span>
+          <div className="h-px flex-1 bg-gray-200"></div>
         </div>
 
         <SocialLoginButtons />
@@ -349,7 +360,7 @@ const LoginForm: React.FC = () => {
           New to our community?{' '}
           <Link 
             to="/register" 
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1 py-1"
+            className="text-[#27AE60] hover:text-[#16A085] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Create a new account"
           >
             Create your account

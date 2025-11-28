@@ -176,6 +176,14 @@ const enhanceError = (error: AxiosError): AxiosError => {
   if (error.response) {
     // Server responded with error status
     const status = error.response.status;
+    const data = error.response.data as any;
+    
+    // If server provided a specific message, use it
+    if (data?.message) {
+      error.message = data.message;
+      return error;
+    }
+
     let message = 'An error occurred';
     
     switch (status) {

@@ -51,6 +51,7 @@ import { LocalizationProvider } from '@/context/LocalizationContext';
 import ModerationTools from '@/components/admin/ModerationTools';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import TagManager from '@/components/admin/TagManager';
+import AIFaithLabeling from '@/pages/admin/AIFaithLabeling';
 import UserManagement from '@/components/admin/UserManagement';
 import TeacherApplications from '@/components/admin/TeacherApplications';
 import UploadManager from '@/components/admin/UploadManager';
@@ -91,6 +92,7 @@ import TeacherCoursesPage from '@/pages/teacher/TeacherCoursesPage';
 import TeacherStudentsPage from '@/pages/teacher/TeacherStudentsPage';
 import TeacherContentPage from '@/pages/teacher/TeacherContentPage';
 import TeacherCommunityPage from '@/pages/teacher/TeacherCommunityPage';
+import TeacherResourcePage from '@/pages/teacher/TeacherResourcePage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminContentPage from '@/pages/admin/AdminContentPage';
 import AdminSystemPage from '@/pages/admin/AdminSystemPage';
@@ -119,7 +121,7 @@ const PageLoader = () => (
 // Lazy load heavy pages
 const LazyRecordVideo = lazy(() => import('@/pages/teacher/RecordVideo'));
 const LazyVideoAnalyticsDashboard = lazy(() => import('@/components/teacher/dashboard/VideoAnalyticsDashboard'));
-const LazyMuxMigration = lazy(() => import('@/pages/admin/MuxMigration'));
+const LazyLandingPageEditor = lazy(() => import('@/pages/admin/LandingPageEditor'));
 const LazyQuizDemo = lazy(() => import('@/pages/shared/courses/QuizDemo'));
 const LazyDiscussionDemo = lazy(() => import('@/pages/shared/courses/DiscussionDemo'));
 
@@ -526,17 +528,29 @@ function AppContent() {
         />
         
         {/* Consolidated Teacher Content Page - Record | Upload | Resources */}
-        <Route 
-          path="/teacher/content" 
+        <Route
+          path="/teacher/content"
           element={
             <TeacherRoute>
               <DashboardLayout>
                 <TeacherContentPage />
               </DashboardLayout>
             </TeacherRoute>
-          } 
+          }
         />
-        
+
+        {/* Teacher Resource Management Page - Upload & Manage Resources */}
+        <Route
+          path="/teacher/resources/*"
+          element={
+            <TeacherRoute>
+              <DashboardLayout>
+                <TeacherResourcePage />
+              </DashboardLayout>
+            </TeacherRoute>
+          }
+        />
+
         {/* Consolidated Teacher Community Page - Discussions | Chapters | Achievements */}
         <Route 
           path="/teacher/community" 
@@ -925,6 +939,17 @@ function AppContent() {
         />
 
         <Route 
+          path="/admin/ai-labeling"
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AIFaithLabeling />
+              </DashboardLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route 
           path="/admin/tags" 
           element={
             <AdminRoute>
@@ -963,7 +988,7 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <Suspense fallback={<PageLoader />}>
-                  <LazyMuxMigration />
+                  <LazyLandingPageEditor />
                 </Suspense>
               </DashboardLayout>
             </AdminRoute>
@@ -1048,17 +1073,6 @@ function AppContent() {
           } 
         />
 
-        {/* Forums Routes - Role-specific */}
-        <Route 
-          path="/teacher/forums" 
-          element={
-            <TeacherRoute>
-              <DashboardLayout>
-                <Forums />
-              </DashboardLayout>
-            </TeacherRoute>
-          } 
-        />
         <Route 
           path="/student/forums" 
           element={
@@ -1361,7 +1375,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <UserProvider>
               <OnboardingProvider>

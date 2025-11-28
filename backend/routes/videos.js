@@ -15,6 +15,7 @@ router.get('/subtitles/:filename', videoController.streamSubtitle);
 // Public Video metadata and availability routes (no authentication required for metadata)
 router.get('/lessons/:lessonId/metadata', videoController.getVideoMetadata);
 router.get('/lessons/:lessonId/availability', videoController.checkVideoAvailability);
+router.get('/featured', videoController.getFeaturedVideos);
 
 // Apply authentication middleware to remaining routes
 router.use(authenticateToken);

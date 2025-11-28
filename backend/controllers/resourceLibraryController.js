@@ -477,7 +477,7 @@ const resourceLibraryController = {
         });
       }
 
-      const { title, description, category, tags, language, topic, author_id } = req.body;
+      const { title, description, category, tags, language, topic, author_id, resourceScope = 'chapter_wide' } = req.body;
 
       if (!title) {
         return res.status(400).json({
@@ -486,11 +486,39 @@ const resourceLibraryController = {
         });
       }
 
-      const result = await resourceLibraryService.uploadResource(
+      // Validate resource scope permissions
+      if (resourceScope === 'platform_wide' && userRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can upload platform-wide resources'
+        });
+      }
+
+      // Parse tags if it's a string
+      let parsedTags = tags;
+      if (typeof tags === 'string') {
+        try {
+          parsedTags = JSON.parse(tags);
+        } catch (e) {
+          parsedTags = tags.split(',').map(tag => tag.trim());
+        }
+      }
+
+      // Use the new resourceService method for scoped uploads
+      const resourceService = require('../services/resourceService');
+      const result = await resourceService.uploadToLibrary(
         req.file.buffer,
         req.file.originalname,
-        userId,
-        { title, description, category, tags, language, topic, author_id: author_id || userId }
+        {
+          title,
+          description,
+          category,
+          language,
+          tags: parsedTags,
+          topic,
+          resourceScope
+        },
+        userId
       );
 
       res.status(201).json({

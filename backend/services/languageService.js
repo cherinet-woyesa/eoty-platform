@@ -1,6 +1,6 @@
 // backend/services/languageService.js - UPDATED WITH FOCUSED LANGUAGES
 
-const { openai } = require('../config/aiConfig');
+const { vertexAI } = require('../config/aiConfig-gcp');
 
 class LanguageService {
   constructor() {
@@ -30,29 +30,29 @@ class LanguageService {
 
   // Detect language of text using AI if available, otherwise use simple heuristics
   async detectLanguage(text) {
-    if (openai) {
+    if (vertexAI) {
       try {
-        // Use OpenAI to detect language with enhanced prompt
-        const completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: `You are a language detection expert specializing in Ethiopian languages. 
-              Respond only with the ISO 639-1 language code (e.g., 'en', 'am', 'ti', 'om') for the language of the text provided. 
-              If you cannot determine the language, respond with 'en'. 
-              Focus on detecting these specific languages: English (en), Amharic (am), Tigrigna (ti), Oromo (om).`
-            },
-            {
-              role: "user",
-              content: `Detect the language of this text: "${text.substring(0, 150)}"`
-            }
-          ],
-          max_tokens: 10,
-          temperature: 0
+        // Use Vertex AI to detect language with enhanced prompt
+        const model = vertexAI.preview.getGenerativeModel({
+          model: 'gemini-pro',
+          generationConfig: {
+            maxOutputTokens: 10,
+            temperature: 0,
+          }
         });
 
-        const detectedLang = completion.choices[0].message.content.trim().toLowerCase();
+        const prompt = `
+You are a language detection expert specializing in Ethiopian languages. 
+Respond only with the ISO 639-1 language code (e.g., 'en', 'am', 'ti', 'om') for the language of the text provided. 
+If you cannot determine the language, respond with 'en'. 
+Focus on detecting these specific languages: English (en), Amharic (am), Tigrigna (ti), Oromo (om).
+
+Text: "${text.substring(0, 150)}"
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const detectedLang = response.candidates[0].content.parts[0].text.trim().toLowerCase();
         
         // Validate it's one of our supported languages
         if (this.supportedLanguages[detectedLang]) {

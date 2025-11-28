@@ -13,5 +13,7 @@ router.post('/conversation/clear', aiController.clearConversation);
 router.post('/report', aiController.reportQuestion);
 router.post('/telemetry', aiController.telemetry);
 router.post('/summary', aiController.summary);
+router.post('/faith-classify', aiController.faithClassify);
+router.post('/faith-label', aiController.faithLabel);
 
 module.exports = router;

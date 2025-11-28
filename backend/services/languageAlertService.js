@@ -17,6 +17,12 @@ class LanguageAlertService {
       detectedLang = await multilingualService.detectLanguage(text, context);
     }
 
+    // Normalize language code (e.g. 'en' -> 'en-US')
+    if (detectedLang === 'en') detectedLang = 'en-US';
+    if (detectedLang === 'am') detectedLang = 'am-ET';
+    if (detectedLang === 'ti') detectedLang = 'ti-ET';
+    if (detectedLang === 'om') detectedLang = 'om-ET';
+
     const isSupported =
       this.supportedLanguages.includes(detectedLang) &&
       multilingualService.isLanguageSupported(detectedLang);

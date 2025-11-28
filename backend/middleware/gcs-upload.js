@@ -2,11 +2,19 @@ const { Storage } = require('@google-cloud/storage');
 const multer = require('multer');
 const path = require('path');
 
-// Initialize Google Cloud Storage
-const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT,
-  keyFilename: process.env.GOOGLE_CLOUD_KEYFILE || '/secrets/service-account-key.json'
-});
+// Initialize Google Cloud Storage with fallback for development
+let storage = null;
+try {
+  storage = new Storage({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT,
+    keyFilename: process.env.GOOGLE_CLOUD_KEYFILE || '/secrets/service-account-key.json'
+  });
+  console.log('✅ Google Cloud Storage initialized successfully');
+} catch (error) {
+  console.warn('⚠️ Google Cloud Storage not available, falling back to local storage:', error.message);
+  console.warn('📁 Files will be stored locally in ./backend/uploads/');
+  storage = null; // Will use local storage fallback
+}
 
 // Bucket names
 const VIDEO_BUCKET = process.env.GCS_VIDEO_BUCKET || 'edu-platform-videos';
@@ -54,7 +62,46 @@ const createFileFilter = (allowedTypes, fileType) => {
 };
 
 // Upload file to Google Cloud Storage
+// Local storage fallback function
+const uploadToLocal = async (file, folder = '') => {
+  const fs = require('fs');
+  const uploadsDir = path.join(__dirname, '../uploads');
+
+  // Ensure uploads directory exists
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const fileName = `${folder}${Date.now()}-${Math.random().toString(36).substring(2)}${path.extname(file.originalname)}`;
+  const filePath = path.join(uploadsDir, fileName);
+
+  return new Promise((resolve, reject) => {
+    fs.writeFile(filePath, file.buffer, (err) => {
+      if (err) {
+        console.error('Local upload error:', err);
+        reject(err);
+      } else {
+        const publicUrl = `/uploads/${fileName}`; // Relative URL for local access
+        resolve({
+          bucket: 'local',
+          fileName: fileName,
+          filePath: filePath,
+          publicUrl: publicUrl,
+          size: file.size,
+          mimeType: file.mimetype
+        });
+      }
+    });
+  });
+};
+
 const uploadToGCS = async (file, bucketName, folder = '') => {
+  // Check if GCS storage is available
+  if (!storage) {
+    console.log('📁 GCS not available, using local storage fallback');
+    return uploadToLocal(file, folder);
+  }
+
   const bucket = storage.bucket(bucketName);
   const fileName = `${folder}${Date.now()}-${Math.random().toString(36).substring(2)}${path.extname(file.originalname)}`;
   const fileUpload = bucket.file(fileName);
@@ -141,7 +188,7 @@ const contentUpload = multer({
   }
 });
 
-// Middleware to handle GCS upload after multer
+// Middleware to handle GCS/Local upload after multer
 const handleGCSUpload = (bucketName, folder = '') => {
   return async (req, res, next) => {
     if (!req.file) {
@@ -151,10 +198,25 @@ const handleGCSUpload = (bucketName, folder = '') => {
     try {
       const uploadResult = await uploadToGCS(req.file, bucketName, folder);
       req.file.gcs = uploadResult;
+      req.file.storage = storage ? 'gcs' : 'local';
       next();
     } catch (error) {
-      console.error('GCS upload middleware error:', error);
-      next(error);
+      console.error('GCS upload failed, falling back to local storage:', error.message);
+
+      // Fallback to local storage
+      try {
+        const localResult = await uploadToLocal(req.file, folder);
+        req.file.gcs = localResult;
+        req.file.storage = 'local';
+        req.file.uploadError = null; // Clear the GCS error since local worked
+        console.log('✅ Local storage fallback successful');
+        next();
+      } catch (localError) {
+        console.error('Both GCS and local storage failed:', localError);
+        req.file.uploadError = `${error.message}; Local fallback also failed: ${localError.message}`;
+        req.file.storage = 'error';
+        next(); // Continue anyway, let the controller handle the error
+      }
     }
   };
 };

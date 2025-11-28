@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { HelpCircle, X } from 'lucide-react';
+import { HelpCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { onboardingApi } from '@/services/api/onboarding';
 
 interface ContextualHelpProps {
@@ -19,8 +19,10 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [helpContent, setHelpContent] = useState<string | null>(null);
+  const [faqs, setFaqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFaqs, setShowFaqs] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,8 +52,10 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
       if (response.success) {
         if (response.data.help) {
           setHelpContent(response.data.help.content);
+          setFaqs(response.data.faqs || []);
         } else {
           setHelpContent('No help content available for this component.');
+          setFaqs([]);
         }
       } else {
         setError('Failed to load help content.');
@@ -108,15 +112,39 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
           ) : error ? (
             <div className="text-red-600 text-sm">{error}</div>
           ) : (
-            <div className="text-gray-700 text-sm">
+            <div className="text-gray-700 text-sm max-h-60 overflow-y-auto">
               {helpContent ? (
                 <div dangerouslySetInnerHTML={{ __html: helpContent }} />
               ) : (
                 <p>No help content available.</p>
               )}
+
+              {/* FAQ Integration (REQUIREMENT: FAQ integration) */}
+              {faqs.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => setShowFaqs(!showFaqs)}
+                    className="flex items-center text-xs font-medium text-[#27AE60] hover:text-[#16A085] mb-2"
+                  >
+                    {showFaqs ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                    Related FAQs ({faqs.length})
+                  </button>
+
+                  {showFaqs && (
+                    <div className="space-y-2">
+                      {faqs.map((faq: any, index: number) => (
+                        <div key={index} className="text-xs">
+                          <div className="font-medium text-gray-800">{faq.question}</div>
+                          <div className="text-gray-600 mt-1">{faq.answer}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
-          
+
           <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
             <button
               onClick={() => setIsOpen(false)}

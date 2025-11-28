@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 
 const GoogleCallback: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { loginWithGoogle } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         const code = searchParams.get('code');
-        const state = searchParams.get('state');
         const error = searchParams.get('error');
 
         if (error) {
           setStatus('error');
           setMessage(`Authentication failed: ${error}`);
+          if (window.opener) {
+             window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error }, window.location.origin);
+          }
           return;
         }
 
@@ -28,57 +27,18 @@ const GoogleCallback: React.FC = () => {
           return;
         }
 
-        // Parse state to get return URL
-        let returnUrl = '/dashboard';
-        if (state) {
-          try {
-            const stateData = JSON.parse(decodeURIComponent(state));
-            returnUrl = stateData.returnUrl || '/dashboard';
-          } catch (e) {
-            console.warn('Failed to parse state:', e);
-          }
-        }
-
         setMessage('Completing authentication...');
 
-        // Exchange authorization code for user data
-        const response = await fetch('http://localhost:5000/api/auth/google/callback', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ code }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to authenticate with Google');
-        }
-
-        if (data.success && data.data?.user && data.data?.token) {
-          // Use the auth context to complete login
-          await loginWithGoogle({
-            googleId: data.data.user.id,
-            email: data.data.user.email,
-            firstName: data.data.user.firstName,
-            lastName: data.data.user.lastName,
-            profilePicture: data.data.user.profilePicture
-          });
-
+        if (window.opener) {
+          // Send code to parent window
+          window.opener.postMessage({ type: 'GOOGLE_AUTH_CODE', code }, window.location.origin);
           setStatus('success');
-          setMessage('Authentication successful! Redirecting...');
-
-          // Close popup and redirect parent window
-          if (window.opener) {
-            window.opener.location.href = returnUrl;
-            window.close();
-          } else {
-            // Fallback for non-popup flow
-            setTimeout(() => navigate(returnUrl), 1000);
-          }
+          setMessage('Authentication successful! Closing window...');
+          // Close window after a short delay
+          setTimeout(() => window.close(), 500);
         } else {
-          throw new Error('Invalid response from server');
+          setStatus('error');
+          setMessage('This page should be opened as a popup.');
         }
 
       } catch (error: any) {
@@ -89,7 +49,7 @@ const GoogleCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [searchParams, loginWithGoogle, navigate]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

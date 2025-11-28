@@ -112,3 +112,8 @@ RECORDING_FIX_PLAN.md
 # *Demo.js
 
 .vercel
+
+# Secrets
+backend/gcp-key.json
+*.key
+*.pem

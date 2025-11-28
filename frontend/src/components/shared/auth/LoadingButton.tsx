@@ -32,17 +32,15 @@ const LoadingButton: React.FC<LoadingButtonProps> = memo(({
       case 'primary':
         return `
           text-white 
-          bg-gradient-to-r from-[#00FFC6]/90 to-[#4FC3F7]/90
-          hover:from-[#00E6B8] hover:to-[#42B5E5]
-          active:from-[#00D4A3] active:to-[#3BA8D4]
-          focus:ring-4 focus:ring-[#00FFC6]/30
-          shadow-lg hover:shadow-2xl hover:shadow-[#00FFC6]/40
-          transform hover:scale-[1.02] active:scale-[0.98]
+          bg-[#27AE60]
+          hover:bg-[#219150]
+          active:bg-[#1e8449]
+          focus:ring-4 focus:ring-[#27AE60]/30
+          shadow-lg hover:shadow-xl hover:shadow-[#27AE60]/20
+          transform hover:-translate-y-0.5 active:translate-y-0
           font-bold
           relative overflow-hidden
-          backdrop-blur-sm border border-[#00FFC6]/30
-          before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:via-white/10 before:to-white/0
-          before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700
+          transition-all duration-200
         `;
       case 'secondary':
         return `

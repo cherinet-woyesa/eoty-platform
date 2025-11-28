@@ -27,7 +27,8 @@ const chapterController = {
       console.error('Get chapters error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch chapters'
+        message: 'Failed to fetch chapters',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },

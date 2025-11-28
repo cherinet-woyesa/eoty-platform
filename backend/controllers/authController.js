@@ -366,7 +366,7 @@ const authController = {
 
         return res.status(401).json({
           success: false,
-          message: 'This account was created with Google. Please use "Continue with Google" to sign in.',
+          message: 'This account was created with Google. To sign in with a password, please use the "Forgot Password" link to set one.',
           code: 'GOOGLE_ACCOUNT_NO_PASSWORD'
         });
       }
@@ -444,17 +444,25 @@ const authController = {
     } catch (error) {
       console.error('Login error:', error);
       
-      await activityLogService.logActivity({
-        activityType: 'failed_login',
-        ipAddress,
-        userAgent,
-        success: false,
-        failureReason: 'Internal server error'
-      });
+      // Log the full error stack for debugging
+      console.error(error.stack);
+
+      try {
+        await activityLogService.logActivity({
+          activityType: 'failed_login',
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'Internal server error: ' + error.message
+        });
+      } catch (logError) {
+        console.error('Failed to log activity during login error:', logError);
+      }
 
       res.status(500).json({
         success: false,
-        message: 'Internal server error during login'
+        message: 'Internal server error during login',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },
@@ -1982,7 +1990,7 @@ const authController = {
   // Google OAuth callback - exchange authorization code for user data
   async googleCallback(req, res) {
     try {
-      const { code } = req.body;
+      const { code, redirectUri } = req.body;
 
       if (!code) {
         return res.status(400).json({
@@ -2012,7 +2020,7 @@ const authController = {
           client_secret: clientSecret,
           code: code,
           grant_type: 'authorization_code',
-          redirect_uri: 'http://localhost:3000/auth/google/callback',
+          redirect_uri: redirectUri || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
         }),
       });
 

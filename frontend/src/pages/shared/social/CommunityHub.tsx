@@ -387,7 +387,7 @@ const CommunityHub: React.FC = () => {
     onSaveEdit,
     onCancelEdit,
     onCommentCountChange
-  }) => {
+  }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md">
       {/* Post Header */}
       <div className="flex items-start justify-between mb-4">

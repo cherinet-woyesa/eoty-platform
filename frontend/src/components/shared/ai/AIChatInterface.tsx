@@ -40,12 +40,13 @@ interface TranscriptionResult {
   originalLanguage?: string;
 }
 
-const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(({ 
-  context, 
-  onClose, 
-  className = '',
-  maxHeight = '600px'
-}, ref) => {
+const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
+  ({
+    context,
+    onClose,
+    className = '',
+    maxHeight = '600px'
+  }, ref) => {
   const [input, setInput] = useState<string>('');
   const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
   const [isSlowResponse, setIsSlowResponse] = useState<boolean>(false);
@@ -87,6 +88,11 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     audioQuality,
     resetRecording
   } = useAudioRecorder();
+
+  // UI-controlled language selection (overrides automatic detection when set)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    detectedLanguage || i18n.language || speechToText.getUserLanguage() || 'en-US'
+  );
 
   // Enhanced auto-scroll to bottom
   useEffect(() => {
@@ -162,28 +168,48 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
       let transcription: TranscriptionResult;
       const browserSupport = speechToText.getBrowserCompatibility();
-      
-      if (browserSupport.supported) {
-        transcription = await speechToText.startEnhancedBrowserRecognition(detectedLanguage || undefined);
-        
-        // Enhanced confidence handling
-        if (transcription.confidence < 0.7) {
-          setInput(`${transcription.transcript} (Low confidence - please verify)`);
-        } else {
-          setInput(transcription.transcript);
-        }
-        
-        setDetectedLanguage(transcription.language);
-        
-        // Enhanced language warning
+
+      // Prefer explicit user-selected language when available, otherwise use detectedLanguage
+      const recognitionLanguage = selectedLanguage || detectedLanguage || undefined;
+
+      // If user selected an Ethiopian language, prefer cloud transcription first for reliability
+      const ethiopianLangs = ['am-ET', 'ti-ET', 'om-ET'];
+      const prefersCloud = recognitionLanguage && ethiopianLangs.includes(recognitionLanguage as string);
+
+      if (prefersCloud) {
+        // Use cloud transcription first for Ethiopian languages
+        transcription = await speechToText.transcribeWithCloudService(audioBlob, recognitionLanguage || 'en-US');
+        setInput(transcription.transcript);
+        setDetectedLanguage(transcription.language || recognitionLanguage || null);
         if (transcription.isFallback) {
           setShowLanguageWarning(true);
           setTimeout(() => setShowLanguageWarning(false), 5000);
         }
       } else {
-        // Fallback to cloud service
-        transcription = await speechToText.transcribeAudio(audioBlob, detectedLanguage || undefined);
-        setInput(transcription.transcript);
+        // Browser-first flow for English and other supported languages
+        if (browserSupport.supported) {
+          transcription = await speechToText.startEnhancedBrowserRecognition(recognitionLanguage);
+
+          // Enhanced confidence handling
+          if (transcription.confidence < 0.7) {
+            setInput(`${transcription.transcript} (Low confidence - please verify)`);
+          } else {
+            setInput(transcription.transcript);
+          }
+
+          setDetectedLanguage(transcription.language || recognitionLanguage || null);
+
+          // Enhanced language warning
+          if (transcription.isFallback) {
+            setShowLanguageWarning(true);
+            setTimeout(() => setShowLanguageWarning(false), 5000);
+          }
+        } else {
+          // Fallback to cloud service
+          transcription = await speechToText.transcribeAudio(audioBlob, recognitionLanguage || undefined);
+          setInput(transcription.transcript);
+          setDetectedLanguage(transcription.language || recognitionLanguage || null);
+        }
       }
       
       // Enhanced auto-submit logic
@@ -228,7 +254,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
       userRole: user?.role,
       userId: user?.id,
       language: i18n.language,
-      detectedLanguage: detectedLanguage || undefined,
+      // prefer explicit selection, then detection
+      detectedLanguage: selectedLanguage || detectedLanguage || undefined,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       platform: navigator.platform
@@ -250,7 +277,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
       stopRecording();
     } else {
       setInput('');
-      setDetectedLanguage(null);
+      // set the detected language to the user's selection so transcription uses it
+      setDetectedLanguage(selectedLanguage || null);
       setShowLanguageWarning(false);
       
       try {
@@ -419,15 +447,15 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
   return (
     <div className={`flex flex-col h-full bg-white rounded-2xl border border-gray-200 shadow-sm ${className}`} style={{ maxHeight }}>
-      {/* Enhanced Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-2xl">
+      {/* Enhanced Header - Landing Page Friendly */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 rounded-t-2xl">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-sm">
+          <div className="p-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl shadow-sm">
             <Bot className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-lg">{t('ai.headerTitle', 'Faith Assistant')}</h3>
-            <p className="text-sm text-gray-600">{t('ai.headerSubtitle', 'Ask questions about Orthodox teachings')}</p>
+            <h3 className="font-semibold text-gray-900 text-lg">AI Assistant</h3>
+            <p className="text-sm text-gray-600">Questions about the platform?</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -444,6 +472,20 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               {Math.round(faithAlignment.score * 100)}% Aligned
             </div>
           )}
+
+          {/* Language Selector */}
+          <div className="flex items-center">
+            <select
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[#27AE60] mr-2"
+              title="Select response / transcription language"
+            >
+              {Object.entries(speechToText.supportedLanguages).map(([code, name]) => (
+                <option key={code} value={code}>{name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Response Time Indicator */}
           {responseTime !== null && responseTime < 3 && (
@@ -490,25 +532,44 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         style={{ maxHeight: `calc(${maxHeight} - 140px)` }}
       >
         {messages.length === 0 && (
-          <div className="text-center py-12">
-            <div className="p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl inline-block mb-4">
-              <Bot className="h-12 w-12 text-blue-600" />
+          <div className="text-center py-8">
+            <div className="p-4 bg-gradient-to-r from-[#27AE60]/20 to-[#16A085]/20 rounded-2xl inline-block mb-4">
+              <Bot className="h-12 w-12 text-[#27AE60]" />
             </div>
-            <h4 className="text-xl font-semibold text-gray-900 mb-3">{t('ai.welcomeTitle', 'Welcome to Faith Assistant')}</h4>
-            <p className="text-gray-600 max-w-md mx-auto mb-6">{t('ai.welcomeSubtitle', 'Ask me anything about Orthodox Christianity, church teachings, or your current lesson.')}</p>
-            <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 max-w-sm mx-auto">
-              <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <span className="font-medium">💬</span> {t('ai.example1', 'What is the significance of the Holy Trinity?')}
+            <h4 className="text-xl font-semibold text-gray-900 mb-3">👋 Welcome to EOTY AI Assistant</h4>
+            <p className="text-gray-600 max-w-md mx-auto mb-6 text-sm leading-relaxed">
+              I'm here to help you understand the platform, answer questions about Ethiopian Orthodox teachings,
+              and guide you through your spiritual learning journey.
+            </p>
+
+            {/* Quick Start Suggestions */}
+            <div className="bg-gradient-to-r from-[#27AE60]/5 to-[#16A085]/5 rounded-xl p-4 mb-6 border border-[#27AE60]/20">
+              <h5 className="font-medium text-gray-800 mb-3 flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 mr-2 text-[#27AE60]" />
+                Try asking me about:
+              </h5>
+              <div className="grid grid-cols-1 gap-2 text-sm max-w-sm mx-auto">
+                <button
+                  onClick={() => setInput('How do I get started with learning on this platform?')}
+                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
+                >
+                  <span className="font-medium text-[#27AE60]">🚀</span> How do I get started with learning?
+                </button>
+                <button
+                  onClick={() => setInput('What courses are available for Ethiopian Orthodox teachings?')}
+                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
+                >
+                  <span className="font-medium text-[#27AE60]">📚</span> What courses are available?
+                </button>
+                <button
+                  onClick={() => setInput('How does the AI assistant help with learning?')}
+                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
+                >
+                  <span className="font-medium text-[#27AE60]">🤖</span> How does AI assistance work?
+                </button>
               </div>
-              <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <span className="font-medium">📖</span> {t('ai.example2', 'Explain the Ethiopian Orthodox liturgy')}
-              </div>
-              <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <span className="font-medium">🙏</span> {t('ai.example3', 'Help me understand this lesson about prayer')}
-              </div>
-            </div>
           </div>
-        )}
+        
 
         {/* Language Warning */}
         {showLanguageWarning && (
@@ -736,7 +797,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         {/* Enhanced Processing Indicator */}
         {isProcessing && (
           <div className="flex space-x-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center shadow-sm">
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div className="flex-1 max-w-[85%]">
@@ -829,7 +890,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
         <div ref={messagesEndRef} />
       </div>
-
+)}
       {/* Enhanced Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
         <form onSubmit={handleSubmit} className="flex space-x-3">
@@ -839,8 +900,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={t('ai.placeholder', 'Ask about Orthodox teachings, scripture, or your current lesson...')}
-              className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
+              placeholder="Ask me anything about the platform, courses, or Ethiopian Orthodox teachings..."
+              className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] transition-all duration-200 shadow-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
               rows={inputRows}
               style={{ minHeight: '48px', maxHeight: '120px' }}
               disabled={isRecording || isProcessing}
@@ -873,7 +934,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           <button
             type="submit"
             disabled={!input.trim() || isProcessing || isRecording || isUsingAudio}
-            className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center min-w-[60px]"
+            className="px-4 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-xl hover:from-[#16A085] hover:to-[#27AE60] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center min-w-[60px]"
           >
             {isProcessing ? (
               <Loader className="h-4 w-4 animate-spin" />
@@ -905,10 +966,14 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               Supported in Chrome, Edge, and Safari
             </div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+      </div>
+   
   );
 });
+
+AIChatInterface.displayName = 'AIChatInterface';
 
 export default AIChatInterface;

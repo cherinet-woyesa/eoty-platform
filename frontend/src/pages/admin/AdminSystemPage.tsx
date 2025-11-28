@@ -3,10 +3,10 @@ import { BarChart2, Settings, ShieldIcon, Video, FileEdit } from 'lucide-react';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import SystemConfigDashboard from './config/SystemConfigDashboard';
 import AdminActivityLogs from './AdminActivityLogs';
-import LandingPageEditor from '@/components/admin/LandingPageEditor';
 
-// Lazy load Mux Migration
+// Lazy load components
 const MuxMigration = React.lazy(() => import('./MuxMigration'));
+const LandingPageEditor = React.lazy(() => import('./LandingPageEditor'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full p-8">
@@ -109,7 +109,9 @@ const AdminSystemPage: React.FC = () => {
             )}
             {activeTab === 'landing' && (
               <div className="animate-in fade-in duration-300">
-                <LandingPageEditor />
+                <Suspense fallback={<PageLoader />}>
+                  <LandingPageEditor />
+                </Suspense>
               </div>
             )}
           </div>

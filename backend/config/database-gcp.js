@@ -72,7 +72,12 @@ const testConnection = async (retries = 5) => {
 
       if (i === retries - 1) {
         console.error('❌ All connection attempts failed');
-        throw err;
+        if (process.env.NODE_ENV === 'production') {
+          throw err;
+        } else {
+          console.warn('⚠️ Continuing without database connection (Development/Test Mode)');
+          return;
+        }
       }
 
       // Wait before retrying

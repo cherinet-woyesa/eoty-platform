@@ -22,7 +22,7 @@ const ContentManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const [newUpload, setNewUpload] = useState({
     title: '',
     description: '',
@@ -115,13 +115,24 @@ const ContentManager: React.FC = () => {
   const fetchUploads = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('Fetching uploads with status filter:', statusFilter);
+
       const response = await adminApi.getUploadQueue(statusFilter !== '' ? statusFilter : undefined);
+      console.log('Upload queue response:', response);
+
       if (response.success && response.data) {
+        console.log('Setting uploads:', response.data.uploads?.length || 0, 'items');
         setUploads(response.data.uploads || []);
+      } else {
+        console.warn('Upload response not successful:', response);
+        setUploads([]);
       }
     } catch (err: any) {
       console.error('Failed to fetch uploads:', err);
-      setError('Failed to load content uploads');
+      console.error('Error details:', err.response?.data || err.message);
+      setError(`Failed to load content uploads: ${err.response?.data?.message || err.message}`);
+      setUploads([]);
     } finally {
       setLoading(false);
     }
@@ -371,6 +382,21 @@ const ContentManager: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {/* Debug Info - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Debug Information</h4>
+            <div className="text-xs text-blue-800 space-y-1">
+              <div>Loading: {loading ? 'Yes' : 'No'}</div>
+              <div>Uploads Count: {uploads.length}</div>
+              <div>Filtered Count: {filteredUploads.length}</div>
+              <div>Status Filter: '{statusFilter}'</div>
+              <div>Search Term: '{searchTerm}'</div>
+              {error && <div className="text-red-600">Error: {error}</div>}
+            </div>
+          </div>
+        )}
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">

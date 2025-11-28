@@ -63,7 +63,7 @@ export const errorMessages: ErrorMessageMap = {
   'GOOGLE_AUTH_FAILED': 'Google authentication failed. Please try again.',
   'FACEBOOK_AUTH_FAILED': 'Facebook authentication failed. Please try again.',
   'SOCIAL_ACCOUNT_EXISTS': 'An account with this email already exists. Please log in with your password.',
-  'GOOGLE_ACCOUNT_NO_PASSWORD': 'This account was created with Google. Please use "Continue with Google" to sign in.',
+  // 'GOOGLE_ACCOUNT_NO_PASSWORD': 'This account was created with Google. Please use "Continue with Google" to sign in.',
 
   // Account status errors
   'ACCOUNT_SUSPENDED': 'Your account has been suspended. Please contact support.',

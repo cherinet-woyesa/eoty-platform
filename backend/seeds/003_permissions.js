@@ -1,10 +1,14 @@
 exports.seed = async function(knex) {
-  // Clear existing
+  // Always clear and re-seed role permissions
   await knex('role_permissions').del();
-  await knex('user_permissions').del();
 
-  // Insert all permissions
-  const permissions = await knex('user_permissions').insert([
+  // Check if user permissions exist, if not create them
+  const existingUserPerms = await knex('user_permissions').count('* as count').first();
+
+  let permissions;
+  if (existingUserPerms.count === 0) {
+    // Insert all permissions
+    permissions = await knex('user_permissions').insert([
     // Course permissions
     { permission_key: 'course:view', description: 'View courses' },
     { permission_key: 'course:create', description: 'Create courses' },
@@ -82,7 +86,12 @@ exports.seed = async function(knex) {
     { permission_key: 'audit:view', description: 'View audit logs' }
   ]).returning('id');
 
-  console.log('✅ Permissions seeded');
+    console.log('✅ Permissions seeded');
+  } else {
+    // Get existing permissions
+    permissions = await knex('user_permissions').select('id', 'permission_key');
+    console.log('✅ Using existing permissions');
+  }
 
   // Map permissions to roles
   const permissionMap = {};
@@ -171,6 +180,18 @@ exports.seed = async function(knex) {
     ...getPermIds('system:admin').map(id => ({ role: 'admin', permission_id: id }))
   ];
 
-  await knex('role_permissions').insert(rolePermissions);
-  console.log('✅ Role permissions seeded for all roles');
+  // Insert role permissions one by one to handle duplicates
+  let inserted = 0;
+  for (const rp of rolePermissions) {
+    try {
+      await knex('role_permissions').insert(rp);
+      inserted++;
+    } catch (error) {
+      // Skip duplicates
+      if (!error.message.includes('duplicate key value')) {
+        throw error;
+      }
+    }
+  }
+  console.log(`✅ Role permissions seeded: ${inserted} inserted`);
 };

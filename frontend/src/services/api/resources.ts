@@ -46,6 +46,58 @@ export const resourcesApi = {
     return response.data;
   },
 
+  // Get resources by scope
+  getChapterResources: async (chapterId: string, filters: ResourceFilters = {}): Promise<ResourceResponse> => {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value)) {
+          params.append(key, value.join(','));
+        } else {
+          params.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await apiClient.get(`/resources/chapter/${chapterId}?${params}`);
+    return response.data;
+  },
+
+  getPlatformResources: async (filters: ResourceFilters = {}): Promise<ResourceResponse> => {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value)) {
+          params.append(key, value.join(','));
+        } else {
+          params.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await apiClient.get(`/resources/platform?${params}`);
+    return response.data;
+  },
+
+  getCourseResources: async (courseId: string, filters: ResourceFilters = {}): Promise<ResourceResponse> => {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value)) {
+          params.append(key, value.join(','));
+        } else {
+          params.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await apiClient.get(`/resources/course/${courseId}?${params}`);
+    return response.data;
+  },
+
   // Get single resource with inline viewing capability (REQUIREMENT: Inline viewing)
   getResource: async (id: number): Promise<{ success: boolean; data: { resource: Resource; canViewInline: boolean; isUnsupported: boolean; errorMessage?: string } }> => {
     const response = await apiClient.get(`/resources/${id}`);

@@ -6,14 +6,14 @@ exports.up = async function(knex) {
   if (!exists) {
     return knex.schema.createTable('quiz_questions', function(table) {
       table.increments('id').primary();
-      table.integer('lesson_id').notNullable().references('id').inTable('lessons').onDelete('CASCADE');
+      table.integer('quiz_id').notNullable().references('id').inTable('quizzes').onDelete('CASCADE');
       table.text('question_text').notNullable();
       table.string('question_type').notNullable().defaultTo('multiple_choice');
       table.jsonb('options');
       table.string('correct_answer');
       table.text('explanation');
       table.integer('points').defaultTo(1);
-      table.integer('order').defaultTo(0);
+      table.integer('order_number').defaultTo(0);
       table.boolean('is_active').defaultTo(true);
       table.timestamps(true, true);
     });

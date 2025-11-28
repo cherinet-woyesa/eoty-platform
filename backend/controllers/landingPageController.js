@@ -4,9 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const muxService = require('../services/muxService');
 
-// Configure multer for temporary video uploads (to Mux)
-const storage = multer.memoryStorage();
-
 // File filter for video files
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('video/')) {
@@ -15,6 +12,32 @@ const fileFilter = (req, file, cb) => {
     cb(new Error('Only video files are allowed!'), false);
   }
 };
+
+// Local file storage fallback
+const localStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/landing');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `landing-hero-${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+const localUpload = multer({
+  storage: localStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  }
+});
+
+// Configure multer for temporary video uploads (to Mux)
+const storage = multer.memoryStorage();
 
 // Configure multer upload
 const upload = multer({
@@ -28,6 +51,74 @@ const upload = multer({
 const landingPageController = {
   // Get all landing page content
   async getContent(req, res) {
+    const defaultContent = {
+      hero: {
+        badge: 'For Ethiopian Orthodox Youths',
+        title: 'Transform Your',
+        titleGradient: 'Learning Journey',
+        description: 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.',
+        videoUrl: '',
+        showVideo: false
+      },
+      about: {
+        badge: 'Our Mission',
+        title: 'Empowering Ethiopian Orthodox Youths',
+        description: 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.',
+        features: [
+          {
+            icon: 'BookOpen',
+            title: 'Comprehensive Learning',
+            description: 'Access courses covering theology, history, traditions, and more.'
+          },
+          {
+            icon: 'Users',
+            title: 'Community Support',
+            description: 'Connect with fellow learners and experienced teachers.'
+          },
+          {
+            icon: 'Award',
+            title: 'Track Progress',
+            description: 'Monitor your learning journey and celebrate achievements.'
+          }
+        ]
+      },
+      howItWorks: {
+        badge: 'Simple Process',
+        title: 'How It Works',
+        description: 'Start your learning journey in minutes',
+        steps: [
+          {
+            step: '01',
+            icon: 'User',
+            title: 'Create Account',
+            description: 'Sign up for free and join our community of learners',
+            features: ['Free forever', 'No credit card', 'Instant access']
+          },
+          {
+            step: '02',
+            icon: 'BookOpen',
+            title: 'Browse Courses',
+            description: 'Explore our comprehensive library of faith-based courses',
+            features: ['500+ courses', 'Expert teachers', 'Self-paced']
+          },
+          {
+            step: '03',
+            icon: 'PlayCircle',
+            title: 'Start Learning',
+            description: 'Watch videos, complete lessons, and track your progress',
+            features: ['HD videos', 'Interactive quizzes', 'Progress tracking']
+          },
+          {
+            step: '04',
+            icon: 'Award',
+            title: 'Earn Achievements',
+            description: 'Complete courses, earn badges, and grow in your faith journey',
+            features: ['Certificates', 'Badges', 'Leaderboards']
+          }
+        ]
+      }
+    };
+
     try {
       // Check if table exists
       const tableExists = await db.schema.hasTable('landing_page_content');
@@ -36,71 +127,7 @@ const landingPageController = {
         console.warn('landing_page_content table does not exist. Returning default content.');
         return res.json({
           success: true,
-          data: {
-            hero: {
-              badge: 'For Ethiopian Orthodox Youths',
-              title: 'Transform Your',
-              titleGradient: 'Learning Journey',
-              description: 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.'
-            },
-            about: {
-              badge: 'Our Mission',
-              title: 'Empowering Ethiopian Orthodox Youths',
-              description: 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.',
-              features: [
-                {
-                  icon: 'BookOpen',
-                  title: 'Comprehensive Learning',
-                  description: 'Access courses covering theology, history, traditions, and more.'
-                },
-                {
-                  icon: 'Users',
-                  title: 'Community Support',
-                  description: 'Connect with fellow learners and experienced teachers.'
-                },
-                {
-                  icon: 'Award',
-                  title: 'Track Progress',
-                  description: 'Monitor your learning journey and celebrate achievements.'
-                }
-              ]
-            },
-            howItWorks: {
-              badge: 'Simple Process',
-              title: 'How It Works',
-              description: 'Start your learning journey in minutes',
-              steps: [
-                {
-                  step: '01',
-                  icon: 'User',
-                  title: 'Create Account',
-                  description: 'Sign up for free and join our community of learners',
-                  features: ['Free forever', 'No credit card', 'Instant access']
-                },
-                {
-                  step: '02',
-                  icon: 'BookOpen',
-                  title: 'Browse Courses',
-                  description: 'Explore our comprehensive library of faith-based courses',
-                  features: ['500+ courses', 'Expert teachers', 'Self-paced']
-                },
-                {
-                  step: '03',
-                  icon: 'PlayCircle',
-                  title: 'Start Learning',
-                  description: 'Watch videos, complete lessons, and track your progress',
-                  features: ['HD videos', 'Interactive quizzes', 'Progress tracking']
-                },
-                {
-                  step: '04',
-                  icon: 'Award',
-                  title: 'Earn Achievements',
-                  description: 'Complete courses, earn badges, and grow in your faith journey',
-                  features: ['Certificates', 'Badges', 'Leaderboards']
-                }
-              ]
-            }
-          }
+          data: defaultContent
         });
       }
 
@@ -118,74 +145,7 @@ const landingPageController = {
 
       // Merge existing content with default structure to ensure all sections exist
       const existingContent = JSON.parse(content.content_json);
-      const defaultContent = {
-        hero: {
-          badge: 'For Ethiopian Orthodox Youths',
-          title: 'Transform Your',
-          titleGradient: 'Learning Journey',
-          description: 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey.',
-          videoUrl: '',
-          showVideo: false
-        },
-        about: {
-          badge: 'Our Mission',
-          title: 'Empowering Ethiopian Orthodox Youths',
-          description: 'Empowering Ethiopian Orthodox youths through faith-centered education. Nurturing spiritual growth with quality learning that honors our traditions.',
-          features: [
-            {
-              icon: 'BookOpen',
-              title: 'Comprehensive Learning',
-              description: 'Access courses covering theology, history, traditions, and more.'
-            },
-            {
-              icon: 'Users',
-              title: 'Community Support',
-              description: 'Connect with fellow learners and experienced teachers.'
-            },
-            {
-              icon: 'Award',
-              title: 'Track Progress',
-              description: 'Monitor your learning journey and celebrate achievements.'
-            }
-          ]
-        },
-        howItWorks: {
-          badge: 'Simple Process',
-          title: 'How It Works',
-          description: 'Start your learning journey in minutes',
-          steps: [
-            {
-              step: '01',
-              icon: 'User',
-              title: 'Create Account',
-              description: 'Sign up for free and join our community of learners',
-              features: ['Free forever', 'No credit card', 'Instant access']
-            },
-            {
-              step: '02',
-              icon: 'BookOpen',
-              title: 'Browse Courses',
-              description: 'Explore our comprehensive library of faith-based courses',
-              features: ['500+ courses', 'Expert teachers', 'Self-paced']
-            },
-            {
-              step: '03',
-              icon: 'PlayCircle',
-              title: 'Start Learning',
-              description: 'Watch videos, complete lessons, and track your progress',
-              features: ['HD videos', 'Interactive quizzes', 'Progress tracking']
-            },
-            {
-              step: '04',
-              icon: 'Award',
-              title: 'Earn Achievements',
-              description: 'Complete courses, earn badges, and grow in your faith journey',
-              features: ['Certificates', 'Badges', 'Leaderboards']
-            }
-          ]
-        }
-      };
-
+      
       const mergedContent = {
         ...defaultContent,
         ...existingContent,
@@ -201,10 +161,10 @@ const landingPageController = {
       });
     } catch (error) {
       console.error('Error fetching landing page content:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to fetch landing page content',
-        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      // Return default content on error to prevent UI breakage
+      res.json({
+        success: true,
+        data: defaultContent
       });
     }
   },
@@ -314,9 +274,10 @@ const landingPageController = {
       });
     } catch (error) {
       console.error('Error fetching testimonials:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch testimonials'
+      // Return empty list on error
+      res.json({
+        success: true,
+        data: { testimonials: [] }
       });
     }
   },
@@ -420,38 +381,99 @@ const landingPageController = {
           });
         }
 
-        console.log('🎬 Starting Mux upload for landing page video...');
+        console.log('🎬 Starting video upload for landing page...');
 
-        // Upload to Mux
-        const muxResult = await muxService.uploadVideoBuffer({
-          buffer: req.file.buffer,
-          filename: req.file.originalname,
-          contentType: req.file.mimetype,
-          metadata: {
-            title: 'Landing Page Hero Video',
-            description: 'Hero video for the landing page'
-          }
-        });
-
-        console.log('✅ Mux upload successful:', muxResult);
-
-        // Return Mux playback URL
-        const videoUrl = muxResult.playbackUrl;
-
-        res.json({
-          success: true,
-          message: 'Video uploaded to Mux successfully',
-          data: {
-            videoUrl: videoUrl,
-            muxAssetId: muxResult.assetId,
-            muxPlaybackId: muxResult.playbackId,
+        // Try Mux upload first
+        try {
+          console.log('🎬 Attempting Mux upload...');
+          const muxResult = await muxService.uploadVideoBuffer({
+            buffer: req.file.buffer,
             filename: req.file.originalname,
-            size: req.file.size
+            contentType: req.file.mimetype,
+            metadata: {
+              title: 'Landing Page Hero Video',
+              description: 'Hero video for the landing page'
+            }
+          });
+
+          console.log('✅ Mux upload successful:', muxResult);
+
+          // Return Mux playback URL
+          const videoUrl = muxResult.playbackUrl;
+
+          return res.json({
+            success: true,
+            message: 'Video uploaded to Mux successfully',
+            data: {
+              videoUrl: videoUrl,
+              muxAssetId: muxResult.assetId,
+              muxPlaybackId: muxResult.playbackId,
+              filename: req.file.originalname,
+              size: req.file.size,
+              storage: 'mux'
+            }
+          });
+
+        } catch (muxError) {
+          console.log('⚠️  Mux upload failed, trying local storage fallback...');
+
+          // Check if this is a limit error - if so, use local storage
+          if (muxError.message && muxError.message.includes('10 assets') && muxError.message.includes('exceeding this limit')) {
+            console.log('📁 Using local storage due to Mux limit...');
+
+            // Save to local storage as fallback
+            const uploadDir = path.join(__dirname, '../uploads/landing');
+            if (!fs.existsSync(uploadDir)) {
+              fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            const filename = `landing-hero-${Date.now()}-${req.file.originalname}`;
+            const filePath = path.join(uploadDir, filename);
+
+            fs.writeFileSync(filePath, req.file.buffer);
+
+            // Create a URL for the local file
+            const videoUrl = `/uploads/landing/${filename}`;
+
+            return res.json({
+              success: true,
+              message: 'Video uploaded to local storage (Mux limit reached)',
+              data: {
+                videoUrl: videoUrl,
+                filename: filename,
+                size: req.file.size,
+                storage: 'local'
+              }
+            });
           }
-        });
+
+          // Re-throw other Mux errors
+          throw muxError;
+        }
 
       } catch (error) {
         console.error('❌ Error uploading video to Mux:', error);
+
+        // Check if this is a Mux free tier limit error
+        if (error.message && error.message.includes('10 assets') && error.message.includes('exceeding this limit')) {
+          return res.status(402).json({
+            success: false,
+            message: 'Mux free tier limit exceeded',
+            error: 'Your Mux account has reached the free tier limit of 10 video assets. Please upgrade your Mux plan or delete existing videos to upload new ones.',
+            userMessage: 'Video upload limit reached. Please contact support to upgrade your video storage plan.'
+          });
+        }
+
+        // Check for other Mux API errors
+        if (error.message && error.message.includes('Failed to create Mux direct upload')) {
+          return res.status(500).json({
+            success: false,
+            message: 'Video upload service temporarily unavailable',
+            error: 'Mux video service is currently unavailable. Please try again later.',
+            userMessage: 'Video upload service is currently unavailable. Please try again later.'
+          });
+        }
+
         res.status(500).json({
           success: false,
           message: 'Failed to upload video to Mux',

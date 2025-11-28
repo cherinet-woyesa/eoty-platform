@@ -19,8 +19,8 @@ async function testAIResponseTime() {
   if (!isAIEnabled) {
     console.log('\n⚠️  WARNING: AI services are not configured.');
     console.log('To run full acceptance criteria validation, please set the following environment variables:');
-    console.log('- OPENAI_API_KEY: Your OpenAI API key');
-    console.log('- PINECONE_API_KEY: Your Pinecone API key');
+    console.log('- GOOGLE_CLOUD_PROJECT: Your Google Cloud Project ID');
+    console.log('- GOOGLE_APPLICATION_CREDENTIALS: Path to your service account key (if running locally)');
     console.log('\nRunning basic functionality tests instead...\n');
     
     // Test basic functionality without AI
@@ -131,7 +131,7 @@ async function testAIResponseTime() {
   // Skip final validation if AI is disabled
   if (!isAIEnabled) {
     console.log('\n⚠️  Full acceptance criteria validation skipped because AI services are not configured.');
-    console.log('To run complete validation, please configure AI services with the required API keys.');
+    console.log('To run complete validation, please configure AI services with the required Google Cloud credentials.');
     process.exit(0);
   }
   

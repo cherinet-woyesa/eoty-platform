@@ -53,7 +53,7 @@ import {
   Sparkles, Star,
   Monitor, Save, FolderOpen, Scissors,
   FileText, Clock, Keyboard, XCircle,
-  BookOpen
+  BookOpen, ArrowRight
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -61,11 +61,7 @@ interface VideoRecorderProps {
   onUploadComplete?: (lessonId: string, videoUrl: string) => void;
   courseId?: string;
   lessonId?: string;
-  // UI customization props
-  liveHeight?: string; // e.g. '70vh' for live recording preview
-  playbackHeight?: string; // e.g. '55vh' for recorded playback preview
-  useAspectRatio?: boolean; // enforce 16:9 playback when true
-  pipSize?: string; // e.g. '28%' for picture-in-picture camera overlay
+  variant?: 'default' | 'clean';
 }
 
 interface Course {
@@ -83,10 +79,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   onUploadComplete,
   courseId,
   lessonId,
-  liveHeight = '70vh',
-  playbackHeight = '55vh',
-  useAspectRatio = false,
-  pipSize = '28%'
+  variant = 'default'
 }) => {
   const isMobile = useIsMobile();
   
@@ -141,12 +134,20 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     stopAudioLevelMonitoring,
     options,
     setOptions
+    ,
+    acknowledgePreview
   } = useVideoRecorder();
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const recordedVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const previewAcknowledgedRef = useRef(false);
+
+  // Reset acknowledgement flag when a new blob/url is set so we can acknowledge next preview
+  useEffect(() => {
+    previewAcknowledgedRef.current = false;
+  }, [videoBlob, recordedVideo]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isStoppingRef = useRef(false);
   
@@ -176,8 +177,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const persistentSuccessMessageRef = useRef<string | null>(null);
-  // Debug helper: transient message to confirm getDisplayMedia invocation
-  const [debugDisplayMediaMessage, setDebugDisplayMediaMessage] = useState<string | null>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -195,6 +194,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showPresetsManager, setShowPresetsManager] = useState(false);
   const [showEnhancedPreview, setShowEnhancedPreview] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(3);
   // Simple vs advanced mode toggle - default to simple for most teachers
   const [showAdvancedTools, setShowAdvancedTools] = useState(false);
   
@@ -218,9 +218,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Loading states (Task 7.2)
   const [isInitializingCompositor, setIsInitializingCompositor] = useState(false);
   const [layoutChangeNotification, setLayoutChangeNotification] = useState<string | null>(null);
-  // Debug sizes overlay
-  const [showDebugSizes, setShowDebugSizes] = useState(false);
-  const [debugSizes, setDebugSizes] = useState<any>(null);
   
   // NEW: Notification system (Task 7.3)
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -234,7 +231,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
 
   // NEW: Enhanced state for production features
-  const [, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
   
   
   // Auto-save drafts state
@@ -427,7 +424,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Check if recording is active - if so, might be restarting
       if (!isRecording) {
         screenVideoRef.current.srcObject = null;
-        setScreenReady(false);
         console.log('Screen video srcObject cleared');
       }
     }
@@ -468,11 +464,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [stream, recordingSources, enableAudio]);
 
-  // UI ready states to avoid black flicker and enable smooth crossfades
-  const [cameraReady, setCameraReady] = useState(false);
-  const [screenReady, setScreenReady] = useState(false);
-  const [recordedReady, setRecordedReady] = useState(false);
-
   // NEW: Recording stats monitoring with performance alerts (Task 7.3)
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -499,84 +490,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
   }, [isRecording, isPaused]);
 
-  // Reset recorded-ready when a new recorded URL is set so it can fade in when ready
-  useEffect(() => {
-    setRecordedReady(false);
-  }, [recordedVideo]);
-
-  // Option to match preview layout to live layout
-  const [matchLiveLayout, setMatchLiveLayout] = useState(true);
-
-  // Sync compositor draw fit when user toggles match-live option
-  useEffect(() => {
-    try {
-      if (compositorInstance) {
-        const fitMode = matchLiveLayout && currentLayout === 'picture-in-picture' ? 'cover' : 'contain';
-        compositorInstance.updateVideoSource && compositorInstance.updateVideoSource('camera', { fit: fitMode } as any);
-      }
-    } catch (e) {
-      console.warn('Failed to update compositor fit mode:', e);
-    }
-  }, [matchLiveLayout, currentLayout, compositorInstance]);
-
-  // Sync recordedVideo URL to the recorded video element so we get a reliable loadedmetadata event
-  useEffect(() => {
-    const el = recordedVideoRef.current;
-    if (!el) return;
-
-    const handleLoaded = () => setRecordedReady(true);
-
-    // reset
-    setRecordedReady(false);
-    try {
-      if (recordedVideo) {
-        el.src = recordedVideo;
-      }
-      el.addEventListener('loadedmetadata', handleLoaded);
-      el.addEventListener('canplay', handleLoaded);
-    } catch (err) {
-      console.error('Failed to set recorded video src:', err);
-    }
-
-    return () => {
-      el.removeEventListener('loadedmetadata', handleLoaded);
-      el.removeEventListener('canplay', handleLoaded);
-    };
-  }, [recordedVideo]);
-
-  // Reset camera ready flag when camera source is removed/added so we prewarm correctly
-  useEffect(() => {
-    if (recordingSources.camera) {
-      setCameraReady(false);
-    } else {
-      setCameraReady(false);
-    }
-  }, [recordingSources.camera]);
-
+  // Show preview when video blob becomes available after recording stops
   // Show preview when video blob becomes available after recording stops
   useEffect(() => {
     // When recording stops and video blob becomes available, show preview
-    // This handles the case where videoBlob is set asynchronously by MediaRecorder's onstop handler
-    // Also handle the case where recordingStatus is 'processing' (waiting for blob)
     if (!isRecording && (videoBlob || recordedVideo) && !showPreview && !showLessonForm && !uploading) {
       console.log('Video blob ready, showing preview', { 
         hasBlob: !!videoBlob, 
         hasUrl: !!recordedVideo, 
         blobSize: videoBlob?.size
       });
+      
       setShowPreview(true);
       setShowLessonForm(false);
-      setRecordingStatus('idle'); // Ensure status is idle when preview is shown
+      setRecordingStatus('idle');
       setSuccessMessage('Recording completed! Review your video below.');
       
-      // Now that blob is ready, it's safe to close camera
-      // This ensures cleanup happens after blob is created
-      setTimeout(() => {
-        closeCamera();
-      }, 500);
+      // Do NOT acknowledge preview here — wait until the preview video element has loaded metadata
+      // The preview's onLoadedMetadata will call acknowledgePreview() to allow the hook to cleanup
     }
-  }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading, closeCamera]);
-
+  }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading]);
   // Auto-save drafts during recording
   useEffect(() => {
     if (isRecording && videoBlob && videoBlob.size > 0) {
@@ -623,21 +556,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     loadDrafts();
   }, []);
 
-  // NEW: Layout class mapping
-  const getLayoutClass = () => {
-    switch (currentLayout) {
-      case 'picture-in-picture':
-        return 'pip-layout';
-      case 'side-by-side':
-        return 'side-by-side-layout';
-      case 'screen-only':
-        return 'screen-only-layout';
-      case 'camera-only':
-        return 'camera-only-layout';
-      default:
-        return 'pip-layout';
-    }
-  };
+
 
   // NEW: Slide management functions
   const handleSlidesChange = (newSlides: any[]) => {
@@ -815,11 +734,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const startCountdownAndRecording = useCallback(async () => {
     try {
       setRecordingStatus('countdown');
+      setCountdownValue(3);
       
       await new Promise<void>((resolve) => {
         let n = 3;
         countdownIntervalRef.current = setInterval(() => {
           n -= 1;
+          setCountdownValue(n);
           
           if (n <= 0) {
             if (countdownIntervalRef.current) {
@@ -1026,11 +947,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // Enhanced: Start recording with multi-source initialization
   const handleStartRecording = async () => {
-    try {
-      setRecordingTimeState(0);
-      setRecordingDuration(0);
-      setUploadSuccess(false);
-      setErrorMessage(null);
+  try {
+    setRecordingTimeState(0);
+    setRecordingDuration(0);
+    setUploadSuccess(false);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const hasExistingStreams = recordingSources.camera || recordingSources.screen;
+    if (!hasExistingStreams) {
+      // No existing streams - initialize camera
+      console.log('No existing streams - initializing camera');
+      await initializeCamera();
+    } else {
+      // We have existing streams - reuse them
+      console.log('Reusing existing streams for recording', {
+        hasCamera: !!recordingSources.camera,
+        hasScreen: !!recordingSources.screen
+      });
+    }
+    
       // Don't clear processing completion success message
       if (!persistentSuccessMessageRef.current) {
         setSuccessMessage(null);
@@ -1158,57 +1093,52 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // Enhanced reset function
   const handleReset = useCallback(() => {
-    console.log('Resetting recorder state');
+  console.log('Resetting recorder state - cleaning up streams');
+  acknowledgePreview();
     
     if (autoStopTimerRef.current) {
-      clearTimeout(autoStopTimerRef.current);
-      autoStopTimerRef.current = null;
-    }
+    clearTimeout(autoStopTimerRef.current);
+    autoStopTimerRef.current = null;
+  }
     
     resetRecording();
-    setRecordingTimeState(0);
-    setRecordingDuration(0);
-    setShowLessonForm(false);
-    setShowPreview(false);
-    setLessonTitle('');
-    setLessonDescription('');
-    setSelectedCourse(courseId || '');
-    setUploadProgress(0);
-    setUploadSuccess(false);
-    setErrorMessage(null);
-    // Don't clear processing completion success message
-    if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
-      setSuccessMessage(null);
-    }
-    setSelectedFile(null);
-    setAutoStopTimer(0);
-    setRecordingStatus('idle');
-    setShowTimelineEditor(false);
-    setShowSlideManager(false);
-    setShowProcessingStatus(false);
-    setProcessingLessonId(null);
-    setCurrentSlides([]);
-    setCurrentSlideIndex(0);
-    setShowMuxUploader(false);
-    setMuxUploadLessonId(null);
-    setRecordingStats({
-      fileSize: 0,
-      bitrate: 0,
-      framesDropped: 0,
-      networkQuality: 'good',
-      recordingQuality: recordingQuality,
-      duration: 0
-    });
+  setRecordingTimeState(0);
+  setRecordingDuration(0);
+  setShowLessonForm(false);
+  setShowPreview(false);
+  setLessonTitle('');
+  setLessonDescription('');
+  setSelectedCourse(courseId || '');
+  setUploadProgress(0);
+  setUploadSuccess(false);
+  setErrorMessage(null);
+  
+  if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
+    setSuccessMessage(null);
+  }
+     setSelectedFile(null);
+  setAutoStopTimer(0);
+  setRecordingStatus('idle');
+  setShowTimelineEditor(false);
+  setShowSlideManager(false);
+  setShowProcessingStatus(false);
+  setProcessingLessonId(null);
+  setCurrentSlides([]);
+  setCurrentSlideIndex(0);
+  setShowMuxUploader(false);
+  setMuxUploadLessonId(null);
+  
+  if (filePreview) {
+    URL.revokeObjectURL(filePreview);
+    setFilePreview(null);
+  }
+  
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+  
+}, [resetRecording, courseId, filePreview, successMessage, setRecordingTimeState, acknowledgePreview]);
     
-    if (filePreview) {
-      URL.revokeObjectURL(filePreview);
-      setFilePreview(null);
-    }
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [resetRecording, courseId, filePreview]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1417,44 +1347,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setErrorMessage(null);
   };
 
-  // Debug helper: directly call getDisplayMedia to confirm chooser behavior
-  const handleDebugGetDisplayMedia = async () => {
-    try {
-      setDebugDisplayMediaMessage('Requesting screen-share chooser...');
-      console.log('Debug: calling navigator.mediaDevices.getDisplayMedia from EnhancedVideoRecorder');
-
-      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
-        throw new Error('getDisplayMedia not supported in this browser/context');
-      }
-
-      const s = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: true });
-      console.log('Debug: getDisplayMedia resolved, stream tracks:', s.getTracks());
-      setDebugDisplayMediaMessage('Chooser returned a stream. Check console for details. Stopping test stream.');
-
-      // Stop tracks immediately since this is only a diagnostics test
-      try {
-        s.getTracks().forEach((t: MediaStreamTrack) => t.stop());
-      } catch (e) {
-        console.warn('Debug: failed to stop tracks cleanly', e);
-      }
-
-      setTimeout(() => setDebugDisplayMediaMessage(null), 3500);
-    } catch (err: any) {
-      console.error('Debug getDisplayMedia error:', err);
-      const name = err?.name || err?.message || 'UnknownError';
-      let msg = `getDisplayMedia error: ${name}`;
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        msg += ' — permission denied or chooser blocked. Try clicking the page, disable extensions, or use a secure context.';
-      } else if (name === 'AbortError') {
-        msg += ' — chooser dismissed by user.';
-      } else if (name === 'NotFoundError') {
-        msg += ' — no capture sources available.';
-      }
-      setDebugDisplayMediaMessage(msg);
-      setTimeout(() => setDebugDisplayMediaMessage(null), 7000);
-    }
-  };
-
   const handleDeleteRecording = () => {
     if (confirm('Are you sure you want to delete this recording?')) {
       handleReset();
@@ -1515,328 +1407,260 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     );
   };
 
+  // Helper callbacks for attaching streams to video elements
+  const handleCameraRef = useCallback((el: HTMLVideoElement | null) => {
+    // Update the ref for other uses
+    if (videoRef) (videoRef as any).current = el;
+    
+    // Attach stream if element exists
+    if (el && recordingSources.camera) {
+      el.srcObject = recordingSources.camera;
+    }
+  }, [recordingSources.camera]);
+
+  const handleScreenRef = useCallback((el: HTMLVideoElement | null) => {
+    // Update the ref for other uses
+    if (screenVideoRef) (screenVideoRef as any).current = el;
+    
+    // Attach stream if element exists
+    if (el && recordingSources.screen) {
+      el.srcObject = recordingSources.screen;
+    }
+  }, [recordingSources.screen]);
+
   // NEW: Enhanced preview rendering with slide support
   const renderPreview = () => {
-    if (activeTab === 'record') {
-      if (recordedVideo) {
-        // For recorded playback, show the full recorded frame (no extra zoom),
-        // so it matches what was actually captured during recording.
-        // Recorded playback should be an intermediate size: larger than normal players
-        // but smaller than the live recording area so users can compare without crowding.
-        return (
-          <div className="relative w-full bg-black rounded-lg overflow-hidden">
+    // 1. Playback Mode (Recorded Video or Uploaded File)
+    if (recordedVideo || (activeTab === 'upload' && filePreview)) {
+       const src = activeTab === 'record' ? recordedVideo : filePreview;
+       return (
+          <div className="relative w-full h-full bg-black flex items-center justify-center group">
             <video
+              key={src}
               ref={recordedVideoRef}
-              src={recordedVideo}
-              className={`w-full ${matchLiveLayout && currentLayout === 'picture-in-picture' ? 'object-cover' : 'object-contain'} bg-black transition-opacity duration-200 ${recordedReady ? 'opacity-100' : 'opacity-0'}`}
-              style={{ maxHeight: '60vh', transition: 'opacity 200ms ease-in-out' }}
+              src={src || undefined}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               controls
-              controlsList="nodownload"
-              preload="metadata"
               playsInline
+              preload="metadata"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
               onLoadedMetadata={(e) => {
+                console.log('Preview video metadata loaded', { 
+                  duration: e.currentTarget.duration, 
+                  src: src,
+                  videoWidth: e.currentTarget.videoWidth,
+                  videoHeight: e.currentTarget.videoHeight,
+                  clientWidth: e.currentTarget.clientWidth,
+                  clientHeight: e.currentTarget.clientHeight
+                });
                 const video = e.currentTarget;
-                if (video.duration && video.duration > 0 && (!recordingDuration || recordingDuration === 0)) {
-                  const duration = Math.floor(video.duration);
-                  setRecordingDuration(duration);
+                // Update duration state if needed, but avoid unnecessary re-renders
+                if (video.duration && video.duration > 0 && Math.floor(video.duration) !== recordingDuration) {
+                   setRecordingDuration(Math.floor(video.duration));
                 }
-
-                // Don't force container aspect ratio (causes zoom). Let object-contain do its job.
-                console.log('Recorded video metadata:', video.videoWidth, 'x', video.videoHeight);
-                setRecordedReady(true);
-              }}
-              onError={(e) => {
-                const video = e.currentTarget;
-                const error = video.error;
-                let errorMessage = 'Failed to load video. ';
-
-                if (error) {
-                  switch (error.code) {
-                    case MediaError.MEDIA_ERR_ABORTED:
-                      errorMessage += 'Video loading was aborted.';
-                      break;
-                    case MediaError.MEDIA_ERR_NETWORK:
-                      errorMessage += 'Network error occurred while loading video.';
-                      break;
-                    case MediaError.MEDIA_ERR_DECODE:
-                      errorMessage += 'Video decoding failed. The file may be corrupted.';
-                      break;
-                    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                      errorMessage += 'Video format not supported. Please try a different format.';
-                      break;
-                    default:
-                      errorMessage += 'Unknown error occurred.';
+                
+                // Acknowledge preview once when metadata has loaded and video is ready
+                if (!previewAcknowledgedRef.current) {
+                  previewAcknowledgedRef.current = true;
+                  try {
+                    acknowledgePreview();
+                  } catch (err) {
+                    console.warn('Failed to acknowledge preview:', err);
                   }
+                  
+                  // Close camera after a short delay to ensure preview is stable
+                  // This fixes the issue where camera remains active after recording stops
+                  setTimeout(() => {
+                    try { closeCamera(); } catch (e) { console.warn('closeCamera error:', e); }
+                  }, 1000);
                 }
-
-                console.error('Video playback error:', error, errorMessage);
-                setErrorMessage(errorMessage);
-                if (!successMessage || !successMessage.includes('Video processing completed successfully')) {
-                  setSuccessMessage(null);
-                }
-                setRecordedReady(false);
               }}
-              onLoadStart={() => {
-                setErrorMessage(null);
-                setRecordedReady(false);
-              }}
-              onCanPlay={() => {
-                // Video is ready to play
-                setErrorMessage(null);
-                setRecordedReady(true);
-              }}
-            >
-              Your browser does not support the video tag.
-            </video>
-
-            {/* Match live layout toggle */}
-            <button
-              onClick={() => setMatchLiveLayout(prev => !prev)}
-              className={`absolute top-3 right-3 z-30 px-2 py-1 text-xs rounded-md border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 transition-colors`}
-              title="Toggle preview to match live layout"
-            >
-              {matchLiveLayout ? 'Match Live' : 'Preview Fit'}
-            </button>
+            />
           </div>
-        );
-      } else {
-        // Special handling for side-by-side layout using simple flex so both camera and screen share space cleanly
-        if (
-          currentLayout === 'side-by-side' &&
-          recordingSources.camera &&
-          recordingSources.screen
-        ) {
-          return (
-            <div className="w-full flex bg-transparent" style={{ height: liveHeight }}>
-              <div className="w-1/2 h-full overflow-hidden bg-black/5">
-                <div className="relative w-full h-full">
-                  <video
-                    ref={screenVideoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`w-full h-full object-contain bg-transparent transition-opacity duration-200 ${screenReady ? 'opacity-100' : 'opacity-0'}`}
-                    onLoadedMetadata={() => setScreenReady(true)}
-                    onCanPlay={() => setScreenReady(true)}
-                  />
-                  {!screenReady && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <div className="w-10 h-10 border-t-4 border-white rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="w-1/2 h-full relative overflow-hidden bg-black/5">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-contain bg-transparent"
-                />
-                <div className="absolute top-2 left-2 bg-black/40 text-white px-2 py-1 rounded text-xs">
-                  Camera
-                </div>
-              </div>
-              {renderRecordingStats()}
-            </div>
-          );
-        }
+       );
+    }
 
-        return (
-          <div className={`w-full relative ${getLayoutClass()}`} style={{ height: liveHeight }}>
-            {/* Screen Share Preview - Show FIRST when available (priority) */}
-            {/* When screen sharing is active, prioritize showing screen content */}
-            {recordingSources.screen && (
-              <div 
-                className="screen-preview" 
-                style={{ 
-                  zIndex: currentLayout === 'screen-only' ? 20 : 10,
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  top: 0,
-                  left: 0,
-                  display: currentLayout === 'camera-only' ? 'none' : 'block',
-                  backgroundColor: 'transparent'
-                }}
-              >
-                <video
-                  ref={screenVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className={`w-full h-full object-cover rounded-lg bg-black transition-opacity duration-200 ${screenReady ? 'opacity-100' : 'opacity-0'}`}
-                  onLoadedMetadata={() => {
-                    const video = screenVideoRef.current;
-                    if (video) {
-                      console.log('Screen video ready:', {
-                        width: video.videoWidth,
-                        height: video.videoHeight,
-                        readyState: video.readyState,
-                        paused: video.paused
-                      });
-
-                      // Ensure video is playing (prewarm)
-                      if (video.paused) {
-                        video.play().catch(err => {
-                          console.error('Failed to play screen video:', err);
-                          setErrorMessage('Screen sharing video failed to play. Please try again.');
-                        });
-                      }
-                      setScreenReady(true);
-                    }
-                  }}
-                  onPlaying={() => {
-                    console.log('Screen video is now playing');
-                    setErrorMessage(null);
-                    setScreenReady(true);
-                  }}
-                  onError={(e) => {
-                    const video = e.currentTarget;
-                    console.error('Screen video error:', video.error);
-                    setErrorMessage('Screen sharing video error. Please restart screen sharing.');
-                    setScreenReady(false);
-                  }}
-                />
-                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
-                  <Monitor className="h-3 w-3" />
-                  <span>Screen Sharing</span>
-                  {screenVideoRef.current && screenVideoRef.current.readyState >= 2 && (
-                    <div className="ml-2 w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Screen capture active" />
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {/* Camera Preview - Show SECOND (lower priority when screen is active) */}
-            {recordingSources.camera && (
-              <div
-                className={`camera-preview ${currentLayout === 'screen-only' ? 'hidden' : ''} transition-all duration-300 ease-in-out`}
-                style={ currentLayout === 'picture-in-picture' && recordingSources.screen
-                  ? { position: 'absolute', width: pipSize, height: pipSize, bottom: '1rem', right: '1rem', zIndex: 30, borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 6px 18px rgba(0,0,0,0.25)', transform: cameraReady ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.98)', opacity: cameraReady ? 1 : 0.92 }
-                  : { zIndex: recordingSources.screen ? 5 : 10 }
-                }
-              >
-                <div className="relative w-full h-full">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`w-full h-full object-contain rounded-lg bg-transparent transition-opacity duration-200 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
-                    onLoadedMetadata={() => {
-                      const v = videoRef.current;
-                      if (v) {
-                        // ensure consistent sizing and mark ready
-                        setCameraReady(true);
-                      }
-                    }}
-                    onCanPlay={() => setCameraReady(true)}
-                    onError={() => setCameraReady(false)}
-                  />
-                  {!cameraReady && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                      <div className="w-8 h-8 border-t-4 border-white rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-                {currentLayout !== 'picture-in-picture' && (
-                  <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                    Camera
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* No sources message */}
-            {!recordingSources.camera && !recordingSources.screen && (
-              <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                <div className="text-center text-white">
-                  <Camera className="h-16 w-16 mx-auto mb-4" />
-                  <p>Click "Start Recording" to begin</p>
-                  {!enableAudio && (
-                    <div className="mt-2 flex items-center justify-center space-x-1 text-yellow-400">
-                      <MicOff className="h-4 w-4" />
-                      <span className="text-sm">Audio disabled</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Recording Stats */}
-            {renderRecordingStats()}
-          </div>
-        );
-      }
-    } else {
+    // 2. Upload Tab Empty State
+    if (activeTab === 'upload' && !filePreview) {
       return (
-        <div className="w-full h-full flex items-center justify-center">
-          {filePreview ? (
-            <video src={filePreview} className="w-full h-full object-cover bg-black" controls />
-          ) : (
-            <div className="text-center p-8">
+        <div className="w-full h-full flex items-center justify-center bg-slate-50/50 rounded-2xl">
+             <div className="text-center p-8">
               <Cloud className="h-16 w-16 text-blue-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Video File</h3>
               <p className="text-gray-600 text-sm mb-4">Supported formats: MP4, WebM, MOV, AVI, MPEG</p>
-              <p className="text-gray-500 text-xs mb-4">Maximum file size: 2GB</p>
               <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden" />
               <button 
                 onClick={() => fileInputRef.current?.click()} 
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto shadow-md"
               >
                 <Upload className="h-4 w-4" />
                 <span>Choose Video File</span>
               </button>
             </div>
-          )}
         </div>
       );
     }
+
+    // 3. Live Recording Preview
+    // Helper to attach stream safely
+    const attachStream = (el: HTMLVideoElement | null, stream: MediaStream | null) => {
+        if (el && stream && el.srcObject !== stream) {
+            el.srcObject = stream;
+        }
+    };
+
+    const hasCamera = !!recordingSources.camera;
+    const hasScreen = !!recordingSources.screen;
+
+    // No sources
+    if (!hasCamera && !hasScreen) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white rounded-2xl">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <Camera className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-medium mb-2">Ready to Record</h3>
+                  <p className="text-slate-400 mb-6">Start recording to activate camera or screen share</p>
+                  {!enableAudio && (
+                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm">
+                      <MicOff className="h-4 w-4 mr-2" />
+                      Audio disabled
+                    </div>
+                  )}
+                </div>
+            </div>
+        );
+    }
+
+    // Layout Logic
+    // Side-by-Side
+    if (currentLayout === 'side-by-side' && hasCamera && hasScreen) {
+        return (
+            <div className="w-full h-full flex bg-black rounded-2xl overflow-hidden">
+                <div className="w-1/2 h-full relative border-r border-slate-800">
+                    <video 
+                        ref={handleScreenRef}
+                        autoPlay muted playsInline 
+                        className="w-full h-full object-contain" 
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
+                </div>
+                <div className="w-1/2 h-full relative">
+                    <video 
+                        ref={handleCameraRef}
+                        autoPlay muted playsInline 
+                        className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
+                </div>
+                {renderRecordingStats()}
+            </div>
+        );
+    }
+
+    // Picture-in-Picture (Default for 2 sources)
+    if ((currentLayout === 'picture-in-picture' || !currentLayout) && hasCamera && hasScreen) {
+        return (
+            <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
+                {/* Main Content (Screen) */}
+                <video 
+                    ref={handleScreenRef}
+                    autoPlay muted playsInline 
+                    className="w-full h-full object-contain" 
+                />
+                
+                {/* Overlay (Camera) - Responsive Position Bottom Right */}
+                <div className="absolute bottom-4 right-4 w-[25%] min-w-[160px] max-w-[320px] aspect-video rounded-xl overflow-hidden shadow-xl border border-white/20 bg-slate-900 z-20 transition-all hover:scale-105 group">
+                    <video 
+                        ref={handleCameraRef}
+                        autoPlay muted playsInline 
+                        className="w-full h-full object-contain" 
+                    />
+                    {/* Drag handle hint could go here */}
+                </div>
+                {renderRecordingStats()}
+            </div>
+        );
+    }
+
+    // Presentation Layout (Screen 70%, Camera 30% Side-by-Side)
+    if (currentLayout === 'presentation' && hasCamera && hasScreen) {
+        return (
+            <div className="w-full h-full flex bg-black rounded-2xl overflow-hidden">
+                <div className="w-[70%] h-full relative border-r border-slate-800">
+                    <video 
+                        ref={handleScreenRef}
+                        autoPlay muted playsInline 
+                        className="w-full h-full object-contain" 
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
+                </div>
+                <div className="w-[30%] h-full relative bg-slate-900">
+                    <video 
+                        ref={handleCameraRef}
+                        autoPlay muted playsInline 
+                        className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
+                </div>
+                {renderRecordingStats()}
+            </div>
+        );
+    }
+
+    // Screen Only
+    if (hasScreen && (!hasCamera || currentLayout === 'screen-only')) {
+        return (
+            <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
+                <video 
+                    ref={handleScreenRef}
+                    autoPlay muted playsInline 
+                    className="w-full h-full object-contain" 
+                />
+                {renderRecordingStats()}
+            </div>
+        );
+    }
+
+    // Camera Only (Default fallback)
+    return (
+        <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
+            <video 
+                ref={handleCameraRef}
+                autoPlay muted playsInline 
+                className="w-full h-full object-contain"
+                onLoadedMetadata={(e) => {
+                    console.log('Preview camera metadata (Camera Only):', {
+                        videoWidth: e.currentTarget.videoWidth,
+                        videoHeight: e.currentTarget.videoHeight,
+                        clientWidth: e.currentTarget.clientWidth,
+                        clientHeight: e.currentTarget.clientHeight
+                    });
+                }}
+            />
+            {renderRecordingStats()}
+        </div>
+    );
   };
 
 
   return (
-    <div className="h-full bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm overflow-hidden">
+    <>
+      {/* Notification Container (Task 7.3) */}
       <NotificationContainer
         notifications={notifications}
         onDismiss={dismissNotification}
       />
-      <div className="flex h-full">
-        {/* Main Content Area */}
-        <div className="flex-1 relative min-w-0 h-full overflow-hidden">
-        {import.meta.env.MODE !== 'production' && (
-          <div className="absolute top-4 right-4 z-40 text-xs bg-black/70 text-white px-2 py-1 rounded-lg">
-            <div className="leading-tight">live: {liveHeight}</div>
-            <div className="leading-tight">playback: {playbackHeight}</div>
-            <div className="leading-tight">pip: {pipSize}</div>
-          </div>
-        )}
-          {debugDisplayMediaMessage && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-3 py-2 bg-black/80 text-white rounded-lg text-sm max-w-xl text-center">
-              {debugDisplayMediaMessage}
-            </div>
-          )}
-          {showDebugSizes && (
-            <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 px-3 py-2 bg-black/80 text-white rounded-lg text-xs max-w-xl text-center">
-              <div className="flex items-center justify-center space-x-4">
-                <div>Canvas: <strong>{compositorInstance ? `${compositorInstance.getCanvas().width}x${compositorInstance.getCanvas().height}` : 'n/a'}</strong></div>
-                <div>Camera: <strong>{(() => {
-                  try {
-                    const info = compositorInstance?.getSourceInfo('camera');
-                    if (info) return `${info.videoWidth}x${info.videoHeight} (${info.fit || 'n/a'})`;
-                    if (videoRef.current) return `${videoRef.current.videoWidth || 0}x${videoRef.current.videoHeight || 0}`;
-                    return 'n/a';
-                  } catch (e) { return 'n/a'; }
-                })()}</strong></div>
-                <div>Recorded: <strong>{recordedVideoRef.current ? `${recordedVideoRef.current.videoWidth}x${recordedVideoRef.current.videoHeight}` : 'n/a'}</strong></div>
-              </div>
-            </div>
-          )}
+
+
+      <div className={`flex flex-col overflow-hidden ${
+        variant === 'default' 
+          ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm max-w-3xl w-full mx-auto my-4' 
+          : 'w-full max-w-lg mx-auto flex-none max-h-[520px] overflow-hidden'
+      }`}>
       {/* Error Alert */}
       {errorMessage && (
         <div className="px-6 pt-4">
@@ -1848,206 +1672,38 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Header - Light beige/silver theme */}
-      <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200/50">
-              <Video className="h-5 w-5 text-slate-700" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-700">Recording Studio</h3>
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* Auto-save Indicator */}
-            {isRecording && lastAutoSaveTime && (
-              <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-50/50 border border-green-200/50 rounded-lg">
-                <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
-                <span className="text-xs text-slate-600">
-                  Auto-saved {Math.floor((Date.now() - lastAutoSaveTime) / 1000)}s ago
-                </span>
-              </div>
-            )}
-
-            {/* Saved Drafts Button (advanced) */}
-            {showAdvancedTools && savedDrafts.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowDraftsList(!showDraftsList)}
-                  className="p-2 text-slate-600 hover:text-slate-700 hover:bg-slate-50/50 rounded-lg transition-colors"
-                  title={`${savedDrafts.length} saved draft(s)`}
-                >
-                  <Save className="h-5 w-5" />
-                  {savedDrafts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {savedDrafts.length}
-                    </span>
-                  )}
-                </button>
-                {showDraftsList && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl z-50 border border-slate-200/50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-slate-200/50 bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90">
-                      <h3 className="font-semibold text-slate-700">Saved Drafts</h3>
-                      <p className="text-xs text-slate-500 mt-1">Click to load a draft</p>
-                    </div>
-                    <div className="p-2">
-                      {savedDrafts.map((draft) => (
-                        <div
-                          key={draft.id}
-                          className="p-3 mb-2 bg-slate-50/50 rounded-lg border border-slate-200/50 hover:bg-slate-100/50 transition-colors cursor-pointer"
-                          onClick={async () => {
-                            try {
-                              const loadedDraft = await videoDraftStorage.loadDraft(draft.id);
-                              if (loadedDraft) {
-                                // Create object URL for the loaded blob
-                                const videoUrl = URL.createObjectURL(loadedDraft.blob);
-                                // Store blob in a way that can be used for upload
-                                // Note: videoBlob and recordedVideo come from the hook, so we'll use local state
-                                setSelectedFile(new File([loadedDraft.blob], `draft_${draft.id}.webm`, { type: 'video/webm' }));
-                                setFilePreview(videoUrl);
-                                setLessonTitle(loadedDraft.metadata.title || '');
-                                setLessonDescription(loadedDraft.metadata.description || '');
-                                if (loadedDraft.metadata.courseId) {
-                                  setSelectedCourse(loadedDraft.metadata.courseId);
-                                }
-                                setShowDraftsList(false);
-                                setShowPreview(true);
-                                setActiveTab('upload');
-                                setSuccessMessage('Draft loaded successfully! You can now upload it.');
-                              }
-                            } catch (error) {
-                              setErrorMessage('Failed to load draft');
-                            }
-                          }}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-slate-700 text-sm">
-                                {draft.metadata.title || 'Untitled Recording'}
-                              </h4>
-                              <div className="flex items-center space-x-3 mt-1 text-xs text-slate-500">
-                                <span>{new Date(draft.metadata.timestamp).toLocaleString()}</span>
-                                <span>•</span>
-                                <span>{(draft.metadata.fileSize / (1024 * 1024)).toFixed(1)} MB</span>
-                                {draft.metadata.duration > 0 && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{Math.floor(draft.metadata.duration / 60)}:{(draft.metadata.duration % 60).toString().padStart(2, '0')}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await videoDraftStorage.deleteDraft(draft.id);
-                                  const drafts = await videoDraftStorage.getAllDrafts();
-                                  setSavedDrafts(drafts);
-                                } catch (error) {
-                                  setErrorMessage('Failed to delete draft');
-                                }
-                              }}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                              title="Delete draft"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Session Management Button (advanced) */}
-            {showAdvancedTools && savedSessions.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowSessionMenu(!showSessionMenu)}
-                  className="p-2 text-slate-600 hover:text-slate-700 hover:bg-slate-50/50 rounded-lg transition-colors"
-                  title="Saved Sessions"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                </button>
-                {showSessionMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200/50">
-                    <div className="p-2 text-xs text-slate-500 border-b border-slate-200/50">
-                      Saved Sessions
-                    </div>
-                    {savedSessions.map(sessionId => (
-                      <button
-                        key={sessionId}
-                        onClick={() => handleLoadSession(sessionId)}
-                        className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        Session {sessionId.slice(-8)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Simple vs advanced toggle */}
-            <button
-              onClick={() => setShowAdvancedTools(prev => !prev)}
-              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200/70 bg-white/80 text-slate-600 hover:bg-slate-50/80"
-            >
-              {showAdvancedTools ? 'Hide advanced tools' : 'Show advanced tools'}
-            </button>
-
-            {/* Advanced-only settings shortcuts */}
-            {showAdvancedTools && (
-              <>
-                <button
-                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                  title="Advanced Settings"
-                >
-                  <Settings className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                  title="Tips & guidance"
-                >
-                  <Sparkles className="h-5 w-5" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        
-        {/* Enhanced Tab Navigation - Light theme with neon accents - Mobile optimized */}
-        <div className={`flex space-x-1 mt-4 bg-white/90 backdrop-blur-sm rounded-xl border border-slate-200/50 ${isMobile ? 'p-0.5' : 'p-1'}`}>
+      {/* Header - Minimalist Tabs Only */}
+      <div className={`px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-center ${variant !== 'default' ? 'bg-transparent border-none p-0' : ''}`}>
+        {/* Tab Switcher */}
+        <div className="flex bg-slate-100 p-1 rounded-xl w-full max-w-md">
           <button
             onClick={() => handleTabChange('record')}
-            className={`flex-1 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 ${
               activeTab === 'record' 
-                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg' 
-                : 'hover:bg-slate-50/50 text-slate-600'
-            } ${isMobile ? 'py-1.5 px-2' : 'py-2 px-3'}`}>
-            <VideoIcon className={isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-            <span className={isMobile ? 'text-xs' : ''}>Record</span>
+                ? 'bg-white text-blue-600 shadow-md' 
+                : 'bg-transparent text-slate-500 hover:text-slate-700 shadow-none'
+            }`}
+          >
+            <VideoIcon className="h-4 w-4" />
+            <span>Record</span>
           </button>
           <button
             onClick={() => handleTabChange('upload')}
-            className={`flex-1 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 ${
               activeTab === 'upload' 
-                ? 'bg-gradient-to-r from-[#00D4FF]/90 to-[#00B8E6]/90 text-white shadow-lg' 
-                : 'hover:bg-slate-50/50 text-slate-600'
-            } ${isMobile ? 'py-1.5 px-2' : 'py-2 px-3'}`}>
-            <Cloud className={isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-            <span className={isMobile ? 'text-xs' : ''}>Upload Video</span>
+                ? 'bg-white text-blue-600 shadow-md' 
+                : 'bg-transparent text-slate-500 hover:text-slate-700 shadow-none'
+            }`}
+          >
+            <Cloud className="h-4 w-4" />
+            <span>Upload Video</span>
           </button>
         </div>
       </div>
 
       {/* NEW: Screen Sharing Banner - Light theme */}
       {isScreenSharing && activeTab === 'record' && !recordedVideo && (
-        <div className="px-6 py-3 border-b border-slate-200/50 bg-white/85 backdrop-blur-sm">
+        <div className={`border-b border-slate-200/50 bg-white/85 backdrop-blur-sm ${variant === 'default' ? 'px-6 py-3' : 'px-4 py-2'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
@@ -2069,10 +1725,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* NEW: Multi-source Controls with integrated components (Task 7.1) - Light theme */}
       {activeTab === 'record' && !recordedVideo && (
-        <div className="px-6 py-3 border-b border-slate-200/50 bg-white/85 backdrop-blur-sm">
-          <div className="space-y-3">
-            {/* Source Control Indicators */}
-            <div className="flex items-center justify-between">
+        <div className={`border-b border-slate-200/50 bg-white/85 backdrop-blur-sm ${variant === 'default' ? 'px-6 py-3' : 'px-4 py-2'}`}>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            {/* Left: Sources & Layouts */}
+            <div className="flex items-center gap-4 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
               <SourceControlIndicators
                 recordingSources={recordingSources}
                 onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
@@ -2081,95 +1737,114 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 isRecording={isRecording}
               />
               
-              {/* Additional controls */}
-              <div className="flex items-center space-x-2">
-                {/* Slide Manager Toggle */}
-                <button
-                  onClick={() => setShowSlideManager(!showSlideManager)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                    showSlideManager 
-                      ? 'bg-gradient-to-r from-[#FF6B9D]/20 to-[#FF8E9B]/20 text-[#FF6B9D] border-[#FF6B9D]/30' 
-                      : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                  }`}
-                >
-                  <FileText className="h-4 w-4 inline mr-1" />
-                  Slides
-                </button>
-                
-                {/* Keyboard Shortcuts Toggle */}
-                <button
-                  onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                    showKeyboardShortcuts 
-                      ? 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/20 text-[#FFD700] border-[#FFD700]/30' 
-                      : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                  }`}
-                  title="Show keyboard shortcuts"
-                >
-                  <Keyboard className="h-4 w-4 inline mr-1" />
-                  Shortcuts
-                </button>
-                
-                {/* Compositor Preview Toggle */}
-                {isCompositing && (
-                  <button
-                    onClick={() => setShowCompositorPreview(!showCompositorPreview)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                      showCompositorPreview 
-                        ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 border-blue-300' 
-                        : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                    }`}
-                    title="Show compositor preview"
-                  >
-                    <Monitor className="h-4 w-4 inline mr-1" />
-                    Preview
-                  </button>
-                )}
-                
-                {/* Audio Levels Toggle (Task 8.2) */}
-                {isCompositing && options.enableAudio && (
-                  <button
-                    onClick={() => setShowAudioLevels(!showAudioLevels)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                      showAudioLevels 
-                        ? 'bg-gradient-to-r from-[#00D4FF]/20 to-[#00B8E6]/20 text-[#00D4FF] border-[#00D4FF]/30' 
-                        : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                    }`}
-                    title="Show audio levels"
-                  >
-                    <Mic className="h-4 w-4 inline mr-1" />
-                    Audio
-                  </button>
-                )}
-                {/* Debug: direct getDisplayMedia tester (dev only) */}
-                <button
-                  onClick={handleDebugGetDisplayMedia}
-                  className="px-3 py-1 rounded-lg text-sm font-medium transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
-                  title="Debug getDisplayMedia chooser"
-                >
-                  <Monitor className="h-4 w-4 inline mr-1" />
-                  Debug Screen Share
-                </button>
-                {/* Debug sizes toggle */}
-                <button
-                  onClick={() => setShowDebugSizes(prev => !prev)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${showDebugSizes ? 'bg-slate-900 text-white' : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'}`}
-                  title="Toggle compositor debug sizes"
-                >
-                  <Timer className="h-4 w-4 inline mr-1" />
-                  Sizes
-                </button>
-              </div>
+              <div className="h-6 w-px bg-slate-200/50 mx-1 hidden lg:block" />
+              
+              {recordingSources.camera && recordingSources.screen && (
+                <LayoutSelector
+                  currentLayout={currentLayout as LayoutType}
+                  onLayoutChange={handleLayoutChange}
+                  disabled={false}
+                  isCompositing={isCompositing}
+                />
+              )}
             </div>
             
-            {/* Layout Selector */}
-            <div>
-              <LayoutSelector
-                currentLayout={currentLayout as LayoutType}
-                onLayoutChange={handleLayoutChange}
-                disabled={false}
-                isCompositing={isCompositing}
-              />
+            {/* Right: Additional Tools */}
+            <div className="flex items-center gap-2 ml-auto">
+                {/* Advanced Tools Toggle */}
+                <button
+                  onClick={() => setShowAdvancedTools(prev => !prev)}
+                  className={`p-2 rounded-lg transition-colors border ${
+                    showAdvancedTools
+                      ? 'bg-slate-100 text-slate-700 border-slate-300'
+                      : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                  }`}
+                  title={showAdvancedTools ? "Hide Advanced Tools" : "Show Advanced Tools"}
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+
+                {showAdvancedTools && (
+                  <>
+                    {/* Tips */}
+                    <button
+                      onClick={() => setShowSettings(!showSettings)}
+                      className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
+                      title="Tips & guidance"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </button>
+
+                    {/* Advanced Settings Panel Toggle */}
+                    <button
+                      onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                      className={`p-2 rounded-lg transition-colors border ${
+                        showAdvancedSettings
+                          ? 'bg-slate-100 text-slate-700 border-slate-300'
+                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                      }`}
+                      title="Recording Settings"
+                    >
+                      <Zap className="h-4 w-4" />
+                    </button>
+
+                    {/* Slide Manager Toggle */}
+                    <button
+                      onClick={() => setShowSlideManager(!showSlideManager)}
+                      className={`p-2 rounded-lg transition-colors border ${
+                        showSlideManager 
+                          ? 'bg-gradient-to-r from-[#FF6B9D]/20 to-[#FF8E9B]/20 text-[#FF6B9D] border-[#FF6B9D]/30' 
+                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                      }`}
+                      title="Slides"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
+                    
+                    {/* Keyboard Shortcuts Toggle */}
+                    <button
+                      onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
+                      className={`p-2 rounded-lg transition-colors border ${
+                        showKeyboardShortcuts 
+                          ? 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/20 text-[#FFD700] border-[#FFD700]/30' 
+                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                      }`}
+                      title="Shortcuts"
+                    >
+                      <Keyboard className="h-4 w-4" />
+                    </button>
+                    
+                    {/* Compositor Preview Toggle */}
+                    {isCompositing && (
+                      <button
+                        onClick={() => setShowCompositorPreview(!showCompositorPreview)}
+                        className={`p-2 rounded-lg transition-colors border ${
+                          showCompositorPreview 
+                            ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 border-blue-300' 
+                            : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                        }`}
+                        title="Preview"
+                      >
+                        <Monitor className="h-4 w-4" />
+                      </button>
+                    )}
+                    
+                    {/* Audio Levels Toggle (Task 8.2) */}
+                    {isCompositing && options.enableAudio && (
+                      <button
+                        onClick={() => setShowAudioLevels(!showAudioLevels)}
+                        className={`p-2 rounded-lg transition-colors border ${
+                          showAudioLevels 
+                            ? 'bg-gradient-to-r from-[#00D4FF]/20 to-[#00B8E6]/20 text-[#00D4FF] border-[#00D4FF]/30' 
+                            : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                        }`}
+                        title="Audio Levels"
+                      >
+                        <Mic className="h-4 w-4" />
+                      </button>
+                    )}
+                  </>
+                )}
             </div>
           </div>
         </div>
@@ -2177,7 +1852,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       {/* Advanced Settings Panel - Light theme (advanced only) */}
       {showAdvancedTools && showAdvancedSettings && (
-        <div className="px-6 py-4 border-b border-slate-200/50 bg-white/85 backdrop-blur-sm">
+        <div className={`border-b border-slate-200/50 bg-white/85 backdrop-blur-sm ${variant === 'default' ? 'px-6 py-4' : 'px-4 py-3'}`}>
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-semibold text-slate-700 flex items-center">
               <Zap className="h-4 w-4 mr-2 text-[#FFD700]" />
@@ -2252,14 +1927,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
       {/* Main Preview Area */}
-      <div
-        className="relative"
-        style={{
-          height: liveHeight,
-          backgroundColor: 'black',
-          aspectRatio: useAspectRatio ? '16/9' : undefined
-        }}
-      >
+      <div className={`relative bg-black ${variant === 'default' ? 'aspect-video w-full max-w-5xl mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[720px]' : 'aspect-video w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[420px]'}`}>
         {/* Use our custom preview logic (handles side-by-side, PiP, etc.) so framing stays predictable */}
         {renderPreview()}
         
@@ -2301,9 +1969,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
 
         {/* Countdown Overlay - Mobile optimized */}
-        {false && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <div className={`text-white font-bold ${isMobile ? 'text-5xl' : 'text-6xl'}`}>3</div>
+        {recordingStatus === 'countdown' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-50 backdrop-blur-sm">
+            <div className={`text-white font-bold ${isMobile ? 'text-6xl' : 'text-8xl'} animate-bounce`}>
+              {countdownValue > 0 ? countdownValue : 'GO!'}
+            </div>
           </div>
         )}
 
@@ -2354,67 +2024,61 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
 
-        {/* Recording Controls - Neon colors - Mobile optimized */}
+        {/* Recording Controls - Modern Floating Bar */}
         {activeTab === 'record' && !recordedVideo && (
-          <div className={`absolute left-1/2 -translate-x-1/2 z-30 ${isMobile ? 'bottom-4' : 'bottom-6'}`}>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
             {!isRecording ? (
-              <div className="text-center">
+              <div className="flex flex-col items-center space-y-3">
                 <button
                   onClick={handleStartRecording}
                   disabled={!recordingSources.camera && !recordingSources.screen}
-                  className={`flex items-center space-x-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-blue-500/30 transform hover:scale-105 ${
-                    isMobile ? 'px-6 py-3' : 'px-8 py-4'
-                  }`}
+                  className="group relative flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md rounded-full border-4 border-white/30 hover:border-red-500 hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50 disabled:hover:border-white/30 disabled:hover:bg-white/10"
                 >
-                  <Circle className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />
-                  <span className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>
-                    Start Recording
-                  </span>
+                  <div className="w-8 h-8 bg-red-600 rounded-full shadow-lg group-hover:scale-90 transition-transform duration-300"></div>
                 </button>
-                <p className={`text-white backdrop-blur-sm ${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} opacity-75`}>
-                  Minimum recording time: 1 second
-                </p>
+                <span className="text-white/90 text-sm font-medium bg-black/60 px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                  Start Recording
+                </span>
               </div>
-            ) : (
-              <div className="text-center">
-                <div className={`flex items-center justify-center mb-2 ${isMobile ? 'space-x-2' : 'space-x-4'}`}>
-                  {/* Session Save Button */}
-                  <button
-                    onClick={handleSaveSession}
-                    className={`bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-indigo-500/30 ${
-                        isMobile ? 'p-3' : 'p-4'
-                      }`}
-                    title="Save Session"
-                  >
-                    <Save className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />
-                  </button>
+              ) : (
+              <div className="flex items-center space-x-4 bg-black/60 backdrop-blur-xl px-5 py-3 rounded-full border border-white/10 shadow-lg transform transition-all hover:scale-105">
+                {/* Pause/Resume */}
+                <button
+                  onClick={isPaused ? resumeRecording : pauseRecording}
+                  className="group flex flex-col items-center space-y-1"
+                  title={isPaused ? "Resume" : "Pause"}
+                >
+                  <div className={`p-3 rounded-full transition-all ${isPaused ? 'bg-green-500 hover:bg-green-600' : 'bg-white/10 hover:bg-white/20'}`}>
+                    {isPaused ? <Play className="h-5 w-5 text-white fill-current" /> : <Pause className="h-5 w-5 text-white fill-current" />}
+                  </div>
+                  <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">{isPaused ? 'Resume' : 'Pause'}</span>
+                </button>
 
-                  {/* Pause/Resume Button */}
-                  <button
-                    onClick={isPaused ? resumeRecording : pauseRecording}
-                    className={`bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 text-white rounded-2xl hover:from-[#FFC107] hover:to-[#FF8C00] transition-all duration-200 shadow-lg hover:shadow-[#FFD700]/40 backdrop-blur-sm border border-[#FFD700]/30 ${
-                        isMobile ? 'p-3' : 'p-4'
-                      }`}
-                  >
-                    {isPaused ? <Play className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} /> : <Pause className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />}
-                  </button>
-
-                  {/* Stop Button */}
-                  <button
-                    onClick={handleStopRecording}
-                    disabled={recordingTime < 1 || isStoppingRef.current || !isRecording}
-                    className={`bg-gradient-to-r from-[#FF6B35]/90 to-[#FF8C42]/90 text-white rounded-2xl hover:from-[#FF5722] hover:to-[#FF7043] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-[#FF6B35]/40 backdrop-blur-sm border border-[#FF6B35]/30 ${
-                        isMobile ? 'p-3' : 'p-4'
-                      }`}
-                    title={recordingTime < 1 ? 'Record for at least 1 second' : 'Stop Recording'}
-                  >
-                    <Square className={isMobile ? 'h-5 w-5' : 'h-6 w-6'} />
-                  </button>
-                </div>
-                {recordingTime < 1 && (
-                  <p className={`text-[#FFD700] backdrop-blur-sm font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    Record for at least 1 second to stop
-                  </p>
+                {/* Stop Button (Main Action) */}
+                <button
+                  onClick={handleStopRecording}
+                  disabled={recordingTime < 1 || isStoppingRef.current || !isRecording}
+                  className="group flex flex-col items-center space-y-1"
+                  title="Stop Recording"
+                >
+                  <div className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg shadow-red-900/30 group-hover:scale-110">
+                    <Square className="h-5 w-5 fill-current" />
+                  </div>
+                  <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Stop</span>
+                </button>
+                
+                {/* Save Session (Advanced) */}
+                {showAdvancedTools && (
+                    <button
+                        onClick={handleSaveSession}
+                        className="group flex flex-col items-center space-y-1"
+                        title="Save Session Draft"
+                    >
+                        <div className="p-3 rounded-full bg-indigo-600/80 hover:bg-indigo-600 text-white transition-all hover:scale-105">
+                            <Save className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Save</span>
+                    </button>
                 )}
               </div>
             )}
@@ -2531,93 +2195,75 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Quick Actions Bar - Shown when previewing - Light theme */}
+      {/* Post-Recording Studio - Compact & Organized */}
       {(recordedVideo || selectedFile) && !uploading && !uploadSuccess && !showLessonForm && showPreview && (
-        <div className="mt-4 p-4 border-t border-slate-200/50 bg-white/95 backdrop-blur-sm rounded-lg shadow-sm">
-          <div className="flex flex-col space-y-4">
-            {/* Video Info Row */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center space-x-4 text-sm text-slate-600">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">{formatTime(recordingDuration)}</span>
+        <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center space-x-4">
+                    <h3 className="text-sm font-semibold text-slate-800 flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        Recording Ready
+                    </h3>
+                    <div className="h-4 w-px bg-slate-200"></div>
+                    <div className="flex items-center space-x-3 text-xs text-slate-500">
+                        <span>{formatTime(recordingDuration)}</span>
+                        <span>•</span>
+                        <span>{videoBlob ? getFileSize(videoBlob.size) : 'Unknown'}</span>
+                    </div>
                 </div>
-                {videoBlob && (
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">{getFileSize(videoBlob.size)}</span>
-                  </div>
-                )}
-              </div>
             </div>
             
-            {/* Action Buttons Row - Responsive Grid */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setShowEnhancedPreview(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
-                title="Enhanced Preview with Controls"
-              >
-                <Play className="h-4 w-4" />
-                <span>Preview</span>
-              </button>
-              {activeTab === 'record' && videoBlob && (
-                <>
-                  <button 
-                    onClick={downloadRecording}
-                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
-                    title="Download Recording"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Download</span>
-                  </button>
-                  <button
+            <div className="p-4 flex flex-wrap items-center gap-3">
+                 {/* Primary Actions */}
+                 <button 
                     onClick={() => {
-                      setShowTimelineEditor(true);
-                      setShowPreview(false);
+                        setShowPreview(false);
+                        setShowLessonForm(true);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
-                  >
-                    <Scissors className="h-4 w-4" />
-                    <span>Edit</span>
-                  </button>
-                </>
-              )}
-              {(recordedVideo || selectedFile) && (
-                <button
-                  onClick={handleExportSession}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg hover:from-cyan-700 hover:to-cyan-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
-                  title="Export Session"
+                    className="flex-1 min-w-[140px] py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 text-sm"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Export</span>
+                    <span>Continue to Upload</span>
+                    <ArrowRight className="h-4 w-4" />
                 </button>
-              )}
-              <button 
-                onClick={handleReset}
-                className="px-4 py-2 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 flex items-center space-x-2 text-sm font-medium text-slate-700 shadow-sm"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span>{activeTab === 'record' ? 'Record Again' : 'New File'}</span>
-              </button>
-              <button 
-                onClick={() => {
-                  setShowPreview(false);
-                  setShowLessonForm(true);
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-md"
-              >
-                <Upload className="h-4 w-4" />
-                <span>Continue to Upload</span>
-              </button>
+
+                {/* Secondary Actions Group */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {activeTab === 'record' && videoBlob && (
+                        <button
+                            onClick={() => {
+                                setShowTimelineEditor(true);
+                                setShowPreview(false);
+                            }}
+                            className="py-2 px-3 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 hover:bg-amber-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
+                        >
+                            <Scissors className="h-4 w-4" />
+                            <span>Edit</span>
+                        </button>
+                    )}
+                    
+                    <button 
+                        onClick={downloadRecording}
+                        className="py-2 px-3 bg-slate-50 text-slate-700 rounded-lg border border-slate-100 hover:bg-slate-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
+                    >
+                        <Download className="h-4 w-4" />
+                        <span>Download</span>
+                    </button>
+
+                    <button 
+                        onClick={handleReset}
+                        className="py-2 px-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                    >
+                        Discard
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
       )}
 
       {/* Enhanced Video Preview Modal */}
       {showEnhancedPreview && (recordedVideo || filePreview || videoBlob) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="max-w-4xl w-full">
+          <div className="max-w-4xl w-full mx-auto">
             <VideoPreviewPlayer
               videoBlob={activeTab === 'record' ? videoBlob || null : null}
               videoUrl={activeTab === 'record' ? recordedVideo : filePreview}
@@ -2665,10 +2311,28 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       {showLessonForm && (recordedVideo || selectedFile) && (
         <div className="p-6 border-t border-slate-200/50 bg-white/85 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center space-x-2 text-slate-700">
-              <Star className="h-5 w-5 text-[#FFD700]" />
-              <span>Save Your {activeTab === 'record' ? 'Recording' : 'Video'}</span>
-            </h3>
+            <div className="flex items-center space-x-2 mb-2">
+              <h3 className="text-lg font-semibold flex items-center space-x-2 text-slate-700">
+                <Star className="h-5 w-5 text-[#FFD700]" />
+                <span>
+                  {lessonId ? 'Update Lesson' : 'Create New Lesson'}
+                </span>
+              </h3>
+              {/* Mode indicator */}
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                lessonId
+                  ? 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
+                  : 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
+              }`}>
+                {lessonId ? '🎬 Recording Mode' : '📝 New Lesson Mode'}
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
+              {lessonId
+                ? 'This will replace the video for your existing lesson'
+                : 'Create a new lesson with your recorded/uploaded video'
+              }
+            </p>
             {activeTab === 'record' && recordedVideo && (
               <div className="flex items-center space-x-2">
                 <button
@@ -2832,7 +2496,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 ) : (
                   <>
                     <Upload className="h-4 w-4" />
-                    <span>Save Lesson</span>
+                    <span>{lessonId ? 'Update Lesson' : 'Create Lesson'}</span>
                   </>
                 )}
               </button>
@@ -2884,226 +2548,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           isOpen={showPresetsManager}
         />
       )}
-
     </div>
-
-          {/* Right Side Controls Panel */}
-        <div className="w-72 border-l border-slate-200/50 bg-gradient-to-b from-slate-50/50 to-white/50 backdrop-blur-sm flex-shrink-0 h-full">
-          <div className="p-3 space-y-3 h-full overflow-y-auto">
-
-            {/* Sources Section */}
-            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
-              <h3 className="text-xs font-semibold text-slate-700 mb-2 flex items-center">
-                <Monitor className="h-3 w-3 mr-1" />
-                Sources
-              </h3>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Camera className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Camera</span>
-                  </div>
-                  <button
-                    onClick={() => recordingSources.camera ? closeCamera() : initializeCamera()}
-                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                      recordingSources.camera
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {recordingSources.camera ? 'Active' : 'Start camera'}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Monitor className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Screen</span>
-                  </div>
-                  <button
-                    onClick={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
-                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                      isScreenSharing
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {isScreenSharing ? 'Active' : 'Start screen sharing'}
-                  </button>
-                </div>
-
-                <div className="text-xs text-slate-500 mt-2">
-                  {recordingSources.camera || isScreenSharing ? (
-                    <span className="text-green-600">✓ Sources active</span>
-                  ) : (
-                    <span>(No sources)</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Slides</span>
-                  </div>
-                  <button
-                    onClick={() => setShowSlideManager(!showSlideManager)}
-                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                      currentSlides.length > 0
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {currentSlides.length > 0 ? `${currentSlides.length}` : 'Manage'}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Keyboard className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Shortcuts</span>
-                  </div>
-                  <button
-                    onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
-                    className="px-3 py-1 text-xs rounded-full font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                  >
-                    View
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Layout Options */}
-            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
-              <h3 className="text-xs font-semibold text-slate-700 mb-2 flex items-center">
-                <Square className="h-3 w-3 mr-1" />
-                Layout
-              </h3>
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => changeLayout('picture-in-picture')}
-                  className={`p-1.5 text-xs rounded border transition-colors ${
-                    currentLayout === 'picture-in-picture'
-                      ? 'bg-blue-100 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto relative">
-                      <div className="absolute inset-0.5 bg-slate-600 rounded-sm"></div>
-                      <div className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-slate-400 rounded-sm"></div>
-                    </div>
-                    <div className="text-[10px] leading-tight">PIP</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => changeLayout('side-by-side')}
-                  className={`p-1.5 text-xs rounded border transition-colors ${
-                    currentLayout === 'side-by-side'
-                      ? 'bg-blue-100 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto flex">
-                      <div className="w-1/2 bg-slate-600 rounded-l-sm"></div>
-                      <div className="w-1/2 bg-slate-400 rounded-r-sm"></div>
-                    </div>
-                    <div className="text-[10px] leading-tight">Side</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    // @ts-ignore - changeLayout accepts LayoutType including 'presentation'
-                    changeLayout('presentation');
-                  }}
-                  className={`p-1.5 text-xs rounded border transition-colors ${
-                    currentLayout === 'presentation'
-                      ? 'bg-blue-100 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto relative">
-                      <div className="w-full h-1 bg-slate-600 rounded-sm mb-0.5"></div>
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-slate-400 rounded-sm"></div>
-                    </div>
-                    <div className="text-[10px] leading-tight">Pres</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => changeLayout('screen-only')}
-                  className={`p-1.5 text-xs rounded border transition-colors ${
-                    currentLayout === 'screen-only'
-                      ? 'bg-blue-100 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto">
-                      <div className="w-full h-full bg-slate-600 rounded-sm"></div>
-                    </div>
-                    <div className="text-[10px] leading-tight">Screen</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => changeLayout('camera-only')}
-                  className={`p-1.5 text-xs rounded border transition-colors col-span-2 ${
-                    currentLayout === 'camera-only'
-                      ? 'bg-blue-100 border-blue-300 text-blue-700'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="w-5 h-3 bg-slate-300 rounded mb-1 mx-auto">
-                      <div className="w-2.5 h-2.5 bg-slate-400 rounded-full mx-auto mt-0.5"></div>
-                    </div>
-                    <div className="text-[10px] leading-tight">Camera</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Current Status */}
-            <div className="bg-white/70 rounded-lg border border-slate-200/50 p-2">
-              <h3 className="text-xs font-semibold text-slate-700 mb-2">Status</h3>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Recording:</span>
-                  <span className={isRecording ? 'text-green-600 font-medium' : 'text-slate-500'}>
-                    {isRecording ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Layout:</span>
-                  <span className="text-slate-700 font-medium capitalize">
-                    {currentLayout.replace('-', ' ')}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Sources:</span>
-                  <span className="text-slate-700">
-                    {[
-                      ...(recordingSources.camera ? ['Camera'] : []),
-                      ...(isScreenSharing ? ['Screen'] : [])
-                    ].join(' + ') || 'None'}
-                  </span>
-                </div>
-                {isRecording && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Duration:</span>
-                    <span className="text-slate-700 font-medium">{formatTime(recordingTime)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div> {/* Close flex container */}
-      </div> {/* Close main container */}
-    </div>
+    </>
   );
-}
+};
+
 export default VideoRecorder;

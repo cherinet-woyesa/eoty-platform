@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { authApi } from '@/services/api';
 import AuthLayout from '@/components/shared/auth/AuthLayout';
@@ -14,8 +14,9 @@ interface ForgotPasswordFormData {
 }
 
 const ForgotPassword: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState<ForgotPasswordFormData>({
-    email: '',
+    email: searchParams.get('email') || '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

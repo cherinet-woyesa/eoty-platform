@@ -8,10 +8,18 @@ exports.up = async function(knex) {
       table.increments('id').primary();
       // Use string for user_id for compatibility with UUID/text PKs
       table.string('user_id').nullable();
-      table.string('path').notNullable();
-      table.string('method').notNullable();
+      table.string('user_role').nullable();
+      table.string('resource').nullable();
+      table.string('required_role').nullable();
+      table.string('action').defaultTo('access');
+      table.boolean('access_granted').defaultTo(true);
+      table.string('path').nullable(); // Made nullable to fix constraint issues
+      table.string('method').nullable();
       table.integer('status_code').nullable();
       table.text('notes');
+      table.string('ip_address').nullable();
+      table.text('user_agent').nullable();
+      table.jsonb('metadata').nullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
     });
   }

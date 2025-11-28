@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, MessageSquare, User, BarChart } from 'lucide-react';
+import { Shield, AlertTriangle, MessageSquare, User, BarChart, Eye, Clock, Flag, CheckCircle, EyeOff, Trash2, AlertCircle } from 'lucide-react';
 
 interface ReportedPost {
   id: number;
@@ -30,6 +30,19 @@ const ForumModerationDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'reports' | 'flagged' | 'actions'>('reports');
+  const [selectedPost, setSelectedPost] = useState<ReportedPost | null>(null);
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [moderationAction, setModerationAction] = useState<{
+    post: ReportedPost | null;
+    action: 'approve' | 'hide' | 'delete' | 'warn' | null;
+    showModal: boolean;
+  }>({
+    post: null,
+    action: null,
+    showModal: false
+  });
+  const [moderationReason, setModerationReason] = useState('');
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   useEffect(() => {
     fetchModerationData();
@@ -49,13 +62,13 @@ const ForumModerationDashboard: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch forum reports');
+        throw new Error(`Failed to fetch forum reports: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
 
       // Transform the data to match our interface
-      const transformedPosts: ReportedPost[] = data.reports?.map((report: any) => ({
+      const transformedPosts: ReportedPost[] = data.data?.reports?.map((report: any) => ({
         id: report.id,
         content: report.content || report.topic_content,
         report_count: report.report_count || 1,
@@ -68,10 +81,10 @@ const ForumModerationDashboard: React.FC = () => {
 
       // Calculate stats
       const stats: ModerationStat = {
-        total_reports: data.total_reports || transformedPosts.length,
-        pending_moderation: data.pending_reports || transformedPosts.filter(p => p.report_count > 0).length,
-        total_moderation_actions: data.resolved_reports || 0,
-        flagged_content: data.flagged_content || transformedPosts.length
+        total_reports: data.data?.total_reports || transformedPosts.length,
+        pending_moderation: data.data?.pending_reports || transformedPosts.filter(p => p.report_count > 0).length,
+        total_moderation_actions: data.data?.resolved_reports || 0,
+        flagged_content: data.data?.flagged_content || transformedPosts.length
       };
 
       setStats(stats);
@@ -79,33 +92,69 @@ const ForumModerationDashboard: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error('Failed to fetch moderation data:', err);
-      setError('Failed to load forum moderation data');
+      setError(`Failed to load forum moderation data: ${err.message}`);
 
-      // Fallback to mock data for development
-      const mockStats: ModerationStat = {
+      // Fallback to empty state instead of mock data
+      const emptyStats: ModerationStat = {
         total_reports: 0,
         pending_moderation: 0,
         total_moderation_actions: 0,
         flagged_content: 0
       };
 
-      setStats(mockStats);
+      setStats(emptyStats);
       setReportedPosts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleModeratePost = async (postId: number, action: 'delete' | 'hide' | 'warn' | 'approve', reason: string) => {
+  const handleViewContent = (post: ReportedPost) => {
+    setSelectedPost(post);
+    setShowContentModal(true);
+  };
+
+  const openModerationModal = (post: ReportedPost, action: 'approve' | 'hide' | 'delete' | 'warn') => {
+    setModerationAction({
+      post,
+      action,
+      showModal: true
+    });
+    setModerationReason('');
+  };
+
+  const closeModerationModal = () => {
+    setModerationAction({
+      post: null,
+      action: null,
+      showModal: false
+    });
+    setModerationReason('');
+  };
+
+  const handleModeratePost = async () => {
+    if (!moderationAction.post || !moderationAction.action) return;
+
+    const { post, action } = moderationAction;
+
+    if (!moderationReason.trim() && action !== 'approve') {
+      alert('Please provide a reason for this moderation action');
+      return;
+    }
+
+    setIsProcessingAction(true);
     try {
       // Call the backend API to moderate the forum report
-      const response = await fetch(`/api/admin/forum-reports/${postId}/moderate`, {
+      const response = await fetch(`/api/admin/forum-reports/${post.id}/moderate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action, reason })
+        body: JSON.stringify({
+          action,
+          reason: action === 'approve' ? 'Post approved by moderator' : moderationReason
+        })
       });
 
       if (!response.ok) {
@@ -113,7 +162,7 @@ const ForumModerationDashboard: React.FC = () => {
       }
 
       // Remove the moderated post from the list
-      setReportedPosts(prev => prev.filter(post => post.id !== postId));
+      setReportedPosts(prev => prev.filter(p => p.id !== post.id));
 
       // Update stats
       setStats(prev => ({
@@ -122,11 +171,13 @@ const ForumModerationDashboard: React.FC = () => {
         total_moderation_actions: prev.total_moderation_actions + 1
       }));
 
-      // Show success message
-      alert(`Forum report moderated successfully with action: ${action}`);
+      closeModerationModal();
+      // Success feedback could be added here (toast notification)
     } catch (err: any) {
       console.error('Failed to moderate post:', err);
       setError('Failed to moderate forum report: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
@@ -250,15 +301,23 @@ const ForumModerationDashboard: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {reportedPosts.map((post) => (
-                <tr key={post.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 max-w-xs truncate">
-                      {post.content.substring(0, 100)}...
+                <tr key={post.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs">
+                      <div className="truncate">{post.content.substring(0, 100)}...</div>
+                      <button
+                        onClick={() => handleViewContent(post)}
+                        className="text-blue-600 hover:text-blue-800 text-xs mt-1 flex items-center"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Full
+                      </button>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -276,42 +335,44 @@ const ForumModerationDashboard: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{post.topic_title}</div>
+                    <div className="text-sm text-gray-900 max-w-xs truncate">{post.topic_title}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                      {post.report_count} reports
+                      <Flag className="h-3 w-3 mr-1" />
+                      {post.report_count}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-1">
                       <button
-                        onClick={() => {
-                          const reason = prompt('Enter reason for approval:');
-                          if (reason) handleModeratePost(post.id, 'approve', reason);
-                        }}
-                        className="text-green-600 hover:text-green-900"
+                        onClick={() => openModerationModal(post, 'approve')}
+                        className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 transition-colors"
+                        title="Approve this post"
                       >
+                        <CheckCircle className="h-3 w-3 inline mr-1" />
                         Approve
                       </button>
                       <button
-                        onClick={() => {
-                          const reason = prompt('Enter reason for hiding:');
-                          if (reason) handleModeratePost(post.id, 'hide', reason);
-                        }}
-                        className="text-yellow-600 hover:text-yellow-900"
+                        onClick={() => openModerationModal(post, 'hide')}
+                        className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition-colors"
+                        title="Hide this post"
                       >
+                        <EyeOff className="h-3 w-3 inline mr-1" />
                         Hide
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this post?')) {
-                            const reason = prompt('Enter reason for deletion:');
-                            if (reason) handleModeratePost(post.id, 'delete', reason);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-900"
+                        onClick={() => openModerationModal(post, 'delete')}
+                        className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                        title="Delete this post"
                       >
+                        <Trash2 className="h-3 w-3 inline mr-1" />
                         Delete
                       </button>
                     </div>
@@ -325,7 +386,17 @@ const ForumModerationDashboard: React.FC = () => {
             <div className="text-center py-12">
               <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No reported posts</h3>
-              <p className="mt-1 text-sm text-gray-500">All reported posts have been reviewed.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                {error ? 'Unable to load forum reports. Please check your connection.' : 'All reported posts have been reviewed. The forum is clean!'}
+              </p>
+              {!error && (
+                <button
+                  onClick={fetchModerationData}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Refresh
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -346,6 +417,251 @@ const ForumModerationDashboard: React.FC = () => {
           <Shield className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Recent moderation actions</h3>
           <p className="mt-1 text-sm text-gray-500">This section shows recent moderation actions taken by moderators.</p>
+        </div>
+      )}
+
+      {/* Content Details Modal */}
+      {showContentModal && selectedPost && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Forum Post Details</h3>
+              <button
+                onClick={() => setShowContentModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <span className="text-2xl">&times;</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{selectedPost.topic_title}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                <p className="text-sm text-gray-900">{selectedPost.first_name} {selectedPost.last_name}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Posted Date</label>
+                <p className="text-sm text-gray-900">{new Date(selectedPost.created_at).toLocaleString()}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Report Count</label>
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                  {selectedPost.report_count} reports
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded border max-h-60 overflow-y-auto whitespace-pre-wrap">
+                  {selectedPost.content}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Report Details</label>
+                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border max-h-40 overflow-y-auto">
+                  {(() => {
+                    try {
+                      const reports = JSON.parse(selectedPost.reports);
+                      return reports.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {reports.map((report: any, index: number) => (
+                            <li key={index}>
+                              {report.reason || 'No reason provided'} {report.details && ` - ${report.details}`}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No report details available</p>
+                      );
+                    } catch {
+                      return <p>Unable to parse report details</p>;
+                    }
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                onClick={() => {
+                  openModerationModal(selectedPost, 'approve');
+                  setShowContentModal(false);
+                }}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+              >
+                <CheckCircle className="h-4 w-4 inline mr-2" />
+                Approve Post
+              </button>
+              <button
+                onClick={() => {
+                  openModerationModal(selectedPost, 'hide');
+                  setShowContentModal(false);
+                }}
+                className="px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
+              >
+                <EyeOff className="h-4 w-4 inline mr-2" />
+                Hide Post
+              </button>
+              <button
+                onClick={() => {
+                  openModerationModal(selectedPost, 'delete');
+                  setShowContentModal(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+              >
+                <Trash2 className="h-4 w-4 inline mr-2" />
+                Delete Post
+              </button>
+              <button
+                onClick={() => setShowContentModal(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Moderation Action Modal */}
+      {moderationAction.showModal && moderationAction.post && moderationAction.action && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  {moderationAction.action === 'approve' && <CheckCircle className="h-5 w-5 text-green-600 mr-2" />}
+                  {moderationAction.action === 'hide' && <EyeOff className="h-5 w-5 text-yellow-600 mr-2" />}
+                  {moderationAction.action === 'delete' && <Trash2 className="h-5 w-5 text-red-600 mr-2" />}
+                  {moderationAction.action === 'warn' && <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />}
+                  {moderationAction.action === 'approve' && 'Approve Post'}
+                  {moderationAction.action === 'hide' && 'Hide Post'}
+                  {moderationAction.action === 'delete' && 'Delete Post'}
+                  {moderationAction.action === 'warn' && 'Warn User'}
+                </h3>
+                <button
+                  onClick={closeModerationModal}
+                  className="p-1 rounded-md hover:bg-gray-100"
+                >
+                  <AlertTriangle className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Post by: <span className="font-semibold text-gray-900">
+                    {moderationAction.post.first_name} {moderationAction.post.last_name}
+                  </span>
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-sm text-gray-700 line-clamp-4">
+                    {moderationAction.post.content || 'No content preview available'}
+                  </p>
+                </div>
+              </div>
+
+              {moderationAction.action !== 'approve' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reason <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={moderationReason}
+                    onChange={(e) => setModerationReason(e.target.value)}
+                    placeholder={`Enter the reason for ${moderationAction.action === 'delete' ? 'deleting' : moderationAction.action === 'hide' ? 'hiding' : 'warning about'} this post...`}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              )}
+
+              <div className={`bg-gray-50 border rounded-lg p-4 mb-4 ${
+                moderationAction.action === 'approve' ? 'border-green-200 bg-green-50' :
+                moderationAction.action === 'hide' ? 'border-yellow-200 bg-yellow-50' :
+                moderationAction.action === 'delete' ? 'border-red-200 bg-red-50' :
+                'border-orange-200 bg-orange-50'
+              }`}>
+                <div className="flex items-start">
+                  {moderationAction.action === 'approve' && <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5" />}
+                  {moderationAction.action === 'hide' && <EyeOff className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />}
+                  {moderationAction.action === 'delete' && <Trash2 className="h-5 w-5 text-red-600 mr-2 mt-0.5" />}
+                  {moderationAction.action === 'warn' && <AlertCircle className="h-5 w-5 text-orange-600 mr-2 mt-0.5" />}
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      moderationAction.action === 'approve' ? 'text-green-800' :
+                      moderationAction.action === 'hide' ? 'text-yellow-800' :
+                      moderationAction.action === 'delete' ? 'text-red-800' :
+                      'text-orange-800'
+                    }`}>
+                      {moderationAction.action === 'approve' && 'This will approve the reported post'}
+                      {moderationAction.action === 'hide' && 'This will hide the post from public view'}
+                      {moderationAction.action === 'delete' && 'This will permanently delete the post'}
+                      {moderationAction.action === 'warn' && 'This will send a warning to the user'}
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      moderationAction.action === 'approve' ? 'text-green-700' :
+                      moderationAction.action === 'hide' ? 'text-yellow-700' :
+                      moderationAction.action === 'delete' ? 'text-red-700' :
+                      'text-orange-700'
+                    }`}>
+                      {moderationAction.action === 'approve' && 'The post will remain visible and the report will be resolved.'}
+                      {moderationAction.action === 'hide' && 'The post will be hidden but can be restored later.'}
+                      {moderationAction.action === 'delete' && 'This action cannot be undone.'}
+                      {moderationAction.action === 'warn' && 'The user will receive a notification about this action.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeModerationModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModeratePost}
+                  disabled={isProcessingAction || (moderationAction.action !== 'approve' && !moderationReason.trim())}
+                  className={`flex-1 flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${
+                    moderationAction.action === 'approve'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : moderationAction.action === 'hide'
+                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      : moderationAction.action === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-orange-600 hover:bg-orange-700 text-white'
+                  } disabled:opacity-50`}
+                >
+                  {isProcessingAction ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      {moderationAction.action === 'approve' && <CheckCircle className="h-4 w-4 mr-2" />}
+                      {moderationAction.action === 'hide' && <EyeOff className="h-4 w-4 mr-2" />}
+                      {moderationAction.action === 'delete' && <Trash2 className="h-4 w-4 mr-2" />}
+                      {moderationAction.action === 'warn' && <AlertCircle className="h-4 w-4 mr-2" />}
+                      {moderationAction.action === 'approve' && 'Approve'}
+                      {moderationAction.action === 'hide' && 'Hide'}
+                      {moderationAction.action === 'delete' && 'Delete'}
+                      {moderationAction.action === 'warn' && 'Warn'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

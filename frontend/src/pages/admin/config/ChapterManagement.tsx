@@ -278,20 +278,15 @@ export const ChapterManagement = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Compact Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-stone-600">
-              Manage chapters for organizing courses into logical groupings
-            </span>
-          </div>
+    <div className="w-full h-full">
+      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
+        {/* Action Button */}
+        <div className="flex justify-end">
           <button
             onClick={openCreateForm}
-            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-700 text-white text-xs font-medium rounded-md hover:from-blue-700 hover:to-purple-800 transition-all shadow-sm hover:shadow-md"
+            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
           >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            <Plus className="h-5 w-5" />
             New Chapter
           </button>
         </div>
@@ -330,7 +325,7 @@ export const ChapterManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
+                <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -407,7 +402,7 @@ export const ChapterManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>

@@ -75,6 +75,18 @@ export function parseApiError(error: any): ErrorInfo {
         };
 
       case 401:
+        // Check if the server provided a specific error message or code
+        if (data?.code || data?.message) {
+          return {
+            code: data.code || 'UNAUTHORIZED',
+            message: data.message || 'Authentication required',
+            userMessage: data.message || 'Authentication failed. Please check your credentials.',
+            retryable: false,
+            statusCode: status,
+            originalError: error
+          };
+        }
+
         return {
           code: 'UNAUTHORIZED',
           message: 'Authentication required',

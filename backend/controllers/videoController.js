@@ -1766,6 +1766,64 @@ const videoController = {
         error: error.message
       });
     }
+  },
+
+  // Get featured videos for landing page (public)
+  async getFeaturedVideos(req, res) {
+    try {
+      console.log('🎬 Getting featured videos for landing page...');
+
+      // Get videos from published lessons (simplified version without analytics)
+      const featuredVideos = await db('lessons as l')
+        .leftJoin('courses as c', 'l.course_id', 'c.id')
+        .leftJoin('users as u', 'c.created_by', 'u.id')
+        .where('c.is_published', true)
+        .whereNotNull('l.mux_playback_id') // Only videos that are processed
+        .where('l.mux_status', 'ready') // Only ready videos
+        .select(
+          'l.id as lesson_id',
+          'l.title as lesson_title',
+          'l.description as lesson_description',
+          'l.mux_playback_id',
+          'l.mux_asset_id',
+          'l.duration',
+          'c.id as course_id',
+          'c.title as course_title',
+          'u.first_name',
+          'u.last_name'
+        )
+        .orderBy('l.created_at', 'desc') // Order by creation date as fallback
+        .limit(6);
+
+      console.log('✅ Found', featuredVideos.length, 'featured videos');
+
+      // Format the response
+      const videos = featuredVideos.map(video => ({
+        id: video.lesson_id,
+        lesson_title: video.lesson_title,
+        lesson_description: video.lesson_description,
+        course_title: video.course_title,
+        instructor: `${video.first_name} ${video.last_name}`,
+        duration: video.duration,
+        viewCount: 0, // Default since analytics table doesn't exist yet
+        uniqueViewers: 0, // Default since analytics table doesn't exist yet
+        courseId: video.course_id,
+        muxPlaybackId: video.mux_playback_id
+      }));
+
+      res.json({
+        success: true,
+        data: { videos }
+      });
+
+    } catch (error) {
+      console.error('❌ Failed to get featured videos:', error);
+      // Return empty array instead of failing
+      res.json({
+        success: true,
+        data: { videos: [] }
+      });
+    }
   }
 };
 

@@ -31,6 +31,7 @@
     "search": "Search",
     "filter": "Filter",
     "loading": "Loading...",
+    "uploading": "Uploading...",
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
@@ -489,6 +490,7 @@
         "title_too_long": "Title must be 60 characters or less",
         "description_required": "Course description is required",
         "description_too_short": "Description must be at least 5 characters",
+        "description_too_long": "Description must be 2000 characters or less",
         "category_required": "Please select a category",
         "level_required": "Please select a difficulty level",
         "objectives_required": "All learning objectives must be filled",
@@ -499,7 +501,10 @@
         "creation_failed": "Failed to create course. Please try again.",
         "update_failed": "Failed to update course. Please try again.",
         "price_negative": "Price cannot be negative",
-        "price_too_high": "Price cannot be more than 1000"
+        "price_too_high": "Price cannot be more than 1000",
+        "image_upload_failed": "Failed to upload image. Please try again.",
+        "failed_to_load": "Failed to load course data",
+        "course_load_error": "Unable to load course information"
       }
   },
   "video_recorder": {

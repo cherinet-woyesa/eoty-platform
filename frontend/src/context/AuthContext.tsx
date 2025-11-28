@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '@/services/api';
+import { onboardingApi } from '@/services/api/onboarding';
 import { setAuthToken } from '@/services/api/apiClient';
 import { extractErrorMessage } from '@/utils/errorMessages';
 
@@ -161,25 +162,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (storedToken && storedUser) {
           try {
             const parsedUser: User = JSON.parse(storedUser);
+            // Optimistically set user state
             setToken(storedToken);
             setUser(parsedUser);
             setAuthToken(storedToken);
             setLastActivity(new Date());
 
-            // Load permissions in the background so we don't block the initial UI
-            // If this fails or is slow, the user still sees their dashboard quickly.
-            void loadPermissions().catch(error => {
-              console.error('Failed to load permissions during init:', error);
-              setPermissions([]);
-            });
+            // Verify token with backend
+            try {
+              const response = await authApi.getCurrentUser();
+              if (!response.success) {
+                throw new Error('Token validation failed');
+              }
+              // Update user with fresh data
+              if (response.data?.user) {
+                setUser(response.data.user);
+                localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+              }
+              
+              // Load permissions
+              await loadPermissions();
+            } catch (validateError) {
+              console.warn('Session validation failed:', validateError);
+              // If validation fails (401/403), logout. 
+              // If it's a network error (timeout), we might want to keep the session 
+              // but for now, to fix the "Dashboard" issue when backend is down/unreachable
+              // and user expects to be logged out, we will clear it.
+              logout();
+            }
           } catch (parseError) {
             console.error('Failed to parse stored auth user:', parseError);
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
+            logout();
           }
         }
       } catch (error) {
         console.error('Error initializing auth from storage:', error);
+        logout();
       } finally {
         setIsLoading(false);
       }
@@ -236,11 +254,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Login error:', error);
-
-      // Use the comprehensive error extraction utility
-      const errorMessage = extractErrorMessage(error);
-
-      throw new Error(errorMessage);
+      // Re-throw the original error so components can access response data (like error codes)
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -275,18 +290,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('auth_user', JSON.stringify(user));
         
         await loadPermissions();
-        
+
+        // Trigger onboarding for new users (REQUIREMENT: 100% new users see guided onboarding)
+        try {
+          await onboardingApi.initializeForUser(user.role || 'user');
+        } catch (onboardingError) {
+          console.warn('Failed to initialize onboarding for new user:', onboardingError);
+          // Don't fail registration if onboarding fails
+        }
+
         return;
       } else {
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-
-      // Use the comprehensive error extraction utility
-      const errorMessage = extractErrorMessage(error);
-
-      throw new Error(errorMessage);
+      // Re-throw the original error so components can access response data
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -320,11 +340,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-
-      // Use the comprehensive error extraction utility
-      const errorMessage = extractErrorMessage(error);
-
-      throw new Error(errorMessage);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -349,11 +365,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     } catch (error: any) {
       console.error('OAuth login error:', error);
-
-      // Use the comprehensive error extraction utility
-      const errorMessage = extractErrorMessage(error);
-
-      throw new Error(errorMessage);
+      throw error;
     } finally {
       setIsLoading(false);
     }

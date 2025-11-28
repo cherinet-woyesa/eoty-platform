@@ -109,7 +109,6 @@ async function createModerationTables() {
         table.string('status').defaultTo('pending'); // 'pending', 'processing', 'completed', 'failed'
         table.integer('retry_count').defaultTo(0);
         table.timestamp('next_retry_at').nullable();
-        table.json('update_data').notNullable();
         table.timestamps(true, true);
 
         table.index(['update_type', 'status']);

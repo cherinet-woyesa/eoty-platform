@@ -24,8 +24,9 @@ const AIAssistant: React.FC = () => {
 
     const ctx: any = {
       source: 'course-details',
-      fromLessonId: lessonId || undefined,
-      fromCourseId: courseId || undefined,
+      // backend expects `lessonId` and `courseId` keys for context-aware responses
+      lessonId: lessonId || undefined,
+      courseId: courseId || undefined,
     };
 
     let label = 'Context: ';

@@ -290,7 +290,7 @@ export const CategoryManagement = () => {
     if (!iconName) return null;
     const IconComponent = (LucideIcons as any)[iconName];
     if (!IconComponent) return <span className="text-xl">{iconName}</span>;
-    return <IconComponent className="h-5 w-5 text-blue-600" />;
+    return <IconComponent className="h-5 w-5 text-[#27AE60]" />;
   };
 
   // Table columns
@@ -340,28 +340,17 @@ export const CategoryManagement = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg shadow-sm p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Layers className="h-8 w-8" />
-                Course Categories
-              </h1>
-              <p className="text-blue-100 mt-2">
-                Manage course categories that teachers can select when creating courses
-              </p>
-            </div>
-            <button
-              onClick={openCreateForm}
-              className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              New Category
-            </button>
-          </div>
+    <div className="w-full h-full">
+      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
+        {/* Action Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={openCreateForm}
+            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-5 w-5" />
+            New Category
+          </button>
         </div>
 
         {/* Bulk Actions */}
@@ -409,7 +398,7 @@ export const CategoryManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
+                <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -521,7 +510,7 @@ export const CategoryManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>

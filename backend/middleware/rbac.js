@@ -12,6 +12,7 @@ const ROLE_HIERARCHY = {
   'moderator': 2,      // Content moderators
   'teacher': 2,        // Course creators and teachers
   'chapter_admin': 3,  // Chapter-level administrators
+  'regional_coordinator': 3, // Regional coordinators (same level as chapter admin)
   'admin': 4           // Platform administrators (single top-level admin role)
 };
 
@@ -153,10 +154,28 @@ const requirePermission = (permission) => {
         return next();
       }
       
-      // For chapter-specific permissions, check if user is chapter admin
-      if (req.user.chapter_id && userPermissionKeys.includes(`${permission.split(':')[0]}:any`)) {
-        console.log(`[RBAC] Chapter-specific permission ${permission} GRANTED for user ${req.user.email}`);
-        return next();
+      // For chapter-specific permissions, check chapter roles
+      const chapterId = req.params.chapterId || req.body.chapterId || req.user.chapter_id;
+      if (chapterId) {
+        try {
+          // Check if user has chapter-specific roles
+          const ChapterRoleService = require('../services/chapterRoleService');
+          const userChapterRoles = await ChapterRoleService.getUserChapterRoles(userId);
+
+          // Check if user has relevant chapter role for this chapter
+          const chapterRole = userChapterRoles.find(role => role.chapter_id === parseInt(chapterId));
+          if (chapterRole) {
+            // Check if chapter role grants this permission
+            const effectivePermissions = await ChapterRoleService.getUserEffectivePermissions(userId, parseInt(chapterId));
+            if (effectivePermissions.includes(permission)) {
+              console.log(`[RBAC] Chapter-specific permission ${permission} GRANTED for user ${req.user.email} (chapter role: ${chapterRole.role})`);
+              return next();
+            }
+          }
+        } catch (error) {
+          console.error('Error checking chapter roles:', error);
+          // Continue with normal permission check if chapter role check fails
+        }
       }
       
       console.log(`[RBAC] Permission ${permission} DENIED for user ${req.user.email}`);

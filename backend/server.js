@@ -32,6 +32,18 @@ const schedulerService = require('./services/schedulerService');
 // Initialize privacy service for user privacy settings
 const privacyService = require('./services/privacyService');
 
+// Check database connectivity
+const checkDatabaseConnection = async () => {
+  try {
+    const db = require('./config/database');
+    await db.raw('SELECT 1');
+    return true;
+  } catch (error) {
+    console.error('Database connection check failed:', error.message);
+    return false;
+  }
+};
+
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n=== EOTY Server Running ===`);
   console.log(`Mode: ${process.env.NODE_ENV || 'development'}`);
@@ -42,6 +54,12 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`Video Streaming: Enabled`);
   console.log(`WebSocket Server: Running`);
   console.log(`Upload Directories: Ready`);
+
+  // Check database connectivity
+  const dbAvailable = await checkDatabaseConnection();
+  if (!dbAvailable) {
+    console.log('⚠️  Database not available - some features will be limited');
+  }
   
   // Start uptime monitoring (REQUIREMENT: 99% uptime tracking)
   try {
@@ -50,37 +68,45 @@ server.listen(PORT, '0.0.0.0', async () => {
   } catch (error) {
     console.error('Failed to start uptime monitoring:', error);
   }
-  
-  // Start privacy compliance service (REQUIREMENT: No sensitive data retention)
-  try {
-    const privacyComplianceService = require('./services/privacyComplianceService');
-    privacyComplianceService.startScheduledDeletion();
-    console.log(`Privacy Compliance: Active (data retention policies)`);
-  } catch (error) {
-    console.error('Failed to start privacy compliance service:', error);
-  }
 
-  // Start scheduler service (REQUIREMENT: Auto-archiving, real-time updates)
-  try {
-    schedulerService.start();
-    console.log(`Scheduler Service: Active (auto-archiving, real-time updates)`);
-  } catch (error) {
-    console.error('Failed to start scheduler service:', error);
+  // Only start database-dependent services if database is available
+  if (dbAvailable) {
+    // Start privacy compliance service (REQUIREMENT: No sensitive data retention)
+    try {
+      const privacyComplianceService = require('./services/privacyComplianceService');
+      privacyComplianceService.startScheduledDeletion();
+      console.log(`Privacy Compliance: Active (data retention policies)`);
+    } catch (error) {
+      console.error('Failed to start privacy compliance service:', error);
+    }
+
+    // Start scheduler service (REQUIREMENT: Auto-archiving, real-time updates)
+    try {
+      schedulerService.start();
+      console.log(`Scheduler Service: Active (auto-archiving, real-time updates)`);
+    } catch (error) {
+      console.error('Failed to start scheduler service:', error);
+    }
+  } else {
+    console.log('⏭️  Skipping database-dependent services (database not available)');
   }
 
   // Initialize privacy settings for existing users (REQUIREMENT: Youth privacy enforcement)
-  try {
-    const db = require('./config/database');
-    const users = await db('users').select('id');
+  if (dbAvailable) {
+    try {
+      const db = require('./config/database');
+      const users = await db('users').select('id');
 
-    for (const user of users) {
-      await privacyService.initializeUserPrivacy(user.id);
+      for (const user of users) {
+        await privacyService.initializeUserPrivacy(user.id);
+      }
+
+      console.log(`Privacy Settings: Initialized (${users.length} users)`);
+    } catch (error) {
+      console.error('Failed to initialize privacy settings:', error);
+      console.log('Continuing server startup without privacy settings initialization');
+      // Don't fail server startup if privacy init fails
     }
-
-    console.log(`Privacy Settings: Initialized (${users.length} users)`);
-  } catch (error) {
-    console.error('Failed to initialize privacy settings:', error);
-    // Don't fail server startup if privacy init fails
   }
   
   // Start social features service (REQUIREMENT: FR4 - Real-time updates)

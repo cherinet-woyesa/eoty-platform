@@ -44,19 +44,18 @@ const courseController = {
         metadata = {};
       }
 
-      // Basic extended fields
-      course.level = metadata.level || metadata.levelSlug || null;
-      course.cover_image = metadata.coverImage || metadata.cover_image || null;
-      course.learning_objectives = metadata.learningObjectives || metadata.learning_objectives || null;
-      course.prerequisites = metadata.prerequisites || null;
-      course.estimated_duration = metadata.estimatedDuration || metadata.estimated_duration || null;
-      course.tags = metadata.tags || [];
-      course.language = metadata.language || 'en';
-      course.is_public = metadata.isPublic !== undefined ? metadata.isPublic : true;
-      course.certification_available =
-        metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false;
-      course.welcome_message = metadata.welcomeMessage || '';
-      course.price = metadata.price !== undefined ? metadata.price : 0;
+      // Basic extended fields - check direct columns first, then metadata
+      course.level = course.level || metadata.level || metadata.levelSlug || null;
+      course.cover_image = course.cover_image || metadata.coverImage || metadata.cover_image || null;
+      course.learning_objectives = course.learning_objectives || metadata.learningObjectives || metadata.learning_objectives || null;
+      course.prerequisites = course.prerequisites || metadata.prerequisites || null;
+      course.estimated_duration = course.estimated_duration || metadata.estimatedDuration || metadata.estimated_duration || null;
+      course.tags = course.tags || metadata.tags || [];
+      course.language = course.language || metadata.language || 'en';
+      course.is_public = course.is_public !== undefined ? course.is_public : (metadata.isPublic !== undefined ? metadata.isPublic : true);
+      course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
+      course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
+      course.price = course.price !== undefined ? course.price : (metadata.price !== undefined ? metadata.price : 0);
 
       // Status: derive from is_published, but allow metadata override if present
       course.status =
@@ -87,6 +86,14 @@ const courseController = {
           message: 'You do not have permission to view this course'
         });
       }
+
+      console.log('Returning course data:', {
+        id: course.id,
+        title: course.title,
+        cover_image: course.cover_image,
+        hasCoverImage: !!course.cover_image,
+        metadataKeys: course.metadata ? Object.keys(course.metadata) : []
+      });
 
       res.json({
         success: true,
@@ -131,9 +138,46 @@ const courseController = {
 
       const courses = await coursesQuery;
 
+      // Process metadata for each course (similar to getCourse)
+      const processedCourses = courses.map(course => {
+        let metadata = {};
+        try {
+          if (course.metadata) {
+            metadata = typeof course.metadata === 'string'
+              ? JSON.parse(course.metadata)
+              : course.metadata;
+          }
+        } catch (e) {
+          console.warn('Failed to parse course metadata for course', course.id, ':', e.message);
+          metadata = {};
+        }
+
+        // Extract fields from direct columns first, then metadata
+        course.level = course.level || metadata.level || metadata.levelSlug || null;
+        course.cover_image = course.cover_image || metadata.coverImage || metadata.cover_image || null;
+        course.learning_objectives = course.learning_objectives || metadata.learningObjectives || metadata.learning_objectives || null;
+        course.prerequisites = course.prerequisites || metadata.prerequisites || null;
+        course.estimated_duration = course.estimated_duration || metadata.estimatedDuration || metadata.estimated_duration || null;
+        course.tags = course.tags || metadata.tags || [];
+        course.language = course.language || metadata.language || 'en';
+        course.is_public = course.is_public !== undefined ? course.is_public : (metadata.isPublic !== undefined ? metadata.isPublic : true);
+        course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
+        course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
+        course.price = course.price !== undefined ? course.price : (metadata.price !== undefined ? metadata.price : 0);
+
+        return course;
+      });
+
+      console.log('Returning courses list:', processedCourses.map(course => ({
+        id: course.id,
+        title: course.title,
+        cover_image: course.cover_image,
+        hasCoverImage: !!course.cover_image
+      })));
+
       res.json({
         success: true,
-        data: { courses }
+        data: { courses: processedCourses }
       });
     } catch (error) {
       console.error('Get user courses error:', error);
@@ -173,6 +217,7 @@ const courseController = {
           title,
           description,
           category,
+          cover_image: cover_image || null,
           created_by: teacherId,
           metadata: Object.keys(metadata).length > 0 ? metadata : null,
           created_at: new Date(),
@@ -533,6 +578,27 @@ const courseController = {
         metadata.status = status;
       }
 
+      // Update direct columns for fields that have dedicated database columns
+      if (price !== undefined) {
+        updateData.price = price;
+      }
+      if (is_public !== undefined) {
+        updateData.is_public = is_public;
+      }
+      if (certification_available !== undefined) {
+        updateData.certification_available = certification_available;
+      }
+      if (welcome_message !== undefined) {
+        updateData.welcome_message = welcome_message;
+      }
+      if (status !== undefined) {
+        updateData.status = status;
+      }
+      if (cover_image !== undefined) {
+        updateData.cover_image = cover_image;
+      }
+
+      // Update metadata for fields stored there
       if (Object.keys(metadata).length > 0) {
         updateData.metadata = metadata;
       }
@@ -1531,6 +1597,10 @@ const courseController = {
               const updatedLesson = await db('lessons').where({ id: lessonId }).first();
               if (hasMuxAssetId) lesson.mux_asset_id = updatedLesson.mux_asset_id;
               if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
+            } else if (upload.status === 'asset_created') {
+                // Sometimes asset_id is not at top level but status says created
+                // We might need to fetch the asset separately or wait
+                console.log('Upload status is asset_created but no asset_id found yet');
             }
           } catch (error) {
             console.warn(`⚠️  Failed to sync upload status: ${error.message}`);
@@ -1544,37 +1614,45 @@ const courseController = {
             console.log(`🔄 Syncing Mux asset status for lesson ${lessonId}, asset_id: ${lesson.mux_asset_id}`);
             const asset = await muxService.getAsset(lesson.mux_asset_id);
             
-            if (asset.status === 'ready' && asset.playbackIds && asset.playbackIds.length > 0) {
+            if (asset.status === 'ready') {
               // Asset is ready, update lesson with playback_id
-              const playbackId = asset.playbackIds[0].id;
-              console.log(`✅ Found playback_id from asset: ${playbackId}`);
-              
-              const updateData = {
-                updated_at: db.fn.now()
-              };
-              
-              if (hasMuxPlaybackId) updateData.mux_playback_id = playbackId;
-              if (hasMuxStatus) updateData.mux_status = 'ready';
-              if (hasVideoProvider) updateData.video_provider = 'mux';
-              
-              await db('lessons')
-                .where({ id: lessonId })
-                .update(updateData);
-              
-              // Refresh lesson data
-              const updatedLesson = await db('lessons').where({ id: lessonId }).first();
-              if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
-              if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
-              
-              // Send WebSocket update
-              const websocketService = require('../services/websocketService');
-              websocketService.sendProgress(lessonId.toString(), {
-                type: 'complete',
-                progress: 100,
-                currentStep: 'Video ready',
-                provider: 'mux',
-                playbackId: playbackId
-              });
+              // Use the first playback ID available
+              const playbackId = (asset.playback_ids && asset.playback_ids.length > 0) 
+                ? asset.playback_ids[0].id 
+                : null;
+                
+              if (playbackId) {
+                  console.log(`✅ Found playback_id from asset: ${playbackId}`);
+                  
+                  const updateData = {
+                    updated_at: db.fn.now()
+                  };
+                  
+                  if (hasMuxPlaybackId) updateData.mux_playback_id = playbackId;
+                  if (hasMuxStatus) updateData.mux_status = 'ready';
+                  if (hasVideoProvider) updateData.video_provider = 'mux';
+                  
+                  await db('lessons')
+                    .where({ id: lessonId })
+                    .update(updateData);
+                  
+                  // Refresh lesson data
+                  const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+                  if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
+                  if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
+                  
+                  // Send WebSocket update
+                  const websocketService = require('../services/websocketService');
+                  websocketService.sendProgress(lessonId.toString(), {
+                    type: 'complete',
+                    progress: 100,
+                    currentStep: 'Video ready',
+                    provider: 'mux',
+                    playbackId: playbackId
+                  });
+              } else {
+                  console.warn('Asset is ready but has no playback IDs');
+              }
             } else if (asset.status === 'errored') {
               // Asset errored, update lesson
               console.log(`❌ Asset errored: ${asset.errors || 'Unknown error'}`);
@@ -2038,6 +2116,129 @@ courseController.getVideoDownloadUrl = async function(req, res) {
         message: error.message || 'Failed to generate download URL'
       });
     }
+};
+
+// Upload course cover image
+courseController.uploadCourseImage = async function(req, res) {
+  try {
+    console.log('Upload course image request:', {
+      courseId: req.params.courseId,
+      hasFile: !!req.file,
+      fileInfo: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null
+    });
+
+    const { courseId } = req.params;
+
+    if (!req.file) {
+      console.log('No file provided in request');
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided'
+      });
+    }
+
+    // Validate file type
+    if (!req.file.mimetype.startsWith('image/')) {
+      console.log('Invalid file type:', req.file.mimetype);
+      return res.status(400).json({
+        success: false,
+        message: 'File must be an image'
+      });
+    }
+
+    // Validate file size (max 5MB)
+    if (req.file.size > 5 * 1024 * 1024) {
+      console.log('File too large:', req.file.size);
+      return res.status(400).json({
+        success: false,
+        message: 'Image file size must be less than 5MB'
+      });
+    }
+
+    let imageUrl;
+
+    console.log('Attempting to upload image...');
+
+    try {
+      // Try to upload to cloud storage first
+      console.log('Trying cloud storage upload...');
+      const cloudStorageService = require('../services/cloudStorageService');
+      imageUrl = await cloudStorageService.uploadCourseImage(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        courseId
+      );
+      console.log('Cloud storage upload successful:', imageUrl);
+    } catch (cloudError) {
+      console.warn('Cloud storage upload failed, falling back to local storage:', cloudError.message);
+      console.log('Attempting local storage fallback...');
+
+      // Fallback to local storage (similar to profile images)
+      const fs = require('fs').promises;
+      const path = require('path');
+      const crypto = require('crypto');
+
+      try {
+        // Generate unique filename
+        const fileExtension = path.extname(req.file.originalname) || '.jpg';
+        const uniqueFilename = `course_${courseId}_${crypto.randomBytes(8).toString('hex')}${fileExtension}`;
+        const uploadDir = path.join(__dirname, '../uploads/courses');
+        const filePath = path.join(uploadDir, uniqueFilename);
+
+        console.log('Local upload path:', { uploadDir, filePath });
+
+        // Ensure upload directory exists
+        await fs.mkdir(uploadDir, { recursive: true });
+
+        // Write file
+        await fs.writeFile(filePath, req.file.buffer);
+
+        // Generate URL (similar to profile images)
+        const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+        imageUrl = `${baseUrl}/uploads/courses/${uniqueFilename}`;
+
+        console.log('Local storage upload successful:', imageUrl);
+      } catch (localError) {
+        console.error('Local storage upload also failed:', localError);
+        throw localError;
+      }
+    }
+
+    console.log('Updating course in database:', { courseId, imageUrl });
+
+    // Update course with new image URL
+    const updateResult = await db('courses')
+      .where({ id: courseId })
+      .update({
+        cover_image: imageUrl,
+        updated_at: new Date()
+      });
+
+    console.log('Database update result:', updateResult);
+
+    console.log('Upload process completed successfully');
+
+    res.json({
+      success: true,
+      message: 'Course cover image uploaded successfully',
+      data: {
+        imageUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('Course image upload error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload course image'
+    });
+  }
 };
 
 module.exports = courseController;

@@ -42,6 +42,8 @@ router.put('/content/:contentType/:contentId/edit', requirePermission('content:m
 router.get('/moderation/ai/pending', requirePermission('content:moderate'), adminController.getPendingAIModeration);
 router.post('/moderation/ai/:itemId/review', requirePermission('content:moderate'), adminController.reviewAIModeration);
 router.get('/moderation/ai/stats', requirePermission('content:view'), adminController.getModerationStats);
+// Candidates for manual faith-alignment labeling (recent AI assistant responses)
+router.get('/ai/labeling-candidates', requirePermission('content:moderate'), adminController.getAILabelingCandidates);
 
 // Moderation escalation routes (REQUIREMENT: Moderator workflow)
 router.get('/moderation/escalations', requirePermission('content:moderate'), adminController.getModerationEscalations);

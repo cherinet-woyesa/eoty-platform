@@ -44,11 +44,12 @@ class RealtimeUpdateService {
     try {
       while (true) {
         // Get pending updates (limit to 10 at a time for performance)
+        const maxRetries = this.maxRetries;
         const pendingUpdates = await db('realtime_update_queue')
           .where({ status: 'pending' })
           .orWhere(function() {
             this.where({ status: 'failed' })
-                .where('retry_count', '<', this.maxRetries)
+                .where('retry_count', '<', maxRetries)
                 .where('next_retry_at', '<=', new Date());
           })
           .orderBy('created_at', 'asc')
@@ -98,6 +99,10 @@ class RealtimeUpdateService {
 
       console.log('✅ Real-time update processing completed');
     } catch (error) {
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.warn('⚠️  Queue processing skipped: Database connection failed');
+        return;
+      }
       console.error('❌ Queue processing error:', error);
     } finally {
       this.isProcessing = false;

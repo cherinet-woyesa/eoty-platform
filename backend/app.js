@@ -13,12 +13,14 @@ const studentRoutes = require('./routes/students');
 const quizRoutes = require('./routes/quizzes');
 const discussionRoutes = require('./routes/discussions');
 const aiRoutes = require('./routes/ai');
+const speechToTextRoutes = require('./routes/speechToText');
 const interactiveRoutes = require('./routes/interactive');
 const resourceRoutes = require('./routes/resources');
 const forumRoutes = require('./routes/forums');
 const achievementRoutes = require('./routes/achievements');
 const adminRoutes = require('./routes/admin');
 const chapterRoutes = require('./routes/chapters');
+const chapterRoleRoutes = require('./routes/chapterRoleRoutes');
 const onboardingRoutes = require('./routes/onboarding');
 const translationRoutes = require('./routes/translation');
 const teacherRoutes = require('./routes/teacher');
@@ -251,9 +253,21 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Root endpoint - Welcome message
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'EOTY Platform API is running',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    documentation: '/api/docs' // If you have docs
+  });
+});
+
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chapters', chapterRoutes);
+app.use('/api/chapter-roles', chapterRoleRoutes);
 app.use('/api/landing', require('./routes/landing'));
 
 // Video routes - some endpoints are public for streaming
@@ -291,6 +305,7 @@ app.use('/api/students', authenticateToken, studentRoutes);
 app.use('/api/quizzes', authenticateToken, quizRoutes);
 app.use('/api/discussions', authenticateToken, discussionRoutes);
 app.use('/api/ai', authenticateToken, aiRoutes);
+app.use('/api/speech-to-text', speechToTextRoutes);
 app.use('/api/interactive', authenticateToken, interactiveRoutes);
 app.use('/api/resources', authenticateToken, resourceRoutes);
 app.use('/api/forums', authenticateToken, forumRoutes);
@@ -350,8 +365,14 @@ app.use((req, res) => {
 // Initialize scheduled jobs
 const { initializeScheduledPublishing } = require('./jobs/scheduledPublishing');
 const { initializeMuxAnalyticsSync } = require('./jobs/muxAnalyticsSync');
+const { initializeMuxStatusSync } = require('./jobs/muxStatusSync');
+const realtimeUpdateService = require('./services/realtimeUpdateService');
 
 initializeScheduledPublishing();
 initializeMuxAnalyticsSync();
+initializeMuxStatusSync();
+
+// Start realtime update queue processor
+realtimeUpdateService.startQueueProcessor();
 
 module.exports = app;

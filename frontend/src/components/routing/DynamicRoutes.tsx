@@ -28,7 +28,7 @@ export const DynamicForums: React.FC = () => {
   const search = location.search;
 
   if (user?.role === 'teacher' || user?.role === 'admin') {
-    return <Navigate to={`/teacher/forums${search}`} replace />;
+    return <Navigate to={`/teacher/community${search}`} replace />;
   }
 
   if (user?.role === 'user' || user?.role === 'student') {

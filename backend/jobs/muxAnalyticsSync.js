@@ -120,6 +120,13 @@ async function syncMuxAnalytics() {
         lessons: []
       };
     }
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+      console.warn('⚠️  [Mux Analytics Sync] Job skipped: Database connection failed');
+      return {
+        success: false,
+        error: 'Database connection failed'
+      };
+    }
     console.error('[Mux Analytics Sync] Job failed:', error);
     return {
       success: false,

@@ -35,7 +35,7 @@ const EditCourse: React.FC = () => {
             courseId={courseId}
             onSave={(course) => {
               console.log('Course saved:', course);
-              navigate(`/teacher/courses/${courseId}`);
+              // Stay on edit page after save - don't redirect
             }}
             onCancel={() => navigate(`/teacher/courses/${courseId}`)}
           />

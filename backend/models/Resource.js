@@ -36,6 +36,92 @@ class Resource {
     return await query.orderBy('created_at', 'desc');
   }
 
+  // Get resources by scope and user access
+  static async findByScope(userId, scope, options = {}) {
+    const { chapterId, courseId, lessonId, filters = {} } = options;
+
+    let query = db('resources')
+      .where('published_at', '<=', new Date());
+
+    // Apply scope filtering
+    switch (scope) {
+      case 'course_specific':
+        if (!courseId) throw new Error('courseId required for course_specific scope');
+        query = query.where({ resource_scope: 'course_specific', course_id: courseId });
+        break;
+
+      case 'chapter_wide':
+        if (!chapterId) throw new Error('chapterId required for chapter_wide scope');
+        query = query.where({ resource_scope: 'chapter_wide', chapter_id: chapterId });
+        break;
+
+      case 'platform_wide':
+        query = query.where({ resource_scope: 'platform_wide' });
+        break;
+
+      default:
+        throw new Error('Invalid resource scope');
+    }
+
+    // Apply additional filters
+    if (filters.category) {
+      query = query.where({ category: filters.category });
+    }
+    if (filters.language) {
+      query = query.where({ language: filters.language });
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      query = query.whereRaw('tags @> ?', [JSON.stringify(filters.tags)]);
+    }
+    if (filters.search) {
+      query = query.where(function() {
+        this.where('title', 'ilike', `%${filters.search}%`)
+          .orWhere('description', 'ilike', `%${filters.search}%`)
+          .orWhere('author', 'ilike', `%${filters.search}%`);
+      });
+    }
+
+    return await query.orderBy('created_at', 'desc');
+  }
+
+  // Get all resources accessible to a user across different scopes
+  static async findAllAccessible(userId, userRole, options = {}) {
+    const { filters = {} } = options;
+
+    // Get user info for access control
+    const user = await db('users').where({ id: userId }).select('chapter_id').first();
+    if (!user) throw new Error('User not found');
+
+    let query = db('resources')
+      .where('published_at', '<=', new Date())
+      .where(function() {
+        this.where({ resource_scope: 'platform_wide' }) // Platform-wide resources
+          .orWhere(function() {
+            this.where({ resource_scope: 'chapter_wide', chapter_id: user.chapter_id }); // Chapter-wide resources
+          });
+      });
+
+    // Apply additional filters
+    if (filters.category) {
+      query = query.where({ category: filters.category });
+    }
+    if (filters.language) {
+      query = query.where({ language: filters.language });
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      query = query.whereRaw('tags @> ?', [JSON.stringify(filters.tags)]);
+    }
+    if (filters.search) {
+      query = query.where(function() {
+        this.where('title', 'ilike', `%${filters.search}%`)
+          .orWhere('description', 'ilike', `%${filters.search}%`)
+          .orWhere('author', 'ilike', `%${filters.search}%`);
+      });
+    }
+
+    return await query.orderBy('resource_scope', 'desc').orderBy('created_at', 'desc');
+  }
+
   static async checkPermission(resourceId, userId, action = 'view') {
     const resource = await this.findById(resourceId);
     if (!resource) return false;

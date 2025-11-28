@@ -826,5 +826,11 @@ export const videoApi = {
     }
 
     return errorMessage;
+  },
+
+  // Get featured videos for landing page
+  getFeaturedVideos: async (): Promise<{ success: boolean; data: { videos: any[] } }> => {
+    const response = await apiClient.get('/videos/featured');
+    return response.data;
   }
 };

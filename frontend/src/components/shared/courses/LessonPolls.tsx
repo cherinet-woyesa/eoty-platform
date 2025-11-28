@@ -16,9 +16,10 @@ interface Poll {
 
 interface LessonPollsProps {
   lessonId: number;
+  onPollCountChange?: (count: number) => void;
 }
 
-const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
+const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId, onPollCountChange }) => {
   const { user } = useAuth();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,7 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
       
       if (response.success) {
         setPolls(response.data.polls);
+        onPollCountChange?.(response.data.polls.length);
       }
     } catch (err) {
       console.error('Failed to load polls:', err);
@@ -72,13 +74,25 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
     loadPolls();
   };
 
+  const handlePollDeleted = async (pollId: number) => {
+    try {
+      setDeletingPollId(pollId);
+      await interactiveApi.deleteLessonPoll(lessonId, pollId);
+      loadPolls();
+    } catch (error) {
+      console.error('Failed to delete poll:', error);
+    } finally {
+      setDeletingPollId(null);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="bg-gradient-to-br from-white/90 to-stone-50/90 rounded-lg shadow-sm p-4 border border-stone-200/50">
         <div className="flex items-center justify-center py-6">
           <div className="text-center">
-            <Loader className="h-6 w-6 animate-spin text-blue-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Loading polls...</p>
+            <Loader className="h-6 w-6 animate-spin text-[#27AE60] mx-auto mb-2" />
+            <p className="text-sm text-stone-600">Loading interactive polls...</p>
           </div>
         </div>
       </div>
@@ -86,16 +100,25 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Lesson Polls</h3>
+          <MessageSquare className="h-5 w-5 text-[#27AE60]" />
+          <h3 className="text-lg font-semibold text-stone-800">Interactive Polls</h3>
+          {polls.length > 0 && (
+            <span className="px-2 py-1 bg-[#27AE60]/20 text-[#27AE60] text-xs font-bold rounded-full">
+              {polls.length}
+            </span>
+          )}
         </div>
         {isTeacherOrAdmin && (
           <button
             onClick={() => setShowCreator(!showCreator)}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg ${
+              showCreator
+                ? 'bg-white/80 hover:bg-white text-stone-800 border border-stone-300'
+                : 'bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 border border-[#27AE60]/50'
+            }`}
           >
             <Plus className="h-4 w-4" />
             {showCreator ? 'Cancel' : 'Create Poll'}
@@ -112,7 +135,7 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+        <div className="bg-red-50/80 border border-red-200/60 rounded-lg p-3 text-red-700 text-sm">
           <div className="flex items-center gap-2">
             <span className="font-medium">Error:</span>
             {error}
@@ -121,13 +144,13 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId }) => {
       )}
 
       {polls.length === 0 && !showCreator ? (
-        <div className="bg-gray-50 rounded-lg p-6 text-center">
-          <MessageSquare className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 text-sm mb-3">No polls available for this lesson</p>
+        <div className="bg-gradient-to-br from-stone-50/80 to-white/80 rounded-lg p-6 text-center border border-stone-200/50">
+          <MessageSquare className="h-8 w-8 text-stone-400 mx-auto mb-3" />
+          <p className="text-stone-600 text-sm mb-3">No interactive polls yet</p>
           {isTeacherOrAdmin && (
             <button
               onClick={() => setShowCreator(true)}
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+              className="text-[#27AE60] hover:text-[#16A085] font-semibold text-sm transition-colors duration-200"
             >
               Create the first poll →
             </button>

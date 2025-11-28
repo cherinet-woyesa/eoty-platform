@@ -18,15 +18,28 @@ function init(server) {
   ioInstance = io;
 
   io.on('connection', (socket) => {
-    const params = new URLSearchParams(socket.request.url.split('?')[1]);
-    const lessonId = params.get('lessonId');
-    const userId = params.get('userId');
-    const type = params.get('type'); // 'lesson' or 'dashboard'
+    // Use socket.handshake.query to reliably get parameters from Socket.IO client
+    const query = socket.handshake.query;
+    const lessonId = query.lessonId;
+    const userId = query.userId;
+    const type = query.type; // 'lesson' or 'dashboard'
+
+    // Fallback to URL parsing if query is empty (for non-Socket.IO clients if any)
+    if (!lessonId && !userId && !type) {
+      try {
+        const params = new URLSearchParams(socket.request.url.split('?')[1]);
+        if (params.get('lessonId')) query.lessonId = params.get('lessonId');
+        if (params.get('userId')) query.userId = params.get('userId');
+        if (params.get('type')) query.type = params.get('type');
+      } catch (e) {
+        // Ignore parsing errors
+      }
+    }
 
     // Handle dashboard connections
-    if (type === 'dashboard' && userId) {
-      console.log(`Dashboard WebSocket client connected for userId: ${userId}`);
-      dashboardClients.set(socket.id, { userId, socket });
+    if (query.type === 'dashboard' && query.userId) {
+      console.log(`Dashboard WebSocket client connected for userId: ${query.userId}`);
+      dashboardClients.set(socket.id, { userId: query.userId, socket });
       
       socket.on('disconnect', () => {
         console.log(`Dashboard WebSocket client disconnected: ${socket.id}`);
@@ -39,9 +52,9 @@ function init(server) {
     }
 
     // Handle lesson progress connections
-    if (lessonId) {
-      console.log(`WebSocket client connected for lessonId: ${lessonId}`);
-      clients.set(socket.id, { lessonId, socket });
+    if (query.lessonId) {
+      console.log(`WebSocket client connected for lessonId: ${query.lessonId}`);
+      clients.set(socket.id, { lessonId: query.lessonId, socket });
 
       socket.on('disconnect', () => {
         console.log(`WebSocket client disconnected: ${socket.id}`);
@@ -51,8 +64,11 @@ function init(server) {
     }
 
     // Reject connections without valid parameters
-    console.log('WebSocket connection rejected: No valid parameters provided');
-    socket.disconnect();
+    // console.log('WebSocket connection rejected: No valid parameters provided');
+    // socket.disconnect();
+    
+    // Allow connection but log warning - prevents immediate disconnect loop
+    console.log('WebSocket connected without specific parameters (generic connection)');
   });
 
   console.log('WebSocket service initialized');

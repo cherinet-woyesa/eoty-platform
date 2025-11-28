@@ -9,25 +9,8 @@ import ActivityLogs from '@/components/shared/activity/ActivityLogs';
 
 const AdminActivityLogs: React.FC = () => {
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-              <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg border border-[#27AE60]/25">
-                <Activity className="h-6 w-6 text-[#27AE60]" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-stone-800">Activity & Security Logs</h1>
-              <p className="text-stone-700 text-sm mt-1">
-                Monitor system-wide activity, login history, and security alerts
-              </p>
-            </div>
-          </div>
-        </div>
-
+    <div className="w-full h-full">
+      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
         {/* Activity Logs Component */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200 p-6">
           <ActivityLogs showAlerts={true} />
@@ -79,6 +62,7 @@ const AdminActivityLogs: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
 };

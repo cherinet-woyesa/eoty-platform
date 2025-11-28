@@ -37,7 +37,8 @@ const SocialLoginButtons: React.FC = memo(() => {
       setError(null);
 
       // Check if client ID is configured
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '913612347122-vet60c9i0efghtlrn3gnuqoo18jhnr7n.apps.googleusercontent.com';
+      // NOTE: Must match the backend GOOGLE_CLIENT_ID exactly
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '317256520378-35gg7hh4a755ggpig09jidpc8kkhll22.apps.googleusercontent.com';
 
       // WORKAROUND: Use manual popup instead of Google's library
       // This bypasses the strict origin checking for development
@@ -58,7 +59,9 @@ const SocialLoginButtons: React.FC = memo(() => {
       }
 
       // Create Google OAuth URL
-      const redirectUri = encodeURIComponent('http://localhost:3000/auth/google/callback');
+      const baseUrl = window.location.origin;
+      const redirectUriStr = `${baseUrl}/auth/google/callback`;
+      const redirectUri = encodeURIComponent(redirectUriStr);
       const scope = encodeURIComponent('openid email profile');
       const state = encodeURIComponent(JSON.stringify({ returnUrl: window.location.pathname }));
 
@@ -73,75 +76,84 @@ const SocialLoginButtons: React.FC = memo(() => {
 
       popup.location.href = authUrl;
 
-      // Listen for callback from popup
-      const checkCallback = setInterval(async () => {
-        try {
-          // Check if popup is closed
-          if (popup.closed) {
-            clearInterval(checkCallback);
-            setIsGoogleLoading(false);
-            setError('Google login was cancelled or popup was closed.');
-            return;
+      // Listen for message from popup
+      const handleMessage = async (event: MessageEvent) => {
+        // Verify origin matches
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data?.type === 'GOOGLE_AUTH_CODE') {
+          const { code } = event.data;
+          
+          // Cleanup
+          window.removeEventListener('message', handleMessage);
+          if (popup && !popup.closed) popup.close();
+
+          if (!code) {
+             setError('No authorization code received.');
+             setIsGoogleLoading(false);
+             return;
           }
 
-          // Check if popup location has changed to our callback URL
-          if (popup.location.href && popup.location.href.includes('/auth/google/callback')) {
-            clearInterval(checkCallback);
+          // Send code to backend
+          try {
+            const response = await fetch('http://localhost:5000/api/auth/google/callback', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                code,
+                redirectUri: redirectUriStr
+              }),
+            });
 
-            // Extract authorization code from URL
-            const urlParams = new URLSearchParams(popup.location.search);
-            const code = urlParams.get('code');
-            const error = urlParams.get('error');
+            const result = await response.json();
 
-            popup.close();
-
-            if (error) {
-              console.error('OAuth error:', error);
-              setError('Google authentication failed. Please try again.');
-              setIsGoogleLoading(false);
-              return;
+            if (result.success) {
+              // Login successful - use the OAuth login handler
+              await handleOAuthLogin(result.data);
+              navigate('/dashboard');
+            } else {
+              console.error('Backend authentication failed:', result.message);
+              setError(result.message || 'Authentication failed on server.');
             }
+          } catch (backendError) {
+            console.error('Backend error:', backendError);
+            const errorMessage = extractErrorMessage(backendError);
+            setError(errorMessage);
+          } finally {
+            setIsGoogleLoading(false);
+          }
+        } else if (event.data?.type === 'GOOGLE_AUTH_ERROR') {
+           window.removeEventListener('message', handleMessage);
+           if (popup && !popup.closed) popup.close();
+           setError(event.data.error || 'Google login failed.');
+           setIsGoogleLoading(false);
+        }
+      };
 
-            if (!code) {
-              console.error('No authorization code received');
-              setError('Failed to receive authorization code from Google.');
-              setIsGoogleLoading(false);
-              return;
-            }
+      window.addEventListener('message', handleMessage);
 
-            // Send code to backend
-            try {
-              const response = await fetch('http://localhost:5000/api/auth/google/callback', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code }),
-              });
-
-              const result = await response.json();
-
-              if (result.success) {
-                // Login successful - use the OAuth login handler
-                await handleOAuthLogin(result.data);
-                navigate('/dashboard');
-              } else {
-                console.error('Backend authentication failed:', result.message);
-                setError(result.message || 'Authentication failed on server.');
+      // Check if popup is closed manually
+      const checkClosed = setInterval(() => {
+        try {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', handleMessage);
+            setIsGoogleLoading((loading) => {
+              if (loading) {
+                 // User closed popup without completing auth
+                 return false;
               }
-            } catch (backendError) {
-              console.error('Backend error:', backendError);
-              const errorMessage = extractErrorMessage(backendError);
-              setError(errorMessage);
-            } finally {
-              setIsGoogleLoading(false);
-            }
+              return false;
+            });
           }
         } catch (e) {
-          // Ignore cross-origin errors when checking popup.location.href
-          // This is expected when popup is still on google.com
+          // Ignore cross-origin errors when checking closed status
+          // The popup might be on a different origin (accounts.google.com)
+          // We'll rely on the message event or user interaction
         }
-      }, 500);
+      }, 1000);
 
     } catch (error: any) {
       console.error('Google login failed:', error);
@@ -226,27 +238,16 @@ const SocialLoginButtons: React.FC = memo(() => {
   };
 
   return (
-    <div className="mt-4 sm:mt-6">
-      <div className="relative" role="separator" aria-label="Or continue with social login">
-        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <div className="w-full border-t border-gray-300" />
-        </div>
-        <div className="relative flex justify-center text-xs sm:text-sm">
-          <span className="px-2 bg-white text-gray-500">
-            Or continue with
-          </span>
-        </div>
-      </div>
-
+    <div className="w-full">
       {/* Error message */}
       {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
 
       {/* Responsive grid: 1 column mobile, 2 columns tablet, 3 columns desktop */}
-      <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-label="Social login options">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="group" aria-label="Social login options">
         {/* Hidden Google button container */}
         <div id="google-signin-button" className="hidden"></div>
         {/* Google Login (REQUIREMENT: Google OAuth) */}

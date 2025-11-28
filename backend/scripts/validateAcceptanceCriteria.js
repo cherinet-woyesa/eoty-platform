@@ -68,8 +68,8 @@ async function validateAcceptanceCriteria() {
       console.log('\n✅ Basic functionality tests: PASSED');
       console.log('⚠️  Full AI acceptance criteria: SKIPPED (AI services not configured)');
       console.log('\nTo run complete validation, please configure AI services with:');
-      console.log('- OPENAI_API_KEY: Your OpenAI API key');
-      console.log('- PINECONE_API_KEY: Your Pinecone API key');
+      console.log('- GOOGLE_CLOUD_PROJECT: Your Google Cloud Project ID');
+      console.log('- GOOGLE_APPLICATION_CREDENTIALS: Path to your service account key');
       process.exit(0);
     } else {
       console.log('❌ SOME ACCEPTANCE CRITERIA HAVE NOT BEEN MET');

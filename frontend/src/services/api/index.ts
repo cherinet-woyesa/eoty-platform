@@ -16,9 +16,11 @@ import { relatedVideosApi } from './relatedVideos';
 import { recordingPresetsApi } from './recordingPresets';
 import { moderationApi } from './moderation';
 import { assignmentsApi } from './assignments';
+import { aiApi } from './ai';
 
 // Export apiClient so other modules can import it
 export { apiClient };
+export { aiApi };
 
 // Note: Request/response interceptors are handled in apiClient.ts
 // No duplicate interceptors needed here
@@ -388,34 +390,6 @@ export const videoApi = {
   }
 };
 
-// AI API
-export const aiApi = {
-  // Ask a question to AI
-  askQuestion: async (question: string, sessionId?: string, context?: any) => {
-    const response = await apiClient.post('/ai/ask', {
-      question,
-      sessionId,
-      context
-    });
-    return response.data;
-  },
-
-  // Get conversation history
-  getConversationHistory: async (sessionId?: string) => {
-    const response = await apiClient.get('/ai/conversation', {
-      params: { sessionId }
-    });
-    return response.data;
-  },
-
-  // Clear conversation history
-  clearConversation: async (sessionId?: string) => {
-    const response = await apiClient.post('/ai/conversation/clear', {
-      sessionId
-    });
-    return response.data;
-  }
-};
 
 // Interactive Features API
 export const interactiveApi = {

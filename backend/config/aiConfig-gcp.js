@@ -1,5 +1,5 @@
 // backend/config/aiConfig-gcp.js - GOOGLE CLOUD VERTEX AI VERSION
-const { VertexAI } = require('@google-cloud/aiplatform');
+const { VertexAI } = require('@google-cloud/vertexai');
 const { Storage } = require('@google-cloud/storage');
 
 // Initialize Vertex AI
@@ -27,7 +27,16 @@ try {
 
 const aiConfig = {
   // Vertex AI Model configurations
-  chatModel: 'gemini-pro',
+  // Preferred model (first entry) plus safe fallbacks. If the preferred model is not
+  // available to the project, the service will try the next candidate.
+  // NOTE: availability of models depends on your Google Cloud project access.
+  chatModelCandidates: [
+    'chat-bison@001',     // public, common fallback (preferred for most projects)
+    'text-bison@001',     // older text model fallback
+    'gemini-1.5-pro-001'  // preferred when project has access
+  ],
+  // Backwards-compatible single value for quick checks (first candidate)
+  chatModel: 'gemini-1.5-pro-001',
   embeddingModel: 'text-embedding-004',
 
   // Response settings optimized for Vertex AI

@@ -172,12 +172,14 @@ const UserManagement: React.FC = () => {
     setActionLoading('create');
     try {
       await adminApi.createUser(newUser);
+      // Reset form with first available chapter or empty
+      const firstChapterId = chapters.length > 0 ? chapters[0].id.toString() : '';
       setNewUser({
         firstName: '',
         lastName: '',
         email: '',
         password: '',
-        chapter: '1',
+        chapter: firstChapterId,
         role: 'student'
       });
       setShowCreateForm(false);
@@ -305,6 +307,10 @@ const UserManagement: React.FC = () => {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'regional_coordinator':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'chapter_admin':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'teacher':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'student':
@@ -317,7 +323,11 @@ const UserManagement: React.FC = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'Admin';
+        return 'Platform Admin';
+      case 'regional_coordinator':
+        return 'Regional Coordinator';
+      case 'chapter_admin':
+        return 'Chapter Admin';
       case 'teacher':
         return 'Teacher';
       case 'student':
@@ -419,7 +429,9 @@ const UserManagement: React.FC = () => {
               <option value="all">All Roles</option>
               <option value="student">Students</option>
               <option value="teacher">Teachers</option>
-              <option value="admin">Admins</option>
+              <option value="chapter_admin">Chapter Admins</option>
+              <option value="regional_coordinator">Regional Coordinators</option>
+              <option value="admin">Platform Admins</option>
             </select>
 
             <select
@@ -572,7 +584,9 @@ const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {chapters.map((ch) => (
-                    <option key={ch.id} value={ch.id}>{ch.location}</option>
+                    <option key={ch.id} value={ch.id}>
+                      {ch.name} - {ch.location || 'No location'}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -586,7 +600,9 @@ const UserManagement: React.FC = () => {
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
-                  <option value="admin">Admin</option>
+                  <option value="chapter_admin">Chapter Admin</option>
+                  <option value="regional_coordinator">Regional Coordinator</option>
+                  <option value="admin">Platform Admin</option>
                 </select>
               </div>
             </div>
@@ -1031,7 +1047,9 @@ const UserManagement: React.FC = () => {
                   >
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>
-                    <option value="admin">Admin</option>
+                    <option value="chapter_admin">Chapter Admin</option>
+                    <option value="regional_coordinator">Regional Coordinator</option>
+                    <option value="admin">Platform Admin</option>
                   </select>
                   {String(editingUser.id) === String(currentUser?.id) && (
                     <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>

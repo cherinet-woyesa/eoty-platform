@@ -229,6 +229,18 @@ export const adminApi = {
     return response.data;
   },
 
+  // AI labeling candidates (recent AI assistant responses) for manual labeling
+  getAILabelingCandidates: async (page: number = 1, limit: number = 50, days: number = 14, language?: string) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    params.append('days', days.toString());
+    if (language) params.append('language', language);
+
+    const response = await apiClient.get(`/admin/ai/labeling-candidates?${params}`);
+    return response.data;
+  },
+
   // Quota Management
   getQuotas: async (chapterId?: string): Promise<{ success: boolean; data: { quotas: ContentQuota[] } }> => {
     const params = new URLSearchParams();

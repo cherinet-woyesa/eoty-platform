@@ -23,7 +23,8 @@ exports.up = function(knex) {
       table.integer('allowed_chapter_id').nullable().references('id').inTable('chapters').onDelete('SET NULL');
       table.integer('view_count').defaultTo(0);
       table.integer('post_count').defaultTo(0);
-      table.integer('last_post_id').nullable().references('id').inTable('forum_posts').onDelete('SET NULL');
+      // Removed last_post_id reference here to avoid circular dependency
+      table.integer('last_post_id').nullable();
       table.timestamp('last_activity_at').defaultTo(knex.fn.now());
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
@@ -41,6 +42,10 @@ exports.up = function(knex) {
       table.json('metadata').nullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
+    })
+    // Add foreign key constraint after both tables are created
+    .alterTable('forum_topics', function(table) {
+      table.foreign('last_post_id').references('id').inTable('forum_posts').onDelete('SET NULL');
     })
     .createTable('forum_post_likes', function(table) {
       table.increments('id').primary();

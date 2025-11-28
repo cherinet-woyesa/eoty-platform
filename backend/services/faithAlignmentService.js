@@ -1,5 +1,5 @@
 // backend/services/faithAlignmentService.js - NEW FILE
-const { openai } = require('../config/aiConfig');
+const { vertexAI } = require('../config/aiConfig-gcp');
 const db = require('../config/database');
 
 class FaithAlignmentService {
@@ -327,24 +327,28 @@ class FaithAlignmentService {
   // Use fine-tuned model for responses
   async useFineTunedModel(question, context, conversationHistory) {
     try {
-      const completion = await openai.chat.completions.create({
-        model: process.env.FINE_TUNED_MODEL_ID,
-        messages: [
-          {
-            role: "system",
-            content: "You are an Ethiopian Orthodox Tewahedo Church teaching assistant. Provide doctrinally accurate responses based on Ethiopian Orthodox sources and tradition."
-          },
-          ...conversationHistory,
-          {
-            role: "user",
-            content: question
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000
+      // Vertex AI implementation for fine-tuned model
+      const model = vertexAI.preview.getGenerativeModel({
+        model: process.env.FINE_TUNED_MODEL_ID || 'gemini-pro',
+        generationConfig: {
+          maxOutputTokens: 1000,
+          temperature: 0.3,
+        }
       });
 
-      return completion.choices[0].message.content;
+      const prompt = `
+SYSTEM: You are an Ethiopian Orthodox Tewahedo Church teaching assistant. Provide doctrinally accurate responses based on Ethiopian Orthodox sources and tradition.
+
+CONVERSATION HISTORY:
+${JSON.stringify(conversationHistory)}
+
+USER QUESTION:
+${question}
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error('Fine-tuned model error, falling back to prompt engineering:', error);
       return await this.useEnhancedPromptEngineering(question, context, conversationHistory);
@@ -355,10 +359,8 @@ class FaithAlignmentService {
   async useEnhancedPromptEngineering(question, context, conversationHistory) {
     const faithContext = this.buildComprehensiveFaithContext(context);
     
-    const messages = [
-      {
-        role: "system",
-        content: `ETHIOPIAN ORTHODOX TEWAHEDO CHURCH TEACHING ASSISTANT
+    const prompt = `
+ETHIOPIAN ORTHODOX TEWAHEDO CHURCH TEACHING ASSISTANT
 
 CRITICAL DOCTRINAL FRAMEWORK:
 ${faithContext}
@@ -383,23 +385,31 @@ RESPONSE TEMPLATE:
 [Doctrinally accurate answer based on Ethiopian Orthodox teaching]
 [Reference to relevant Ethiopian Orthodox sources]
 [Connection to Ethiopian liturgical practice if applicable]
-[Recommendation for further study or clergy consultation if complex]`
-      },
-      ...conversationHistory,
-      {
-        role: "user",
-        content: question
-      }
-    ];
+[Recommendation for further study or clergy consultation if complex]
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: messages,
-      temperature: 0.4,
-      max_tokens: 1200
-    });
+CONVERSATION HISTORY:
+${JSON.stringify(conversationHistory)}
 
-    return completion.choices[0].message.content;
+USER QUESTION:
+${question}
+    `;
+
+    try {
+      const model = vertexAI.preview.getGenerativeModel({
+        model: 'gemini-pro',
+        generationConfig: {
+          maxOutputTokens: 1200,
+          temperature: 0.4,
+        }
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error('Vertex AI generation failed:', error);
+      throw error;
+    }
   }
 
   // Build comprehensive faith context
@@ -439,29 +449,35 @@ ${this.heresiesToAvoid.join(', ')}`;
       ? `Previous response had these doctrinal issues: ${issues.join(', ')}. Please ensure complete alignment with Ethiopian Orthodox Tewahedo teaching.`
       : 'Please ensure complete alignment with Ethiopian Orthodox Tewahedo teaching.';
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `ETHIOPIAN ORTHODOX TEWAHEDO CHURCH - STRICT DOCTRINAL MODE
+    const prompt = `
+ETHIOPIAN ORTHODOX TEWAHEDO CHURCH - STRICT DOCTRINAL MODE
 
 You must provide responses that are 100% aligned with Ethiopian Orthodox Tewahedo doctrine.
 When in doubt, be conservative and recommend consulting clergy.
 Always use Ethiopian Orthodox terminology and references.
 
-${constraintMessage}`
-        },
-        {
-          role: "user",
-          content: question
-        }
-      ],
-      temperature: 0.2, // Very low temperature for maximum consistency
-      max_tokens: 800
-    });
+${constraintMessage}
 
-    return completion.choices[0].message.content;
+USER QUESTION:
+${question}
+    `;
+
+    try {
+      const model = vertexAI.preview.getGenerativeModel({
+        model: 'gemini-pro',
+        generationConfig: {
+          maxOutputTokens: 800,
+          temperature: 0.2,
+        }
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error('Vertex AI regeneration failed:', error);
+      throw error;
+    }
   }
 
   // Log validation results for continuous improvement

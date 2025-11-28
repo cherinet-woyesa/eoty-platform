@@ -16,7 +16,7 @@ RUN npm ci --only=production && npm cache clean --force
 FROM node:18-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache postgresql-client sqlite
+RUN apk add --no-cache postgresql-client sqlite ffmpeg
 
 WORKDIR /app
 
@@ -35,11 +35,11 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
-EXPOSE 8080
+EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:5000/health || exit 1
 
 # Start the application
 CMD ["npm", "start"]

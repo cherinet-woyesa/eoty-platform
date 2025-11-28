@@ -1,5 +1,5 @@
 // backend/services/multilingualService.js - NEW FILE
-const { openai } = require('../config/aiConfig');
+const { vertexAI } = require('../config/aiConfig-gcp');
 const db = require('../config/database');
 
 class MultilingualService {
@@ -66,7 +66,7 @@ class MultilingualService {
 
     try {
       // First, try AI detection for accuracy
-      if (openai && text.length > 10) {
+      if (vertexAI && text.length > 10) {
         detectedLang = await this.detectWithAI(text);
       } else {
         // Fallback to heuristic detection
@@ -103,15 +103,25 @@ Text: "${text.substring(0, 200)}"
 Respond with exactly one of: en, am, ti, om
     `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 10,
-      temperature: 0
-    });
+    try {
+      const model = vertexAI.preview.getGenerativeModel({
+        model: 'gemini-1.0-pro',
+        generationConfig: {
+          maxOutputTokens: 10,
+          temperature: 0,
+        }
+      });
 
-    const detectedCode = completion.choices[0].message.content.trim().toLowerCase();
-    return this.supportedLanguages[detectedCode]?.code || 'en-US';
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const textResponse = response.candidates[0].content.parts[0].text;
+      
+      const detectedCode = textResponse.trim().toLowerCase();
+      return this.supportedLanguages[detectedCode]?.code || 'en-US';
+    } catch (error) {
+      console.error('Vertex AI language detection failed:', error);
+      return this.detectWithHeuristics(text);
+    }
   }
 
   // Enhanced heuristic detection for Ethiopian languages
@@ -271,14 +281,22 @@ Source text (${sourceLangName}):
 Translated text (${targetLangName}):
     `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
-      temperature: 0.3
-    });
+    try {
+      const model = vertexAI.preview.getGenerativeModel({
+        model: 'gemini-1.0-pro',
+        generationConfig: {
+          maxOutputTokens: 1000,
+          temperature: 0.3,
+        }
+      });
 
-    return completion.choices[0].message.content.trim();
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.candidates[0].content.parts[0].text.trim();
+    } catch (error) {
+      console.error('Vertex AI translation failed:', error);
+      throw error;
+    }
   }
 
   // Faith terms translation fallback

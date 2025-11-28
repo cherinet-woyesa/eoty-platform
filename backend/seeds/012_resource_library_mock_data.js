@@ -381,6 +381,7 @@ exports.seed = async function(knex) {
   if (resourceIds.length > 0) {
     const mockSummaries = resourceIds.map((resource, index) => ({
       resource_id: resource.id,
+      content: `This is a comprehensive ${index === 0 ? 'scriptural' : index === 1 ? 'theological' : 'historical'} resource that provides valuable insights into Orthodox Christian tradition. The document covers essential topics relevant to faith development and spiritual growth. Key themes include ${index === 0 ? 'biblical interpretation and canonical texts' : index === 1 ? 'doctrinal foundations and theological principles' : 'historical context and church development'}. This resource serves as an important reference for understanding Orthodox Christianity.`,
       summary: `This is a comprehensive ${index === 0 ? 'scriptural' : index === 1 ? 'theological' : 'historical'} resource that provides valuable insights into Orthodox Christian tradition. The document covers essential topics relevant to faith development and spiritual growth. Key themes include ${index === 0 ? 'biblical interpretation and canonical texts' : index === 1 ? 'doctrinal foundations and theological principles' : 'historical context and church development'}. This resource serves as an important reference for understanding Orthodox Christianity.`,
       key_points: JSON.stringify([
         'Essential Orthodox Christian content',

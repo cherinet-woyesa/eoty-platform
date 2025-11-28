@@ -43,13 +43,24 @@ class PerformanceService {
     const isAccurate = accuracyScore >= this.accuracyThreshold;
 
     try {
+      // Check if table exists before inserting
+      const hasTable = await db.schema.hasTable('accuracy_metrics');
+      if (!hasTable) {
+        console.warn('accuracy_metrics table does not exist, skipping log');
+        return {
+          accuracyScore,
+          isAccurate,
+          threshold: this.accuracyThreshold
+        };
+      }
+
       await db('accuracy_metrics').insert({
         session_id: sessionId,
-        question: question.substring(0, 500),
-        response: response.substring(0, 1000),
+        question: question ? question.substring(0, 500) : null,
+        response: response ? response.substring(0, 1000) : null,
         accuracy_score: accuracyScore,
         is_accurate: isAccurate,
-        faith_alignment: metrics.faithAlignment,
+        faith_alignment: metrics.faithAlignment ? JSON.stringify(metrics.faithAlignment) : null,
         moderation_flags: metrics.moderationFlags ? JSON.stringify(metrics.moderationFlags) : null,
         user_feedback: metrics.userFeedback,
         timestamp: new Date()

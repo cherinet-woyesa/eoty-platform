@@ -71,6 +71,12 @@ const MyCourses: React.FC = () => {
       
       if (response.success) {
         const coursesData = response.data.courses || [];
+        console.log('MyCourses - fetched courses:', coursesData.map(course => ({
+          id: course.id,
+          title: course.title,
+          cover_image: course.cover_image,
+          hasCoverImage: !!course.cover_image
+        })));
         setCourses(coursesData);
         setLastUpdated(new Date());
         

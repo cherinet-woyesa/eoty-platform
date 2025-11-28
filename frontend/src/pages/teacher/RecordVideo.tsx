@@ -9,9 +9,14 @@ import { teacherApi } from '@/services/api/teacher';
 interface RecordVideoProps {
   courseId?: string;
   lessonId?: string;
+  variant?: 'full' | 'embedded';
 }
 
-const RecordVideo: React.FC<RecordVideoProps> = ({ courseId: propCourseId, lessonId: propLessonId }) => {
+const RecordVideo: React.FC<RecordVideoProps> = ({ 
+  courseId: propCourseId, 
+  lessonId: propLessonId,
+  variant = 'full'
+}) => {
   const [searchParams] = useSearchParams();
   const urlLessonId = searchParams.get('lessonId') || undefined;
   const urlCourseId = searchParams.get('courseId') || undefined;
@@ -35,7 +40,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({ courseId: propCourseId, lesso
         setStats({
           totalVideos: data.totalLessons ?? 0,
           totalStudents: data.totalStudentsEnrolled ?? 0,
-          averageRating: data.averageCourseRating ?? 0,
+          averageRating: Number(data.averageCourseRating) || 0,
           thisMonth: data.lessonsRecordedThisMonth ?? 0
         });
       } catch (error) {
@@ -47,131 +52,219 @@ const RecordVideo: React.FC<RecordVideoProps> = ({ courseId: propCourseId, lesso
     void loadStats();
   }, []);
 
+  // Determine the mode and title
+  const isNewLesson = !lessonId;
+  const pageTitle = isNewLesson ? 'Create New Lesson' : 'Record Video for Lesson';
+  const pageSubtitle = isNewLesson
+    ? 'Record a video and create a new lesson in your course'
+    : 'Record a new video for your existing lesson';
+
+  const [showTips, setShowTips] = useState(false);
+
+  // If embedded, we skip the page wrapper styles
+  const containerClasses = variant === 'full' 
+    ? "w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen"
+    : "w-full space-y-4";
+
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      
-      {/* Full width recording area - Sidebar commented out for cleaner UI */}
-      <div className="w-full">
-        <EnhancedVideoRecorder courseId={courseId} lessonId={lessonId} />
+    <div className={containerClasses}>
+
+      {/* Header with mode indication - Only show in full mode */}
+      {variant === 'full' && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`p-2 rounded-lg ${
+                isNewLesson
+                  ? 'bg-[#27AE60]/10 border border-[#27AE60]/20'
+                  : 'bg-[#2980B9]/10 border border-[#2980B9]/20'
+              }`}>
+                {isNewLesson ? (
+                  <BookOpen className={`h-6 w-6 ${isNewLesson ? 'text-[#27AE60]' : 'text-[#2980B9]'}`} />
+                ) : (
+                  <Video className={`h-6 w-6 ${isNewLesson ? 'text-[#27AE60]' : 'text-[#2980B9]'}`} />
+                )}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-stone-900">{pageTitle}</h1>
+                <p className="text-sm text-stone-600">{pageSubtitle}</p>
+              </div>
+            </div>
+
+            {/* Mode indicator */}
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+              isNewLesson
+                ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
+                : 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
+            }`}>
+              {isNewLesson ? '📝 New Lesson Mode' : '🎬 Recording Mode'}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+             <button 
+              onClick={() => setShowTips(!showTips)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-sm font-medium shadow-sm"
+            >
+              <TrendingUp className="h-4 w-4" />
+              {showTips ? 'Hide Tips' : 'Recording Tips'}
+            </button>
+            <Link 
+              to="/teacher/courses"
+              className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors text-sm font-medium shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Courses
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Embedded Header - Simplified */}
+      {variant === 'embedded' && (
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={() => setShowTips(!showTips)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-xs font-medium shadow-sm"
+          >
+            <TrendingUp className="h-3.5 w-3.5" />
+            {showTips ? 'Hide Tips' : 'Tips'}
+          </button>
+        </div>
+      )}
+
+      {/* Recording Tips - Collapsible */}
+      {showTips && (
+        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+            <Video className="h-4 w-4 mr-2" />
+            Pro Tips for Great Recordings
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white/60 p-3 rounded-lg border border-blue-100/50">
+              <p className="text-xs font-medium text-blue-900 mb-1">Lighting</p>
+              <p className="text-xs text-blue-700">Face a window or light source. Avoid backlighting which makes you look like a silhouette.</p>
+            </div>
+            <div className="bg-white/60 p-3 rounded-lg border border-blue-100/50">
+              <p className="text-xs font-medium text-blue-900 mb-1">Audio</p>
+              <p className="text-xs text-blue-700">Use a headset or external mic if possible. Minimize background noise and echo.</p>
+            </div>
+            <div className="bg-white/60 p-3 rounded-lg border border-blue-100/50">
+              <p className="text-xs font-medium text-blue-900 mb-1">Engagement</p>
+              <p className="text-xs text-blue-700">Look at the camera lens, not your screen. Keep videos short (5-10 mins) and focused.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Main Recording Area */}
+        <div className="xl:col-span-3 space-y-6">
+          <EnhancedVideoRecorder courseId={courseId} lessonId={lessonId} />
+        </div>
+
+        {/* Sidebar with Stats and Quick Actions */}
+        <div className="space-y-6">
+          {/* Stats Card */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-stone-800 flex items-center">
+                <TrendingUp className="mr-2 h-4 w-4 text-[#27AE60]" />
+                Your Impact
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+                    This Month
+                  </span>
+                  <Video className="h-3.5 w-3.5 text-[#27AE60]" />
+                </div>
+                <p className="text-xl font-bold text-stone-900">{stats.thisMonth}</p>
+                <p className="text-[10px] text-stone-500">New videos</p>
+              </div>
+              <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+                    Library
+                  </span>
+                  <FileVideo className="h-3.5 w-3.5 text-[#16A085]" />
+                </div>
+                <p className="text-xl font-bold text-stone-900">{stats.totalVideos}</p>
+                <p className="text-[10px] text-stone-500">Total videos</p>
+              </div>
+              <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+                    Students
+                  </span>
+                  <Users className="h-3.5 w-3.5 text-[#2980B9]" />
+                </div>
+                <p className="text-xl font-bold text-stone-900">{stats.totalStudents}</p>
+                <p className="text-[10px] text-stone-500">Enrolled</p>
+              </div>
+              <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
+                    Rating
+                  </span>
+                  <BookOpen className="h-3.5 w-3.5 text-[#F39C12]" />
+                </div>
+                <p className="text-xl font-bold text-stone-900">
+                  {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '-'}
+                </p>
+                <p className="text-[10px] text-stone-500">Avg. Rating</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Card */}
+          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-stone-800 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <Link
+                to="/teacher/courses/new"
+                className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#27AE60]/30 hover:bg-[#27AE60]/5 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#27AE60]/10 flex items-center justify-center group-hover:bg-[#27AE60]/20 transition-colors">
+                  <BookOpen className="h-5 w-5 text-[#27AE60]" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-stone-800">Create Course</span>
+                  <span className="text-xs text-stone-500">Start a new series</span>
+                </div>
+              </Link>
+              
+              <Link
+                to="/teacher/courses"
+                className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#2980B9]/30 hover:bg-[#2980B9]/5 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#2980B9]/10 flex items-center justify-center group-hover:bg-[#2980B9]/20 transition-colors">
+                  <FileVideo className="h-5 w-5 text-[#2980B9]" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-stone-800">Manage Content</span>
+                  <span className="text-xs text-stone-500">Edit existing videos</span>
+                </div>
+              </Link>
+
+              <Link
+                to="/teacher/students"
+                className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#8E44AD]/30 hover:bg-[#8E44AD]/5 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#8E44AD]/10 flex items-center justify-center group-hover:bg-[#8E44AD]/20 transition-colors">
+                  <Users className="h-5 w-5 text-[#8E44AD]" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-stone-800">Students</span>
+                  <span className="text-xs text-stone-500">View engagement</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Sidebar with stats and shortcuts - Commented out for cleaner UI */}
-      {/* <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
-          <div className="xl:col-span-3">
-            <EnhancedVideoRecorder />
-          </div>
-
-          <div className="space-y-4 sm:space-y-6">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-stone-800 flex items-center">
-                  <TrendingUp className="mr-2 h-4 w-4 text-[#27AE60]" />
-                  Your Progress
-                </h3>
-                <span className="text-xs text-stone-400">Recording insights</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-stone-100 bg-stone-50/60 px-3 py-2.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] uppercase tracking-wide text-stone-500">
-                      This Month
-                    </span>
-                    <Video className="h-3.5 w-3.5 text-[#27AE60]" />
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900">{stats.thisMonth}</p>
-                  <p className="text-[11px] text-stone-500">Videos recorded</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/60 px-3 py-2.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] uppercase tracking-wide text-stone-500">
-                      Library
-                    </span>
-                    <FileVideo className="h-3.5 w-3.5 text-[#16A085]" />
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900">{stats.totalVideos}</p>
-                  <p className="text-[11px] text-stone-500">Total videos</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/60 px-3 py-2.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] uppercase tracking-wide text-stone-500">
-                      Reach
-                    </span>
-                    <Users className="h-3.5 w-3.5 text-[#2980B9]" />
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900">{stats.totalStudents}</p>
-                  <p className="text-[11px] text-stone-500">Students reached</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/60 px-3 py-2.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] uppercase tracking-wide text-stone-500">
-                      Rating
-                    </span>
-                    <BookOpen className="h-3.5 w-3.5 text-[#F39C12]" />
-                  </div>
-                  <p className="text-lg font-semibold text-stone-900">
-                    {stats.averageRating}
-                    <span className="text-xs text-stone-500"> / 5</span>
-                  </p>
-                  <p className="text-[11px] text-stone-500">Average course rating</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-stone-200 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-stone-800 mb-3">Quick actions</h3>
-              <div className="space-y-2.5">
-                <Link
-                  to="/teacher/courses/new"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-stone-200 hover:border-[#27AE60]/50 hover:bg-stone-50/70 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 flex items-center justify-center">
-                      <BookOpen className="h-4 w-4 text-[#27AE60]" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-stone-800">Create new course</span>
-                      <span className="text-xs text-stone-500">
-                        Start a fresh course for your recordings
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  to="/teacher/courses"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-stone-200 hover:border-[#2980B9]/50 hover:bg-stone-50/70 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#2980B9]/10 to-sky-200/40 flex items-center justify-center">
-                      <FileVideo className="h-4 w-4 text-[#2980B9]" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-stone-800">View all courses</span>
-                      <span className="text-xs text-stone-500">
-                        Attach this recording to an existing course
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  to="/teacher/students"
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-stone-200 hover:border-[#00B8E6]/50 hover:bg-stone-50/70 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#00D4FF]/10 to-[#00B8E6]/10 flex items-center justify-center">
-                      <Users className="h-4 w-4 text-[#00B8E6]" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-stone-800">Manage students</span>
-                      <span className="text-xs text-stone-500">
-                        See who is engaging with your content
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
-      </div> */}
     </div>
   );
 };

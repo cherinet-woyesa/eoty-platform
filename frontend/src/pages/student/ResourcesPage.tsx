@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { FolderOpen, HelpCircle } from 'lucide-react';
-import ResourceLibrary from '@/pages/shared/resources/ResourceLibrary';
+import { FolderOpen, HelpCircle, BookOpen } from 'lucide-react';
+import UnifiedResourceView from '@/components/student/UnifiedResourceView';
 import HelpPage from './HelpPage';
 
 const ResourcesPage: React.FC = () => {
@@ -12,10 +12,10 @@ const ResourcesPage: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <FolderOpen className="h-8 w-8 text-[#27AE60]" />
-            Resources
+            <BookOpen className="h-8 w-8 text-[#27AE60]" />
+            Educational Resources
           </h1>
-          <p className="text-gray-600">Access learning materials and get support</p>
+          <p className="text-gray-600">Access faith-based learning materials across different contexts</p>
         </div>
 
         {/* Tabs */}
@@ -48,8 +48,8 @@ const ResourcesPage: React.FC = () => {
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'library' && (
-              <div className="animate-in fade-in duration-300">
-                <ResourceLibrary hideHeader={true} />
+              <div className="animate-in fade-in duration-300 p-6">
+                <UnifiedResourceView variant="embedded" />
               </div>
             )}
             {activeTab === 'help' && (

@@ -62,12 +62,28 @@ export class VideoCompositor {
   // Audio mixing
   private audioMixer: AudioMixer | null;
   private audioEnabled: boolean;
+  
+  // Hidden container for video elements to ensure they render
+  private hiddenContainer: HTMLDivElement;
 
   constructor(width: number, height: number, enableAudio: boolean = true) {
     // Initialize canvas
     this.canvas = document.createElement('canvas');
     this.canvas.width = width;
     this.canvas.height = height;
+    
+    // Create hidden container for video elements to ensure they render
+    this.hiddenContainer = document.createElement('div');
+    this.hiddenContainer.style.position = 'absolute';
+    this.hiddenContainer.style.width = '1px';
+    this.hiddenContainer.style.height = '1px';
+    this.hiddenContainer.style.overflow = 'hidden';
+    this.hiddenContainer.style.opacity = '0.001'; // Not 0 to avoid optimization
+    this.hiddenContainer.style.pointerEvents = 'none';
+    this.hiddenContainer.style.zIndex = '-1000';
+    this.hiddenContainer.style.top = '0';
+    this.hiddenContainer.style.left = '0';
+    document.body.appendChild(this.hiddenContainer);
     
     const context = this.canvas.getContext('2d', { 
       alpha: false,
@@ -197,13 +213,63 @@ export class VideoCompositor {
     video.playsInline = true;
     video.setAttribute('playsinline', 'true'); // iOS compatibility
     
+    // Append to hidden container to ensure browser renders frames
+    this.hiddenContainer.appendChild(video);
+
+    // Enhanced metadata handler
+    video.onloadedmetadata = () => {
+      console.log(`Video source ${id} metadata loaded`, {
+        width: video.videoWidth,
+        height: video.videoHeight,
+        readyState: video.readyState,
+        duration: video.duration,
+        srcObject: !!video.srcObject,
+        streamActive: (video.srcObject as MediaStream)?.active
+      });
+      
+      // CRITICAL: For screen sharing, dimensions might be wrong initially
+      // Check if we have a valid stream
+      if (id === 'screen' && (video.videoWidth <= 2 || video.videoHeight <= 2)) {
+        console.warn(`Screen video has invalid dimensions (${video.videoWidth}x${video.videoHeight}), waiting for actual dimensions...`);
+        // Wait a bit more and check again
+        setTimeout(() => {
+          if (video.videoWidth > 2 && video.videoHeight > 2) {
+            console.log(`Screen video dimensions updated: ${video.videoWidth}x${video.videoHeight}`);
+          } else {
+            console.warn(`Screen video still has invalid dimensions after wait`);
+          }
+        }, 1000);
+      }
+      
+      // Ensure video is playing
+      if (video.paused) {
+        video.play().catch(err => {
+          console.error(`Failed to play video source ${id}:`, err);
+        });
+      }
+    };
+    
+    // Handle video playing state
+    video.onplaying = () => {
+      console.log(`Video source ${id} is now playing`);
+      videoReady = true;
+    };
+    
+    // Handle video errors
+    video.onerror = (error) => {
+      console.error(`Video source ${id} error:`, error, {
+        errorCode: video.error?.code,
+        errorMessage: video.error?.message
+      });
+    };
+    
     // CRITICAL FIX: Ensure video is playing and ready before use
     let videoReady = false;
     const ensureVideoReady = async () => {
       try {
         // Wait for metadata to load with longer timeout for screen sharing
         if (video.readyState < 2) {
-          await new Promise<void>((resolve, reject) => {
+          await new Promise<void>((resolve) => {
             const timeout = setTimeout(() => {
               // Don't reject - just resolve and continue (screen sharing can take longer)
               console.warn(`Video metadata load timeout for ${id}, continuing anyway`);
@@ -277,53 +343,6 @@ export class VideoCompositor {
       // Don't throw - video might still work
       videoReady = true;
     });
-    
-    // Enhanced metadata handler
-    video.onloadedmetadata = () => {
-      console.log(`Video source ${id} metadata loaded`, {
-        width: video.videoWidth,
-        height: video.videoHeight,
-        readyState: video.readyState,
-        duration: video.duration,
-        srcObject: !!video.srcObject,
-        streamActive: (video.srcObject as MediaStream)?.active
-      });
-      
-      // CRITICAL: For screen sharing, dimensions might be wrong initially
-      // Check if we have a valid stream
-      if (id === 'screen' && (video.videoWidth <= 2 || video.videoHeight <= 2)) {
-        console.warn(`Screen video has invalid dimensions (${video.videoWidth}x${video.videoHeight}), waiting for actual dimensions...`);
-        // Wait a bit more and check again
-        setTimeout(() => {
-          if (video.videoWidth > 2 && video.videoHeight > 2) {
-            console.log(`Screen video dimensions updated: ${video.videoWidth}x${video.videoHeight}`);
-          } else {
-            console.warn(`Screen video still has invalid dimensions after wait`);
-          }
-        }, 1000);
-      }
-      
-      // Ensure video is playing
-      if (video.paused) {
-        video.play().catch(err => {
-          console.error(`Failed to play video source ${id}:`, err);
-        });
-      }
-    };
-    
-    // Handle video playing state
-    video.onplaying = () => {
-      console.log(`Video source ${id} is now playing`);
-      videoReady = true;
-    };
-    
-    // Handle video errors
-    video.onerror = (error) => {
-      console.error(`Video source ${id} error:`, error, {
-        errorCode: video.error?.code,
-        errorMessage: video.error?.message
-      });
-    };
     
     // Create default source config
     const defaultLayout: SourceLayout = {
@@ -909,15 +928,25 @@ export class VideoCompositor {
               sourceHeight = video.videoHeight;
               sourceWidth = sourceHeight * layoutAspect;
               sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
-              sourceY = 0; // Crop from top (like CSS object-cover)
+              sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
             } else {
-              // Video is taller - crop height, use full width (crop from top)
+              // Video is taller - crop height, use full width (crop from center vertically)
               sourceWidth = video.videoWidth;
               sourceHeight = sourceWidth / layoutAspect;
               sourceX = 0;
-              sourceY = 0; // Crop from top (like CSS object-cover)
+              sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
             }
             
+            // DEBUG LOGGING for Direct Draw
+            if (Math.random() < 0.05) {
+                console.log(`[Compositor Debug Direct] Source: ${sourceId}`, {
+                    video: `${video.videoWidth}x${video.videoHeight}`,
+                    layout: `${layout.width}x${layout.height}`,
+                    crop: `x:${Math.round(sourceX)} y:${Math.round(sourceY)} w:${Math.round(sourceWidth)} h:${Math.round(sourceHeight)}`,
+                    aspects: `v:${videoAspect.toFixed(2)} l:${layoutAspect.toFixed(2)}`
+                });
+            }
+
             this.ctx.drawImage(
               video,
               sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (top-center)
@@ -925,6 +954,15 @@ export class VideoCompositor {
             );
           } else {
             // Aspect ratios match - draw normally
+            // DEBUG LOGGING for Direct Draw (No Crop)
+            if (Math.random() < 0.05) {
+                console.log(`[Compositor Debug Direct] Source: ${sourceId} (No Crop)`, {
+                    video: `${video.videoWidth}x${video.videoHeight}`,
+                    layout: `${layout.width}x${layout.height}`,
+                    aspects: `v:${videoAspect.toFixed(2)} l:${layoutAspect.toFixed(2)}`
+                });
+            }
+            
             this.ctx.drawImage(
               video,
               layout.x,
@@ -1118,46 +1156,46 @@ export class VideoCompositor {
       );
     } else {
       // Camera: Use object-cover behavior to match preview
-      // Preview uses CSS object-cover which crops from top-center
       const videoAspect = video.videoWidth / video.videoHeight;
       const layoutAspect = layout.width / layout.height;
       
-      // If aspect ratios don't match, crop to fill (like CSS object-cover)
+      let sourceX = 0;
+      let sourceY = 0;
+      let sourceWidth = video.videoWidth;
+      let sourceHeight = video.videoHeight;
+
+      // Calculate crop if aspect ratios differ significantly
       if (Math.abs(videoAspect - layoutAspect) > 0.01) {
-        let sourceX = 0;
-        let sourceY = 0;
-        let sourceWidth = video.videoWidth;
-        let sourceHeight = video.videoHeight;
-        
         if (videoAspect > layoutAspect) {
-          // Video is wider - crop width, use full height (crop from center horizontally)
+          // Video is wider - crop width
           sourceHeight = video.videoHeight;
           sourceWidth = sourceHeight * layoutAspect;
-          sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
-          sourceY = 0; // Crop from top (like CSS object-cover)
+          sourceX = (video.videoWidth - sourceWidth) / 2;
+          sourceY = (video.videoHeight - sourceHeight) / 2;
         } else {
-          // Video is taller - crop height, use full width (crop from top)
+          // Video is taller - crop height
           sourceWidth = video.videoWidth;
           sourceHeight = sourceWidth / layoutAspect;
           sourceX = 0;
-          sourceY = 0; // Crop from top (like CSS object-cover)
+          sourceY = (video.videoHeight - sourceHeight) / 2;
         }
-        
-        this.ctx.drawImage(
-          video,
-          sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (top-center)
-          layout.x, layout.y, layout.width, layout.height // Destination fill
-        );
-      } else {
-        // Aspect ratios match - draw normally
-        this.ctx.drawImage(
-          video,
-          layout.x,
-          layout.y,
-          layout.width,
-          layout.height
-        );
       }
+
+      // DEBUG LOGGING
+      if (Math.random() < 0.05) { // Increased to 5% for better visibility during debug
+          console.log(`[Compositor Debug Rounded] Source: ${sourceId}`, {
+              video: `${video.videoWidth}x${video.videoHeight}`,
+              layout: `${layout.width}x${layout.height}`,
+              crop: `x:${Math.round(sourceX)} y:${Math.round(sourceY)} w:${Math.round(sourceWidth)} h:${Math.round(sourceHeight)}`,
+              aspects: `v:${videoAspect.toFixed(2)} l:${layoutAspect.toFixed(2)}`
+          });
+      }
+
+      this.ctx.drawImage(
+        video,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        layout.x, layout.y, layout.width, layout.height
+      );
     }
   }
 
@@ -1314,28 +1352,6 @@ export class VideoCompositor {
    */
   getAvailableLayouts(): LayoutType[] {
     return getAvailableLayoutTypes();
-  }
-
-  /**
-   * Return diagnostic information for a specific source
-   * Includes the video element's intrinsic dimensions, the active layout, and an inferred `fit` mode.
-   */
-  getSourceInfo(sourceId: string): { videoWidth: number; videoHeight: number; layout?: SourceLayout | null; fit?: 'contain' | 'cover' } | null {
-    const sourceData = this.videoElements.get(sourceId);
-    if (!sourceData) return null;
-
-    const video = sourceData.element;
-    const layout = sourceData.config?.layout || null;
-
-    // Infer fit: screen => cover (fill), camera => contain (fit)
-    const fit: 'contain' | 'cover' = sourceId === 'screen' ? 'cover' : 'contain';
-
-    return {
-      videoWidth: video.videoWidth || 0,
-      videoHeight: video.videoHeight || 0,
-      layout,
-      fit
-    };
   }
   
   /**
@@ -1674,6 +1690,11 @@ export class VideoCompositor {
       }
     });
     this.videoElements.clear();
+    
+    // Remove hidden container
+    if (this.hiddenContainer && this.hiddenContainer.parentNode) {
+      this.hiddenContainer.remove();
+    }
     
     // Stop output stream tracks
     if (this.outputStream) {

@@ -5,6 +5,7 @@ const analyticsService = require('../services/analyticsService');
 const languageAlertService = require('../services/languageAlertService');
 const contextService = require('../services/contextService');
 const db = require('../config/database-gcp');
+const faithClassifierService = require('../services/faithClassifierService');
 
 const aiController = {
   // ENHANCED: Ask question with comprehensive monitoring and analytics
@@ -34,9 +35,10 @@ const aiController = {
           userId,
           type: 'unsupported_language',
           question,
+          response: languageCheck.alertMessage || 'Unsupported language detected',
           context,
           language: languageCheck.detectedLanguage,
-          userFeedback: 'unsupported_language'
+          userFeedback: { status: 'unsupported_language' }
         });
 
         return res.json({
@@ -148,7 +150,7 @@ const aiController = {
         userId, 
         sessionId, 
         question, 
-        aiResponse, 
+        aiResponse.response, 
         context,
         moderationResult.needsModeration
       );
@@ -258,10 +260,11 @@ const aiController = {
       await analyticsService.logInteraction(sessionId, {
         userId,
         type: 'ai_error',
-        question: req.body.question,
-        context: req.body.context,
+        question: req.body.question || '[Unknown Question]',
+        response: error.message || 'Error occurred',
+        context: req.body.context || {},
         performance: { responseTime: errorTime, totalTime: errorTime },
-        userFeedback: 'error'
+        userFeedback: { status: 'error', message: error.message }
       });
 
       // Log error for analytics
@@ -302,6 +305,8 @@ const aiController = {
       await analyticsService.logInteraction(sessionId, {
         userId,
         type: 'conversation_history_access',
+        question: '[History Access]',
+        response: 'History retrieved',
         context: { sessionId }
       });
 
@@ -342,6 +347,8 @@ const aiController = {
       await analyticsService.logInteraction(sessionId, {
         userId,
         type: 'conversation_cleared',
+        question: '[Clear Conversation]',
+        response: 'Conversation cleared',
         context: { sessionId }
       });
 
@@ -425,9 +432,10 @@ const aiController = {
         userId,
         type: 'content_report',
         question,
+        response: 'Content reported by user',
         context,
         moderation: moderation,
-        userFeedback: 'reported'
+        userFeedback: { status: 'reported' }
       });
 
       return res.json({ 
@@ -442,6 +450,54 @@ const aiController = {
         success: false, 
         message: 'Failed to report question for moderation' 
       });
+    }
+  },
+
+  // Faith alignment classifier endpoint (scaffold)
+  async faithClassify(req, res) {
+    try {
+      const { text, context = {} } = req.body || {};
+      if (!text || text.trim().length === 0) {
+        return res.status(400).json({ success: false, message: 'Text is required' });
+      }
+
+      const result = await faithClassifierService.classify(text, context);
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('faithClassify error:', error);
+      return res.status(500).json({ success: false, message: 'Classification failed' });
+    }
+  },
+
+  // Store moderator-provided faith alignment label
+  async faithLabel(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { sessionId = 'default', text, label, notes } = req.body || {};
+
+      if (!text || typeof label === 'undefined') {
+        return res.status(400).json({ success: false, message: 'Text and label are required' });
+      }
+
+      const stored = await faithClassifierService.storeLabel({ userId, sessionId, text, label, notes });
+      if (!stored.success) {
+        return res.status(500).json({ success: false, message: stored.message || 'Failed to store label' });
+      }
+
+      // Log analytics
+      await analyticsService.logInteraction(sessionId, {
+        userId,
+        type: 'faith_label_submitted',
+        question: text || '[No Text]',
+        response: `Label: ${label}`,
+        context: { sessionId },
+        faithLabel: label
+      });
+
+      return res.json({ success: true, id: stored.id });
+    } catch (error) {
+      console.error('faithLabel error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to store label' });
     }
   },
 
@@ -478,10 +534,12 @@ const aiController = {
         await analyticsService.logInteraction(sessionId, {
           userId,
           type: interactionType,
+          question: '[Telemetry Event]',
+          response: errorMessage || (success ? 'Success' : 'Unknown result'),
           context,
           performance: { totalTime: totalTimeMs },
           faithAlignment: faithAlignment,
-          userFeedback: success ? 'success' : 'error'
+          userFeedback: { status: success ? 'success' : 'error' }
         });
       }
 
@@ -527,10 +585,12 @@ const aiController = {
       await analyticsService.logInteraction(sessionId, {
         userId,
         type: interactionType,
+        question: '[Conversation Summary]',
+        response: `Summary: ${questionLength} chars in, ${answerLength} chars out`,
         context: { route, language },
         performance: {},
         faithAlignment: faithAlignmentScore ? { score: faithAlignmentScore } : null,
-        userFeedback: flagged ? 'flagged' : 'normal'
+        userFeedback: { status: flagged ? 'flagged' : 'normal' }
       });
 
       return res.json({ success: true });
@@ -664,9 +724,11 @@ const aiController = {
       await analyticsService.logInteraction(`resource_${resourceId}`, {
         userId,
         type: 'resource_summary',
+        question: `Summary for: ${resource.title}`,
+        response: summary ? summary.substring(0, 100) + '...' : 'Summary generated',
         context: { resourceId, resourceTitle: resource.title, summaryType: type },
         performance: { responseTime: totalTime, totalTime },
-        userFeedback: 'success'
+        userFeedback: { status: 'success' }
       });
 
       res.json({

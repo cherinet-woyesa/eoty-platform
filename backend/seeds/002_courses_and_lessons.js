@@ -18,7 +18,7 @@ exports.seed = async function(knex) {
       title: 'Introduction to Ethiopian Orthodox Tewahedo Faith',
       description: 'A foundational course covering the basics of the EOT faith, traditions, and practices.',
       category: 'Theology',
-      chapter_id: chapters[0].id,
+      // chapter_id: chapters[0].id, // Removed as column does not exist
       created_by: teacher.id,
       is_published: true,
       published_at: new Date()
@@ -27,7 +27,7 @@ exports.seed = async function(knex) {
       title: 'Biblical Studies: Old Testament',
       description: 'Deep dive into the books of the Old Testament with historical context and theological insights.',
       category: 'Biblical Studies',
-      chapter_id: chapters[0].id,
+      // chapter_id: chapters[0].id, // Removed as column does not exist
       created_by: teacher.id,
       is_published: true,
       published_at: new Date()

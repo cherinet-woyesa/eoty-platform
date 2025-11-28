@@ -185,6 +185,15 @@ const StudentVideos: React.FC = () => {
     return Array.from(courseMap.entries()).map(([id, title]) => ({ id, title }));
   }, [data?.videos]);
 
+  // Continue Watching Videos
+  const continueWatchingVideos = useMemo(() => {
+    if (!data?.videos) return [];
+    return data.videos
+      .filter(v => v.progress > 0 && v.progress < 100)
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 3);
+  }, [data?.videos]);
+
   // Filtered and sorted videos
   const filteredVideos = useMemo(() => {
     if (!data?.videos) return [];
@@ -355,6 +364,63 @@ const StudentVideos: React.FC = () => {
         </div>
       )}
 
+      {/* Continue Watching Section */}
+      {continueWatchingVideos.length > 0 && !searchTerm && filterStatus === 'all' && selectedCourse === 'all' && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-[#39FF14]" />
+            Continue Watching
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {continueWatchingVideos.map((video) => (
+              <div
+                key={`continue-${video.id}`}
+                onClick={() => handleVideoClick(video)}
+                className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-stone-200 cursor-pointer flex flex-col md:flex-row h-auto md:h-32"
+              >
+                <div className="relative w-full md:w-48 h-32 md:h-full bg-stone-200 flex-shrink-0">
+                  {video.thumbnail ? (
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-stone-800">
+                      <PlayCircle className="h-10 w-10 text-white/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <PlayCircle className="h-10 w-10 text-white drop-shadow-lg" />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-stone-800/50">
+                    <div
+                      className="h-full bg-[#39FF14]"
+                      style={{ width: `${video.progress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="p-4 flex flex-col justify-center flex-1 min-w-0">
+                  <h3 className="font-bold text-stone-800 mb-1 line-clamp-1 group-hover:text-[#39FF14] transition-colors">
+                    {video.title}
+                  </h3>
+                  <p className="text-xs text-stone-500 mb-2">{video.course_title}</p>
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xs font-medium text-[#39FF14]">
+                      {Math.round(video.progress || 0)}% complete
+                    </span>
+                    <span className="text-xs text-stone-400 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDuration(video.duration || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search and Filters */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -444,87 +510,88 @@ const StudentVideos: React.FC = () => {
           </p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredVideos.map((video) => (
             <div
               key={video.id}
               onClick={() => handleVideoClick(video)}
-              className="group bg-white/90 backdrop-blur-md rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-stone-200/50 transform hover:-translate-y-2 hover:scale-[1.02] cursor-pointer"
+              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-stone-100 hover:border-[#39FF14]/30 cursor-pointer flex flex-col h-full"
             >
               {/* Thumbnail */}
-              <div className="relative h-48 bg-gradient-to-br from-stone-200 to-stone-300 overflow-hidden">
+              <div className="relative aspect-video bg-stone-900 overflow-hidden">
                 {video.thumbnail ? (
                   <img
                     src={video.thumbnail}
                     alt={video.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <PlayCircle className="h-16 w-16 text-stone-400/50 group-hover:scale-110 transition-transform" />
+                    <PlayCircle className="h-12 w-12 text-white/20 group-hover:text-white/40 transition-colors" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <div className="flex items-center justify-between text-white text-sm">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {formatDuration(video.duration || 0)}
-                      </span>
-                      {video.views !== undefined && (
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          {video.views}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                
+                {/* Duration Badge */}
+                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                  {formatDuration(video.duration || 0)}
                 </div>
+
                 {/* Progress bar */}
                 {video.progress > 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-stone-800/30">
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
                     <div
-                      className="h-full bg-gradient-to-r from-[#39FF14] to-[#00FFC6] transition-all"
+                      className="h-full bg-[#39FF14] shadow-[0_0_10px_#39FF14]"
                       style={{ width: `${video.progress}%` }}
                     />
                   </div>
                 )}
+                
                 {/* Play button overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-16 h-16 bg-[#39FF14] rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                    <PlayCircle className="h-8 w-8 text-stone-900 ml-1" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
+                  <div className="w-12 h-12 bg-[#39FF14] rounded-full flex items-center justify-center shadow-lg shadow-[#39FF14]/40">
+                    <PlayCircle className="h-6 w-6 text-stone-900 ml-0.5" />
                   </div>
                 </div>
+                
                 {/* Status badge */}
                 {video.is_completed && (
-                  <div className="absolute top-2 right-2 bg-[#FFD700] text-stone-900 text-xs font-semibold px-2 py-1 rounded-full">
-                    Completed
+                  <div className="absolute top-2 right-2 bg-[#FFD700] text-stone-900 text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    Done
                   </div>
                 )}
               </div>
               
               {/* Content */}
-              <div className="p-4">
-                <h3 className="font-bold text-stone-800 mb-1 line-clamp-2 group-hover:text-[#39FF14] transition-colors">
+              <div className="p-4 flex flex-col flex-1">
+                <div className="mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 line-clamp-1">
+                    {video.course_title}
+                  </span>
+                </div>
+                <h3 className="font-bold text-stone-800 mb-2 line-clamp-2 group-hover:text-[#39FF14] transition-colors leading-tight">
                   {video.title}
                 </h3>
-                <p className="text-sm text-stone-600 mb-2 line-clamp-1">
-                  {video.course_title}
-                </p>
-                {video.description && (
-                  <p className="text-xs text-stone-500 line-clamp-2 mb-3">
-                    {video.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between text-xs text-stone-500">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatDuration(video.duration || 0)}
-                  </span>
-                  {video.progress > 0 && (
-                    <span className="text-[#39FF14] font-semibold">
-                      {Math.round(video.progress)}% watched
+                
+                <div className="mt-auto pt-3 flex items-center justify-between border-t border-stone-100">
+                  <div className="flex items-center gap-2 text-xs text-stone-500">
+                    {video.views !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {video.views}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {video.progress > 0 ? (
+                    <span className="text-xs font-medium text-[#39FF14]">
+                      {Math.round(video.progress)}%
                     </span>
+                  ) : (
+                    <span className="text-xs text-stone-400">Not started</span>
                   )}
                 </div>
               </div>
@@ -620,34 +687,36 @@ const StudentVideos: React.FC = () => {
 
       {/* Video Player Modal */}
       {selectedVideo && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-stone-200">
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-stone-800">{selectedVideo.title}</h2>
-                <p className="text-sm text-stone-600">{selectedVideo.course_title}</p>
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-black w-full h-full sm:h-auto sm:max-w-7xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-white/10">
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-stone-900/50">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-white truncate">{selectedVideo.title}</h2>
+                <p className="text-sm text-stone-400 truncate">{selectedVideo.course_title}</p>
               </div>
               <button
                 onClick={handleClosePlayer}
-                className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-full transition-colors ml-4"
               >
-                <X className="h-6 w-6 text-stone-600" />
+                <X className="h-6 w-6 text-white" />
               </button>
             </div>
-            <div className="p-4">
-              <UnifiedVideoPlayer
-                lesson={{
-                  id: selectedVideo.lesson_id,
-                  title: selectedVideo.title,
-                  video_provider: selectedVideo.video_provider || 'mux',
-                  mux_playback_id: selectedVideo.mux_playback_id || null,
-                  mux_asset_id: selectedVideo.mux_asset_id || null,
-                  mux_status: selectedVideo.mux_status || null,
-                  allow_download: false
-                }}
-                autoPlay={true}
-                courseTitle={selectedVideo.course_title}
-              />
+            <div className="flex-1 bg-black flex items-center justify-center overflow-hidden relative">
+              <div className="w-full h-full max-h-[80vh]">
+                <UnifiedVideoPlayer
+                  lesson={{
+                    id: selectedVideo.lesson_id,
+                    title: selectedVideo.title,
+                    video_provider: selectedVideo.video_provider || 'mux',
+                    mux_playback_id: selectedVideo.mux_playback_id || null,
+                    mux_asset_id: selectedVideo.mux_asset_id || null,
+                    mux_status: selectedVideo.mux_status || null,
+                    allow_download: false
+                  }}
+                  autoPlay={true}
+                  courseTitle={selectedVideo.course_title}
+                />
+              </div>
             </div>
           </div>
         </div>

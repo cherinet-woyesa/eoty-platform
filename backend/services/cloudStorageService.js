@@ -372,6 +372,47 @@ class CloudStorageService {
     }
   }
 
+  // Enhanced upload for course images - ACL REMOVED
+  async uploadCourseImage(fileBuffer, fileName, contentType, courseId) {
+    try {
+      console.log('Uploading course image to S3:', {
+        fileName,
+        contentType,
+        courseId,
+        bucket: this.bucket
+      });
+
+      const key = `courses/${courseId}/cover/${fileName}`;
+
+      const uploadCommand = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: contentType,
+        Metadata: {
+          uploadedAt: new Date().toISOString(),
+          courseId: courseId.toString(),
+          fileType: 'course_cover'
+        }
+      });
+
+      await this.s3Client.send(uploadCommand);
+
+      console.log('Course image uploaded successfully:', key);
+
+      // Return the URL (CloudFront if available, otherwise S3)
+      const imageUrl = this.cloudFrontDomain
+        ? `https://${this.cloudFrontDomain}/${key}`
+        : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+
+      return imageUrl;
+
+    } catch (error) {
+      console.error('Course image upload error:', error);
+      throw new Error(`Failed to upload course image: ${error.message}`);
+    }
+  }
+
   // Enhanced upload for subtitles - ACL REMOVED
   async uploadSubtitle(fileBuffer, fileName, languageCode, lessonId) {
     const key = `subtitles/${lessonId}/${languageCode}/${this.sanitizeKey(fileName)}`;

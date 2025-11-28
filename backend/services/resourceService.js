@@ -488,6 +488,146 @@ class ResourceService {
       return null;
     }
   }
+
+  /**
+   * Get resources by scope (course_specific, chapter_wide, platform_wide)
+   * @param {number} userId - User ID
+   * @param {string} scope - Resource scope
+   * @param {Object} options - Options object
+   * @returns {Promise<Array>} Resources array
+   */
+  async getResourcesByScope(userId, scope, options = {}) {
+    const { chapterId, courseId, filters = {} } = options;
+
+    try {
+      // Get user info for access control
+      const user = await db('users').where({ id: userId }).select('chapter_id', 'role').first();
+      if (!user) throw new Error('User not found');
+
+      let query = db('resources')
+        .where('published_at', '<=', new Date());
+
+      // Apply scope filtering
+      switch (scope) {
+        case 'course_specific':
+          if (!courseId) throw new Error('courseId required for course_specific scope');
+
+          // Check if user has access to this course
+          const courseAccess = await db('course_enrollments')
+            .where({ course_id: courseId, user_id: userId })
+            .orWhere(function() {
+              this.where('course_id', courseId).whereExists(function() {
+                this.select('*').from('courses').whereRaw('courses.id = ? AND courses.created_by = ?', [courseId, userId]);
+              });
+            })
+            .first();
+
+          if (!courseAccess) throw new Error('Access denied to course resources');
+
+          query = query.where({ resource_scope: 'course_specific', course_id: courseId });
+          break;
+
+        case 'chapter_wide':
+          if (!chapterId) throw new Error('chapterId required for chapter_wide scope');
+
+          // Check if user is in the chapter
+          if (user.chapter_id !== parseInt(chapterId) && user.role !== 'admin') {
+            throw new Error('Access denied to chapter resources');
+          }
+
+          query = query.where({ resource_scope: 'chapter_wide', chapter_id: chapterId });
+          break;
+
+        case 'platform_wide':
+          // Platform-wide resources are accessible to all authenticated users
+          query = query.where({ resource_scope: 'platform_wide' });
+          break;
+
+        default:
+          throw new Error('Invalid resource scope');
+      }
+
+      // Apply additional filters
+      if (filters.category) {
+        query = query.where({ category: filters.category });
+      }
+      if (filters.language) {
+        query = query.where({ language: filters.language });
+      }
+      if (filters.tags && filters.tags.length > 0) {
+        query = query.whereRaw('tags @> ?', [JSON.stringify(filters.tags)]);
+      }
+      if (filters.search) {
+        query = query.where(function() {
+          this.where('title', 'ilike', `%${filters.search}%`)
+            .orWhere('description', 'ilike', `%${filters.search}%`)
+            .orWhere('author', 'ilike', `%${filters.search}%`);
+        });
+      }
+
+      return await query.orderBy('created_at', 'desc');
+
+    } catch (error) {
+      console.error('Error getting resources by scope:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload resource to library with scope
+   * @param {Buffer} fileBuffer - File buffer
+   * @param {string} originalFilename - Original filename
+   * @param {Object} metadata - Resource metadata
+   * @param {number} userId - User ID
+   * @returns {Promise<Object>} Upload result
+   */
+  async uploadToLibrary(fileBuffer, originalFilename, metadata, userId) {
+    const { title, description, category, language, tags, resourceScope = 'chapter_wide' } = metadata;
+
+    try {
+      // Validate file
+      this.validateResourceFile(fileBuffer, originalFilename, userId);
+
+      // Get user info
+      const user = await db('users').where({ id: userId }).select('chapter_id', 'role').first();
+      if (!user) throw new Error('User not found');
+
+      // Validate scope permissions
+      if (resourceScope === 'platform_wide' && user.role !== 'admin') {
+        throw new Error('Only admins can upload platform-wide resources');
+      }
+
+      // Upload file to cloud storage
+      const fileUrl = await cloudStorageService.uploadResource(fileBuffer, originalFilename, userId);
+
+      // Create resource record
+      const resourceData = {
+        title,
+        description,
+        author: userId,
+        category,
+        language,
+        tags: tags ? JSON.stringify(tags) : null,
+        file_type: this.getMimeType(originalFilename),
+        file_name: originalFilename,
+        file_size: fileBuffer.length,
+        file_url: fileUrl,
+        resource_scope: resourceScope,
+        chapter_id: resourceScope === 'chapter_wide' ? user.chapter_id : null,
+        is_public: resourceScope === 'platform_wide',
+        published_at: new Date(),
+        published_date: new Date()
+      };
+
+      const [resourceId] = await db('resources').insert(resourceData).returning('id');
+
+      return await db('resources').where({ id: resourceId }).first();
+
+    } catch (error) {
+      console.error('Error uploading to library:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new ResourceService();

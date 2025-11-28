@@ -78,6 +78,10 @@ class SocialFeaturesService {
         }
       }
     } catch (error) {
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.warn('⚠️  Badge updates skipped: Database connection failed');
+        return;
+      }
       console.error('Process badge updates error:', error);
     }
   }
@@ -123,6 +127,10 @@ class SocialFeaturesService {
         }
       }
     } catch (error) {
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.warn('⚠️  Leaderboard updates skipped: Database connection failed');
+        return;
+      }
       console.error('Process leaderboard updates error:', error);
     }
   }
@@ -209,6 +217,10 @@ class SocialFeaturesService {
     } catch (error) {
       // Silently fail if column doesn't exist
       if (error.code === '42703') {
+        return { archived: 0 };
+      }
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.warn('⚠️  Auto-archive skipped: Database connection failed');
         return { archived: 0 };
       }
       console.error('Auto-archive inactive forums error:', error);

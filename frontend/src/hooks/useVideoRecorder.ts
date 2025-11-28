@@ -112,6 +112,7 @@ interface UseVideoRecorderReturn {
   getAudioLevels: () => import('../utils/AudioMixer').AudioLevelData[];
   startAudioLevelMonitoring: (callback: (levels: import('../utils/AudioMixer').AudioLevelData[]) => void) => void;
   stopAudioLevelMonitoring: () => void;
+  acknowledgePreview: () => void;
   
   // Task 6.2: Browser compatibility
   browserSupport: BrowserSupport | null;
@@ -226,6 +227,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const lastChunkSizeRef = useRef<number>(0);
   const isRestartingRef = useRef<boolean>(false); // Flag to prevent onstop from finalizing during restart
   const shouldStopAfterRestartRef = useRef<boolean>(false); // Flag to stop after restart completes
+  const cleanupTimerRef = useRef<number | null>(null);
 
   // FIX: Export setRecordingTime function
   const setRecordingTimeState = useCallback((time: number) => {
@@ -313,12 +315,19 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
   // Track if cleanup has already been called to prevent double disposal
   const cleanupCalledRef = useRef(false);
+  // When true, preserve streams/compositor until the preview consumer acknowledges the blob
+  const preserveUntilPreviewRef = useRef(false);
   
   // NEW: Enhanced cleanup function with production features and compositor disposal
   const cleanupLocalStreams = useCallback((preserveCompositor = false, preserveStreams = false) => {
-    // Prevent double cleanup
-    if (cleanupCalledRef.current && !preserveCompositor) {
-      console.log('Cleanup already called, skipping to prevent double disposal');
+    // Prevent double cleanup — be silent and idempotent
+    if (cleanupCalledRef.current) {
+      return;
+    }
+
+    // If we're preserving until preview is acknowledged, skip cleanup unless explicitly allowed
+    if (preserveUntilPreviewRef.current && !preserveCompositor) {
+      console.log('Preserving streams/compositor until preview acknowledged - skipping cleanup');
       return;
     }
     
@@ -786,14 +795,20 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     // This prevents clearing chunks before blob is created
     // If recording just stopped, the onstop handler will cleanup after blob is created
     const shouldCleanup = !isRecording && (videoBlob || recordedVideo);
-    
+
     if (shouldCleanup) {
       console.log('Cleaning up camera - recording stopped and blob ready');
-    cleanupLocalStreams();
+      // If preserved until preview, clear the preserve flag and perform cleanup once
+      if (preserveUntilPreviewRef.current) {
+        preserveUntilPreviewRef.current = false;
+        cleanupLocalStreams();
+      } else {
+        cleanupLocalStreams();
+      }
     } else if (!isRecording) {
       console.log('Deferring cleanup - waiting for blob to be created');
       // Don't cleanup yet - wait for blob to be created
-      // The onstop handler will handle cleanup
+      // The onstop handler will set preserveUntilPreviewRef and component will call closeCamera()
     } else {
       console.log('Skipping cleanup - recording still active');
     }
@@ -808,6 +823,22 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     // Don't reset recordingTime here - it's needed for the blob
     // Don't reset isRecording here - let the onstop handler do it
   }, [cleanupLocalStreams, stopScreenShare, isRecording, videoBlob, recordedVideo]);
+
+  // Explicit acknowledgement from UI that preview is shown and cleanup may proceed
+  const acknowledgePreview = useCallback((delayMs = 300) => {
+    console.log('Acknowledging preview: clearing preserve flag (cleanup deferred to reset/unmount)', { delayMs });
+    // Clear existing timer if any
+    if (cleanupTimerRef.current) {
+      clearTimeout(cleanupTimerRef.current as unknown as number);
+      cleanupTimerRef.current = null;
+    }
+
+    // Clear preserve flag so cleanup is allowed when requested
+    preserveUntilPreviewRef.current = false;
+
+    // NOTE: Automatic cleanup scheduling removed per request.
+    // Cleanup will now happen only on resetRecording() or unmount.
+  }, []);
 
   // NEW: Enhanced combined stream creation with production features
   const createCombinedStream = useCallback((): MediaStream | null => {
@@ -1171,7 +1202,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
               const metrics = compositor.getPerformanceMetrics();
               setPerformanceMetrics(metrics);
               
-              if (!metrics.isPerformanceGood) {
+              // Only warn if performance is critically low (e.g. < 15 FPS)
+              if (metrics.fps < 15 && metrics.fps > 0) {
                 console.warn('Compositor performance degraded:', metrics);
               }
             }
@@ -1416,9 +1448,11 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
           const url = URL.createObjectURL(blob);
           setRecordedVideo(url);
           setVideoBlob(blob);
-          
-          console.log('✅ Video blob and URL set successfully');
-          
+          // Mark that we are preserving streams/compositor until the preview consumer acknowledges
+          preserveUntilPreviewRef.current = true;
+
+          console.log('✅ Video blob and URL set successfully (preserving streams until preview)');
+
           // Immediately set isRecording to false so UI updates
           setIsRecording(false);
           setIsPaused(false);
@@ -1432,11 +1466,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         setIsPaused(false);
         }
         
-        // CRITICAL: Don't cleanup streams immediately - wait a bit to ensure blob is processed
-        // The component will handle cleanup after blob is ready
-        setTimeout(() => {
-        cleanupLocalStreams();
-        }, 500); // Small delay to ensure blob is fully created and set
+        // CRITICAL: Don't cleanup streams here - preserveUntilPreviewRef will ensure cleanup
+        // The component will call `closeCamera()` (which will trigger cleanup) once it has shown the preview
       };
 
       mediaRecorder.onstart = () => {
@@ -1958,18 +1989,19 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     }
 
     return () => {
-      console.log('useVideoRecorder cleanup - users:', streamUsers, { isRestarting: isRestartingRef.current });
-      // Enhanced cleanup on unmount - but don't interfere if restarting
-      if (!isRestartingRef.current) {
-      cleanupLocalStreams();
-      }
-      
-      // Clean up any remaining screen streams (only if not restarting)
-      if (!isRestartingRef.current) {
-      activeScreenStreams.forEach(stream => {
-        stream.getTracks().forEach(track => track.stop());
-      });
-      activeScreenStreams.clear();
+      console.log('useVideoRecorder cleanup - users:', streamUsers, { isRestarting: isRestartingRef.current, preservingForPreview: preserveUntilPreviewRef.current });
+      // Enhanced cleanup on unmount - but don't interfere if restarting or if we're preserving resources for preview
+      if (!isRestartingRef.current && !preserveUntilPreviewRef.current) {
+        cleanupLocalStreams();
+
+        // Clean up any remaining screen streams
+        activeScreenStreams.forEach(stream => {
+          stream.getTracks().forEach(track => track.stop());
+        });
+        activeScreenStreams.clear();
+      } else if (preserveUntilPreviewRef.current) {
+        // Intentionally preserving streams/compositor until preview is acknowledged by the UI.
+        console.log('Preserving compositor/streams until preview is acknowledged (unmount deferred cleanup)');
       }
     };
   }, [cleanupLocalStreams]);
@@ -1991,6 +2023,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     devices,
     initializeCamera,
     closeCamera,
+    acknowledgePreview,
     cameraInitialized,
     
     // Multi-source recording properties

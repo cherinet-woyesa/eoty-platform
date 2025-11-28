@@ -23,12 +23,12 @@ class AnalyticsService {
       } = interaction;
 
       // Log main interaction
-      const [interactionId] = await db('interaction_logs').insert({
+      const result = await db('interaction_logs').insert({
         session_id: sessionId,
         user_id: userId,
         interaction_type: type,
-        question: question ? question.substring(0, 1000) : null,
-        response: response ? response.substring(0, 2000) : null,
+        question: question ? question.substring(0, 1000) : '[No Question]',
+        response: response ? response.substring(0, 2000) : '[No Response]',
         context: context ? JSON.stringify(context) : null,
         performance_metrics: performance ? JSON.stringify(performance) : null,
         faith_alignment: faithAlignment ? JSON.stringify(faithAlignment) : null,
@@ -37,6 +37,9 @@ class AnalyticsService {
         user_feedback: userFeedback,
         timestamp: new Date()
       }).returning('id');
+
+      // Handle different return formats (array of objects or array of values)
+      const interactionId = result[0]?.id || result[0];
 
       // Log performance metrics if available
       if (performance) {

@@ -80,12 +80,15 @@ exports.up = function(knex) {
         if (!exists) {
           return knex.schema.createTable('role_permissions', function(table) {
             table.increments('id').primary();
-            table.integer('role_id').unsigned().notNullable().references('id').inTable('roles').onDelete('CASCADE');
+            // table.integer('role_id').unsigned().notNullable().references('id').inTable('roles').onDelete('CASCADE');
+            table.string('role').notNullable(); // Changed to string to match User model and seeds
             table.integer('permission_id').unsigned().notNullable().references('id').inTable('user_permissions').onDelete('CASCADE');
             table.timestamp('created_at').defaultTo(knex.fn.now());
 
-            table.unique(['role_id', 'permission_id']);
-            table.index(['role_id', 'permission_id']);
+            // table.unique(['role_id', 'permission_id']);
+            // table.index(['role_id', 'permission_id']);
+            table.unique(['role', 'permission_id']);
+            table.index(['role', 'permission_id']);
           });
         }
         return null;

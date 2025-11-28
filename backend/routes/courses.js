@@ -6,6 +6,8 @@ const { requirePermission, requireRole, requireOwnership, requireEnrollment } = 
 const { validateCourseData, validateBulkAction } = require('../middleware/courseValidation');
 const { validateLessonData, validateReorderData, checkLessonOwnership } = require('../middleware/lessonValidation');
 const { courseCreationLimiter, bulkOperationLimiter } = require('../middleware/rateLimiter');
+const upload = require('../middleware/upload');
+const { contentUpload } = require('../middleware/upload');
 
 router.use(authenticateToken);
 
@@ -43,6 +45,10 @@ router.delete('/:courseId', requireRole(['teacher', 'admin']), requireOwnership(
 // Course analytics
 // Only course owner (teacher) or admins can view analytics (controller handles access)
 router.get('/:courseId/analytics', requireRole(['teacher', 'admin']), courseController.getCourseAnalytics);
+
+// Course image upload
+// Only course owner (teacher) or admins can upload images
+router.post('/:courseId/upload-image', requireRole(['teacher', 'admin']), requireOwnership('courses', { resourceParam: 'courseId' }), contentUpload.single('coverImage'), courseController.uploadCourseImage);
 
 // Publishing workflow
 // Only course owner (teacher) or admins can publish/unpublish
