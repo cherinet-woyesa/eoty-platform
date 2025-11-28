@@ -62,6 +62,9 @@ const corsOptions = {
       'https://eoty-platform.vercel.app',
       'https://eoty-platform-git-main-cherinet-woyesas-projects.vercel.app',
       'https://eoty-platform-cherinet-woyesas-projects.vercel.app',
+      // Production frontend domain (main site)
+      'https://www.eotcommunity.org',
+      'https://eotcommunity.org',
       // Render deployment
       ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
       // Vercel deployments
