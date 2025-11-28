@@ -295,6 +295,113 @@ class ChapterService {
       })
       .orderBy('name', 'asc');
   }
+
+  /**
+   * Get events for a chapter
+   * @param {number} chapterId 
+   */
+  async getChapterEvents(chapterId) {
+    return await db('chapter_events')
+      .where({ chapter_id: chapterId })
+      .where('event_date', '>=', new Date()) // Only future events by default
+      .orderBy('event_date', 'asc');
+  }
+
+  /**
+   * Create a chapter event
+   * @param {Object} eventData 
+   */
+  async createChapterEvent(eventData) {
+    const [event] = await db('chapter_events')
+      .insert(eventData)
+      .returning('*');
+    return event;
+  }
+
+  /**
+   * Get resources for a chapter
+   * @param {number} chapterId
+   */
+  async getChapterResources(chapterId) {
+    return await db('chapter_resources')
+      .where({ chapter_id: chapterId })
+      .orderBy('created_at', 'desc');
+  }
+
+  /**
+   * Create a chapter resource
+   * @param {Object} resourceData
+   */
+  async createChapterResource(resourceData) {
+    const [resource] = await db('chapter_resources')
+      .insert(resourceData)
+      .returning('*');
+    return resource;
+  }
+
+  /**
+   * Get announcements for a chapter
+   * @param {number} chapterId
+   */
+  async getChapterAnnouncements(chapterId) {
+    return await db('chapter_announcements')
+      .where({ chapter_id: chapterId })
+      .orderBy('is_pinned', 'desc')
+      .orderBy('created_at', 'desc');
+  }
+
+  /**
+   * Create a chapter announcement
+   * @param {Object} announcementData
+   */
+  async createChapterAnnouncement(announcementData) {
+    const [announcement] = await db('chapter_announcements')
+      .insert(announcementData)
+      .returning('*');
+    return announcement;
+  }
+
+  /**
+   * Get attendance for an event
+   * @param {number} eventId
+   */
+  async getEventAttendance(eventId) {
+    return await db('event_attendance as ea')
+      .join('users as u', 'ea.user_id', 'u.id')
+      .where('ea.event_id', eventId)
+      .select('ea.*', 'u.name', 'u.email', 'u.avatar_url');
+  }
+
+  /**
+   * Mark attendance for a user at an event
+   * @param {Object} attendanceData
+   */
+  async markEventAttendance(attendanceData) {
+    // Check if record exists
+    const existing = await db('event_attendance')
+      .where({
+        event_id: attendanceData.event_id,
+        user_id: attendanceData.user_id
+      })
+      .first();
+
+    if (existing) {
+      const [updated] = await db('event_attendance')
+        .where({ id: existing.id })
+        .update({
+          status: attendanceData.status,
+          marked_by: attendanceData.marked_by,
+          marked_at: new Date()
+        })
+        .returning('*');
+      return updated;
+    } else {
+      const [created] = await db('event_attendance')
+        .insert(attendanceData)
+        .returning('*');
+      return created;
+    }
+  }
 }
 
 module.exports = new ChapterService();

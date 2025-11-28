@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const resourceController = require('../controllers/resourceController');
 const resourceLibraryController = require('../controllers/resourceLibraryController');
+const resourceService = require('../services/resourceService');
 const { authenticateToken } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/rbac');
 const {
@@ -193,6 +194,98 @@ router.get(
   '/coverage',
   requirePermission('admin:view'),
   resourceLibraryController.getCoverageStatistics
+);
+
+/**
+ * GET /api/resources/chapter/:chapterId
+ * Get chapter-wide resources for a specific chapter
+ */
+router.get(
+  '/chapter/:chapterId',
+  async (req, res) => {
+    try {
+      const { chapterId } = req.params;
+      const userId = req.user.userId;
+      const filters = req.query;
+
+      const resources = await resourceService.getResourcesByScope(userId, 'chapter_wide', {
+        chapterId: parseInt(chapterId),
+        filters
+      });
+
+      res.json({
+        success: true,
+        data: { resources }
+      });
+    } catch (error) {
+      console.error('Get chapter resources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve chapter resources'
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/resources/platform
+ * Get platform-wide resources (accessible to all users)
+ */
+router.get(
+  '/platform',
+  async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const filters = req.query;
+
+      const resources = await resourceService.getResourcesByScope(userId, 'platform_wide', {
+        filters
+      });
+
+      res.json({
+        success: true,
+        data: { resources }
+      });
+    } catch (error) {
+      console.error('Get platform resources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve platform resources'
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/resources/course/:courseId
+ * Get course-specific resources for a specific course
+ */
+router.get(
+  '/course/:courseId',
+  requirePermission('course:view'),
+  async (req, res) => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user.userId;
+      const filters = req.query;
+
+      const resources = await resourceService.getResourcesByScope(userId, 'course_specific', {
+        courseId: parseInt(courseId),
+        filters
+      });
+
+      res.json({
+        success: true,
+        data: { resources }
+      });
+    } catch (error) {
+      console.error('Get course resources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve course resources'
+      });
+    }
+  }
 );
 
 /**

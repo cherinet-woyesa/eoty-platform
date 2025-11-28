@@ -97,7 +97,7 @@ class ForumTopic {
       .where({ forum_id: forumId })
       .join('users', 'forum_topics.author_id', 'users.id')
       .leftJoin('forum_posts', 'forum_topics.last_post_id', 'forum_posts.id')
-      .leftJoin('users as last_users', 'forum_posts.user_id', 'last_users.id');
+      .leftJoin('users as last_users', 'forum_posts.author_id', 'last_users.id');
 
     // Forum access is already validated at the controller level
     // All topics from accessible forums are shown (no topic-level privacy implemented yet)
@@ -149,7 +149,7 @@ class ForumPost {
   static async findById(id) {
     return await db('forum_posts')
       .where({ id })
-      .join('users', 'forum_posts.user_id', 'users.id')
+      .join('users', 'forum_posts.author_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',
@@ -165,7 +165,7 @@ class ForumPost {
     return await db('forum_posts')
       .where({ topic_id: topicId })
       .whereNull('parent_id') // Only top-level posts
-      .join('users', 'forum_posts.user_id', 'users.id')
+      .join('users', 'forum_posts.author_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',
@@ -180,7 +180,7 @@ class ForumPost {
   static async getReplies(parentId) {
     return await db('forum_posts')
       .where({ parent_id: parentId })
-      .join('users', 'forum_posts.user_id', 'users.id')
+      .join('users', 'forum_posts.author_id', 'users.id')
       .select(
         'forum_posts.*',
         'users.first_name',

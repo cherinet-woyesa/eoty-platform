@@ -728,7 +728,7 @@ const authController = {
             db.raw('COALESCE(bio, \'\') as bio'),
             db.raw('COALESCE(location, \'\') as location'),
             db.raw('COALESCE(specialties, NULL) as specialties'),
-            db.raw('COALESCE(teaching_experience, 0) as teaching_experience'),
+            db.raw('COALESCE(teaching_experience, \'0\') as teaching_experience'),
             db.raw('COALESCE(education, \'\') as education'),
             db.raw('COALESCE(interests, NULL) as interests'),
             db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
@@ -1045,10 +1045,10 @@ const authController = {
         phone_number: phone || null,
         location: location || null,
         profile_picture: profilePicturePath || null,
-        specialties: Array.isArray(specialties) ? specialties : null,
+        specialties: Array.isArray(specialties) ? JSON.stringify(specialties) : '[]',
         teaching_experience: teachingExperience || null,
         education: education || null,
-        interests: Array.isArray(interests) ? interests : null,
+        interests: Array.isArray(interests) ? JSON.stringify(interests) : '[]',
         learning_goals: learningGoals && String(learningGoals).trim() ? learningGoals : null,
         date_of_birth: dateOfBirth && String(dateOfBirth).trim() ? dateOfBirth : null,
         updated_at: new Date()
@@ -1072,7 +1072,7 @@ const authController = {
       // Get updated user data
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone_number as phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth')
         .first();
 
       if (!user) {

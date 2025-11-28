@@ -1929,8 +1929,55 @@ async function getUsageDetails(req, res) {
   }
 }
 
+/**
+ * Get supported languages
+ */
+async function getLanguages(req, res) {
+  try {
+    // For now, return hardcoded languages as requested
+    const languages = [
+      { code: 'en', name: 'English', native_name: 'English', is_active: true },
+      { code: 'am', name: 'Amharic', native_name: 'አማርኛ', is_active: true }
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        languages
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching languages:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch languages'
+    });
+  }
+}
+
 module.exports = {
-  ...module.exports,
+  getMetrics,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getLevels,
+  createLevel,
+  updateLevel,
+  deleteLevel,
+  getDurations,
+  createDuration,
+  updateDuration,
+  deleteDuration,
+  getTags,
+  createTag,
+  updateTag,
+  deleteTag,
+  mergeTags,
+  getChapters,
+  createChapter,
+  updateChapter,
+  deleteChapter,
   bulkActionCategories,
   bulkActionLevels,
   bulkActionDurations,
@@ -1939,5 +1986,6 @@ module.exports = {
   reorderCategories,
   reorderLevels,
   getAuditLogs,
-  getUsageDetails
+  getUsageDetails,
+  getLanguages
 };

@@ -115,14 +115,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 items-center justify-center">
+      <div className="flex h-screen w-screen bg-[#fdfbf7] items-center justify-center">
         <LoadingSpinner size="lg" text="Loading your dashboard..." />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="flex h-screen w-screen bg-[#fdfbf7]">
       {/* Sidebar - Dynamic width based on collapse state */}
       <div 
         className={`

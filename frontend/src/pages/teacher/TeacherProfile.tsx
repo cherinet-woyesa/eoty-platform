@@ -263,97 +263,104 @@ const TeacherProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#fdfbf7] p-4 sm:p-6 lg:p-8 font-serif">
+      <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#39FF14]/20 via-[#00FFC6]/20 to-[#00FFFF]/20 rounded-xl p-6 border border-[#39FF14]/30 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#39FF14]/30 rounded-lg blur-md"></div>
-              <div className="relative p-3 bg-gradient-to-br from-[#39FF14]/20 to-[#00FFC6]/20 rounded-lg border border-[#39FF14]/30">
-                <User className="h-6 w-6 text-[#39FF14]" />
+        <div className="bg-white rounded-xl p-8 border border-[#d4af37]/30 shadow-sm relative overflow-hidden">
+          {/* EOTC Decorative Elements */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#d4af37] via-[#8b0000] to-[#d4af37]"></div>
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#d4af37]/5 rounded-full blur-3xl"></div>
+          
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-[#d4af37]/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
+              <div className="relative p-4 bg-white rounded-full border-2 border-[#d4af37]/40 shadow-sm">
+                <User className="h-8 w-8 text-[#8b0000]" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-stone-800">Teacher Profile</h1>
-              <p className="text-stone-600 mt-1">Manage your public profile information</p>
+              <h1 className="text-3xl font-bold text-[#2c1810] tracking-tight font-serif">Teacher Profile</h1>
+              <p className="text-[#5d4037] mt-2 text-lg">Manage your personal information and teaching credentials</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-stone-200">
+        <div className="bg-white rounded-xl shadow-sm border border-[#e0e0e0]">
           {error && (
-            <div className="mx-6 mt-6 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <span className="text-red-700">{error}</span>
+            <div className="mx-8 mt-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
+            <div className="flex items-center space-x-3">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <span className="text-red-800 font-medium">{error}</span>
             </div>
           </div>
         )}
 
         {success && (
-          <div className="mx-6 mt-6 bg-gradient-to-r from-[#39FF14]/10 to-[#00FFC6]/10 border border-[#39FF14]/30 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-[#39FF14]" />
-              <span className="text-stone-700 font-medium">Profile updated successfully!</span>
+          <div className="mx-8 mt-8 bg-green-50 border-l-4 border-[#2e7d32] p-4 rounded-r-md">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="h-5 w-5 text-[#2e7d32]" />
+              <span className="text-[#1b5e20] font-medium">Profile updated successfully!</span>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSaveProfile} className="p-6 space-y-6">
+        <form onSubmit={handleSaveProfile} className="p-8 space-y-8">
           {/* Profile Picture Section */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h2>
-            <div className="flex items-center space-x-6">
-              <div className="relative">
+          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2">Profile Picture</h2>
+            <div className="flex items-center space-x-8">
+              <div className="relative group">
                 {profileData.profilePicture ? (
                   <>
-                    <img 
-                      key={profileData.profilePicture}
-                      src={profileData.profilePicture} 
-                      alt="Profile" 
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
-                      onError={(e) => {
-                        console.error('Failed to load profile picture:', profileData.profilePicture);
-                        // Fallback to initials if image fails to load
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                    <div className="relative">
+                      <img 
+                        key={profileData.profilePicture}
+                        src={profileData.profilePicture} 
+                        alt="Profile" 
+                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md ring-2 ring-[#d4af37]/30"
+                        onError={(e) => {
+                          console.error('Failed to load profile picture:', profileData.profilePicture);
+                          // Fallback to initials if image fails to load
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                    </div>
                     <button
                       type="button"
                       onClick={handleRemoveProfilePicture}
-                      className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                      className="absolute -top-2 -right-2 bg-[#8b0000] rounded-full p-1.5 shadow-md hover:bg-[#a00000] transition-colors z-10"
                       aria-label="Remove profile picture"
                     >
                       <X className="h-4 w-4 text-white" />
                     </button>
                   </>
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#d4af37] to-[#8b0000] flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-md ring-2 ring-[#d4af37]/30">
                     {profileData.firstName?.charAt(0)}{profileData.lastName?.charAt(0)}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={handleProfilePictureClick}
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md hover:bg-gray-50 transition-colors"
+                  className="absolute bottom-0 right-0 bg-white rounded-full p-2.5 shadow-md hover:bg-[#fdfbf7] transition-colors border border-[#d4af37]/30"
                   aria-label="Change profile picture"
                   disabled={isUploading}
                 >
                   {isUploading ? (
-                    <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+                    <Loader2 className="h-5 w-5 text-[#d4af37] animate-spin" />
                   ) : (
-                    <Camera className="h-4 w-4 text-gray-600" />
+                    <Camera className="h-5 w-5 text-[#5d4037]" />
                   )}
                 </button>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-2">Upload a photo to make your profile more personal</p>
+                <p className="text-sm text-[#5d4037] mb-3">Upload a photo to personalize your teaching profile.</p>
                 <div className="flex space-x-3">
                   <button
                     type="button"
                     onClick={handleProfilePictureClick}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="px-5 py-2.5 bg-white border border-[#d4af37]/50 rounded-lg text-sm font-medium text-[#5d4037] hover:bg-[#fdfbf7] hover:border-[#d4af37] transition-all shadow-sm disabled:opacity-50"
                     disabled={isUploading}
                   >
                     {isUploading ? 'Uploading...' : 'Upload Photo'}
@@ -362,7 +369,7 @@ const TeacherProfile: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleRemoveProfilePicture}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors shadow-sm"
                     >
                       Remove
                     </button>
@@ -380,11 +387,11 @@ const TeacherProfile: React.FC = () => {
           </div>
 
           {/* Basic Information */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">Basic Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="firstName" className="block text-sm font-medium text-[#5d4037] mb-2">
                   First Name
                 </label>
                 <input
@@ -393,12 +400,12 @@ const TeacherProfile: React.FC = () => {
                   name="firstName"
                   value={profileData.firstName}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="lastName" className="block text-sm font-medium text-[#5d4037] mb-2">
                   Last Name
                 </label>
                 <input
@@ -407,17 +414,17 @@ const TeacherProfile: React.FC = () => {
                   name="lastName"
                   value={profileData.lastName}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                   required
                 />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-[#5d4037] mb-2">
                   Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
+                    <Mail className="h-5 w-5 text-[#d4af37]" />
                   </div>
                   <input
                     type="email"
@@ -425,20 +432,20 @@ const TeacherProfile: React.FC = () => {
                     name="email"
                     value={profileData.email}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-[#d4af37]/20 rounded-lg text-gray-500 cursor-not-allowed"
                     required
                     disabled
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                <p className="text-xs text-[#8b0000]/70 mt-1 italic">Email cannot be changed</p>
               </div>
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-[#5d4037] mb-2">
                   Phone Number
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
+                    <Phone className="h-5 w-5 text-[#d4af37]" />
                   </div>
                   <input
                     type="tel"
@@ -446,17 +453,17 @@ const TeacherProfile: React.FC = () => {
                     name="phone"
                     value={profileData.phone}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="location" className="block text-sm font-medium text-[#5d4037] mb-2">
                   Location
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
+                    <MapPin className="h-5 w-5 text-[#d4af37]" />
                   </div>
                   <input
                     type="text"
@@ -464,7 +471,7 @@ const TeacherProfile: React.FC = () => {
                     name="location"
                     value={profileData.location}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                   />
                 </div>
               </div>
@@ -472,11 +479,11 @@ const TeacherProfile: React.FC = () => {
           </div>
 
           {/* Professional Information */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h2>
+          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">Professional Information</h2>
             <div className="space-y-6">
               <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="bio" className="block text-sm font-medium text-[#5d4037] mb-2">
                   Bio
                 </label>
                 <textarea
@@ -486,12 +493,12 @@ const TeacherProfile: React.FC = () => {
                   value={profileData.bio}
                   onChange={handleInputChange}
                   placeholder="Tell us about yourself, your teaching experience, and what you're passionate about..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                 />
               </div>
               <div>
-                <label htmlFor="education" className="block text-sm font-medium text-gray-700 mb-2">
-                  Education
+                <label htmlFor="education" className="block text-sm font-medium text-[#5d4037] mb-2">
+                  Theological Education / Seminary
                 </label>
                 <input
                   type="text"
@@ -499,17 +506,17 @@ const TeacherProfile: React.FC = () => {
                   name="education"
                   value={profileData.education}
                   onChange={handleInputChange}
-                  placeholder="Your highest degree or relevant certifications"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., St. Paul's Theological College, Sunday School Certificate"
+                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                 />
               </div>
               <div>
-                <label htmlFor="teachingExperience" className="block text-sm font-medium text-gray-700 mb-2">
-                  Teaching Experience (Years)
+                <label htmlFor="teachingExperience" className="block text-sm font-medium text-[#5d4037] mb-2">
+                  Service Years (Teaching)
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-gray-400" />
+                    <Calendar className="h-5 w-5 text-[#d4af37]" />
                   </div>
                   <input
                     type="number"
@@ -518,27 +525,27 @@ const TeacherProfile: React.FC = () => {
                     value={profileData.teachingExperience}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Specialties
+                <label className="block text-sm font-medium text-[#5d4037] mb-2">
+                  Church Service Areas
                 </label>
                 <div className="flex space-x-2 mb-3">
                   <input
                     type="text"
                     value={newSpecialty}
                     onChange={(e) => setNewSpecialty(e.target.value)}
-                    placeholder="Add a specialty (e.g., Biblical Studies, Church History)"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Bible Study, Ge'ez Language, Hymns (Zema)"
+                    className="flex-1 px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpecialty())}
                   />
                   <button
                     type="button"
                     onClick={handleAddSpecialty}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-5 py-2.5 bg-[#d4af37] text-white rounded-lg hover:bg-[#c5a028] transition-colors shadow-sm font-medium"
                   >
                     Add
                   </button>
@@ -547,15 +554,15 @@ const TeacherProfile: React.FC = () => {
                   {profileData.specialties?.map((specialty, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                      className="inline-flex items-center px-3 py-1.5 bg-[#fdfbf7] text-[#5d4037] border border-[#d4af37]/30 rounded-full text-sm shadow-sm"
                     >
                       {specialty}
                       <button
                         type="button"
                         onClick={() => handleRemoveSpecialty(specialty)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        className="ml-2 text-[#8b0000] hover:text-red-700 transition-colors"
                       >
-                        <Edit3 className="h-3 w-3" />
+                        <X className="h-3 w-3" />
                       </button>
                     </span>
                   ))}
@@ -565,11 +572,11 @@ const TeacherProfile: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          <div className="flex justify-end pt-6 border-t border-gray-200">
+          <div className="flex justify-end pt-6 border-t border-[#d4af37]/20">
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/25"
+              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-[#d4af37] to-[#b8860b] hover:from-[#c5a028] hover:to-[#a67c00] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#d4af37]/20"
             >
               {saving ? (
                 <>

@@ -83,6 +83,15 @@ const resourceLibraryController = {
   async getResource(req, res) {
     try {
       const { id } = req.params;
+      
+      // Validate ID is an integer to prevent SQL errors
+      if (isNaN(parseInt(id))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid resource ID'
+        });
+      }
+
       const userId = req.user.userId;
 
       const resource = await Resource.findById(id);

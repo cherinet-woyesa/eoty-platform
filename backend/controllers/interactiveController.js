@@ -192,7 +192,7 @@ const interactiveController = {
       }
 
       // Save attempt
-      const [attemptId] = await db('user_quiz_attempts').insert({
+      const [inserted] = await db('user_quiz_attempts').insert({
         user_id: userId,
         quiz_id: quizId,
         score,
@@ -200,7 +200,9 @@ const interactiveController = {
         answers: JSON.stringify(results),
         is_completed: true,
         completed_at: new Date()
-      });
+      }).returning('id');
+
+      const attemptId = inserted?.id || inserted;
 
       // Calculate percentage
       const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
@@ -271,7 +273,7 @@ const interactiveController = {
         });
       }
 
-      const [annotationId] = await db('video_annotations').insert({
+      const [inserted] = await db('video_annotations').insert({
         user_id: userId,
         lesson_id: lessonId,
         timestamp,
@@ -279,7 +281,9 @@ const interactiveController = {
         type,
         metadata: JSON.stringify(enhancedMetadata),
         is_public: isPublic
-      });
+      }).returning('id');
+
+      const annotationId = inserted?.id || inserted;
 
       const annotation = await db('video_annotations')
         .where({ id: annotationId })
@@ -526,7 +530,7 @@ const interactiveController = {
       // Determine if post should be auto-flagged
       const shouldAutoFlag = isContentInappropriate || autoModerateUser;
 
-      const [postId] = await db('lesson_discussions').insert({
+      const [inserted] = await db('lesson_discussions').insert({
         user_id: userId,
         lesson_id: lessonId,
         parent_id: parentId,
@@ -536,7 +540,9 @@ const interactiveController = {
         is_auto_flagged: shouldAutoFlag,
         auto_flag_reason: isContentInappropriate ? 'inappropriate_content' : 
                          autoModerateUser ? 'user_history' : null
-      });
+      }).returning('id');
+
+      const postId = inserted?.id || inserted;
 
       // Get the created post with user info
       const post = await db('lesson_discussions as ld')

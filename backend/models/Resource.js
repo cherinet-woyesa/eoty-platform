@@ -126,9 +126,31 @@ class Resource {
     const resource = await this.findById(resourceId);
     if (!resource) return false;
 
+    // Allow author to always access their own resource
+    if (resource.author == userId) return true;
+
     // Get user role
     const user = await db('users').where({ id: userId }).select('role', 'chapter_id').first();
     if (!user) return false;
+
+    // Admin always has access
+    if (user.role === 'admin') return true;
+
+    // Handle course-specific resources
+    if (resource.resource_scope === 'course_specific') {
+      // Check if user is the teacher of the course
+      const course = await db('courses').where({ id: resource.course_id }).select('created_by').first();
+      if (course && course.created_by == userId) return true;
+
+      // Check if user is enrolled in the course
+      const enrollment = await db('user_course_enrollments')
+        .where({ user_id: userId, course_id: resource.course_id })
+        .first();
+      
+      if (enrollment) return true;
+      
+      return false;
+    }
 
     // Check if user is in same chapter or resource is public
     if (resource.chapter_id !== user.chapter_id && !resource.is_public) {

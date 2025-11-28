@@ -51,7 +51,7 @@ class AchievementService {
 
     // Enhanced rate limiting (REQUIREMENT: Prevents spam, abusive content)
     const recentPosts = await db('forum_posts')
-      .where({ user_id: userId })
+      .where({ author_id: userId })
       .where('created_at', '>', new Date(Date.now() - 60 * 1000)) // Last 1 minute
       .count('id as count')
       .first();
@@ -62,7 +62,7 @@ class AchievementService {
 
     // Check hourly limit
     const hourlyPosts = await db('forum_posts')
-      .where({ user_id: userId })
+      .where({ author_id: userId })
       .where('created_at', '>', new Date(Date.now() - 60 * 60 * 1000)) // Last hour
       .count('id as count')
       .first();
@@ -73,7 +73,7 @@ class AchievementService {
 
     // Check for repeated content (spam detection)
     const similarPosts = await db('forum_posts')
-      .where({ user_id: userId })
+      .where({ author_id: userId })
       .where('content', 'like', `%${content.substring(0, 20)}%`)
       .where('created_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24 hours
       .count('id as count')

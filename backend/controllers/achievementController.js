@@ -183,6 +183,38 @@ const achievementController = {
         message: 'Failed to update anonymity preference'
       });
     }
+  },
+
+  // Award a manual badge (Teachers/Admins only)
+  async awardManualBadge(req, res) {
+    try {
+      const { userId, badgeId } = req.body;
+      const awarderId = req.user.userId;
+
+      // Verify awarder has permission (Teacher or Admin)
+      const awarder = await db('users').where({ id: awarderId }).first();
+      if (!['teacher', 'admin', 'chapter_leader'].includes(awarder.role)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const badge = await Badge.findById(badgeId);
+      if (!badge) {
+        return res.status(404).json({ success: false, message: 'Badge not found' });
+      }
+
+      if (!badge.is_manual) {
+        return res.status(400).json({ success: false, message: 'This badge cannot be manually awarded' });
+      }
+
+      // Award the badge
+      await achievementService.awardBadgeIfEligible(userId, badge.name);
+
+      res.json({ success: true, message: 'Badge awarded successfully' });
+
+    } catch (error) {
+      console.error('Award badge error:', error);
+      res.status(500).json({ success: false, message: 'Failed to award badge' });
+    }
   }
 };
 

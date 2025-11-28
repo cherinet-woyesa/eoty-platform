@@ -34,6 +34,9 @@ router.get('/', requirePermission('course:view'), courseController.getUserCourse
 // Only teachers and admins can create courses
 router.post('/', courseCreationLimiter, requireRole(['teacher', 'admin']), validateCourseData, courseController.createCourse);
 
+// Get courses for teacher (alias for / to support frontend calls)
+router.get('/teacher', requirePermission('course:view'), courseController.getUserCourses);
+
 // Course-specific routes (parameterized routes should come after specific routes)
 // View: accessible to enrolled students, course owners, and admins (controller handles access)
 router.get('/:courseId', requirePermission('course:view'), courseController.getCourse);

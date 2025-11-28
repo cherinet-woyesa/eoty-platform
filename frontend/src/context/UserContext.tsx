@@ -125,12 +125,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isAuthenticated && authUser) {
       // Create user object compatible with UserContext from AuthContext user
       const userWithPermissions = {
-        id: authUser.id,
-        firstName: authUser.firstName,
-        lastName: authUser.lastName,
-        email: authUser.email,
+        ...authUser, // Spread all properties from authUser to include profile fields
         role: authUser.role as 'user' | 'student' | 'teacher' | 'chapter_admin' | 'admin',
-        chapter: authUser.chapter,
         permissions: getDefaultPermissions(authUser.role)
       };
       setUser(userWithPermissions);

@@ -147,6 +147,12 @@ const requirePermission = (permission) => {
         console.log(`[RBAC] Permission ${permission} GRANTED by fallback for student/user ${req.user.email}`);
         return next();
       }
+
+      // Special-case: students/users can create discussions (fallback)
+      if (permission === 'discussion:create' && (userRole === 'student' || userRole === 'user' || userRole === 'youth')) {
+        console.log(`[RBAC] Permission ${permission} GRANTED by fallback for student/user ${req.user.email}`);
+        return next();
+      }
       
       // Check if user has the required permission or system admin
       if (userPermissionKeys.includes(permission) || userPermissionKeys.includes('system:admin')) {

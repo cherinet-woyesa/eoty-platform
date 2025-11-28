@@ -60,6 +60,63 @@ class CloudStorageService {
     });
   }
 
+  // Enhanced upload for resources (PDFs, docs, etc.)
+  async uploadResource(fileBuffer, fileName, userId) {
+    try {
+      console.log('Uploading resource to S3:', {
+        fileName,
+        userId,
+        bucket: this.bucket
+      });
+
+      const key = `resources/${userId}/${Date.now()}_${this.sanitizeKey(fileName)}`;
+      
+      // Determine content type
+      const extension = fileName.split('.').pop()?.toLowerCase();
+      const contentTypes = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'txt': 'text/plain',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'mp3': 'audio/mpeg',
+        'mp4': 'video/mp4'
+      };
+      const contentType = contentTypes[extension] || 'application/octet-stream';
+
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: contentType,
+        Metadata: {
+          uploadedAt: new Date().toISOString(),
+          userId: userId.toString(),
+          originalName: fileName
+        },
+        CacheControl: 'max-age=31536000'
+      });
+
+      await this.s3Client.send(command);
+
+      console.log('Resource uploaded successfully:', key);
+
+      // Return the URL (CloudFront if available, otherwise S3)
+      const fileUrl = this.cloudFrontDomain
+        ? `https://${this.cloudFrontDomain}/${key}`
+        : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+
+      return fileUrl;
+
+    } catch (error) {
+      console.error('Resource upload error:', error);
+      throw new Error(`Failed to upload resource: ${error.message}`);
+    }
+  }
+
   // Enhanced upload with progress tracking and metadata - ACL REMOVED
   // NOTE: This method is for LEGACY S3 uploads only
   // New video uploads should use Mux via MuxService.createDirectUpload()

@@ -16,7 +16,23 @@ const {
 } = require('../middleware/systemConfigValidation');
 const { bulkOperationLimiter } = require('../middleware/rateLimiter');
 
-// All routes require admin authentication
+// ============================================================================
+// PUBLIC / AUTHENTICATED ROUTES (Read-only)
+// ============================================================================
+
+// Allow any authenticated user (teachers/students) to read configuration
+router.get('/categories', authenticateToken, systemConfigController.getCategories);
+router.get('/levels', authenticateToken, systemConfigController.getLevels);
+router.get('/durations', authenticateToken, systemConfigController.getDurations);
+router.get('/tags', authenticateToken, systemConfigController.getTags);
+router.get('/chapters', authenticateToken, systemConfigController.getChapters);
+router.get('/languages', authenticateToken, systemConfigController.getLanguages);
+
+// ============================================================================
+// ADMIN ONLY ROUTES (Mutations & Metrics)
+// ============================================================================
+
+// All subsequent routes require admin authentication
 router.use(authenticateToken, requireAdmin());
 
 // ============================================================================
@@ -29,7 +45,7 @@ router.get('/metrics', systemConfigController.getMetrics);
 // CATEGORIES
 // ============================================================================
 
-router.get('/categories', systemConfigController.getCategories);
+// router.get('/categories', systemConfigController.getCategories); // Moved up
 router.post('/categories', validateCategory, systemConfigController.createCategory);
 router.put('/categories/:id', validateCategory, systemConfigController.updateCategory);
 router.delete('/categories/:id', systemConfigController.deleteCategory);
@@ -40,7 +56,7 @@ router.post('/categories/reorder', validateReorder, systemConfigController.reord
 // LEVELS
 // ============================================================================
 
-router.get('/levels', systemConfigController.getLevels);
+// router.get('/levels', systemConfigController.getLevels); // Moved up
 router.post('/levels', validateLevel, systemConfigController.createLevel);
 router.put('/levels/:id', validateLevel, ensureActiveLevelExists, systemConfigController.updateLevel);
 router.delete('/levels/:id', systemConfigController.deleteLevel);
@@ -51,7 +67,7 @@ router.post('/levels/reorder', validateReorder, systemConfigController.reorderLe
 // DURATIONS
 // ============================================================================
 
-router.get('/durations', systemConfigController.getDurations);
+// router.get('/durations', systemConfigController.getDurations); // Moved up
 router.post('/durations', validateDuration, systemConfigController.createDuration);
 router.put('/durations/:id', validateDuration, systemConfigController.updateDuration);
 router.delete('/durations/:id', systemConfigController.deleteDuration);
@@ -61,7 +77,7 @@ router.post('/durations/bulk', bulkOperationLimiter, validateBulkAction, systemC
 // TAGS (Enhanced)
 // ============================================================================
 
-router.get('/tags', systemConfigController.getTags);
+// router.get('/tags', systemConfigController.getTags); // Moved up
 router.post('/tags', validateTag, systemConfigController.createTag);
 router.put('/tags/:id', validateTag, systemConfigController.updateTag);
 router.delete('/tags/:id', systemConfigController.deleteTag);
@@ -72,7 +88,7 @@ router.post('/tags/merge', validateMergeTags, systemConfigController.mergeTags);
 // CHAPTERS (Enhanced)
 // ============================================================================
 
-router.get('/chapters', systemConfigController.getChapters);
+// router.get('/chapters', systemConfigController.getChapters); // Moved up
 router.post('/chapters', validateChapter, systemConfigController.createChapter);
 router.put('/chapters/:id', validateChapter, systemConfigController.updateChapter);
 router.delete('/chapters/:id', systemConfigController.deleteChapter);

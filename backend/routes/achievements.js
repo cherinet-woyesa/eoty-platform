@@ -10,6 +10,7 @@ router.use(authenticateToken);
 router.get('/badges', achievementController.getUserBadges);
 router.get('/badges/available', achievementController.getAvailableBadges);
 router.get('/badges/:badgeId/eligibility', achievementController.checkEligibility);
+router.post('/award', achievementController.awardManualBadge);
 
 // Leaderboard routes
 router.get('/leaderboard', achievementController.getLeaderboard);

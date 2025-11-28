@@ -19,6 +19,17 @@ router.get('/user', chapterController.getUserChapters);
 router.post('/join', chapterController.joinChapter);
 router.post('/leave', chapterController.leaveChapter);
 router.post('/primary', chapterController.setPrimaryChapter);
+router.post('/', chapterController.createChapter);
+router.post('/apply-leadership', chapterController.applyLeadership);
+router.get('/:id/members', chapterController.getChapterMembers);
+router.get('/:id/events', chapterController.getEvents);
+router.post('/:id/events', chapterController.createEvent);
+router.get('/:id/resources', chapterController.getChapterResources);
+router.post('/:id/resources', chapterController.createChapterResource);
+router.get('/:id/announcements', chapterController.getChapterAnnouncements);
+router.post('/:id/announcements', chapterController.createChapterAnnouncement);
+router.get('/events/:eventId/attendance', chapterController.getEventAttendance);
+router.post('/events/:eventId/attendance', chapterController.markEventAttendance);
 router.get('/:id', chapterController.getChapterById);
 
 module.exports = router;

@@ -513,7 +513,7 @@ class ResourceService {
           if (!courseId) throw new Error('courseId required for course_specific scope');
 
           // Check if user has access to this course
-          const courseAccess = await db('course_enrollments')
+          const courseAccess = await db('user_course_enrollments')
             .where({ course_id: courseId, user_id: userId })
             .orWhere(function() {
               this.where('course_id', courseId).whereExists(function() {
@@ -608,7 +608,7 @@ class ResourceService {
         category,
         language,
         tags: tags ? JSON.stringify(tags) : null,
-        file_type: this.getMimeType(originalFilename),
+        file_type: this.getResourceContentType(originalFilename),
         file_name: originalFilename,
         file_size: fileBuffer.length,
         file_url: fileUrl,
@@ -619,7 +619,8 @@ class ResourceService {
         published_date: new Date()
       };
 
-      const [resourceId] = await db('resources').insert(resourceData).returning('id');
+      const [result] = await db('resources').insert(resourceData).returning('id');
+      const resourceId = result?.id || result;
 
       return await db('resources').where({ id: resourceId }).first();
 

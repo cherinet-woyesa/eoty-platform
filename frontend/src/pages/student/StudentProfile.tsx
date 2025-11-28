@@ -285,99 +285,106 @@ const StudentProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#fdfbf7] p-4 sm:p-6 lg:p-8 font-serif">
+      <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#FFD700]/20 via-[#FFC107]/20 to-[#FFA500]/20 rounded-xl p-6 border border-[#FFD700]/30 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#FFD700]/30 rounded-lg blur-md"></div>
-              <div className="relative p-3 bg-gradient-to-br from-[#FFD700]/20 to-[#FFC107]/20 rounded-lg border border-[#FFD700]/30">
-                <User className="h-6 w-6 text-[#FFD700]" />
+        <div className="bg-white rounded-xl p-8 border border-[#d4af37]/30 shadow-sm relative overflow-hidden">
+          {/* EOTC Decorative Elements */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#d4af37] via-[#8b0000] to-[#d4af37]"></div>
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#d4af37]/5 rounded-full blur-3xl"></div>
+          
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-[#d4af37]/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
+              <div className="relative p-4 bg-white rounded-full border-2 border-[#d4af37]/40 shadow-sm">
+                <User className="h-8 w-8 text-[#8b0000]" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">Student Profile</h1>
-              <p className="text-slate-600 mt-1">Manage your profile information</p>
+              <h1 className="text-3xl font-bold text-[#2c1810] tracking-tight font-serif">Student Profile</h1>
+              <p className="text-[#5d4037] mt-2 text-lg">Manage your personal information and learning journey</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-slate-200">
+        <div className="bg-white rounded-xl shadow-sm border border-[#e0e0e0]">
           {error && (
-            <div className="mx-6 mt-6 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <span className="text-red-700">{error}</span>
+            <div className="mx-8 mt-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
+              <div className="flex items-center space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <span className="text-red-800 font-medium">{error}</span>
               </div>
             </div>
           )}
 
           {success && (
-            <div className="mx-6 mt-6 bg-gradient-to-r from-[#FFD700]/10 to-[#FFC107]/10 border border-[#FFD700]/30 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-[#FFD700]" />
-                <span className="text-slate-700 font-medium">Profile updated successfully!</span>
+            <div className="mx-8 mt-8 bg-green-50 border-l-4 border-[#2e7d32] p-4 rounded-r-md">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="h-5 w-5 text-[#2e7d32]" />
+                <span className="text-[#1b5e20] font-medium">Profile updated successfully!</span>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSaveProfile} className="p-6 space-y-6">
+          <form onSubmit={handleSaveProfile} className="p-8 space-y-8">
             {/* Profile Picture Section */}
-            <div className="bg-slate-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <Camera className="h-5 w-5 text-[#FFD700]" />
+            <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+              <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2 flex items-center gap-2">
+                <Camera className="h-5 w-5 text-[#d4af37]" />
                 Profile Picture
               </h2>
-              <div className="flex items-center space-x-6">
-                <div className="relative">
+              <div className="flex items-center space-x-8">
+                <div className="relative group">
                   {profileData.profilePicture ? (
                     <>
-                      <img 
-                        key={profileData.profilePicture}
-                        src={profileData.profilePicture} 
-                        alt="Profile" 
-                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
-                        onError={(e) => {
-                          console.error('Failed to load profile picture:', profileData.profilePicture);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
+                      <div className="relative">
+                        <img 
+                          key={profileData.profilePicture}
+                          src={profileData.profilePicture} 
+                          alt="Profile" 
+                          className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md ring-2 ring-[#d4af37]/30"
+                          onError={(e) => {
+                            console.error('Failed to load profile picture:', profileData.profilePicture);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                      </div>
                       <button
                         type="button"
                         onClick={handleRemoveProfilePicture}
-                        className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        className="absolute -top-2 -right-2 bg-[#8b0000] rounded-full p-1.5 shadow-md hover:bg-[#a00000] transition-colors z-10"
                         aria-label="Remove profile picture"
                       >
                         <X className="h-4 w-4 text-white" />
                       </button>
                     </>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFC107] flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow">
+                    <div className="w-32 h-32 rounded-full bg-[#fdfbf7] flex items-center justify-center text-[#8b0000] text-3xl font-bold border-4 border-white shadow-md ring-2 ring-[#d4af37]/30 font-serif">
                       {profileData.firstName?.charAt(0)}{profileData.lastName?.charAt(0)}
                     </div>
                   )}
                   <button
                     type="button"
                     onClick={handleProfilePictureClick}
-                    className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md hover:bg-slate-50 transition-colors"
+                    className="absolute bottom-0 right-0 bg-[#d4af37] rounded-full p-2.5 shadow-lg hover:bg-[#b89628] transition-colors border-2 border-white"
                     aria-label="Change profile picture"
                     disabled={isUploading}
                   >
                     {isUploading ? (
-                      <Loader2 className="h-4 w-4 text-slate-600 animate-spin" />
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
                     ) : (
-                      <Camera className="h-4 w-4 text-slate-600" />
+                      <Camera className="h-5 w-5 text-white" />
                     )}
                   </button>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600 mb-2">Upload a photo to personalize your profile</p>
+                  <p className="text-[#5d4037] mb-3 font-medium">Upload a photo to personalize your profile</p>
                   <div className="flex space-x-3">
                     <button
                       type="button"
                       onClick={handleProfilePictureClick}
-                      className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                      className="px-5 py-2.5 bg-white border border-[#d4af37] rounded-lg text-sm font-medium text-[#8b0000] hover:bg-[#fdfbf7] transition-colors disabled:opacity-50 shadow-sm"
                       disabled={isUploading}
                     >
                       {isUploading ? 'Uploading...' : 'Upload Photo'}
@@ -386,7 +393,7 @@ const StudentProfile: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleRemoveProfilePicture}
-                        className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="px-5 py-2.5 bg-white border border-[#e0e0e0] rounded-lg text-sm font-medium text-[#5d4037] hover:bg-[#f5f5f5] transition-colors shadow-sm"
                       >
                         Remove
                       </button>
@@ -404,14 +411,14 @@ const StudentProfile: React.FC = () => {
             </div>
 
             {/* Basic Information */}
-            <div className="bg-slate-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <User className="h-5 w-5 text-[#FFD700]" />
+            <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+              <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2 flex items-center gap-2">
+                <User className="h-5 w-5 text-[#d4af37]" />
                 Basic Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-[#5d4037] mb-2">
                     First Name
                   </label>
                   <input
@@ -420,12 +427,12 @@ const StudentProfile: React.FC = () => {
                     name="firstName"
                     value={profileData.firstName}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Last Name
                   </label>
                   <input
@@ -434,17 +441,17 @@ const StudentProfile: React.FC = () => {
                     name="lastName"
                     value={profileData.lastName}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                     required
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Email Address
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-slate-400" />
+                      <Mail className="h-5 w-5 text-[#d4af37]" />
                     </div>
                     <input
                       type="email"
@@ -452,20 +459,20 @@ const StudentProfile: React.FC = () => {
                       name="email"
                       value={profileData.email}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent bg-slate-50"
+                      className="w-full pl-10 pr-4 py-2 border border-[#e0e0e0] rounded-lg focus:outline-none bg-[#f5f5f5] text-[#888]"
                       required
                       disabled
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                  <p className="text-xs text-[#8b0000]/70 mt-1 italic">Email cannot be changed</p>
                 </div>
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="phone" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Phone Number
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-slate-400" />
+                      <Phone className="h-5 w-5 text-[#d4af37]" />
                     </div>
                     <input
                       type="tel"
@@ -473,17 +480,17 @@ const StudentProfile: React.FC = () => {
                       name="phone"
                       value={profileData.phone}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="location" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Location
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MapPin className="h-5 w-5 text-slate-400" />
+                      <MapPin className="h-5 w-5 text-[#d4af37]" />
                     </div>
                     <input
                       type="text"
@@ -491,17 +498,17 @@ const StudentProfile: React.FC = () => {
                       name="location"
                       value={profileData.location}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Date of Birth
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-slate-400" />
+                      <Calendar className="h-5 w-5 text-[#d4af37]" />
                     </div>
                     <input
                       type="date"
@@ -509,7 +516,7 @@ const StudentProfile: React.FC = () => {
                       name="dateOfBirth"
                       value={profileData.dateOfBirth}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                     />
                   </div>
                 </div>
@@ -517,14 +524,14 @@ const StudentProfile: React.FC = () => {
             </div>
 
             {/* Learning Information */}
-            <div className="bg-slate-50 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-[#FFD700]" />
+            <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+              <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-[#d4af37]" />
                 Learning Information
               </h2>
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="bio" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="bio" className="block text-sm font-medium text-[#5d4037] mb-2">
                     Bio
                   </label>
                   <textarea
@@ -534,12 +541,12 @@ const StudentProfile: React.FC = () => {
                     value={profileData.bio}
                     onChange={handleInputChange}
                     placeholder="Tell us about yourself, your interests, and what you're passionate about learning..."
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                   />
                 </div>
                 <div>
-                  <label htmlFor="learningGoals" className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                    <Target className="h-4 w-4 text-[#FFD700]" />
+                  <label htmlFor="learningGoals" className="block text-sm font-medium text-[#5d4037] mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-[#d4af37]" />
                     Learning Goals
                   </label>
                   <textarea
@@ -549,12 +556,12 @@ const StudentProfile: React.FC = () => {
                     value={profileData.learningGoals}
                     onChange={handleInputChange}
                     placeholder="What do you hope to achieve through your learning journey? (e.g., deepen my faith, understand church history, prepare for ministry...)"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-[#FFD700]" />
+                  <label className="block text-sm font-medium text-[#5d4037] mb-2 flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-[#d4af37]" />
                     Interests
                   </label>
                   <div className="flex space-x-2 mb-3">
@@ -563,13 +570,13 @@ const StudentProfile: React.FC = () => {
                       value={newInterest}
                       onChange={(e) => setNewInterest(e.target.value)}
                       placeholder="Add an interest (e.g., Biblical Studies, Church History, Theology)"
-                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                      className="flex-1 px-4 py-2 border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-transparent bg-white"
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
                     />
                     <button
                       type="button"
                       onClick={handleAddInterest}
-                      className="px-4 py-2 bg-gradient-to-r from-[#FFD700] to-[#FFC107] text-white rounded-lg hover:from-[#FFC107] hover:to-[#FFB300] transition-colors font-medium"
+                      className="px-6 py-2 bg-[#d4af37] text-white rounded-lg hover:bg-[#b89628] transition-colors font-medium shadow-sm"
                     >
                       Add
                     </button>
@@ -578,13 +585,13 @@ const StudentProfile: React.FC = () => {
                     {profileData.interests?.map((interest, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-[#FFD700]/20 to-[#FFC107]/20 text-slate-800 rounded-full text-sm border border-[#FFD700]/30"
+                        className="inline-flex items-center px-3 py-1 bg-[#fdfbf7] text-[#5d4037] rounded-full text-sm border border-[#d4af37]/30 shadow-sm"
                       >
                         {interest}
                         <button
                           type="button"
                           onClick={() => handleRemoveInterest(interest)}
-                          className="ml-2 text-slate-600 hover:text-slate-800"
+                          className="ml-2 text-[#8b0000] hover:text-[#a00000]"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -596,11 +603,11 @@ const StudentProfile: React.FC = () => {
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end pt-6 border-t border-slate-200">
+            <div className="flex justify-end pt-6 border-t border-[#d4af37]/20">
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-[#FFD700] to-[#FFC107] hover:from-[#FFC107] hover:to-[#FFB300] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#FFD700]/25"
+                className="flex items-center space-x-2 px-8 py-3 bg-[#d4af37] text-white rounded-lg hover:bg-[#b89628] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4af37] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:scale-105 font-medium"
               >
                 {saving ? (
                   <>

@@ -8,6 +8,14 @@ const courseController = {
       const userRole = req.user.role;
       const { courseId } = req.params;
 
+      // Check if courseId is a valid integer
+      if (isNaN(parseInt(courseId))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid course ID'
+        });
+      }
+
       // Fetch course with statistics
       const course = await db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
