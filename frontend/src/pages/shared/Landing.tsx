@@ -250,14 +250,17 @@ const Landing: React.FC = () => {
         <Header activeSection={activeSection} onScrollToSection={scrollToSection} />
         <Hero ref={heroRef} landingContent={landingContent} />
         
-        <div className="relative bg-white/80 backdrop-blur-lg shadow-xl rounded-t-[3rem] -mt-20 pt-20 pb-10 border-t border-white/50">
+        <div className="relative bg-white/80 backdrop-blur-lg shadow-xl rounded-t-[3rem] -mt-20 pt-0 pb-10 border-t border-white/50 overflow-hidden">
+          <VideoSection 
+            ref={(el) => (sectionRefs.current['video-section'] = el)}
+            landingContent={landingContent} 
+          />
+
           <About 
             ref={(el) => (sectionRefs.current['about'] = el)}
             landingContent={landingContent}
             visibleSections={visibleSections}
           />
-
-          <VideoSection landingContent={landingContent} />
           
           <FeaturedCourses 
             ref={(el) => (sectionRefs.current['featured-courses'] = el)}

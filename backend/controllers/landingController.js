@@ -59,13 +59,12 @@ const landingController = {
   // Get featured courses for landing page
   async getFeaturedCourses(req, res) {
     try {
-      const featuredCourses = await db('courses as c')
+      // 1. Get manually featured courses
+      const manualFeatured = await db('courses as c')
         .leftJoin('course_stats as cs', 'c.id', 'cs.course_id')
         .leftJoin('users as u', 'c.created_by', 'u.id')
         .where('c.is_published', true)
-        .orderBy('cs.enrollment_count', 'desc')
-        .orderBy('cs.average_rating', 'desc')
-        .limit(4)
+        .andWhere('c.is_featured', true)
         .select(
           'c.id',
           'c.title',
@@ -77,6 +76,36 @@ const landingController = {
           db.raw('COALESCE(cs.rating_count, 0) as rating_count'),
           db.raw("CONCAT(u.first_name, ' ', u.last_name) as instructor_name")
         );
+
+      let featuredCourses = [...manualFeatured];
+
+      // 2. If we have fewer than 4, fill with popular courses
+      if (featuredCourses.length < 4) {
+        const limit = 4 - featuredCourses.length;
+        const existingIds = featuredCourses.map(c => c.id);
+
+        const popularCourses = await db('courses as c')
+          .leftJoin('course_stats as cs', 'c.id', 'cs.course_id')
+          .leftJoin('users as u', 'c.created_by', 'u.id')
+          .where('c.is_published', true)
+          .whereNotIn('c.id', existingIds)
+          .orderBy('cs.enrollment_count', 'desc')
+          .orderBy('cs.average_rating', 'desc')
+          .limit(limit)
+          .select(
+            'c.id',
+            'c.title',
+            'c.description',
+            'c.cover_image',
+            'c.category',
+            db.raw('COALESCE(cs.enrollment_count, 0) as student_count'),
+            db.raw('COALESCE(cs.average_rating, 0) as rating'),
+            db.raw('COALESCE(cs.rating_count, 0) as rating_count'),
+            db.raw("CONCAT(u.first_name, ' ', u.last_name) as instructor_name")
+          );
+        
+        featuredCourses = [...featuredCourses, ...popularCourses];
+      }
 
       // Return empty array if no courses found - don't fail
       res.json({

@@ -46,6 +46,9 @@ router.get('/moderation/ai/stats', requirePermission('content:view'), adminContr
 // Candidates for manual faith-alignment labeling (recent AI assistant responses)
 router.get('/ai/labeling-candidates', requirePermission('content:moderate'), adminController.getAILabelingCandidates);
 
+// Featured Courses Management
+router.put('/courses/featured', requirePermission('content:manage'), adminController.updateFeaturedCourses);
+
 // Moderation escalation routes (REQUIREMENT: Moderator workflow)
 router.get('/moderation/escalations', requirePermission('content:moderate'), adminController.getModerationEscalations);
 router.post('/moderation/escalations/:escalationId/resolve', requirePermission('content:moderate'), adminController.resolveEscalation);

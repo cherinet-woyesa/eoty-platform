@@ -16,7 +16,7 @@ const PageLoader = () => (
 );
 
 const AdminSystemPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'mux' | 'landing'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'mux' | 'landing'>('landing');
 
   return (
     <div className="w-full h-full">
@@ -25,15 +25,15 @@ const AdminSystemPage: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
           <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('analytics')}
+              onClick={() => setActiveTab('landing')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'analytics'
+                activeTab === 'landing'
                   ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              <BarChart2 className="h-4 w-4" />
-              <span className="text-sm">Analytics</span>
+              <FileEdit className="h-4 w-4" />
+              <span className="text-sm">Landing Page</span>
             </button>
             <button
               onClick={() => setActiveTab('config')}
@@ -69,15 +69,15 @@ const AdminSystemPage: React.FC = () => {
               <span className="text-sm">Mux Migration</span>
             </button>
             <button
-              onClick={() => setActiveTab('landing')}
+              onClick={() => setActiveTab('analytics')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'landing'
+                activeTab === 'analytics'
                   ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              <FileEdit className="h-4 w-4" />
-              <span className="text-sm">Landing Page</span>
+              <BarChart2 className="h-4 w-4" />
+              <span className="text-sm">Analytics</span>
             </button>
           </nav>
 

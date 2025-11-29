@@ -116,6 +116,37 @@ const landingPageController = {
             features: ['Certificates', 'Badges', 'Leaderboards']
           }
         ]
+      },
+      resources: {
+        badge: 'Resources',
+        title: 'Helpful Resources',
+        description: 'Access a library of spiritual and educational materials.'
+      },
+      videos: [
+        {
+          title: 'Introduction to EOTY',
+          description: 'Learn about our mission and values.',
+          thumbnail: 'https://source.unsplash.com/random/800x600?church',
+          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        {
+          title: 'Spiritual Growth',
+          description: 'Guidance for your daily walk with God.',
+          thumbnail: 'https://source.unsplash.com/random/800x600?prayer',
+          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        },
+        {
+          title: 'Community Life',
+          description: 'Experience the joy of fellowship.',
+          thumbnail: 'https://source.unsplash.com/random/800x600?community',
+          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        }
+      ],
+      blogs: {
+        badge: 'Latest Updates',
+        title: 'From Our Blog',
+        description: 'Read the latest news and articles.',
+        count: 3
       }
     };
 
@@ -152,7 +183,10 @@ const landingPageController = {
         // Ensure each section exists and has default values if missing
         hero: { ...defaultContent.hero, ...(existingContent.hero || {}) },
         about: { ...defaultContent.about, ...(existingContent.about || {}) },
-        howItWorks: { ...defaultContent.howItWorks, ...(existingContent.howItWorks || {}) }
+        howItWorks: { ...defaultContent.howItWorks, ...(existingContent.howItWorks || {}) },
+        resources: { ...defaultContent.resources, ...(existingContent.resources || {}) },
+        videos: existingContent.videos || defaultContent.videos,
+        blogs: { ...defaultContent.blogs, ...(existingContent.blogs || {}) }
       };
 
       res.json({

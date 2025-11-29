@@ -2727,6 +2727,54 @@ const adminController = {
         message: 'Failed to moderate forum report'
       });
     }
+  },
+
+  // Update featured courses
+  async updateFeaturedCourses(req, res) {
+    try {
+      const { courseIds } = req.body;
+      const userId = req.user.userId;
+
+      if (!Array.isArray(courseIds)) {
+        return res.status(400).json({
+          success: false,
+          message: 'courseIds must be an array'
+        });
+      }
+
+      // Start transaction
+      await db.transaction(async (trx) => {
+        // Reset all courses to not featured
+        await trx('courses').update({ is_featured: false });
+
+        // Set selected courses to featured
+        if (courseIds.length > 0) {
+          await trx('courses')
+            .whereIn('id', courseIds)
+            .update({ is_featured: true });
+        }
+      });
+
+      // Log audit
+      await AdminAudit.logAction(
+        userId,
+        'update_featured_courses',
+        'system',
+        null,
+        `Updated featured courses: ${courseIds.join(', ')}`
+      );
+
+      res.json({
+        success: true,
+        message: 'Featured courses updated successfully'
+      });
+    } catch (error) {
+      console.error('Update featured courses error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update featured courses'
+      });
+    }
   }
 };
 

@@ -394,5 +394,11 @@ export const adminApi = {
   getLandingContent: async () => {
     const response = await apiClient.get('/landing/content');
     return response.data;
+  },
+
+  // Featured Courses Management
+  updateFeaturedCourses: async (courseIds: number[]) => {
+    const response = await apiClient.put('/admin/courses/featured', { courseIds });
+    return response.data;
   }
 };

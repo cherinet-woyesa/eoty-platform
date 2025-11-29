@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import Landing from '@/pages/shared/Landing';
 import Login from '@/pages/shared/auth/Login';
@@ -158,6 +158,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 // Main App Content that uses the auth context
 function AppContent() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while auth is initializing
   if (isLoading) {
@@ -1360,8 +1361,8 @@ function AppContent() {
       {/* Floating AI Chat - Only show for authenticated users */}
       {user && <FloatingAIChat />}
       
-      {/* Profile Completion Notification - Show for new users */}
-      {user && <ProfileCompletionNotification show={true} />}
+      {/* Profile Completion Notification - Show for new users, but not on landing page */}
+      {user && location.pathname !== '/' && <ProfileCompletionNotification show={true} />}
     </div>
   );
 }
