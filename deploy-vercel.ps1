@@ -11,13 +11,13 @@ if (-not $vercelVersion) {
 }
 
 # Deploy to production
-Write-Host "📦 Deploying to Vercel production..." -ForegroundColor Yellow
+Write-Host "Deploying to Vercel production..." -ForegroundColor Yellow
 vercel --prod
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✅ Deployment successful!" -ForegroundColor Green
+    Write-Host "Deployment successful!" -ForegroundColor Green
 } else {
-    Write-Host "❌ Deployment failed!" -ForegroundColor Red
+    Write-Host "Deployment failed!" -ForegroundColor Red
     exit 1
 }
 
