@@ -3,15 +3,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://edu-platform-backend-317256520378.us-central1.run.app/api/$1"
+      "source": "/api/(.*)",
+      "destination": "https://edu-platform-backend-317256520378.us-central1.run.app/api/$1"
     },
-    { "handle": "filesystem" },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/|.*\\..*).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
