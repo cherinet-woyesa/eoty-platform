@@ -4,12 +4,11 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-   
     {
       "source": "/api/(.*)",
       "destination": "https://edu-platform-backend-317256520378.us-central1.run.app/api/$1"
     },
-   
+    { "handle": "filesystem" },
     {
       "source": "/(.*)",
       "destination": "/index.html"
