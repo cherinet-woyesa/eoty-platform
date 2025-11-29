@@ -204,14 +204,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       )}
 
       {/* Help button - Always accessible (REQUIREMENT: Help content always accessible from dashboard) */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 left-4 z-50">
         <ContextualHelp
           component="dashboard"
           page={location.pathname}
-          position="left"
+          position="right"
         >
           <button
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
+            className="bg-white hover:bg-gray-50 text-gray-600 hover:text-[#27AE60] border border-gray-200 rounded-full p-3 shadow-lg transition-all hover:scale-110 hover:shadow-xl"
             aria-label="Get help"
             title="Get help"
           >

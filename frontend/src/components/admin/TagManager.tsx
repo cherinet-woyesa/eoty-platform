@@ -28,13 +28,13 @@ const TagManager: React.FC = () => {
   const [newTag, setNewTag] = useState({
     name: '',
     category: '',
-    color: '#3b82f6' // Default blue color
+    color: '#27AE60' // Default green color
   });
   const [editingTag, setEditingTag] = useState<ContentTag | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
     category: '',
-    color: '#3b82f6'
+    color: '#27AE60'
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -344,7 +344,7 @@ const TagManager: React.FC = () => {
                 name="name"
                 value={newTag.name}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 required
                 placeholder="Enter tag name"
               />
@@ -359,7 +359,7 @@ const TagManager: React.FC = () => {
                 name="category"
                 value={newTag.category}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 placeholder="e.g., subject, difficulty"
               />
             </div>
@@ -369,7 +369,7 @@ const TagManager: React.FC = () => {
                 Color
               </label>
               <div className="flex space-x-2">
-                {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
+                {['#27AE60', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
                   <button
                     key={color}
                     type="button"
@@ -386,14 +386,14 @@ const TagManager: React.FC = () => {
                 name="color"
                 value={newTag.color}
                 onChange={handleInputChange}
-                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
               />
             </div>
           </div>
           <div className="mt-4 flex space-x-3">
             <button
               type="submit"
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219150] transition-colors"
             >
               <Save className="h-4 w-4 mr-2" />
               Create Tag

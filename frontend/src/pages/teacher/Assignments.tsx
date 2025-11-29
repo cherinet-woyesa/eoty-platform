@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { assignmentsApi, type TeacherAssignment } from '@/services/api/assignments';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface Assignment {
   id: number;
@@ -160,10 +161,7 @@ const Assignments: React.FC = () => {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
-            <p className="text-stone-600 text-sm">Loading assignments...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading assignments..." variant="logo" />
         </div>
       </div>
     );

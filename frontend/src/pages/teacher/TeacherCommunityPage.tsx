@@ -1,84 +1,138 @@
 import React, { useState } from 'react';
-import { MessageSquare, Users as UsersIcon, Award } from 'lucide-react';
+import { MessageSquare, Users as UsersIcon, Award, Grid, Plus, UserPlus, Calendar } from 'lucide-react';
 import Forums from '@/pages/shared/social/Forums';
 import ChaptersPage from '@/pages/shared/chapters/ChaptersPage';
 import TeacherAchievements from './TeacherAchievements';
 
 const TeacherCommunityPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'discussions' | 'chapters' | 'achievements'>('discussions');
+  const [activeTab, setActiveTab] = useState<'feed' | 'achievements'>('feed');
+
+  const handleCreateDiscussion = () => {
+    setActiveTab('feed');
+    // In a real app, this would focus the "New Post" input or open a modal
+    const forumInput = document.querySelector('textarea[placeholder*="discussion"]');
+    if (forumInput instanceof HTMLElement) {
+      forumInput.focus();
+    }
+  };
 
   return (
-    <div className="w-full h-full">
-      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
-        {/* Ethiopian Orthodox Themed Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
-              <MessageSquare className="h-6 w-6 text-white" />
+    <div className="w-full h-full flex flex-col bg-slate-50">
+      {/* Compact Topbar */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-[#27AE60] to-[#16A085] text-white" aria-hidden="true">
+              <MessageSquare className="h-5 w-5" />
             </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">Community & Engagement</h1>
-                <p className="text-lg text-stone-600 mt-1">Connect, collaborate, and grow together</p>
-              </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Community</h2>
+              <p className="text-xs text-slate-500">Connect with other teachers — discussions and recognition</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2" role="tablist" aria-label="Community Sections">
+            <button
+              role="tab"
+              aria-selected={activeTab === 'feed'}
+              aria-controls="feed-panel"
+              id="feed-tab"
+              onClick={() => setActiveTab('feed')}
+              className={`px-3 py-1.5 text-sm rounded-full flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#27AE60] ${activeTab === 'feed' ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20 font-medium' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              Feed
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'achievements'}
+              aria-controls="achievements-panel"
+              id="achievements-tab"
+              onClick={() => setActiveTab('achievements')}
+              className={`px-3 py-1.5 text-sm rounded-full flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#2980B9] ${activeTab === 'achievements' ? 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20 font-medium' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
+              <Award className="h-4 w-4" aria-hidden="true" />
+              Achievements
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Ethiopian Orthodox Themed Tabs */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-stone-200 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
-          <nav className="flex border-b border-stone-200 flex-shrink-0 bg-gradient-to-r from-stone-50 to-neutral-50">
-            <button
-              onClick={() => setActiveTab('discussions')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-3 whitespace-nowrap ${
-                activeTab === 'discussions'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10'
-                  : 'border-transparent text-stone-600 hover:text-[#27AE60] hover:bg-stone-50'
-              }`}
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span>Discussions</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('chapters')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-3 whitespace-nowrap ${
-                activeTab === 'chapters'
-                  ? 'border-[#16A085] text-[#16A085] bg-gradient-to-r from-[#16A085]/10 to-[#2980B9]/10'
-                  : 'border-transparent text-stone-600 hover:text-[#16A085] hover:bg-stone-50'
-              }`}
-            >
-              <UsersIcon className="h-5 w-5" />
-              <span>Chapters</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('achievements')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-3 whitespace-nowrap ${
-                activeTab === 'achievements'
-                  ? 'border-[#2980B9] text-[#2980B9] bg-gradient-to-r from-[#2980B9]/10 to-[#27AE60]/10'
-                  : 'border-transparent text-stone-600 hover:text-[#2980B9] hover:bg-stone-50'
-              }`}
-            >
-              <Award className="h-5 w-5" />
-              <span>Achievements</span>
-            </button>
-          </nav>
-
-          {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === 'discussions' && (
-              <div className="animate-in fade-in duration-300">
-                <Forums embedded />
+      {/* Main content area */}
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left / Main Column */}
+          <div className="lg:col-span-8 space-y-4">
+            {activeTab === 'feed' && (
+              <div 
+                role="tabpanel" 
+                id="feed-panel" 
+                aria-labelledby="feed-tab"
+                className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 animate-in fade-in duration-200"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Grid className="h-5 w-5 text-slate-600" aria-hidden="true" />
+                    <h3 className="text-sm font-semibold text-slate-800">Latest Discussions</h3>
+                  </div>
+                  <div className="text-xs text-slate-500">Helping teachers share and learn</div>
+                </div>
+                <div>
+                  <Forums embedded />
+                </div>
               </div>
             )}
-            {activeTab === 'chapters' && (
-              <div className="animate-in fade-in duration-300">
-                <ChaptersPage />
-              </div>
-            )}
+
             {activeTab === 'achievements' && (
-              <div className="animate-in fade-in duration-300">
+              <div 
+                role="tabpanel" 
+                id="achievements-panel" 
+                aria-labelledby="achievements-tab"
+                className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 animate-in fade-in duration-200"
+              >
+                <h3 className="text-sm font-semibold text-slate-800 mb-3">Achievements</h3>
                 <TeacherAchievements />
               </div>
             )}
           </div>
+
+          {/* Right / Help Column */}
+          <aside className="lg:col-span-4 space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">Quick Tips</h4>
+              <ul className="text-sm text-slate-600 space-y-2 list-disc list-inside">
+                <li>Start a discussion with a clear question or resource link.</li>
+                <li>Share lesson plans and tag chapters for local feedback.</li>
+                <li>Recognize contributors with badges and comments.</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <h4 className="text-sm font-semibold text-slate-800 mb-3">Community Tools</h4>
+              <div className="grid grid-cols-1 gap-2">
+                <button 
+                  onClick={handleCreateDiscussion}
+                  className="w-full text-left px-3 py-2 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  aria-label="Create a new discussion topic"
+                >
+                  <Plus className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm text-slate-700">Create Discussion</span>
+                </button>
+                <button 
+                  onClick={handleInviteToChapter}
+                  className="w-full text-left px-3 py-2 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  aria-label="Invite teachers to a chapter"
+                >
+                  <UserPlus className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm text-slate-700">Invite to Chapter</span>
+                </button>
+                <button 
+                  className="w-full text-left px-3 py-2 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  aria-label="View upcoming community events"
+                >
+                  <Calendar className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm text-slate-700">View Events</span>
+                </button>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

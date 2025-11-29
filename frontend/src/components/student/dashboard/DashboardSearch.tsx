@@ -113,7 +113,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
   const getResultIcon = (type: SearchResult['type']) => {
     switch (type) {
       case 'course':
-        return <BookOpen className="h-4 w-4 text-blue-500" />;
+        return <BookOpen className="h-4 w-4 text-[#27AE60]" />;
       case 'lesson':
         return <Zap className="h-4 w-4 text-green-500" />;
       case 'activity':
@@ -143,7 +143,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
           onChange={(e) => onSearchChange(e.target.value)}
           onFocus={() => setIsExpanded(true)}
           onKeyDown={handleKeyPress}
-          className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm text-sm transition-all duration-200"
+          className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] bg-white shadow-sm text-sm transition-all duration-200"
         />
         {searchQuery && (
           <button
@@ -170,10 +170,10 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                   <button
                     key={index}
                     onClick={() => handleSearch(search)}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg flex items-center justify-between group transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-[#27AE60]/10 rounded-lg flex items-center justify-between group transition-colors"
                   >
                     <span>{search}</span>
-                    <Search className="h-3 w-3 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <Search className="h-3 w-3 text-gray-400 group-hover:text-[#27AE60] transition-colors" />
                   </button>
                 ))}
               </div>
@@ -192,7 +192,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                   <button
                     key={index}
                     onClick={() => handleQuickFilter(search)}
-                    className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                    className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-[#27AE60]/20 hover:text-[#16A085] transition-colors"
                   >
                     {search}
                   </button>
@@ -221,7 +221,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                   onClick={() => handleQuickFilter(filter.value)}
                   className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center ${
                     filter.color === 'green' ? 'bg-green-50 text-green-700 hover:bg-green-100' :
-                    filter.color === 'blue' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' :
+                    filter.color === 'blue' ? 'bg-[#27AE60]/10 text-[#27AE60] hover:bg-[#27AE60]/20' :
                     filter.color === 'purple' ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' :
                     filter.color === 'orange' ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' :
                     filter.color === 'red' ? 'bg-red-50 text-red-700 hover:bg-red-100' :
@@ -245,7 +245,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                 {mockResults.map((result) => (
                   <div
                     key={result.id}
-                    className="p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group"
+                    className="p-3 border border-gray-200 rounded-lg hover:border-[#27AE60]/50 hover:shadow-sm transition-all cursor-pointer group"
                     onClick={() => handleSearch(result.title)}
                   >
                     <div className="flex items-start space-x-3">
@@ -254,7 +254,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                          <h4 className="text-sm font-medium text-gray-900 group-hover:text-[#27AE60] transition-colors">
                             {result.title}
                           </h4>
                           <span className={`text-xs font-medium ${getRelevanceColor(result.relevance)}`}>

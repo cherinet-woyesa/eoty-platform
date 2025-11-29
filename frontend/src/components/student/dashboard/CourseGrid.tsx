@@ -169,12 +169,12 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 placeholder="Search courses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="pl-8 pr-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
               />
             </div>
             <Link
               to="/courses"
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center"
+              className="text-sm text-[#27AE60] hover:text-[#16A085] font-medium flex items-center"
             >
               View All
               <ArrowRight className="h-4 w-4 ml-1" />
@@ -222,7 +222,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className={`h-2 rounded-full transition-all duration-300 ${
-                          course.progress === 100 ? 'bg-green-500' : 'bg-blue-600'
+                          course.progress === 100 ? 'bg-green-500' : 'bg-[#27AE60]'
                         }`}
                         style={{ width: `${course.progress}%` }}
                       ></div>
@@ -250,7 +250,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   </button>
                   <Link
                     to={`/student/courses/${course.id}`}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                    className="p-2 text-gray-400 hover:text-[#27AE60] transition-colors rounded-lg hover:bg-[#27AE60]/10"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <PlayCircle className="h-4 w-4" />
@@ -270,7 +270,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             </p>
             <Link
               to="/student/browse-courses"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-4 w-4 mr-2" />
               {searchQuery ? 'Browse All Courses' : 'Browse Available Courses'}
@@ -286,7 +286,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               <select
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value as any)}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
               >
                 <option value="all">All Courses</option>
                 <option value="not-started">Not Started</option>
@@ -347,7 +347,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
           <select
             value={filterBy}
             onChange={(e) => setFilterBy(e.target.value as any)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
           >
             <option value="all">All Courses</option>
             <option value="not-started">Not Started</option>
@@ -357,7 +357,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
 
           <Link
             to="/courses"
-            className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
+            className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             <BookOpen className="h-4 w-4 mr-2" />
             Browse Courses
@@ -374,7 +374,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               onClick={() => handleCourseClick(course.id)}
             >
               {/* Course Thumbnail */}
-              <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
+              <div className="h-32 bg-gradient-to-r from-[#27AE60] to-[#2980B9] relative overflow-hidden">
                 {course.thumbnail ? (
                   <img
                     src={course.thumbnail}
@@ -422,7 +422,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   <div className="w-full bg-white/30 rounded-full h-1 mt-1">
                     <div 
                       className={`h-1 rounded-full ${
-                        course.progress === 100 ? 'bg-green-400' : 'bg-blue-400'
+                        course.progress === 100 ? 'bg-green-400' : 'bg-[#27AE60]'
                       }`}
                       style={{ width: `${course.progress}%` }}
                     />
@@ -505,7 +505,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   <div className="flex items-center space-x-2">
                     <Link
                       to={`/courses/${course.id}`}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 hover:shadow-lg transition-all"
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 hover:shadow-lg transition-all"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {course.progress === 100 ? 'Review' : course.progress > 0 ? 'Continue' : 'Start'}
@@ -553,7 +553,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/courses"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-5 w-5 mr-2" />
               Explore Courses
@@ -579,7 +579,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
         <div className="mt-6 text-center">
           <Link
             to="/courses"
-            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="inline-flex items-center text-sm text-[#27AE60] hover:text-[#16A085] font-medium"
           >
             View All Courses
             <ArrowRight className="h-4 w-4 ml-1" />

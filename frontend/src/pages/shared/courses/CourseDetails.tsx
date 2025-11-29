@@ -15,7 +15,8 @@ import {
   ArrowLeft, BookOpen, Clock, PlayCircle, Video,
   Search, CheckCircle, Circle, Star,
   Download, Share2, Edit,
-  Loader2, Plus, Trash2, Bot, BarChart3
+  Loader2, Plus, Trash2, Bot, BarChart3,
+  Maximize2, Minimize2, Monitor, MessageSquare
 } from 'lucide-react';
 
 interface Lesson {
@@ -43,7 +44,7 @@ interface LessonProgress {
   completed_at?: string;
 }
 
-type TabType = 'description' | 'resources' | 'polls';
+type TabType = 'description' | 'resources' | 'polls' | 'discussion';
 
 const CourseNotFound = React.memo(({ onBack }: { onBack: () => void }) => (
   <div className="text-center py-8 p-8">
@@ -92,6 +93,8 @@ const CourseDetails: React.FC = () => {
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
   const [currentLessonTime, setCurrentLessonTime] = useState<number>(0);
   const [pollCount, setPollCount] = useState<number>(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isTheaterMode, setIsTheaterMode] = useState(false);
 
   // Memoized values
   const isAdmin = useMemo(() => user?.role === 'chapter_admin' || user?.role === 'admin', [user?.role]);
@@ -282,7 +285,8 @@ const CourseDetails: React.FC = () => {
     return [
       { id: 'description' as TabType, label: 'Description', icon: BookOpen },
       { id: 'resources' as TabType, label: 'Resources', icon: Download },
-      { id: 'polls' as TabType, label: 'Polls', icon: BarChart3, count: pollCount }
+      { id: 'polls' as TabType, label: 'Polls', icon: BarChart3, count: pollCount },
+      { id: 'discussion' as TabType, label: 'Discussion', icon: MessageSquare }
     ];
   }, [pollCount]);
 
@@ -327,7 +331,20 @@ const CourseDetails: React.FC = () => {
 
       // Auto-select first lesson if available
       if (lessonsData.length > 0) {
-        setSelectedLesson(lessonsData[0]);
+        // Check for URL param lesson ID
+        const params = new URLSearchParams(window.location.search);
+        const lessonIdParam = params.get('lesson');
+        
+        if (lessonIdParam) {
+          const foundLesson = lessonsData.find((l: Lesson) => l.id === lessonIdParam);
+          if (foundLesson) {
+            setSelectedLesson(foundLesson);
+          } else {
+            setSelectedLesson(lessonsData[0]);
+          }
+        } else {
+          setSelectedLesson(lessonsData[0]);
+        }
       }
 
       // Load initial stats from course data
@@ -459,6 +476,22 @@ const CourseDetails: React.FC = () => {
                   </div>
                </div>
             )}
+
+            <button 
+              onClick={() => setIsTheaterMode(!isTheaterMode)}
+              className="hidden lg:inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors mr-2"
+              title={isTheaterMode ? "Exit Theater Mode" : "Theater Mode"}
+            >
+              <Monitor className={`h-4 w-4 ${isTheaterMode ? 'text-[#27AE60]' : ''}`} />
+            </button>
+
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="hidden lg:inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors mr-2"
+              title={isSidebarOpen ? "Expand View" : "Show Sidebar"}
+            >
+              {isSidebarOpen ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+            </button>
             
             {(isAdmin || isOwner) && (
               <Link
@@ -477,12 +510,12 @@ const CourseDetails: React.FC = () => {
         </div>
       </div>
 
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+      <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isTheaterMode ? 'max-w-full p-0' : 'max-w-[1600px] p-4 sm:p-6 lg:p-8'}`}>
+        <div className={`flex flex-col lg:flex-row gap-6 h-full relative ${isTheaterMode ? 'gap-0' : ''}`}>
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className={`flex flex-col gap-6 transition-all duration-300 ${isSidebarOpen && !isTheaterMode ? 'lg:w-[70%]' : 'lg:w-full'} ${isTheaterMode ? 'w-full' : ''}`}>
             {/* Video Player */}
-            <div className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video relative group">
+            <div className={`bg-black overflow-hidden shadow-lg relative group transition-all duration-300 ${isTheaterMode ? 'h-[85vh] rounded-none' : 'aspect-video rounded-xl'}`}>
                {selectedLesson ? (
                   <UnifiedVideoPlayer 
                     lesson={{
@@ -568,29 +601,71 @@ const CourseDetails: React.FC = () => {
 
             {/* Contextual Tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="flex border-b border-gray-200">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex-1 sm:flex-none px-6 py-4 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-                        activeTab === tab.id
-                          ? 'border-[#27AE60] text-[#27AE60] bg-green-50/30'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                      {tab.count !== undefined && (
-                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
+                {/* Description Tab (Left) */}
+                <button
+                  onClick={() => setActiveTab('description')}
+                  className={`px-4 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
+                    activeTab === 'description'
+                      ? 'border-[#27AE60] text-[#27AE60]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Description
+                </button>
+
+                {/* Action Buttons (Right) */}
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/ai-assistant?lessonId=${selectedLesson?.id}&courseId=${courseId}`}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                  >
+                    <Bot className="h-3.5 w-3.5 mr-1.5 text-[#16A085]" />
+                    Ask AI
+                  </Link>
+                  
+                  <button
+                    onClick={() => setActiveTab('resources')}
+                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      activeTab === 'resources'
+                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                    }`}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Resources
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('polls')}
+                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      activeTab === 'polls'
+                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                    }`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                    Polls
+                    {pollCount > 0 && (
+                      <span className="ml-1.5 bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px]">
+                        {pollCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('discussion')}
+                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      activeTab === 'discussion'
+                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                    Discussion
+                  </button>
+                </div>
               </div>
               
               <div className="p-6">
@@ -616,20 +691,9 @@ const CourseDetails: React.FC = () => {
                                    onQuizComplete={() => markLessonComplete(selectedLesson.id)} 
                                 />
                              </div>
-                             <Link
-                                to={`/ai-assistant?lessonId=${selectedLesson.id}&courseId=${courseId}`}
-                                className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
-                             >
-                                <Bot className="h-4 w-4 mr-2 text-[#16A085]" />
-                                Ask AI for Help
-                             </Link>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <LessonInteractivePanel 
-                                lessonId={selectedLesson.id} 
-                                currentTime={currentLessonTime} 
-                             />
                              <RelatedVideos 
                                 lessonId={selectedLesson.id} 
                                 currentCourseId={courseId} 
@@ -668,12 +732,25 @@ const CourseDetails: React.FC = () => {
                       onPollCountChange={setPollCount}
                    />
                 )}
+
+                {activeTab === 'discussion' && selectedLesson && (
+                   <div className="mt-4">
+                      <LessonInteractivePanel 
+                        lessonId={selectedLesson.id} 
+                        currentTime={currentLessonTime} 
+                      />
+                   </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          <div className={`flex flex-col gap-6 transition-all duration-300 ${
+            isSidebarOpen && !isTheaterMode
+              ? 'lg:w-[30%] opacity-100' 
+              : 'lg:w-0 opacity-0 overflow-hidden'
+          } ${isTheaterMode ? 'hidden' : ''}`}>
             {/* Search & Filter */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                <div className="relative mb-3">

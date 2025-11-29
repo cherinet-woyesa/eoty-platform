@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface LearningPath {
   id: string;
@@ -197,10 +198,7 @@ const LearningPathsPage: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-center min-h-96">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
-              <p className="text-stone-600 text-lg">Loading learning paths...</p>
-            </div>
+            <LoadingSpinner size="lg" text="Loading learning paths..." variant="logo" />
           </div>
         </div>
       </div>

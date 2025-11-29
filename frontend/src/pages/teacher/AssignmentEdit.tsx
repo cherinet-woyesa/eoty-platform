@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, Calendar, FileText, Loader2, Save, AlertCircle } from 'lucide-react';
 import { coursesApi, assignmentsApi } from '@/services/api';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface CourseOption {
   id: number;
@@ -104,10 +105,7 @@ const AssignmentEdit: React.FC = () => {
     return (
       <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         <div className="flex items-center justify-center min-h-80">
-          <div className="text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-[#27AE60] mx-auto mb-3" />
-            <p className="text-stone-600 text-sm">Loading assignment…</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading assignment..." variant="logo" />
         </div>
       </div>
     );

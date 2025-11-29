@@ -8,6 +8,7 @@ import {
   SortAsc, SortDesc
 } from 'lucide-react';
 import { coursesApi } from '@/services/api';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useAuth } from '@/context/AuthContext';
 import { BulkActions } from '@/components/shared/courses/BulkActions';
 import type { Course } from '@/types/courses';
@@ -145,14 +146,14 @@ const MyCourses: React.FC = () => {
 
   const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
-      faith: 'from-blue-500 to-blue-600',
-      history: 'from-purple-500 to-purple-600',
-      spiritual: 'from-green-500 to-green-600',
-      bible: 'from-orange-500 to-orange-600',
+      faith: 'from-emerald-500 to-emerald-600',
+      history: 'from-amber-500 to-amber-600',
+      spiritual: 'from-teal-500 to-teal-600',
+      bible: 'from-green-500 to-green-600',
       liturgical: 'from-red-500 to-red-600',
-      youth: 'from-pink-500 to-pink-600'
+      youth: 'from-cyan-500 to-cyan-600'
     };
-    return colors[category] || 'from-gray-500 to-gray-600';
+    return colors[category] || 'from-stone-500 to-stone-600';
   }, []);
 
   const formatDuration = useCallback((minutes: number) => {
@@ -361,10 +362,7 @@ const MyCourses: React.FC = () => {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
-            <p className="text-stone-600 text-sm">Loading your courses...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading your courses..." variant="logo" />
         </div>
       </div>
     );
@@ -402,8 +400,8 @@ const MyCourses: React.FC = () => {
               icon: BookOpen, 
               change: 2, 
               changeType: 'positive',
-              color: 'from-blue-500 to-blue-600',
-              bgColor: 'from-blue-50 to-blue-100'
+              color: 'from-[#27AE60] to-[#16A085]',
+              bgColor: 'from-[#27AE60]/10 to-[#16A085]/10'
             },
             { 
               name: 'Active Students', 
@@ -411,8 +409,8 @@ const MyCourses: React.FC = () => {
               icon: Users, 
               change: 8, 
               changeType: 'positive',
-              color: 'from-green-500 to-green-600',
-              bgColor: 'from-green-50 to-green-100'
+              color: 'from-[#16A085] to-[#2980B9]',
+              bgColor: 'from-[#16A085]/10 to-[#2980B9]/10'
             },
             { 
               name: 'Recorded Videos', 
@@ -420,8 +418,8 @@ const MyCourses: React.FC = () => {
               icon: Video, 
               change: 12, 
               changeType: 'positive',
-              color: 'from-purple-500 to-purple-600',
-              bgColor: 'from-purple-50 to-purple-100'
+              color: 'from-[#2980B9] to-[#27AE60]',
+              bgColor: 'from-[#2980B9]/10 to-[#27AE60]/10'
             },
             { 
               name: 'Hours Taught', 
@@ -429,15 +427,15 @@ const MyCourses: React.FC = () => {
               icon: Clock, 
               change: 15, 
               changeType: 'positive',
-              color: 'from-orange-500 to-orange-600',
-              bgColor: 'from-orange-50 to-orange-100'
+              color: 'from-[#27AE60] to-[#16A085]',
+              bgColor: 'from-[#27AE60]/10 to-[#16A085]/10'
             }
           ].map((stat, index) => {
             const neonColors = [
               { icon: 'text-[#27AE60]', bg: 'from-[#27AE60]/10 to-[#16A085]/10', border: 'border-[#27AE60]/30' },
               { icon: 'text-[#16A085]', bg: 'from-[#16A085]/10 to-[#2980B9]/10', border: 'border-[#16A085]/30' },
               { icon: 'text-[#2980B9]', bg: 'from-[#2980B9]/10 to-[#27AE60]/10', border: 'border-[#2980B9]/30' },
-              { icon: 'text-[#F39C12]', bg: 'from-[#F39C12]/10 to-[#FFA500]/10', border: 'border-[#F39C12]/30' }
+              { icon: 'text-[#27AE60]', bg: 'from-[#27AE60]/10 to-[#16A085]/10', border: 'border-[#27AE60]/30' }
             ];
             const colors = neonColors[index % neonColors.length];
             return (
@@ -462,13 +460,13 @@ const MyCourses: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-3">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
               <input
                 type="text"
                 placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full pl-8 pr-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-sm"
               />
             </div>
 
@@ -479,7 +477,7 @@ const MyCourses: React.FC = () => {
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
+                  className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-xs bg-white"
                 >
                   {categories.map(category => (
                     <option key={category.value} value={category.value}>
@@ -494,7 +492,7 @@ const MyCourses: React.FC = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs bg-white"
+                  className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-xs bg-white"
                 >
                   {sortOptions.map(option => (
                     <option key={option.value} value={option.value}>
@@ -507,22 +505,22 @@ const MyCourses: React.FC = () => {
               {/* Sort Order */}
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-2 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
               >
-                {sortOrder === 'asc' ? <SortAsc className="h-5 w-5" /> : <SortDesc className="h-5 w-5" />}
+                {sortOrder === 'asc' ? <SortAsc className="h-5 w-5 text-stone-600" /> : <SortDesc className="h-5 w-5 text-stone-600" />}
               </button>
 
               {/* View Mode */}
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              <div className="flex border border-stone-300 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-[#27AE60] text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
                 >
                   <Grid className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-[#27AE60] text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
                 >
                   <List className="h-5 w-5" />
                 </button>
@@ -547,9 +545,9 @@ const MyCourses: React.FC = () => {
                         setSelectedCourses([]);
                       }
                     }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-stone-300 text-[#27AE60] focus:ring-[#27AE60]"
                   />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-stone-600">
                     {selectedCourses.length > 0 
                       ? `${selectedCourses.length} selected` 
                       : 'Select all'
@@ -561,14 +559,14 @@ const MyCourses: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setShowTemplates(!showTemplates)}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-white border border-[#27AE60] text-[#27AE60] text-sm font-medium rounded-lg hover:bg-[#27AE60]/5 transition-colors"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Templates
                 </button>
                 <Link
                   to="/teacher/courses/new"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-medium rounded-lg transition-colors shadow-sm"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Course
@@ -578,8 +576,8 @@ const MyCourses: React.FC = () => {
 
             {/* Course Templates Panel */}
             {showTemplates && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-base font-semibold text-gray-900 mb-3">Course Templates</h4>
+              <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
+                <h4 className="text-base font-semibold text-stone-800 mb-3">Course Templates</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { name: 'Bible Study', category: 'bible', icon: BookOpen },
@@ -589,11 +587,11 @@ const MyCourses: React.FC = () => {
                   ].map((template, index) => (
                     <button
                       key={index}
-                      className="p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+                      className="p-3 bg-white rounded-lg border border-stone-200 hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5 transition-colors text-left"
                     >
-                      <template.icon className="h-5 w-5 text-blue-600 mb-2" />
-                      <div className="text-sm font-medium text-gray-900">{template.name}</div>
-                      <div className="text-xs text-gray-500 capitalize">{template.category}</div>
+                      <template.icon className="h-5 w-5 text-[#27AE60] mb-2" />
+                      <div className="text-sm font-medium text-stone-800">{template.name}</div>
+                      <div className="text-xs text-stone-500 capitalize">{template.category}</div>
                     </button>
                   ))}
                 </div>
@@ -603,14 +601,14 @@ const MyCourses: React.FC = () => {
         )}
 
       {/* Tabs for filtering */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-stone-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('all')}
             className={`${
               activeTab === 'all'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#27AE60] text-[#27AE60]'
+                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             All Courses
@@ -619,8 +617,8 @@ const MyCourses: React.FC = () => {
             onClick={() => setActiveTab('published')}
             className={`${
               activeTab === 'published'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#27AE60] text-[#27AE60]'
+                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Published
@@ -629,8 +627,8 @@ const MyCourses: React.FC = () => {
             onClick={() => setActiveTab('drafts')}
             className={`${
               activeTab === 'drafts'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-[#27AE60] text-[#27AE60]'
+                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
           >
             Drafts

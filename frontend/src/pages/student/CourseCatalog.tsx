@@ -8,6 +8,7 @@ import {
 import { studentsApi } from '@/services/api/students';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface CatalogCourse {
   id: number;
@@ -119,27 +120,41 @@ const CourseCatalog: React.FC = () => {
 
   const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
-      faith: 'from-blue-500 to-blue-600',
-      history: 'from-purple-500 to-purple-600',
-      spiritual: 'from-green-500 to-green-600',
-      bible: 'from-orange-500 to-orange-600',
+      faith: 'from-emerald-500 to-emerald-600',
+      history: 'from-amber-500 to-amber-600',
+      spiritual: 'from-teal-500 to-teal-600',
+      bible: 'from-green-500 to-green-600',
       liturgical: 'from-red-500 to-red-600',
-      youth: 'from-pink-500 to-pink-600'
+      youth: 'from-cyan-500 to-cyan-600'
     };
-    return colors[category] || 'from-gray-500 to-gray-600';
+    return colors[category] || 'from-stone-500 to-stone-600';
   }, []);
 
   // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: CatalogCourse) => (
     <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:border-[#27AE60]/40">
       {/* Compact Course Header */}
-      <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-3 text-white relative`}>
-        <h3 className="text-sm font-bold mb-0.5 line-clamp-2">{course.title}</h3>
-        <p className="text-white/90 text-xs line-clamp-2 opacity-90">
-          {course.description || 'No description provided'}
-        </p>
+      <div className={`relative h-32 ${!course.cover_image ? `bg-gradient-to-r ${getCategoryColor(course.category)}` : 'bg-stone-200'}`}>
+        {course.cover_image && (
+          <>
+            <img 
+              src={course.cover_image} 
+              alt={course.title} 
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          </>
+        )}
+        
+        <div className={`absolute inset-0 p-3 flex flex-col justify-end ${!course.cover_image ? 'text-white' : 'text-white'}`}>
+          <h3 className="text-sm font-bold mb-0.5 line-clamp-2 drop-shadow-sm">{course.title}</h3>
+          <p className="text-white/90 text-xs line-clamp-2 opacity-90 drop-shadow-sm">
+            {course.description || 'No description provided'}
+          </p>
+        </div>
+
         {course.is_enrolled && (
-          <div className="absolute top-1.5 right-1.5 bg-[#27AE60] text-white px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center shadow-md">
+          <div className="absolute top-1.5 right-1.5 bg-[#27AE60] text-white px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center shadow-md z-10">
             <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
             Enrolled
           </div>
@@ -183,7 +198,7 @@ const CourseCatalog: React.FC = () => {
               {String(course.created_by) === String(user?.id) && (
                 <Link
                   to={`/teacher/courses/${course.id}/edit`}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#2980B9] to-[#00A3FF] hover:from-[#2980B9]/90 hover:to-[#00A3FF]/90 transition-all shadow-sm hover:shadow-md"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
                 >
                   Manage
                 </Link>
@@ -232,10 +247,7 @@ const CourseCatalog: React.FC = () => {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-2" />
-            <p className="text-stone-600 text-sm">Loading course catalog...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading course catalog..." variant="logo" />
         </div>
       </div>
     );

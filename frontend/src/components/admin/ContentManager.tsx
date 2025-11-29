@@ -14,7 +14,8 @@ import {
   Clock,
   Eye,
   Hash,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 const ContentManager: React.FC = () => {
@@ -230,6 +231,25 @@ const ContentManager: React.FC = () => {
     }
   };
 
+  // Handle delete action
+  const handleDelete = async (uploadId: number) => {
+    if (!window.confirm('Are you sure you want to delete this content? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await adminApi.deleteContent(uploadId);
+      if (response.success) {
+        setSuccessMessage('Content deleted successfully');
+        fetchUploads(); // Refresh the list
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+    } catch (err: any) {
+      console.error('Delete action failed:', err);
+      setError(`Failed to delete content: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   // Toggle preview
   const togglePreview = async (uploadId: number) => {
     if (previewId === uploadId) {
@@ -306,7 +326,7 @@ const ContentManager: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <RefreshCw className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Loading content...</p>
         </div>
       </div>
@@ -315,25 +335,11 @@ const ContentManager: React.FC = () => {
 
   return (
     <div className="w-full space-y-6 p-6 bg-gray-50 min-h-screen">
-        {/* Header Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Title and Description */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Upload className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Content Management</h1>
-                  <p className="text-sm text-gray-600">Upload, review, and manage educational content</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>{uploads.length} total uploads</span>
-                <span>•</span>
-                <span>{uploads.filter(u => u.status === 'pending').length} pending review</span>
-              </div>
+        {/* Action Bar */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+               {/* Left side empty or for filters later */}
             </div>
 
             {/* Action Buttons */}
@@ -342,7 +348,7 @@ const ContentManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowUnifiedUpload(true)}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-sm hover:shadow-md"
+                  className="inline-flex items-center px-4 py-2 bg-[#27AE60] hover:bg-[#219150] text-white text-sm font-medium rounded-lg transition-all shadow-sm hover:shadow-md"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Upload Files
@@ -363,40 +369,9 @@ const ContentManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: 'Total Uploads', value: uploads.length, icon: Upload, color: 'text-blue-600' },
-            { label: 'Pending Review', value: uploads.filter(u => u.status === 'pending').length, icon: Clock, color: 'text-yellow-600' },
-            { label: 'Approved', value: uploads.filter(u => u.status === 'approved').length, icon: CheckCircle, color: 'text-green-600' },
-            { label: 'Rejected', value: uploads.filter(u => u.status === 'rejected').length, icon: XCircle, color: 'text-red-600' }
-          ].map((stat, index) => (
-            <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center">
-                <stat.icon className={`h-5 w-5 ${stat.color} mr-2`} />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">Debug Information</h4>
-            <div className="text-xs text-blue-800 space-y-1">
-              <div>Loading: {loading ? 'Yes' : 'No'}</div>
-              <div>Uploads Count: {uploads.length}</div>
-              <div>Filtered Count: {filteredUploads.length}</div>
-              <div>Status Filter: '{statusFilter}'</div>
-              <div>Search Term: '{searchTerm}'</div>
-              {error && <div className="text-red-600">Error: {error}</div>}
-            </div>
-          </div>
-        )}
+        {/* Stats Grid - Removed as per request */}
+        
+        {/* Debug Info - Removed as per request */}
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -572,6 +547,13 @@ const ContentManager: React.FC = () => {
                           title="Preview"
                         >
                           <Eye className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(upload.id)}
+                          className="text-gray-600 hover:text-red-600"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
                     </td>

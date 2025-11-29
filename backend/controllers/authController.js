@@ -143,6 +143,8 @@ const authController = {
         updated_at: new Date()
       };
 
+      console.log('Attempting to insert user:', { ...userData, password_hash: '***' });
+
       // FIXED: Insert user and get the ID (PostgreSQL compatible)
       const result = await db('users').insert(userData).returning('id');
       const userId = result[0].id;
@@ -200,7 +202,7 @@ const authController = {
       // Get the created user without password
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'role_requested', 'status', 'chapter_id', 'is_active')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'role_requested', 'chapter_id', 'is_active')
         .first();
 
       // Initialize onboarding for new user (REQUIREMENT: 100% new users see guided onboarding)
@@ -1364,6 +1366,284 @@ const authController = {
       res.status(500).json({
         success: false,
         message: 'Internal server error during Facebook login'
+      });
+    }
+  },
+
+  // Facebook OAuth callback - exchange authorization code for user data
+  async facebookCallback(req, res) {
+    try {
+      const { code, redirectUri } = req.body;
+
+      if (!code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Authorization code is required'
+        });
+      }
+
+      const clientId = process.env.FACEBOOK_APP_ID;
+      const clientSecret = process.env.FACEBOOK_APP_SECRET;
+
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({
+          success: false,
+          message: 'Facebook OAuth not configured on server'
+        });
+      }
+
+      // Exchange authorization code for access token
+      const tokenResponse = await fetch('https://graph.facebook.com/v19.0/oauth/access_token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/facebook/callback`,
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error('Token exchange failed:', tokenData);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to exchange authorization code'
+        });
+      }
+
+      const { access_token } = tokenData;
+
+      // Get user info from Facebook
+      const userResponse = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name,email,first_name,last_name,picture&access_token=${access_token}`);
+
+      const userData = await userResponse.json();
+
+      if (!userResponse.ok) {
+        console.error('User info fetch failed:', userData);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to get user information from Facebook'
+        });
+      }
+
+      // Prepare data for our login flow
+      const facebookData = {
+        facebookId: userData.id,
+        email: userData.email,
+        firstName: userData.first_name || userData.name?.split(' ')[0] || '',
+        lastName: userData.last_name || userData.name?.split(' ').slice(1).join(' ') || '',
+        profilePicture: userData.picture?.data?.url || null
+      };
+
+      // Process Facebook login using the existing facebookLogin method
+      // We'll call it directly with the processed data
+      const activityLogService = require('../services/activityLogService');
+      const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.get('user-agent') || 'unknown';
+
+      try {
+        // Check if user exists with this Facebook ID via user_sso_accounts
+        const ssoAccount = await db('user_sso_accounts as usa')
+          .join('sso_providers as sp', 'usa.provider_id', 'sp.id')
+          .where('sp.provider_name', 'facebook')
+          .where('usa.provider_user_id', facebookData.facebookId)
+          .select('usa.user_id')
+          .first();
+
+        let user = null;
+        if (ssoAccount) {
+          user = await db('users')
+            .where({ id: ssoAccount.user_id })
+            .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+            .first();
+        }
+
+        // If user doesn't exist with Facebook ID, check if they exist with email
+        if (!user) {
+          user = await db('users')
+            .where({ email: facebookData.email.toLowerCase() })
+            .first();
+        }
+
+        let token;
+        
+        // If user doesn't exist at all, create a new user
+        if (!user) {
+          // Get default chapter (first active chapter) for new users
+          const defaultChapter = await db('chapters')
+            .where({ is_active: true })
+            .orderBy('id', 'asc')
+            .first();
+
+          if (!defaultChapter) {
+            return res.status(500).json({
+              success: false,
+              message: 'No active chapters found. Please contact administrator.'
+            });
+          }
+
+          const userData = {
+            first_name: facebookData.firstName,
+            last_name: facebookData.lastName,
+            email: facebookData.email.toLowerCase(),
+            profile_picture: facebookData.profilePicture,
+            role: 'user',
+            chapter_id: defaultChapter.id,
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          };
+
+          // Insert new user
+          const result = await db('users').insert(userData).returning('id');
+          const userId = result[0].id || result[0];
+
+          // Link Facebook account
+          const facebookProvider = await db('sso_providers')
+            .where('provider_name', 'facebook')
+            .first();
+
+          if (facebookProvider) {
+            await db('user_sso_accounts').insert({
+              user_id: userId,
+              provider_id: facebookProvider.id,
+              provider_user_id: facebookData.facebookId,
+              email: facebookData.email.toLowerCase(),
+              profile_picture: facebookData.profilePicture,
+              last_used_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date()
+            });
+          }
+
+          // Get the created user
+          user = await db('users')
+            .where({ id: userId })
+            .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+            .first();
+        } else {
+          // Update last login and profile picture
+          await db('users')
+            .where({ id: user.id })
+            .update({ 
+              last_login_at: new Date(),
+              profile_picture: facebookData.profilePicture || user.profile_picture,
+              updated_at: new Date()
+            });
+          
+          // Update or create SSO account link
+          const facebookProvider = await db('sso_providers')
+            .where('provider_name', 'facebook')
+            .first();
+
+          if (facebookProvider) {
+            const existingSso = await db('user_sso_accounts')
+              .where('user_id', user.id)
+              .where('provider_id', facebookProvider.id)
+              .first();
+
+            if (existingSso) {
+              await db('user_sso_accounts')
+                .where('id', existingSso.id)
+                .update({
+                  last_used_at: new Date(),
+                  profile_picture: facebookData.profilePicture,
+                  updated_at: new Date()
+                });
+            } else {
+              await db('user_sso_accounts').insert({
+                user_id: user.id,
+                provider_id: facebookProvider.id,
+                provider_user_id: facebookData.facebookId,
+                email: facebookData.email.toLowerCase(),
+                profile_picture: facebookData.profilePicture,
+                last_used_at: new Date(),
+                created_at: new Date(),
+                updated_at: new Date()
+              });
+            }
+          }
+          
+          // Refresh user data
+          user = await db('users')
+            .where({ id: user.id })
+            .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+            .first();
+        }
+
+        // Log successful SSO login
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'login',
+          ipAddress,
+          userAgent,
+          success: true,
+          metadata: { loginMethod: 'facebook_oauth' }
+        });
+
+        // Generate JWT token
+        token = jwt.sign(
+          { 
+            userId: user.id, 
+            email: user.email, 
+            role: user.role,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            chapter: user.chapter_id
+          },
+          authConfig.jwtSecret,
+          { expiresIn: authConfig.jwtExpiresIn }
+        );
+
+        console.log('Facebook OAuth login successful for:', facebookData.email);
+
+        return res.json({
+          success: true,
+          message: 'Facebook login successful',
+          data: {
+            user: {
+              id: user.id,
+              firstName: user.first_name,
+              lastName: user.last_name,
+              email: user.email,
+              role: user.role,
+              chapter: user.chapter_id,
+              isActive: user.is_active,
+              profilePicture: getProfilePictureUrl(user.profile_picture)
+            },
+            token
+          }
+        });
+
+      } catch (loginError) {
+        console.error('Facebook login processing error:', loginError);
+        
+        await activityLogService.logActivity({
+          activityType: 'failed_login',
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('user-agent') || 'unknown',
+          success: false,
+          failureReason: 'Facebook login processing error: ' + loginError.message,
+          metadata: { loginMethod: 'facebook_oauth' }
+        });
+
+        return res.status(500).json({
+          success: false,
+          message: 'Internal server error during Facebook login processing'
+        });
+      }
+
+    } catch (error) {
+      console.error('Facebook callback error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during Facebook authentication'
       });
     }
   },

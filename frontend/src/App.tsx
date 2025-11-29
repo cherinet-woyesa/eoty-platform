@@ -98,6 +98,7 @@ import AdminContentPage from '@/pages/admin/AdminContentPage';
 import AdminSystemPage from '@/pages/admin/AdminSystemPage';
 import Invitations from '@/pages/student/Invitations';
 import StudentAssignments from '@/pages/student/Assignments';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
 
@@ -110,12 +111,7 @@ const LazyReactQueryDevtools = lazy(() =>
 
 // Loading component for Suspense
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="w-12 h-12 border-t-4 border-[#39FF14] border-solid rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-stone-600">Loading...</p>
-    </div>
-  </div>
+  <LoadingSpinner fullScreen size="xl" text="Loading..." variant="logo" />
 );
 
 // Lazy load heavy pages

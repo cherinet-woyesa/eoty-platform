@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { getCategories } from '@/services/api/systemConfig';
+import type { CourseCategory } from '@/types/systemConfig';
 import {
   Upload,
   X,
@@ -56,7 +58,29 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
     },
     individual: {}
   });
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories(true);
+        setCategories(data);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        // Fallback categories if fetch fails
+        setCategories([
+          { id: 1, name: 'Scripture', slug: 'scripture', description: '', display_order: 1, is_active: true, created_at: '', updated_at: '' },
+          { id: 2, name: 'Theology', slug: 'theology', description: '', display_order: 2, is_active: true, created_at: '', updated_at: '' },
+          { id: 3, name: 'History', slug: 'history', description: '', display_order: 3, is_active: true, created_at: '', updated_at: '' },
+          { id: 4, name: 'Liturgy', slug: 'liturgy', description: '', display_order: 4, is_active: true, created_at: '', updated_at: '' },
+          { id: 5, name: 'Saints', slug: 'saints', description: '', display_order: 5, is_active: true, created_at: '', updated_at: '' },
+          { id: 6, name: 'Prayers', slug: 'prayers', description: '', display_order: 6, is_active: true, created_at: '', updated_at: '' }
+        ]);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Template variable processing
   const processTemplate = (template: string, variables: Record<string, any>): string => {
@@ -210,7 +234,7 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
                   ...prev,
                   template: { ...prev.template, title: e.target.value }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
                 placeholder="{filename}"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -228,7 +252,7 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
                   ...prev,
                   template: { ...prev.template, description: e.target.value }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
                 placeholder="Uploaded file: {filename}"
               />
             </div>
@@ -236,16 +260,21 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
-              <input
-                type="text"
+              <select
                 value={uploadMetadata.template.category}
                 onChange={(e) => setUploadMetadata(prev => ({
                   ...prev,
                   template: { ...prev.template, category: e.target.value }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., bible, theology, music"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
+              >
+                <option value="">Select a category</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -261,7 +290,7 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
                     tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
                   }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
                 placeholder="tag1, tag2, tag3"
               />
             </div>
@@ -297,15 +326,14 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
                         }
                       }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={metadata.category}
                     onChange={(e) => {
                       const fileKey = `${file.name}-${file.size}`;
@@ -317,8 +345,15 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
                         }
                       }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -355,7 +390,7 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
         <select
           value={chapterId}
           onChange={(e) => onChapterChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
           required
         >
           {chapters.length === 0 ? (
@@ -409,7 +444,7 @@ const UnifiedUploadForm: React.FC<UnifiedUploadFormProps> = ({
         <button
           type="submit"
           disabled={uploadFiles.length === 0}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219150] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {uploadFiles.length === 0 ? 'Select Files First' : `Upload ${uploadFiles.length} File${uploadFiles.length !== 1 ? 's' : ''}`}
         </button>

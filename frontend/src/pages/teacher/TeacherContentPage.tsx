@@ -1,13 +1,15 @@
 import React, { useState, Suspense, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Video, FolderOpen, Sparkles } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Video, FolderOpen, Sparkles, ArrowLeft, Layout, Library } from 'lucide-react';
 import TeacherResourceManager from './components/TeacherResourceManager';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Lazy load heavy component
 const RecordVideo = React.lazy(() => import('./RecordVideo'));
 
 const TeacherContentPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const lessonId = searchParams.get('lessonId') || undefined;
   const courseId = searchParams.get('courseId') || undefined;
   const tabParam = searchParams.get('tab') as 'record' | 'resources' | null;
@@ -21,54 +23,82 @@ const TeacherContentPage: React.FC = () => {
     }
   }, [tabParam]);
 
+  const handleTabChange = (tab: 'record' | 'resources') => {
+    setActiveTab(tab);
+    setSearchParams(prev => {
+      prev.set('tab', tab);
+      return prev;
+    });
+  };
+
   return (
-    <div className="w-full h-full bg-gray-50/50">
-      <div className="w-full max-w-7xl mx-auto space-y-3 p-3 sm:p-4 lg:p-6">
-        {/* Dynamic Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-br from-[#2980B9] to-[#27AE60] rounded-lg shadow-sm">
-                {activeTab === 'record' ? (
-                  <Video className="h-5 w-5 text-white" />
-                ) : (
-                  <FolderOpen className="h-5 w-5 text-white" />
-                )}
-              </div>
-              {lessonId ? 'Lesson Content Manager' : 'Content Creation Studio'}
-            </h1>
-            <p className="text-sm text-gray-600 mt-0.5 ml-11">
-              {lessonId 
-                ? 'Create video content and manage resources for this lesson' 
-                : 'Create and manage your educational content library'}
-            </p>
-          </div>
-          
-          {/* Context Badge */}
+    <div className="h-[calc(100vh-4rem)] flex flex-col bg-white">
+      {/* Compact Header */}
+      <div className="border-b border-stone-200 px-4 py-2 flex items-center justify-between bg-white shrink-0">
+        <div className="flex items-center gap-4">
           {(lessonId || courseId) && (
-            <div className="inline-flex items-center px-3 py-1 bg-white border border-gray-200 rounded-full shadow-sm text-xs font-medium text-gray-600">
-              <Sparkles className="h-3.5 w-3.5 text-[#27AE60] mr-1.5" />
-              {lessonId ? 'Editing Lesson Content' : 'Course Mode'}
-            </div>
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-stone-100 rounded-full transition-colors text-stone-500"
+              title="Go Back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
           )}
+          
+          {/* Compact Tabs */}
+          <div className="flex bg-stone-100 p-1 rounded-lg">
+            <button
+              onClick={() => handleTabChange('record')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                activeTab === 'record'
+                  ? 'bg-white text-[#27AE60] shadow-sm'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              <Video className="h-4 w-4" />
+              <span>Video Studio</span>
+            </button>
+            <button
+              onClick={() => handleTabChange('resources')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                activeTab === 'resources'
+                  ? 'bg-white text-[#27AE60] shadow-sm'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              <Library className="h-4 w-4" />
+              <span>Resources</span>
+            </button>
+          </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col min-h-[calc(100vh-10rem)]">
-          {/* Tab Content - Simplified to only show RecordVideo */}
-          <div className="flex-1 p-4 sm:p-6 bg-white overflow-y-auto">
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <Suspense fallback={
-                <div className="flex flex-col items-center justify-center h-64">
-                  <div className="w-12 h-12 border-4 border-[#2980B9] border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-gray-500 font-medium">Loading Studio...</p>
-                </div>
-              }>
-                <RecordVideo courseId={courseId} lessonId={lessonId} variant="embedded" />
-              </Suspense>
-            </div>
+        {/* Context Badge */}
+        {(lessonId || courseId) && (
+          <div className="hidden sm:inline-flex items-center px-3 py-1 bg-stone-50 border border-stone-200 rounded-full text-xs font-medium text-stone-600">
+            <Sparkles className="h-3.5 w-3.5 text-[#27AE60] mr-1.5" />
+            {lessonId ? 'Editing Lesson' : 'Course Mode'}
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Main Content - Full Space */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === 'record' ? (
+          <div className="h-full w-full overflow-y-auto">
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center h-full">
+                <LoadingSpinner size="lg" text="Loading Studio..." variant="logo" />
+              </div>
+            }>
+              <RecordVideo courseId={courseId} lessonId={lessonId} variant="embedded" />
+            </Suspense>
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto p-6">
+            <TeacherResourceManager lessonId={lessonId} courseId={courseId} />
+          </div>
+        )}
       </div>
     </div>
   );

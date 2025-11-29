@@ -33,38 +33,29 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
     (recordingSources.camera?.getAudioTracks().length ?? 0) > 0;
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Active sources label */}
-      <span className="text-sm font-medium text-gray-700">Sources:</span>
-
+    <div className="flex items-center gap-2">
       {/* Camera toggle button */}
       <button
         onClick={onToggleCamera}
         disabled={disabled}
         className={`
-          group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+          group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
           transition-all duration-200
           ${isCameraActive
-            ? 'bg-green-100 text-green-700 border-2 border-green-300 shadow-sm'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ? 'bg-green-100 text-green-700 border border-green-300 shadow-sm'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
-        title={isCameraActive ? 'Camera active - Click to stop' : 'Camera inactive - Click to start'}
+        title={isCameraActive ? 'Stop Camera' : 'Start Camera'}
       >
-        <Camera className="h-4 w-4" />
+        <Camera className="h-3.5 w-3.5" />
         <span>Camera</span>
         
         {/* Active indicator dot */}
         {isCameraActive && (
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
         )}
-
-        {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-          {isCameraActive ? 'Stop camera' : 'Start camera'}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-        </div>
       </button>
 
       {/* Screen share toggle button */}
@@ -73,29 +64,23 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
         onClick={onToggleScreen}
         disabled={disabled && !isRecording} // Only disable if not recording or globally disabled
         className={`
-          group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+          group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
           transition-all duration-200
           ${isScreenActive
-            ? 'bg-blue-100 text-blue-700 border-2 border-blue-300 shadow-sm'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
           }
           ${(disabled && !isRecording) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
-        title={isScreenActive ? 'Screen sharing active - Click to stop' : 'Screen sharing inactive - Click to start'}
+        title={isScreenActive ? 'Stop Screen' : 'Start Screen'}
       >
-        <Monitor className="h-4 w-4" />
+        <Monitor className="h-3.5 w-3.5" />
         <span>Screen</span>
         
         {/* Active indicator dot */}
         {isScreenActive && (
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
         )}
-
-        {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-          {isScreenActive ? 'Stop screen sharing' : 'Start screen sharing'}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
-        </div>
       </button>
 
       {/* Microphone indicator (optional) */}

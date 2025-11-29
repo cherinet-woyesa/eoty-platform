@@ -9,8 +9,8 @@ class ContentUpload {
   static async findById(id) {
     return await db('content_uploads')
       .where('content_uploads.id', id)
-      .join('users as uploader', db.raw('content_uploads.uploaded_by::text'), '=', 'uploader.id')
-        .leftJoin('users as approver', db.raw('content_uploads.approved_by::text'), '=', 'approver.id')
+      .join('users as uploader', 'content_uploads.uploaded_by', '=', 'uploader.id')
+      .leftJoin('users as approver', 'content_uploads.approved_by', '=', 'approver.id')
       .select(
         'content_uploads.*',
         'uploader.first_name as uploader_first_name',
@@ -31,7 +31,7 @@ class ContentUpload {
 
       const offset = (page - 1) * limit;
       let query = db('content_uploads')
-        .join('users as uploader', db.raw('content_uploads.uploaded_by::text'), '=', 'uploader.id')
+        .join('users as uploader', 'content_uploads.uploaded_by', '=', 'uploader.id')
         .select(
           'content_uploads.*',
           'uploader.first_name as uploader_first_name',
@@ -784,7 +784,7 @@ class AdminAudit {
 
       const offset = (page - 1) * limit;
       let query = db('admin_audit_logs')
-        .join('users', db.raw('admin_audit_logs.admin_id::text'), '=', 'users.id')
+        .join('users', 'admin_audit_logs.admin_id', '=', 'users.id')
         .select(
           'admin_audit_logs.*',
           'users.first_name',

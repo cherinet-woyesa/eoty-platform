@@ -138,6 +138,11 @@ export const adminApi = {
     return response.data;
   },
 
+  deleteContent: async (uploadId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete(`/admin/uploads/${uploadId}`);
+    return response.data;
+  },
+
   // Moderation Tools
   getFlaggedContent: async (status?: string, page: number = 1, limit: number = 20): Promise<FlaggedContentResponse> => {
     const params = new URLSearchParams();

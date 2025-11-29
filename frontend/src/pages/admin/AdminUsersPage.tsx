@@ -18,7 +18,7 @@ const AdminUsersPage: React.FC = () => {
               onClick={() => setActiveTab('users')}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'users'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -29,7 +29,7 @@ const AdminUsersPage: React.FC = () => {
               onClick={() => setActiveTab('chapters')}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'chapters'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -40,7 +40,7 @@ const AdminUsersPage: React.FC = () => {
               onClick={() => setActiveTab('chapter-roles')}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'chapter-roles'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -51,7 +51,7 @@ const AdminUsersPage: React.FC = () => {
               onClick={() => setActiveTab('roles')}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'roles'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >

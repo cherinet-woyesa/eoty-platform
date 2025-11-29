@@ -8,7 +8,8 @@ import {
   Bot,
   Brain,
   FolderTree,
-  TrendingUp
+  TrendingUp,
+  Globe
 } from 'lucide-react';
 
 export interface NavItem {
@@ -194,6 +195,16 @@ export const teacherNavItems: NavItem[] = [
     requiredRole: ['teacher', 'admin'],
     section: 'primary',
   },
+  {
+    name: 'Chapters',
+    href: '/teacher/chapters',
+    icon: Globe,
+    badge: null,
+    description: 'Manage and join chapters',
+    color: 'text-indigo-600',
+    requiredRole: ['teacher', 'admin'],
+    section: 'primary',
+  },
 ];
 
 /**
@@ -261,6 +272,16 @@ export const studentNavItems: NavItem[] = [
     badge: null,
     description: 'Feed, Groups, Forums & Chapters',
     color: 'text-[#27AE60]',
+    requiredRole: 'student',
+    section: 'primary',
+  },
+  {
+    name: 'Chapters',
+    href: '/student/chapters',
+    icon: Globe,
+    badge: null,
+    description: 'Join local communities',
+    color: 'text-indigo-600',
     requiredRole: 'student',
     section: 'primary',
   },

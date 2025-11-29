@@ -61,7 +61,8 @@ interface VideoRecorderProps {
   onUploadComplete?: (lessonId: string, videoUrl: string) => void;
   courseId?: string;
   lessonId?: string;
-  variant?: 'default' | 'clean';
+  variant?: 'default' | 'clean' | 'embedded';
+  onToggleTips?: () => void;
 }
 
 interface Course {
@@ -79,7 +80,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   onUploadComplete,
   courseId,
   lessonId,
-  variant = 'default'
+  variant = 'default',
+  onToggleTips
 }) => {
   const isMobile = useIsMobile();
   
@@ -1415,6 +1417,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Attach stream if element exists
     if (el && recordingSources.camera) {
       el.srcObject = recordingSources.camera;
+      el.play().catch(e => console.warn("Error playing camera video:", e));
     }
   }, [recordingSources.camera]);
 
@@ -1425,6 +1428,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Attach stream if element exists
     if (el && recordingSources.screen) {
       el.srcObject = recordingSources.screen;
+      el.play().catch(e => console.warn("Error playing screen video:", e));
     }
   }, [recordingSources.screen]);
 
@@ -1519,14 +1523,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         return (
             <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white rounded-2xl">
                 <div className="text-center">
-                  <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <Camera className="h-10 w-10 text-slate-400" />
+                  <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse">
+                    <Camera className="h-6 w-6 text-slate-400" />
                   </div>
-                  <h3 className="text-xl font-medium mb-2">Ready to Record</h3>
-                  <p className="text-slate-400 mb-6">Start recording to activate camera or screen share</p>
+                  <h3 className="text-base font-medium mb-1">Ready to Record</h3>
+                  <p className="text-slate-400 text-xs mb-4">Start recording to activate camera or screen share</p>
                   {!enableAudio && (
-                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm">
-                      <MicOff className="h-4 w-4 mr-2" />
+                    <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
+                      <MicOff className="h-3 w-3 mr-1.5" />
                       Audio disabled
                     </div>
                   )}
@@ -1573,11 +1577,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 />
                 
                 {/* Overlay (Camera) - Responsive Position Bottom Right */}
-                <div className="absolute bottom-4 right-4 w-[25%] min-w-[160px] max-w-[320px] aspect-video rounded-xl overflow-hidden shadow-xl border border-white/20 bg-slate-900 z-20 transition-all hover:scale-105 group">
+                <div className="absolute bottom-4 right-4 w-[20%] min-w-[120px] max-w-[240px] aspect-video rounded-lg overflow-hidden shadow-xl border border-white/20 bg-slate-900 z-20 transition-all hover:scale-105 group">
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-contain" 
+                        className="w-full h-full object-cover" 
                     />
                     {/* Drag handle hint could go here */}
                 </div>
@@ -1631,7 +1635,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <video 
                 ref={handleCameraRef}
                 autoPlay muted playsInline 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 onLoadedMetadata={(e) => {
                     console.log('Preview camera metadata (Camera Only):', {
                         videoWidth: e.currentTarget.videoWidth,
@@ -1659,7 +1663,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       <div className={`flex flex-col overflow-hidden ${
         variant === 'default' 
           ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm max-w-3xl w-full mx-auto my-4' 
-          : 'w-full max-w-lg mx-auto flex-none max-h-[520px] overflow-hidden'
+          : variant === 'embedded'
+            ? 'w-full max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm my-4' // Reduced container size
+            : 'w-full max-w-lg mx-auto flex-none max-h-[520px] overflow-hidden'
       }`}>
       {/* Error Alert */}
       {errorMessage && (
@@ -1672,8 +1678,104 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Header - Minimalist Tabs Only */}
-      <div className={`px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-center ${variant !== 'default' ? 'bg-transparent border-none p-0' : ''}`}>
+      {/* Header - Adaptive based on variant */}
+      {variant === 'embedded' ? (
+        <div className="px-3 py-2 border-b border-slate-200 bg-white">
+           <div className="flex flex-wrap items-center justify-between gap-2">
+              {/* Sources & Layouts - Left Aligned */}
+              <div className="flex items-center gap-2">
+                 <SourceControlIndicators
+                    recordingSources={recordingSources}
+                    onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
+                    onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
+                    disabled={false}
+                    isRecording={isRecording}
+                 />
+                 {recordingSources.camera && recordingSources.screen && (
+                    <div className="ml-1 pl-2 border-l border-slate-200">
+                      <LayoutSelector
+                        currentLayout={currentLayout as LayoutType}
+                        onLayoutChange={handleLayoutChange}
+                        disabled={false}
+                        isCompositing={isCompositing}
+                      />
+                    </div>
+                 )}
+              </div>
+
+              {/* Right Side: Tabs & Tools */}
+              <div className="flex items-center gap-2 ml-auto">
+                 {/* Advanced Tools Toggle */}
+                 <button
+                    onClick={() => setShowAdvancedTools(prev => !prev)}
+                    className={`p-1.5 rounded-md transition-colors border ${
+                      showAdvancedTools
+                        ? 'bg-slate-100 text-slate-700 border-slate-300'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                    title="Advanced Tools"
+                 >
+                    <Settings className="h-3.5 w-3.5" />
+                 </button>
+
+                 <div className="flex bg-slate-100 p-0.5 rounded-md">
+                    <button
+                      onClick={() => handleTabChange('record')}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        activeTab === 'record' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Record
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('upload')}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        activeTab === 'upload' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Upload
+                    </button>
+                 </div>
+                 {onToggleTips && (
+                    <button onClick={onToggleTips} className="p-1.5 text-slate-400 hover:text-slate-600">
+                       <Sparkles className="h-4 w-4" />
+                    </button>
+                 )}
+              </div>
+           </div>
+           
+           {/* Advanced Tools Toolbar (Embedded) */}
+           {showAdvancedTools && (
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
+                  >
+                    <Sparkles className="h-4 w-4" /> Tips
+                  </button>
+                  <button
+                    onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
+                  >
+                    <Zap className="h-4 w-4" /> Settings
+                  </button>
+                  <button
+                    onClick={() => setShowSlideManager(!showSlideManager)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
+                  >
+                    <FileText className="h-4 w-4" /> Slides
+                  </button>
+                  <button
+                    onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
+                  >
+                    <Keyboard className="h-4 w-4" /> Shortcuts
+                  </button>
+              </div>
+           )}
+        </div>
+      ) : (
+      <div className={`px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-center gap-4 ${variant !== 'default' && variant !== 'embedded' ? 'bg-transparent border-none p-0' : ''}`}>
         {/* Tab Switcher */}
         <div className="flex bg-slate-100 p-1 rounded-xl w-full max-w-md">
           <button
@@ -1699,32 +1801,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <span>Upload Video</span>
           </button>
         </div>
-      </div>
 
-      {/* NEW: Screen Sharing Banner - Light theme */}
-      {isScreenSharing && activeTab === 'record' && !recordedVideo && (
-        <div className={`border-b border-slate-200/50 bg-white/85 backdrop-blur-sm ${variant === 'default' ? 'px-6 py-3' : 'px-4 py-2'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                <Monitor className="h-5 w-5 text-blue-600" />
-                <span className="text-sm font-semibold text-slate-700">You are sharing your screen</span>
-              </div>
-            </div>
-            <button
-              onClick={handleStopScreenShare}
-              className="px-4 py-2 bg-gradient-to-r from-[#FF6B35]/90 to-[#FF8C42]/90 text-white rounded-lg hover:from-[#FF5722] hover:to-[#FF7043] transition-all duration-200 text-sm font-medium flex items-center space-x-2 shadow-md"
-            >
-              <Square className="h-4 w-4" />
-              <span>Stop Sharing</span>
-            </button>
-          </div>
-        </div>
+        {/* Tips Button (if provided) */}
+        {onToggleTips && (
+          <button
+            onClick={onToggleTips}
+            className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+            title="Show Tips"
+          >
+            <Sparkles className="h-5 w-5" />
+          </button>
+        )}
+      </div>
       )}
 
+      {/* Screen Sharing Banner - Removed to save space (controls are in the toolbar) */}
+
+
       {/* NEW: Multi-source Controls with integrated components (Task 7.1) - Light theme */}
-      {activeTab === 'record' && !recordedVideo && (
+      {activeTab === 'record' && !recordedVideo && variant !== 'embedded' && (
         <div className={`border-b border-slate-200/50 bg-white/85 backdrop-blur-sm ${variant === 'default' ? 'px-6 py-3' : 'px-4 py-2'}`}>
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* Left: Sources & Layouts */}
@@ -1927,7 +2022,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
       {/* Main Preview Area */}
-      <div className={`relative bg-black ${variant === 'default' ? 'aspect-video w-full max-w-5xl mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[720px]' : 'aspect-video w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[420px]'}`}>
+      <div className={`relative bg-black ${
+        variant === 'default' 
+          ? 'aspect-video w-full max-w-5xl mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[720px]' 
+          : variant === 'embedded'
+            ? 'aspect-video w-full max-w-3xl mx-auto rounded-lg overflow-hidden shadow-md border border-slate-200 my-4' // Reduced size for embedded
+            : 'aspect-video w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[420px]'
+      }`}>
         {/* Use our custom preview logic (handles side-by-side, PiP, etc.) so framing stays predictable */}
         {renderPreview()}
         
@@ -2028,56 +2129,56 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         {activeTab === 'record' && !recordedVideo && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
             {!isRecording ? (
-              <div className="flex flex-col items-center space-y-3">
+              <div className="flex flex-col items-center space-y-2">
                 <button
                   onClick={handleStartRecording}
                   disabled={!recordingSources.camera && !recordingSources.screen}
-                  className="group relative flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-md rounded-full border-4 border-white/30 hover:border-red-500 hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50 disabled:hover:border-white/30 disabled:hover:bg-white/10"
+                  className="group relative flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-md rounded-full border-2 border-white/30 hover:border-red-500 hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50 disabled:hover:border-white/30 disabled:hover:bg-white/10"
                 >
-                  <div className="w-8 h-8 bg-red-600 rounded-full shadow-lg group-hover:scale-90 transition-transform duration-300"></div>
+                  <div className="w-6 h-6 bg-red-600 rounded-full shadow-lg group-hover:scale-90 transition-transform duration-300"></div>
                 </button>
-                <span className="text-white/90 text-sm font-medium bg-black/60 px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                <span className="text-white/90 text-xs font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
                   Start Recording
                 </span>
               </div>
               ) : (
-              <div className="flex items-center space-x-4 bg-black/60 backdrop-blur-xl px-5 py-3 rounded-full border border-white/10 shadow-lg transform transition-all hover:scale-105">
+              <div className="flex items-center space-x-3 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg transform transition-all hover:scale-105">
                 {/* Pause/Resume */}
                 <button
                   onClick={isPaused ? resumeRecording : pauseRecording}
-                  className="group flex flex-col items-center space-y-1"
+                  className="group flex flex-col items-center space-y-0.5"
                   title={isPaused ? "Resume" : "Pause"}
                 >
-                  <div className={`p-3 rounded-full transition-all ${isPaused ? 'bg-green-500 hover:bg-green-600' : 'bg-white/10 hover:bg-white/20'}`}>
-                    {isPaused ? <Play className="h-5 w-5 text-white fill-current" /> : <Pause className="h-5 w-5 text-white fill-current" />}
+                  <div className={`p-2 rounded-full transition-all ${isPaused ? 'bg-green-500 hover:bg-green-600' : 'bg-white/10 hover:bg-white/20'}`}>
+                    {isPaused ? <Play className="h-4 w-4 text-white fill-current" /> : <Pause className="h-4 w-4 text-white fill-current" />}
                   </div>
-                  <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">{isPaused ? 'Resume' : 'Pause'}</span>
+                  <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">{isPaused ? 'Resume' : 'Pause'}</span>
                 </button>
 
                 {/* Stop Button (Main Action) */}
                 <button
                   onClick={handleStopRecording}
                   disabled={recordingTime < 1 || isStoppingRef.current || !isRecording}
-                  className="group flex flex-col items-center space-y-1"
+                  className="group flex flex-col items-center space-y-0.5"
                   title="Stop Recording"
                 >
-                  <div className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg shadow-red-900/30 group-hover:scale-110">
-                    <Square className="h-5 w-5 fill-current" />
+                  <div className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg shadow-red-900/30 group-hover:scale-110">
+                    <Square className="h-4 w-4 fill-current" />
                   </div>
-                  <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Stop</span>
+                  <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">Stop</span>
                 </button>
                 
                 {/* Save Session (Advanced) */}
                 {showAdvancedTools && (
                     <button
                         onClick={handleSaveSession}
-                        className="group flex flex-col items-center space-y-1"
+                        className="group flex flex-col items-center space-y-0.5"
                         title="Save Session Draft"
                     >
-                        <div className="p-3 rounded-full bg-indigo-600/80 hover:bg-indigo-600 text-white transition-all hover:scale-105">
-                            <Save className="h-5 w-5" />
+                        <div className="p-2 rounded-full bg-indigo-600/80 hover:bg-indigo-600 text-white transition-all hover:scale-105">
+                            <Save className="h-4 w-4" />
                         </div>
-                        <span className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Save</span>
+                        <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">Save</span>
                     </button>
                 )}
               </div>

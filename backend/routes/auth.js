@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
+const passport = require('passport');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -10,7 +11,8 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/profiles/');
   },
   filename: (req, file, cb) => {
-    cb(null, `${req.user.userId}-${Date.now()}-${file.originalname}`);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
   }
 });
 
@@ -31,9 +33,20 @@ const upload = multer({
 // Public routes
 router.post('/register', authController.register);
 router.post('/login', authController.login);
-router.post('/google-login', authController.googleLogin);
-router.post('/facebook-login', authController.facebookLogin); // FR7: Facebook OAuth
-router.post('/google/callback', authController.googleCallback.bind(authController)); // Google OAuth callback
+
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  authController.googleCallback
+);
+
+// Facebook OAuth routes
+router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+router.get('/facebook/callback',
+  passport.authenticate('facebook', { failureRedirect: '/login', session: false }),
+  authController.facebookCallback
+);
 
 // Password reset routes
 router.post('/forgot-password', authController.forgotPassword);

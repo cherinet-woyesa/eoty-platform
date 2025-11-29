@@ -247,7 +247,7 @@ const StudentDashboard: React.FC = () => {
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={handleRetry}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
               >
                 <Loader2 className="h-4 w-4 mr-2" />
                 Try Again
@@ -274,7 +274,7 @@ const StudentDashboard: React.FC = () => {
           {/* Header Section */}
           <div className="flex flex-col gap-4">
             {/* Welcome Section - match Teacher Dashboard style */}
-            <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-sm w-full">
+            <div className="bg-gradient-to-r from-[#27AE60]/15 to-[#16A085]/15 rounded-lg p-4 border border-[#27AE60]/25 shadow-sm w-full">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1.5">
@@ -314,7 +314,7 @@ const StudentDashboard: React.FC = () => {
                   </Link>
                   <Link
                     to="/student/journeys"
-                    className="inline-flex items-center px-4 py-2 bg-white/80 hover:bg-white text-stone-800 text-sm font-semibold rounded-lg border border-stone-300 shadow-sm hover:shadow-md transition-all duration-200"
+                    className="inline-flex items-center px-4 py-2 bg-white hover:bg-stone-50 text-[#27AE60] text-sm font-semibold rounded-lg border border-[#27AE60]/30 shadow-sm hover:shadow-md transition-all duration-200"
                   >
                     <Target className="h-4 w-4 mr-2" />
                     Spiritual Journeys

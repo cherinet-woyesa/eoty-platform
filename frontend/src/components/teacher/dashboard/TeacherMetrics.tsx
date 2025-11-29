@@ -29,16 +29,19 @@ interface MetricItem {
   value: number | string;
   icon: React.ReactNode;
   color: string;
+  borderColor: string;
+  bgColor: string;
 }
 
 // Compact Metrics Card Component
 const MetricsCard: React.FC<{ metric: MetricItem }> = ({ metric }) => {
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40">
+    <div className={`bg-white/90 backdrop-blur-md rounded-lg p-4 border ${metric.borderColor} shadow-sm hover:shadow-md transition-all group relative overflow-hidden`}>
+      <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${metric.color} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
       <div className="flex items-center justify-between mb-3">
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg blur-md"></div>
-          <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-lg border border-[#27AE60]/25">
+          <div className={`absolute inset-0 ${metric.bgColor} rounded-full blur-md group-hover:blur-lg transition-all opacity-50`}></div>
+          <div className={`relative p-2 ${metric.bgColor} rounded-lg group-hover:scale-110 transition-transform`}>
             {metric.icon}
           </div>
         </div>
@@ -63,25 +66,33 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
       title: 'Total Courses',
       value: stats?.totalCourses || 0,
       icon: <BookOpen className="h-5 w-5 text-[#27AE60]" />,
-      color: 'from-[#27AE60] to-[#16A085]'
+      color: 'from-[#27AE60] to-[#16A085]',
+      borderColor: 'border-[#27AE60]/20 hover:border-[#27AE60]/50',
+      bgColor: 'bg-[#27AE60]/10'
     },
     {
       title: 'Active Students',
       value: stats?.totalStudentsEnrolled || 0,
       icon: <Users className="h-5 w-5 text-[#16A085]" />,
-      color: 'from-[#16A085] to-[#2980B9]'
+      color: 'from-[#16A085] to-[#2980B9]',
+      borderColor: 'border-[#16A085]/20 hover:border-[#16A085]/50',
+      bgColor: 'bg-[#16A085]/10'
     },
     {
       title: 'Total Lessons',
       value: stats?.totalLessons || 0,
       icon: <Video className="h-5 w-5 text-[#2980B9]" />,
-      color: 'from-[#2980B9] to-[#27AE60]'
+      color: 'from-[#2980B9] to-[#27AE60]',
+      borderColor: 'border-[#2980B9]/20 hover:border-[#2980B9]/50',
+      bgColor: 'bg-[#2980B9]/10'
     },
     {
       title: 'Completion Rate',
       value: `${stats?.averageCompletionRate || 0}%`,
-      icon: <Target className="h-5 w-5 text-[#F39C12]" />,
-      color: 'from-[#F39C12] to-[#E67E22]'
+      icon: <Target className="h-5 w-5 text-[#27AE60]" />,
+      color: 'from-[#27AE60] to-[#16A085]',
+      borderColor: 'border-[#27AE60]/20 hover:border-[#27AE60]/50',
+      bgColor: 'bg-[#27AE60]/10'
     }
   ], [stats]);
 

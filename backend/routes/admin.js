@@ -20,6 +20,7 @@ router.put('/users/status', requirePermission('user:manage'), adminController.up
 router.get('/uploads', requirePermission('content:view'), adminController.getUploadQueue);
 router.post('/uploads', requirePermission('content:create'), contentUpload.single('file'), handleGCSUpload('edu-platform-videos'), adminController.uploadContent);
 router.post('/uploads/:uploadId/review', requirePermission('content:moderate'), adminController.approveContent);
+router.delete('/uploads/:uploadId', requirePermission('content:delete'), adminController.deleteUpload);
 // FR5: Upload Management Enhancements
 router.get('/uploads/:uploadId/preview', requirePermission('content:view'), adminController.getUploadPreview);
 router.post('/uploads/:uploadId/retry', requirePermission('content:create'), adminController.retryUpload);

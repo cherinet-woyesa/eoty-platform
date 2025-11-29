@@ -438,89 +438,80 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className={`bg-gradient-to-br from-white/95 via-[#FAF8F3]/95 to-[#F5F3ED]/95 rounded-2xl shadow-2xl w-full ${isFullscreen ? 'max-w-full h-full' : 'max-w-6xl max-h-[95vh]'} overflow-hidden flex flex-col border border-slate-200/50 backdrop-blur-md`}>
-        {/* Header - Light beige/silver theme */}
-        <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200/50">
-                <Scissors className="h-5 w-5 text-slate-700" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-700">Trim Your Video</h2>
-                <p className="text-sm text-slate-600">Select the part you want to keep by dragging the handles</p>
-              </div>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className={`bg-slate-900 rounded-xl shadow-2xl w-full ${isFullscreen ? 'max-w-full h-full' : 'max-w-5xl max-h-[90vh]'} flex flex-col border border-slate-800 my-auto`}>
+        {/* Header - Compact */}
+        <div className="px-4 py-3 border-b border-slate-800 bg-slate-900 flex-shrink-0 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-slate-800 border border-slate-700">
+              <Scissors className="h-4 w-4 text-blue-400" />
             </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={toggleFullscreen}
-                className="p-2 text-slate-600 hover:text-slate-700 hover:bg-white/50 rounded-lg transition-colors border border-slate-200/50"
-                title="Toggle fullscreen"
-              >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 border border-slate-300/50 rounded-lg bg-white/90 backdrop-blur-sm text-slate-700 hover:bg-white hover:border-slate-400/50 transition-all duration-200"
-              >
-                <X className="h-4 w-4 inline mr-2" />
-                Cancel
-              </button>
-              <button
-                onClick={exportTrimmedVideo}
-                disabled={isProcessing}
-                className="px-6 py-2 bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white rounded-lg hover:from-[#00E6B8] hover:to-[#00D4A3] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center shadow-lg hover:shadow-[#39FF14]/40 backdrop-blur-sm border border-[#39FF14]/30"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 inline mr-2" />
-                    Save Trimmed Video
-                  </>
-                )}
-              </button>
+            <div>
+              <h2 className="text-lg font-bold text-white">Trim Video</h2>
             </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleFullscreen}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              title="Toggle fullscreen"
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={onCancel}
+              className="px-3 py-1.5 text-sm border border-slate-700 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={exportTrimmedVideo}
+              disabled={isProcessing}
+              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center shadow-lg shadow-blue-900/20"
+            >
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white inline mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-3 w-3 inline mr-2" />
+                  Save
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Help Banner - Light theme */}
+        {/* Help Banner - Compact */}
         {showHelp && (
-          <div className="px-6 py-4 bg-gradient-to-r from-[#00D4FF]/10 to-[#00B8E6]/10 border-b border-slate-200/50 flex items-start justify-between flex-shrink-0 backdrop-blur-sm">
-            <div className="flex items-start space-x-3">
-              <Info className="h-5 w-5 text-[#00D4FF] flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-slate-700">
-                <p className="font-bold mb-1">How to trim your video:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Drag the <span className="font-semibold text-[#FFD700]">gold handles</span> to set the start and end points</li>
-                  <li>Click anywhere on the timeline to preview that part of the video</li>
-                  <li>Use the playback controls or keyboard shortcuts (Space, Arrow keys) to review</li>
-                  <li>Use quick trim buttons to remove seconds from start/end</li>
-                  <li>Click "Save Trimmed Video" when you're satisfied with your selection</li>
-                </ul>
+          <div className="px-4 py-2 bg-blue-900/20 border-b border-blue-900/30 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center space-x-3 text-xs text-slate-300">
+              <Info className="h-4 w-4 text-blue-400 flex-shrink-0" />
+              <div className="flex space-x-4">
+                <span>Drag <span className="font-semibold text-blue-400">blue handles</span> to trim</span>
+                <span><span className="font-semibold text-slate-200">Space</span> to play/pause</span>
+                <span><span className="font-semibold text-slate-200">Arrows</span> to seek</span>
               </div>
             </div>
             <button
               onClick={() => setShowHelp(false)}
-              className="text-slate-600 hover:text-slate-700 p-1 rounded hover:bg-white/50 transition-colors"
+              className="text-slate-500 hover:text-slate-300 p-1 rounded hover:bg-slate-800 transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-3 w-3" />
             </button>
           </div>
         )}
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-y-auto bg-black relative min-h-[300px]">
           {/* Video Preview */}
-          <div className="flex-1 bg-black flex items-center justify-center p-6">
-            <div className="relative w-full h-full max-w-4xl">
+          <div className="flex-1 flex items-center justify-center p-4 relative bg-black/50">
+            <div className="relative w-full h-full flex items-center justify-center">
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-full object-contain rounded-lg"
+                className="max-w-full max-h-[50vh] object-contain shadow-2xl"
                 onTimeUpdate={() => {
                   const time = videoRef.current?.currentTime || 0;
                   setCurrentTime(time);
@@ -535,12 +526,13 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                 onPause={() => setIsPlaying(false)}
               />
               
-              {/* Time Display Overlay - Light theme */}
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-lg text-sm font-mono flex items-center space-x-4 border border-slate-200/50 shadow-lg">
-                <span className="font-semibold">{formatTime(currentTime)} / {formatTime(duration)}</span>
-                <div className="flex items-center space-x-2">
-                  <button onClick={toggleMute} className="hover:text-[#FFD700] transition-colors p-1 rounded">
-                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {/* Time Display Overlay */}
+              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-md text-[10px] font-mono flex items-center space-x-2 border border-white/10">
+                <span className="font-medium tracking-wider">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                <div className="h-3 w-px bg-white/20"></div>
+                <div className="flex items-center space-x-1 group">
+                  <button onClick={toggleMute} className="hover:text-blue-400 transition-colors">
+                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                   </button>
                   <input
                     type="range"
@@ -549,39 +541,32 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                     step="0.01"
                     value={volume}
                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-20 accent-[#FFD700]"
+                    className="w-12 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                   />
                 </div>
               </div>
               
-              {/* Trim Info Overlay - Light theme */}
-              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-lg text-sm border border-slate-200/50 shadow-lg">
-                <div className="font-medium text-[#FFD700] flex items-center space-x-1 mb-1">
-                  <Scissors className="h-4 w-4" />
-                  <span>Selected Segment</span>
-                </div>
-                <div className="font-mono text-xs space-y-0.5">
-                  <div>Start: {formatTime(trimStart)}</div>
-                  <div>End: {formatTime(trimEnd)}</div>
-                  <div className="pt-1 border-t border-slate-200 mt-1">
-                    <span className="text-[#39FF14] font-semibold">Keep: {formatTime(getTrimmedDuration())}</span>
+              {/* Trim Info Overlay */}
+              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-1.5 rounded-md text-[10px] border border-white/10">
+                <div className="font-mono space-y-0.5 text-slate-300">
+                  <div className="flex justify-between gap-2"><span>Start:</span> <span className="text-white">{formatTime(trimStart)}</span></div>
+                  <div className="flex justify-between gap-2"><span>End:</span> <span className="text-white">{formatTime(trimEnd)}</span></div>
+                  <div className="pt-1 border-t border-white/10 mt-1 flex justify-between gap-2">
+                    <span className="text-slate-400">Dur:</span>
+                    <span className="text-green-400 font-bold">{formatTime(getTrimmedDuration())}</span>
                   </div>
                 </div>
               </div>
               
               {/* Playback Speed Control */}
-              <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-lg text-sm border border-slate-200/50 shadow-lg">
-                <label className="text-xs text-slate-600 mb-1 block">Playback Speed</label>
+              <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[10px] border border-white/10">
                 <select
                   value={playbackSpeed}
                   onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-                  className="text-xs bg-white border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-[#FFD700]/50"
+                  className="bg-transparent border-none text-[10px] text-slate-300 focus:ring-0 cursor-pointer py-0 pl-0 pr-4"
                 >
-                  <option value="0.25">0.25x</option>
                   <option value="0.5">0.5x</option>
-                  <option value="0.75">0.75x</option>
                   <option value="1">1x</option>
-                  <option value="1.25">1.25x</option>
                   <option value="1.5">1.5x</option>
                   <option value="2">2x</option>
                 </select>
@@ -589,57 +574,49 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
             </div>
           </div>
 
-          {/* Controls - Light theme */}
-          <div className="bg-white/85 backdrop-blur-sm border-t border-slate-200/50 p-6 flex-shrink-0">
+          {/* Controls Section */}
+          <div className="bg-slate-900 border-t border-slate-800 p-3 flex-shrink-0 z-10">
             {/* Quick Actions Bar */}
-            <div className="flex items-center justify-center space-x-2 mb-4 flex-wrap">
+            <div className="flex items-center justify-center space-x-2 mb-3 flex-wrap gap-y-2">
               <button
                 onClick={() => removeFirstSeconds(5)}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200"
-                title="Remove first 5 seconds"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all"
               >
                 -5s Start
               </button>
               <button
                 onClick={() => removeLastSeconds(5)}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200"
-                title="Remove last 5 seconds"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all"
               >
                 -5s End
               </button>
               <button
                 onClick={resetTrim}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 flex items-center"
-                title="Reset trim"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all flex items-center"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Reset
               </button>
-              <div className="w-px h-6 bg-slate-300"></div>
+              <div className="w-px h-4 bg-slate-700 mx-1"></div>
               <button
                 onClick={() => setTimelineZoom(Math.max(0.1, timelineZoom - 0.2))}
                 disabled={timelineZoom <= 0.1}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center"
-                title="Zoom out timeline"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all"
               >
-                <ZoomOut className="h-3 w-3 mr-1" />
-                Zoom Out
+                <ZoomOut className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setTimelineZoom(Math.min(2, timelineZoom + 0.2))}
                 disabled={timelineZoom >= 2}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center"
-                title="Zoom in timeline"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all"
               >
-                <ZoomIn className="h-3 w-3 mr-1" />
-                Zoom In
+                <ZoomIn className="h-3 w-3" />
               </button>
-              <div className="w-px h-6 bg-slate-300"></div>
+              <div className="w-px h-4 bg-slate-700 mx-1"></div>
               <button
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center"
-                title="Undo (Ctrl+Z)"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all flex items-center"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Undo
@@ -647,8 +624,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
               <button
                 onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
-                className="px-3 py-1.5 text-xs bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center"
-                title="Redo (Ctrl+Y)"
+                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all flex items-center"
               >
                 <RotateCw className="h-3 w-3 mr-1" />
                 Redo
@@ -656,60 +632,45 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
             </div>
             
             {/* Playback Controls */}
-            <div className="flex items-center justify-center space-x-4 mb-6">
+            <div className="flex items-center justify-center space-x-4 mb-4">
               <button
                 onClick={jumpToTrimStart}
-                className="p-2 text-slate-600 hover:text-slate-700 hover:bg-white/50 rounded-lg transition-colors border border-slate-200/50"
-                title="Jump to trim start (Home)"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
               >
-                <SkipBack className="h-5 w-5" />
+                <SkipBack className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleSeek(Math.max(trimStart, currentTime - 5))}
-                className="p-2 text-slate-600 hover:text-slate-700 hover:bg-white/50 rounded-lg transition-colors border border-slate-200/50"
-                title="Rewind 5 seconds (←)"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
               >
-                <Rewind className="h-5 w-5" />
+                <Rewind className="h-4 w-4" />
               </button>
               <button
                 onClick={handlePlayPause}
-                className="p-4 bg-gradient-to-r from-[#39FF14]/90 to-[#00FF41]/90 text-white rounded-full hover:from-[#00E6B8] hover:to-[#00D4A3] transition-all duration-200 shadow-lg hover:shadow-[#39FF14]/40 backdrop-blur-sm border border-[#39FF14]/30"
-                title="Play/Pause (Space)"
+                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-900/30 hover:scale-105 active:scale-95"
               >
-                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+                {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 ml-0.5 fill-current" />}
               </button>
               <button
                 onClick={() => handleSeek(Math.min(trimEnd, currentTime + 5))}
-                className="p-2 text-slate-600 hover:text-slate-700 hover:bg-white/50 rounded-lg transition-colors border border-slate-200/50"
-                title="Forward 5 seconds (→)"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
               >
-                <FastForward className="h-5 w-5" />
+                <FastForward className="h-4 w-4" />
               </button>
               <button
                 onClick={jumpToTrimEnd}
-                className="p-2 text-slate-600 hover:text-slate-700 hover:bg-white/50 rounded-lg transition-colors border border-slate-200/50"
-                title="Jump to trim end (End)"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
               >
-                <SkipForward className="h-5 w-5" />
+                <SkipForward className="h-4 w-4" />
               </button>
             </div>
 
             {/* Timeline */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-[#FFD700]" />
-                  <span>Selected Duration: <span className="font-semibold text-slate-700">{formatTime(getTrimmedDuration())}</span></span>
-                </div>
-                <div className="text-xs text-slate-500 bg-white/90 backdrop-blur-sm px-2 py-1 rounded border border-slate-200/50">
-                  Start: {formatTime(trimStart)} • End: {formatTime(trimEnd)}
-                </div>
-              </div>
-
+            <div className="space-y-2 max-w-5xl mx-auto">
               {/* Visual Timeline */}
               <div
                 ref={timelineRef}
-                className="relative h-32 bg-slate-200/50 rounded-lg cursor-pointer overflow-hidden select-none shadow-inner border border-slate-300/50"
+                className="relative h-16 bg-slate-800 rounded-lg cursor-pointer overflow-hidden select-none shadow-inner border border-slate-700"
                 onClick={(e) => {
                   if (!isDraggingRef.current && timelineRef.current && duration > 0) {
                     const rect = timelineRef.current.getBoundingClientRect();
@@ -723,64 +684,60 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                   }
                 }}
               >
-                {/* Trimmed Region - Gold/Orange gradient with pattern */}
+                {/* Trimmed Region - Blue gradient */}
                 <div
-                  className="absolute top-0 bottom-0 bg-gradient-to-r from-[#FFD700]/30 to-[#FFA500]/30 border-l-4 border-r-4 border-[#FFD700] shadow-lg"
+                  className="absolute top-0 bottom-0 bg-blue-500/20 border-l-2 border-r-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                   style={{
                     left: `${getTimelinePosition(trimStart)}%`,
                     right: `${100 - getTimelinePosition(trimEnd)}%`
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-xs font-bold text-[#FFD700] bg-white/20 px-2 py-1 rounded backdrop-blur-sm">
-                      KEEP THIS
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-[9px] font-bold text-blue-300 bg-slate-900/40 px-1.5 py-0.5 rounded backdrop-blur-sm border border-blue-500/20">
+                      KEEP
                     </div>
                   </div>
                 </div>
                 
-                {/* Removed Regions - Light grey with diagonal pattern */}
+                {/* Removed Regions - Dark overlay */}
                 <div
-                  className="absolute top-0 bottom-0 bg-gradient-to-r from-slate-300/40 to-slate-400/40 backdrop-blur-sm"
+                  className="absolute top-0 bottom-0 bg-black/60 backdrop-blur-[1px]"
                   style={{
                     left: 0,
                     width: `${getTimelinePosition(trimStart)}%`
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-medium bg-white/10">
-                    <div className="text-center">
-                      <X className="h-4 w-4 mx-auto mb-1 text-slate-400" />
-                      <div>REMOVE</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 font-medium">
+                    <div className="text-center opacity-50">
+                      <X className="h-3 w-3 mx-auto mb-0.5" />
                     </div>
                   </div>
                 </div>
                 <div
-                  className="absolute top-0 bottom-0 bg-gradient-to-r from-slate-400/40 to-slate-300/40 backdrop-blur-sm"
+                  className="absolute top-0 bottom-0 bg-black/60 backdrop-blur-[1px]"
                   style={{
                     left: `${getTimelinePosition(trimEnd)}%`,
                     right: 0
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-medium bg-white/10">
-                    <div className="text-center">
-                      <X className="h-4 w-4 mx-auto mb-1 text-slate-400" />
-                      <div>REMOVE</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 font-medium">
+                    <div className="text-center opacity-50">
+                      <X className="h-3 w-3 mx-auto mb-0.5" />
                     </div>
                   </div>
                 </div>
 
-                {/* Current Time Indicator - Cyan neon */}
+                {/* Current Time Indicator - White line with glow */}
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#00D4FF] to-[#00B8E6] z-10 shadow-lg"
+                  className="absolute top-0 bottom-0 w-0.5 bg-white z-10 shadow-[0_0_10px_rgba(255,255,255,0.8)]"
                   style={{ left: `${getTimelinePosition(currentTime)}%` }}
                 >
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-gradient-to-r from-[#00D4FF] to-[#00B8E6] rounded-full flex items-center justify-center border-2 border-white shadow-md">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                  </div>
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rounded-full shadow-sm"></div>
                 </div>
 
-                {/* Trim Start Handle - Gold with label */}
+                {/* Trim Start Handle - Blue */}
                 <div
-                  className="absolute top-0 bottom-0 w-10 bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 cursor-ew-resize hover:from-[#FFC107] hover:to-[#FF8C00] transition-all z-20 flex flex-col items-center justify-center select-none shadow-xl border-2 border-white rounded-lg group"
+                  className="absolute top-0 bottom-0 w-6 bg-blue-600/0 hover:bg-blue-600/10 cursor-ew-resize transition-all z-20 flex flex-col items-center justify-center select-none group"
                   style={{ left: `${getTimelinePosition(trimStart)}%`, transform: 'translateX(-50%)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -795,15 +752,15 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                     saveToHistory();
                   }}
                 >
-                  <div className="w-1 h-8 bg-white rounded-full shadow mb-1"></div>
-                  <div className="text-[8px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="w-1 h-10 bg-blue-500 rounded-full shadow-lg group-hover:scale-110 transition-transform"></div>
+                  <div className="absolute -bottom-5 text-[8px] font-bold text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-slate-900 px-1 py-0.5 rounded border border-slate-700">
                     START
                   </div>
                 </div>
 
-                {/* Trim End Handle - Gold with label */}
+                {/* Trim End Handle - Blue */}
                 <div
-                  className="absolute top-0 bottom-0 w-10 bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 cursor-ew-resize hover:from-[#FFC107] hover:to-[#FF8C00] transition-all z-20 flex flex-col items-center justify-center select-none shadow-xl border-2 border-white rounded-lg group"
+                  className="absolute top-0 bottom-0 w-6 bg-blue-600/0 hover:bg-blue-600/10 cursor-ew-resize transition-all z-20 flex flex-col items-center justify-center select-none group"
                   style={{ left: `${getTimelinePosition(trimEnd)}%`, transform: 'translateX(-50%)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -818,48 +775,24 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                     saveToHistory();
                   }}
                 >
-                  <div className="w-1 h-8 bg-white rounded-full shadow mb-1"></div>
-                  <div className="text-[8px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="w-1 h-10 bg-blue-500 rounded-full shadow-lg group-hover:scale-110 transition-transform"></div>
+                  <div className="absolute -bottom-5 text-[8px] font-bold text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-slate-900 px-1 py-0.5 rounded border border-slate-700">
                     END
                   </div>
                 </div>
               </div>
 
               {/* Time Markers */}
-              <div className="flex justify-between text-xs text-slate-500 px-2">
+              <div className="flex justify-between text-[9px] text-slate-500 px-1 font-mono">
                 {(() => {
                   const { start: visibleStart, end: visibleEnd } = getVisibleTimeRange();
                   const markers = [];
-                  for (let i = 0; i <= 4; i++) {
-                    const time = visibleStart + ((visibleEnd - visibleStart) / 4) * i;
+                  for (let i = 0; i <= 6; i++) {
+                    const time = visibleStart + ((visibleEnd - visibleStart) / 6) * i;
                     markers.push(<span key={i}>{formatTime(time)}</span>);
                   }
                   return markers;
                 })()}
-              </div>
-
-              {/* Timeline Info */}
-              <div className="mt-2 p-2 bg-gradient-to-r from-[#39FF14]/10 to-[#00FF41]/10 rounded-lg border border-[#39FF14]/30">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <Sparkles className="h-3 w-3 text-[#39FF14]" />
-                      <span className="text-slate-700 font-medium">Trimmed Duration:</span>
-                      <span className="text-slate-800 font-bold">{formatTime(getTrimmedDuration())}</span>
-                    </div>
-                    <div className="text-slate-600">
-                      <span className="font-medium">Original:</span> {formatTime(duration)}
-                    </div>
-                    <div className="text-slate-600">
-                      <span className="font-medium">Saved:</span> {formatTime(duration - getTrimmedDuration())}
-                    </div>
-                  </div>
-                  {timelineZoom !== 1 && (
-                    <div className="text-slate-500 text-xs">
-                      Zoom: {timelineZoom.toFixed(1)}x
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>

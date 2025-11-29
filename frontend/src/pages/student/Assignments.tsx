@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { BookOpen, Calendar, CheckCircle, Loader2 } from 'lucide-react';
 import { assignmentsApi, type StudentAssignment } from '@/services/api/assignments';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const StudentAssignments: React.FC = () => {
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
@@ -46,10 +47,7 @@ const StudentAssignments: React.FC = () => {
     return (
       <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="flex items-center justify-center min-h-80">
-          <div className="text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mx-auto mb-3" />
-            <p className="text-stone-600 text-sm">Loading assignments…</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading assignments..." variant="logo" />
         </div>
       </div>
     );

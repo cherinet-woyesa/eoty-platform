@@ -521,6 +521,15 @@ class OnboardingService {
       const flow = await db('onboarding_flows')
         .where({ audience, is_active: true })
         .first();
+
+      if (flow) {
+        // Fetch steps for the flow
+        const steps = await db('onboarding_steps')
+          .where({ flow_id: flow.id })
+          .orderBy('order_index', 'asc');
+        flow.steps = steps;
+      }
+
       return flow;
     } catch (error) {
       console.error('Failed to find flow:', error);

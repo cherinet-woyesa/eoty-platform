@@ -3,6 +3,7 @@ import { authApi } from '@/services/api';
 import { onboardingApi } from '@/services/api/onboarding';
 import { setAuthToken } from '@/services/api/apiClient';
 import { extractErrorMessage } from '@/utils/errorMessages';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface User {
   id: string;
@@ -587,13 +588,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-gray-700 font-medium">Signing you in…</p>
-          <p className="text-xs text-gray-500 mt-1">This usually only takes a moment.</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        fullScreen 
+        size="xl" 
+        text="Signing you in..." 
+        variant="logo"
+      />
     );
   }
 

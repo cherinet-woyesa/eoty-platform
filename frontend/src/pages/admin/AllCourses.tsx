@@ -386,13 +386,13 @@ const AllCourses: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>

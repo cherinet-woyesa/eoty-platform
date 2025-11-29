@@ -309,7 +309,7 @@ const adminController = {
 
       // Handle role update
       if (role !== undefined) {
-        const validRoles = ['student', 'teacher', 'admin'];
+        const validRoles = ['student', 'teacher', 'admin', 'chapter_admin', 'regional_coordinator'];
         if (!validRoles.includes(role)) {
           return res.status(400).json({
             success: false,
@@ -970,6 +970,46 @@ const adminController = {
       res.status(500).json({
         success: false,
         message: 'Failed to process content'
+      });
+    }
+  },
+
+  async deleteUpload(req, res) {
+    try {
+      const { uploadId } = req.params;
+      const userId = req.user.userId;
+
+      const upload = await ContentUpload.findById(uploadId);
+      if (!upload) {
+        return res.status(404).json({
+          success: false,
+          message: 'Upload not found'
+        });
+      }
+
+      // Delete from database
+      await db('content_uploads').where({ id: uploadId }).del();
+
+      // Log audit
+      await AdminAudit.logAction(
+        userId,
+        'content_delete',
+        'content',
+        uploadId,
+        `Deleted content: ${upload.title}`,
+        { status: upload.status },
+        null
+      );
+
+      res.json({
+        success: true,
+        message: 'Content deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete content error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete content'
       });
     }
   },
@@ -1871,107 +1911,89 @@ const adminController = {
         });
       }
 
-      // Admins can see all stats (no chapter filtering in simplified role system)
+      // Helper to safely execute count queries
+      const safeCount = async (query) => {
+        try {
+          const result = await query.count('id as count').first();
+          return parseInt(result?.count || 0);
+        } catch (err) {
+          // Only warn for specific tables that might be missing during dev/migration
+          if (!err.message.includes('relation "users" does not exist')) {
+             console.warn('Stats query failed:', err.message);
+          }
+          return 0;
+        }
+      };
 
-      // Total users
-      const totalUsers = await db('users').count('id as count').first();
-
-      // Active users (logged in within last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const activeUsers = await db('users')
-        .where('last_login_at', '>=', thirtyDaysAgo)
-        .count('id as count')
-        .first();
 
-      // New registrations (last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const newRegistrations = await db('users')
-        .where('created_at', '>=', sevenDaysAgo)
-        .count('id as count')
-        .first();
 
-      // Active courses
-      let coursesQuery = db('courses').where('is_published', true);
-      // Note: courses table might not have chapter_id, skip filtering if not available
-      const activeCourses = await coursesQuery.count('id as count').first();
-
-      // Completed lessons
-      let completedLessons = { count: 0 };
-      try {
-        const completedLessonsResult = await db('user_lesson_progress')
-          .where(function() {
+      // Execute all queries in parallel for better performance
+      const [
+        totalUsers,
+        activeUsers,
+        newRegistrations,
+        activeCourses,
+        completedLessons,
+        contentApprovals,
+        teacherAppsCount,
+        flaggedContent,
+        totalEnrollments,
+        completedEnrollments
+      ] = await Promise.all([
+        // Total users
+        safeCount(db('users')),
+        
+        // Active users
+        safeCount(db('users').where('last_login_at', '>=', thirtyDaysAgo)),
+        
+        // New registrations
+        safeCount(db('users').where('created_at', '>=', sevenDaysAgo)),
+        
+        // Active courses
+        safeCount(db('courses').where('is_published', true)),
+        
+        // Completed lessons
+        safeCount(db('user_lesson_progress').where(function() {
             this.where('progress', 100).orWhere('is_completed', true);
-          })
-          .count('id as count')
-          .first();
-        completedLessons = completedLessonsResult || { count: 0 };
-      } catch (err) {
-        console.warn('Error querying completed lessons:', err.message);
-      }
+        })),
+        
+        // Pending content approvals
+        safeCount(db('content_uploads').where('status', 'pending')),
+        
+        // Pending teacher applications
+        safeCount(db('teacher_applications').where('status', 'pending')),
+        
+        // Flagged content
+        safeCount(db('flagged_content').where('status', 'pending')),
+        
+        // Total enrollments
+        safeCount(db('user_course_enrollments')),
+        
+        // Completed enrollments
+        safeCount(db('user_course_enrollments').where('enrollment_status', 'completed'))
+      ]);
 
-      // Pending approvals (from content uploads) - wrap in try-catch in case table doesn't exist
-      let pendingApprovals = { count: 0 };
-      try {
-        let pendingApprovalsQuery = db('content_uploads').where('status', 'pending');
-        // Admins can see all pending approvals (no chapter filtering)
-        const contentApprovals = await pendingApprovalsQuery.count('id as count').first() || { count: 0 };
-        
-        // Also count pending teacher applications
-        let teacherAppsCount = { count: 0 };
-        try {
-          teacherAppsCount = await db('teacher_applications')
-            .where('status', 'pending')
-            .count('id as count')
-            .first() || { count: 0 };
-        } catch (err) {
-          console.warn('teacher_applications table may not exist:', err.message);
-        }
-        
-        pendingApprovals = { count: parseInt(contentApprovals.count) + parseInt(teacherAppsCount.count) };
-      } catch (err) {
-        console.warn('content_uploads table may not exist:', err.message);
-      }
-
-      // Flagged content (pending review) - wrap in try-catch
-      let flaggedContent = { count: 0 };
-      try {
-        const flaggedContentQuery = db('flagged_content').where('status', 'pending');
-        flaggedContent = await flaggedContentQuery.count('id as count').first() || { count: 0 };
-      } catch (err) {
-        console.warn('flagged_content table may not exist:', err.message);
-      }
-
-      // Average engagement (completion rate) - use enrollment_status not completion_status
-      let avgEngagement = 0;
-      try {
-        let totalEnrollmentsQuery = db('user_course_enrollments');
-        const totalEnrollments = await totalEnrollmentsQuery.count('id as count').first() || { count: 0 };
-        
-        let completedEnrollmentsQuery = db('user_course_enrollments')
-          .where('enrollment_status', 'completed');
-        // Admins can see all enrollments (no chapter filtering)
-        const completedEnrollments = await completedEnrollmentsQuery.count('id as count').first() || { count: 0 };
-        
-        avgEngagement = totalEnrollments.count > 0
-          ? Math.round((completedEnrollments.count / totalEnrollments.count) * 100)
-          : 0;
-      } catch (err) {
-        console.warn('user_course_enrollments table may not exist:', err.message);
-      }
+      const pendingApprovals = contentApprovals + teacherAppsCount;
+      
+      const avgEngagement = totalEnrollments > 0
+        ? Math.round((completedEnrollments / totalEnrollments) * 100)
+        : 0;
 
       res.json({
         success: true,
         data: {
-          totalUsers: parseInt(totalUsers.count) || 0,
-          activeUsers: parseInt(activeUsers.count) || 0,
-          activeCourses: parseInt(activeCourses.count) || 0,
-          completedLessons: parseInt(completedLessons.count) || 0,
-          avgEngagement: avgEngagement,
-          pendingApprovals: parseInt(pendingApprovals.count) || 0,
-          flaggedContent: parseInt(flaggedContent.count) || 0,
-          newRegistrations: parseInt(newRegistrations.count) || 0
+          totalUsers,
+          activeUsers,
+          activeCourses,
+          completedLessons,
+          avgEngagement,
+          pendingApprovals,
+          flaggedContent,
+          newRegistrations
         }
       });
     } catch (error) {

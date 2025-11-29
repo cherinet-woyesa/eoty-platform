@@ -178,8 +178,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
   }, [highlights]);
 
   const handleDownload = () => {
-    // In a real implementation, this would trigger a download of the resource
-    console.log('Downloading resource:', resource.file_name);
+    if (resource.file_url) {
+      const link = document.createElement('a');
+      link.href = resource.file_url;
+      link.download = resource.file_name || 'download';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      console.error('No file URL available for download');
+      alert('Download failed: File URL not available');
+    }
   };
 
   const handleZoomIn = () => {
@@ -419,16 +429,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
               <p className="text-gray-600 mb-4">This is a simulated PDF viewer. In a production environment, this would display the actual PDF content.</p>
               <p className="text-gray-500 mb-4">Page {currentPage} content would appear here...</p>
               <div className="mt-8 space-y-4">
-                <p className={highlightMode ? 'bg-yellow-100' : ''}>
+                <p>
                   Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                 </p>
-                <p className={highlightMode ? 'bg-yellow-100' : ''}>
+                <p>
                   Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
                 </p>
-                <p className={highlightMode ? 'bg-yellow-100' : ''}>
+                <p>
                   Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
                 </p>
-                <p className={highlightMode ? 'bg-yellow-100' : ''}>
+                <p>
                   Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
                 </p>
               </div>

@@ -7,6 +7,7 @@ import {
   Save, Camera, Edit3, CheckCircle, 
   AlertCircle, Loader2, X, BookOpen, Target, Heart
 } from 'lucide-react';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface ProfileData {
   firstName: string;
@@ -276,10 +277,7 @@ const StudentProfile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED]">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[#FFD700] mx-auto mb-4" />
-          <p className="text-slate-600">Loading profile...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading profile..." variant="logo" />
       </div>
     );
   }

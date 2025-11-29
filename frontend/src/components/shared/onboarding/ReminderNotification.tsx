@@ -61,48 +61,54 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
   }
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
+    <div className="fixed top-20 right-6 z-50 space-y-3 max-w-sm w-full">
       {reminders.map((reminder) => (
         <div
           key={reminder.id}
-          className="bg-blue-50 border border-blue-200 rounded-lg shadow-lg p-4 animate-slide-in"
+          className="bg-white border-l-4 border-[#27AE60] rounded-r-xl shadow-xl p-4 animate-in slide-in-from-right duration-500 flex items-start gap-3 relative overflow-hidden group"
         >
-          <div className="flex items-start">
-            <Bell className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h4 className="font-semibold text-blue-900 mb-1">
-                Complete Your Onboarding
-              </h4>
-              <p className="text-sm text-blue-800 mb-3">
-                {reminder.reminder_type === 'skipped'
-                  ? 'You skipped some onboarding steps. Complete them to unlock all features!'
-                  : reminder.reminder_type === 'aborted'
-                  ? 'You dismissed the onboarding. Would you like to continue?'
-                  : 'Your onboarding is incomplete. Finish it to get started!'}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleResume}
-                  className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Resume Onboarding
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </button>
-                <button
-                  onClick={() => handleDismiss(reminder.id)}
-                  className="inline-flex items-center px-3 py-1.5 text-blue-700 hover:bg-blue-100 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={() => handleDismiss(reminder.id)}
-              className="text-blue-400 hover:text-blue-600 ml-2 flex-shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#27AE60]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          <div className="bg-[#27AE60]/10 p-2 rounded-full flex-shrink-0">
+            <Bell className="h-5 w-5 text-[#27AE60] animate-pulse" />
           </div>
+          
+          <div className="flex-1 min-w-0 relative z-10">
+            <h4 className="font-bold text-gray-900 text-sm mb-1">
+              Continue Your Journey
+            </h4>
+            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+              {reminder.reminder_type === 'skipped'
+                ? 'You have a few steps remaining to complete your profile setup.'
+                : reminder.reminder_type === 'aborted'
+                ? 'Don\'t miss out! Finish your onboarding to unlock all features.'
+                : 'Your spiritual journey awaits. Resume where you left off.'}
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleResume}
+                className="inline-flex items-center px-3 py-1.5 bg-[#27AE60] hover:bg-[#219150] text-white text-xs font-semibold rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
+              >
+                Resume Now
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </button>
+              <button
+                onClick={() => handleDismiss(reminder.id)}
+                className="inline-flex items-center px-3 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 text-xs font-medium rounded-lg transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={() => handleDismiss(reminder.id)}
+            className="text-gray-300 hover:text-gray-500 transition-colors p-1"
+            aria-label="Close reminder"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       ))}
     </div>

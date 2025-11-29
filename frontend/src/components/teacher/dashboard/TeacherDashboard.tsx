@@ -303,25 +303,6 @@ const TeacherDashboard: React.FC = () => {
                 <span className="font-semibold text-[#16A085]">{teacherData.totalCourses}</span> courses
               </p>
             </div>
-            {/* Shortcut Buttons - Commented out for cleaner UI */}
-            {/* <div className="mt-4 lg:mt-0 lg:ml-6">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Link
-                  to="/teacher/record"
-                  className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  <Video className="h-4 w-4 mr-2" />
-                  Record Video
-                </Link>
-                <Link
-                  to="/teacher/courses/new"
-                  className="inline-flex items-center px-4 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Course
-                </Link>
-              </div>
-            </div> */}
           </div>
         </div>
 

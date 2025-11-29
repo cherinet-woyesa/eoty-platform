@@ -164,7 +164,7 @@ const ModerationTools: React.FC = () => {
                   onClick={() => setStatusFilter(status)}
                   className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                     statusFilter === status
-                      ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 shadow-md'
+                      ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white shadow-md'
                       : 'bg-white/90 text-stone-700 hover:bg-stone-50 border border-stone-200'
                   }`}
                 >

@@ -94,7 +94,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         <div className="flex items-center gap-4">
           {/* Selection Info */}
           <div className="flex items-center gap-2">
-            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+            <div className="bg-[#27AE60]/10 text-[#27AE60] px-3 py-1 rounded-full text-sm font-medium">
               {selectedCount} selected
             </div>
             <button
@@ -121,7 +121,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
                   )
                 }
                 loading={isProcessing}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-[#27AE60] hover:bg-[#219150] text-white rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
               >
                 <Eye className="h-4 w-4" />
                 Activate

@@ -450,13 +450,13 @@ const UserManagement: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -480,16 +480,16 @@ const UserManagement: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/25 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
+        <div className="bg-white border border-[#27AE60] rounded-lg p-4 flex items-center justify-between shadow-md animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center space-x-4">
-            <span className="text-stone-800 font-semibold">
+            <span className="text-[#27AE60] font-bold">
               {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkStatusChange(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 bg-[#27AE60] text-white text-sm font-semibold rounded-lg hover:bg-[#219150] disabled:opacity-50 shadow-sm transition-colors"
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Activate
@@ -497,7 +497,7 @@ const UserManagement: React.FC = () => {
               <button
                 onClick={() => handleBulkStatusChange(false)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 bg-white text-red-600 border border-red-200 text-sm font-semibold rounded-lg hover:bg-red-50 disabled:opacity-50 shadow-sm transition-colors"
               >
                 <UserX className="h-4 w-4 mr-1" />
                 Deactivate
@@ -506,7 +506,7 @@ const UserManagement: React.FC = () => {
           </div>
           <button
             onClick={() => setSelectedUsers([])}
-            className="text-stone-600 hover:text-stone-800"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -538,7 +538,7 @@ const UserManagement: React.FC = () => {
                   name="firstName"
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   required
                 />
               </div>
@@ -549,7 +549,7 @@ const UserManagement: React.FC = () => {
                   name="lastName"
                   value={newUser.lastName}
                   onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   required
                 />
               </div>
@@ -560,7 +560,7 @@ const UserManagement: React.FC = () => {
                   name="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   required
                 />
               </div>
@@ -571,7 +571,7 @@ const UserManagement: React.FC = () => {
                   name="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   required
                 />
               </div>
@@ -581,8 +581,9 @@ const UserManagement: React.FC = () => {
                   name="chapter"
                   value={newUser.chapter}
                   onChange={(e) => setNewUser({...newUser, chapter: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 >
+                  <option value="">Select Chapter</option>
                   {chapters.map((ch) => (
                     <option key={ch.id} value={ch.id}>
                       {ch.name} - {ch.location || 'No location'}
@@ -596,7 +597,7 @@ const UserManagement: React.FC = () => {
                   name="role"
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
@@ -610,7 +611,7 @@ const UserManagement: React.FC = () => {
               <button
                 type="submit"
                 disabled={actionLoading === 'create'}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] disabled:opacity-50"
               >
                 {actionLoading === 'create' ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -645,7 +646,7 @@ const UserManagement: React.FC = () => {
                           type="checkbox"
                           checked={selectedUsers.length === paginatedUsers.length && paginatedUsers.length > 0}
                           onChange={handleSelectAll}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
                         />
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User</th>
@@ -665,12 +666,12 @@ const UserManagement: React.FC = () => {
                             type="checkbox"
                             checked={selectedUsers.includes(user.id)}
                             onChange={() => handleSelectUser(user.id)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
                           />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-3">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-semibold mr-3">
                               {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                             </div>
                             <div>
@@ -689,7 +690,7 @@ const UserManagement: React.FC = () => {
                             value={user.role}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
-                            className={`text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+                            className={`text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-[#27AE60] disabled:opacity-50`}
                           >
                             <option value="student">Student</option>
                             <option value="teacher">Teacher</option>
@@ -709,7 +710,7 @@ const UserManagement: React.FC = () => {
                             disabled={actionLoading === user.id}
                             className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
                               user.isActive
-                                ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                                ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20 hover:bg-[#27AE60]/20'
                                 : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
                             }`}
                           >
@@ -739,7 +740,7 @@ const UserManagement: React.FC = () => {
                                 setSelectedUser(user);
                                 setShowUserModal(true);
                               }}
-                              className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-600 hover:text-[#27AE60] hover:bg-[#27AE60]/10 rounded-lg transition-colors"
                               title="View Details"
                             >
                               <Eye className="h-4 w-4" />
@@ -795,9 +796,9 @@ const UserManagement: React.FC = () => {
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
                 >
                   <div className={`bg-gradient-to-r ${
-                    user.role === 'admin' ? 'from-purple-500 to-purple-600' :
-                    user.role === 'teacher' ? 'from-green-500 to-green-600' :
-                    'from-gray-500 to-gray-600'
+                    user.role === 'admin' ? 'from-[#27AE60] to-[#16A085]' :
+                    user.role === 'teacher' ? 'from-[#27AE60] to-[#16A085]' :
+                    'from-[#27AE60] to-[#16A085]'
                   } p-4 text-white`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center flex-1">
@@ -823,7 +824,7 @@ const UserManagement: React.FC = () => {
                           value={user.role}
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
-                          className={`w-full text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-blue-500 disabled:opacity-50`}
+                          className={`w-full text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-[#27AE60] disabled:opacity-50`}
                         >
                           <option value="student">Student</option>
                           <option value="teacher">Teacher</option>
@@ -837,7 +838,7 @@ const UserManagement: React.FC = () => {
                           disabled={actionLoading === user.id}
                           className={`w-full flex items-center justify-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
                             user.isActive
-                              ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                              ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20 hover:bg-[#27AE60]/20'
                               : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
                           }`}
                         >
@@ -881,7 +882,7 @@ const UserManagement: React.FC = () => {
                           setSelectedUser(user);
                           setShowUserModal(true);
                         }}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                        className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-[#27AE60] hover:bg-[#219150] transition-colors"
                       >
                         <Eye className="mr-1 h-3 w-3" />
                         View
@@ -940,7 +941,7 @@ const UserManagement: React.FC = () => {
             </div>
             <div className="p-6">
               <div className="flex items-center mb-6">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl mr-4">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold text-2xl mr-4">
                   {selectedUser.firstName.charAt(0)}{selectedUser.lastName.charAt(0)}
                 </div>
                 <div>
@@ -958,7 +959,7 @@ const UserManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Status</p>
-                  <p className={`text-base font-medium ${selectedUser.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-base font-medium ${selectedUser.isActive ? 'text-[#27AE60]' : 'text-red-600'}`}>
                     {selectedUser.isActive ? 'Active' : 'Inactive'}
                   </p>
                 </div>
@@ -992,7 +993,7 @@ const UserManagement: React.FC = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Edit className="h-5 w-5 mr-2 text-blue-600" />
+                <Edit className="h-5 w-5 mr-2 text-[#27AE60]" />
                 Edit User
               </h3>
               <button
@@ -1013,7 +1014,7 @@ const UserManagement: React.FC = () => {
                     type="text"
                     value={editingUser.firstName}
                     onChange={(e) => setEditingUser({...editingUser, firstName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   />
                 </div>
@@ -1023,7 +1024,7 @@ const UserManagement: React.FC = () => {
                     type="text"
                     value={editingUser.lastName}
                     onChange={(e) => setEditingUser({...editingUser, lastName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   />
                 </div>
@@ -1033,7 +1034,7 @@ const UserManagement: React.FC = () => {
                     type="email"
                     value={editingUser.email}
                     onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   />
                 </div>
@@ -1042,7 +1043,7 @@ const UserManagement: React.FC = () => {
                   <select
                     value={editingUser.role}
                     onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     disabled={String(editingUser.id) === String(currentUser?.id)}
                   >
                     <option value="student">Student</option>
@@ -1060,7 +1061,7 @@ const UserManagement: React.FC = () => {
                   <select
                     value={editingUser.chapterId || editingUser.chapter}
                     onChange={(e) => setEditingUser({...editingUser, chapterId: parseInt(e.target.value), chapter: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   >
                     {chapters.map((ch) => (
                       <option key={ch.id} value={ch.id}>{ch.location}</option>
@@ -1073,7 +1074,7 @@ const UserManagement: React.FC = () => {
                       type="checkbox"
                       checked={editingUser.isActive}
                       onChange={(e) => setEditingUser({...editingUser, isActive: e.target.checked})}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                      className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60] mr-2"
                     />
                     <span className="text-sm font-medium text-gray-700">Active Account</span>
                   </label>
@@ -1083,7 +1084,7 @@ const UserManagement: React.FC = () => {
                 <button
                   type="submit"
                   disabled={actionLoading === 'edit'}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] disabled:opacity-50"
                 >
                   {actionLoading === 'edit' ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

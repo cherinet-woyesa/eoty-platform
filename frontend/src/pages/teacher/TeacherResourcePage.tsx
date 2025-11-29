@@ -1,26 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Upload, BookOpen, Users, Globe, ArrowLeft, Plus, FolderOpen, Search, Filter } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  Upload, BookOpen, Users, Globe, ArrowLeft, Plus, FolderOpen, Search, Filter,
+  FileText, Image as ImageIcon, Video, Music, MoreVertical, Download, Trash2, Edit,
+  LayoutGrid, List as ListIcon, Clock, HardDrive
+} from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 import { coursesApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import type { Resource } from '@/types/resources';
 
 const TeacherResourcePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'upload' | 'manage'>('upload');
   const [resources, setResources] = useState<Resource[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedScope, setSelectedScope] = useState<'chapter_wide' | 'platform_wide'>('chapter_wide');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
-    loadResources();
-    loadCourses();
-  }, [selectedScope]);
+    if (activeTab === 'manage') {
+      loadResources();
+    }
+  }, [activeTab, selectedScope]);
 
   const loadResources = async () => {
     try {
@@ -43,235 +50,285 @@ const TeacherResourcePage: React.FC = () => {
     }
   };
 
-  const loadCourses = async () => {
-    try {
-      const response = await coursesApi.getTeacherCourses();
-      if (response.success) {
-        setCourses(response.data.courses || []);
-      }
-    } catch (error) {
-      console.error('Failed to load courses:', error);
-    }
-  };
-
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    // Debounce search
-    setTimeout(() => loadResources(), 300);
+    // Debounce search would go here
   };
 
-  const tabs = [
-    {
-      id: 'upload' as const,
-      label: 'Upload Resources',
-      icon: Upload,
-      description: 'Add new educational materials'
-    },
-    {
-      id: 'manage' as const,
-      label: 'Manage Resources',
-      icon: FolderOpen,
-      description: 'View and organize uploaded resources'
-    }
+  // Mock stats
+  const stats = [
+    { label: 'Total Resources', value: resources.length, icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { label: 'Storage Used', value: '2.4 GB', icon: HardDrive, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { label: 'This Month', value: '+12', icon: Clock, color: 'text-green-600', bg: 'bg-green-100' },
   ];
 
+  const getFileIcon = (type: string) => {
+    if (type.includes('pdf')) return <FileText className="h-6 w-6 text-red-500" />;
+    if (type.includes('image')) return <ImageIcon className="h-6 w-6 text-blue-500" />;
+    if (type.includes('video')) return <Video className="h-6 w-6 text-purple-500" />;
+    if (type.includes('audio')) return <Music className="h-6 w-6 text-amber-500" />;
+    return <FileText className="h-6 w-6 text-gray-500" />;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="max-w-7xl mx-auto p-6 lg:p-8">
-        {/* Ethiopian Orthodox Themed Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-8 border border-[#27AE60]/25 shadow-xl mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-2xl flex items-center justify-center shadow-lg">
-                <BookOpen className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-stone-800">📚 Resource Management</h1>
-                <p className="text-lg text-stone-600 mt-1">Upload and manage educational resources for Orthodox learning</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-50/50">
+      <div className="max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Resource Library</h1>
+            <p className="text-slate-500 mt-1">Manage and distribute educational content to your students</p>
+          </div>
+          <div className="flex items-center gap-3">
             <Link
               to="/teacher/dashboard"
-              className="inline-flex items-center px-6 py-3 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              className="px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all text-sm font-medium shadow-sm"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Link>
+            <button 
+              onClick={() => setActiveTab('upload')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-sm flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Resource
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
-          <nav className="flex border-b border-gray-200">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 font-semibold transition-all border-b-2 ${
-                  activeTab === tab.id
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                <tab.icon className="h-5 w-5" />
-                <div className="text-center">
-                  <div className="text-sm font-semibold">{tab.label}</div>
-                  <div className="text-xs opacity-75">{tab.description}</div>
-                </div>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="space-y-6">
-          {activeTab === 'upload' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Platform-wide Upload Card */}
-              <div className="bg-gradient-to-br from-white to-blue-50/50 rounded-xl border-2 border-blue-200/50 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                   onClick={() => window.location.href = '/teacher/resources/upload?scope=platform'}>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <Globe className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">🌍 Platform Resources</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Available to all Orthodox communities worldwide
-                  </p>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Admin Only
-                  </span>
-                </div>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {stats.map((stat, index) => (
+            <div key={index} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className={`p-3 rounded-lg ${stat.bg}`}>
+                <stat.icon className={`h-6 w-6 ${stat.color}`} />
               </div>
-
-              {/* Chapter-wide Upload Card */}
-              <div className="bg-gradient-to-br from-white to-green-50/50 rounded-xl border-2 border-green-200/50 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                   onClick={() => window.location.href = '/teacher/resources/upload?scope=chapter'}>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <Users className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">👥 Chapter Resources</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Shared with all members of your chapter
-                  </p>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Chapter Wide
-                  </span>
-                </div>
-              </div>
-
-              {/* Course-specific Upload Card */}
-              <div className="bg-gradient-to-br from-white to-purple-50/50 rounded-xl border-2 border-purple-200/50 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                   onClick={() => window.location.href = '/teacher/resources/upload?scope=course'}>
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <BookOpen className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">📖 Course Resources</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Specific to individual courses and lessons
-                  </p>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    Course Specific
-                  </span>
-                </div>
+              <div>
+                <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
               </div>
             </div>
-          )}
+          ))}
+        </div>
 
-          {activeTab === 'manage' && (
-            <div className="bg-white/95 backdrop-blur-md rounded-xl border border-stone-200 shadow-xl overflow-hidden">
-              {/* Filters */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        {/* Main Content Area */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[600px]">
+          {/* Tabs Navigation */}
+          <div className="border-b border-slate-200 px-6 pt-6">
+            <div className="flex gap-8">
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`pb-4 text-sm font-medium transition-all relative ${
+                  activeTab === 'upload' 
+                    ? 'text-blue-600' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Upload Center
+                {activeTab === 'upload' && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('manage')}
+                className={`pb-4 text-sm font-medium transition-all relative ${
+                  activeTab === 'manage' 
+                    ? 'text-blue-600' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Browse Library
+                {activeTab === 'manage' && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 lg:p-8">
+            {activeTab === 'upload' ? (
+              <div className="max-w-5xl mx-auto">
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-bold text-slate-900">Where would you like to upload?</h2>
+                  <p className="text-slate-500 mt-2">Choose the visibility scope for your new resource</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Platform Card */}
+                  <div 
+                    onClick={() => navigate('/teacher/resources/upload?scope=platform')}
+                    className="group relative bg-gradient-to-b from-blue-50 to-white p-6 rounded-2xl border border-blue-100 hover:border-blue-300 hover:shadow-xl transition-all cursor-pointer text-center"
+                  >
+                    <div className="w-16 h-16 mx-auto bg-blue-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Globe className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Platform Wide</h3>
+                    <p className="text-sm text-slate-500 mb-6">
+                      Share resources with the entire Orthodox community worldwide.
+                    </p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      Admin Access
+                    </span>
+                  </div>
+
+                  {/* Chapter Card */}
+                  <div 
+                    onClick={() => navigate('/teacher/resources/upload?scope=chapter')}
+                    className="group relative bg-gradient-to-b from-emerald-50 to-white p-6 rounded-2xl border border-emerald-100 hover:border-emerald-300 hover:shadow-xl transition-all cursor-pointer text-center"
+                  >
+                    <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Users className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Chapter Only</h3>
+                    <p className="text-sm text-slate-500 mb-6">
+                      Exclusive content for members of your local chapter.
+                    </p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                      Most Common
+                    </span>
+                  </div>
+
+                  {/* Course Card */}
+                  <div 
+                    onClick={() => navigate('/teacher/resources/upload?scope=course')}
+                    className="group relative bg-gradient-to-b from-purple-50 to-white p-6 rounded-2xl border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all cursor-pointer text-center"
+                  >
+                    <div className="w-16 h-16 mx-auto bg-purple-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <BookOpen className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Course Specific</h3>
+                    <p className="text-sm text-slate-500 mb-6">
+                      Attach materials directly to your courses and lessons.
+                    </p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                      Targeted
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Toolbar */}
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-80">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search resources..."
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+                        placeholder="Search by name, type, or tag..."
                         value={searchTerm}
                         onChange={handleSearch}
+                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
                       />
                     </div>
+                    <div className="h-8 w-px bg-slate-300 hidden md:block" />
                     <select
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={selectedScope}
-                      onChange={(e) => setSelectedScope(e.target.value as 'chapter_wide' | 'platform_wide')}
+                      onChange={(e) => setSelectedScope(e.target.value as any)}
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
                       <option value="chapter_wide">Chapter Resources</option>
                       {isAdmin && <option value="platform_wide">Platform Resources</option>}
                     </select>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {resources.length} resources found
+                  
+                  <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 p-1">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      <ListIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Resources Grid */}
-              <div className="p-6">
+                {/* Content Grid/List */}
                 {loading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <LoadingSpinner size="lg" text="Loading your library..." variant="logo" />
                   </div>
                 ) : resources.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
-                    <p className="text-gray-600 mb-4">Start by uploading some educational materials</p>
-                    <Link
-                      to="/teacher/resources/upload"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#27AE60]/90"
+                  <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FolderOpen className="h-8 w-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900">No resources found</h3>
+                    <p className="text-slate-500 mt-1 mb-6">Get started by uploading your first resource</p>
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium"
                     >
-                      <Plus className="h-4 w-4" />
-                      Upload First Resource
-                    </Link>
+                      Upload Resource
+                    </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-3"}>
                     {resources.map((resource) => (
                       <div
                         key={resource.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => window.open(`/resources/${resource.id}`, '_blank')}
+                        className={`group bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer ${
+                          viewMode === 'list' ? 'flex items-center p-4 gap-4' : 'p-4 flex flex-col'
+                        }`}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="text-2xl">
-                            {resource.file_type.includes('pdf') ? '📄' :
-                             resource.file_type.includes('image') ? '🖼️' :
-                             resource.file_type.includes('video') ? '🎬' :
-                             resource.file_type.includes('audio') ? '🎵' : '📝'}
+                        <div className={`flex items-start justify-between ${viewMode === 'list' ? 'order-2 flex-1' : 'mb-3'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-blue-50 transition-colors">
+                              {getFileIcon(resource.file_type)}
+                            </div>
+                            {viewMode === 'list' && (
+                              <div>
+                                <h3 className="font-semibold text-slate-900">{resource.title}</h3>
+                                <p className="text-sm text-slate-500">{resource.category || 'Uncategorized'}</p>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate mb-1">
-                              {resource.title}
-                            </h3>
-                            {resource.category && (
-                              <span className="inline-block px-2 py-1 text-xs bg-[#27AE60]/10 text-[#27AE60] rounded-full mb-2">
-                                {resource.category}
+                          <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {viewMode === 'grid' && (
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-slate-900 line-clamp-1 mb-1">{resource.title}</h3>
+                            <p className="text-sm text-slate-500 line-clamp-2 mb-3 h-10">
+                              {resource.description || 'No description provided'}
+                            </p>
+                            <div className="flex items-center gap-2 mb-4">
+                              <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md font-medium">
+                                {resource.category || 'General'}
                               </span>
-                            )}
-                            {resource.description && (
-                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                {resource.description}
-                              </p>
-                            )}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>{resource.author}</span>
-                              <span>{new Date(resource.created_at).toLocaleDateString()}</span>
+                              <span className="text-xs text-slate-400">
+                                {new Date(resource.created_at).toLocaleDateString()}
+                              </span>
                             </div>
                           </div>
+                        )}
+
+                        <div className={`flex items-center gap-2 ${viewMode === 'list' ? 'order-3' : 'mt-auto pt-3 border-t border-slate-100'}`}>
+                          <button 
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(resource.url, '_blank');
+                            }}
+                          >
+                            <Download className="h-3 w-3" />
+                            Download
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

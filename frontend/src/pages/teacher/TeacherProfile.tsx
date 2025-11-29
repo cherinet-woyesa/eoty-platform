@@ -7,6 +7,7 @@ import {
   Save, Camera, Edit3, CheckCircle, 
   AlertCircle, Loader2, X
 } from 'lucide-react';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface ProfileData {
   firstName: string;
@@ -254,10 +255,7 @@ const TeacherProfile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[#39FF14] mx-auto mb-4" />
-          <p className="text-stone-600">Loading profile...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading profile..." variant="logo" />
       </div>
     );
   }

@@ -26,11 +26,11 @@ export const UsageAnalytics: React.FC<UsageAnalyticsProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
+        <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Usage Details</h3>
-              <p className="text-blue-100 mt-1">{entityName}</p>
+              <p className="text-green-50 mt-1">{entityName}</p>
             </div>
             <button
               onClick={onClose}
@@ -54,7 +54,7 @@ export const UsageAnalytics: React.FC<UsageAnalyticsProps> = ({
               <div className="mb-6">
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                   <span className="font-medium">Total Usage:</span>
-                  <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-xs font-medium">
+                  <span className="bg-[#27AE60]/10 text-[#27AE60] px-2.5 py-0.5 rounded-full text-xs font-medium">
                     {usageDetails.usage_count} course{usageDetails.usage_count !== 1 ? 's' : ''}
                   </span>
                 </div>

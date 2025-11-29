@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface BookmarkedItem {
   id: string;
@@ -196,10 +197,7 @@ const BookmarksPage: React.FC = () => {
     return (
       <div className="p-4">
         <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#27AE60] mx-auto mb-3" />
-            <p className="text-stone-600 text-sm">Loading bookmarks...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading bookmarks..." variant="logo" />
         </div>
       </div>
     );

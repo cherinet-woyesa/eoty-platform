@@ -51,16 +51,16 @@ const OnboardingErrorHandler: React.FC<OnboardingErrorHandlerProps> = ({ childre
             <div className="flex space-x-3">
               <button
                 onClick={handleRetry}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="flex-1 flex items-center justify-center px-4 py-2 bg-[#27AE60] hover:bg-[#219150] text-white rounded-lg transition-colors shadow-sm"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
+                Try Again
               </button>
               <button
                 onClick={handleDismiss}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
               >
-                Skip Onboarding
+                Skip for Now
               </button>
             </div>
           </div>

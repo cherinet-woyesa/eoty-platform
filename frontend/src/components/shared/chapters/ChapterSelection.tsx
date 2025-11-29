@@ -11,11 +11,13 @@ import { useAuth } from '@/context/AuthContext';
 interface ChapterSelectionProps {
   onChapterSelected?: (chapter: Chapter) => void;
   showOnlyJoinable?: boolean;
+  showOnlyMembership?: boolean;
 }
 
 const ChapterSelection: React.FC<ChapterSelectionProps> = ({
   onChapterSelected,
-  showOnlyJoinable = false
+  showOnlyJoinable = false,
+  showOnlyMembership = false
 }) => {
   const { user } = useAuth();
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -124,9 +126,12 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
     return userChapters.some(uc => uc.chapter_id === chapterId && uc.is_primary);
   };
 
-  const filteredChapters = showOnlyJoinable
-    ? chapters.filter(ch => !isUserMember(ch.id))
-    : chapters;
+  const filteredChapters = chapters.filter(ch => {
+    const isMember = isUserMember(ch.id);
+    if (showOnlyJoinable) return !isMember;
+    if (showOnlyMembership) return isMember;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -248,6 +253,12 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                           Set Primary
                         </button>
                       )}
+                      <button
+                        onClick={() => onChapterSelected?.(chapter)}
+                        className="flex-1 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                      >
+                        View
+                      </button>
                       <button
                         onClick={() => handleLeaveChapter(chapter.id)}
                         className="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"

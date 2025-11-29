@@ -3,6 +3,7 @@ import { BarChart2, Settings, ShieldIcon, Video, FileEdit } from 'lucide-react';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import SystemConfigDashboard from './config/SystemConfigDashboard';
 import AdminActivityLogs from './AdminActivityLogs';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Lazy load components
 const MuxMigration = React.lazy(() => import('./MuxMigration'));
@@ -10,10 +11,7 @@ const LandingPageEditor = React.lazy(() => import('./LandingPageEditor'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full p-8">
-    <div className="text-center">
-      <div className="w-12 h-12 border-t-4 border-[#E74C3C] border-solid rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading...</p>
-    </div>
+    <LoadingSpinner size="lg" text="Loading..." variant="logo" />
   </div>
 );
 

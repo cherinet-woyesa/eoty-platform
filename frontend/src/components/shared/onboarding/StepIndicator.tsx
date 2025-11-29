@@ -31,24 +31,24 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
         return (
           <React.Fragment key={index}>
             <div className={`
-              flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors
-              ${status === 'completed' ? 'bg-green-500 border-green-500 text-white' : ''}
-              ${status === 'skipped' ? 'bg-gray-300 border-gray-300 text-white' : ''}
-              ${status === 'current' ? 'bg-blue-500 border-blue-500 text-white' : ''}
-              ${status === 'pending' ? 'bg-white border-gray-300 text-gray-400' : ''}
+              flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-300
+              ${status === 'completed' ? 'bg-[#27AE60] border-[#27AE60] text-white shadow-sm' : ''}
+              ${status === 'skipped' ? 'bg-gray-100 border-gray-300 text-gray-400' : ''}
+              ${status === 'current' ? 'bg-white border-[#27AE60] text-[#27AE60] shadow-md scale-110' : ''}
+              ${status === 'pending' ? 'bg-white border-gray-200 text-gray-300' : ''}
             `}>
               {status === 'completed' ? (
                 <Check className="h-4 w-4" />
               ) : status === 'skipped' ? (
                 <SkipForward className="h-4 w-4" />
               ) : (
-                <span className="text-xs font-medium">{stepNumber}</span>
+                <span className="text-xs font-bold">{stepNumber}</span>
               )}
             </div>
             {index < steps - 1 && (
               <div className={`
-                w-8 h-0.5 transition-colors
-                ${stepNumber < currentStep ? 'bg-green-500' : 'bg-gray-200'}
+                flex-1 h-0.5 transition-colors duration-500 mx-1
+                ${stepNumber < currentStep ? 'bg-[#27AE60]' : 'bg-gray-100'}
               `}></div>
             )}
           </React.Fragment>

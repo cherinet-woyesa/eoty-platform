@@ -19,7 +19,7 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('uploads')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'uploads'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -30,7 +30,7 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('moderation')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'moderation'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -41,7 +41,7 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('tags')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'tags'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -52,7 +52,7 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('courses')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'courses'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >

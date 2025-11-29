@@ -199,110 +199,116 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#27AE60]/5">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-lg flex items-center justify-center shadow-sm">
-              <Award className="h-4 w-4 text-white" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#27AE60]/5 via-white to-[#27AE60]/5">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 bg-gradient-to-br from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center shadow-md transform rotate-3">
+              <Award className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
-                {flow.name || 'Get started as a teacher'}
+              <h2 className="text-lg font-bold text-gray-900 tracking-tight">
+                {flow.name || 'Welcome to EOTY'}
               </h2>
-              <p className="text-xs text-gray-500">
-                A short guided checklist to help you set up your teaching space.
-              </p>
-              {flow?.version && (
-                <p className="text-xs text-[#27AE60] font-medium">
-                  Version {flow.version}
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-gray-500 font-medium">
+                  {steps.length > 0 ? `${currentStepIndex + 1} of ${steps.length} steps` : 'Loading steps...'}
                 </p>
-              )}
+                {flow?.version && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-md font-mono">
+                    v{flow.version}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200"
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Show completion rewards if onboarding is complete (REQUIREMENT: Completion rewards) */}
-        {progress && progress.progress >= 100 ? (
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <Award className="h-16 w-16 text-yellow-500 mx-auto mb-4 animate-bounce" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">🎉 Congratulations!</h3>
-              <p className="text-gray-600 mb-2">
-                You’ve completed your onboarding successfully!
-              </p>
-              <p className="text-sm text-[#27AE60] font-medium">
-                Your dashboard and tools are now fully unlocked.
-              </p>
-              {flow?.version && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Completed onboarding version {flow.version}
-                </div>
-              )}
-            </div>
-            <CompletionRewards
-              rewards={rewards}
-              onClaimReward={(rewardId) => {
-                console.log('Claim reward:', rewardId);
-              }}
-            />
-            <div className="mt-6 text-center">
-              <button
-                onClick={onClose}
-                className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#16A085] hover:to-[#27AE60] text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
-              >
-                🚀 Go to my dashboard
-              </button>
-            </div>
-          </div>
-        ) : (
-          renderStepContent()
-        )}
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-100 h-1.5">
+          <div
+            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-1.5 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(39,174,96,0.5)]"
+            style={{ width: `${steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0}%` }}
+          ></div>
+        </div>
 
-        {/* Progress bar */}
-        <div className="px-6 pb-6">
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-            <div
-              className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress?.progress || 0}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-              {progress?.progress?.toFixed(0) || 0}% complete
-            </span>
-          </div>
-          
-          {/* Milestones display (REQUIREMENT: Milestone-based) */}
-          {milestones && milestones.length > 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[400px]">
+          {steps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <div className="w-8 h-8 border-2 border-[#27AE60] border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p>Loading your journey...</p>
+            </div>
+          ) : (
+            /* Show completion rewards if onboarding is complete */
+            progress && progress.progress >= 100 ? (
+              <div className="p-8 text-center h-full flex flex-col items-center justify-center">
+                <div className="mb-8 relative inline-block">
+                  <div className="absolute inset-0 bg-yellow-100 rounded-full animate-ping opacity-20"></div>
+                  <Award className="h-24 w-24 text-yellow-500 relative z-10 drop-shadow-lg" />
+                </div>
+                
+                <h3 className="text-3xl font-bold text-gray-900 mb-3">Journey Completed!</h3>
+                <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+                  You've successfully set up your profile. May your teaching be a blessing to many.
+                </p>
+                
+                <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100 w-full max-w-lg">
+                  <CompletionRewards
+                    rewards={rewards}
+                    onClaimReward={(rewardId) => {
+                      console.log('Claim reward:', rewardId);
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="px-8 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#16A085] hover:to-[#27AE60] text-white rounded-xl transition-all duration-200 text-base font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Enter Dashboard
+                </button>
+              </div>
+            ) : (
+              renderStepContent()
+            )
+          )}
+        </div>
+
+        {/* Footer with Milestones (only show if not complete) */}
+        {!(progress && progress.progress >= 100) && milestones && milestones.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
               {milestones.map((milestone) => (
                 <div
                   key={milestone.id}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-default select-none ${
                     milestone.is_completed
-                      ? 'bg-[#27AE60]/20 text-[#27AE60]'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20 shadow-sm'
+                      : 'bg-white text-gray-400 border border-gray-200'
                   }`}
-                  title={milestone.name}
                 >
                   {milestone.is_completed ? (
-                    <Check className="h-3 w-3" />
+                    <div className="bg-[#27AE60] rounded-full p-0.5">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
                   ) : (
-                    <div className="h-3 w-3 rounded-full border-2 border-gray-400" />
+                    <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                   )}
                   <span>{milestone.name}</span>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

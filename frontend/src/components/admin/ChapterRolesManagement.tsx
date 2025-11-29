@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserCog, MapPin, Crown, Users } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useNotification } from '@/context/NotificationContext';
 import chapterRolesApi, { ChapterRole, RegionalCoordinator } from '../../services/api/chapterRoles';
 import { chaptersApi } from '../../services/api/chapters';
 import { adminApi } from '../../services/api/admin';
@@ -27,6 +27,7 @@ interface User {
 }
 
 const ChapterRolesManagement: React.FC = () => {
+  const { showNotification } = useNotification();
   const [chapterRoles, setChapterRoles] = useState<ChapterRole[]>([]);
   const [regionalCoordinators, setRegionalCoordinators] = useState<RegionalCoordinator[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -69,7 +70,11 @@ const ChapterRolesManagement: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading chapter roles data:', error);
-      toast.error('Failed to load chapter roles data');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to load chapter roles data'
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +83,11 @@ const ChapterRolesManagement: React.FC = () => {
   const handleAssignRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser || !selectedChapter || !selectedRole) {
-      toast.error('Please fill in all fields');
+      showNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in all fields'
+      });
       return;
     }
 
@@ -91,18 +100,30 @@ const ChapterRolesManagement: React.FC = () => {
       });
 
       if (response.success) {
-        toast.success(`${selectedRole.replace('_', ' ').toUpperCase()} role assigned successfully`);
+        showNotification({
+          type: 'success',
+          title: 'Success',
+          message: `${selectedRole.replace('_', ' ').toUpperCase()} role assigned successfully`
+        });
         setShowAssignForm(false);
         setSelectedUser('');
         setSelectedChapter('');
         setSelectedRole('chapter_admin');
         await loadData(); // Refresh data
       } else {
-        throw new Error(response.message || 'Failed to assign role');
+        showNotification({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'Failed to assign role'
+        });
       }
     } catch (error: any) {
       console.error('Error assigning role:', error);
-      toast.error(error.response?.data?.message || 'Failed to assign role');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Failed to assign role'
+      });
     } finally {
       setActionLoading(null);
     }
@@ -122,14 +143,26 @@ const ChapterRolesManagement: React.FC = () => {
       });
 
       if (response.success) {
-        toast.success('Role removed successfully');
+        showNotification({
+          type: 'success',
+          title: 'Success',
+          message: 'Role removed successfully'
+        });
         await loadData(); // Refresh data
       } else {
-        throw new Error(response.message || 'Failed to remove role');
+        showNotification({
+          type: 'error',
+          title: 'Error',
+          message: response.message || 'Failed to remove role'
+        });
       }
     } catch (error: any) {
       console.error('Error removing role:', error);
-      toast.error(error.response?.data?.message || 'Failed to remove role');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Failed to remove role'
+      });
     } finally {
       setActionLoading(null);
     }
@@ -171,7 +204,7 @@ const ChapterRolesManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
         <span className="ml-2 text-gray-600">Loading chapter roles...</span>
       </div>
     );
@@ -187,7 +220,7 @@ const ChapterRolesManagement: React.FC = () => {
         </div>
         <button
           onClick={() => setShowAssignForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-2"
         >
           <UserCog className="w-4 h-4" />
           Assign Role
@@ -210,7 +243,7 @@ const ChapterRolesManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <Users className="w-8 h-8 text-blue-600" />
+            <Users className="w-8 h-8 text-[#27AE60]" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Regional Coordinators</p>
               <p className="text-2xl font-bold text-gray-900">{regionalCoordinators.length}</p>
@@ -220,7 +253,7 @@ const ChapterRolesManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <MapPin className="w-8 h-8 text-green-600" />
+            <MapPin className="w-8 h-8 text-[#27AE60]" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Chapters</p>
               <p className="text-2xl font-bold text-gray-900">{chapters.length}</p>
@@ -246,7 +279,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                           {getRoleIcon(coordinator.role)}
                         </div>
                       </div>
@@ -299,7 +332,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   >
                     <option value="">Select a user...</option>
@@ -316,7 +349,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedChapter}
                     onChange={(e) => setSelectedChapter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   >
                     <option value="">Select a chapter...</option>
@@ -333,7 +366,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value as 'chapter_admin' | 'regional_coordinator')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     required
                   >
                     <option value="chapter_admin">Chapter Admin</option>
@@ -357,7 +390,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <button
                     type="submit"
                     disabled={actionLoading === 'assign'}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] disabled:opacity-50"
                   >
                     {actionLoading === 'assign' ? 'Assigning...' : 'Assign Role'}
                   </button>

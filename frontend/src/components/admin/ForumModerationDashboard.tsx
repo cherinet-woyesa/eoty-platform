@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, MessageSquare, User, BarChart, Eye, Clock, Flag, CheckCircle, EyeOff, Trash2, AlertCircle } from 'lucide-react';
+import { adminApi } from '@/services/api';
+import { 
+  Shield, 
+  AlertTriangle, 
+  MessageSquare, 
+  User, 
+  BarChart, 
+  Eye, 
+  Clock, 
+  Flag, 
+  CheckCircle, 
+  EyeOff, 
+  Trash2, 
+  AlertCircle,
+  RefreshCw,
+  Filter,
+  Search
+} from 'lucide-react';
 
 interface ReportedPost {
   id: number;
@@ -10,6 +27,7 @@ interface ReportedPost {
   first_name: string;
   last_name: string;
   topic_title: string;
+  status?: string;
 }
 
 interface ModerationStat {
@@ -43,6 +61,7 @@ const ForumModerationDashboard: React.FC = () => {
   });
   const [moderationReason, setModerationReason] = useState('');
   const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchModerationData();
@@ -51,58 +70,43 @@ const ForumModerationDashboard: React.FC = () => {
   const fetchModerationData = async () => {
     try {
       setLoading(true);
-
-      // Fetch forum reports from the backend
-      const response = await fetch('/api/admin/forum-reports', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch forum reports: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // Transform the data to match our interface
-      const transformedPosts: ReportedPost[] = data.data?.reports?.map((report: any) => ({
-        id: report.id,
-        content: report.content || report.topic_content,
-        report_count: report.report_count || 1,
-        reports: JSON.stringify(report.reports || []),
-        created_at: report.created_at,
-        first_name: report.author_first_name || 'Unknown',
-        last_name: report.author_last_name || '',
-        topic_title: report.topic_title || 'Forum Topic'
-      })) || [];
-
-      // Calculate stats
-      const stats: ModerationStat = {
-        total_reports: data.data?.total_reports || transformedPosts.length,
-        pending_moderation: data.data?.pending_reports || transformedPosts.filter(p => p.report_count > 0).length,
-        total_moderation_actions: data.data?.resolved_reports || 0,
-        flagged_content: data.data?.flagged_content || transformedPosts.length
-      };
-
-      setStats(stats);
-      setReportedPosts(transformedPosts);
       setError(null);
+
+      // Use adminApi service instead of direct fetch
+      const response = await adminApi.getForumReports();
+
+      if (response.success && response.data) {
+        const data = response.data;
+        
+        // Transform the data to match our interface
+        const transformedPosts: ReportedPost[] = data.reports?.map((report: any) => ({
+          id: report.id,
+          content: report.content || report.topic_content,
+          report_count: report.report_count || 1,
+          reports: JSON.stringify(report.reports || []),
+          created_at: report.created_at,
+          first_name: report.author_first_name || 'Unknown',
+          last_name: report.author_last_name || '',
+          topic_title: report.topic_title || 'Forum Topic',
+          status: report.status || 'pending'
+        })) || [];
+
+        // Calculate stats
+        const stats: ModerationStat = {
+          total_reports: data.total_reports || transformedPosts.length,
+          pending_moderation: data.pending_reports || transformedPosts.filter(p => p.report_count > 0).length,
+          total_moderation_actions: data.resolved_reports || 0,
+          flagged_content: data.flagged_content || transformedPosts.length
+        };
+
+        setStats(stats);
+        setReportedPosts(transformedPosts);
+      } else {
+        throw new Error(response.message || 'Failed to fetch data');
+      }
     } catch (err: any) {
       console.error('Failed to fetch moderation data:', err);
       setError(`Failed to load forum moderation data: ${err.message}`);
-
-      // Fallback to empty state instead of mock data
-      const emptyStats: ModerationStat = {
-        total_reports: 0,
-        pending_moderation: 0,
-        total_moderation_actions: 0,
-        flagged_content: 0
-      };
-
-      setStats(emptyStats);
       setReportedPosts([]);
     } finally {
       setLoading(false);
@@ -145,34 +149,23 @@ const ForumModerationDashboard: React.FC = () => {
     setIsProcessingAction(true);
     try {
       // Call the backend API to moderate the forum report
-      const response = await fetch(`/api/admin/forum-reports/${post.id}/moderate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action,
-          reason: action === 'approve' ? 'Post approved by moderator' : moderationReason
-        })
-      });
+      const response = await adminApi.moderateForumReport(post.id, action, moderationReason);
 
-      if (!response.ok) {
-        throw new Error('Failed to moderate forum report');
+      if (response.success) {
+        // Remove the moderated post from the list
+        setReportedPosts(prev => prev.filter(p => p.id !== post.id));
+
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          pending_moderation: Math.max(0, prev.pending_moderation - 1),
+          total_moderation_actions: prev.total_moderation_actions + 1
+        }));
+
+        closeModerationModal();
+      } else {
+        throw new Error(response.message || 'Failed to moderate post');
       }
-
-      // Remove the moderated post from the list
-      setReportedPosts(prev => prev.filter(p => p.id !== post.id));
-
-      // Update stats
-      setStats(prev => ({
-        ...prev,
-        pending_moderation: Math.max(0, prev.pending_moderation - 1),
-        total_moderation_actions: prev.total_moderation_actions + 1
-      }));
-
-      closeModerationModal();
-      // Success feedback could be added here (toast notification)
     } catch (err: any) {
       console.error('Failed to moderate post:', err);
       setError('Failed to moderate forum report: ' + (err.response?.data?.message || err.message));
@@ -181,21 +174,41 @@ const ForumModerationDashboard: React.FC = () => {
     }
   };
 
+  // Filter posts based on search
+  const filteredPosts = reportedPosts.filter(post => 
+    post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    post.topic_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${post.first_name} ${post.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <RefreshCw className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
+          <p className="text-gray-600 text-lg">Loading moderation data...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-          <Shield className="mr-2" />
-          Forum Moderation Dashboard
-        </h2>
+    <div className="w-full space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Forum Moderation</h1>
+          <p className="text-gray-500 mt-1">Review and manage reported content</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchModerationData}
+            className="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -205,10 +218,10 @@ const ForumModerationDashboard: React.FC = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
+            <div className="p-2 bg-blue-50 rounded-lg">
               <AlertTriangle className="h-6 w-6 text-blue-600" />
             </div>
             <div className="ml-4">
@@ -218,9 +231,9 @@ const ForumModerationDashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
+            <div className="p-2 bg-yellow-50 rounded-lg">
               <MessageSquare className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
@@ -230,9 +243,9 @@ const ForumModerationDashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
+            <div className="p-2 bg-green-50 rounded-lg">
               <Shield className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
@@ -242,9 +255,9 @@ const ForumModerationDashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
+            <div className="p-2 bg-purple-50 rounded-lg">
               <BarChart className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">

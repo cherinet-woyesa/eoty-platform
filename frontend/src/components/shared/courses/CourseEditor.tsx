@@ -7,6 +7,7 @@ import { useNotification } from '@/context/NotificationContext';
 import { useFormValidation, validationRules } from '@/hooks/useFormValidation';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import type { Course, CourseFormData } from '@/types/courses';
+import LessonList from './LessonList';
 import {
   BookOpen,
   X,
@@ -33,7 +34,8 @@ import {
   Languages,
   Globe,
   Lock,
-  Award
+  Award,
+  List
 } from 'lucide-react';
 import { Spinner, LoadingButton } from '@/components/shared/LoadingStates';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +47,7 @@ interface CourseEditorProps {
   mode?: 'edit' | 'view' | 'preview';
 }
 
-type EditorMode = 'basic' | 'content' | 'settings' | 'analytics' | 'preview';
+type EditorMode = 'basic' | 'lessons' | 'content' | 'settings' | 'analytics' | 'preview';
 
 export const CourseEditor: React.FC<CourseEditorProps> = ({
   courseId,
@@ -108,6 +110,39 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   });
 
   const course = courseData?.data?.course;
+
+  // Fetch lessons
+  const { data: lessonsData, refetch: refetchLessons } = useQuery({
+    queryKey: ['lessons', courseId],
+    queryFn: () => coursesApi.getLessons(courseId),
+    enabled: !!courseId,
+  });
+  
+  const lessons = lessonsData?.data?.lessons || [];
+
+  // Add lesson handler
+  const handleAddLesson = async () => {
+    try {
+      await coursesApi.createLesson(courseId, { 
+        title: t('lessons.new_lesson') || 'New Lesson',
+        order: lessons.length 
+      });
+      refetchLessons();
+      showNotification({
+        type: 'success',
+        title: t('common.success'),
+        message: t('lessons.lesson_created') || 'Lesson created successfully',
+        duration: 3000,
+      });
+    } catch (error) {
+      showNotification({
+        type: 'error',
+        title: t('common.error'),
+        message: t('lessons.create_failed') || 'Failed to create lesson',
+        duration: 5000,
+      });
+    }
+  };
 
   // Debug: Log course data loading
   console.log('CourseEditor render:', {
@@ -633,6 +668,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const editorTabs: { id: EditorMode; label: string; icon: React.ElementType }[] = [
     { id: 'basic', label: t('courses.editor.basic_info'), icon: FileText },
+    { id: 'lessons', label: t('common.lessons'), icon: List },
     { id: 'content', label: t('courses.editor.content'), icon: BookOpen },
     { id: 'settings', label: t('courses.editor.settings'), icon: Settings },
     { id: 'analytics', label: t('courses.editor.analytics'), icon: BarChart3 },
@@ -666,18 +702,24 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Course Stats */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-stone-700">
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4 text-[#27AE60]" />
-                <span>{courseStats.totalStudents} {t('common.students')}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Target className="h-4 w-4 text-[#16A085]" />
-                <span>{courseStats.completionRate}% {t('common.completion')}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Zap className="h-4 w-4 text-[#2980B9]" />
-                <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
-              </div>
+              {courseStats.totalStudents > 0 && (
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-[#27AE60]" />
+                  <span>{courseStats.totalStudents} {t('common.students')}</span>
+                </div>
+              )}
+              {courseStats.completionRate > 0 && (
+                <div className="flex items-center gap-1">
+                  <Target className="h-4 w-4 text-[#16A085]" />
+                  <span>{courseStats.completionRate}% {t('common.completion')}</span>
+                </div>
+              )}
+              {courseStats.averageRating > 0 && (
+                <div className="flex items-center gap-1">
+                  <Zap className="h-4 w-4 text-[#2980B9]" />
+                  <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <BookOpen className="h-4 w-4 text-emerald-700" />
                 <span>{courseStats.totalLessons} {t('common.lessons')}</span>
@@ -899,6 +941,30 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'lessons' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-stone-800">{t('common.lessons')}</h3>
+              <button
+                onClick={handleAddLesson}
+                className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {t('lessons.add_lesson') || 'Add Lesson'}
+              </button>
+            </div>
+            <LessonList
+              courseId={courseId}
+              lessons={lessons}
+              onAddLesson={handleAddLesson}
+              onEdit={() => refetchLessons()}
+              onDelete={() => refetchLessons()}
+              onDuplicate={() => refetchLessons()}
+              onPreview={() => {}}
+            />
           </div>
         )}
 
@@ -1245,33 +1311,41 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             </div>
 
             {/* Lesson Analytics */}
-            <div className="bg-gradient-to-br from-stone-50 to-white rounded-xl p-6 border border-stone-200">
-              <div className="flex items-center gap-3 mb-4">
-                <BarChart3 className="h-6 w-6 text-[#27AE60]" />
-                <h3 className="text-lg font-semibold text-stone-800">Lesson Performance</h3>
-              </div>
+            {courseStats.totalStudents > 0 ? (
+              <div className="bg-gradient-to-br from-stone-50 to-white rounded-xl p-6 border border-stone-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <BarChart3 className="h-6 w-6 text-[#27AE60]" />
+                  <h3 className="text-lg font-semibold text-stone-800">Lesson Performance</h3>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-4 border border-stone-200">
-                  <div className="text-2xl font-bold text-[#27AE60] mb-1">0</div>
-                  <div className="text-sm text-stone-600">Total Views</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-lg p-4 border border-stone-200">
+                    <div className="text-2xl font-bold text-[#27AE60] mb-1">0</div>
+                    <div className="text-sm text-stone-600">Total Views</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-stone-200">
+                    <div className="text-2xl font-bold text-[#16A085] mb-1">0</div>
+                    <div className="text-sm text-stone-600">Avg. Completion</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-stone-200">
+                    <div className="text-2xl font-bold text-[#2980B9] mb-1">0</div>
+                    <div className="text-sm text-stone-600">Engagement Rate</div>
+                  </div>
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-stone-200">
-                  <div className="text-2xl font-bold text-[#16A085] mb-1">0</div>
-                  <div className="text-sm text-stone-600">Avg. Completion</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-stone-200">
-                  <div className="text-2xl font-bold text-[#2980B9] mb-1">0</div>
-                  <div className="text-sm text-stone-600">Engagement Rate</div>
-                </div>
-              </div>
 
-              <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
-                <p className="text-sm text-stone-600">
-                  Detailed lesson analytics will be available once students begin taking this course.
-                </p>
+                <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
+                  <p className="text-sm text-stone-600">
+                    Detailed lesson analytics will be available once students begin taking this course.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-12 bg-stone-50 rounded-xl border border-stone-200">
+                <BarChart3 className="h-12 w-12 text-stone-300 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-stone-600">No analytics data yet</h3>
+                <p className="text-stone-500 text-sm mt-1">Analytics will appear here once students enroll and start learning.</p>
+              </div>
+            )}
 
             {/* Future Analytics Features */}
             <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-6 text-center border border-gray-200">
@@ -1349,14 +1423,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <button
             type="button"
             onClick={() => navigate('/teacher/courses')}
-            className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all"
+            className="px-6 py-3 border border-stone-200 text-stone-700 font-medium rounded-xl hover:bg-stone-50 hover:border-[#27AE60]/50 hover:text-[#27AE60] transition-all"
           >
             {t('common.back_to_courses')}
           </button>
           <LoadingButton
             loading={updateMutation.isPending}
             onClick={handleSave}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-medium rounded-xl hover:from-[#219150] hover:to-[#12876F] transition-all shadow-lg"
           >
             <Save className="h-5 w-5 mr-2" />
             {t('common.save_changes')}

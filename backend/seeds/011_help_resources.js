@@ -6,11 +6,15 @@
 
 exports.seed = async function(knex) {
   // Check if help resources already exist
-  const existingResources = await knex('help_resources').count('* as count').first();
-  if (parseInt(existingResources?.count || 0) > 0) {
-    console.log('⚠️  Help resources already exist, skipping seed');
-    return;
-  }
+  // const existingResources = await knex('help_resources').count('* as count').first();
+  // if (parseInt(existingResources?.count || 0) > 0) {
+  //   console.log('⚠️  Help resources already exist, skipping seed');
+  //   return;
+  // }
+
+  // Clear existing resources
+  await knex('help_resources').del();
+
 
   const helpResources = [
     // Dashboard Help
@@ -20,8 +24,8 @@ exports.seed = async function(knex) {
       page: '/dashboard',
       audience: 'all',
       category: 'navigation',
-      title: 'Dashboard Overview',
-      content: '<p>Your dashboard is your home base. Here you can see your enrolled courses, recent activity, and quick access to key features.</p>',
+      title: 'Your Dashboard',
+      content: '<p>This is your command center. View your active courses, check upcoming events, and see your latest achievements at a glance.</p>',
       is_active: true
     },
     {
@@ -30,8 +34,8 @@ exports.seed = async function(knex) {
       page: '/dashboard',
       audience: 'all',
       category: 'navigation',
-      title: 'Getting Started with Your Dashboard',
-      content: '<p><strong>Dashboard Features:</strong></p><ul><li>View your enrolled courses and progress</li><li>Access quick links to courses, forums, and resources</li><li>See your recent activity and achievements</li><li>Get personalized recommendations</li></ul>',
+      title: 'Mastering Your Dashboard',
+      content: '<p><strong>Key Features:</strong></p><ul><li><strong>My Learning:</strong> Quick access to your current courses.</li><li><strong>Community:</strong> See the latest discussions in your chapter.</li><li><strong>Progress:</strong> Track your points, badges, and study streak.</li><li><strong>Recommendations:</strong> Discover new content based on your interests.</li></ul>',
       is_active: true
     },
 
@@ -42,8 +46,8 @@ exports.seed = async function(knex) {
       page: '/courses',
       audience: 'all',
       category: 'courses',
-      title: 'Course Card',
-      content: '<p>Click on a course card to view course details, see lessons, and enroll in the course.</p>',
+      title: 'Course Overview',
+      content: '<p>Click to view the syllabus, instructor details, and enrollment options. Start your learning journey here.</p>',
       is_active: true
     },
     {
@@ -52,8 +56,8 @@ exports.seed = async function(knex) {
       page: null,
       audience: 'all',
       category: 'courses',
-      title: 'How do I enroll in a course?',
-      content: '<p>To enroll in a course, navigate to the course details page and click the "Enroll" button. Once enrolled, you can access all course materials and track your progress.</p>',
+      title: 'How do I start a course?',
+      content: '<p>Simply click "Enroll" on any course card. The course will be added to your dashboard, and you can begin the first lesson immediately.</p>',
       is_active: true
     },
     {
@@ -62,8 +66,8 @@ exports.seed = async function(knex) {
       page: null,
       audience: 'all',
       category: 'courses',
-      title: 'Can I unenroll from a course?',
-      content: '<p>Yes, you can unenroll from a course at any time from the course details page. Your progress will be saved, and you can re-enroll later to continue where you left off.</p>',
+      title: 'Can I learn at my own pace?',
+      content: '<p>Absolutely! Most courses are self-paced. You can pause and resume whenever you like. Your progress is automatically saved.</p>',
       is_active: true
     },
 
@@ -74,8 +78,8 @@ exports.seed = async function(knex) {
       page: '/forums',
       audience: 'all',
       category: 'community',
-      title: 'Forum Topics',
-      content: '<p>Forum topics are discussion threads where you can ask questions, share insights, and engage with other community members.</p>',
+      title: 'Join the Discussion',
+      content: '<p>Engage with your peers! Ask questions, share your thoughts, and support others in their faith journey.</p>',
       is_active: true
     },
     {
@@ -84,8 +88,8 @@ exports.seed = async function(knex) {
       page: null,
       audience: 'all',
       category: 'community',
-      title: 'How do I create a forum topic?',
-      content: '<p>To create a forum topic, navigate to the forums page, select a forum, and click "New Topic". Fill in the title and content, then post your topic.</p>',
+      title: 'How do I post a new topic?',
+      content: '<p>Navigate to the relevant forum category and click the "New Topic" button. Give your post a clear title and share your message. Remember to be respectful and kind!</p>',
       is_active: true
     },
     {
@@ -94,8 +98,8 @@ exports.seed = async function(knex) {
       page: null,
       audience: 'all',
       category: 'community',
-      title: 'What are private topics?',
-      content: '<p>Private topics are only visible to members of a specific chapter. They allow for chapter-specific discussions and collaboration.</p>',
+      title: 'What is a Chapter Forum?',
+      content: '<p>Chapter Forums are private spaces for members of your specific local chapter. It\'s a great place to discuss local events and coordinate activities.</p>',
       is_active: true
     },
 

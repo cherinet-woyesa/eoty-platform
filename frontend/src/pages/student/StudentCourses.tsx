@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface EnrolledCourse {
   id: number;
@@ -34,13 +35,10 @@ interface StudentCoursesData {
 }
 
 // Memoized components
-const LoadingSpinner = React.memo(() => (
+const LoadingState = React.memo(() => (
   <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
     <div className="flex items-center justify-center min-h-96">
-      <div className="text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-        <p className="text-gray-600 text-lg">Loading your courses...</p>
-      </div>
+      <LoadingSpinner size="lg" text="Loading your courses..." variant="logo" />
     </div>
   </div>
 ));
@@ -159,7 +157,7 @@ const StudentCourses: React.FC = () => {
   }, [data]);
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <LoadingState />;
   }
 
   if (error) {

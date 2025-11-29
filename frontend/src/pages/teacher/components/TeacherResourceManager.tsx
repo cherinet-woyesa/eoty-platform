@@ -103,10 +103,10 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800">Upload New Resource</h2>
+          <h2 className="text-xl font-bold text-stone-800">Upload New Resource</h2>
           <button 
             onClick={() => setView('list')}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Library
@@ -130,13 +130,13 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-[#27AE60]" />
             Resource Library
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-stone-500">
             {lessonId ? 'Manage resources for this lesson' : 'Manage your educational materials'}
           </p>
         </div>
@@ -151,26 +151,26 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
 
       {/* Attached Resources (Only if lessonId is present) */}
       {lessonId && (
-        <div className="bg-blue-50/50 rounded-xl border border-blue-100 p-4">
-          <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+        <div className="bg-emerald-50/50 rounded-xl border border-emerald-100 p-4">
+          <h3 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
             <LinkIcon className="h-4 w-4" />
             Attached to Current Lesson
           </h3>
           {attachedResources.length === 0 ? (
-            <p className="text-sm text-blue-600/70 italic">No resources attached to this lesson yet.</p>
+            <p className="text-sm text-emerald-600/70 italic">No resources attached to this lesson yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {attachedResources.map(resource => (
-                <div key={resource.id} className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm flex items-center justify-between group">
+                <div key={resource.id} className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm flex items-center justify-between group">
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
                       {resource.file_type?.includes('pdf') ? '📄' : '📝'}
                     </div>
-                    <span className="text-sm font-medium text-gray-700 truncate">{resource.title}</span>
+                    <span className="text-sm font-medium text-stone-700 truncate">{resource.title}</span>
                   </div>
                   <button 
                     onClick={() => handleDetachResource(resource.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
                     title="Remove from lesson"
                   >
                     <X className="h-4 w-4" />
@@ -183,23 +183,23 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       )}
 
       {/* Library Browser */}
-      <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+        <div className="p-4 border-b border-stone-200 bg-stone-50/50">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-3 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
                 <input
                   type="text"
                   placeholder="Search library..."
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] text-sm"
+                  className="w-full pl-9 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] text-sm"
                   value={searchTerm}
                   onChange={handleSearch}
                 />
               </div>
               <select
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] text-sm bg-white"
+                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] text-sm bg-white"
                 value={selectedScope}
                 onChange={(e) => setSelectedScope(e.target.value as 'chapter_wide' | 'platform_wide')}
               >
@@ -207,7 +207,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                 {isAdmin && <option value="platform_wide">Platform Library</option>}
               </select>
             </div>
-            <div className="text-xs text-gray-500 font-medium">
+            <div className="text-xs text-stone-500 font-medium">
               {resources.length} items available
             </div>
           </div>
@@ -221,9 +221,9 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
             </div>
           ) : resources.length === 0 ? (
             <div className="text-center py-12">
-              <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-gray-900 font-medium">Library is empty</h3>
-              <p className="text-gray-500 text-sm mt-1">Upload resources to see them here</p>
+              <FolderOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
+              <h3 className="text-stone-900 font-medium">Library is empty</h3>
+              <p className="text-stone-500 text-sm mt-1">Upload resources to see them here</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -234,13 +234,13 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                     key={resource.id}
                     className={`group relative bg-white rounded-xl border transition-all duration-200 ${
                       attached 
-                        ? 'border-blue-200 bg-blue-50/30' 
-                        : 'border-gray-200 hover:border-[#27AE60]/50 hover:shadow-md'
+                        ? 'border-emerald-200 bg-emerald-50/30' 
+                        : 'border-stone-200 hover:border-[#27AE60]/50 hover:shadow-md'
                     }`}
                   >
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-xl">
+                        <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-xl">
                           {resource.file_type?.includes('pdf') ? '📄' :
                            resource.file_type?.includes('image') ? '🖼️' :
                            resource.file_type?.includes('video') ? '🎬' :
@@ -252,8 +252,8 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                             disabled={attaching === resource.id}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                               attached
-                                ? 'bg-blue-100 text-blue-700 hover:bg-red-100 hover:text-red-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-[#27AE60] hover:text-white'
+                                ? 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700'
+                                : 'bg-stone-100 text-stone-600 hover:bg-[#27AE60] hover:text-white'
                             }`}
                           >
                             {attaching === resource.id ? (
@@ -273,34 +273,34 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                         )}
                       </div>
                       
-                      <h3 className="font-semibold text-gray-900 truncate mb-1" title={resource.title}>
+                      <h3 className="font-semibold text-stone-900 truncate mb-1" title={resource.title}>
                         {resource.title}
                       </h3>
                       
                       <div className="flex items-center gap-2 mb-3">
                         {resource.category && (
-                          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] uppercase tracking-wider font-medium">
+                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-[10px] uppercase tracking-wider font-medium">
                             {resource.category}
                           </span>
                         )}
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-stone-400">•</span>
+                        <span className="text-xs text-stone-500">
                           {new Date(resource.created_at).toLocaleDateString()}
                         </span>
                       </div>
 
                       {resource.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-4 h-10">
+                        <p className="text-sm text-stone-600 line-clamp-2 mb-4 h-10">
                           {resource.description}
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600">
+                          <div className="w-6 h-6 rounded-full bg-stone-200 flex items-center justify-center text-[10px] font-bold text-stone-600">
                             {resource.author?.charAt(0) || 'U'}
                           </div>
-                          <span className="text-xs text-gray-500 truncate max-w-[80px]">
+                          <span className="text-xs text-stone-500 truncate max-w-[80px]">
                             {resource.author}
                           </span>
                         </div>

@@ -331,7 +331,7 @@ export const ChapterManagement = () => {
                       <h2 className="text-2xl font-bold">
                         {isCreating ? 'Create Chapter' : 'Edit Chapter'}
                       </h2>
-                      <p className="text-blue-100 mt-1">
+                      <p className="text-green-50 mt-1">
                         {isCreating ? 'Add a new chapter' : 'Update chapter details'}
                       </p>
                     </div>
@@ -356,7 +356,7 @@ export const ChapterManagement = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Introduction to Catholic Faith"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent ${
                         formErrors.name ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -378,7 +378,7 @@ export const ChapterManagement = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of this chapter..."
                       rows={4}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent ${
                         formErrors.description ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />

@@ -14,11 +14,15 @@ exports.seed = async function(knex) {
   }
 
   // Check if steps already exist
-  const existingSteps = await knex('onboarding_steps').count('* as count').first();
-  if (parseInt(existingSteps?.count || 0) > 0) {
-    console.log('⚠️  Onboarding steps already exist, skipping seed');
-    return;
-  }
+  // const existingSteps = await knex('onboarding_steps').count('* as count').first();
+  // if (parseInt(existingSteps?.count || 0) > 0) {
+  //   console.log('⚠️  Onboarding steps already exist, skipping seed');
+  //   return;
+  // }
+
+  // Clear existing steps to ensure fresh content
+  await knex('onboarding_steps').del();
+
 
   const steps = [];
 
@@ -28,9 +32,9 @@ exports.seed = async function(knex) {
     steps.push(
       {
         flow_id: newUserFlow.id,
-        title: 'Welcome to EOTY Platform',
-        description: 'Learn about the Ethiopian Orthodox Tewahedo Youth platform and its mission.',
-        content: '<p>The EOTY Platform is designed to help you grow in your faith through interactive courses, community engagement, and spiritual resources.</p>',
+        title: 'Welcome to Your Spiritual Journey',
+        description: 'Embark on a path of faith, learning, and community with the EOTY Platform.',
+        content: '<p>Welcome! The EOTY Platform is your dedicated space to grow in the Ethiopian Orthodox Tewahedo faith. Here, you will find authentic teachings, connect with fellow youth, and access spiritual resources curated just for you.</p>',
         step_type: 'info',
         order_index: 1,
         is_required: true,
@@ -38,9 +42,9 @@ exports.seed = async function(knex) {
       },
       {
         flow_id: newUserFlow.id,
-        title: 'Explore Your Dashboard',
-        description: 'Get familiar with your personal dashboard and navigation.',
-        content: '<p>Your dashboard is your home base. From here you can access courses, track your progress, and connect with your chapter community.</p>',
+        title: 'Your Personal Dashboard',
+        description: 'Your central hub for learning and connection.',
+        content: '<p>This is your home base. Quickly resume your last lesson, see upcoming events, and track your spiritual milestones. Everything you need is just a click away.</p>',
         step_type: 'action',
         order_index: 2,
         prerequisites: JSON.stringify([]),
@@ -49,9 +53,9 @@ exports.seed = async function(knex) {
       },
       {
         flow_id: newUserFlow.id,
-        title: 'Browse Available Courses',
-        description: 'Discover courses available to you and learn how to enroll.',
-        content: '<p>Browse the course catalog to find courses that interest you. You can filter by category, level, and duration.</p>',
+        title: 'Discover Faith-Aligned Courses',
+        description: 'Explore a catalog of courses designed to deepen your understanding.',
+        content: '<p>Browse our extensive catalog of courses, from Bible studies to Liturgical education. Filter by topic or difficulty to find the perfect starting point for your journey.</p>',
         step_type: 'action',
         action_required: 'Visit the courses page and browse available courses.',
         order_index: 3,
@@ -61,9 +65,9 @@ exports.seed = async function(knex) {
       },
       {
         flow_id: newUserFlow.id,
-        title: 'Join Your Chapter Community',
-        description: 'Connect with other youth members in your chapter through forums and discussions.',
-        content: '<p>Your chapter community is where you can ask questions, share insights, and grow together in faith.</p>',
+        title: 'Connect in Fellowship',
+        description: 'Join a safe and supportive community of peers.',
+        content: '<p>You are not alone on this journey. Join your chapter\'s forum to ask questions, share reflections, and build lasting friendships with other youth members.</p>',
         step_type: 'info',
         order_index: 4,
         prerequisites: JSON.stringify([]), // Will be updated after step insertion
@@ -72,9 +76,9 @@ exports.seed = async function(knex) {
       },
       {
         flow_id: newUserFlow.id,
-        title: 'Access the Resource Library',
-        description: 'Learn about the resource library and how to use it for your studies.',
-        content: '<p>The resource library contains articles, documents, and materials to support your learning journey.</p>',
+        title: 'Explore the Resource Library',
+        description: 'Access a wealth of authentic spiritual materials.',
+        content: '<p>Dive into our library of books, articles, and multimedia resources. Whether you need study materials or daily inspiration, you\'ll find it here.</p>',
         step_type: 'info',
         order_index: 5,
         prerequisites: JSON.stringify([]), // Will be updated after step insertion

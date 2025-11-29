@@ -36,6 +36,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     flaggedContent: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load admin stats directly from API (same approach as teacher dashboard)
@@ -46,7 +47,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     }
 
     try {
-      setIsLoading(true);
+      // Don't set isLoading(true) here to avoid full page spinner on refresh
+      setIsRefreshing(true);
       setError(null);
       
       const response = await apiClient.get('/admin/stats');
@@ -72,6 +74,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       setError(err.response?.data?.message || err.message || 'Failed to load admin statistics');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [user]);
 
@@ -281,10 +284,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
               <div className="mt-3 lg:mt-0">
                 <button
                   onClick={handleRetry}
-                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/30 shadow-sm hover:shadow-md hover:border-[#27AE60]/50"
+                  disabled={isRefreshing}
+                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/30 shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-70"
                 >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-[#27AE60]" />
-                  Refresh
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </button>
               </div>
             </div>

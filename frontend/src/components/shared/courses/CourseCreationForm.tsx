@@ -86,7 +86,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       value: 'faith', 
       label: t('courses.categories.faith'), 
       icon: BookOpen, 
-      color: 'blue'
+      color: 'emerald'
     },
     { 
       value: 'history', 
@@ -98,7 +98,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       value: 'spiritual', 
       label: t('courses.categories.spiritual'), 
       icon: Sparkles, 
-      color: 'purple'
+      color: 'teal'
     },
     { 
       value: 'bible', 
@@ -116,7 +116,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       value: 'youth', 
       label: t('courses.categories.youth'), 
       icon: Users, 
-      color: 'pink'
+      color: 'cyan'
     }
   ], [t]);
 
@@ -129,12 +129,12 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     { 
       value: 'intermediate', 
       label: t('courses.levels.intermediate'), 
-      color: 'blue'
+      color: 'teal'
     },
     { 
       value: 'advanced', 
       label: t('courses.levels.advanced'), 
-      color: 'purple'
+      color: 'blue'
     }
   ], [t]);
 
@@ -416,7 +416,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     return (
       <>
         {/* Success Header */}
-        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 rounded-xl shadow-sm p-8 text-white">
+        <div className="bg-gradient-to-r from-[#27AE60] via-[#16A085] to-[#2980B9] rounded-xl shadow-sm p-8 text-white">
           <div className="flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6">
@@ -443,7 +443,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate('/teacher/courses')}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all duration-200 shadow-lg shadow-[#27AE60]/25"
             >
               <BookOpen className="mr-2 h-5 w-5" />
               {t('courses.creation.view_my_courses')}
@@ -488,7 +488,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           <div className="space-y-6">
             {/* Course Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('courses.creation.course_title')} *
               </label>
               <input
@@ -500,7 +500,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.title}
                 onChange={handleChange}
                 placeholder={t('courses.creation.title_placeholder')}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-lg"
+                className="w-full px-4 py-3 border border-stone-300 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent transition-all duration-200 text-lg"
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -512,7 +512,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('courses.creation.course_description')} *
               </label>
               <textarea
@@ -522,9 +522,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.description}
                 onChange={handleChange}
                 placeholder={t('courses.creation.description_placeholder')}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-stone-300 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent transition-all duration-200"
               />
-              <div className="flex justify-between mt-1 text-xs text-gray-500">
+              <div className="flex justify-between mt-1 text-xs text-stone-500">
                 <span>
                   {formData.description.length < 5 
                     ? t('courses.creation.description_too_short_warning') 
@@ -544,7 +544,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-stone-700 mb-3">
                   {t('courses.creation.category')} *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -560,13 +560,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         }))}
                         className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
                           formData.category === category.value
-                            ? `border-${category.color}-500 bg-${category.color}-50`
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? `border-[#27AE60] bg-[#27AE60]/5`
+                            : 'border-stone-200 hover:border-stone-300'
                         }`}
                       >
                         <div className="flex items-center space-x-2">
-                          <Icon className={`h-4 w-4 text-${category.color}-600 flex-shrink-0`} />
-                          <div className="font-medium text-gray-900 text-sm">{category.label}</div>
+                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#27AE60]' : 'text-stone-500'} flex-shrink-0`} />
+                          <div className="font-medium text-stone-900 text-sm">{category.label}</div>
                         </div>
                       </button>
                     );
@@ -583,7 +583,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
               {/* Level and Language */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-stone-700 mb-2">
                     {t('courses.creation.difficulty_level')} *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -594,8 +594,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
                         className={`p-2 border rounded-lg text-center transition-all ${
                           formData.level === level.value
-                            ? `border-${level.color}-500 bg-${level.color}-50 text-${level.color}-700`
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? `border-[#27AE60] bg-[#27AE60]/5 text-[#27AE60]`
+                            : 'border-stone-200 hover:border-stone-300'
                         }`}
                       >
                         <div className="text-xs font-medium">{level.label}</div>
@@ -605,7 +605,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="language" className="block text-sm font-medium text-stone-700 mb-2">
                     {t('courses.creation.language')} *
                   </label>
                   <select
@@ -613,7 +613,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     name="language"
                     value={formData.language}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                   >
                     {languages.map(lang => (
                       <option key={lang.value} value={lang.value}>
@@ -627,7 +627,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
             {/* Learning Objectives */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-stone-700 mb-3">
                 {t('courses.creation.learning_objectives')} *
               </label>
               <div className="space-y-2">
@@ -639,7 +639,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         value={objective}
                         onChange={(e) => updateLearningObjective(index, e.target.value)}
                         placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                       />
                     </div>
                     {formData.learningObjectives.length > 1 && (
@@ -656,7 +656,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 <button
                   type="button"
                   onClick={addLearningObjective}
-                  className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                  className="text-[#27AE60] hover:text-[#16A085] font-medium text-sm flex items-center"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   {t('courses.creation.add_another_objective')}
@@ -671,13 +671,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
             </div>
 
             {/* Optional Sections - Collapsible */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-stone-200 pt-4">
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer list-none">
-                  <div className="flex items-center text-sm font-medium text-gray-700">
+                  <div className="flex items-center text-sm font-medium text-stone-700">
                     <span>Additional Options</span>
                   </div>
-                  <div className="text-gray-400 group-open:rotate-180 transition-transform">
+                  <div className="text-stone-400 group-open:rotate-180 transition-transform">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
@@ -687,7 +687,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 <div className="mt-4 space-y-4">
                   {/* Prerequisites */}
                   <div>
-                    <label htmlFor="prerequisites" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="prerequisites" className="block text-sm font-medium text-stone-700 mb-2">
                       {t('courses.creation.prerequisites')}
                     </label>
                     <textarea
@@ -697,13 +697,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       value={formData.prerequisites}
                       onChange={handleChange}
                       placeholder={t('courses.creation.prerequisites_placeholder')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                     />
                   </div>
 
                   {/* Tags */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-stone-700 mb-2">
                       {t('courses.creation.tags')}
                     </label>
                     <div className="space-y-2">
@@ -714,13 +714,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={handleTagKeyPress}
                           placeholder={t('courses.creation.add_tag_placeholder')}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                         />
                         <button
                           type="button"
                           onClick={addTag}
                           disabled={!newTag.trim()}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#16A085] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -729,13 +729,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         {formData.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
+                            className="inline-flex items-center px-2 py-1 bg-[#27AE60]/10 text-[#27AE60] rounded-full text-xs"
                           >
                             {tag}
                             <button
                               type="button"
                               onClick={() => removeTag(tag)}
-                              className="ml-1 text-blue-600 hover:text-blue-800"
+                              className="ml-1 text-[#27AE60] hover:text-[#16A085]"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -747,11 +747,11 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
                   {/* Cover Image */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-stone-700 mb-2">
                       {t('courses.creation.cover_image')}
                     </label>
                     <div className="flex items-center space-x-3">
-                      <label className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                      <label className="inline-flex items-center px-3 py-2 border border-stone-300 rounded-lg text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer transition-colors">
                         <input 
                           type="file" 
                           accept="image/*" 
@@ -792,16 +792,16 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                   {/* Settings Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Privacy Setting */}
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-stone-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {formData.isPublic ? (
-                            <Globe className="h-5 w-5 text-green-600" />
+                            <Globe className="h-5 w-5 text-[#27AE60]" />
                           ) : (
-                            <Lock className="h-5 w-5 text-blue-600" />
+                            <Lock className="h-5 w-5 text-[#2980B9]" />
                           )}
                           <div>
-                            <div className="font-medium text-gray-900 text-sm">
+                            <div className="font-medium text-stone-900 text-sm">
                               {formData.isPublic ? t('common.public_course') : t('common.private_course')}
                             </div>
                           </div>
@@ -810,7 +810,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.isPublic ? 'bg-green-600' : 'bg-blue-600'
+                            formData.isPublic ? 'bg-[#27AE60]' : 'bg-[#2980B9]'
                           }`}
                         >
                           <span
@@ -823,12 +823,12 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     </div>
 
                     {/* Certification */}
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-stone-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-purple-600' : 'text-gray-400'}`} />
+                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-[#16A085]' : 'text-stone-400'}`} />
                           <div>
-                            <div className="font-medium text-gray-900 text-sm">
+                            <div className="font-medium text-stone-900 text-sm">
                               {t('courses.creation.certification_available')}
                             </div>
                           </div>
@@ -840,7 +840,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                             certificationAvailable: !prev.certificationAvailable 
                           }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.certificationAvailable ? 'bg-purple-600' : 'bg-gray-300'
+                            formData.certificationAvailable ? 'bg-[#16A085]' : 'bg-stone-300'
                           }`}
                         >
                           <span
@@ -858,11 +858,11 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end pt-4 border-t border-gray-200">
+          <div className="flex justify-end pt-4 border-t border-stone-200">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isSubmitting ? (
                 <>

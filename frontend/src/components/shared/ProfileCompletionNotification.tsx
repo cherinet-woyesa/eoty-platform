@@ -17,6 +17,16 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
   const navigate = useNavigate();
   const hasShownNotification = useRef(false);
   const hasCheckedNewUser = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    // Clear any pending timeouts on re-render/unmount to prevent duplicates
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Check if this is a new user (just signed up)
@@ -29,16 +39,19 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
       if (showProfileCompletion === 'true') {
         localStorage.removeItem('show_profile_completion');
         
+        // Clear previous timeout if exists
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
         // Show welcome notification for new users
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           showNotification({
-            type: 'info',
-            title: 'Welcome to EOTY Platform! 🎉',
-            message: 'Complete your profile to get the most out of the platform. Add your photo, bio, and other details.',
-            duration: 12000,
+            type: 'success',
+            title: 'Welcome to the Family! 🎉',
+            message: 'We are blessed to have you. Please complete your profile to connect with the community.',
+            duration: 8000,
             actions: [
               {
-                label: 'Complete Profile',
+                label: 'Setup Profile',
                 onClick: () => {
                   if (user.role === 'teacher') {
                     navigate('/teacher/profile');
@@ -60,15 +73,20 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
       
       // Only show if profile is not complete (less than 80%) and not a new user
       if (!isComplete && percentage < 80 && showProfileCompletion !== 'true') {
-        setTimeout(() => {
+        // Clear previous timeout if exists
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        timeoutRef.current = setTimeout(() => {
           showNotification({
             type: 'info',
             title: 'Complete Your Profile',
-            message: `Your profile is ${percentage}% complete. Add more information to enhance your experience.`,
-            duration: 10000,
+            message: percentage > 0 
+              ? `Your profile is ${percentage}% complete. Add a photo and bio to finish setup.`
+              : 'Please complete your profile to get the best experience.',
+            duration: 8000,
             actions: [
               {
-                label: 'Complete Profile',
+                label: 'Update Profile',
                 onClick: () => {
                   if (user.role === 'teacher') {
                     navigate('/teacher/profile');

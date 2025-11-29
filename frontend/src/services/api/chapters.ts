@@ -48,6 +48,11 @@ export const chaptersApi = {
     return response.data;
   },
 
+  getMembers: async (chapterId: number) => {
+    const response = await apiClient.get(`/chapters/${chapterId}/members`);
+    return response.data;
+  },
+
   /**
    * Get user's chapters (REQUIREMENT: Multi-chapter membership)
    */
@@ -95,6 +100,56 @@ export const chaptersApi = {
     const response = await apiClient.get('/chapters/search', {
       params: { q: searchTerm }
     });
+    return response.data;
+  },
+
+  createChapter: async (data: any) => {
+    const response = await apiClient.post('/chapters', data);
+    return response.data;
+  },
+
+  applyLeadership: async (data: any) => {
+    const response = await apiClient.post('/chapters/apply-leadership', data);
+    return response.data;
+  },
+
+  getEvents: async (chapterId: number) => {
+    const response = await apiClient.get(`/chapters/${chapterId}/events`);
+    return response.data;
+  },
+
+  createEvent: async (chapterId: number, data: any) => {
+    const response = await apiClient.post(`/chapters/${chapterId}/events`, data);
+    return response.data;
+  },
+
+  getResources: async (chapterId: number) => {
+    const response = await apiClient.get(`/chapters/${chapterId}/resources`);
+    return response.data;
+  },
+
+  createResource: async (chapterId: number, data: any) => {
+    const response = await apiClient.post(`/chapters/${chapterId}/resources`, data);
+    return response.data;
+  },
+
+  getAnnouncements: async (chapterId: number) => {
+    const response = await apiClient.get(`/chapters/${chapterId}/announcements`);
+    return response.data;
+  },
+
+  createAnnouncement: async (chapterId: number, data: any) => {
+    const response = await apiClient.post(`/chapters/${chapterId}/announcements`, data);
+    return response.data;
+  },
+
+  getEventAttendance: async (eventId: number) => {
+    const response = await apiClient.get(`/chapters/events/${eventId}/attendance`);
+    return response.data;
+  },
+
+  markAttendance: async (eventId: number, userId: number, status: string) => {
+    const response = await apiClient.post(`/chapters/events/${eventId}/attendance`, { user_id: userId, status });
     return response.data;
   }
 };

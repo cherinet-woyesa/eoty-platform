@@ -133,7 +133,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
             />
           </div>
         </div>
@@ -154,7 +154,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
                       if (input) input.indeterminate = someSelected;
                     }}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="h-4 w-4 text-[#27AE60] rounded border-gray-300 focus:ring-[#27AE60]"
                   />
                 </th>
               )}
@@ -209,7 +209,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
                         type="checkbox"
                         checked={selectedItems.has(item.id)}
                         onChange={(e) => handleSelectItem(item.id, e.target.checked)}
-                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="h-4 w-4 text-[#27AE60] rounded border-gray-300 focus:ring-[#27AE60]"
                       />
                     </td>
                   )}
@@ -230,7 +230,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
                       {onViewUsage && item.usage_count !== undefined && (
                         <button
                           onClick={() => onViewUsage(item)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-1 text-gray-400 hover:text-[#27AE60] transition-colors"
                           title={`View usage (${item.usage_count} courses)`}
                         >
                           <Info className="h-4 w-4" />
@@ -243,7 +243,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
                           onClick={() => onToggleActive(item)}
                           className={`p-1 transition-colors ${
                             item.is_active
-                              ? 'text-green-600 hover:text-green-700'
+                              ? 'text-[#27AE60] hover:text-[#219150]'
                               : 'text-gray-400 hover:text-gray-600'
                           }`}
                           title={item.is_active ? 'Active' : 'Inactive'}
@@ -260,7 +260,7 @@ export function ConfigTable<T extends { id: number; is_active?: boolean; usage_c
                       {onEdit && (
                         <button
                           onClick={() => onEdit(item)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-1 text-gray-400 hover:text-[#27AE60] transition-colors"
                           title="Edit"
                         >
                           <Edit className="h-4 w-4" />
@@ -303,7 +303,7 @@ export const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   <span
     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
       active
-        ? 'bg-green-100 text-green-800'
+        ? 'bg-[#27AE60]/10 text-[#27AE60]'
         : 'bg-gray-100 text-gray-800'
     }`}
   >
@@ -316,7 +316,7 @@ export const UsageBadge: React.FC<{ count: number }> = ({ count }) => (
     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
       count === 0
         ? 'bg-gray-100 text-gray-600'
-        : 'bg-blue-100 text-blue-800'
+        : 'bg-[#27AE60]/10 text-[#27AE60]'
     }`}
     title={`Used by ${count} course${count !== 1 ? 's' : ''}`}
   >

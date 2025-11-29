@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { journeysApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Compass, Loader2 } from 'lucide-react';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface Journey {
   id: number;
@@ -40,10 +41,7 @@ const SpiritualJourneys: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <Loader2 className="h-8 w-8 text-emerald-600 animate-spin mb-3" />
-          <p className="text-sm text-slate-600">Loading your spiritual journeys...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading your spiritual journeys..." variant="logo" />
       </div>
     );
   }

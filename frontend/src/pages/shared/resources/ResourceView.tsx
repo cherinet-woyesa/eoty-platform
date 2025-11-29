@@ -9,7 +9,7 @@ import ExportManager from '@/components/shared/resources/ExportManager';
 import ShareResourceModal from '@/components/shared/resources/ShareResourceModal';
 import RequestAccessModal from '@/components/shared/resources/RequestAccessModal';
 import ResourceErrorHandler from '@/components/shared/resources/ResourceErrorHandler';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Layout, FileText, Share2, Download, MessageSquare, Sparkles } from 'lucide-react';
 
 // Memoized loading spinner
 const LoadingSpinner = React.memo(() => (
@@ -40,6 +40,7 @@ const ResourceView: React.FC = () => {
   const [summaryType, setSummaryType] = useState('brief');
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestStatusMessage, setRequestStatusMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'summary' | 'notes' | 'export'>('summary');
   const pollRef = React.useRef<number | null>(null);
 
   // Memoized load functions
@@ -127,6 +128,7 @@ const ResourceView: React.FC = () => {
     setSectionPosition(sectionPositionParam); // REQUIREMENT: Store section position for anchoring
     setEditingNote(null);
     setShowNotesEditor(true);
+    setActiveTab('notes');
   }, []);
 
   const handleSaveNote = useCallback(async (content: string, isPublic: boolean, anchorPoint?: string, sectionText?: string, sectionPosition?: number) => {
@@ -495,64 +497,57 @@ const ResourceView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="p-6 lg:p-8">
-        {requestStatusMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-sm text-amber-800 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              {requestInProgress && (
-                <svg className="animate-spin h-4 w-4 text-amber-600" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-              )}
-              <span className="font-medium">{requestStatusMessage}</span>
-            </div>
-            {!requestInProgress && (
-              <button onClick={() => { setRequestStatusMessage(null); }} className="text-xs text-amber-700 hover:text-amber-800 underline font-medium transition-colors">Dismiss</button>
-            )}
-          </div>
-        )}
-
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => navigate('/resources')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white border border-[#27AE60]/30 rounded-lg text-[#27AE60] hover:text-[#27AE60]/90 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Library
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-stone-800">{resource.title}</h1>
-            <p className="text-stone-600 text-lg leading-relaxed">{resource.description}</p>
-
-            {/* Resource metadata */}
-            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[#27AE60]/20">
-              {resource.category && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/30">
-                  {resource.category}
-                </span>
-              )}
-              {resource.author && (
-                <span className="text-sm text-stone-600 font-medium">
-                  By {resource.author}
-                </span>
-              )}
-              {resource.language && (
-                <span className="text-sm text-stone-500">
-                  Language: {resource.language.charAt(0).toUpperCase() + resource.language.slice(1)}
-                </span>
-              )}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Minimal Header */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/resources')}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 truncate max-w-xl">{resource.title}</h1>
+            <div className="flex items-center gap-3 text-sm text-slate-500">
+              {resource.author && <span>{resource.author}</span>}
+              {resource.author && resource.category && <span>•</span>}
+              {resource.category && <span>{resource.category}</span>}
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Share"
+          >
+            <Share2 className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content - Document Viewer */}
+        <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          {requestStatusMessage && (
+            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-sm text-amber-800 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                {requestInProgress && (
+                  <svg className="animate-spin h-4 w-4 text-amber-600" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                )}
+                <span className="font-medium">{requestStatusMessage}</span>
+              </div>
+              {!requestInProgress && (
+                <button onClick={() => { setRequestStatusMessage(null); }} className="text-xs text-amber-700 hover:text-amber-800 underline font-medium transition-colors">Dismiss</button>
+              )}
+            </div>
+          )}
+
+          <div className="h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <DocumentViewer
               resource={resource}
               onNoteAnchor={handleNoteAnchor}
@@ -560,110 +555,141 @@ const ResourceView: React.FC = () => {
               id="document-viewer"
             />
           </div>
+        </main>
 
-          <div className="space-y-6">
-            <AISummaryDisplay
-              summary={summary}
-              loading={summaryLoading}
-              error={summaryError}
-              onRetry={handleRetrySummary}
-              onTypeChange={handleSummaryTypeChange}
-            />
+        {/* Right Sidebar - Tabs */}
+        <aside className="w-96 bg-white border-l border-slate-200 flex flex-col shadow-lg z-10">
+          {/* Tab Headers */}
+          <div className="flex border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'summary'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Summary
+            </button>
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'notes'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Notes
+            </button>
+            <button
+              onClick={() => setActiveTab('export')}
+              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'export'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
 
-            {showNotesEditor && (
-              <NotesEditor
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'summary' && (
+              <div className="space-y-6">
+                <AISummaryDisplay
+                  summary={summary}
+                  loading={summaryLoading}
+                  error={summaryError}
+                  onRetry={handleRetrySummary}
+                  onTypeChange={handleSummaryTypeChange}
+                />
+              </div>
+            )}
+
+            {activeTab === 'notes' && (
+              <div className="space-y-6">
+                {showNotesEditor ? (
+                  <NotesEditor
+                    resourceId={parseInt(id || '0')}
+                    notes={notes}
+                    publicNotes={[...publicNotes, ...sharedNotes]}
+                    showEditor={showNotesEditor}
+                    editingNote={editingNote}
+                    anchorPoint={anchorPoint}
+                    onSave={(content, isPublic, anchor) => handleSaveNote(content, isPublic, anchor, sectionText, sectionPosition)}
+                    onCancel={() => {
+                      setShowNotesEditor(false);
+                      setAnchorPoint(undefined);
+                      setSectionText(undefined);
+                      setSectionPosition(undefined);
+                    }}
+                  />
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowNotesEditor(true);
+                        setEditingNote(null);
+                      }}
+                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Add New Note
+                    </button>
+
+                    {(notes.length > 0 || publicNotes.length > 0 || sharedNotes.length > 0) ? (
+                      <div className="space-y-4">
+                        {notes.map(note => (
+                          <div key={note.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                            {note.section_anchor && (
+                              <p className="text-xs text-blue-600 font-medium mt-2 flex items-center gap-1">
+                                📍 Anchored to section
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-400 mt-2">
+                              {new Date(note.created_at || '').toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
+                        {[...publicNotes, ...sharedNotes].map(note => (
+                          <div key={note.id} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                                {note.first_name?.[0]}
+                              </div>
+                              <span className="text-xs font-medium text-slate-700">{note.first_name} {note.last_name}</span>
+                            </div>
+                            <p className="text-sm text-slate-700 leading-relaxed">{note.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-slate-400">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                        <p>No notes yet</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'export' && (
+              <ExportManager
                 resourceId={parseInt(id || '0')}
-                notes={notes}
-                publicNotes={[...publicNotes, ...sharedNotes]} // REQUIREMENT: Show shared notes
-                showEditor={showNotesEditor}
-                editingNote={editingNote}
-                anchorPoint={anchorPoint}
-                onSave={(content, isPublic, anchor) => handleSaveNote(content, isPublic, anchor, sectionText, sectionPosition)}
-                onCancel={() => {
-                  setShowNotesEditor(false);
-                  setAnchorPoint(undefined);
-                  setSectionText(undefined);
-                  setSectionPosition(undefined);
-                }}
+                resourceName={resource?.title || 'Resource'}
+                onExport={handleExport}
+                onShare={() => setShowShareModal(true)}
               />
             )}
-
-            {/* Display existing notes */}
-            {!showNotesEditor && (notes.length > 0 || publicNotes.length > 0 || sharedNotes.length > 0) && (
-              <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-stone-200 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-xl font-bold text-stone-800">Notes</h3>
-                  <span className="px-2 py-1 bg-[#27AE60]/10 text-[#27AE60] text-xs font-medium rounded-full border border-[#27AE60]/30">
-                    {notes.length + publicNotes.length + sharedNotes.length}
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {notes.map(note => (
-                    <div key={note.id} className="p-4 bg-gradient-to-r from-stone-50 to-neutral-50 rounded-lg border border-stone-200">
-                      <p className="text-sm text-stone-700 leading-relaxed">{note.content}</p>
-                      {note.section_anchor && (
-                        <p className="text-xs text-[#27AE60] font-medium mt-2 flex items-center gap-1">
-                          📍 Anchored to: {note.section_anchor}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                  {[...publicNotes, ...sharedNotes].map(note => (
-                    <div key={note.id} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                      <p className="text-sm text-stone-700 leading-relaxed">{note.content}</p>
-                      <p className="text-xs text-blue-600 font-medium mt-2 flex items-center gap-2">
-                        👤 By {note.first_name} {note.last_name}
-                        {note.section_anchor && (
-                          <>
-                            <span className="text-blue-400">•</span>
-                            <span className="text-[#27AE60]">📍 {note.section_anchor}</span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => {
-                    setShowNotesEditor(true);
-                    setEditingNote(null);
-                  }}
-                  className="mt-6 w-full px-4 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  ✏️ Add New Note
-                </button>
-              </div>
-            )}
-
-            {!showNotesEditor && notes.length === 0 && publicNotes.length === 0 && sharedNotes.length === 0 && (
-              <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-stone-200 p-6 text-center">
-                <div className="mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                    📝
-                  </div>
-                  <h3 className="text-lg font-bold text-stone-800 mb-2">No Notes Yet</h3>
-                  <p className="text-stone-600">Start your learning journey by adding your first note!</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowNotesEditor(true);
-                    setEditingNote(null);
-                  }}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  ✏️ Add First Note
-                </button>
-              </div>
-            )}
-
-            <ExportManager
-              resourceId={parseInt(id || '0')}
-              resourceName={resource?.title || 'Resource'}
-              onExport={handleExport}
-              onShare={() => setShowShareModal(true)}
-            />
           </div>
-        </div>
+        </aside>
+      </div>
       
       {showShareModal && resource && (
         <ShareResourceModal 
@@ -683,7 +709,6 @@ const ResourceView: React.FC = () => {
           onSubmit={submitRequestAccess}
         />
       )}
-      </div>
     </div>
   );
 };

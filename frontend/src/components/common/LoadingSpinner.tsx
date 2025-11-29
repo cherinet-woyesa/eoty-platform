@@ -8,6 +8,7 @@ interface LoadingSpinnerProps {
   overlay?: boolean;
   fullScreen?: boolean;
   color?: 'primary' | 'secondary' | 'white';
+  variant?: 'spinner' | 'logo';
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
@@ -16,58 +17,96 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className = '',
   overlay = false,
   fullScreen = false,
-  color = 'primary'
+  color = 'primary',
+  variant
 }) => {
+  // Determine if we should show the logo variant
+  // Default to logo for large/fullscreen loaders unless specified otherwise
+  const showLogo = variant === 'logo' || (!variant && (size === 'lg' || size === 'xl' || fullScreen));
+
   const sizeClasses = {
     xs: 'h-3 w-3',
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
-    lg: 'h-12 w-12',
-    xl: 'h-16 w-16'
+    lg: 'h-16 w-16', // Increased for logo visibility
+    xl: 'h-24 w-24'  // Increased for logo visibility
   };
 
   const colorClasses = {
-    primary: 'text-blue-600',
-    secondary: 'text-gray-600',
-    white: 'text-white'
+    primary: 'text-blue-600 border-blue-600',
+    secondary: 'text-gray-600 border-gray-600',
+    white: 'text-white border-white'
   };
 
-  const spinner = (
-    <div className={`flex flex-col items-center justify-center ${className}`}>
-      <Loader2 
-        className={`animate-spin ${sizeClasses[size]} ${colorClasses[color]}`} 
-      />
-      {text && (
-        <p className={`mt-2 text-center max-w-xs ${
-          size === 'xs' || size === 'sm' ? 'text-xs' : 'text-sm'
-        } ${
-          color === 'white' ? 'text-white' : 'text-gray-600'
-        }`}>
-          {text}
-        </p>
-      )}
-    </div>
-  );
+  const renderContent = () => {
+    if (showLogo) {
+      return (
+        <div className={`relative flex flex-col items-center justify-center ${className}`}>
+          <div className={`relative ${sizeClasses[size]} flex items-center justify-center`}>
+            {/* Spinning outer ring */}
+            <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${colorClasses[color].split(' ')[1] || 'border-blue-600'}`}></div>
+            
+            {/* Static Logo */}
+            <div className="absolute inset-2 rounded-full overflow-hidden bg-white shadow-sm">
+              <img 
+                src="/eoc.jpg" 
+                alt="Loading..." 
+                className="w-full h-full object-cover opacity-90"
+              />
+            </div>
+          </div>
+          
+          {text && (
+            <p className={`mt-4 font-medium text-center animate-pulse ${
+              size === 'xs' || size === 'sm' ? 'text-xs' : 'text-sm'
+            } ${
+              color === 'white' ? 'text-white' : 'text-stone-600'
+            }`}>
+              {text}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // Standard spinner for smaller sizes
+    return (
+      <div className={`flex flex-col items-center justify-center ${className}`}>
+        <Loader2 
+          className={`animate-spin ${sizeClasses[size]} ${colorClasses[color].split(' ')[0]}`} 
+        />
+        {text && (
+          <p className={`mt-2 text-center max-w-xs ${
+            size === 'xs' || size === 'sm' ? 'text-xs' : 'text-sm'
+          } ${
+            color === 'white' ? 'text-white' : 'text-gray-600'
+          }`}>
+            {text}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   if (overlay) {
     return (
-      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${
+      <div className={`fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50 ${
         fullScreen ? 'min-h-screen' : ''
       }`}>
-        {spinner}
+        {renderContent()}
       </div>
     );
   }
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-        {spinner}
+      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-stone-50 via-white to-stone-50 z-50">
+        {renderContent()}
       </div>
     );
   }
 
-  return spinner;
+  return renderContent();
 };
 
 // Skeleton loader component
