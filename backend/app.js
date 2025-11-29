@@ -43,6 +43,9 @@ const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
+// Trust proxy (required for Cloud Run / Vercel)
+app.set('trust proxy', 1);
+
 // Enhanced CORS configuration with proper headers
 const corsOptions = {
   origin: function (origin, callback) {
