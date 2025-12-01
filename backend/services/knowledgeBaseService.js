@@ -1,4 +1,4 @@
-const db = require('../config/database-gcp');
+const db = require('../config/database');
 const { storage, aiConfig } = require('../config/aiConfig-gcp');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');

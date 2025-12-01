@@ -1,4 +1,4 @@
-const db = require('../config/database-gcp');
+const db = require('../config/database');
 const { vertexAI, storage, aiConfig } = require('../config/aiConfig-gcp');
 const pdf = require('pdf-parse');
 const knowledgeBaseService = require('./knowledgeBaseService');
