@@ -1,5 +1,5 @@
 # Multi-stage Docker build for Google Cloud Run
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies for native modules
 RUN apk add --no-cache python3 make g++ sqlite-dev postgresql-dev
@@ -13,7 +13,7 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Install runtime dependencies
 RUN apk add --no-cache postgresql-client sqlite ffmpeg curl
