@@ -10,6 +10,7 @@ import ShareResourceModal from '@/components/shared/resources/ShareResourceModal
 import RequestAccessModal from '@/components/shared/resources/RequestAccessModal';
 import ResourceErrorHandler from '@/components/shared/resources/ResourceErrorHandler';
 import { ArrowLeft, Layout, FileText, Share2, Download, MessageSquare, Sparkles } from 'lucide-react';
+import { useNotification } from '@/context/NotificationContext';
 
 // Memoized loading spinner
 const LoadingSpinner = React.memo(() => (
@@ -21,6 +22,7 @@ const LoadingSpinner = React.memo(() => (
 const ResourceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [resource, setResource] = useState<Resource | null>(null);
   const [notes, setNotes] = useState<UserNote[]>([]);
   const [publicNotes, setPublicNotes] = useState<UserNote[]>([]);
@@ -208,14 +210,26 @@ const ResourceView: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        alert(`Export completed! File saved as: ${resource?.title || 'resource'}_export_${new Date().getTime()}.${fileExtension}`);
+        showNotification({
+          type: 'success',
+          title: 'Export Complete',
+          message: `Export completed! File saved as: ${resource?.title || 'resource'}_export_${new Date().getTime()}.${fileExtension}`
+        });
       } else {
         // Fallback: show success message
-        alert(`Export prepared for ${resource?.title} as ${format.toUpperCase()}`);
+        showNotification({
+          type: 'info',
+          title: 'Export Prepared',
+          message: `Export prepared for ${resource?.title} as ${format.toUpperCase()}`
+        });
       }
     } catch (err) {
       console.error('Export error:', err);
-      alert('Failed to export resource. Please try again.');
+      showNotification({
+        type: 'error',
+        title: 'Export Failed',
+        message: 'Failed to export resource. Please try again.'
+      });
     }
   }, [id, resource?.title]);
 
@@ -288,17 +302,33 @@ const ResourceView: React.FC = () => {
       if (method === 'chapter') {
         const response = await resourcesApi.shareResource(parseInt(id), 'view');
         if (response.success) {
-          alert(`Successfully shared ${resource?.title} with chapter members`);
+          showNotification({
+            type: 'success',
+            title: 'Shared Successfully',
+            message: `Successfully shared ${resource?.title} with chapter members`
+          });
         } else {
-          alert('Failed to share resource. Please try again.');
+          showNotification({
+            type: 'error',
+            title: 'Share Failed',
+            message: 'Failed to share resource. Please try again.'
+          });
         }
       } else {
         // For specific recipients, we could implement email sharing later
-        alert(`Sharing with specific recipients is not yet implemented. Please use chapter sharing.`);
+        showNotification({
+          type: 'info',
+          title: 'Feature Not Available',
+          message: 'Sharing with specific recipients is not yet implemented. Please use chapter sharing.'
+        });
       }
     } catch (err) {
       console.error('Share error:', err);
-      alert('Failed to share resource. Please try again.');
+      showNotification({
+        type: 'error',
+        title: 'Share Failed',
+        message: 'Failed to share resource. Please try again.'
+      });
     }
   }, [id, resource?.title]);
 

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award, Target
+  BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award, Target, Clock
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import CourseGrid from './CourseGrid';
@@ -159,6 +159,20 @@ const StudentDashboard: React.FC = () => {
     return transformed;
   }, [studentData?.enrolledCourses]);
 
+  // Filter and sort courses for the "Continue Learning" section
+  // Includes courses that are not fully completed (< 100%)
+  // Prioritizes courses that are already started (> 0%)
+  const inProgressCourses = useMemo(() => {
+    const incomplete = transformedCourses.filter(c => c.progress < 100);
+    return incomplete.sort((a, b) => {
+      // Prioritize started courses
+      if (a.progress > 0 && b.progress === 0) return -1;
+      if (a.progress === 0 && b.progress > 0) return 1;
+      // Then by recency (most recently accessed first)
+      return new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime();
+    });
+  }, [transformedCourses]);
+
   // Enhanced stats with real-time updates and memoization
   const stats = useMemo(() => [
     { 
@@ -208,7 +222,7 @@ const StudentDashboard: React.FC = () => {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const handleCourseAction = useCallback((courseId: string, action: string) => {
+  const handleCourseAction = useCallback(async (courseId: string, action: string) => {
     console.log('Course action:', action, courseId);
     // Handle different course actions
     switch (action) {
@@ -216,7 +230,17 @@ const StudentDashboard: React.FC = () => {
         navigate(`/student/courses/${courseId}`);
         break;
       case 'bookmark':
-        // API call to bookmark course
+      case 'unbookmark':
+        try {
+          await apiClient.post('/bookmarks/toggle', {
+            entityType: 'course',
+            entityId: courseId
+          });
+          // Refresh dashboard data to ensure consistency
+          // loadDashboardData(); // Optional: might be too heavy
+        } catch (err) {
+          console.error('Failed to toggle bookmark:', err);
+        }
         break;
       case 'download-certificate':
         // Handle certificate download
@@ -325,36 +349,105 @@ const StudentDashboard: React.FC = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40"
+                className="bg-white rounded-xl p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all duration-200 group"
                 title={stat.description}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-md blur-md"></div>
-                    <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-md border border-[#27AE60]/25">
-                      <stat.icon className="h-3 w-3 text-stone-700" />
-                    </div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-stone-50 rounded-lg group-hover:bg-[#27AE60]/10 transition-colors">
+                    <stat.icon className="h-5 w-5 text-stone-600 group-hover:text-[#27AE60] transition-colors" />
                   </div>
+                  {index === 2 && ( // Streak badge
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                      HOT
+                    </span>
+                  )}
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-stone-800 mb-0.5">{stat.value}</p>
-                  <p className="text-stone-600 text-xs font-medium">{stat.name}</p>
+                  <p className="text-2xl font-bold text-stone-800 mb-1">{stat.value}</p>
+                  <p className="text-stone-500 text-sm font-medium">{stat.name}</p>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Main Content Area */}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Left Column: Continue Learning & Recommendations */}
+            <div className="space-y-6">
+              
+              {/* Continue Learning Section */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-[#27AE60]" />
+                    {inProgressCourses.length > 0 && inProgressCourses[0].progress === 0 ? 'Start Learning' : 'Continue Learning'}
+                  </h2>
+                  <Link to="/student/all-courses" className="text-sm text-[#27AE60] font-medium hover:underline">
+                    View All
+                  </Link>
+                </div>
+                
+                {inProgressCourses.length > 0 ? (
+                  <CourseGrid 
+                    courses={inProgressCourses.slice(0, 2)} 
+                    compact={true}
+                    onCourseAction={handleCourseAction}
+                  />
+                ) : (
+                  <div className="bg-white rounded-xl p-8 text-center border border-stone-200 border-dashed">
+                    <BookOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
+                    <h3 className="text-stone-800 font-medium mb-1">No active courses</h3>
+                    <p className="text-stone-500 text-sm mb-4">Start a course to see your progress here!</p>
+                    <Link
+                      to="/student/browse-courses"
+                      className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-colors"
+                    >
+                      Browse Catalog
+                    </Link>
+                  </div>
+                )}
+              </div>
 
-          {/* Enrolled Courses */}
-          <CourseGrid 
-            courses={transformedCourses} 
-            compact={false}
-            onCourseAction={handleCourseAction}
-          />
+              {/* Recommendations Section */}
+              {studentData?.recommendations && studentData.recommendations.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-[#27AE60]" />
+                    Recommended for You
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {studentData.recommendations.slice(0, 2).map((course: any, i: number) => (
+                      <div key={i} className="bg-white rounded-xl p-4 border border-stone-200 shadow-sm flex gap-4">
+                        <div className="h-20 w-20 bg-stone-200 rounded-lg flex-shrink-0 overflow-hidden">
+                          {course.thumbnail ? (
+                            <img src={course.thumbnail} alt={course.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-stone-100">
+                              <BookOpen className="h-8 w-8 text-stone-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-stone-800 truncate mb-1">{course.title}</h3>
+                          <p className="text-xs text-stone-500 line-clamp-2 mb-2">{course.description}</p>
+                          <Link 
+                            to={`/student/courses/${course.id}`}
+                            className="text-xs font-medium text-[#27AE60] hover:underline"
+                          >
+                            View Course →
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Empty State for Search */}
           {searchQuery && transformedCourses.length === 0 && (

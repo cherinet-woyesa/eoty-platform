@@ -550,25 +550,27 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               </h5>
               <div className="grid grid-cols-1 gap-2 text-sm max-w-sm mx-auto">
                 <button
-                  onClick={() => setInput('How do I get started with learning on this platform?')}
+                  onClick={() => setInput('How do I get started with learning?')}
                   className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
                 >
                   <span className="font-medium text-[#27AE60]">🚀</span> How do I get started with learning?
                 </button>
                 <button
-                  onClick={() => setInput('What courses are available for Ethiopian Orthodox teachings?')}
+                  onClick={() => setInput('What courses are available?')}
                   className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
                 >
                   <span className="font-medium text-[#27AE60]">📚</span> What courses are available?
                 </button>
                 <button
-                  onClick={() => setInput('How does the AI assistant help with learning?')}
+                  onClick={() => setInput('How does AI assistance work?')}
                   className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
                 >
                   <span className="font-medium text-[#27AE60]">🤖</span> How does AI assistance work?
                 </button>
               </div>
+            </div>
           </div>
+        )}
         
 
         {/* Language Warning */}
@@ -890,7 +892,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
         <div ref={messagesEndRef} />
       </div>
-)}
+
       {/* Enhanced Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
         <form onSubmit={handleSubmit} className="flex space-x-3">
@@ -955,22 +957,30 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           {/* Enhanced Language Support Information */}
           <div className="text-xs text-gray-500 text-center">
             <div className="flex flex-wrap justify-center gap-2 mb-1">
-              {Object.entries(speechToText.supportedLanguages).map(([code, name]) => (
-                <span key={code} className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
-                  <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                  {name}
-                </span>
-              ))}
+              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
+                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                English (US)
+              </span>
+              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
+                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                Amharic (Ethiopia)
+              </span>
+              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
+                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                Tigrigna (Ethiopia)
+              </span>
+              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
+                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                Oromo (Ethiopia)
+              </span>
             </div>
             <div className="text-gray-400">
               Supported in Chrome, Edge, and Safari
             </div>
           </div>
-          </div>
         </div>
       </div>
-      </div>
-   
+    </div>
   );
 });
 

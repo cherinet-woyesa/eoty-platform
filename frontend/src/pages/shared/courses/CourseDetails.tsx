@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesApi, interactiveApi } from '@/services/api';
+import { apiClient } from '@/services/api/apiClient';
 import UnifiedVideoPlayer from '@/components/shared/courses/UnifiedVideoPlayer';
 import RelatedVideos from '@/components/shared/courses/RelatedVideos';
 import LessonPolls from '@/components/shared/courses/LessonPolls';
@@ -13,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import CourseDetailsSkeleton from '@/components/shared/courses/CourseDetailsSkeleton';
 import {
   ArrowLeft, BookOpen, Clock, PlayCircle, Video,
-  Search, CheckCircle, Circle, Star,
+  Search, CheckCircle, Bookmark,
   Download, Share2, Edit,
   Loader2, Plus, Trash2, Bot, BarChart3,
   Maximize2, Minimize2, Monitor, MessageSquare
@@ -95,6 +96,34 @@ const CourseDetails: React.FC = () => {
   const [pollCount, setPollCount] = useState<number>(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // Check bookmark status
+  useEffect(() => {
+    const checkBookmark = async () => {
+      if (!courseId) return;
+      try {
+        const response = await apiClient.get(`/bookmarks/check?entityType=course&entityId=${courseId}`);
+        setIsBookmarked(response.data.bookmarked);
+      } catch (err) {
+        console.error('Failed to check bookmark status:', err);
+      }
+    };
+    checkBookmark();
+  }, [courseId]);
+
+  const toggleBookmark = async () => {
+    if (!courseId) return;
+    try {
+      const response = await apiClient.post('/bookmarks/toggle', {
+        entityType: 'course',
+        entityId: courseId
+      });
+      setIsBookmarked(response.data.bookmarked);
+    } catch (err) {
+      console.error('Failed to toggle bookmark:', err);
+    }
+  };
 
   // Memoized values
   const isAdmin = useMemo(() => user?.role === 'chapter_admin' || user?.role === 'admin', [user?.role]);
@@ -501,6 +530,19 @@ const CourseDetails: React.FC = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Link>
+            )}
+            {isStudent && (
+              <button
+                onClick={toggleBookmark}
+                className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                  isBookmarked 
+                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Bookmark className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
+                {isBookmarked ? 'Saved' : 'Save'}
+              </button>
             )}
             <button className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
               <Share2 className="h-4 w-4 mr-2" />

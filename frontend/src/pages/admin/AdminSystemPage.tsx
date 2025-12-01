@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import { BarChart2, Settings, ShieldIcon, Video, FileEdit } from 'lucide-react';
+import { BarChart2, Settings, ShieldIcon, Video, FileEdit, Book } from 'lucide-react';
 import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import SystemConfigDashboard from './config/SystemConfigDashboard';
 import AdminActivityLogs from './AdminActivityLogs';
@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 // Lazy load components
 const MuxMigration = React.lazy(() => import('./MuxMigration'));
 const LandingPageEditor = React.lazy(() => import('./LandingPageEditor'));
+const KnowledgeBaseManager = React.lazy(() => import('./KnowledgeBaseManager'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full p-8">
@@ -16,7 +17,7 @@ const PageLoader = () => (
 );
 
 const AdminSystemPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'mux' | 'landing'>('landing');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'mux' | 'landing' | 'knowledge'>('landing');
 
   return (
     <div className="w-full h-full">
@@ -34,6 +35,17 @@ const AdminSystemPage: React.FC = () => {
             >
               <FileEdit className="h-4 w-4" />
               <span className="text-sm">Landing Page</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('knowledge')}
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
+                activeTab === 'knowledge'
+                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
+                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Book className="h-4 w-4" />
+              <span className="text-sm">Knowledge Base</span>
             </button>
             <button
               onClick={() => setActiveTab('config')}
@@ -106,9 +118,16 @@ const AdminSystemPage: React.FC = () => {
               </div>
             )}
             {activeTab === 'landing' && (
-              <div className="animate-in fade-in duration-300">
+              <div className="animate-in fade-in duration-300 h-full">
                 <Suspense fallback={<PageLoader />}>
                   <LandingPageEditor />
+                </Suspense>
+              </div>
+            )}
+            {activeTab === 'knowledge' && (
+              <div className="animate-in fade-in duration-300 h-full">
+                <Suspense fallback={<PageLoader />}>
+                  <KnowledgeBaseManager />
                 </Suspense>
               </div>
             )}

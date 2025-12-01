@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Users, Check, X, Star } from 'lucide-react';
 import { chaptersApi, type Chapter, type UserChapter } from '@/services/api/chapters';
 import { useAuth } from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
 
 interface ChapterSelectionProps {
   onChapterSelected?: (chapter: Chapter) => void;
@@ -20,6 +21,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
   showOnlyMembership = false
 }) => {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [userChapters, setUserChapters] = useState<UserChapter[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,11 +86,21 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
         onChapterSelected?.(chapter);
         // Force refresh of chapters list to update UI state
         await fetchChapters();
-        alert(`Successfully joined ${chapter.name}!`);
+        showNotification({
+          type: 'success',
+          title: 'Request Sent',
+          message: `Join request for ${chapter.name} submitted for approval.`
+        });
       }
     } catch (err: any) {
       console.error('Failed to join chapter:', err);
-      setError(err.message || 'Failed to join chapter');
+      const errorMessage = err.message || 'Failed to join chapter';
+      setError(errorMessage);
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage
+      });
     }
   };
 
@@ -126,6 +138,11 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
   const getUserChapterRole = (chapterId: number) => {
     const userChapter = userChapters.find(uc => uc.chapter_id === chapterId);
     return userChapter?.role;
+  };
+
+  const getUserChapterStatus = (chapterId: number) => {
+    const userChapter = userChapters.find(uc => uc.chapter_id === chapterId);
+    return userChapter?.status;
   };
 
   const isPrimaryChapter = (chapterId: number) => {
@@ -201,34 +218,49 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
             const isMember = isUserMember(chapter.id);
             const isPrimary = isPrimaryChapter(chapter.id);
             const role = getUserChapterRole(chapter.id);
+            const status = getUserChapterStatus(chapter.id);
 
             return (
               <div
                 key={chapter.id}
-                className={`border rounded-lg p-4 transition-all ${
+                className={`border rounded-lg p-4 transition-all flex flex-col h-full ${
                   isPrimary
                     ? 'border-blue-500 bg-blue-50'
+                    : status === 'pending'
+                    ? 'border-yellow-500 bg-yellow-50'
                     : isMember
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-lg text-gray-900">{chapter.name}</h3>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <h3 className="font-semibold text-lg text-gray-900 truncate" title={chapter.name}>{chapter.name}</h3>
+                    {role && status !== 'pending' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/50 text-gray-700 border border-gray-200 mt-1">
+                        {role}
+                      </span>
+                    )}
+                    {status === 'pending' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 mt-1">
+                        Pending Approval
+                      </span>
+                    )}
+                  </div>
                   {isPrimary && (
-                    <Star className="h-5 w-5 text-blue-500 fill-current" />
+                    <Star className="h-5 w-5 text-blue-500 fill-current flex-shrink-0" />
                   )}
                 </div>
 
-                <div className="space-y-1 text-sm text-gray-600 mb-3">
+                <div className="space-y-1 text-sm text-gray-600 mb-3 flex-1">
                   {chapter.city && chapter.country && (
                     <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      <span>{chapter.city}, {chapter.country}</span>
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{chapter.city}, {chapter.country}</span>
                     </div>
                   )}
                   {chapter.region && (
-                    <div className="text-xs text-gray-500">{chapter.region}</div>
+                    <div className="text-xs text-gray-500 truncate">{chapter.region}</div>
                   )}
                   {chapter.description && (
                     <p className="text-xs text-gray-600 line-clamp-2">{chapter.description}</p>
@@ -248,39 +280,46 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   {isMember ? (
                     <>
-                      {!isPrimary && (
+                      {status !== 'pending' ? (
+                        <>
+                          {!isPrimary && (
+                            <button
+                              onClick={() => handleSetPrimary(chapter.id)}
+                              className="flex-1 px-2 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors whitespace-nowrap font-medium"
+                            >
+                              Set Primary
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onChapterSelected?.(chapter)}
+                            className="flex-1 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
+                          >
+                            View
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleSetPrimary(chapter.id)}
-                          className="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                          disabled
+                          className="flex-1 px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg opacity-75 cursor-not-allowed font-medium"
                         >
-                          Set Primary
+                          Pending
                         </button>
                       )}
                       <button
-                        onClick={() => onChapterSelected?.(chapter)}
-                        className="flex-1 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-                      >
-                        View
-                      </button>
-                      <button
                         onClick={() => handleLeaveChapter(chapter.id)}
                         className="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                        title={status === 'pending' ? "Cancel Request" : "Leave Chapter"}
                       >
                         <X className="h-4 w-4" />
                       </button>
-                      {role && (
-                        <span className="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg">
-                          {role}
-                        </span>
-                      )}
                     </>
                   ) : (
                     <button
                       onClick={() => handleJoinChapter(chapter)}
-                      className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                       <Users className="h-4 w-4" />
                       Join Chapter

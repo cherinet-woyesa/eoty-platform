@@ -8,8 +8,10 @@ import { Users, MapPin, Search, Plus, Globe, Home, Settings, Award, Check, X, Ca
 import ChapterSelection from '@/components/shared/chapters/ChapterSelection';
 import { chaptersApi, type UserChapter } from '@/services/api/chapters';
 import { achievementsApi, type Badge } from '@/services/api/achievements';
+import { useNotification } from '@/context/NotificationContext';
 
 const ChaptersPage: React.FC = () => {
+  const { showNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'browse' | 'my-chapters' | 'manage'>('browse');
   const [members, setMembers] = useState<any[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -125,12 +127,42 @@ const ChaptersPage: React.FC = () => {
     if (!selectedMember || !selectedBadge) return;
     try {
       await achievementsApi.awardBadge(selectedMember, selectedBadge);
-      alert('Badge awarded successfully!');
+      showNotification({
+        type: 'success',
+        title: 'Badge Awarded',
+        message: 'Badge awarded successfully!'
+      });
       setSelectedMember(null);
       setSelectedBadge(null);
     } catch (err) {
       console.error(err);
-      alert('Failed to award badge');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to award badge'
+      });
+    }
+  };
+
+  const handleUpdateMemberStatus = async (userId: number, status: 'approved' | 'rejected') => {
+    if (!managedChapter) return;
+    try {
+      await chaptersApi.updateMemberStatus(managedChapter.chapter_id, userId, status);
+      showNotification({
+        type: 'success',
+        title: 'Success',
+        message: `Member ${status} successfully`
+      });
+      // Refresh members
+      const membersRes = await chaptersApi.getMembers(managedChapter.chapter_id);
+      setMembers(membersRes.data.members);
+    } catch (err) {
+      console.error(err);
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to update member status'
+      });
     }
   };
 
@@ -141,12 +173,20 @@ const ChaptersPage: React.FC = () => {
         ...newChapterData,
         topics: newChapterData.topics.split(',').map(t => t.trim())
       });
-      alert('Chapter application submitted successfully!');
+      showNotification({
+        type: 'success',
+        title: 'Application Submitted',
+        message: 'Chapter application submitted successfully!'
+      });
       setShowStartChapterModal(false);
       setNewChapterData({ name: '', location: '', description: '', country: '', city: '', region: '', topics: '' });
     } catch (err) {
       console.error(err);
-      alert('Failed to submit application');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to submit application'
+      });
     }
   };
 
@@ -154,12 +194,20 @@ const ChaptersPage: React.FC = () => {
     e.preventDefault();
     try {
       await chaptersApi.applyLeadership(leadershipData);
-      alert('Leadership application submitted successfully!');
+      showNotification({
+        type: 'success',
+        title: 'Application Submitted',
+        message: 'Leadership application submitted successfully!'
+      });
       setShowApplyLeadershipModal(false);
       setLeadershipData({ reason: '', experience: '' });
     } catch (err) {
       console.error(err);
-      alert('Failed to submit application');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to submit application'
+      });
     }
   };
 
@@ -173,13 +221,21 @@ const ChaptersPage: React.FC = () => {
         ...newEventData,
         event_date: eventDate.toISOString()
       });
-      alert('Event created successfully!');
+      showNotification({
+        type: 'success',
+        title: 'Event Created',
+        message: 'Event created successfully!'
+      });
       setShowCreateEventModal(false);
       setNewEventData({ title: '', description: '', event_date: '', event_time: '', location: '', is_online: false, meeting_link: '' });
       loadManageData(); // Refresh events
     } catch (err) {
       console.error(err);
-      alert('Failed to create event');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to create event'
+      });
     }
   };
 
@@ -192,9 +248,18 @@ const ChaptersPage: React.FC = () => {
       setResources(res.data.resources);
       setShowCreateResourceModal(false);
       setNewResource({ title: '', type: 'link', url: '', description: '' });
+      showNotification({
+        type: 'success',
+        title: 'Resource Added',
+        message: 'Resource added successfully!'
+      });
     } catch (err) {
       console.error(err);
-      alert('Failed to create resource');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to create resource'
+      });
     }
   };
 
@@ -207,9 +272,18 @@ const ChaptersPage: React.FC = () => {
       setAnnouncements(res.data.announcements);
       setShowCreateAnnouncementModal(false);
       setNewAnnouncement({ title: '', content: '', is_pinned: false });
+      showNotification({
+        type: 'success',
+        title: 'Announcement Posted',
+        message: 'Announcement posted successfully!'
+      });
     } catch (err) {
       console.error(err);
-      alert('Failed to create announcement');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to create announcement'
+      });
     }
   };
 
@@ -221,7 +295,11 @@ const ChaptersPage: React.FC = () => {
       setShowAttendanceModal(true);
     } catch (err) {
       console.error(err);
-      alert('Failed to load attendance');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to load attendance'
+      });
     }
   };
 
@@ -232,9 +310,18 @@ const ChaptersPage: React.FC = () => {
       // Refresh attendance list
       const res = await chaptersApi.getEventAttendance(selectedEventForAttendance);
       setAttendance(res.data.attendance);
+      showNotification({
+        type: 'success',
+        title: 'Attendance Marked',
+        message: 'Attendance updated successfully'
+      });
     } catch (err) {
       console.error(err);
-      alert('Failed to mark attendance');
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark attendance'
+      });
     }
   };
 
@@ -242,11 +329,11 @@ const ChaptersPage: React.FC = () => {
     <div className="w-full min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Globe className="h-6 w-6 text-indigo-600" />
+              <div className="w-10 h-10 bg-[#27AE60]/10 rounded-lg flex items-center justify-center">
+                <Globe className="h-6 w-6 text-[#27AE60]" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-900">Chapters</h1>
@@ -257,7 +344,7 @@ const ChaptersPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setShowStartChapterModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Start a Chapter
@@ -271,7 +358,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('browse')}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'browse'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-[#27AE60] text-[#27AE60]'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -282,7 +369,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('my-chapters')}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'my-chapters'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-[#27AE60] text-[#27AE60]'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -293,7 +380,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('manage')}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'manage'
-                  ? 'border-indigo-600 text-indigo-600'
+                  ? 'border-[#27AE60] text-[#27AE60]'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -305,7 +392,7 @@ const ChaptersPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 w-full p-4 sm:p-6 lg:p-8">
         {activeTab === 'browse' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
@@ -375,8 +462,8 @@ const ChaptersPage: React.FC = () => {
 
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Calendar className="h-6 w-6 text-blue-600" />
+                        <div className="p-2 bg-[#27AE60]/10 rounded-lg">
+                          <Calendar className="h-6 w-6 text-[#27AE60]" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">Upcoming Events</h3>
                       </div>
@@ -408,7 +495,7 @@ const ChaptersPage: React.FC = () => {
                                   href={event.meeting_link} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="mt-3 block w-full text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                                  className="mt-3 block w-full text-center py-2 bg-[#27AE60]/5 text-[#27AE60] rounded-lg text-sm font-medium hover:bg-[#27AE60]/10 transition-colors"
                                 >
                                   Join Meeting
                                 </a>
@@ -424,8 +511,8 @@ const ChaptersPage: React.FC = () => {
                   <div className="space-y-6">
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <FileText className="h-6 w-6 text-green-600" />
+                        <div className="p-2 bg-[#27AE60]/10 rounded-lg">
+                          <FileText className="h-6 w-6 text-[#27AE60]" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">Resources</h3>
                       </div>
@@ -441,7 +528,7 @@ const ChaptersPage: React.FC = () => {
                                 <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                               )}
                               <div className="flex-1 min-w-0">
-                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-blue-600 truncate block">
+                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#27AE60] truncate block">
                                   {resource.title}
                                 </a>
                                 {resource.description && (
@@ -473,10 +560,10 @@ const ChaptersPage: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+                  <div className="bg-gradient-to-br from-[#27AE60] to-[#16A085] rounded-xl p-6 text-white shadow-lg">
                     <Award className="h-8 w-8 mb-4 opacity-80" />
                     <h3 className="text-lg font-bold mb-2">Chapter Leaderboard</h3>
-                    <p className="text-indigo-100 text-sm mb-4">See how your chapter compares to others in engagement and learning.</p>
+                    <p className="text-green-50 text-sm mb-4">See how your chapter compares to others in engagement and learning.</p>
                     <button className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
                       View Rankings
                     </button>
@@ -484,20 +571,20 @@ const ChaptersPage: React.FC = () => {
                   
                   <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                     <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-indigo-600" />
+                      <MapPin className="h-4 w-4 text-[#27AE60]" />
                       About Membership
                     </h3>
                     <ul className="space-y-3 text-sm text-slate-600">
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
                         <span>Join multiple chapters to connect across regions</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
                         <span>Set a <strong>Primary Chapter</strong> for personalized content</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
                         <span>Participate in local events and discussions</span>
                       </li>
                     </ul>
@@ -512,7 +599,7 @@ const ChaptersPage: React.FC = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             {manageLoading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60] mx-auto"></div>
                 <p className="mt-4 text-slate-500">Loading chapter details...</p>
               </div>
             ) : !managedChapter ? (
@@ -526,7 +613,7 @@ const ChaptersPage: React.FC = () => {
                 </p>
                 <button 
                   onClick={() => setShowApplyLeadershipModal(true)}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all font-medium"
                 >
                   Apply for Leadership
                 </button>
@@ -549,7 +636,7 @@ const ChaptersPage: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Select Student</label>
                       <select
-                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
                         value={selectedMember || ''}
                         onChange={(e) => setSelectedMember(Number(e.target.value))}
                       >
@@ -574,8 +661,8 @@ const ChaptersPage: React.FC = () => {
                               onClick={() => setSelectedBadge(badge.id)}
                               className={`p-3 rounded-lg border text-left transition-all ${
                                 selectedBadge === badge.id
-                                  ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600'
-                                  : 'border-slate-200 hover:border-indigo-300'
+                                  ? 'border-[#27AE60] bg-[#27AE60]/5 ring-1 ring-[#27AE60]'
+                                  : 'border-slate-200 hover:border-[#27AE60]/50'
                               }`}
                             >
                               <div className="font-medium text-slate-900 text-sm">{badge.name}</div>
@@ -589,7 +676,7 @@ const ChaptersPage: React.FC = () => {
                     <button
                       onClick={handleAwardBadge}
                       disabled={!selectedMember || !selectedBadge}
-                      className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+                      className="w-full py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
                     >
                       <Check className="h-4 w-4" />
                       Award Badge
@@ -611,8 +698,89 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <span className="text-slate-600">Your Role</span>
-                      <span className="font-bold text-indigo-600 capitalize">{managedChapter.role}</span>
+                      <span className="font-bold text-[#27AE60] capitalize">{managedChapter.role}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Member Management Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm lg:col-span-2">
+                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Member Management</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                        <tr>
+                          <th className="p-3">Member</th>
+                          <th className="p-3">Role</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3">Joined</th>
+                          <th className="p-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {members.map(member => (
+                          <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-medium text-slate-600">
+                                  {member.first_name?.[0]}{member.last_name?.[0]}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-slate-900">{member.first_name} {member.last_name}</p>
+                                  <p className="text-xs text-slate-500">{member.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="capitalize px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">
+                                {member.role}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                member.status === 'pending' 
+                                  ? 'bg-yellow-100 text-yellow-700' 
+                                  : member.status === 'approved'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}>
+                                {member.status || 'approved'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-500">
+                              {new Date(member.joined_at).toLocaleDateString()}
+                            </td>
+                            <td className="p-3 text-right">
+                              {member.status === 'pending' && (
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => handleUpdateMemberStatus(member.id, 'approved')}
+                                    className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                    title="Approve"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateMemberStatus(member.id, 'rejected')}
+                                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                                    title="Reject"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {members.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-500">
+                              No members found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -620,8 +788,8 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm lg:col-span-2">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Calendar className="h-6 w-6 text-blue-600" />
+                      <div className="p-2 bg-[#27AE60]/10 rounded-lg">
+                        <Calendar className="h-6 w-6 text-[#27AE60]" />
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold text-slate-900">Chapter Events</h2>
@@ -630,7 +798,7 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setShowCreateEventModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors text-sm font-medium"
                     >
                       <Plus className="h-4 w-4" />
                       Create Event
@@ -666,7 +834,7 @@ const ChaptersPage: React.FC = () => {
                             </div>
                             <button
                               onClick={() => handleViewAttendance(event.id)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                              className="text-xs text-[#27AE60] hover:text-[#1e8449] font-medium flex items-center gap-1"
                             >
                               <ClipboardList className="h-3 w-3" />
                               Attendance
@@ -682,8 +850,8 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <FileText className="h-6 w-6 text-green-600" />
+                      <div className="p-2 bg-[#27AE60]/10 rounded-lg">
+                        <FileText className="h-6 w-6 text-[#27AE60]" />
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold text-slate-900">Resources</h2>
@@ -692,7 +860,7 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setShowCreateResourceModal(true)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      className="p-2 text-[#27AE60] hover:bg-[#27AE60]/10 rounded-lg transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                     </button>
@@ -710,7 +878,7 @@ const ChaptersPage: React.FC = () => {
                             <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-blue-600 truncate block">
+                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#27AE60] truncate block">
                               {resource.title}
                             </a>
                             {resource.description && (
@@ -783,7 +951,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
                   value={newChapterData.name}
                   onChange={e => setNewChapterData({...newChapterData, name: e.target.value})}
                 />
@@ -794,7 +962,7 @@ const ChaptersPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
                     value={newChapterData.country}
                     onChange={e => setNewChapterData({...newChapterData, country: e.target.value})}
                   />
@@ -804,7 +972,7 @@ const ChaptersPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
                     value={newChapterData.city}
                     onChange={e => setNewChapterData({...newChapterData, city: e.target.value})}
                   />
@@ -814,7 +982,7 @@ const ChaptersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 h-24"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] h-24"
                   value={newChapterData.description}
                   onChange={e => setNewChapterData({...newChapterData, description: e.target.value})}
                 />
@@ -824,7 +992,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="text"
                   placeholder="e.g. Technology, Arts, Science"
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
                   value={newChapterData.topics}
                   onChange={e => setNewChapterData({...newChapterData, topics: e.target.value})}
                 />
@@ -839,7 +1007,7 @@ const ChaptersPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
                 >
                   Submit Application
                 </button>
@@ -864,7 +1032,7 @@ const ChaptersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Why do you want to be a leader?</label>
                 <textarea
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 h-32"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] h-32"
                   value={leadershipData.reason}
                   onChange={e => setLeadershipData({...leadershipData, reason: e.target.value})}
                 />
@@ -873,7 +1041,7 @@ const ChaptersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Relevant Experience</label>
                 <textarea
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 h-32"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] h-32"
                   value={leadershipData.experience}
                   onChange={e => setLeadershipData({...leadershipData, experience: e.target.value})}
                 />
@@ -888,7 +1056,7 @@ const ChaptersPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
                 >
                   Submit Application
                 </button>
@@ -917,7 +1085,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   placeholder="e.g., Monthly Meetup"
                   value={newEvent.title}
                   onChange={e => setNewEvent({...newEvent, title: e.target.value})}
@@ -929,7 +1097,7 @@ const ChaptersPage: React.FC = () => {
                 <textarea
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   placeholder="What will happen at this event?"
                   value={newEvent.description}
                   onChange={e => setNewEvent({...newEvent, description: e.target.value})}
@@ -942,7 +1110,7 @@ const ChaptersPage: React.FC = () => {
                   <input
                     type="datetime-local"
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                     value={newEvent.event_date}
                     onChange={e => setNewEvent({...newEvent, event_date: e.target.value})}
                   />
@@ -953,7 +1121,7 @@ const ChaptersPage: React.FC = () => {
                     type="number"
                     min="15"
                     step="15"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                     value={newEvent.duration_minutes}
                     onChange={e => setNewEvent({...newEvent, duration_minutes: parseInt(e.target.value)})}
                   />
@@ -964,7 +1132,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="checkbox"
                   id="is_online"
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-slate-300 text-[#27AE60] focus:ring-[#27AE60]"
                   checked={newEvent.is_online}
                   onChange={e => setNewEvent({...newEvent, is_online: e.target.checked})}
                 />
@@ -978,7 +1146,7 @@ const ChaptersPage: React.FC = () => {
                     <Video className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                       type="url"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                       placeholder="https://meet.google.com/..."
                       value={newEvent.meeting_link}
                       onChange={e => setNewEvent({...newEvent, meeting_link: e.target.value})}
@@ -992,7 +1160,7 @@ const ChaptersPage: React.FC = () => {
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                       placeholder="Venue address"
                       value={newEvent.location}
                       onChange={e => setNewEvent({...newEvent, location: e.target.value})}
@@ -1012,7 +1180,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -1045,7 +1213,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   value={newResource.title}
                   onChange={e => setNewResource({...newResource, title: e.target.value})}
                 />
@@ -1053,7 +1221,7 @@ const ChaptersPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   value={newResource.type}
                   onChange={e => setNewResource({...newResource, type: e.target.value})}
                 >
@@ -1066,7 +1234,7 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="url"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   placeholder="https://..."
                   value={newResource.url}
                   onChange={e => setNewResource({...newResource, url: e.target.value})}
@@ -1076,7 +1244,7 @@ const ChaptersPage: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   value={newResource.description}
                   onChange={e => setNewResource({...newResource, description: e.target.value})}
                 />
@@ -1091,7 +1259,7 @@ const ChaptersPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
                 >
                   Add Resource
                 </button>
@@ -1174,8 +1342,8 @@ const ChaptersPage: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <p className="text-sm text-blue-800">
+              <div className="bg-[#27AE60]/10 p-4 rounded-lg mb-4">
+                <p className="text-sm text-[#27AE60]">
                   Mark attendance for members who joined this event.
                 </p>
               </div>

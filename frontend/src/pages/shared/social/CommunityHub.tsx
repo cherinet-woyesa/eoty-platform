@@ -4,7 +4,7 @@ import {
   MapPin, Clock, Heart, MessageCircle, Share2,
   Send, X, Loader2, MoreVertical, Bookmark,
   Edit3, Trash2, Plus, TrendingUp, Sparkles,
-  Search, Filter, BarChart3, RefreshCw
+  Search, Filter, BarChart3, RefreshCw, Shield
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { communityPostsApi } from '@/services/api/communityPosts';
@@ -24,16 +24,6 @@ interface Post {
   comments: number;
   shares: number;
   liked_by_user: boolean;
-}
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  attendees: number;
-  type: 'online' | 'in-person' | 'hybrid';
 }
 
 const CommunityHub: React.FC = () => {
@@ -63,37 +53,6 @@ const CommunityHub: React.FC = () => {
   const [showTrending, setShowTrending] = useState(false);
   const [feedStats, setFeedStats] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Mock upcoming events
-  const upcomingEvents: Event[] = useMemo(() => [
-    {
-      id: '1',
-      title: 'Community Prayer Session',
-      date: '2025-11-20',
-      time: '6:00 PM',
-      location: 'Main Chapel',
-      attendees: 45,
-      type: 'in-person'
-    },
-    {
-      id: '2',
-      title: 'Youth Bible Study',
-      date: '2025-11-22',
-      time: '7:30 PM',
-      location: 'Online',
-      attendees: 82,
-      type: 'online'
-    },
-    {
-      id: '3',
-      title: 'Community Service Day',
-      date: '2025-11-25',
-      time: '9:00 AM',
-      location: 'Community Center',
-      attendees: 156,
-      type: 'hybrid'
-    }
-  ], []);
 
   // Load posts on component mount
   React.useEffect(() => {
@@ -928,65 +887,68 @@ const CommunityHub: React.FC = () => {
               </div>
             </div>
 
-            {/* Sidebar - Upcoming Events */}
-            <div className="lg:col-span-1">
+            {/* Sidebar - My Chapters & Guidelines */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* My Chapters Widget */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-[#27AE60]" />
+                    My Chapters
+                  </h2>
+                  <a href="/student/chapters" className="text-sm text-[#27AE60] hover:underline font-medium">
+                    View All
+                  </a>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* This would ideally come from an API */}
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-[#27AE60]/30 transition-colors cursor-pointer group">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-[#27AE60] transition-colors">Addis Ababa St. George</h3>
+                    <p className="text-xs text-gray-500 mt-1">156 Members • 2 Upcoming Events</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-[#27AE60]/30 transition-colors cursor-pointer group">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-[#27AE60] transition-colors">Global Youth Fellowship</h3>
+                    <p className="text-xs text-gray-500 mt-1">1.2k Members • Online</p>
+                  </div>
+                </div>
+
+                <a 
+                  href="/student/chapters"
+                  className="w-full mt-4 py-2 border border-[#27AE60] text-[#27AE60] hover:bg-[#27AE60] hover:text-white rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm"
+                >
+                  <Search className="h-4 w-4" />
+                  Find More Chapters
+                </a>
+              </div>
+
+              {/* Community Guidelines */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar className="h-6 w-6 text-[#27AE60]" />
-                    Upcoming Events
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-[#27AE60]" />
+                    Guidelines
                   </h2>
                 </div>
-
-                <div className="space-y-4">
-                  {upcomingEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900 line-clamp-2">{event.title}</h3>
-                        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          event.type === 'online' 
-                            ? 'bg-blue-100 text-blue-700'
-                            : event.type === 'in-person'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {event.type}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-[#27AE60]" />
-                          <span>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-[#27AE60]" />
-                          <span>{event.time}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-[#27AE60]" />
-                          <span className="line-clamp-1">{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-[#27AE60]" />
-                          <span>{event.attendees} attending</span>
-                        </div>
-                      </div>
-                      
-                      <button className="w-full mt-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
-                        Join Event
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button className="w-full mt-4 py-3 border-2 border-dashed border-gray-300 text-gray-600 hover:border-[#27AE60] hover:text-[#27AE60] rounded-lg transition-all font-medium flex items-center justify-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  View All Events
-                </button>
+                
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex gap-2">
+                    <span className="text-[#27AE60] font-bold">•</span>
+                    <span>Be respectful and kind to fellow members.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-[#27AE60] font-bold">•</span>
+                    <span>Share relevant and edifying content.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-[#27AE60] font-bold">•</span>
+                    <span>Respect privacy and confidentiality.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-[#27AE60] font-bold">•</span>
+                    <span>No spam or self-promotion.</span>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

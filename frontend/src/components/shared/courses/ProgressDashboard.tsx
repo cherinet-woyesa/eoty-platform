@@ -122,14 +122,6 @@ const ProgressDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 text-stone-900 shadow-lg">
-        <h1 className="text-2xl font-bold mb-2">Your Learning Progress</h1>
-        <p className="text-stone-700">
-          Track your learning journey and celebrate your achievements
-        </p>
-      </div>
-
       {/* Stats Overview */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

@@ -155,27 +155,27 @@ const HelpPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           onClick={() => setShowContactForm(true)}
-          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#39FF14] hover:shadow-lg transition-all text-left"
+          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#27AE60] hover:shadow-lg transition-all text-left"
         >
-          <MessageCircle className="h-8 w-8 text-[#39FF14] mb-3" />
+          <MessageCircle className="h-8 w-8 text-[#27AE60] mb-3" />
           <h3 className="font-bold text-stone-800 mb-1">Contact Support</h3>
           <p className="text-sm text-stone-600">Get help from our support team</p>
         </button>
         
         <Link
           to="/student/videos"
-          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#00FFC6] hover:shadow-lg transition-all text-left"
+          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#16A085] hover:shadow-lg transition-all text-left"
         >
-          <PlayCircle className="h-8 w-8 text-[#00FFC6] mb-3" />
+          <PlayCircle className="h-8 w-8 text-[#16A085] mb-3" />
           <h3 className="font-bold text-stone-800 mb-1">Video Tutorials</h3>
           <p className="text-sm text-stone-600">Watch helpful video guides</p>
         </Link>
         
         <Link
           to="/forums"
-          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#00FFFF] hover:shadow-lg transition-all text-left"
+          className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#2980B9] hover:shadow-lg transition-all text-left"
         >
-          <Users className="h-8 w-8 text-[#00FFFF] mb-3" />
+          <Users className="h-8 w-8 text-[#2980B9] mb-3" />
           <h3 className="font-bold text-stone-800 mb-1">Community Forum</h3>
           <p className="text-sm text-stone-600">Ask the community</p>
         </Link>
@@ -189,7 +189,7 @@ const HelpPage: React.FC = () => {
           placeholder="Search for help..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
         />
         {searchTerm && (
           <button
@@ -209,7 +209,7 @@ const HelpPage: React.FC = () => {
             onClick={() => setSelectedCategory(category)}
             className={`px-4 py-2 rounded-lg transition-all font-medium ${
               selectedCategory === category
-                ? 'bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900'
+                ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white'
                 : 'bg-white/80 text-stone-600 hover:bg-stone-100 border border-stone-200'
             }`}
           >
@@ -221,7 +221,7 @@ const HelpPage: React.FC = () => {
       {/* FAQs */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
         <h2 className="text-xl font-bold text-stone-800 mb-4 flex items-center">
-          <HelpCircle className="h-5 w-5 mr-2 text-[#39FF14]" />
+          <HelpCircle className="h-5 w-5 mr-2 text-[#27AE60]" />
           Frequently Asked Questions
         </h2>
         
@@ -262,14 +262,14 @@ const HelpPage: React.FC = () => {
       {/* Help Articles */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200 p-6 shadow-md">
         <h2 className="text-xl font-bold text-stone-800 mb-4 flex items-center">
-          <BookOpen className="h-5 w-5 mr-2 text-[#00FFC6]" />
+          <BookOpen className="h-5 w-5 mr-2 text-[#16A085]" />
           Help Articles
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {helpArticles.map((article) => (
             <div
               key={article.id}
-              className="p-4 border border-stone-200 rounded-lg hover:border-[#39FF14] hover:shadow-md transition-all cursor-pointer"
+              className="p-4 border border-stone-200 rounded-lg hover:border-[#27AE60] hover:shadow-md transition-all cursor-pointer"
             >
               <h3 className="font-semibold text-stone-800 mb-2">{article.title}</h3>
               <p className="text-sm text-stone-600 mb-3 line-clamp-2">{article.content}</p>
@@ -310,7 +310,7 @@ const HelpPage: React.FC = () => {
                   onChange={(e) => setContactSubject(e.target.value)}
                   placeholder="What can we help you with?"
                   required
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 />
               </div>
               
@@ -324,7 +324,7 @@ const HelpPage: React.FC = () => {
                   placeholder="Describe your issue or question..."
                   rows={5}
                   required
-                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
                 />
               </div>
               
@@ -339,7 +339,7 @@ const HelpPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || !contactSubject.trim() || !contactMessage.trim()}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#39FF14] to-[#00FFC6] text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>

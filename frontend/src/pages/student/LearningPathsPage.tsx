@@ -227,20 +227,13 @@ const LearningPathsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-stone-800 mb-2">Learning Paths</h1>
-        <p className="text-stone-600">Follow structured paths to master your learning</p>
-      </div>
-
+    <div className="w-full space-y-6">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
+          className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
         >
           <option value="all">All Categories</option>
           {categories.map(cat => (
@@ -250,7 +243,7 @@ const LearningPathsPage: React.FC = () => {
         <select
           value={selectedDifficulty}
           onChange={(e) => setSelectedDifficulty(e.target.value)}
-          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
+          className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
         >
           <option value="all">All Levels</option>
           <option value="beginner">Beginner</option>
@@ -261,48 +254,48 @@ const LearningPathsPage: React.FC = () => {
 
       {/* Learning Paths */}
       {filteredPaths.length === 0 ? (
-        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200">
-          <Target className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-stone-800 mb-2">No learning paths found</h3>
-          <p className="text-stone-600">Try adjusting your filters</p>
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No learning paths found</h3>
+          <p className="text-gray-500">Try adjusting your filters</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredPaths.map((path) => (
             <div
               key={path.id}
-              className="bg-white/90 backdrop-blur-md rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-stone-200/50"
+              className="bg-white rounded-xl overflow-hidden border border-gray-200"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#2980B9]/10 p-6 border-b border-stone-200">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-[#27AE60]" />
+                      <Target className="h-5 w-5 text-gray-900" />
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
                         {path.difficulty}
                       </span>
                       {path.is_enrolled && (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-[#27AE60]/15 text-[#27AE60] border border-[#27AE60]/30">
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                           Enrolled
                         </span>
                       )}
                     </div>
-                    <h2 className="text-xl font-bold text-stone-800 mb-2">{path.title}</h2>
-                    <p className="text-stone-600 text-sm">{path.description}</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{path.title}</h2>
+                    <p className="text-gray-500 text-sm">{path.description}</p>
                   </div>
                 </div>
                 
                 {/* Progress Bar */}
                 {path.is_enrolled && path.progress > 0 && (
                   <div className="mt-4">
-                    <div className="flex items-center justify-between text-xs text-stone-600 mb-1">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                       <span>Progress</span>
                       <span>{Math.round(path.progress)}%</span>
                     </div>
-                    <div className="w-full bg-stone-200 rounded-full h-2">
+                    <div className="w-full bg-gray-100 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-2 rounded-full transition-all"
+                        className="bg-gray-900 h-2 rounded-full transition-all"
                         style={{ width: `${path.progress}%` }}
                       />
                     </div>
@@ -317,26 +310,26 @@ const LearningPathsPage: React.FC = () => {
                     {path.courses.map((course, index) => (
                       <div
                         key={course.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#27AE60] transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-900 transition-colors"
                       >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-sm font-semibold text-stone-600">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600">
                           {course.order}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-stone-800 text-sm">{course.title}</h3>
+                            <h3 className="font-semibold text-gray-900 text-sm">{course.title}</h3>
                             {course.is_completed ? (
-                              <CheckCircle className="h-4 w-4 text-[#27AE60] flex-shrink-0" />
+                              <CheckCircle className="h-4 w-4 text-gray-900 flex-shrink-0" />
                             ) : course.is_locked ? (
-                              <Lock className="h-4 w-4 text-stone-400 flex-shrink-0" />
+                              <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             ) : (
-                              <Unlock className="h-4 w-4 text-[#16A085] flex-shrink-0" />
+                              <Unlock className="h-4 w-4 text-gray-600 flex-shrink-0" />
                             )}
                           </div>
                           {course.progress > 0 && !course.is_completed && (
-                            <div className="w-full bg-stone-200 rounded-full h-1 mt-1">
+                            <div className="w-full bg-gray-100 rounded-full h-1 mt-1">
                               <div
-                                className="bg-gradient-to-r from-[#27AE60] to-[#16A085] h-1 rounded-full"
+                                className="bg-gray-900 h-1 rounded-full"
                                 style={{ width: `${course.progress}%` }}
                               />
                             </div>
@@ -346,15 +339,15 @@ const LearningPathsPage: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-stone-500">
+                  <div className="text-center py-6 text-gray-500">
                     <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Courses will appear here</p>
                   </div>
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-                  <div className="flex items-center gap-4 text-xs text-stone-600">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {path.estimated_duration}h
@@ -364,14 +357,14 @@ const LearningPathsPage: React.FC = () => {
                       {path.student_count}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-[#FFD700] text-[#FFD700]" />
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                       {path.rating}
                     </span>
                   </div>
                   {path.is_enrolled ? (
                     <Link
                       to={`/student/courses`}
-                      className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
                     >
                       Continue
                       <ArrowRight className="h-4 w-4" />
@@ -379,7 +372,7 @@ const LearningPathsPage: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => handleEnroll(path.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-1"
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
                     >
                       Start Path
                       <ArrowRight className="h-4 w-4" />
@@ -391,7 +384,6 @@ const LearningPathsPage: React.FC = () => {
           ))}
         </div>
       )}
-    </div>
     </div>
   );
 };

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Users, MessageSquare, UsersIcon, Sparkles } from 'lucide-react';
+import { Users, MessageSquare, Sparkles } from 'lucide-react';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import StudyGroupsPage from './StudyGroupsPage';
 import Forums from '@/pages/shared/social/Forums';
-import ChaptersPage from '@/pages/shared/chapters/ChaptersPage';
 
 const CommunityPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'forums' | 'chapters'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'forums'>('feed');
 
   return (
     <div className="w-full h-full">
@@ -56,17 +55,6 @@ const CommunityPage: React.FC = () => {
               <MessageSquare className="h-5 w-5" />
               <span>Discussions</span>
             </button>
-            <button
-              onClick={() => setActiveTab('chapters')}
-              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'chapters'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              <UsersIcon className="h-5 w-5" />
-              <span>Chapters</span>
-            </button>
           </nav>
 
           {/* Tab Content */}
@@ -84,11 +72,6 @@ const CommunityPage: React.FC = () => {
             {activeTab === 'forums' && (
               <div className="animate-in fade-in duration-300">
                 <Forums embedded />
-              </div>
-            )}
-            {activeTab === 'chapters' && (
-              <div className="animate-in fade-in duration-300">
-                <ChaptersPage />
               </div>
             )}
           </div>

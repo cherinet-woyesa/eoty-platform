@@ -86,6 +86,12 @@ export const adminApi = {
     return response.data;
   },
 
+  // Forum Moderation
+  getForumReports: async (status?: string) => {
+    const response = await apiClient.get('/admin/moderation/forum-reports', { params: { status } });
+    return response.data;
+  },
+
   uploadContent: async (uploadData: CreateUploadRequest): Promise<{ success: boolean; data: { upload: ContentUpload } }> => {
     const formData = new FormData();
     formData.append('title', uploadData.title);
@@ -404,6 +410,26 @@ export const adminApi = {
   // Featured Courses Management
   updateFeaturedCourses: async (courseIds: number[]) => {
     const response = await apiClient.put('/admin/courses/featured', { courseIds });
+    return response.data;
+  },
+
+  // Knowledge Base Management
+  getKnowledgeDocuments: async (params?: { category?: string; status?: string }) => {
+    const response = await apiClient.get('/knowledge-base', { params });
+    return response.data;
+  },
+
+  uploadKnowledgeDocument: async (formData: FormData) => {
+    const response = await apiClient.post('/knowledge-base/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  deleteKnowledgeDocument: async (id: number) => {
+    const response = await apiClient.delete(`/knowledge-base/${id}`);
     return response.data;
   }
 };

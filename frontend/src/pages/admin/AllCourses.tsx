@@ -282,7 +282,7 @@ const AllCourses: React.FC = () => {
               Refresh
             </button>
             <button
-              onClick={() => navigate('/teacher/courses/new')}
+              onClick={() => navigate('/admin/courses/new')}
               className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />

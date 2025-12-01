@@ -16,7 +16,9 @@ import {
   Plus,
   X,
   Check,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { adminApi } from '@/services/api/admin';
 import { landingApi } from '@/services/api/landing';
@@ -51,6 +53,7 @@ const LandingPageEditor: React.FC = () => {
   const [editingTestimonial, setEditingTestimonial] = useState<any>(null);
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [featuredCourseIds, setFeaturedCourseIds] = useState<number[]>([]);
+  const [expandedVideo, setExpandedVideo] = useState<number | null>(null);
 
   useEffect(() => {
     fetchLandingContent();
@@ -819,6 +822,7 @@ const LandingPageEditor: React.FC = () => {
                   onClick={() => {
                     const newVideos = [...(Array.isArray(currentContent) ? currentContent : []), { title: '', description: '', thumbnail: '', videoUrl: '' }];
                     setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                    setExpandedVideo(newVideos.length);
                   }}
                   className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-2"
                 >
@@ -827,94 +831,122 @@ const LandingPageEditor: React.FC = () => {
                 </button>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {(Array.isArray(currentContent) ? currentContent : []).map((video: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
-                    <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to remove this video?')) {
-                          const newVideos = [...currentContent];
-                          newVideos.splice(index, 1);
-                          setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                        }
-                      }}
-                      className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
-                      title="Remove Video"
+                  <div key={index} className="border border-gray-200 rounded-lg bg-white overflow-hidden transition-all duration-200 hover:shadow-md">
+                    <div 
+                      className="flex items-center justify-between p-4 cursor-pointer bg-gray-50/50 hover:bg-gray-50"
+                      onClick={() => setExpandedVideo(expandedVideo === index ? null : index)}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={video.title || ''}
-                          onChange={(e) => {
-                            const newVideos = [...currentContent];
-                            newVideos[index] = { ...video, title: e.target.value };
-                            setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                          placeholder="Video Title"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
-                        <input
-                          type="text"
-                          value={video.videoUrl || ''}
-                          onChange={(e) => {
-                            const newVideos = [...currentContent];
-                            newVideos[index] = { ...video, videoUrl: e.target.value };
-                            setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                          placeholder="https://youtube.com/..."
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                          value={video.description || ''}
-                          onChange={(e) => {
-                            const newVideos = [...currentContent];
-                            newVideos[index] = { ...video, description: e.target.value };
-                            setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                          }}
-                          rows={2}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                          placeholder="Brief description of the video content"
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
-                        <div className="flex gap-4">
-                          <input
-                            type="text"
-                            value={video.thumbnail || ''}
-                            onChange={(e) => {
-                              const newVideos = [...currentContent];
-                              newVideos[index] = { ...video, thumbnail: e.target.value };
-                              setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                            }}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                            placeholder="https://source.unsplash.com/..."
-                          />
-                          {video.thumbnail && (
-                            <div className="h-10 w-16 rounded overflow-hidden bg-gray-200 flex-shrink-0">
-                              <img src={video.thumbnail} alt="Preview" className="h-full w-full object-cover" />
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                          {video.thumbnail ? (
+                            <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-gray-400">
+                              <PlayCircle className="h-5 w-5" />
                             </div>
                           )}
                         </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{video.title || 'Untitled Video'}</h4>
+                          <p className="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-xs">{video.videoUrl || 'No URL set'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Are you sure you want to remove this video?')) {
+                              const newVideos = [...currentContent];
+                              newVideos.splice(index, 1);
+                              setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                            }
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        {expandedVideo === index ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
                       </div>
                     </div>
+                    
+                    {expandedVideo === index && (
+                      <div className="p-4 border-t border-gray-100 bg-white animate-in slide-in-from-top-2 duration-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input
+                              type="text"
+                              value={video.title || ''}
+                              onChange={(e) => {
+                                const newVideos = [...currentContent];
+                                newVideos[index] = { ...video, title: e.target.value };
+                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                              placeholder="Video Title"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
+                            <input
+                              type="text"
+                              value={video.videoUrl || ''}
+                              onChange={(e) => {
+                                const newVideos = [...currentContent];
+                                newVideos[index] = { ...video, videoUrl: e.target.value };
+                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                              }}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                              placeholder="https://youtube.com/..."
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea
+                              value={video.description || ''}
+                              onChange={(e) => {
+                                const newVideos = [...currentContent];
+                                newVideos[index] = { ...video, description: e.target.value };
+                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                              }}
+                              rows={2}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                              placeholder="Brief description of the video content"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
+                            <div className="flex gap-4">
+                              <input
+                                type="text"
+                                value={video.thumbnail || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent];
+                                  newVideos[index] = { ...video, thumbnail: e.target.value };
+                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                                }}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                placeholder="https://source.unsplash.com/..."
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 
                 {(Array.isArray(currentContent) ? currentContent : []).length === 0 && (
-                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    No videos added yet. Click "Add Video" to start.
+                  <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                    <PlayCircle className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p className="font-medium">No videos added yet</p>
+                    <p className="text-sm mt-1">Click "Add Video" to start building your video gallery.</p>
                   </div>
                 )}
               </div>
@@ -1040,47 +1072,65 @@ const LandingPageEditor: React.FC = () => {
   }
 
   return (
-    <div className="w-full h-full">
-      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
-        {/* Tab Navigation */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
-          <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveTab(section.id as any)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 font-medium transition-all border-b-2 whitespace-nowrap text-sm min-w-[140px] ${
-                  activeTab === section.id
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-              >
-                {section.icon}
-                <span>{section.label}</span>
-              </button>
-            ))}
-          </nav>
-
-          {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="animate-in fade-in duration-300 p-6">
-              {renderSectionEditor()}
-            </div>
+    <div className="w-full h-full p-3 sm:p-4 lg:p-6">
+      <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden flex h-[calc(100vh-8rem)]">
+        {/* Sidebar Navigation */}
+        <div className="w-64 border-r border-gray-200 flex-shrink-0 bg-gray-50/50 overflow-y-auto">
+          <div className="p-4">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Page Sections
+            </h2>
+            <nav className="space-y-1">
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveTab(section.id as any)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                    activeTab === section.id
+                      ? 'bg-[#27AE60]/10 text-[#27AE60]'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <span className={`${activeTab === section.id ? 'text-[#27AE60]' : 'text-gray-400'}`}>
+                    {section.icon}
+                  </span>
+                  <div className="text-left">
+                    <span className="block">{section.label}</span>
+                  </div>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <X className="h-5 w-5 text-red-600 mr-3" />
-              <span className="text-red-800">{error}</span>
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          <div className="p-6 max-w-4xl mx-auto animate-in fade-in duration-300">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {sections.find(s => s.id === activeTab)?.label}
+              </h2>
+              <p className="text-gray-500 mt-1">
+                {sections.find(s => s.id === activeTab)?.description}
+              </p>
             </div>
-            <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
-              ×
-            </button>
+            
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center">
+                  <X className="h-5 w-5 text-red-600 mr-3" />
+                  <span className="text-red-800">{error}</span>
+                </div>
+                <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
+                  ×
+                </button>
+              </div>
+            )}
+
+            {renderSectionEditor()}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

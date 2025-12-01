@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { apiClient } from '@/services/api/apiClient';
 import { 
   PlayCircle, Clock, Users, Star, BookOpen, ArrowRight, Eye, 
   Bookmark, Filter, Search, SortAsc, MoreVertical, Download 
@@ -40,6 +41,23 @@ const CourseGrid: React.FC<CourseGridProps> = ({
   const [sortBy, setSortBy] = useState<'progress' | 'recent' | 'title' | 'difficulty'>('recent');
   const [filterBy, setFilterBy] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Load bookmarks
+  React.useEffect(() => {
+    const loadBookmarks = async () => {
+      try {
+        const response = await apiClient.get('/bookmarks?type=course');
+        if (response.data) {
+          const bookmarkedIds = new Set(response.data.map((b: any) => b.entity_id.toString()));
+          setBookmarkedCourses(bookmarkedIds);
+        }
+      } catch (err) {
+        console.error('Failed to load bookmarks:', err);
+      }
+    };
+    
+    loadBookmarks();
+  }, []);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);

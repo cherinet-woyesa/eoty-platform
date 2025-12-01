@@ -67,10 +67,13 @@ import { CourseDetails } from '@/pages/shared';
 import ChaptersPage from '@/pages/shared/chapters/ChaptersPage';
 import ActivityLogsPage from '@/pages/shared/activity/ActivityLogsPage';
 import AdminActivityLogs from '@/pages/admin/AdminActivityLogs';
+import AdminCreateCourse from '@/pages/admin/AdminCreateCourse';
 import LocalizationSettingsPage from '@/pages/shared/settings/LocalizationSettingsPage';
 import ProgressPage from '@/pages/student/ProgressPage';
 import StudentManagement from '@/pages/teacher/StudentManagement';
 import SpiritualJourneys from '@/pages/student/SpiritualJourneys';
+import JourneyDetail from '@/pages/student/JourneyDetail';
+import GlobalChapterMap from '@/pages/student/GlobalChapterMap';
 import JourneysAdmin from '@/pages/admin/JourneysAdmin';
 import LearningPathsPage from '@/pages/student/LearningPathsPage';
 import BookmarksPage from '@/pages/student/BookmarksPage';
@@ -404,6 +407,28 @@ function AppContent() {
             <StudentRoute>
               <DashboardLayout>
                 <SpiritualJourneys />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/journeys/:id" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <JourneyDetail />
+              </DashboardLayout>
+            </StudentRoute>
+          } 
+        />
+
+        <Route 
+          path="/student/chapters/map" 
+          element={
+            <StudentRoute>
+              <DashboardLayout>
+                <GlobalChapterMap />
               </DashboardLayout>
             </StudentRoute>
           } 
@@ -930,6 +955,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <ModerationTools />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/courses/new" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminCreateCourse />
               </DashboardLayout>
             </AdminRoute>
           } 

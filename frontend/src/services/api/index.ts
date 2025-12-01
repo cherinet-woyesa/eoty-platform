@@ -485,49 +485,45 @@ export const interactiveApi = {
 
 // Journeys API (Spiritual Journeys)
 export const journeysApi = {
-  // List journeys visible to current user
-  getJourneys: async () => {
-    const response = await apiClient.get('/journeys');
+  // List all available journeys
+  getJourneys: async (filters?: any) => {
+    const response = await apiClient.get('/journeys', { params: filters });
     return response.data;
   },
 
-  // Get a single journey with items and progress
+  // Get user's enrolled journeys
+  getUserJourneys: async () => {
+    const response = await apiClient.get('/journeys/my-journeys');
+    return response.data;
+  },
+
+  // Get a single journey definition
   getJourney: async (id: number | string) => {
     const response = await apiClient.get(`/journeys/${id}`);
     return response.data;
   },
 
+  // Enroll in a journey
+  enroll: async (id: number | string) => {
+    const response = await apiClient.post(`/journeys/${id}/enroll`);
+    return response.data;
+  },
+
+  // Get detailed progress for a specific user journey
+  getUserJourneyDetails: async (userJourneyId: number | string) => {
+    const response = await apiClient.get(`/journeys/progress/${userJourneyId}`);
+    return response.data;
+  },
+
+  // Complete a milestone
+  completeMilestone: async (userJourneyId: number | string, milestoneId: number | string) => {
+    const response = await apiClient.post(`/journeys/progress/${userJourneyId}/milestone/${milestoneId}/complete`);
+    return response.data;
+  },
+
   // Admin/Teacher: create journey
-  createJourney: async (payload: {
-    title: string;
-    description?: string;
-    audience?: 'student' | 'teacher' | 'admin' | 'all';
-    chapterId?: number | null;
-    items?: { itemType: 'course' | 'resource'; itemId: number; orderIndex?: number }[];
-  }) => {
+  createJourney: async (payload: any) => {
     const response = await apiClient.post('/journeys', payload);
-    return response.data;
-  },
-
-  // Admin/Teacher: update journey
-  updateJourney: async (
-    id: number | string,
-    payload: {
-      title?: string;
-      description?: string;
-      audience?: 'student' | 'teacher' | 'admin' | 'all';
-      chapterId?: number | null;
-      isActive?: boolean;
-      items?: { itemType: 'course' | 'resource'; itemId: number; orderIndex?: number }[];
-    }
-  ) => {
-    const response = await apiClient.put(`/journeys/${id}`, payload);
-    return response.data;
-  },
-
-  // Admin/Teacher: delete journey
-  deleteJourney: async (id: number | string) => {
-    const response = await apiClient.delete(`/journeys/${id}`);
     return response.data;
   }
 };

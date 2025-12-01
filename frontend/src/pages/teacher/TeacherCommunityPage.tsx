@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquare, Users as UsersIcon, Award, Grid, Plus, UserPlus, Calendar } from 'lucide-react';
 import Forums from '@/pages/shared/social/Forums';
-import ChaptersPage from '@/pages/shared/chapters/ChaptersPage';
 import TeacherAchievements from './TeacherAchievements';
 
 const TeacherCommunityPage: React.FC = () => {

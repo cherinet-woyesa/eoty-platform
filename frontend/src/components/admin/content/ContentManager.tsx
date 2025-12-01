@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { ContentUpload } from '@/types/admin';
 import UnifiedUploadForm from './UnifiedUploadForm';
 import {
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 const ContentManager: React.FC = () => {
+  const { confirm } = useConfirmDialog();
   const [uploads, setUploads] = useState<ContentUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,9 +235,14 @@ const ContentManager: React.FC = () => {
 
   // Handle delete action
   const handleDelete = async (uploadId: number) => {
-    if (!window.confirm('Are you sure you want to delete this content? This action cannot be undone.')) {
-      return;
-    }
+    const isConfirmed = await confirm({
+      title: 'Delete Content',
+      message: 'Are you sure you want to delete this content? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+
+    if (!isConfirmed) return;
 
     try {
       const response = await adminApi.deleteContent(uploadId);

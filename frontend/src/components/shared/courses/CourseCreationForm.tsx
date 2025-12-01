@@ -46,12 +46,14 @@ interface CourseCreationFormProps {
   editMode?: boolean;
   courseId?: string;
   initialData?: Partial<CourseFormData>;
+  returnPath?: string;
 }
 
 const CourseCreationForm: React.FC<CourseCreationFormProps> = ({ 
   editMode = false,
   courseId,
-  initialData 
+  initialData,
+  returnPath
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -442,7 +444,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate('/teacher/courses')}
+              onClick={() => navigate(returnPath || '/teacher/courses')}
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all duration-200 shadow-lg shadow-[#27AE60]/25"
             >
               <BookOpen className="mr-2 h-5 w-5" />

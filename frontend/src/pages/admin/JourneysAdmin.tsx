@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { journeysApi, coursesApi, resourcesApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2, Plus, BookOpen, FileText, Trash2, Save } from 'lucide-react';
+import { Loader2, Plus, BookOpen, FileText, Trash2, Save, Flag, Calendar } from 'lucide-react';
 
 interface Journey {
   id: number;
   title: string;
   description?: string;
-  audience: string;
-  chapter_id: number | null;
-  progress?: number;
+  type: string;
+  start_date?: string;
+  end_date?: string;
 }
 
-interface JourneyItemInput {
-  itemType: 'course' | 'resource';
-  itemId: number;
-  orderIndex?: number;
+interface MilestoneInput {
+  title: string;
+  description: string;
+  type: 'content' | 'quiz' | 'action';
+  reference_id?: number;
+  reference_type?: 'course' | 'resource';
 }
 
 const JourneysAdmin: React.FC = () => {
@@ -25,10 +27,19 @@ const JourneysAdmin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [audience, setAudience] = useState<'student' | 'teacher' | 'admin' | 'all'>('student');
-  const [items, setItems] = useState<JourneyItemInput[]>([]);
+  const [type, setType] = useState('challenge');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [milestones, setMilestones] = useState<MilestoneInput[]>([]);
+
+  // Milestone Form State
+  const [mTitle, setMTitle] = useState('');
+  const [mDesc, setMDesc] = useState('');
+  const [mType, setMType] = useState<'content' | 'quiz' | 'action'>('content');
+  const [mRefId, setMRefId] = useState<number | undefined>(undefined);
 
   const [courses, setCourses] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
@@ -45,6 +56,9 @@ const JourneysAdmin: React.FC = () => {
 
         if (journeysRes.success && journeysRes.data?.journeys) {
           setJourneys(journeysRes.data.journeys);
+        } else if (Array.isArray(journeysRes)) {
+           // Handle direct array return if API changed
+           setJourneys(journeysRes);
         }
 
         if (coursesRes.success && coursesRes.data?.courses) {
@@ -72,23 +86,33 @@ const JourneysAdmin: React.FC = () => {
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setAudience('student');
-    setItems([]);
+    setType('challenge');
+    setStartDate('');
+    setEndDate('');
+    setMilestones([]);
+    resetMilestoneForm();
   };
 
-  const handleAddItem = (type: 'course' | 'resource', id: number) => {
-    setItems((prev) => [
-      ...prev,
-      {
-        itemType: type,
-        itemId: id,
-        orderIndex: prev.length
-      }
-    ]);
+  const resetMilestoneForm = () => {
+    setMTitle('');
+    setMDesc('');
+    setMType('content');
+    setMRefId(undefined);
   };
 
-  const handleRemoveItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+  const handleAddMilestone = () => {
+    if (!mTitle) return;
+    setMilestones(prev => [...prev, {
+      title: mTitle,
+      description: mDesc,
+      type: mType,
+      reference_id: mRefId
+    }]);
+    resetMilestoneForm();
+  };
+
+  const handleRemoveMilestone = (index: number) => {
+    setMilestones((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleCreateJourney = async () => {
@@ -98,32 +122,34 @@ const JourneysAdmin: React.FC = () => {
     }
     try {
       setSaving(true);
-      setError(null);
       const payload = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        audience,
-        chapterId: user?.chapterId || null,
-        items
+        title,
+        description,
+        type,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        milestones
       };
-      const res = await journeysApi.createJourney(payload);
-      if (!res.success) {
-        setError(res.message || 'Failed to create journey');
-        return;
+
+      await journeysApi.createJourney(payload);
+      
+      // Reload
+      const res = await journeysApi.getJourneys();
+      if (res.success && res.data?.journeys) {
+        setJourneys(res.data.journeys);
+      } else if (Array.isArray(res)) {
+        setJourneys(res);
       }
+      
       resetForm();
-      // Reload journeys
-      const journeysRes = await journeysApi.getJourneys();
-      if (journeysRes.success && journeysRes.data?.journeys) {
-        setJourneys(journeysRes.data.journeys);
-      }
     } catch (e: any) {
-      console.error('Create journey error', e);
+      console.error('Failed to create journey', e);
       setError(e.response?.data?.message || 'Failed to create journey');
     } finally {
       setSaving(false);
     }
   };
+
 
   const handleDeleteJourney = async (id: number) => {
     if (!window.confirm('Delete this journey? This cannot be undone.')) return;
@@ -177,16 +203,15 @@ const JourneysAdmin: React.FC = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-700">Audience</label>
+            <label className="text-xs font-medium text-slate-700">Type</label>
             <select
-              value={audience}
-              onChange={(e) => setAudience(e.target.value as any)}
+              value={type}
+              onChange={(e) => setType(e.target.value)}
               className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
             >
-              <option value="student">Students</option>
-              <option value="teacher">Teachers</option>
-              <option value="admin">Admins</option>
-              <option value="all">All roles</option>
+              <option value="challenge">Challenge</option>
+              <option value="seasonal">Seasonal</option>
+              <option value="curriculum">Curriculum</option>
             </select>
           </div>
           <div className="sm:col-span-2 space-y-2">
@@ -199,86 +224,127 @@ const JourneysAdmin: React.FC = () => {
               placeholder="Short description to guide learners on this path..."
             />
           </div>
-        </div>
-
-        {/* Item selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <div className="border border-slate-200 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-indigo-500" />
-                <span className="text-xs font-semibold text-slate-800">Courses</span>
-              </div>
-            </div>
-            <div className="max-h-40 overflow-y-auto space-y-1.5">
-              {courses.map((course) => (
-                <button
-                  key={course.id}
-                  type="button"
-                  onClick={() => handleAddItem('course', course.id)}
-                  className="w-full flex items-center justify-between text-left px-2 py-1.5 rounded-md text-xs border border-transparent hover:border-indigo-200 hover:bg-indigo-50/70"
-                >
-                  <span className="truncate text-slate-800">{course.title}</span>
-                  <Plus className="h-3 w-3 text-indigo-500 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-slate-700">Start Date (Optional)</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
+            />
           </div>
-
-          <div className="border border-slate-200 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs font-semibold text-slate-800">Resources</span>
-              </div>
-            </div>
-            <div className="max-h-40 overflow-y-auto space-y-1.5">
-              {resources.map((resource) => (
-                <button
-                  key={resource.id}
-                  type="button"
-                  onClick={() => handleAddItem('resource', resource.id)}
-                  className="w-full flex items-center justify-between text-left px-2 py-1.5 rounded-md text-xs border border-transparent hover:border-emerald-200 hover:bg-emerald-50/70"
-                >
-                  <span className="truncate text-slate-800">{resource.title}</span>
-                  <Plus className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-slate-700">End Date (Optional)</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
+            />
           </div>
         </div>
 
-        {/* Selected items */}
-        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2">
+        {/* Milestone Creation */}
+        <div className="border-t border-slate-100 pt-4 mt-4">
+          <h3 className="text-xs font-semibold text-slate-800 mb-3">Add Milestone</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <div className="space-y-1">
+              <label className="text-[10px] font-medium text-slate-500">Milestone Title</label>
+              <input
+                value={mTitle}
+                onChange={(e) => setMTitle(e.target.value)}
+                className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
+                placeholder="e.g. Read Chapter 1"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-medium text-slate-500">Type</label>
+              <select
+                value={mType}
+                onChange={(e) => setMType(e.target.value as any)}
+                className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
+              >
+                <option value="content">Content (Watch/Read)</option>
+                <option value="quiz">Quiz</option>
+                <option value="action">Action (e.g. Pray)</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] font-medium text-slate-500">Description</label>
+              <input
+                value={mDesc}
+                onChange={(e) => setMDesc(e.target.value)}
+                className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
+                placeholder="Instructions for this step..."
+              />
+            </div>
+            
+            {/* Reference Selection */}
+            {mType === 'content' && (
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-[10px] font-medium text-slate-500">Link to Content (Optional)</label>
+                <select
+                  value={mRefId || ''}
+                  onChange={(e) => setMRefId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
+                >
+                  <option value="">-- Select Course or Resource --</option>
+                  <optgroup label="Courses">
+                    {courses.map(c => <option key={`c-${c.id}`} value={c.id}>{c.title}</option>)}
+                  </optgroup>
+                  <optgroup label="Resources">
+                    {resources.map(r => <option key={`r-${r.id}`} value={r.id}>{r.title}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+            )}
+
+            <div className="sm:col-span-2 flex justify-end">
+              <button
+                type="button"
+                onClick={handleAddMilestone}
+                disabled={!mTitle}
+                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Add Milestone
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Selected Milestones List */}
+        <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-800">
-              Journey Items ({items.length})
+              Journey Path ({milestones.length} steps)
             </span>
           </div>
-          {items.length === 0 ? (
-            <p className="text-xs text-slate-500">
-              Select some courses or resources above to add them to this journey.
+          {milestones.length === 0 ? (
+            <p className="text-xs text-slate-500 italic">
+              No milestones added yet. Add steps above to build the journey.
             </p>
           ) : (
             <div className="space-y-1.5">
-              {items.map((item, index) => (
+              {milestones.map((m, index) => (
                 <div
-                  key={`${item.itemType}-${item.itemId}-${index}`}
-                  className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 bg-slate-50/70"
+                  key={index}
+                  className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 bg-white"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-500">Step {index + 1}</span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-white">
-                      {item.itemType === 'course' ? 'Course' : 'Resource'}
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                      {index + 1}
                     </span>
-                    <span className="text-xs text-slate-800">ID: {item.itemId}</span>
+                    <div>
+                      <p className="text-xs font-medium text-slate-900">{m.title}</p>
+                      <p className="text-[10px] text-slate-500">{m.type} • {m.description}</p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    className="inline-flex items-center justify-center rounded-full p-1.5 hover:bg-rose-50 text-rose-500"
+                    onClick={() => handleRemoveMilestone(index)}
+                    className="text-rose-400 hover:text-rose-600"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}

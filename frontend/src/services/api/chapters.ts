@@ -18,6 +18,9 @@ export interface Chapter {
   region?: string;
   latitude?: number;
   longitude?: number;
+  contact_email?: string;
+  meeting_time?: string;
+  distance?: number; // Calculated on frontend or backend
   is_active: boolean;
 }
 
@@ -27,6 +30,7 @@ export interface UserChapter {
   chapter_id: number;
   role: 'member' | 'moderator' | 'admin';
   is_primary: boolean;
+  status: 'pending' | 'approved' | 'rejected';
   joined_at: string;
   chapter_name?: string;
   location?: string;
@@ -50,6 +54,11 @@ export const chaptersApi = {
 
   getMembers: async (chapterId: number) => {
     const response = await apiClient.get(`/chapters/${chapterId}/members`);
+    return response.data;
+  },
+
+  updateMemberStatus: async (chapterId: number, userId: number, status: 'approved' | 'rejected') => {
+    const response = await apiClient.put(`/chapters/${chapterId}/members/${userId}/status`, { status });
     return response.data;
   },
 
