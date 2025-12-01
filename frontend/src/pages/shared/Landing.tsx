@@ -36,8 +36,12 @@ const Landing: React.FC = () => {
     const fetchContent = async () => {
       try {
         const response = await landingApi.getContent();
+        console.log('Landing Page Content Response:', response);
         if (response.success && response.data) {
+          console.log('Updating landing content state:', response.data);
           setLandingContent(response.data);
+        } else {
+          console.warn('Landing content response missing success or data:', response);
         }
       } catch (err) {
         console.error('Failed to fetch landing content:', err);

@@ -10,6 +10,12 @@ const About = forwardRef<HTMLElement, AboutProps>(({ landingContent, visibleSect
   const isVisible = visibleSections.has('about');
   const content = landingContent?.about || {};
   
+  console.log('About Component Render:', { 
+    landingContent, 
+    aboutContent: content, 
+    title: content.title 
+  });
+
   const features = content.features || [
     {
       icon: 'Target',
@@ -61,7 +67,8 @@ const About = forwardRef<HTMLElement, AboutProps>(({ landingContent, visibleSect
           </div>
           
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
-            {content.title || 'Empowering Faith-Centered Learning'}
+            {/* Debug: Display raw title if available, otherwise default */}
+            {content.title ? content.title : 'Empowering Faith-Centered Learning'}
           </h2>
           
           <p className="text-xl text-gray-600 max-w-3xl mx-auto font-light leading-relaxed">
