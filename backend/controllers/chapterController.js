@@ -202,10 +202,22 @@ const chapterController = {
     try {
       const { id } = req.params;
       
-      const members = await db('users')
-        .where({ chapter_id: id })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'profile_picture')
-        .orderBy('first_name', 'asc');
+      const members = await db('user_chapters as uc')
+        .join('users as u', 'uc.user_id', 'u.id')
+        .where('uc.chapter_id', id)
+        .select(
+          'u.id', 
+          'u.first_name', 
+          'u.last_name', 
+          'u.email', 
+          'u.profile_picture',
+          'uc.role', 
+          'uc.status',
+          'uc.joined_at'
+        )
+        .orderBy('uc.status', 'desc') // Pending ('pending') comes after 'approved' alphabetically? No. 
+        // We want pending first. 'pending' > 'approved'. So desc puts pending first.
+        .orderBy('u.first_name', 'asc');
 
       res.json({
         success: true,
@@ -217,6 +229,35 @@ const chapterController = {
         success: false,
         message: 'Failed to fetch chapter members'
       });
+    }
+  },
+
+  // Update member status (Approve/Reject)
+  async updateMemberStatus(req, res) {
+    try {
+      const { id, userId } = req.params;
+      const { status } = req.body; // 'approved' or 'rejected'
+      const currentUserId = req.user.userId;
+
+      // Verify requester is admin/leader of this chapter
+      const requesterChapter = await db('user_chapters')
+        .where({ user_id: currentUserId, chapter_id: id })
+        .whereIn('role', ['admin', 'moderator', 'chapter_leader'])
+        .where('status', 'approved')
+        .first();
+        
+      const requesterUser = await db('users').where({ id: currentUserId }).first();
+
+      if (!requesterChapter && !['admin', 'teacher'].includes(requesterUser.role)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+
+      await chapterService.updateMemberStatus(id, userId, status);
+
+      res.json({ success: true, message: `Member ${status}` });
+    } catch (error) {
+      console.error('Update member status error:', error);
+      res.status(500).json({ success: false, message: 'Failed to update member status' });
     }
   },
 
@@ -295,6 +336,7 @@ const chapterController = {
       // Verify user is leader/admin of this chapter
       const userChapter = await db('user_chapters')
         .where({ user_id: userId, chapter_id: id })
+        .where('status', 'approved')
         .first();
       
       const user = await db('users').where({ id: userId }).first();
@@ -346,6 +388,7 @@ const chapterController = {
       // Check permissions (simplified)
       const userChapter = await db('user_chapters')
         .where({ user_id: userId, chapter_id: id })
+        .where('status', 'approved')
         .first();
       const user = await db('users').where({ id: userId }).first();
 
@@ -391,6 +434,7 @@ const chapterController = {
       // Check permissions
       const userChapter = await db('user_chapters')
         .where({ user_id: userId, chapter_id: id })
+        .where('status', 'approved')
         .first();
       const user = await db('users').where({ id: userId }).first();
 

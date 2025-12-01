@@ -1869,6 +1869,45 @@ async function reorderLevels(req, res) {
   }
 }
 
+/**
+ * Reorder tags
+ */
+async function reorderTags(req, res) {
+  try {
+    const { items } = req.body;
+    const userId = req.user.userId;
+
+    // Update display_order for each item
+    for (const item of items) {
+      await db('content_tags')
+        .where('id', item.id)
+        .update({ display_order: item.display_order, updated_at: new Date() });
+    }
+
+    // Log audit
+    await auditLogService.logConfigChange({
+      admin_id: userId,
+      entity_type: 'tag',
+      entity_id: 0,
+      action_type: 'reorder',
+      after_state: { items },
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    });
+
+    res.json({
+      success: true,
+      message: 'Tags reordered successfully'
+    });
+  } catch (error) {
+    console.error('Error reordering tags:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reorder tags'
+    });
+  }
+}
+
 // ============================================================================
 // AUDIT LOGS
 // ============================================================================

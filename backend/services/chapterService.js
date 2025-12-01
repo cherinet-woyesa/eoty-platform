@@ -78,6 +78,7 @@ class ChapterService {
       .join('chapters as c', 'uc.chapter_id', 'c.id')
       .where('uc.user_id', userId)
       .where('uc.is_primary', true)
+      .where('uc.status', 'approved') // Only return approved primary chapter
       .select(
         'uc.*',
         'c.name as chapter_name',
@@ -145,6 +146,7 @@ class ChapterService {
       chapter_id: chapterId,
       role: role,
       is_primary: setAsPrimary,
+      status: 'pending', // REQUIREMENT: Needs confirmation by teacher/admin
       joined_at: new Date(),
       created_at: new Date(),
       updated_at: new Date()
@@ -207,6 +209,10 @@ class ChapterService {
       throw new Error('User is not a member of this chapter');
     }
 
+    if (userChapter.status !== 'approved') {
+      throw new Error('Cannot set pending chapter as primary');
+    }
+
     // Unset all primary chapters
     await db('user_chapters')
       .where('user_id', userId)
@@ -242,6 +248,25 @@ class ChapterService {
       .where('chapter_id', chapterId)
       .update({ role, updated_at: new Date() });
 
+    return { success: true };
+  }
+
+  /**
+   * Update member status (Approve/Reject)
+   * @param {number} chapterId
+   * @param {number} userId
+   * @param {string} status
+   */
+  async updateMemberStatus(chapterId, userId, status) {
+    if (status === 'rejected') {
+      await db('user_chapters')
+        .where({ user_id: userId, chapter_id: chapterId })
+        .delete();
+    } else {
+      await db('user_chapters')
+        .where({ user_id: userId, chapter_id: chapterId })
+        .update({ status, updated_at: new Date() });
+    }
     return { success: true };
   }
 

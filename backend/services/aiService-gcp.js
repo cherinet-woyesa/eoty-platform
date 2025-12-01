@@ -435,18 +435,47 @@ INSTRUCTIONS:
 RESPONSE:`;
   }
 
-  // Get relevant content from vector search (placeholder for future implementation)
+  // Get relevant content from vector search
   async getRelevantContent(question, context) {
-    // TODO: Implement vector search with embeddings
-    // For now, return lesson/chapter specific content if available
+    const knowledgeBaseService = require('./knowledgeBaseService');
     const relevantContent = [];
 
+    // 1. Add Lesson/Chapter context
     if (context.lessonId) {
       relevantContent.push(`Lesson: ${context.lessonTitle || 'Current Lesson'}`);
     }
 
     if (context.chapterId) {
       relevantContent.push(`Chapter: ${context.chapterTitle || 'Current Chapter'}`);
+    }
+
+    // 2. Search Knowledge Base
+    try {
+      if (vertexAI) {
+        const model = vertexAI.getGenerativeModel({ model: aiConfig.embeddingModel || 'text-embedding-004' });
+        const result = await model.embedContent(question);
+        let embedding = [];
+        
+        // Handle different response structures
+        if (result.embedding && result.embedding.values) {
+          embedding = result.embedding.values;
+        } else if (result.embeddings && result.embeddings[0] && result.embeddings[0].values) {
+          embedding = result.embeddings[0].values;
+        }
+
+        if (embedding.length > 0) {
+          const docs = await knowledgeBaseService.searchKnowledgeBase(embedding);
+          if (docs.length > 0) {
+            relevantContent.push('\n--- RELEVANT THEOLOGICAL SOURCES (Use these to answer) ---');
+            docs.forEach(doc => {
+              relevantContent.push(`[Source: ${doc.title} (${doc.category})]\n${doc.content}`);
+            });
+            relevantContent.push('--- END SOURCES ---\n');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Knowledge base search failed:', err.message);
     }
 
     return relevantContent;
@@ -653,19 +682,19 @@ RESPONSE:`;
   async generateResourceSummary(resource, type = 'brief') {
     const summaryLength = type === 'detailed' ? 500 : 200; // Words, roughly
 
-    const prompt = \`Analyze the following educational resource and provide a structured summary.
+    const prompt = `Analyze the following educational resource and provide a structured summary.
 
-Title: \${resource.title}
-Description: \${resource.description || 'No description provided'}
-Category: \${resource.category || 'General'}
-Content Type: \${resource.file_type || 'Text'}
+Title: ${resource.title}
+Description: ${resource.description || 'No description provided'}
+Category: ${resource.category || 'General'}
+Content Type: ${resource.file_type || 'Text'}
 
 Please provide:
-1. A \${type} summary (approx \${summaryLength} words).
+1. A ${type} summary (approx ${summaryLength} words).
 2. 3-5 Key learning points.
 3. Spiritual insights relevant to Ethiopian Orthodox Tewahedo Church teachings.
 
-Output format: JSON with keys "summary", "keyPoints" (array), "spiritualInsights" (array).\`;
+Output format: JSON with keys "summary", "keyPoints" (array), "spiritualInsights" (array).`;
 
     try {
       const result = await this.callVertexAI(prompt);
@@ -700,7 +729,7 @@ Output format: JSON with keys "summary", "keyPoints" (array), "spiritualInsights
       console.error('Resource summary generation failed:', error);
       // Return fallback structure
       return {
-          summary: \`Summary of \${resource.title}: \${resource.description?.substring(0, 200)}...\`,
+          summary: `Summary of ${resource.title}: ${resource.description?.substring(0, 200)}...`,
           keyPoints: [],
           spiritualInsights: [],
           wordCount: this.countWords(resource.description || ''),

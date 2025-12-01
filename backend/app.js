@@ -37,6 +37,7 @@ const videoChaptersRoutes = require('./routes/videoChapters');
 const thumbnailRoutes = require('./routes/thumbnails');
 const relatedVideosRoutes = require('./routes/relatedVideos');
 const recordingPresetsRoutes = require('./routes/recordingPresets');
+const knowledgeBaseRoutes = require('./routes/knowledgeBase');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -306,6 +307,7 @@ app.use('/api/study-groups', studyGroupsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/system-config', systemConfigRoutes);
 app.use('/api/admin/access-logs', accessLogRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
 
 // Protected routes
 app.use('/api/courses', authenticateToken, courseRoutes);
@@ -324,6 +326,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes
 app.use('/api/journeys', require('./routes/journeys')); // Spiritual Journeys
 app.use('/api', analyticsRoutes); // Analytics routes (includes /api/courses/:courseId/...)

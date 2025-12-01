@@ -244,9 +244,24 @@ const landingPageController = {
         .where({ is_active: true })
         .first();
 
-      let contentData = existingContent 
-        ? JSON.parse(existingContent.content_json)
-        : {};
+      let contentData = {};
+      if (existingContent && existingContent.content_json) {
+        if (typeof existingContent.content_json === 'string') {
+          try {
+            if (existingContent.content_json === '[object Object]') {
+              console.warn('⚠️ Found corrupted content_json: "[object Object]". Resetting to empty object.');
+              contentData = {};
+            } else {
+              contentData = JSON.parse(existingContent.content_json);
+            }
+          } catch (e) {
+            console.error('⚠️ Failed to parse existing content JSON:', e.message);
+            contentData = {};
+          }
+        } else if (typeof existingContent.content_json === 'object') {
+          contentData = existingContent.content_json;
+        }
+      }
 
       console.log('📝 Existing content found:', !!existingContent);
 

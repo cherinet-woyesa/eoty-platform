@@ -1,6 +1,12 @@
 const bcrypt = require('bcryptjs');
 
 exports.seed = async function(knex) {
+  // SAFETY CHECK: Prevent running in production
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚠️  Skipping seed in production environment to prevent overwriting data.');
+    return;
+  }
+
   // Get chapters
   const chapters = await knex('chapters').select('id');
   

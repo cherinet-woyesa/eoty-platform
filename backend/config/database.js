@@ -4,20 +4,26 @@ const { Client } = require('pg'); // Import pg Client for direct testing
 // Load environment variables first
 require('dotenv').config();
 
-const connectionConfig = {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: String(process.env.DB_PASSWORD), // Ensure password is a string
-};
+let connectionConfig;
 
-// Only enable SSL if explicitly requested and NOT connecting via Cloud SQL Auth Proxy
-if (process.env.DB_HOST && process.env.DB_HOST.startsWith('/')) {
-  // Explicitly disable SSL for Cloud SQL sockets to prevent "server does not support SSL" errors
-  connectionConfig.ssl = false;
-} else if (process.env.DB_SSL === 'true') {
-  connectionConfig.ssl = { rejectUnauthorized: false };
+if (process.env.DATABASE_URL) {
+  connectionConfig = process.env.DATABASE_URL;
+} else {
+  connectionConfig = {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: String(process.env.DB_PASSWORD), // Ensure password is a string
+  };
+
+  // Only enable SSL if explicitly requested and NOT connecting via Cloud SQL Auth Proxy
+  if (process.env.DB_HOST && process.env.DB_HOST.startsWith('/')) {
+    // Explicitly disable SSL for Cloud SQL sockets to prevent "server does not support SSL" errors
+    connectionConfig.ssl = false;
+  } else if (process.env.DB_SSL === 'true') {
+    connectionConfig.ssl = { rejectUnauthorized: false };
+  }
 }
 
 const dbConfig = {

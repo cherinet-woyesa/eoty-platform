@@ -22,6 +22,7 @@ router.post('/primary', chapterController.setPrimaryChapter);
 router.post('/', chapterController.createChapter);
 router.post('/apply-leadership', chapterController.applyLeadership);
 router.get('/:id/members', chapterController.getChapterMembers);
+router.put('/:id/members/:userId/status', chapterController.updateMemberStatus);
 router.get('/:id/events', chapterController.getEvents);
 router.post('/:id/events', chapterController.createEvent);
 router.get('/:id/resources', chapterController.getChapterResources);

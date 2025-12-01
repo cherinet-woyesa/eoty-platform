@@ -74,8 +74,12 @@ const courseController = {
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin';
 
+      // Allow public access if course is public
+      if (course.is_public && !hasPermission) {
+        // Public access allowed - proceed
+      }
       // Base members (user/student) must be enrolled
-      if (!hasPermission && (userRole === 'user' || userRole === 'student')) {
+      else if (!hasPermission && (userRole === 'user' || userRole === 'student')) {
         // Check if user is enrolled
         const enrollment = await db('user_course_enrollments')
           .where({ user_id: userId, course_id: courseId })

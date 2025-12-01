@@ -2,20 +2,22 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
 const journeyController = require('../controllers/journeyController');
+const { authenticateToken } = require('../middleware/auth');
 
-// All journey routes require authentication
+// All routes require authentication
 router.use(authenticateToken);
 
-// Public to all authenticated users (filtered by audience/chapters)
-router.get('/', journeyController.listJourneys);
-router.get('/:id', journeyController.getJourney);
+// Public/User routes
+router.get('/', journeyController.getJourneys);
+router.get('/my-journeys', journeyController.getUserJourneys);
+router.get('/:id', journeyController.getJourneyById);
+router.post('/:id/enroll', journeyController.enrollUser);
+router.get('/progress/:id', journeyController.getUserJourneyDetails);
+router.post('/progress/:userJourneyId/milestone/:milestoneId/complete', journeyController.completeMilestone);
 
-// Admin/Teacher routes for managing journeys
+// Admin routes (TODO: Add role check middleware)
 router.post('/', journeyController.createJourney);
-router.put('/:id', journeyController.updateJourney);
-router.delete('/:id', journeyController.deleteJourney);
 
 module.exports = router;
 

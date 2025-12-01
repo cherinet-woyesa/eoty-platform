@@ -208,12 +208,14 @@ const adminController = {
     }
   },
 
-  // Get all users (admin only)
+  // Get all users (admin only, or chapter admin for their chapter)
   async getUsers(req, res) {
     try {
-      // Check if requesting user is an admin
+      // Check if requesting user is an admin or chapter_admin
       const requestingUserRole = req.user.role;
-      if (requestingUserRole !== 'admin') {
+      const requestingUserChapterId = req.user.chapterId; // Assuming chapterId is in the token/user object
+
+      if (requestingUserRole !== 'admin' && requestingUserRole !== 'chapter_admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to view users'
@@ -235,7 +237,23 @@ const adminController = {
           'chapters.name as chapter_name'
         );
 
-      // Admins can see all users (no chapter restriction in simplified role system)
+      // Chapter Admins can only see users in their chapter
+      if (requestingUserRole === 'chapter_admin') {
+        // We need to fetch the user's chapter_id if it's not in req.user
+        // But usually it should be. Let's assume we might need to fetch it if missing.
+        let chapterId = requestingUserChapterId;
+        if (!chapterId) {
+           const adminUser = await db('users').where('id', req.user.userId).select('chapter_id').first();
+           chapterId = adminUser ? adminUser.chapter_id : null;
+        }
+        
+        if (chapterId) {
+          query = query.where('users.chapter_id', chapterId);
+        } else {
+           // Should not happen for a valid chapter_admin
+           return res.status(403).json({ success: false, message: 'Chapter context missing' });
+        }
+      }
 
       const users = await query.orderBy('users.created_at', 'desc');
 
@@ -266,14 +284,14 @@ const adminController = {
     }
   },
 
-  // Update user (admin only) - comprehensive update
+  // Update user (admin only, or chapter admin for their chapter)
   async updateUser(req, res) {
     try {
       const { userId, firstName, lastName, email, role, chapter, isActive } = req.body;
       const requestingUserRole = req.user.role;
-
-      // Check if requesting user is an admin
-      if (requestingUserRole !== 'admin') {
+      
+      // Check if requesting user is an admin or chapter_admin
+      if (requestingUserRole !== 'admin' && requestingUserRole !== 'chapter_admin') {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to update users'
@@ -295,6 +313,45 @@ const adminController = {
           success: false,
           message: 'User not found'
         });
+      }
+
+      // Chapter Admin restrictions
+      if (requestingUserRole === 'chapter_admin') {
+        // Get requester's chapter
+        const requester = await db('users').where('id', req.user.userId).select('chapter_id').first();
+        
+        // 1. Can only update users in same chapter
+        if (userToUpdate.chapter_id !== requester.chapter_id) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only manage users within your chapter'
+          });
+        }
+
+        // 2. Cannot change user's chapter
+        if (chapter !== undefined) {
+           // Check if trying to change to a different chapter
+           let targetChapterId = chapter;
+           if (typeof chapter === 'string') {
+              const ch = await db('chapters').where('name', chapter).first();
+              targetChapterId = ch ? ch.id : null;
+           }
+           
+           if (parseInt(targetChapterId) !== requester.chapter_id) {
+             return res.status(403).json({
+               success: false,
+               message: 'Chapter admins cannot move users to other chapters'
+             });
+           }
+        }
+
+        // 3. Cannot promote to admin or change admin's role
+        if (userToUpdate.role === 'admin') {
+           return res.status(403).json({ success: false, message: 'Cannot modify platform administrators' });
+        }
+        if (role === 'admin') {
+           return res.status(403).json({ success: false, message: 'Cannot promote users to platform admin' });
+        }
       }
 
       // Build update object
