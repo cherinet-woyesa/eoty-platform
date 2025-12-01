@@ -76,7 +76,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!hasRequiredRole) {
       // Get the user's role-appropriate dashboard
       const getRoleDashboard = (): string => {
-        if (user.role === 'admin') {
+        if (user.role === 'admin' || user.role === 'chapter_admin') {
           return '/admin/dashboard';
         }
         if (user.role === 'teacher') {

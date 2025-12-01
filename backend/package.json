@@ -26,7 +26,7 @@
     "@google-cloud/secret-manager": "^5.0.0",
     "@google-cloud/speech": "^6.1.0",
     "@google-cloud/storage": "^7.0.0",
-    "@google-cloud/vertexai": "^1.9.0",
+    "@google-cloud/vertexai": "^1.10.0",
     "@mux/mux-node": "^12.8.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
@@ -42,6 +42,9 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^6.9.7",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.11.3",
     "socket.io": "^4.7.4",
     "uuid": "^9.0.1"

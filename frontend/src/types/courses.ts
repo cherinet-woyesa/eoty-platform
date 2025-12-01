@@ -30,7 +30,6 @@ export interface Course {
   language?: string;
   certification_available?: boolean;
   welcome_message?: string;
-  price?: number;
   status?: 'draft' | 'published' | 'archived';
 }
 
@@ -48,7 +47,6 @@ export interface CourseFormData {
   is_public?: boolean;
   certification_available?: boolean;
   welcome_message?: string;
-  price?: number;
   status?: 'draft' | 'published' | 'archived';
 }
 

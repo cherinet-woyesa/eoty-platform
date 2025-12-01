@@ -94,7 +94,7 @@ const ChaptersPage: React.FC = () => {
       const userChaptersRes = await chaptersApi.getUserChapters();
       // Find a chapter where user is leader/admin
       const chapter = userChaptersRes.data.chapters.find(
-        (c: UserChapter) => ['admin', 'moderator', 'chapter_leader', 'teacher'].includes(c.role)
+        (c: UserChapter) => ['admin', 'moderator', 'chapter_leader', 'teacher', 'chapter_admin'].includes(c.role)
       );
 
       if (chapter) {

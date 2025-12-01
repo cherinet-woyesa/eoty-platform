@@ -342,10 +342,15 @@ class ResourceLibraryService {
       // Check if summary already exists
       const existingSummary = await AISummary.findByResource(resourceId, type);
       if (existingSummary && existingSummary.admin_validated) {
+        const keyPoints = typeof existingSummary.key_points === 'string' ? JSON.parse(existingSummary.key_points) : existingSummary.key_points;
+        const spiritualInsights = existingSummary.spiritual_insights ? existingSummary.spiritual_insights.split('\\n') : [];
+        
         return {
           ...existingSummary,
-          keyPoints: typeof existingSummary.key_points === 'string' ? JSON.parse(existingSummary.key_points) : existingSummary.key_points,
-          spiritualInsights: existingSummary.spiritual_insights ? existingSummary.spiritual_insights.split('\n') : [],
+          key_points: keyPoints,
+          spiritual_insights: spiritualInsights,
+          keyPoints: keyPoints,
+          spiritualInsights: spiritualInsights,
           meetsWordLimit: existingSummary.meets_word_limit,
           meetsRelevanceRequirement: existingSummary.relevance_score >= 0.98
         };
@@ -373,7 +378,7 @@ class ResourceLibraryService {
         resource_id: resourceId,
         summary: summaryData.summary,
         key_points: JSON.stringify(summaryData.keyPoints || []),
-        spiritual_insights: summaryData.spiritualInsights?.join('\n') || null,
+        spiritual_insights: summaryData.spiritualInsights?.join('\\n') || null,
         summary_type: type,
         word_count: summaryData.wordCount || this.countWords(summaryData.summary),
         relevance_score: relevanceScore,
@@ -384,6 +389,8 @@ class ResourceLibraryService {
 
       return {
         ...summary,
+        key_points: summaryData.keyPoints || [],
+        spiritual_insights: summaryData.spiritualInsights || [],
         keyPoints: summaryData.keyPoints || [],
         spiritualInsights: summaryData.spiritualInsights || [],
         meetsWordLimit,

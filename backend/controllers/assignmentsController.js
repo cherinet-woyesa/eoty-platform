@@ -39,6 +39,7 @@ const assignmentsController = {
       });
     } catch (error) {
       console.error('List assignments error:', error);
+      console.error('Stack trace:', error.stack);
       res.status(500).json({ success: false, message: 'Failed to fetch assignments' });
     }
   },

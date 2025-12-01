@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { BarChart2, Settings, ShieldIcon, Video, FileEdit } from 'lucide-react';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import SystemConfigDashboard from './config/SystemConfigDashboard';
 import AdminActivityLogs from './AdminActivityLogs';
 import LoadingSpinner from '@/components/common/LoadingSpinner';

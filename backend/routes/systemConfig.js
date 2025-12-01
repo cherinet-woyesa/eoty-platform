@@ -83,6 +83,7 @@ router.put('/tags/:id', validateTag, systemConfigController.updateTag);
 router.delete('/tags/:id', systemConfigController.deleteTag);
 router.post('/tags/bulk', bulkOperationLimiter, validateBulkAction, systemConfigController.bulkActionTags);
 router.post('/tags/merge', validateMergeTags, systemConfigController.mergeTags);
+router.post('/tags/reorder', validateReorder, systemConfigController.reorderTags);
 
 // ============================================================================
 // CHAPTERS (Enhanced)

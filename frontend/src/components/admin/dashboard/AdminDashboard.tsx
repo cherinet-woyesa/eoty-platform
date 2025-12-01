@@ -6,7 +6,7 @@ import { apiClient } from '@/services/api/apiClient';
 import { Users, BookOpen, Video, AlertTriangle, TrendingUp, RefreshCw } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
-import AnomalyAlerts from '@/components/admin/AnomalyAlerts';
+import AnomalyAlerts from '@/components/admin/system/AnomalyAlerts';
 
 interface AdminDashboardProps {
   activeTab?: string;

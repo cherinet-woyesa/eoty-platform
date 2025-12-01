@@ -83,9 +83,11 @@ const resourceLibraryController = {
   async getResource(req, res) {
     try {
       const { id } = req.params;
+      console.log(`[ResourceLibrary] getResource called with ID: ${id}`);
       
       // Validate ID is an integer to prevent SQL errors
       if (isNaN(parseInt(id))) {
+        console.warn(`[ResourceLibrary] Invalid resource ID received: ${id}`);
         return res.status(400).json({
           success: false,
           message: 'Invalid resource ID'

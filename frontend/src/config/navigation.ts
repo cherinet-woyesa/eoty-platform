@@ -36,7 +36,8 @@ export const ROLE_HIERARCHY: Record<string, number> = {
   student: 1,
   // Elevated roles
   teacher: 2,
-  admin: 3,
+  chapter_admin: 3,
+  admin: 4,
 };
 
 /**
@@ -57,7 +58,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Platform overview and metrics',
     color: 'text-[#27AE60]',
-    requiredRole: 'admin',
+    requiredRole: 'chapter_admin',
     section: 'primary',
   },
   {
@@ -67,7 +68,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Users, Chapters & Roles',
     color: 'text-[#E74C3C]',
-    requiredRole: 'admin',
+    requiredRole: 'chapter_admin',
     section: 'primary',
   },
   {
@@ -77,7 +78,7 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'Uploads, Moderation, Tags & Courses',
     color: 'text-[#F39C12]',
-    requiredRole: 'admin',
+    requiredRole: 'chapter_admin',
     section: 'primary',
   },
   {

@@ -36,7 +36,7 @@ const UserMenu: React.FC = () => {
 
   const handleProfileClick = () => {
     // Navigate to the appropriate profile page based on user role
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'chapter_admin') {
       navigate('/admin/profile');
     } else if (user?.role === 'teacher') {
       navigate('/teacher/profile');

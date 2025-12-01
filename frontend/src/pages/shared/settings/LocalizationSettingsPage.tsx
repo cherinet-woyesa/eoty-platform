@@ -10,14 +10,13 @@ import { localizationApi } from '@/services/api/localization';
 import { useAuth } from '@/context/AuthContext';
 
 const LocalizationSettingsPage: React.FC = () => {
-  const { settings, updateSettings, formatDate, formatTime, formatCurrency, isLoading } = useLocalization();
+  const { settings, updateSettings, formatDate, formatTime, isLoading } = useLocalization();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     locale: 'en',
     timezone: 'UTC',
     dateFormat: 'YYYY-MM-DD',
-    timeFormat: '24h' as '12h' | '24h',
-    currency: 'USD'
+    timeFormat: '24h' as '12h' | '24h'
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -30,8 +29,7 @@ const LocalizationSettingsPage: React.FC = () => {
         locale: settings.locale || 'en',
         timezone: settings.timezone || 'UTC',
         dateFormat: settings.date_format || 'YYYY-MM-DD',
-        timeFormat: settings.time_format || '24h',
-        currency: settings.currency || 'USD'
+        timeFormat: settings.time_format || '24h'
       });
     }
 
@@ -66,8 +64,7 @@ const LocalizationSettingsPage: React.FC = () => {
         locale: formData.locale,
         timezone: formData.timezone,
         date_format: formData.dateFormat,
-        time_format: formData.timeFormat,
-        currency: formData.currency
+        time_format: formData.timeFormat
       });
 
       setSaveSuccess(true);
@@ -220,29 +217,6 @@ const LocalizationSettingsPage: React.FC = () => {
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Preview: {formatTime(new Date())}
-            </p>
-          </div>
-
-          {/* Currency */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <DollarSign className="h-4 w-4 inline mr-2" />
-              Currency
-            </label>
-            <select
-              value={formData.currency}
-              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="ETB">ETB (Br)</option>
-              <option value="CAD">CAD (C$)</option>
-              <option value="AUD">AUD (A$)</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Preview: {formatCurrency(100)}
             </p>
           </div>
 

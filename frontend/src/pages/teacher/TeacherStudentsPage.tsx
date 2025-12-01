@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, CheckSquare, BarChart2 } from 'lucide-react';
 import StudentManagement from './StudentManagement';
-import Assignments from './Assignments';
+import Assignments from './assignments/Assignments';
 import VideoAnalyticsDashboard from '@/components/teacher/dashboard/VideoAnalyticsDashboard';
 
 const TeacherStudentsPage: React.FC = () => {

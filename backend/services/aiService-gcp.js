@@ -651,27 +651,68 @@ RESPONSE:`;
 
   // Generate resource summary
   async generateResourceSummary(resource, type = 'brief') {
-    // TODO: Implement resource summary generation with Vertex AI
-    const summaryLength = type === 'detailed' ? 500 : 200;
+    const summaryLength = type === 'detailed' ? 500 : 200; // Words, roughly
 
-    const prompt = `Summarize the following educational resource in ${summaryLength} characters or less:
+    const prompt = \`Analyze the following educational resource and provide a structured summary.
 
-Title: ${resource.title}
-Description: ${resource.description}
-Category: ${resource.category}
+Title: \${resource.title}
+Description: \${resource.description || 'No description provided'}
+Category: \${resource.category || 'General'}
+Content Type: \${resource.file_type || 'Text'}
 
-Summary type: ${type}
+Please provide:
+1. A \${type} summary (approx \${summaryLength} words).
+2. 3-5 Key learning points.
+3. Spiritual insights relevant to Ethiopian Orthodox Tewahedo Church teachings.
 
-Focus on key learning objectives and Ethiopian Orthodox teachings covered.`;
+Output format: JSON with keys "summary", "keyPoints" (array), "spiritualInsights" (array).\`;
 
     try {
       const result = await this.callVertexAI(prompt);
-      const summary = this.parseVertexResponse(result);
-      return summary.substring(0, summaryLength);
+      // Parse the result. It might be wrapped in markdown code blocks.
+      let text = this.parseVertexResponse(result);
+      
+      // Attempt to parse JSON
+      let data;
+      try {
+        // Clean up markdown code blocks if present
+        text = text.replace(/\\\`\\\`\\\`json/g, '').replace(/\\\`\\\`\\\`/g, '').trim();
+        data = JSON.parse(text);
+      } catch (e) {
+        console.warn('Failed to parse AI response as JSON, falling back to text parsing', e);
+        // Fallback parsing if JSON fails
+        data = {
+            summary: text.substring(0, 1000),
+            keyPoints: [],
+            spiritualInsights: []
+        };
+      }
+
+      return {
+        summary: data.summary || text,
+        keyPoints: data.keyPoints || [],
+        spiritualInsights: data.spiritualInsights || [],
+        wordCount: this.countWords(data.summary || text),
+        modelUsed: this.currentModelId || 'vertex-ai'
+      };
+
     } catch (error) {
       console.error('Resource summary generation failed:', error);
-      return `Summary of ${resource.title}: ${resource.description?.substring(0, 100)}...`;
+      // Return fallback structure
+      return {
+          summary: \`Summary of \${resource.title}: \${resource.description?.substring(0, 200)}...\`,
+          keyPoints: [],
+          spiritualInsights: [],
+          wordCount: this.countWords(resource.description || ''),
+          modelUsed: 'fallback'
+      };
     }
+  }
+
+  // Count words in text
+  countWords(text) {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   }
 
   // Validate summary quality

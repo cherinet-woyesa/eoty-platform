@@ -21,18 +21,54 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
   const [highlights, setHighlights] = useState<Array<{ text: string; id: string; range: Range }>>([]);
   const documentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Simulate loading document
-    const timer = setTimeout(() => {
-      setLoading(false);
-      // For PDFs, we would normally get page count from the PDF library
-      if (resource.file_type.includes('pdf')) {
-        setTotalPages(10); // Simulated page count
-      }
-    }, 1000);
+  const [fileUrl, setFileUrl] = useState<string>('');
+  const [textContent, setTextContent] = useState<string>('');
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    // Construct file URL
+    let url = resource.file_path || '';
+    if (url && !url.startsWith('http')) {
+      // Assuming backend serves uploads at /uploads
+      // Use the API_URL from environment or default
+      const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const BASE_URL = API_URL.replace('/api', '');
+      
+      // Clean up path
+      if (url.startsWith('uploads/')) {
+        url = `${BASE_URL}/${url}`;
+      } else if (url.startsWith('/uploads/')) {
+        url = `${BASE_URL}${url}`;
+      } else {
+        url = `${BASE_URL}/uploads/${url}`;
+      }
+    }
+    setFileUrl(url);
+
+    // Load content based on type
+    const loadContent = async () => {
+      setLoading(true);
+      try {
+        if (resource.file_type.includes('text') || resource.file_type.includes('json') || resource.file_type.includes('md')) {
+          const response = await fetch(url);
+          if (response.ok) {
+            const text = await response.text();
+            setTextContent(text);
+          }
+        }
+        // For PDFs and Images, the browser handles loading via iframe/img tags
+      } catch (error) {
+        console.error('Failed to load resource content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (url) {
+      loadContent();
+    } else {
+      setLoading(false);
+    }
+  }, [resource]);
 
   // Handle text selection for note anchoring
   const handleTextSelection = useCallback(() => {
@@ -178,9 +214,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
   }, [highlights]);
 
   const handleDownload = () => {
-    if (resource.file_url) {
+    if (fileUrl) {
       const link = document.createElement('a');
-      link.href = resource.file_url;
+      link.href = fileUrl;
       link.download = resource.file_name || 'download';
       link.target = '_blank';
       document.body.appendChild(link);
@@ -216,11 +252,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
       // For images, this could be coordinates
       const position = resource.file_type.includes('pdf') 
         ? `page-${currentPage}` 
-        : `section-${Math.floor(Math.random() * 10) + 1}`;
+        : `general`;
       
       // REQUIREMENT: Provide section text and position for anchoring
       const sectionText = resource.description?.substring(0, 200) || resource.title;
-      const sectionPosition = resource.file_type.includes('pdf') ? currentPage : Math.floor(Math.random() * 10) + 1;
+      const sectionPosition = resource.file_type.includes('pdf') ? currentPage : 0;
       
       onNoteAnchor(position, sectionText, sectionPosition);
     }
@@ -254,98 +290,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
         {/* Enhanced PDF Controls */}
         <div className="flex items-center justify-between p-4 bg-gray-50 border-b flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Previous page"
-            >
-              ←
-            </button>
-            <span className="text-sm font-medium">
-              Page {currentPage} of {totalPages}
+            {/* PDF Navigation is handled by the native viewer in iframe, so we hide custom nav for now */}
+            <span className="text-sm font-medium text-gray-500">
+              Use PDF toolbar to navigate
             </span>
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Next page"
-            >
-              →
-            </button>
-            <input
-              type="number"
-              min="1"
-              max={totalPages}
-              value={currentPage}
-              onChange={(e) => {
-                const page = parseInt(e.target.value);
-                if (page >= 1 && page <= totalPages) {
-                  setCurrentPage(page);
-                }
-              }}
-              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
           
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleZoomOut}
-              className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title="Zoom out"
-            >
-              -
-            </button>
-            <span className="text-sm font-medium min-w-[3rem] text-center">{zoomLevel}%</span>
-            <button
-              onClick={handleZoomIn}
-              className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title="Zoom in"
-            >
-              +
-            </button>
-            <button
-              onClick={() => setZoomLevel(100)}
-              className="px-2 py-1 text-xs rounded-md hover:bg-gray-200 transition-colors"
-              title="Reset zoom"
-            >
-              Reset
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {selectedText && highlightMode && (
-              <button
-                onClick={handleHighlightSelection}
-                className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm transition-colors"
-                title="Highlight selected text"
-              >
-                <Highlighter className="h-4 w-4" />
-                Highlight Selection
-              </button>
-            )}
-            <button
-              onClick={() => setHighlightMode(!highlightMode)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-                highlightMode
-                  ? 'bg-[#27AE60] text-white hover:bg-[#27AE60]/90'
-                  : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-              }`}
-              title={highlightMode ? "Exit highlight mode" : "Enter highlight mode"}
-            >
-              <Highlighter className="h-4 w-4" />
-              {highlightMode ? 'Exit Highlight' : 'Highlight Mode'}
-            </button>
-            {selectedText && (
-              <button
-                onClick={handleAddNoteFromSelection}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
-                title="Add note from selection"
-              >
-                <MousePointer className="h-4 w-4" />
-                📝 Note from Selection
-              </button>
-            )}
             <button
               onClick={handleAddNote}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors"
@@ -361,13 +312,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
             <button
-              onClick={handlePrint}
-              className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title="Print document"
-            >
-              <Printer className="h-4 w-4" />
-            </button>
-            <button
               onClick={handleDownload}
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm transition-colors"
               title="Download resource"
@@ -378,71 +322,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
           </div>
         </div>
         
-        {/* Selection Toolbar */}
-        {selectedText && (
-          <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-blue-700 font-medium">Selected:</span>
-              <span className="text-sm text-blue-600 italic line-clamp-1 max-w-md">{selectedText}</span>
-            </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (onExplainSelection) onExplainSelection(selectedText);
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                    title="Explain selection using AI"
-                  >
-                    Explain Selection
-                  </button>
-                  <button
-                    onClick={() => {
-                      window.getSelection()?.removeAllRanges();
-                      setSelectedText('');
-                      setSelectionPosition(null);
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Clear
-                  </button>
-                </div>
-          </div>
-        )}
-        
-        {/* PDF Content with Text Selection */}
-        <div 
-          className="flex-1 overflow-auto p-4 bg-gray-100"
-          onMouseUp={handleTextSelection}
-          onKeyUp={handleTextSelection}
-        >
-          <div 
-            className="bg-white shadow-md mx-auto select-text"
-            style={{ 
-              width: `${zoomLevel}%`, 
-              minWidth: '600px',
-              height: '800px'
-            }}
-          >
-            {/* This would be replaced with actual PDF rendering in a real implementation */}
-            <div className="p-8 h-full">
-              <h2 className="text-2xl font-bold mb-4">{resource.title}</h2>
-              <p className="text-gray-600 mb-4">This is a simulated PDF viewer. In a production environment, this would display the actual PDF content.</p>
-              <p className="text-gray-500 mb-4">Page {currentPage} content would appear here...</p>
-              <div className="mt-8 space-y-4">
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                </p>
-                <p>
-                  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                </p>
-                <p>
-                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                </p>
-                <p>
-                  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                </p>
-              </div>
-            </div>
+        {/* PDF Content */}
+        <div className="flex-1 bg-gray-100 relative">
+          <iframe 
+            src={fileUrl} 
+            className="w-full h-full border-0"
+            title={resource.title}
+          />
+          {/* Overlay for note taking (simplified) */}
+          <div className="absolute bottom-4 right-4 bg-white/90 p-2 rounded shadow text-xs text-gray-500 pointer-events-none">
+            Viewing: {resource.file_name}
           </div>
         </div>
       </div>
@@ -490,20 +379,22 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
         {/* Image Content */}
         <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center">
           <div 
-            className="bg-white p-4 rounded-lg shadow-md"
+            className="bg-white p-4 rounded-lg shadow-md transition-transform duration-200"
             style={{ 
               transform: `scale(${zoomLevel / 100})`,
               transformOrigin: 'center center'
             }}
           >
-            {/* This would be replaced with actual image rendering in a real implementation */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg w-96 h-96 flex items-center justify-center">
-              <div className="text-center">
-                <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">Image: {resource.file_name}</p>
-                <p className="text-sm text-gray-400 mt-2">This is a simulated image viewer</p>
-              </div>
-            </div>
+            <img 
+              src={fileUrl} 
+              alt={resource.title}
+              className="max-w-full max-h-[80vh] object-contain"
+              onError={(e) => {
+                // Fallback if image fails to load
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="p-8 text-center text-red-500">Failed to load image</div>';
+              }}
+            />
           </div>
         </div>
       </div>
@@ -658,32 +549,38 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
           )}
 
           <div className="prose max-w-none">
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-            </p>
+            {textContent ? (
+              <div className="whitespace-pre-wrap">{textContent}</div>
+            ) : (
+              <>
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                </p>
 
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Introduction</h2>
-            <p>
-              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-            </p>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">Introduction</h2>
+                <p>
+                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                </p>
 
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Main Content</h2>
-            <p>
-              Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-            </p>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">Main Content</h2>
+                <p>
+                  Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+                </p>
 
-            <blockquote className="border-l-4 border-[#27AE60] pl-4 my-6 italic text-stone-700 bg-[#27AE60]/5 py-2 px-3 rounded-r-md">
-              "This is an important quote from the text that might be worth noting."
-            </blockquote>
+                <blockquote className="border-l-4 border-[#27AE60] pl-4 my-6 italic text-stone-700 bg-[#27AE60]/5 py-2 px-3 rounded-r-md">
+                  "This is an important quote from the text that might be worth noting."
+                </blockquote>
 
-            <p>
-              Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-            </p>
+                <p>
+                  Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
+                </p>
 
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Conclusion</h2>
-            <p>
-              Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
-            </p>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">Conclusion</h2>
+                <p>
+                  Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

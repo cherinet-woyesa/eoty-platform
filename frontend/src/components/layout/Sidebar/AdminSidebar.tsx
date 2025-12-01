@@ -32,7 +32,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     queryFn: getMetrics,
     refetchInterval: false, // Disable auto-refetch to prevent excessive API calls
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    enabled: !!(user?.role === 'admin'),
+    enabled: !!(user?.role === 'admin' || user?.role === 'chapter_admin'),
     retry: 1, // Only retry once on failure
   });
 

@@ -163,12 +163,16 @@ const AdminProfile: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Profile</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {user?.role === 'chapter_admin' ? 'Chapter Admin Profile' : 'Admin Profile'}
+            </h1>
             <p className="text-gray-600 mt-1">Manage your account information</p>
           </div>
           <div className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full border border-purple-200">
             <Shield className="h-5 w-5 text-purple-600" />
-            <span className="text-sm font-semibold text-purple-700">Administrator</span>
+            <span className="text-sm font-semibold text-purple-700">
+              {user?.role === 'chapter_admin' ? 'Chapter Administrator' : 'Administrator'}
+            </span>
           </div>
         </div>
       </div>

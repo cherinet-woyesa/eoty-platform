@@ -229,11 +229,13 @@ const CourseCard: React.FC<CourseCardProps> = ({
       <div className={`bg-gradient-to-r ${getCategoryColor(course.category)} p-3 text-white relative`}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center space-x-1.5 mb-1.5">
-              <CategoryIcon className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium opacity-90 capitalize">
-                {course.category.replace('_', ' ')}
-              </span>
+            <div className="flex items-center justify-between mb-1.5 mr-16">
+              <div className="flex items-center space-x-1.5">
+                <CategoryIcon className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium opacity-90 capitalize">
+                  {course.category.replace('_', ' ')}
+                </span>
+              </div>
             </div>
             <h3 className="text-sm font-bold mb-1 line-clamp-2">{course.title}</h3>
             <p className="text-blue-100 text-xs line-clamp-2 opacity-90">

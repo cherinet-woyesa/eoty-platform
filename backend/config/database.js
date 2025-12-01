@@ -13,13 +13,25 @@ const connectionConfig = {
 };
 
 // Only enable SSL if explicitly requested and NOT connecting via Cloud SQL Auth Proxy
-if (process.env.DB_SSL === 'true' && !(process.env.DB_HOST && process.env.DB_HOST.startsWith('/'))) {
+if (process.env.DB_HOST && process.env.DB_HOST.startsWith('/')) {
+  // Explicitly disable SSL for Cloud SQL sockets to prevent "server does not support SSL" errors
+  connectionConfig.ssl = false;
+} else if (process.env.DB_SSL === 'true') {
   connectionConfig.ssl = { rejectUnauthorized: false };
 }
 
 const dbConfig = {
   client: 'pg',
   connection: connectionConfig,
+  pool: {
+    min: 0,
+    max: 10,
+    acquireTimeoutMillis: 30000,
+    createTimeoutMillis: 30000,
+    idleTimeoutMillis: 30000,
+    reapIntervalMillis: 1000,
+    createRetryIntervalMillis: 100,
+  },
   migrations: {
     directory: './migrations',
   },
@@ -40,6 +52,8 @@ console.log('DB Config:', {
 
 // Test direct pg connection (bypass knex to isolate issue)
 // This seems to help knex work, possibly by priming the socket or something?
+// REMOVED: Side-effects in module loading can cause startup issues in Cloud Run
+/*
 const testDirectConnection = async () => {
   console.log('Testing direct pg connection...');
   const client = new Client(connectionConfig);
@@ -53,10 +67,13 @@ const testDirectConnection = async () => {
   }
 };
 testDirectConnection();
+*/
 
 const db = knex(dbConfig);
 
 // Test the connection
+// REMOVED: Side-effects in module loading can cause startup issues in Cloud Run
+/*
 db.raw('SELECT 1')
   .then(() => {
     console.log('✅ PostgreSQL connected successfully');
@@ -64,5 +81,6 @@ db.raw('SELECT 1')
   .catch((err) => {
     console.error('❌ PostgreSQL connection failed:', err);
   });
+*/
 
 module.exports = db;

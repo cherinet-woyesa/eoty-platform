@@ -1,0 +1,1 @@
+const knex = require('knex')(require('./knexfile').development); async function run() { try { const t = await knex.schema.hasTable('localization_settings'); console.log('Localization Settings:', t); } catch(e) { console.error(e); } finally { knex.destroy(); } } run();

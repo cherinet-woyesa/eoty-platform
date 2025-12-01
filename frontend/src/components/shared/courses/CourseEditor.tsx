@@ -79,7 +79,6 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       is_public: true,
       certification_available: false,
       welcome_message: '',
-      price: 0,
       status: 'draft'
     } as CourseFormData
   );
@@ -258,7 +257,6 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         is_public: course.is_public ?? true,
         certification_available: course.certification_available ?? false,
         welcome_message: course.welcome_message || '',
-        price: course.price || 0,
         status: (course.status as any) || 'draft'
       });
       setCoverImagePreview(course.cover_image || '');
@@ -326,12 +324,6 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       },
       level: {
         rules: [validationRules.required(t('courses.errors.level_required'))],
-      },
-      price: {
-        rules: [
-          validationRules.minValue(0, t('courses.errors.price_negative')),
-          validationRules.maxValue(1000, t('courses.errors.price_too_high'))
-        ],
       },
     });
 

@@ -174,6 +174,11 @@ export const adminApi = {
     return response.data;
   },
 
+  reorderTags: async (items: { id: number; display_order: number }[]): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post('/system-config/tags/reorder', { items });
+    return response.data;
+  },
+
   createTag: async (tagData: { name: string; category?: string; color?: string }): Promise<{ success: boolean; data: { tag: ContentTag } }> => {
     const response = await apiClient.post('/admin/tags', tagData);
     return response.data;

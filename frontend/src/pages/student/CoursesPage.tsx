@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Search, Bookmark, GraduationCap, TrendingUp, Clock } from 'lucide-react';
-import StudentEnrolledCourses from './StudentEnrolledCourses';
-import CourseCatalog from './CourseCatalog';
+import StudentEnrolledCourses from './courses/StudentEnrolledCourses';
+import CourseCatalog from './courses/CourseCatalog';
 import BookmarksPage from './BookmarksPage';
 
 const CoursesPage: React.FC = () => {

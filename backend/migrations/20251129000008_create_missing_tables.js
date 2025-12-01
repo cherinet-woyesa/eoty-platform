@@ -1,7 +1,8 @@
-exports.up = function(knex) {
-  return knex.schema
-    // Content moderation queue table
-    .createTable('content_moderation', function(table) {
+exports.up = async function(knex) {
+  // Content moderation queue table
+  const hasContentModeration = await knex.schema.hasTable('content_moderation');
+  if (!hasContentModeration) {
+    await knex.schema.createTable('content_moderation', function(table) {
       table.increments('id').primary();
       table.string('content_type').notNullable(); // 'post', 'comment', 'topic'
       table.integer('content_id').notNullable();
@@ -17,9 +18,13 @@ exports.up = function(knex) {
       table.index(['content_type', 'moderation_status']);
       table.index(['spam_score']);
       table.index(['created_at']);
-    })
-    // Rate limiting table
-    .createTable('rate_limits', function(table) {
+    });
+  }
+
+  // Rate limiting table
+  const hasRateLimits = await knex.schema.hasTable('rate_limits');
+  if (!hasRateLimits) {
+    await knex.schema.createTable('rate_limits', function(table) {
       table.increments('id').primary();
       table.string('user_id').notNullable();
       table.string('action_type').notNullable(); // 'post', 'comment', 'like', etc.
@@ -30,9 +35,13 @@ exports.up = function(knex) {
       table.unique(['user_id', 'action_type', 'window_start']);
       table.index(['user_id', 'action_type']);
       table.index(['window_start']);
-    })
-    // Privacy settings table for leaderboard visibility
-    .createTable('user_privacy_settings', function(table) {
+    });
+  }
+
+  // Privacy settings table for leaderboard visibility
+  const hasUserPrivacySettings = await knex.schema.hasTable('user_privacy_settings');
+  if (!hasUserPrivacySettings) {
+    await knex.schema.createTable('user_privacy_settings', function(table) {
       table.increments('id').primary();
       table.string('user_id').notNullable().unique(); // Assuming user_id is string based on usage, but usually it's integer referencing users.id. Keeping as string to match script.
       table.boolean('show_in_leaderboards').defaultTo(true);
@@ -43,9 +52,13 @@ exports.up = function(knex) {
       table.timestamps(true, true);
 
       table.index(['user_id']);
-    })
-    // Chapter archiving table
-    .createTable('chapter_archives', function(table) {
+    });
+  }
+
+  // Chapter archiving table
+  const hasChapterArchives = await knex.schema.hasTable('chapter_archives');
+  if (!hasChapterArchives) {
+    await knex.schema.createTable('chapter_archives', function(table) {
       table.increments('id').primary();
       table.integer('chapter_id').notNullable();
       table.string('chapter_name').notNullable();
@@ -58,9 +71,13 @@ exports.up = function(knex) {
 
       table.index(['chapter_id']);
       table.index(['archived_at']);
-    })
-    // Real-time update queue for badges/leaderboards
-    .createTable('realtime_update_queue', function(table) {
+    });
+  }
+
+  // Real-time update queue for badges/leaderboards
+  const hasRealtimeUpdateQueue = await knex.schema.hasTable('realtime_update_queue');
+  if (!hasRealtimeUpdateQueue) {
+    await knex.schema.createTable('realtime_update_queue', function(table) {
       table.increments('id').primary();
       table.string('update_type').notNullable(); // 'badge', 'leaderboard', 'achievement'
       table.string('user_id').nullable();
@@ -75,9 +92,13 @@ exports.up = function(knex) {
       table.index(['user_id']);
       table.index(['chapter_id']);
       table.index(['created_at']);
-    })
-    // System health monitoring
-    .createTable('system_health', function(table) {
+    });
+  }
+
+  // System health monitoring
+  const hasSystemHealth = await knex.schema.hasTable('system_health');
+  if (!hasSystemHealth) {
+    await knex.schema.createTable('system_health', function(table) {
       table.increments('id').primary();
       table.string('component').notNullable(); // 'forum', 'database', 'cache', etc.
       table.string('status').notNullable(); // 'healthy', 'degraded', 'down'
@@ -88,9 +109,13 @@ exports.up = function(knex) {
 
       table.index(['component', 'status']);
       table.index(['created_at']);
-    })
-    // Uptime Monitoring Tables
-    .createTable('uptime_monitoring', function(table) {
+    });
+  }
+
+  // Uptime Monitoring Tables
+  const hasUptimeMonitoring = await knex.schema.hasTable('uptime_monitoring');
+  if (!hasUptimeMonitoring) {
+    await knex.schema.createTable('uptime_monitoring', function(table) {
       table.increments('id').primary();
       table.boolean('is_healthy').notNullable();
       table.text('error_message').nullable();
@@ -99,8 +124,12 @@ exports.up = function(knex) {
       table.timestamp('timestamp').defaultTo(knex.fn.now());
       
       table.index(['timestamp']);
-    })
-    .createTable('uptime_alerts', function(table) {
+    });
+  }
+
+  const hasUptimeAlerts = await knex.schema.hasTable('uptime_alerts');
+  if (!hasUptimeAlerts) {
+    await knex.schema.createTable('uptime_alerts', function(table) {
       table.increments('id').primary();
       table.string('severity').notNullable(); // 'CRITICAL', 'WARNING'
       table.text('message').notNullable();
@@ -112,8 +141,12 @@ exports.up = function(knex) {
 
       table.index(['resolved']);
       table.index(['timestamp']);
-    })
-    .createTable('uptime_statistics', function(table) {
+    });
+  }
+
+  const hasUptimeStatistics = await knex.schema.hasTable('uptime_statistics');
+  if (!hasUptimeStatistics) {
+    await knex.schema.createTable('uptime_statistics', function(table) {
       table.increments('id').primary();
       table.integer('total_checks').defaultTo(0);
       table.integer('successful_checks').defaultTo(0);
@@ -124,6 +157,7 @@ exports.up = function(knex) {
 
       table.index(['timestamp']);
     });
+  }
 };
 
 exports.down = function(knex) {

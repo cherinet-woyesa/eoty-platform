@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Shield, Tag, BookOpen } from 'lucide-react';
 import ContentManagement from './ContentManagement';
-import ModerationTools from '@/components/admin/ModerationTools';
-import ForumModerationDashboard from '@/components/admin/ForumModerationDashboard';
-import TagManager from '@/components/admin/TagManager';
+import ModerationTools from '@/components/admin/moderation/ModerationTools';
+import ForumModerationDashboard from '@/components/admin/moderation/ForumModerationDashboard';
+import TagManager from '@/components/admin/content/TagManager';
 import AllCourses from './AllCourses';
 
 const AdminContentPage: React.FC = () => {

@@ -28,9 +28,10 @@ export const hasRequiredRole = (
   if (allowHigher) {
     const userLevel = ROLE_HIERARCHY[userRole] || 0;
     const requiredLevels = requiredRoles.map(role => ROLE_HIERARCHY[role] || 0);
-    const minRequiredLevel = Math.min(...requiredLevels);
     
-    return userLevel >= minRequiredLevel;
+    // If user level is greater than or equal to ANY of the required levels
+    // This is more permissive and correct for hierarchy
+    return requiredLevels.some(level => userLevel >= level);
   }
 
   return false;

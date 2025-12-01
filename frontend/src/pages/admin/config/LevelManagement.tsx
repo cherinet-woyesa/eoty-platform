@@ -5,10 +5,10 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import type { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { systemConfigApi } from '@/services/api/systemConfig';
-import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/ConfigTable';
-import type { ConfigTableColumn } from '@/components/admin/ConfigTable';
-import { BulkActionBar } from '@/components/admin/BulkActionBar';
-import { UsageAnalytics } from '@/components/admin/UsageAnalytics';
+import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/system/ConfigTable';
+import type { ConfigTableColumn } from '@/components/admin/system/ConfigTable';
+import { BulkActionBar } from '@/components/admin/moderation/BulkActionBar';
+import { UsageAnalytics } from '@/components/admin/analytics/UsageAnalytics';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { CourseLevel, LevelFormData } from '@/types/systemConfig';

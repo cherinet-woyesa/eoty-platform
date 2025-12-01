@@ -21,10 +21,8 @@ const getCloudSQLConfig = () => {
     user: dbUser,
     password: dbPassword,
     database: dbName,
-    // Cloud SQL requires SSL
-    ssl: {
-      rejectUnauthorized: false
-    }
+    // Cloud SQL via Unix socket does NOT support SSL
+    ssl: false
   };
 };
 
@@ -41,7 +39,7 @@ const dbConfig = {
   client: 'pg',
   connection: isProduction ? getCloudSQLConfig() : getLocalConfig(),
   pool: {
-    min: isProduction ? 2 : 1,
+    min: 0,
     max: isProduction ? 10 : 5,
     acquireTimeoutMillis: 60000,
     createTimeoutMillis: 30000,

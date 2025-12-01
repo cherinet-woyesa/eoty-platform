@@ -60,8 +60,8 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "GCS_AVATAR_BUCKET=eoty-platform-avatars" `
     --set-env-vars "GCS_AI_BUCKET=eoty-platform-ai-content" `
     --set-env-vars "DB_HOST=/cloudsql/${PROJECT_ID}:${REGION}:eoty-platform-db" `
-    --set-env-vars "DB_NAME=eoty-platform" `
-    --set-env-vars "DB_USER=eoty-platform" `
+    --set-env-vars "DB_NAME=$($EnvVars['DB_NAME'])" `
+    --set-env-vars "DB_USER=$($EnvVars['DB_USER'])" `
     --set-env-vars "FRONTEND_URL=https://eoty-platform-i3a6sbef0-cherinet-woyesa-projects.vercel.app" `
     --set-env-vars "API_BASE_URL=https://edu-platform-backend-317256520378.us-central1.run.app" `
     --set-env-vars "JWT_SECRET=$($EnvVars['JWT_SECRET'])" `
@@ -72,6 +72,10 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "AWS_SECRET_ACCESS_KEY=$($EnvVars['AWS_SECRET_ACCESS_KEY'])" `
     --set-env-vars "AWS_S3_BUCKET=$($EnvVars['AWS_S3_BUCKET'])" `
     --set-env-vars "AWS_REGION=$($EnvVars['AWS_REGION'])" `
+    --set-env-vars "GOOGLE_CLIENT_ID=$($EnvVars['GOOGLE_CLIENT_ID'])" `
+    --set-env-vars "GOOGLE_CLIENT_SECRET=$($EnvVars['GOOGLE_CLIENT_SECRET'])" `
+    --set-env-vars "FACEBOOK_APP_ID=$($EnvVars['FACEBOOK_APP_ID'])" `
+    --set-env-vars "FACEBOOK_APP_SECRET=$($EnvVars['FACEBOOK_APP_SECRET'])" `
     --set-env-vars "DB_PASSWORD=$($EnvVars['DB_PASSWORD'])" `
     --set-env-vars "PGSSLMODE=disable"
 

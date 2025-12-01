@@ -16,7 +16,7 @@ RUN npm ci --only=production && npm cache clean --force
 FROM node:18-alpine AS production
 
 # Install runtime dependencies
-RUN apk add --no-cache postgresql-client sqlite ffmpeg
+RUN apk add --no-cache postgresql-client sqlite ffmpeg curl
 
 WORKDIR /app
 
@@ -41,5 +41,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application using the start script to run migrations
+CMD ["node", "scripts/start.js"]

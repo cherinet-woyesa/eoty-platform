@@ -64,7 +64,7 @@ export const AdminRoute: React.FC<RoleRouteProps> = ({
 }) => {
   return (
     <ProtectedRoute
-      allowedRoles={['admin']}
+      allowedRoles={['admin', 'chapter_admin']}
       requiredPermission={requiredPermission}
       redirectTo={redirectTo}
     >

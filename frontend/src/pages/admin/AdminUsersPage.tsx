@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Users, UsersIcon as ChaptersIcon, Shield, UserCog } from 'lucide-react';
-import UserManagement from '@/components/admin/UserManagement';
+import UserManagement from '@/components/admin/users/UserManagement';
 import ChapterManagement from './config/ChapterManagement';
 import RolesPermissionsManagement from './config/RolesPermissionsManagement';
-import ChapterRolesManagement from '@/components/admin/ChapterRolesManagement';
+import ChapterRolesManagement from '@/components/admin/users/ChapterRolesManagement';
 
 const AdminUsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'chapters' | 'roles' | 'chapter-roles'>('users');

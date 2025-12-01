@@ -12,7 +12,6 @@ export interface LocalizationSettings {
   timezone: string;
   date_format: string;
   time_format: '12h' | '24h';
-  currency: string;
   content_filters: {
     country?: string;
     city?: string;

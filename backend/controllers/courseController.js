@@ -63,7 +63,6 @@ const courseController = {
       course.is_public = course.is_public !== undefined ? course.is_public : (metadata.isPublic !== undefined ? metadata.isPublic : true);
       course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
       course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
-      course.price = course.price !== undefined ? course.price : (metadata.price !== undefined ? metadata.price : 0);
 
       // Status: derive from is_published, but allow metadata override if present
       course.status =
@@ -171,7 +170,6 @@ const courseController = {
         course.is_public = course.is_public !== undefined ? course.is_public : (metadata.isPublic !== undefined ? metadata.isPublic : true);
         course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
         course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
-        course.price = course.price !== undefined ? course.price : (metadata.price !== undefined ? metadata.price : 0);
 
         return course;
       });
@@ -498,7 +496,6 @@ const courseController = {
         is_public,
         certification_available,
         welcome_message,
-        price,
         status
       } = req.body;
 
@@ -579,17 +576,11 @@ const courseController = {
       if (welcome_message !== undefined) {
         metadata.welcomeMessage = welcome_message;
       }
-      if (price !== undefined) {
-        metadata.price = price;
-      }
       if (status !== undefined) {
         metadata.status = status;
       }
 
       // Update direct columns for fields that have dedicated database columns
-      if (price !== undefined) {
-        updateData.price = price;
-      }
       if (is_public !== undefined) {
         updateData.is_public = is_public;
       }

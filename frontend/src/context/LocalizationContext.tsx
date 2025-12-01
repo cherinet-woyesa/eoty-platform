@@ -14,7 +14,6 @@ interface LocalizationContextType {
   updateSettings: (settings: Partial<LocalizationSettings>) => Promise<void>;
   formatDate: (date: Date | string) => string;
   formatTime: (date: Date | string) => string;
-  formatCurrency: (amount: number) => string;
   getContentFilters: () => LocalizationSettings['content_filters'];
 }
 
@@ -51,7 +50,6 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         timezone: 'UTC',
         date_format: 'YYYY-MM-DD',
         time_format: '24h',
-        currency: 'USD',
         content_filters: {}
       } as LocalizationSettings);
     } finally {
@@ -108,16 +106,6 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const formatCurrency = (amount: number): string => {
-    const locale = settings?.locale || 'en';
-    const currency = settings?.currency || 'USD';
-    
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
-  };
-
   const getContentFilters = (): LocalizationSettings['content_filters'] => {
     return settings?.content_filters || {};
   };
@@ -131,7 +119,6 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         updateSettings,
         formatDate,
         formatTime,
-        formatCurrency,
         getContentFilters
       }}
     >

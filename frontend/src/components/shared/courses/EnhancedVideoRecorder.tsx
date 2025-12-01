@@ -1556,7 +1556,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-contain" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
                 </div>
@@ -1581,7 +1581,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-contain" 
                     />
                     {/* Drag handle hint could go here */}
                 </div>
@@ -1606,7 +1606,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-contain" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
                 </div>
@@ -1631,11 +1631,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     // Camera Only (Default fallback)
     return (
-        <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
+        <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden flex items-center justify-center">
             <video 
                 ref={handleCameraRef}
                 autoPlay muted playsInline 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onLoadedMetadata={(e) => {
                     console.log('Preview camera metadata (Camera Only):', {
                         videoWidth: e.currentTarget.videoWidth,

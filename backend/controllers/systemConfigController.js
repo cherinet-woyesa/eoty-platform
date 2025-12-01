@@ -1985,6 +1985,7 @@ module.exports = {
   bulkActionChapters,
   reorderCategories,
   reorderLevels,
+  reorderTags,
   getAuditLogs,
   getUsageDetails,
   getLanguages

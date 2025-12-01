@@ -119,10 +119,6 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
                           {course.category || 'Faith'}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold text-[#27AE60]">{course.price || 'Free'}</span>
-                        {course.price && <span className="text-sm text-gray-500 block">per course</span>}
-                      </div>
                     </div>
                   </div>
                 </div>

@@ -67,6 +67,7 @@ export interface LandingContent {
   hero?: HeroContent;
   about?: AboutContent;
   howItWorks?: HowItWorksContent;
+  videos?: any[];
 }
 
 export const landingApi = {

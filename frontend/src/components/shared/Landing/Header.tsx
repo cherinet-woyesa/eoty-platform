@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from './Navigation';
+import LanguageSelector from '@/components/common/LanguageSelector';
 
 interface HeaderProps {
   activeSection?: string;
@@ -47,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
             </Link>
 
             <div className="flex items-center space-x-4">
+              <LanguageSelector textColor={showTransparent ? 'text-white' : 'text-gray-700'} />
               {!isAuthenticated ? (
                 <>
                   <Link

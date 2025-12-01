@@ -36,9 +36,11 @@ export const RoleBasedAccess: React.FC<RoleBasedAccessProps> = ({
     'guest': 0,
     'youth': 1,
     'student': 1,
+    'user': 1,
     'moderator': 2,
     'teacher': 2,
-    'admin': 3
+    'chapter_admin': 3,
+    'admin': 4
   };
 
   const hasAccess = requireAll
@@ -70,9 +72,11 @@ export const useRoleAccess = (allowedRoles: string[], requireAll = false) => {
     'guest': 0,
     'youth': 1,
     'student': 1,
+    'user': 1,
     'moderator': 2,
     'teacher': 2,
-    'admin': 3
+    'chapter_admin': 3,
+    'admin': 4
   };
 
   const hasAccess = requireAll

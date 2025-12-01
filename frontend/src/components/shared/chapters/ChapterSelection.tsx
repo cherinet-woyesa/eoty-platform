@@ -82,6 +82,9 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
       if (response.success) {
         await fetchUserChapters();
         onChapterSelected?.(chapter);
+        // Force refresh of chapters list to update UI state
+        await fetchChapters();
+        alert(`Successfully joined ${chapter.name}!`);
       }
     } catch (err: any) {
       console.error('Failed to join chapter:', err);
@@ -94,6 +97,9 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
       const response = await chaptersApi.leaveChapter(chapterId);
       if (response.success) {
         await fetchUserChapters();
+        // Force refresh of chapters list to update UI state
+        await fetchChapters();
+        alert('Successfully left chapter.');
       }
     } catch (err: any) {
       console.error('Failed to leave chapter:', err);

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const emailService = require('../services/emailService');
 
 const studentsController = {
   // List students associated with the teacher's courses, with filters and sorting
@@ -328,6 +329,8 @@ const studentsController = {
     try {
       const { email, courseId } = req.body;
       const teacherId = req.user.userId;
+      
+      console.log(`[InviteStudent] Request received from teacher ${teacherId} for email ${email}, courseId: ${courseId}`);
 
       if (!email) {
         return res.status(400).json({ success: false, message: 'Email required' });
@@ -338,6 +341,12 @@ const studentsController = {
       // Optional: check course exists and belongs to teacher (or teacher has access)
       let course = null;
       if (courseId) {
+        // Validate courseId is a number
+        if (isNaN(parseInt(courseId))) {
+             console.warn(`[InviteStudent] Invalid courseId: ${courseId}`);
+             return res.status(400).json({ success: false, message: 'Invalid course ID' });
+        }
+
         course = await db('courses')
           .where({ id: courseId })
           .first();
@@ -374,6 +383,7 @@ const studentsController = {
         .first();
 
       // Create invitation record
+      console.log(`Creating invitation for ${normalizedEmail} by teacher ${teacherId}`);
       const insertResult = await db('student_invitations')
         .insert({
           email: normalizedEmail,
@@ -385,6 +395,7 @@ const studentsController = {
         .returning('*');
 
       const invitation = insertResult[0];
+      console.log('Invitation created:', invitation);
 
       // If the user already exists, create an in-app notification using user_notifications
       if (existingUser) {
@@ -415,7 +426,28 @@ const studentsController = {
         }
       }
 
-      // TODO: Optionally queue an email via email_queue
+      // Send email invitation
+      try {
+        const inviteLink = `${process.env.FRONTEND_URL || 'https://www.eotcommunity.org'}/register?email=${encodeURIComponent(normalizedEmail)}&invitation=${invitation.id}`;
+        const subject = course ? `Invitation to join ${course.title}` : 'Invitation to join EOTY Platform';
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Hello,</h2>
+            <p>You have been invited to join <strong>${course ? course.title : 'EOTY Platform'}</strong>.</p>
+            <p>Click the button below to accept the invitation and create your account:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${inviteLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Accept Invitation</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p><a href="${inviteLink}">${inviteLink}</a></p>
+          </div>
+        `;
+        await emailService.sendEmail(normalizedEmail, subject, html);
+        console.log(`[InviteStudent] Email sent to ${normalizedEmail}`);
+      } catch (emailError) {
+        console.error('[InviteStudent] Failed to send email:', emailError);
+        // Don't fail the request, just log it
+      }
 
       res.json({
         success: true,

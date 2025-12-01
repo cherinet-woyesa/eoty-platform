@@ -1,5 +1,5 @@
 import React from 'react';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import { useNavigate } from 'react-router-dom';
 
 const Analytics: React.FC = () => {

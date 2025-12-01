@@ -1007,7 +1007,6 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           }}
           style={{
             width: '100%',
-            aspectRatio: '16/9',
             maxHeight: isTheaterMode ? '85vh' : (isMobile ? 'calc(100vh - 200px)' : 'none')
           }}
           playsInline={isMobile}

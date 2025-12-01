@@ -364,8 +364,8 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         setProcessingState(prev => ({
           ...prev,
           status: 'processing',
-          progress: Math.min(prev.progress + 5, 90), // Gradually increase to 90%
-          currentStep: 'Mux is processing your video...',
+          progress: Math.min(prev.progress + 5, 95), // Go up to 95%
+          currentStep: 'Upload complete. Processing in background...',
           provider: 'mux'
         }));
       } else if (currentStatus === 'preparing') {
@@ -687,12 +687,15 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             )}
             
             {(processingState.status === 'queued' || processingState.status === 'processing') && (
-              <button
-                onClick={handleManualClose}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
-                Close
-              </button>
+              <div className="flex flex-col items-center w-full">
+                <button
+                  onClick={handleManualClose}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium mb-2"
+                >
+                  Continue in Background
+                </button>
+                <p className="text-xs text-gray-500">You can safely close this window</p>
+              </div>
             )}
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BookOpen, Plus, Search } from 'lucide-react';
 import MyCourses from './MyCourses';
 import CreateCourse from './CreateCourse';
-import CourseCatalog from '@/pages/student/CourseCatalog';
+import CourseCatalog from '@/pages/student/courses/CourseCatalog';
 
 const TeacherCoursesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'my-courses' | 'create' | 'browse'>('my-courses');
