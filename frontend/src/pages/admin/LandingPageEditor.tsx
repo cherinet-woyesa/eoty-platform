@@ -54,6 +54,53 @@ const LandingPageEditor: React.FC = () => {
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [featuredCourseIds, setFeaturedCourseIds] = useState<number[]>([]);
   const [expandedVideo, setExpandedVideo] = useState<number | null>(null);
+  const [uploadingVideoIndex, setUploadingVideoIndex] = useState<number | null>(null);
+  // Track video source type per video index. Default to 'youtube'
+  const [videoSourceTypes, setVideoSourceTypes] = useState<{[key: number]: 'youtube' | 'upload'}>({});
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    console.log(`[LandingPageEditor] Starting upload for video ${index}:`, file.name, file.size);
+
+    try {
+      setUploadingVideoIndex(index);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await adminApi.uploadLandingVideo(formData);
+      console.log('[LandingPageEditor] Upload response:', response);
+      
+      if (response.success) {
+        setLandingContent(prev => {
+            const newVideos = [...(prev.videos || [])];
+            // Ensure the index exists
+            if (!newVideos[index]) {
+                console.error('[LandingPageEditor] Video index not found in state:', index);
+                alert('Error: Video index not found. Please refresh and try again.');
+                return prev;
+            }
+            newVideos[index] = { 
+                ...newVideos[index], 
+                videoUrl: response.data.videoUrl
+            };
+            console.log('[LandingPageEditor] State updated with URL:', response.data.videoUrl);
+            return { ...prev, videos: newVideos };
+        });
+        alert('Video uploaded successfully!');
+      } else {
+        console.error('[LandingPageEditor] Upload failed:', response.message);
+        setError('Failed to upload video: ' + (response.message || 'Unknown error'));
+        alert('Failed to upload video: ' + (response.message || 'Unknown error'));
+      }
+    } catch (err: any) {
+      console.error('[LandingPageEditor] Error uploading video:', err);
+      setError('Error uploading video: ' + (err.message || 'Network error'));
+    } finally {
+      setUploadingVideoIndex(null);
+    }
+  };
 
   useEffect(() => {
     fetchLandingContent();
@@ -201,19 +248,41 @@ const LandingPageEditor: React.FC = () => {
                     placeholder="Hero description"
                   />
                 </div>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={currentContent.showVideo || false}
-                      onChange={(e) => setLandingContent(prev => ({
-                        ...prev,
-                        hero: { ...prev.hero, showVideo: e.target.checked }
-                      }))}
-                      className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
-                    />
-                    <span className="text-sm text-gray-700">Show Video</span>
-                  </label>
+                <div className="space-y-4 border-t border-gray-200 pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-gray-900">Video Settings</h4>
+                  
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={currentContent.showVideo || false}
+                        onChange={(e) => setLandingContent(prev => ({
+                          ...prev,
+                          hero: { ...prev.hero, showVideo: e.target.checked }
+                        }))}
+                        className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
+                      />
+                      <span className="text-sm text-gray-700">Show Video</span>
+                    </label>
+                  </div>
+
+                  {currentContent.showVideo && (
+                    <div className="space-y-4 pl-4 border-l-2 border-gray-100">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                        <input
+                          type="text"
+                          value={currentContent.videoUrl || ''}
+                          onChange={(e) => setLandingContent(prev => ({
+                            ...prev,
+                            hero: { ...prev.hero, videoUrl: e.target.value }
+                          }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-6 flex justify-end">
@@ -893,18 +962,68 @@ const LandingPageEditor: React.FC = () => {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
-                            <input
-                              type="text"
-                              value={video.videoUrl || ''}
-                              onChange={(e) => {
-                                const newVideos = [...currentContent];
-                                newVideos[index] = { ...video, videoUrl: e.target.value };
-                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                              placeholder="https://youtube.com/..."
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Video Source</label>
+                            <div className="flex space-x-4 mb-2">
+                              <button
+                                onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'youtube' }))}
+                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                  (videoSourceTypes[index] || 'youtube') === 'youtube'
+                                    ? 'bg-[#27AE60] text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                YouTube Link
+                              </button>
+                              <button
+                                onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'upload' }))}
+                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                  videoSourceTypes[index] === 'upload'
+                                    ? 'bg-[#27AE60] text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                Upload Video
+                              </button>
+                            </div>
+
+                            {(videoSourceTypes[index] || 'youtube') === 'youtube' ? (
+                              <>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                                <input
+                                  type="text"
+                                  value={video.videoUrl || ''}
+                                  onChange={(e) => {
+                                    const newVideos = [...currentContent];
+                                    newVideos[index] = { ...video, videoUrl: e.target.value };
+                                    setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                                  }}
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                  placeholder="https://youtube.com/..."
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Video</label>
+                                <div className="flex items-center space-x-4">
+                                  <input
+                                    type="file"
+                                    accept="video/*"
+                                    onChange={(e) => handleVideoUpload(e, index)}
+                                    disabled={uploadingVideoIndex === index}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#27AE60]/10 file:text-[#27AE60] hover:file:bg-[#27AE60]/20 disabled:opacity-50"
+                                  />
+                                  {uploadingVideoIndex === index && (
+                                    <div className="flex items-center text-sm text-[#27AE60]">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#27AE60] mr-2"></div>
+                                      Uploading...
+                                    </div>
+                                  )}
+                                </div>
+                                {video.videoUrl && !video.videoUrl.includes('youtube') && (
+                                  <p className="text-xs text-gray-500 mt-1">Current video: {video.videoUrl}</p>
+                                )}
+                              </>
+                            )}
                           </div>
                           <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -936,6 +1055,51 @@ const LandingPageEditor: React.FC = () => {
                               />
                             </div>
                           </div>
+                          
+                          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                              <input
+                                type="text"
+                                value={video.duration || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent];
+                                  newVideos[index] = { ...video, duration: e.target.value };
+                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                placeholder="e.g. 10:00"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                              <input
+                                type="text"
+                                value={video.category || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent];
+                                  newVideos[index] = { ...video, category: e.target.value };
+                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                placeholder="e.g. Teaching"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                              <input
+                                type="text"
+                                value={video.author || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent];
+                                  newVideos[index] = { ...video, author: e.target.value };
+                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                placeholder="e.g. Deacon Yared"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -954,11 +1118,11 @@ const LandingPageEditor: React.FC = () => {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => handleSaveSection('videos', currentContent)}
-                  disabled={saving}
+                  disabled={saving || uploadingVideoIndex !== null}
                   className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Video Section'}
+                  {saving ? 'Saving...' : (uploadingVideoIndex !== null ? 'Uploading Video...' : 'Save Video Section')}
                 </button>
               </div>
             </div>

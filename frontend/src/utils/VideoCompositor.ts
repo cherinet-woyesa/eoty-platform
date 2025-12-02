@@ -450,10 +450,41 @@ export class VideoCompositor {
    * Set the layout configuration with smooth transition
    */
   setLayout(layout: CompositorLayout, enableTransition: boolean = true): void {
-    // Validate layout before applying
+    // Force layout canvas to compositor canvas to avoid mismatches
+    layout.canvas.width = this.canvas.width;
+    layout.canvas.height = this.canvas.height;
+
+    // Clamp sources into canvas bounds to avoid hard errors
+    const clampToCanvas = (l: CompositorLayout): CompositorLayout => {
+      const clamped = JSON.parse(JSON.stringify(l)) as CompositorLayout;
+      const cw = this.canvas.width;
+      const ch = this.canvas.height;
+      for (const [id, src] of Object.entries(clamped.sources)) {
+        if (!src) continue;
+        // Ensure positive dimensions
+        src.width = Math.max(1, Math.min(src.width, cw));
+        src.height = Math.max(1, Math.min(src.height, ch));
+        // Clamp position
+        src.x = Math.max(0, Math.min(src.x, cw - src.width));
+        src.y = Math.max(0, Math.min(src.y, ch - src.height));
+      }
+      return clamped;
+    };
+    layout = clampToCanvas(layout);
+
+    // Validate layout before applying (post-clamp should pass)
     if (!this.validateLayoutBounds(layout)) {
-      console.error('Invalid layout: sources exceed canvas bounds');
-      return;
+      console.error('Invalid layout after clamp: sources exceed canvas bounds');
+      // As a safety, fall back to camera-only full canvas if present
+      const fallback = {
+        type: 'camera-only',
+        canvas: { width: this.canvas.width, height: this.canvas.height },
+        sources: {
+          camera: { x: 0, y: 0, width: this.canvas.width, height: this.canvas.height },
+          screen: undefined as any
+        }
+      } as CompositorLayout;
+      layout = fallback;
     }
     
     // Preserve aspect ratios in layout
@@ -479,7 +510,21 @@ export class VideoCompositor {
       this.previousLayout = null;
     }
     
+    // Ensure adjustedLayout canvas matches compositor canvas
+    adjustedLayout.canvas.width = this.canvas.width;
+    adjustedLayout.canvas.height = this.canvas.height;
     this.currentLayout = adjustedLayout;
+
+    console.log('Layout updated (final)', {
+      canvas: `${this.currentLayout.canvas.width}x${this.currentLayout.canvas.height}`,
+      type: this.currentLayout.type,
+      camera: this.currentLayout.sources.camera
+        ? `${this.currentLayout.sources.camera.width}x${this.currentLayout.sources.camera.height}@(${this.currentLayout.sources.camera.x},${this.currentLayout.sources.camera.y})`
+        : 'none',
+      screen: this.currentLayout.sources.screen
+        ? `${this.currentLayout.sources.screen.width}x${this.currentLayout.sources.screen.height}@(${this.currentLayout.sources.screen.x},${this.currentLayout.sources.screen.y})`
+        : 'none'
+    });
     
     // Update source configurations based on layout
     // CRITICAL: Update visibility based on whether source exists in new layout
@@ -747,6 +792,28 @@ export class VideoCompositor {
    * Optimized with integer coordinates, state change minimization, and batching
    */
   private drawSources(): void {
+    // DEBUG: Log current sources and transition state periodically
+    if (Math.random() < 0.02) {
+      const srcSummary = Array.from(this.videoElements.entries()).map(([id, data]) => ({
+        id,
+        readyState: data.element.readyState,
+        vw: data.element.videoWidth,
+        vh: data.element.videoHeight,
+        visible: data.config.visible,
+        z: data.config.layout?.zIndex,
+        layout: {
+          x: data.config.layout?.x,
+          y: data.config.layout?.y,
+          w: data.config.layout?.width,
+          h: data.config.layout?.height
+        }
+      }));
+      console.debug('[Compositor Debug] drawSources snapshot', {
+        isTransitioning: this.isTransitioning,
+        transitionProgress: this.isTransitioning ? Math.min((performance.now() - this.transitionStartTime) / this.transitionDuration, 1.0) : 1.0,
+        sources: srcSummary
+      });
+    }
     // Calculate transition progress if transitioning
     let transitionProgress = 1.0;
     if (this.isTransitioning) {
@@ -799,6 +866,17 @@ export class VideoCompositor {
         const hasValidDimensions = video.videoWidth > 2 && video.videoHeight > 2;
         const hasSrcObject = !!video.srcObject;
         const streamActive = hasSrcObject && (video.srcObject as MediaStream)?.active;
+        if (Math.random() < 0.05) {
+          console.debug('[Compositor Debug] readiness', {
+            sourceId,
+            readyState: video.readyState,
+            hasValidDimensions,
+            vw: video.videoWidth,
+            vh: video.videoHeight,
+            hasSrcObject,
+            streamActive
+          });
+        }
         
         if (!hasValidDimensions && !hasSrcObject) {
           // Only skip if we have no dimensions AND no srcObject
@@ -887,29 +965,53 @@ export class VideoCompositor {
         // Use zoom + stretch to ensure no black/white spaces
         // For camera sources, use normal drawImage (which will respect aspect ratio from layout)
         if (sourceId === 'screen') {
-          // Screen: ALWAYS fill entire layout area - no black spaces allowed
-          // Use zoom factor to zoom in, then stretch to fill if needed
-          const zoomFactor = 1.3; // 30% zoom in for better focus
-          
-          const drawWidth = layout.width;
-          const drawHeight = layout.height;
-          const drawX = layout.x;
-          const drawY = layout.y;
-          
-          // Calculate source crop with zoom (crop center portion and scale to fill)
-          // This ensures we get a zoomed-in view that fills the space
-          const sourceWidth = video.videoWidth / zoomFactor;
-          const sourceHeight = video.videoHeight / zoomFactor;
-          const sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
-          const sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
-          
-          // CRITICAL: Always draw to fill the entire layout space
-          // This will stretch the content slightly if needed, but ensures no black spaces
-          this.ctx.drawImage(
-            video,
-            sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (zoomed in, centered)
-            drawX, drawY, drawWidth, drawHeight // Destination: fill entire layout space
-          );
+          // Screen: Draw entire capture without cropping; preserve aspect ratio (object-contain)
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            const sourceAspect = video.videoWidth / video.videoHeight;
+            const targetAspect = layout.width / layout.height;
+
+            let drawWidth = layout.width;
+            let drawHeight = layout.height;
+            let drawX = layout.x;
+            let drawY = layout.y;
+
+            if (Math.abs(sourceAspect - targetAspect) > 0.01) {
+              if (sourceAspect > targetAspect) {
+                // Source wider than target → letterbox vertically
+                drawHeight = layout.width / sourceAspect;
+                drawY = layout.y + (layout.height - drawHeight) / 2;
+              } else {
+                // Source taller than target → pillarbox horizontally
+                drawWidth = layout.height * sourceAspect;
+                drawX = layout.x + (layout.width - drawWidth) / 2;
+              }
+            }
+
+            this.ctx.drawImage(
+              video,
+              0, 0, video.videoWidth, video.videoHeight,
+              drawX, drawY, drawWidth, drawHeight
+            );
+            if (Math.random() < 0.05) {
+              console.debug('[Compositor Debug] screen draw', {
+                sourceAspect: Number(sourceAspect.toFixed(3)),
+                targetAspect: Number(targetAspect.toFixed(3)),
+                video: `${video.videoWidth}x${video.videoHeight}`,
+                layout: `${layout.width}x${layout.height}`,
+                dest: { x: Math.round(drawX), y: Math.round(drawY), w: Math.round(drawWidth), h: Math.round(drawHeight) }
+              });
+            }
+          } else {
+            // Draw loading placeholder if dimensions are not ready
+            this.ctx.fillStyle = '#333333';
+            this.ctx.fillRect(layout.x, layout.y, layout.width, layout.height);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = '20px sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('Initializing Screen Share...', layout.x + layout.width/2, layout.y + layout.height/2);
+            console.debug('[Compositor Debug] screen initializing placeholder drawn');
+          }
         } else {
           // Camera: Use object-cover behavior to match preview
           // Preview uses CSS object-cover which crops from top-center
@@ -1131,29 +1233,41 @@ export class VideoCompositor {
     // Use zoom + stretch to ensure no black/white spaces
     // For camera sources, use normal drawImage
     if (sourceId === 'screen') {
-      // Screen: ALWAYS fill entire layout area - no black spaces allowed
-      // Use zoom factor to zoom in, then stretch to fill if needed
-      const zoomFactor = 1.3; // 30% zoom in for better focus
-      
-      const drawWidth = layout.width;
-      const drawHeight = layout.height;
-      const drawX = layout.x;
-      const drawY = layout.y;
-      
-      // Calculate source crop with zoom (crop center portion and scale to fill)
-      // This ensures we get a zoomed-in view that fills the space
-      const sourceWidth = video.videoWidth / zoomFactor;
-      const sourceHeight = video.videoHeight / zoomFactor;
-      const sourceX = (video.videoWidth - sourceWidth) / 2; // Center horizontally
-      const sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
-      
-      // CRITICAL: Always draw to fill the entire layout space
-      // This will stretch the content slightly if needed, but ensures no black spaces
-      this.ctx.drawImage(
-        video,
-        sourceX, sourceY, sourceWidth, sourceHeight, // Source crop (zoomed in, centered)
-        drawX, drawY, drawWidth, drawHeight // Destination: fill entire layout space
-      );
+      // Screen: preserve aspect ratio (object-contain) to avoid zooming
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        const sourceAspect = video.videoWidth / video.videoHeight;
+        const targetAspect = layout.width / layout.height;
+
+        let drawWidth = layout.width;
+        let drawHeight = layout.height;
+        let drawX = layout.x;
+        let drawY = layout.y;
+
+        if (Math.abs(sourceAspect - targetAspect) > 0.01) {
+          if (sourceAspect > targetAspect) {
+            drawHeight = layout.width / sourceAspect;
+            drawY = layout.y + (layout.height - drawHeight) / 2;
+          } else {
+            drawWidth = layout.height * sourceAspect;
+            drawX = layout.x + (layout.width - drawWidth) / 2;
+          }
+        }
+
+        this.ctx.drawImage(
+          video,
+          0, 0, video.videoWidth, video.videoHeight,
+          drawX, drawY, drawWidth, drawHeight
+        );
+      } else {
+        // Draw loading placeholder if dimensions are not ready
+        this.ctx.fillStyle = '#333333';
+        this.ctx.fillRect(layout.x, layout.y, layout.width, layout.height);
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '20px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('Initializing Screen Share...', layout.x + layout.width/2, layout.y + layout.height/2);
+      }
     } else {
       // Camera: Use object-cover behavior to match preview
       const videoAspect = video.videoWidth / video.videoHeight;

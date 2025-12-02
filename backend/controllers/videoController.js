@@ -251,7 +251,7 @@ async function handleUploadAssetCreated(uploadData) {
     websocketService.sendProgress(lesson.id.toString(), {
       type: 'progress',
       progress: 50,
-      currentStep: 'Mux is processing your video',
+      currentStep: 'Processing video...',
       provider: 'mux',
       assetId: assetId
     });

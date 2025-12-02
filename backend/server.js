@@ -44,6 +44,21 @@ const checkDatabaseConnection = async () => {
   }
 };
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error(err.name, err.message);
+  console.error(err.stack);
+  // process.exit(1); // Don't exit for now to debug
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.error(err.name, err.message);
+  console.error(err.stack);
+  // process.exit(1); // Don't exit for now to debug
+});
+
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n=== EOTY Server Running ===`);
   console.log(`Mode: ${process.env.NODE_ENV || 'development'}`);

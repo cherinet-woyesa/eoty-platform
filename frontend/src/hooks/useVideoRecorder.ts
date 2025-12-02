@@ -413,28 +413,28 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const getVideoConstraints = useCallback((deviceId?: string) => {
     const baseConstraints: MediaTrackConstraints = {
       deviceId: deviceId ? { exact: deviceId } : undefined,
-      frameRate: { ideal: options.frameRate || 30 }
+      frameRate: { ideal: 30, max: 30 }
     };
 
     switch (options.resolution) {
       case '1080p':
         return {
           ...baseConstraints,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 }
         };
       case '720p':
         return {
           ...baseConstraints,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 }
         };
       case '480p':
       default:
         return {
           ...baseConstraints,
-          width: { ideal: 854 },
-          height: { ideal: 480 }
+          width: { ideal: 854, max: 854 },
+          height: { ideal: 480, max: 480 }
         };
     }
   }, [options.resolution, options.frameRate]);
@@ -506,7 +506,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          frameRate: { ideal: options.frameRate || 30 }
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
+          frameRate: { ideal: 30, max: 30 },
+          cursor: 'always'
         } as MediaTrackConstraints,
         audio: options.enableAudio ? {
           echoCancellation: true,
@@ -553,9 +556,9 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         
           // Wait a moment for video element to be ready before applying layout
           setTimeout(() => {
-            // Automatically adjust layout to picture-in-picture (smooth transition)
-        const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
-            compositorInstance!.applyLayoutByType(newLayout, true);
+            // Automatically adjust layout to picture-in-picture; disable transition to avoid initial black frames
+          const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
+            compositorInstance!.applyLayoutByType(newLayout, false);
         setCompositorLayout(newLayout);
         setCurrentLayout(newLayout as RecorderOptions['layout']);
         

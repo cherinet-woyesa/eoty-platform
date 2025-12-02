@@ -295,7 +295,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
           <div className="flex-1">
             <h4 className="text-sm font-semibold text-green-900">Upload Complete</h4>
             <p className="text-sm text-green-700 mt-1">
-              Your video has been uploaded successfully and is being processed by Mux.
+              Upload complete. You can safely close this window. A success message will appear when processing is done.
             </p>
             <p className="text-sm text-green-700 mt-2">
               <strong>Note:</strong> The video will be available for playback in a few minutes after Mux finishes processing it. You can close this window and check back later.

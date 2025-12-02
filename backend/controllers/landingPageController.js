@@ -49,6 +49,44 @@ const upload = multer({
 });
 
 const landingPageController = {
+  // Upload hero video
+  async uploadHeroVideo(req, res) {
+    console.log('🎥 Upload Hero Video Request Received');
+    try {
+      if (!req.file) {
+        console.error('❌ No file received in request');
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      console.log('📁 File received:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      });
+
+      let videoUrl;
+      if (req.file.cloudStoragePublicUrl) {
+        videoUrl = req.file.cloudStoragePublicUrl;
+      } else {
+        // Ensure we return a relative path that the frontend can use
+        videoUrl = `/uploads/${req.file.filename}`;
+      }
+
+      console.log('✅ Video uploaded successfully. URL:', videoUrl);
+
+      res.json({
+        success: true,
+        data: {
+          videoUrl: videoUrl
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error uploading hero video:', error);
+      res.status(500).json({ success: false, message: 'Failed to upload video: ' + error.message });
+    }
+  },
+
   // Get all landing page content
   async getContent(req, res) {
     const defaultContent = {
@@ -166,6 +204,11 @@ const landingPageController = {
         .where({ is_active: true })
         .first();
 
+      console.log('DEBUG: getContent - Found content record:', content ? 'Yes' : 'No');
+      if (content) {
+         console.log('DEBUG: getContent - Raw JSON:', content.content_json);
+      }
+
       if (!content) {
         // Return default content if none exists
         return res.json({
@@ -175,7 +218,17 @@ const landingPageController = {
       }
 
       // Merge existing content with default structure to ensure all sections exist
-      const existingContent = JSON.parse(content.content_json);
+      let existingContent = {};
+      try {
+        if (typeof content.content_json === 'string') {
+          existingContent = JSON.parse(content.content_json);
+        } else if (typeof content.content_json === 'object') {
+          existingContent = content.content_json;
+        }
+        console.log('DEBUG: getContent - Parsed JSON:', JSON.stringify(existingContent, null, 2));
+      } catch (e) {
+        console.error('DEBUG: getContent - JSON Parse Error:', e);
+      }
       
       const mergedContent = {
         ...defaultContent,
@@ -185,7 +238,8 @@ const landingPageController = {
         about: { ...defaultContent.about, ...(existingContent.about || {}) },
         howItWorks: { ...defaultContent.howItWorks, ...(existingContent.howItWorks || {}) },
         resources: { ...defaultContent.resources, ...(existingContent.resources || {}) },
-        videos: existingContent.videos || defaultContent.videos,
+        // Use existing videos if defined (even if empty), otherwise use default
+        videos: existingContent.videos !== undefined ? existingContent.videos : defaultContent.videos,
         blogs: { ...defaultContent.blogs, ...(existingContent.blogs || {}) }
       };
 
@@ -271,15 +325,15 @@ const landingPageController = {
 
       if (existingContent) {
         // Update existing
-        console.log('💾 Updating existing record...');
-        await db('landing_page_content')
+        console.log(`💾 Updating existing record ID: ${existingContent.id}...`);
+        const updateResult = await db('landing_page_content')
           .where({ id: existingContent.id })
           .update({
             content_json: JSON.stringify(contentData),
             updated_at: new Date(),
             updated_by: userId.toString()
           });
-        console.log('✅ Record updated successfully');
+        console.log('✅ Record updated successfully. Rows affected:', updateResult);
       } else {
         // Create new
         console.log('➕ Creating new record...');
@@ -420,17 +474,19 @@ const landingPageController = {
 
   // Upload video for landing page
   uploadVideo: [
-    upload.single('video'),
+    upload.single('file'),
     async (req, res) => {
       try {
+        console.log('🎥 Upload Video Request Received (uploadVideo)');
         if (!req.file) {
+          console.error('❌ No file received in request');
           return res.status(400).json({
             success: false,
             message: 'No video file provided'
           });
         }
 
-        console.log('🎬 Starting video upload for landing page...');
+        console.log('🎬 Starting video upload for landing page...', req.file.originalname);
 
         // Try Mux upload first
         try {

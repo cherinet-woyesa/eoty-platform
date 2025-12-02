@@ -407,7 +407,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
               status: 'processing',
               progress: newProgress,
               currentStep: elapsedSeconds > 60 
-                ? 'Mux is processing your video...' 
+                ? 'Processing video...' 
                 : 'Preparing video for processing...',
               provider: 'mux'
             };
@@ -593,9 +593,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       case 'queued':
         return isMux ? 'Video queued for Mux upload' : 'Video queued for processing';
       case 'processing':
-        return isMux ? 'Mux is processing your video...' : 'Processing video...';
+        return isMux ? 'Processing video...' : 'Processing video...';
       case 'completed':
-        return isMux ? 'Mux processing complete!' : 'Processing complete!';
+        return 'Video processing completed successfully!';
       case 'failed':
         return isMux ? 'Mux processing failed' : 'Processing failed';
       default:
@@ -648,13 +648,8 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           {processingState.status === 'completed' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 w-full">
               <p className="text-green-800 text-center font-medium">
-                ✅ Your video is ready and available for viewing!
+                Your video is now available for viewing.
               </p>
-              {processingState.provider === 'mux' && (
-                <p className="text-green-700 text-center text-sm mt-2">
-                  Powered by Mux - Adaptive streaming enabled
-                </p>
-              )}
             </div>
           )}
 

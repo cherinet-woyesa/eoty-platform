@@ -213,7 +213,7 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
       <div className="relative bg-black">
         <video
           ref={videoRef}
-          className="w-full aspect-video"
+          className="w-full aspect-video object-cover"
           playsInline
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

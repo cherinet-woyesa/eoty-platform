@@ -1,6 +1,7 @@
-import { Play, Clock, ArrowRight } from 'lucide-react';
+import { Play, Clock, ArrowRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
+import MuxPlayer from '@mux/mux-player-react';
 
 interface VideoSectionProps {
   landingContent: any;
@@ -8,6 +9,7 @@ interface VideoSectionProps {
 
 const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingContent }, ref) => {
   const videos = landingContent.videos || [];
+  const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
 
   return (
     <section ref={ref} id="video-section" data-section-id="video-section" className="py-20 relative overflow-hidden bg-[#fdfbf7]">
@@ -36,51 +38,96 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {videos.slice(0, 3).map((video: any, index: number) => (
+          {videos.map((video: any, index: number) => (
             <div 
               key={index} 
               className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
             >
-              {/* Thumbnail Container */}
+              {/* Thumbnail Container or Video Player */}
               <div className="relative aspect-video overflow-hidden bg-gray-900">
-                <img 
-                  src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
-                  alt={video.title}
-                  className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
-                />
-                
-                {/* Play Button Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transform scale-50 group-hover:scale-100 transition-all duration-300 border border-white/40">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                      <Play className="w-5 h-5 text-[#27AE60] fill-current ml-1" />
-                    </div>
+                {playingVideoIndex === index ? (
+                  <div className="w-full h-full">
+                    {(video.videoUrl?.includes('youtube') || video.videoUrl?.includes('youtu.be')) ? (
+                      <iframe
+                        src={video.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    ) : video.videoUrl?.includes('mux.com') ? (
+                      <MuxPlayer
+                        streamType="on-demand"
+                        playbackId={video.videoUrl?.split('/').pop()?.replace('.m3u8', '')}
+                        metadata={{
+                          video_title: video.title,
+                          viewer_user_id: 'anonymous',
+                        }}
+                        autoPlay
+                        poster={video.thumbnail}
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <video
+                        controls
+                        autoPlay
+                        poster={video.thumbnail}
+                        className="w-full h-full"
+                        src={video.videoUrl?.startsWith('http') ? video.videoUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${video.videoUrl}`}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div 
+                    className="w-full h-full cursor-pointer relative"
+                    onClick={() => setPlayingVideoIndex(index)}
+                  >
+                    <img 
+                      src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
+                      alt={video.title}
+                      className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
+                    />
+                    
+                    {/* Play Button Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
+                      <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transform scale-50 group-hover:scale-100 transition-all duration-300 border border-white/40">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                          <Play className="w-5 h-5 text-[#27AE60] fill-current ml-1" />
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Duration Badge */}
-                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-xs font-medium text-white flex items-center">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {video.duration || '10:00'}
-                </div>
+                    {/* Duration Badge */}
+                    {video.duration && (
+                      <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-xs font-medium text-white flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {video.duration}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Content */}
               <div className="p-6">
                 <div className="flex items-center space-x-2 mb-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-md uppercase tracking-wide">
-                    {video.category || 'Teaching'}
-                  </span>
-                  <span className="text-gray-400 text-xs">•</span>
+                  {video.category && (
+                    <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-md uppercase tracking-wide">
+                      {video.category}
+                    </span>
+                  )}
+                  {video.category && <span className="text-gray-400 text-xs">•</span>}
                   <span className="text-gray-500 text-xs">{video.date || 'Recently Added'}</span>
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#27AE60] transition-colors">
-                  {video.title || 'Understanding the Holy Trinity'}
+                  {video.title || 'Untitled Video'}
                 </h3>
                 
                 <p className="text-gray-600 text-sm line-clamp-2 mb-4">
-                  {video.description || 'A deep dive into the theological understanding of the Holy Trinity in the Ethiopian Orthodox Tewahedo Church tradition.'}
+                  {video.description || 'No description available.'}
                 </p>
                 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
@@ -88,11 +135,14 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                     <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${index}`} alt="Author" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{video.author || 'Deacon Yared'}</span>
+                    <span className="text-sm font-medium text-gray-700">{video.author || 'EOTY Team'}</span>
                   </div>
                   
-                  <button className="text-[#27AE60] font-medium text-sm hover:underline">
-                    Watch Now
+                  <button 
+                    onClick={() => setPlayingVideoIndex(index)}
+                    className="text-[#27AE60] font-medium text-sm hover:underline"
+                  >
+                    {playingVideoIndex === index ? 'Playing...' : 'Watch Now'}
                   </button>
                 </div>
               </div>

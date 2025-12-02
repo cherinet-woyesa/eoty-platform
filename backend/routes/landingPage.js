@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const landingPageController = require('../controllers/landingPageController');
 const { authenticateToken } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // Global logging middleware for this route
 router.use((req, res, next) => {
@@ -46,6 +47,7 @@ router.get('/testimonials', landingPageController.getTestimonials);
 
 // Admin routes
 router.put('/content', authenticateToken, requireLandingAdmin, landingPageController.updateContent);
+router.post('/upload-video', authenticateToken, requireLandingAdmin, upload.contentUpload.single('file'), landingPageController.uploadHeroVideo);
 router.post('/testimonials', authenticateToken, requireLandingAdmin, landingPageController.saveTestimonial);
 router.put('/testimonials/:id', authenticateToken, requireLandingAdmin, landingPageController.saveTestimonial);
 router.delete('/testimonials/:id', authenticateToken, requireLandingAdmin, landingPageController.deleteTestimonial);

@@ -1429,6 +1429,23 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (el && recordingSources.screen) {
       el.srcObject = recordingSources.screen;
       el.play().catch(e => console.warn("Error playing screen video:", e));
+      // DEBUG: log metadata/playing
+      el.onloadedmetadata = () => {
+        console.debug('[Preview Debug] Screen metadata', {
+          vw: el.videoWidth,
+          vh: el.videoHeight,
+          readyState: el.readyState,
+          clientW: el.clientWidth,
+          clientH: el.clientHeight
+        });
+      };
+      el.onplaying = () => {
+        console.debug('[Preview Debug] Screen playing', {
+          vw: el.videoWidth,
+          vh: el.videoHeight,
+          readyState: el.readyState
+        });
+      };
     }
   }, [recordingSources.screen]);
 
@@ -1548,7 +1565,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleScreenRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-contain" 
+                      className="w-full h-full object-cover" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
                 </div>
@@ -1556,7 +1573,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-contain" 
+                      className="w-full h-full object-cover" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
                 </div>
@@ -1598,7 +1615,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleScreenRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-contain" 
+                      className="w-full h-full object-cover" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
                 </div>
@@ -1606,7 +1623,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <video 
                         ref={handleCameraRef}
                         autoPlay muted playsInline 
-                        className="w-full h-full object-contain" 
+                      className="w-full h-full object-cover" 
                     />
                     <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
                 </div>
@@ -1622,7 +1639,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 <video 
                     ref={handleScreenRef}
                     autoPlay muted playsInline 
-                    className="w-full h-full object-contain" 
+                  className="w-full h-full object-cover" 
                 />
                 {renderRecordingStats()}
             </div>
@@ -1635,7 +1652,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <video 
                 ref={handleCameraRef}
                 autoPlay muted playsInline 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 onLoadedMetadata={(e) => {
                     console.log('Preview camera metadata (Camera Only):', {
                         videoWidth: e.currentTarget.videoWidth,
@@ -2220,6 +2237,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           {layoutChangeNotification}
         </div>
       )}
+
+      {/* Debug overlay: shows source states and dimensions */}
+      <div className="absolute bottom-4 left-4 z-40 bg-black/60 text-white text-[11px] rounded-md px-3 py-2 space-y-1 pointer-events-none">
+        <div>Layout: {currentLayout}</div>
+        <div>Camera: {recordingSources.camera ? 'on' : 'off'} | Screen: {recordingSources.screen ? 'on' : 'off'}</div>
+        <div>
+          Cam: {videoRef?.current ? `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}` : 'n/a'} |
+          Screen: {screenVideoRef?.current ? `${screenVideoRef.current.videoWidth}x${screenVideoRef.current.videoHeight}` : 'n/a'}
+        </div>
+      </div>
 
       {/* Recording Stats (Task 7.1 - Updated recording status indicators) - advanced only */}
       {showAdvancedTools && activeTab === 'record' && recordedVideo && videoBlob && (
