@@ -1,6 +1,6 @@
-import { Play, Clock, ArrowRight, X } from 'lucide-react';
+import { Play, Clock, ArrowRight, X, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import MuxPlayer from '@mux/mux-player-react';
 
 interface VideoSectionProps {
@@ -10,6 +10,7 @@ interface VideoSectionProps {
 const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingContent }, ref) => {
   const videos = landingContent.videos || [];
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   return (
     <section ref={ref} id="video-section" data-section-id="video-section" className="py-20 relative overflow-hidden bg-[#fdfbf7]">
@@ -48,13 +49,19 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                 {playingVideoIndex === index ? (
                   <div className="w-full h-full">
                     {(video.videoUrl?.includes('youtube') || video.videoUrl?.includes('youtu.be')) ? (
-                      <iframe
-                        src={video.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        title={video.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full"
-                      />
+                      <>
+                        <iframe
+                          src={video.videoUrl
+                            .replace('watch?v=', 'embed/')
+                            .replace('youtu.be/', 'youtube.com/embed/') + '?rel=0&modestbranding=1&playsinline=1&autoplay=1'}
+                          title={video.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
+                          loading="lazy"
+                          className="w-full h-full"
+                        />
+                      </>
                     ) : video.videoUrl?.includes('mux.com') ? (
                       <MuxPlayer
                         streamType="on-demand"
@@ -63,26 +70,56 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                           video_title: video.title,
                           viewer_user_id: 'anonymous',
                         }}
-                        autoPlay
                         poster={video.thumbnail}
+                        autoPlay
+                        muted
+                        playsInline
+                        onLoadedMetadata={() => setIsLoading(false)}
+                        onCanPlay={() => setIsLoading(false)}
+                        onWaiting={() => setIsLoading(true)}
+                        onEnded={() => setPlayingVideoIndex(null)}
+                        style={{ aspectRatio: '16/9', // @ts-ignore CSS var for mux-player
+                          ['--media-object-fit' as any]: 'cover' }}
                         className="w-full h-full"
                       />
                     ) : (
                       <video
                         controls
                         autoPlay
+                        muted
+                        playsInline
                         poster={video.thumbnail}
-                        className="w-full h-full"
+                        onLoadedMetadata={() => setIsLoading(false)}
+                        onCanPlay={() => setIsLoading(false)}
+                        onWaiting={() => setIsLoading(true)}
+                        onEnded={() => setPlayingVideoIndex(null)}
+                        className="w-full h-full object-cover"
                         src={video.videoUrl?.startsWith('http') ? video.videoUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${video.videoUrl}`}
                       >
                         Your browser does not support the video tag.
                       </video>
                     )}
+
+                    {/* Close button */}
+                    <button
+                      aria-label="Close video"
+                      onClick={() => setPlayingVideoIndex(null)}
+                      className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+
+                    {/* Loading overlay */}
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div 
                     className="w-full h-full cursor-pointer relative"
-                    onClick={() => setPlayingVideoIndex(index)}
+                    onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
                   >
                     <img 
                       src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
@@ -139,7 +176,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                   </div>
                   
                   <button 
-                    onClick={() => setPlayingVideoIndex(index)}
+                    onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
                     className="text-[#27AE60] font-medium text-sm hover:underline"
                   >
                     {playingVideoIndex === index ? 'Playing...' : 'Watch Now'}

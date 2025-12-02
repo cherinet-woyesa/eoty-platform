@@ -490,14 +490,8 @@ export class VideoCompositor {
     // Preserve aspect ratios in layout
     const adjustedLayout = this.preserveAspectRatios(layout);
     
-    // CRITICAL: Force clear canvas immediately when layout changes to prevent artifacts
-    if (this.isRunning) {
-      this.ctx.save();
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      this.ctx.fillStyle = '#000000';
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.restore();
-    }
+    // Avoid forcing a black fill on layout change to prevent flicker during source readiness
+    // The subsequent draw pass will paint full-frame backgrounds for active layouts
     
     // Enable smooth transition if requested and we have a previous layout
     if (enableTransition && this.currentLayout.sources && Object.keys(this.currentLayout.sources).length > 0) {
@@ -965,52 +959,77 @@ export class VideoCompositor {
         // Use zoom + stretch to ensure no black/white spaces
         // For camera sources, use normal drawImage (which will respect aspect ratio from layout)
         if (sourceId === 'screen') {
-          // Screen: Draw entire capture without cropping; preserve aspect ratio (object-contain)
+          // Screen: Use contain for screen-only (show whole screen), cover elsewhere (PiP/presentation)
           if (video.videoWidth > 0 && video.videoHeight > 0) {
             const sourceAspect = video.videoWidth / video.videoHeight;
             const targetAspect = layout.width / layout.height;
+            const useCover = this.currentLayout?.type !== 'screen-only';
 
-            let drawWidth = layout.width;
-            let drawHeight = layout.height;
-            let drawX = layout.x;
-            let drawY = layout.y;
-
-            if (Math.abs(sourceAspect - targetAspect) > 0.01) {
-              if (sourceAspect > targetAspect) {
-                // Source wider than target → letterbox vertically
-                drawHeight = layout.width / sourceAspect;
-                drawY = layout.y + (layout.height - drawHeight) / 2;
-              } else {
-                // Source taller than target → pillarbox horizontally
-                drawWidth = layout.height * sourceAspect;
-                drawX = layout.x + (layout.width - drawWidth) / 2;
+            if (useCover) {
+              // Object-cover: crop source to fill destination completely
+              let sourceX = 0;
+              let sourceY = 0;
+              let sourceW = video.videoWidth;
+              let sourceH = video.videoHeight;
+              if (Math.abs(sourceAspect - targetAspect) > 0.01) {
+                if (sourceAspect > targetAspect) {
+                  sourceH = video.videoHeight;
+                  sourceW = sourceH * targetAspect;
+                  sourceX = (video.videoWidth - sourceW) / 2;
+                  sourceY = 0;
+                } else {
+                  sourceW = video.videoWidth;
+                  sourceH = sourceW / targetAspect;
+                  sourceX = 0;
+                  sourceY = (video.videoHeight - sourceH) / 2;
+                }
+              }
+              this.ctx.drawImage(
+                video,
+                sourceX, sourceY, sourceW, sourceH,
+                layout.x, layout.y, layout.width, layout.height
+              );
+              if (Math.random() < 0.05) {
+                console.debug('[Compositor Debug] screen draw cover', {
+                  sourceAspect: Number(sourceAspect.toFixed(3)),
+                  targetAspect: Number(targetAspect.toFixed(3)),
+                  video: `${video.videoWidth}x${video.videoHeight}`,
+                  layout: `${layout.width}x${layout.height}`,
+                  crop: { x: Math.round(sourceX), y: Math.round(sourceY), w: Math.round(sourceW), h: Math.round(sourceH) }
+                });
+              }
+            } else {
+              // Object-contain: letter/pillarbox to show whole screen
+              let drawWidth = layout.width;
+              let drawHeight = layout.height;
+              let drawX = layout.x;
+              let drawY = layout.y;
+              if (Math.abs(sourceAspect - targetAspect) > 0.01) {
+                if (sourceAspect > targetAspect) {
+                  drawHeight = layout.width / sourceAspect;
+                  drawY = layout.y + (layout.height - drawHeight) / 2;
+                } else {
+                  drawWidth = layout.height * sourceAspect;
+                  drawX = layout.x + (layout.width - drawWidth) / 2;
+                }
+              }
+              this.ctx.drawImage(
+                video,
+                0, 0, video.videoWidth, video.videoHeight,
+                drawX, drawY, drawWidth, drawHeight
+              );
+              if (Math.random() < 0.05) {
+                console.debug('[Compositor Debug] screen draw contain', {
+                  sourceAspect: Number(sourceAspect.toFixed(3)),
+                  targetAspect: Number(targetAspect.toFixed(3)),
+                  video: `${video.videoWidth}x${video.videoHeight}`,
+                  layout: `${layout.width}x${layout.height}`,
+                  dest: { x: Math.round(drawX), y: Math.round(drawY), w: Math.round(drawWidth), h: Math.round(drawHeight) }
+                });
               }
             }
-
-            this.ctx.drawImage(
-              video,
-              0, 0, video.videoWidth, video.videoHeight,
-              drawX, drawY, drawWidth, drawHeight
-            );
-            if (Math.random() < 0.05) {
-              console.debug('[Compositor Debug] screen draw', {
-                sourceAspect: Number(sourceAspect.toFixed(3)),
-                targetAspect: Number(targetAspect.toFixed(3)),
-                video: `${video.videoWidth}x${video.videoHeight}`,
-                layout: `${layout.width}x${layout.height}`,
-                dest: { x: Math.round(drawX), y: Math.round(drawY), w: Math.round(drawWidth), h: Math.round(drawHeight) }
-              });
-            }
           } else {
-            // Draw loading placeholder if dimensions are not ready
-            this.ctx.fillStyle = '#333333';
-            this.ctx.fillRect(layout.x, layout.y, layout.width, layout.height);
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = '20px sans-serif';
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText('Initializing Screen Share...', layout.x + layout.width/2, layout.y + layout.height/2);
-            console.debug('[Compositor Debug] screen initializing placeholder drawn');
+            // If screen dimensions are not ready, draw nothing to avoid visual flash or overlays
           }
         } else {
           // Camera: Use object-cover behavior to match preview

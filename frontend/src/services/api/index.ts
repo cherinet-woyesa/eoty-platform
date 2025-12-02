@@ -435,6 +435,11 @@ export const interactiveApi = {
     return response.data;
   },
 
+  getLessonBookmarks: async (lessonId: string) => {
+    const response = await apiClient.get(`/interactive/lessons/${lessonId}/bookmarks`);
+    return response.data;
+  },
+
   // Lesson engagement summary for teachers/admins
   getLessonSummary: async (lessonId: string) => {
     const response = await apiClient.get(`/interactive/lessons/${lessonId}/summary`);

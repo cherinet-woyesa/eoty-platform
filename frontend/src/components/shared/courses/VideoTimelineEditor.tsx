@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, CheckCircle, X,
-  FastForward, Rewind, Clock, 
-  SkipBack, SkipForward, Scissors, Info, Volume2, VolumeX,
-  RotateCcw, RotateCw, Maximize2, Minimize2, HelpCircle, ZoomIn, ZoomOut, Sparkles
+  FastForward, Rewind,
+  SkipBack, SkipForward, Scissors,
+  RotateCcw, Maximize2, Minimize2
 } from 'lucide-react';
 
 interface VideoTimelineEditorProps {
@@ -36,7 +36,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
   
   // UI state
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showHelp, setShowHelp] = useState(true);
+  const [showHelp] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [timelineZoom, setTimelineZoom] = useState(1); // Zoom level for timeline precision
@@ -116,12 +116,12 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentTime, trimStart, trimEnd, isPlaying]);
   
-  // Update playback speed
+  // Keep fixed 1x playback for simplicity
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = playbackSpeed;
+      videoRef.current.playbackRate = 1;
     }
-  }, [playbackSpeed]);
+  }, []);
 
   // Handle mouse/touch drag for trim handles
   useEffect(() => {
@@ -484,28 +484,10 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
           </div>
         </div>
 
-        {/* Help Banner - Compact */}
-        {showHelp && (
-          <div className="px-4 py-2 bg-blue-900/20 border-b border-blue-900/30 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center space-x-3 text-xs text-slate-300">
-              <Info className="h-4 w-4 text-blue-400 flex-shrink-0" />
-              <div className="flex space-x-4">
-                <span>Drag <span className="font-semibold text-blue-400">blue handles</span> to trim</span>
-                <span><span className="font-semibold text-slate-200">Space</span> to play/pause</span>
-                <span><span className="font-semibold text-slate-200">Arrows</span> to seek</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowHelp(false)}
-              className="text-slate-500 hover:text-slate-300 p-1 rounded hover:bg-slate-800 transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        )}
+        {/* Help removed for minimal UI */}
 
         <div className="flex-1 flex flex-col overflow-y-auto bg-black relative min-h-[300px]">
-          {/* Video Preview */}
+          {/* Video Preview (minimal) */}
           <div className="flex-1 flex items-center justify-center p-4 relative bg-black/50">
             <div className="relative w-full h-full flex items-center justify-center">
               <video
@@ -525,109 +507,20 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
               />
-              
-              {/* Time Display Overlay */}
-              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-md text-[10px] font-mono flex items-center space-x-2 border border-white/10">
-                <span className="font-medium tracking-wider">{formatTime(currentTime)} / {formatTime(duration)}</span>
-                <div className="h-3 w-px bg-white/20"></div>
-                <div className="flex items-center space-x-1 group">
-                  <button onClick={toggleMute} className="hover:text-blue-400 transition-colors">
-                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                  </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={volume}
-                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                    className="w-12 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                  />
-                </div>
-              </div>
-              
-              {/* Trim Info Overlay */}
-              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-1.5 rounded-md text-[10px] border border-white/10">
-                <div className="font-mono space-y-0.5 text-slate-300">
-                  <div className="flex justify-between gap-2"><span>Start:</span> <span className="text-white">{formatTime(trimStart)}</span></div>
-                  <div className="flex justify-between gap-2"><span>End:</span> <span className="text-white">{formatTime(trimEnd)}</span></div>
-                  <div className="pt-1 border-t border-white/10 mt-1 flex justify-between gap-2">
-                    <span className="text-slate-400">Dur:</span>
-                    <span className="text-green-400 font-bold">{formatTime(getTrimmedDuration())}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Playback Speed Control */}
-              <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[10px] border border-white/10">
-                <select
-                  value={playbackSpeed}
-                  onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-                  className="bg-transparent border-none text-[10px] text-slate-300 focus:ring-0 cursor-pointer py-0 pl-0 pr-4"
-                >
-                  <option value="0.5">0.5x</option>
-                  <option value="1">1x</option>
-                  <option value="1.5">1.5x</option>
-                  <option value="2">2x</option>
-                </select>
-              </div>
+              {/* Minimal time indicator below */}
             </div>
           </div>
 
           {/* Controls Section */}
           <div className="bg-slate-900 border-t border-slate-800 p-3 flex-shrink-0 z-10">
-            {/* Quick Actions Bar */}
+            {/* Minimal Actions */}
             <div className="flex items-center justify-center space-x-2 mb-3 flex-wrap gap-y-2">
-              <button
-                onClick={() => removeFirstSeconds(5)}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all"
-              >
-                -5s Start
-              </button>
-              <button
-                onClick={() => removeLastSeconds(5)}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all"
-              >
-                -5s End
-              </button>
               <button
                 onClick={resetTrim}
                 className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white transition-all flex items-center"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
                 Reset
-              </button>
-              <div className="w-px h-4 bg-slate-700 mx-1"></div>
-              <button
-                onClick={() => setTimelineZoom(Math.max(0.1, timelineZoom - 0.2))}
-                disabled={timelineZoom <= 0.1}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all"
-              >
-                <ZoomOut className="h-3 w-3" />
-              </button>
-              <button
-                onClick={() => setTimelineZoom(Math.min(2, timelineZoom + 0.2))}
-                disabled={timelineZoom >= 2}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all"
-              >
-                <ZoomIn className="h-3 w-3" />
-              </button>
-              <div className="w-px h-4 bg-slate-700 mx-1"></div>
-              <button
-                onClick={handleUndo}
-                disabled={historyIndex <= 0}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all flex items-center"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Undo
-              </button>
-              <button
-                onClick={handleRedo}
-                disabled={historyIndex >= history.length - 1}
-                className="px-2 py-1 text-[10px] bg-slate-800 text-slate-300 rounded border border-slate-700 hover:bg-slate-700 hover:text-white disabled:opacity-50 transition-all flex items-center"
-              >
-                <RotateCw className="h-3 w-3 mr-1" />
-                Redo
               </button>
             </div>
             
@@ -675,9 +568,7 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                   if (!isDraggingRef.current && timelineRef.current && duration > 0) {
                     const rect = timelineRef.current.getBoundingClientRect();
                     const x = e.clientX - rect.left;
-                    const { start: visibleStart, end: visibleEnd } = getVisibleTimeRange();
-                    const visibleDuration = visibleEnd - visibleStart;
-                    const time = visibleStart + (x / rect.width) * visibleDuration;
+                    const time = (x / rect.width) * duration;
                     if (isFinite(time) && time >= 0 && time <= duration) {
                       handleSeek(time);
                     }
@@ -699,33 +590,9 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
                   </div>
                 </div>
                 
-                {/* Removed Regions - Dark overlay */}
-                <div
-                  className="absolute top-0 bottom-0 bg-black/60 backdrop-blur-[1px]"
-                  style={{
-                    left: 0,
-                    width: `${getTimelinePosition(trimStart)}%`
-                  }}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 font-medium">
-                    <div className="text-center opacity-50">
-                      <X className="h-3 w-3 mx-auto mb-0.5" />
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className="absolute top-0 bottom-0 bg-black/60 backdrop-blur-[1px]"
-                  style={{
-                    left: `${getTimelinePosition(trimEnd)}%`,
-                    right: 0
-                  }}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 font-medium">
-                    <div className="text-center opacity-50">
-                      <X className="h-3 w-3 mx-auto mb-0.5" />
-                    </div>
-                  </div>
-                </div>
+                {/* Removed Regions - Dark overlay (no labels) */}
+                <div className="absolute top-0 bottom-0 bg-black/50" style={{ left: 0, width: `${getTimelinePosition(trimStart)}%` }} />
+                <div className="absolute top-0 bottom-0 bg-black/50" style={{ left: `${getTimelinePosition(trimEnd)}%`, right: 0 }} />
 
                 {/* Current Time Indicator - White line with glow */}
                 <div
@@ -784,15 +651,9 @@ const VideoTimelineEditor: React.FC<VideoTimelineEditorProps> = ({
 
               {/* Time Markers */}
               <div className="flex justify-between text-[9px] text-slate-500 px-1 font-mono">
-                {(() => {
-                  const { start: visibleStart, end: visibleEnd } = getVisibleTimeRange();
-                  const markers = [];
-                  for (let i = 0; i <= 6; i++) {
-                    const time = visibleStart + ((visibleEnd - visibleStart) / 6) * i;
-                    markers.push(<span key={i}>{formatTime(time)}</span>);
-                  }
-                  return markers;
-                })()}
+                {[0, 0.166, 0.333, 0.5, 0.666, 0.833, 1].map((p, i) => (
+                  <span key={i}>{formatTime((duration || 0) * p)}</span>
+                ))}
               </div>
             </div>
           </div>

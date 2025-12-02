@@ -27,6 +27,7 @@ import { videoDraftStorage, type VideoDraft } from '@/utils/videoDraftStorage';
 import { formatErrorForDisplay } from '@/utils/errorHandler';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import VideoTimelineEditor from './VideoTimelineEditor';
+import SimpleTrimEditor from './SimpleTrimEditor';
 import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';
 import LayoutSelector from './LayoutSelector';
@@ -506,7 +507,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setShowPreview(true);
       setShowLessonForm(false);
       setRecordingStatus('idle');
-      setSuccessMessage('Recording completed! Review your video below.');
       
       // Do NOT acknowledge preview here — wait until the preview video element has loaded metadata
       // The preview's onLoadedMetadata will call acknowledgePreview() to allow the hook to cleanup
@@ -634,6 +634,26 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }, 5000);
     }
   }, [dismissNotification]);
+
+  // Funnel success and error messages to toast notifications
+  useEffect(() => {
+    if (successMessage) {
+      addNotification('success', 'Success', successMessage, undefined, true);
+      if (!persistentSuccessMessageRef.current) {
+        setSuccessMessage(null);
+      }
+    }
+  }, [successMessage, addNotification]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      addNotification('error', 'Error', errorMessage, undefined, false);
+      // Keep the inline errorMessage state for potential programmatic flows,
+      // but don’t render a persistent inline banner
+      // Clear after a short delay to prevent duplicate toasts on re-render
+      setTimeout(() => setErrorMessage(null), 50);
+    }
+  }, [errorMessage, addNotification]);
 
   // NEW: Performance degradation handler (Task 7.3)
   // User requested not to surface performance warnings; keep this a no-op to avoid noisy logs
@@ -780,6 +800,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       startCountdownAndRecording();
     }
   }, [stream, startCountdownAndRecording]);
+
+  // Do NOT auto-initialize camera on mount; open only on user action (Start Recording or toggle)
+  useEffect(() => {
+    // Keep default layout predictable without requesting camera permissions automatically
+    const hasCamera = !!recordingSources.camera;
+    if (!hasCamera && !isRecording) {
+      handleLayoutChange('camera-only');
+    }
+  }, [recordingSources.camera, isRecording, handleLayoutChange]);
 
   // Load teacher's courses
   useEffect(() => {
@@ -1042,12 +1071,23 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Don't set showPreview to false - let the useEffect handle it when blob is ready
       // This ensures preview shows even if blob creation is delayed
       setShowLessonForm(false); // Don't show form until user clicks "Upload"
-      setSuccessMessage('Processing recording...');
       
       // Don't close camera immediately - let the useEffect handle it when blob is ready
       // This ensures the blob is created before cleanup happens
       // The useEffect that watches for videoBlob will call closeCamera() when ready
       console.log('Waiting for blob to be created before closing camera...');
+      
+      // Fallback: if preview acknowledgement hasn't happened, close camera after a short delay
+      setTimeout(() => {
+        try {
+          if (!isRecording && !previewAcknowledgedRef.current) {
+            console.log('Fallback closing camera after stop (no preview acknowledgement yet)');
+            closeCamera();
+          }
+        } catch (e) {
+          console.warn('Fallback closeCamera error:', e);
+        }
+      }, 3000);
       
       // Reset stopping flag after a delay to allow blob creation
       setTimeout(() => {
@@ -1677,13 +1717,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       />
 
 
-      <div className={`flex flex-col overflow-hidden ${
+      <div className={`relative flex flex-col overflow-hidden ${
         variant === 'default' 
-          ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm max-w-3xl w-full mx-auto my-4' 
+          ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm max-w-3xl w-full ml-4 md:ml-6 mr-4 md:mr-6 my-4' 
           : variant === 'embedded'
-            ? 'w-full max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm my-4' // Reduced container size
-            : 'w-full max-w-lg mx-auto flex-none max-h-[520px] overflow-hidden'
+            ? 'w-full max-w-4xl ml-4 md:ml-6 mr-4 md:mr-6 bg-white rounded-xl border border-slate-200 shadow-sm my-4' // Reduced container size
+            : 'w-full max-w-lg ml-4 md:ml-6 mr-4 md:mr-6 flex-none max-h-[520px] overflow-hidden'
       }`}>
+      {/* Reserved right sidebar space removed to keep recorder size unchanged */}
       {/* Error Alert */}
       {errorMessage && (
         <div className="px-6 pt-4">
@@ -1792,7 +1833,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
            )}
         </div>
       ) : (
-      <div className={`px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-center gap-4 ${variant !== 'default' && variant !== 'embedded' ? 'bg-transparent border-none p-0' : ''}`}>
+      <div className={`px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-center gap-4 ${variant === 'default' ? '' : 'bg-transparent border-none p-0'}`}>
         {/* Tab Switcher */}
         <div className="flex bg-slate-100 p-1 rounded-xl w-full max-w-md">
           <button
@@ -2238,15 +2279,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Debug overlay: shows source states and dimensions */}
-      <div className="absolute bottom-4 left-4 z-40 bg-black/60 text-white text-[11px] rounded-md px-3 py-2 space-y-1 pointer-events-none">
-        <div>Layout: {currentLayout}</div>
-        <div>Camera: {recordingSources.camera ? 'on' : 'off'} | Screen: {recordingSources.screen ? 'on' : 'off'}</div>
-        <div>
-          Cam: {videoRef?.current ? `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}` : 'n/a'} |
-          Screen: {screenVideoRef?.current ? `${screenVideoRef.current.videoWidth}x${screenVideoRef.current.videoHeight}` : 'n/a'}
+      {/* Debug overlay: shows source states and dimensions (advanced only) */}
+      {showAdvancedTools && (
+        <div className="absolute bottom-4 left-4 z-40 bg-black/60 text-white text-[11px] rounded-md px-3 py-2 space-y-1 pointer-events-none">
+          <div>Layout: {currentLayout}</div>
+          <div>Camera: {recordingSources.camera ? 'on' : 'off'} | Screen: {recordingSources.screen ? 'on' : 'off'}</div>
+          <div>
+            Cam: {videoRef?.current ? `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}` : 'n/a'} |
+            Screen: {screenVideoRef?.current ? `${screenVideoRef.current.videoWidth}x${screenVideoRef.current.videoHeight}` : 'n/a'}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recording Stats (Task 7.1 - Updated recording status indicators) - advanced only */}
       {showAdvancedTools && activeTab === 'record' && recordedVideo && videoBlob && (
@@ -2280,32 +2323,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* Success/Error Messages - Light theme */}
-      {successMessage && (
-        <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-600 text-slate-700 flex items-center justify-between space-x-2 backdrop-blur-sm shadow-lg rounded-lg mx-4 my-2">
-          <div className="flex items-center space-x-3">
-            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-            <span className="font-semibold text-base">{successMessage}</span>
-          </div>
-          <button
-            onClick={() => {
-              persistentSuccessMessageRef.current = null;
-              setSuccessMessage('');
-            }}
-            className="text-emerald-700 hover:text-emerald-900 transition-colors"
-            aria-label="Dismiss"
-          >
-            <XCircle className="h-5 w-5" />
-          </button>
-        </div>
-      )}
-      
-      {errorMessage && (
-        <div className="p-3 bg-red-50/80 border-l-4 border-red-300 text-red-700 flex items-center space-x-2 backdrop-blur-sm">
-          <AlertCircle className="h-4 w-4 text-red-500" />
-          <span className="font-medium">{errorMessage}</span>
-        </div>
-      )}
+      {/* Success/Error inline banners removed; handled by toast notifications */}
 
       {/* Upload Progress - Light theme with neon accent */}
       {uploading && (
@@ -2519,7 +2537,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     disabled={uploading}
                   >
                     <FileText className="h-3.5 w-3.5 mr-1" />
-                    Create new course from here
+                    Create new course
                   </button>
                 )}
                 {isCreatingCourse && (
@@ -2609,7 +2627,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <button 
                 onClick={handleUpload} 
                 disabled={uploading || uploadSuccess || !selectedCourse || !lessonTitle.trim()}
-                className="flex-1 px-4 py-3 border border-transparent rounded-xl bg-gradient-to-r from-[#00D4FF]/90 to-[#00B8E6]/90 text-white hover:from-[#00B8E6] hover:to-[#0099CC] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-md backdrop-blur-sm border border-[#00D4FF]/30"
+                className="flex-1 px-4 py-3 border border-transparent rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-md backdrop-blur-sm border border-emerald-500/40"
               >
                 {uploading ? (
                   <>
@@ -2633,16 +2651,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         </div>
       )}
 
-      {/* NEW: Video Timeline Editor Modal */}
+      {/* NEW: Simple Video Editor Modal */}
       {showTimelineEditor && videoBlob && recordedVideo && (
-        <VideoTimelineEditor
+        <SimpleTrimEditor
           videoBlob={videoBlob}
           videoUrl={recordedVideo}
           onEditComplete={handleEditComplete}
           onCancel={() => {
             setShowTimelineEditor(false);
             setShowPreview(false);
-            setShowLessonForm(true); // Go back to upload form on cancel
+            setShowLessonForm(true);
           }}
         />
       )}

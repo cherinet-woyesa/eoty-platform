@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { io, Socket } from 'socket.io-client'; // Import io and Socket type
 import { coursesApi } from '@/services/api';
+import { videoApi as videosApi } from '@/services/api/videos';
 
 interface VideoProcessingStatusProps {
   lessonId: string;
@@ -289,6 +290,19 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     }
 
     try {
+      // 1) Try direct Mux status endpoint (more authoritative if backend proxies Mux)
+      let muxPlaybackId: string | undefined;
+      let muxStatus: string | undefined;
+
+      try {
+        const muxResp = await videosApi.getMuxAssetStatus(lessonId);
+        muxPlaybackId = muxResp?.data?.playbackId || muxResp?.playbackId;
+        muxStatus = muxResp?.data?.status || muxResp?.status;
+      } catch (e) {
+        // Non-fatal; fall back to course status
+      }
+
+      // 2) Fallback to course status (legacy)
       const response = await coursesApi.getVideoStatus(lessonId);
       console.log('[VideoProcessingStatus] Poll response:', response);
       
@@ -297,7 +311,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       // So response is: { success: true, data: { ... } }
       // We need response.data to get the status data object
       const statusData = (response as any)?.data || response || {};
-      const { videoStatus, muxStatus, muxPlaybackId } = statusData;
+      const videoStatus = statusData.videoStatus;
+      muxStatus = muxStatus || statusData.muxStatus;
+      muxPlaybackId = muxPlaybackId || statusData.muxPlaybackId;
       
       // Calculate elapsed time for time-based progress
       const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
@@ -312,7 +328,22 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       });
 
       // Use muxStatus if available, otherwise fall back to videoStatus
-      const currentStatus = muxStatus || videoStatus;
+      let currentStatus = muxStatus || videoStatus;
+
+      // 3) If still no playbackId and status isn't ready, attempt playback info endpoint
+      if (!muxPlaybackId && (!currentStatus || currentStatus === 'processing' || currentStatus === 'preparing')) {
+        try {
+          const info = await videosApi.getPlaybackInfo(lessonId);
+          const provider = info?.data?.provider;
+          const playbackIdFromInfo = info?.data?.mux?.playbackId || info?.data?.playbackId;
+          if (provider === 'mux' && playbackIdFromInfo) {
+            muxPlaybackId = playbackIdFromInfo;
+            currentStatus = 'ready';
+          }
+        } catch (e) {
+          // Ignore 404/not ready
+        }
+      }
 
       if (currentStatus === 'ready' && muxPlaybackId) {
         console.log('[VideoProcessingStatus] Video ready!');

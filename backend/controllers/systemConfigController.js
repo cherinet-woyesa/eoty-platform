@@ -850,7 +850,9 @@ async function getTags(req, res) {
 
     // Sort by usage count (descending) or display order
     if (sort_by === 'usage') {
-      query = query.orderBy('usage_count', 'desc');
+      // Guard against missing column in older databases
+      const hasUsageCol = await db.schema.hasColumn('content_tags', 'usage_count');
+      query = hasUsageCol ? query.orderBy('usage_count', 'desc') : query.orderBy('name', 'asc');
     } else {
       query = query.orderBy('display_order', 'asc');
     }

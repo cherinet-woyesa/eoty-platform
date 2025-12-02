@@ -58,6 +58,7 @@ const VideoNotesPanel: React.FC<VideoNotesPanelProps> = ({
     color: 'default',
     visibility: 'private'
   });
+  const [toast, setToast] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -128,7 +129,10 @@ const VideoNotesPanel: React.FC<VideoNotesPanelProps> = ({
         await videoNotesApi.updateNote(lessonId, editingNote.id, formData);
       } else {
         // Create new note
-        await videoNotesApi.createNote(lessonId, formData);
+        const res = await videoNotesApi.createNote(lessonId, formData);
+        if (!res.success) {
+          throw new Error(res.message || 'Failed to save note');
+        }
       }
       
       await loadNotes();
@@ -141,9 +145,11 @@ const VideoNotesPanel: React.FC<VideoNotesPanelProps> = ({
         color: 'default',
         visibility: 'private'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save note:', error);
-      alert('Failed to save note. Please try again.');
+      // Show inline, user-facing banner instead of console-only
+      const msg = error?.message || 'Failed to save note. Please try again.';
+      setToast({ type: 'error', message: msg });
     }
   };
 
@@ -196,7 +202,15 @@ const VideoNotesPanel: React.FC<VideoNotesPanelProps> = ({
   return (
     <div className={`fixed right-0 top-0 h-full bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200/50 ${
         isMobile ? 'w-full' : 'w-96'
-      }`}>
+      } overflow-y-auto`}> 
+      {toast && (
+        <div className={`px-4 py-2 ${toast.type === 'error' ? 'bg-red-50 text-red-700 border-b border-red-200' : 'bg-green-50 text-green-700 border-b border-green-200'}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{toast.message}</span>
+            <button onClick={() => setToast(null)} className="text-xs text-slate-500 hover:text-slate-700">Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-gradient-to-br from-white/90 via-[#FAF8F3]/90 to-[#F5F3ED]/90 backdrop-blur-sm p-4 border-b border-slate-200/50">
         <div className="flex items-center justify-between mb-4">

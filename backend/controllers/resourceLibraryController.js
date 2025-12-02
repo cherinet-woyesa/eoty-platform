@@ -488,7 +488,7 @@ const resourceLibraryController = {
         });
       }
 
-      const { title, description, category, tags, language, topic, author_id, resourceScope = 'chapter_wide' } = req.body;
+      const { title, description, category, tags, language, topic, author_id, resourceScope = 'chapter_wide', courseId } = req.body;
 
       if (!title) {
         return res.status(400).json({
@@ -527,7 +527,8 @@ const resourceLibraryController = {
           language,
           tags: parsedTags,
           topic,
-          resourceScope
+          resourceScope,
+          courseId: courseId ? parseInt(courseId) : undefined
         },
         userId
       );

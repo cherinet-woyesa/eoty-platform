@@ -8,10 +8,13 @@ import LessonPolls from '@/components/shared/courses/LessonPolls';
 import QuizButton from '@/components/shared/courses/QuizButton';
 import LessonInteractivePanel from '@/components/shared/courses/LessonInteractivePanel';
 import LessonTeacherAnalytics from '@/components/shared/courses/LessonTeacherAnalytics';
+import AIChatInterface from '@/components/shared/ai/AIChatInterface';
+import UploadResource from '@/pages/teacher/UploadResource';
 import { CoursePublisher } from '@/components/shared/courses/CoursePublisher';
 import UnifiedResourceView from '@/components/student/UnifiedResourceView';
 import { useAuth } from '@/context/AuthContext';
 import CourseDetailsSkeleton from '@/components/shared/courses/CourseDetailsSkeleton';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import {
   ArrowLeft, BookOpen, Clock, PlayCircle, Video,
   Search, CheckCircle, Bookmark,
@@ -97,6 +100,10 @@ const CourseDetails: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [showCourseUploader, setShowCourseUploader] = useState(false);
+  const [resourcesRefreshToken, setResourcesRefreshToken] = useState(0);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   // Check bookmark status
   useEffect(() => {
@@ -154,6 +161,7 @@ const CourseDetails: React.FC = () => {
   const handleTimestampClick = useCallback((timestamp: number) => {
     console.log('Jumping to timestamp:', timestamp);
   }, []);
+
 
   // Load student progress for a lesson
   const loadLessonProgress = useCallback(async (lessonId: string) => {
@@ -276,10 +284,15 @@ const CourseDetails: React.FC = () => {
 
   // Delete lesson
   const handleDeleteLesson = useCallback(async (lessonId: string) => {
-    if (!window.confirm('Are you sure you want to delete this lesson? This action cannot be undone.')) {
-      return;
-    }
-    
+    const agreed = await confirm({
+      title: 'Delete Lesson',
+      message: 'Are you sure you want to delete this lesson? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger'
+    });
+    if (!agreed) return;
+
     try {
       setDeletingLessonId(lessonId);
       await coursesApi.deleteLesson(lessonId);
@@ -293,7 +306,7 @@ const CourseDetails: React.FC = () => {
     } finally {
       setDeletingLessonId(null);
     }
-  }, [lessons, selectedLesson]);
+  }, [lessons, selectedLesson, confirm]);
 
   // Memoized filtered lessons
   const filteredLessons = useMemo(() => {
@@ -310,14 +323,7 @@ const CourseDetails: React.FC = () => {
   }, [lessons, searchQuery, filterCompleted, lessonProgress]);
 
   // Memoized tabs - Role-based ordering
-  const tabs = useMemo(() => {
-    return [
-      { id: 'description' as TabType, label: 'Description', icon: BookOpen },
-      { id: 'resources' as TabType, label: 'Resources', icon: Download },
-      { id: 'polls' as TabType, label: 'Polls', icon: BarChart3, count: pollCount },
-      { id: 'discussion' as TabType, label: 'Discussion', icon: MessageSquare }
-    ];
-  }, [pollCount]);
+  // Deprecated tabs memo (legacy UI)
 
   // Calculate student progress
   const studentProgress = useMemo(() => {
@@ -568,6 +574,7 @@ const CourseDetails: React.FC = () => {
                       allow_download: selectedLesson.allow_download
                     }}
                     courseTitle={course?.title}
+                    showTheaterToggle={false}
                     onTimestampClick={handleTimestampClick}
                     onProgress={(time) => {
                       setCurrentLessonTime(time);
@@ -659,13 +666,13 @@ const CourseDetails: React.FC = () => {
 
                 {/* Action Buttons (Right) */}
                 <div className="flex items-center gap-2">
-                  <Link
-                    to={`/ai-assistant?lessonId=${selectedLesson?.id}&courseId=${courseId}`}
+                  <button
+                    onClick={() => setShowAIPanel(true)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
                   >
                     <Bot className="h-3.5 w-3.5 mr-1.5 text-[#16A085]" />
                     Ask AI
-                  </Link>
+                  </button>
                   
                   <button
                     onClick={() => setActiveTab('resources')}
@@ -678,6 +685,20 @@ const CourseDetails: React.FC = () => {
                     <Download className="h-3.5 w-3.5 mr-1.5" />
                     Resources
                   </button>
+
+                  {(activeTab === 'resources') && (isAdmin || isOwner) && (
+                    <button
+                      onClick={() => setShowCourseUploader(v => !v)}
+                      className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                        showCourseUploader
+                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                          : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                      }`}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      {showCourseUploader ? 'Hide Uploader' : 'Add Resource'}
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setActiveTab('polls')}
@@ -761,11 +782,33 @@ const CourseDetails: React.FC = () => {
                 )}
                 
                 {activeTab === 'resources' && (
-                   <UnifiedResourceView
+                  <div className="space-y-4">
+                    {(isAdmin || isOwner) && showCourseUploader && (
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Add Resource to This Course</h3>
+                        <UploadResource
+                          variant="embedded"
+                          target="library"
+                          defaultScope="course_specific"
+                          defaultCourseId={courseId}
+                          lockScope={true}
+                          onUploadComplete={() => {
+                            setShowCourseUploader(false);
+                            setResourcesRefreshToken((t) => t + 1);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <UnifiedResourceView
                       courseId={courseId}
                       showCourseResources={true}
+                      hideTabs={true}
+                      activeTab="course"
                       variant="embedded"
-                   />
+                      refreshToken={resourcesRefreshToken}
+                    />
+                  </div>
                 )}
                 
                 {activeTab === 'polls' && selectedLesson && (
@@ -775,17 +818,46 @@ const CourseDetails: React.FC = () => {
                    />
                 )}
 
-                {activeTab === 'discussion' && selectedLesson && (
+                 {activeTab === 'discussion' && selectedLesson && (
                    <div className="mt-4">
                       <LessonInteractivePanel 
                         lessonId={selectedLesson.id} 
-                        currentTime={currentLessonTime} 
+                        currentTime={currentLessonTime}
                       />
                    </div>
-                )}
+                 )}
               </div>
             </div>
           </div>
+
+          {/* Inline AI Assistant Panel (modal) */}
+          {showAIPanel && (
+            <div className="fixed inset-0 z-40">
+              <div className="absolute inset-0 bg-black/30" onClick={() => setShowAIPanel(false)} />
+              <div className="absolute bottom-6 right-6 w-full max-w-xl bg-white rounded-2xl border border-gray-200 shadow-2xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                    <Bot className="h-4 w-4 text-[#16A085]" />
+                    AI Assistant
+                  </div>
+                  <button onClick={() => setShowAIPanel(false)} className="text-gray-500 hover:text-gray-800 text-sm px-2 py-1">
+                    Close
+                  </button>
+                </div>
+                <div className="h-[520px]">
+                  <AIChatInterface
+                    context={{
+                      source: 'course-details',
+                      courseId,
+                      lessonId: selectedLesson?.id,
+                      courseTitle: course?.title,
+                      lessonTitle: selectedLesson?.title
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Right Column - Sidebar */}
           <div className={`flex flex-col gap-6 transition-all duration-300 ${

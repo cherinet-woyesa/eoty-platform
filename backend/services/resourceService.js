@@ -582,7 +582,7 @@ class ResourceService {
    * @returns {Promise<Object>} Upload result
    */
   async uploadToLibrary(fileBuffer, originalFilename, metadata, userId) {
-    const { title, description, category, language, tags, resourceScope = 'chapter_wide' } = metadata;
+    const { title, description, category, language, tags, resourceScope = 'chapter_wide', courseId } = metadata;
 
     try {
       // Validate file
@@ -595,6 +595,24 @@ class ResourceService {
       // Validate scope permissions
       if (resourceScope === 'platform_wide' && user.role !== 'admin') {
         throw new Error('Only admins can upload platform-wide resources');
+      }
+
+      // For course-specific uploads, validate course ownership/access and courseId presence
+      if (resourceScope === 'course_specific') {
+        if (!courseId) {
+          throw new Error('courseId is required for course-specific resources');
+        }
+        // Teacher must own the course or be admin
+        const course = await db('courses')
+          .where({ id: courseId })
+          .select('id', 'created_by')
+          .first();
+        if (!course) {
+          throw new Error('Course not found');
+        }
+        if (user.role !== 'admin' && course.created_by !== userId) {
+          throw new Error('Only the course owner can upload course-specific resources');
+        }
       }
 
       // Upload file to cloud storage
@@ -614,6 +632,7 @@ class ResourceService {
         file_url: fileUrl,
         resource_scope: resourceScope,
         chapter_id: resourceScope === 'chapter_wide' ? user.chapter_id : null,
+        course_id: resourceScope === 'course_specific' ? courseId : null,
         is_public: resourceScope === 'platform_wide',
         published_at: new Date(),
         published_date: new Date()

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import MuxPlayer from '@mux/mux-player-react';
-import { FileText, RotateCcw, X, List, Download, Maximize2, Minimize2, PictureInPicture, Monitor, Keyboard } from 'lucide-react';
+import { FileText, RotateCcw, X, Download, Maximize2, Minimize2, PictureInPicture, Monitor, Keyboard } from 'lucide-react';
 import { subtitlesApi, type SubtitleTrack } from '@/services/api/subtitles';
 import VideoNotesPanel from './VideoNotesPanel';
-import VideoChaptersPanel from './VideoChaptersPanel';
+// Chapters panel removed per UX request
 import { interactiveApi } from '@/services/api';
 import { videoApi } from '@/services/api/videos';
 import { useAuth } from '@/context/AuthContext';
@@ -51,6 +51,8 @@ interface UnifiedVideoPlayerProps {
   onLoad?: (metadata: any) => void;
   onProgress?: (time: number) => void;
   onComplete?: () => void;
+  /** When false, hides the in-player Theater toggle button to avoid duplicate controls when the parent owns it. */
+  showTheaterToggle?: boolean;
 }
 
 interface ViewingSession {
@@ -80,7 +82,8 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   onError,
   onLoad,
   onProgress,
-  onComplete
+  onComplete,
+  showTheaterToggle = true
 }) => {
   const muxPlayerRef = React.useRef<any>(null);
   const [viewingSession, setViewingSession] = React.useState<ViewingSession>({
@@ -93,7 +96,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   const [selectedSubtitleTrack, setSelectedSubtitleTrack] = React.useState<string | null>(null);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [showNotesPanel, setShowNotesPanel] = React.useState(false);
-  const [showChaptersPanel, setShowChaptersPanel] = React.useState(false);
+  // Chapters panel removed
   const progressIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -220,12 +223,16 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
     return 'none';
   }, [lesson.mux_playback_id, lesson.mux_asset_id, lesson.mux_status]);
 
-  console.log('UnifiedVideoPlayer - Provider detection:', {
-    lessonId: lesson.id,
-    provider: videoProvider,
-    muxPlaybackId: lesson.mux_playback_id,
-    muxStatus: lesson.mux_status
-  });
+  // Reduce noisy logs in production; keep behind a compact debug flag
+  const DEBUG_PROVIDER = false;
+  if (DEBUG_PROVIDER) {
+    console.log('UnifiedVideoPlayer - Provider detection:', {
+      lessonId: lesson.id,
+      provider: videoProvider,
+      muxPlaybackId: lesson.mux_playback_id,
+      muxStatus: lesson.mux_status
+    });
+  }
 
   // Save watch history periodically
   const saveWatchHistory = React.useCallback(async (currentTime: number, duration: number) => {
@@ -573,26 +580,13 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
               ? 'top-2 left-2' 
               : 'top-4 left-4'
           }`}>
-          {/* Chapters Toggle Button */}
-          <button
-            onClick={() => {
-              setShowChaptersPanel(!showChaptersPanel);
-              if (showNotesPanel) setShowNotesPanel(false);
-            }}
-            className={`bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
-              isMobile ? 'p-2' : 'p-3'
-            }`}
-            title="Chapters"
-          >
-            <List className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-            {!isMobile && <span className="text-sm font-medium">Chapters</span>}
-          </button>
+          {/* Chapters button removed per UX; notes remain accessible */}
 
           {/* Notes Panel Toggle Button */}
           <button
             onClick={() => {
               setShowNotesPanel(!showNotesPanel);
-              if (showChaptersPanel) setShowChaptersPanel(false);
+              // Chapters panel hidden
             }}
             className={`bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
               isMobile ? 'p-2' : 'p-3'
@@ -638,17 +632,19 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
             </button>
           )}
 
-          {/* Theater Mode Button */}
-          <button
-            onClick={toggleTheaterMode}
-            className={`bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
-              isMobile ? 'p-2' : 'p-3'
-            } ${isTheaterMode ? 'bg-[#4FC3F7]/90' : ''}`}
-            title="Theater Mode"
-          >
-            <Monitor className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-            {!isMobile && <span className="text-sm font-medium">Theater</span>}
-          </button>
+          {/* Theater Mode Button (optional to avoid duplicate controls when parent renders one) */}
+          {showTheaterToggle && (
+            <button
+              onClick={toggleTheaterMode}
+              className={`bg-black/70 hover:bg-black/90 text-white rounded-lg transition-all flex items-center space-x-2 shadow-lg ${
+                isMobile ? 'p-2' : 'p-3'
+              } ${isTheaterMode ? 'bg-[#4FC3F7]/90' : ''}`}
+              title="Theater Mode"
+            >
+              <Monitor className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+              {!isMobile && <span className="text-sm font-medium">Theater</span>}
+            </button>
+          )}
 
           {/* Fullscreen Button */}
           <button
@@ -747,14 +743,7 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           </div>
         )}
 
-        {/* Chapters Panel */}
-        <VideoChaptersPanel
-          lessonId={lesson.id}
-          currentTime={currentTime}
-          onSeekTo={handleSeekTo}
-          isOpen={showChaptersPanel}
-          onClose={() => setShowChaptersPanel(false)}
-        />
+        {/* Chapters Panel removed */}
 
         {/* Notes Panel */}
         <VideoNotesPanel
@@ -1007,9 +996,12 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
           }}
           style={{
             width: '100%',
-            maxHeight: isTheaterMode ? '85vh' : (isMobile ? 'calc(100vh - 200px)' : 'none')
+            aspectRatio: '16/9',
+            maxHeight: isTheaterMode ? '85vh' : (isMobile ? 'calc(100vh - 200px)' : 'none'),
+            // @ts-ignore: CSS var understood by mux-player
+            ['--media-object-fit' as any]: 'cover'
           }}
-          playsInline={isMobile}
+          playsInline
         />
         
         {/* Quiz Timeline Markers (FR2: In-lesson quiz integration) */}

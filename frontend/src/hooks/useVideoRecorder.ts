@@ -164,7 +164,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const [options, setOptionsState] = useState<RecorderOptions>({
     resolution: '720p',
     screen: false,
-    layout: 'picture-in-picture',
+    layout: 'camera-only',
     enableAudio: true,
     quality: 'medium',
     frameRate: 30
@@ -182,7 +182,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     microphone: null
   });
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [currentLayout, setCurrentLayout] = useState<RecorderOptions['layout']>('picture-in-picture');
+  const [currentLayout, setCurrentLayout] = useState<RecorderOptions['layout']>('camera-only');
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentSession, setCurrentSession] = useState<RecordingSession | null>(null);
@@ -553,16 +553,49 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
             visible: true,
             opacity: 1.0
           });
-        
-          // Wait a moment for video element to be ready before applying layout
-          setTimeout(() => {
-            // Automatically adjust layout to picture-in-picture; disable transition to avoid initial black frames
-          const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
+
+          // Gate layout switch until screen is actually rendering to avoid black flicker
+          try {
+            const tmpVideo = document.createElement('video');
+            tmpVideo.muted = true;
+            tmpVideo.playsInline = true;
+            tmpVideo.srcObject = screenStream;
+
+            const waitForReady = new Promise<void>((resolve, reject) => {
+              let ready = false;
+              const cleanup = () => {
+                tmpVideo.srcObject = null;
+                tmpVideo.removeAttribute('src');
+              };
+              const onReady = () => {
+                if (!ready && tmpVideo.videoWidth > 0 && tmpVideo.videoHeight > 0) {
+                  ready = true;
+                  cleanup();
+                  resolve();
+                }
+              };
+              tmpVideo.addEventListener('loadedmetadata', onReady, { once: true });
+              tmpVideo.addEventListener('playing', onReady, { once: true });
+              tmpVideo.addEventListener('error', () => { cleanup(); reject(new Error('Temp video failed')); }, { once: true });
+              tmpVideo.play().catch(() => {/* ignore autoplay errors on temp element */});
+
+              // Safety timeout
+              setTimeout(() => {
+                if (!ready) {
+                  cleanup();
+                  resolve(); // proceed anyway after timeout
+                }
+              }, 600);
+            });
+
+            await waitForReady;
+
+            const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
             compositorInstance!.applyLayoutByType(newLayout, false);
-        setCompositorLayout(newLayout);
-        setCurrentLayout(newLayout as RecorderOptions['layout']);
-        
-            console.log('✅ Screen share added dynamically (no restart) - layout:', newLayout, {
+            setCompositorLayout(newLayout);
+            setCurrentLayout(newLayout as RecorderOptions['layout']);
+
+            console.log('✅ Screen share added dynamically (gated) - layout:', newLayout, {
               screenStreamActive: screenStream.active,
               videoTracks: screenStream.getVideoTracks().length,
               trackStates: screenStream.getVideoTracks().map(t => ({
@@ -571,7 +604,13 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
                 enabled: t.enabled
               }))
             });
-          }, 200); // Small delay to ensure video element is initialized
+          } catch (e) {
+            console.warn('Screen gating failed, applying layout immediately');
+            const newLayout: LayoutType = recordingSources.camera ? 'picture-in-picture' : 'screen-only';
+            compositorInstance!.applyLayoutByType(newLayout, false);
+            setCompositorLayout(newLayout);
+            setCurrentLayout(newLayout as RecorderOptions['layout']);
+          }
         } else {
           // This should never happen since we always use compositor from start
           console.error('No compositor instance during recording - this should not happen!');

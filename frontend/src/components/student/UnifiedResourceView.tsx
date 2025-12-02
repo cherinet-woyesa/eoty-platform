@@ -11,6 +11,8 @@ interface UnifiedResourceViewProps {
   activeTab?: 'course' | 'chapter' | 'platform';
   onTabChange?: (tab: 'course' | 'chapter' | 'platform') => void;
   hideTabs?: boolean;
+  // When this value changes, the list reloads (e.g., after an upload)
+  refreshToken?: number | string;
 }
 
 const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
@@ -19,7 +21,8 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
   variant = 'full',
   activeTab: controlledTab,
   onTabChange,
-  hideTabs = false
+  hideTabs = false,
+  refreshToken
 }) => {
   const { user } = useAuth();
   const [internalTab, setInternalTab] = useState<'course' | 'chapter' | 'platform'>(showCourseResources ? 'course' : 'chapter');
@@ -38,37 +41,46 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  const tabs = [
-    ...(showCourseResources ? [{
-      id: 'course' as const,
-      label: 'Course Resources',
-      icon: GraduationCap,
-      description: 'Resources specific to this course'
-    }] : []),
-    {
-      id: 'chapter' as const,
-      label: 'Chapter Library',
-      icon: Users,
-      description: 'Resources shared within our chapter'
-    },
-    {
-      id: 'platform' as const,
-      label: 'Platform Library',
-      icon: Globe,
-      description: 'Resources available to all Orthodox communities'
-    }
-  ];
+  const tabs = showCourseResources && hideTabs
+    ? [{
+        id: 'course' as const,
+        label: 'Course Resources',
+        icon: GraduationCap,
+        description: 'Resources specific to this course'
+      }]
+    : [
+        ...(showCourseResources ? [{
+          id: 'course' as const,
+          label: 'Course Resources',
+          icon: GraduationCap,
+          description: 'Resources specific to this course'
+        }] : []),
+        {
+          id: 'chapter' as const,
+          label: 'Chapter Library',
+          icon: Users,
+          description: 'Resources shared within our chapter'
+        },
+        {
+          id: 'platform' as const,
+          label: 'Platform Library',
+          icon: Globe,
+          description: 'Resources available to all Orthodox communities'
+        }
+      ];
 
   useEffect(() => {
     loadResources();
-  }, [activeTab, searchTerm, selectedCategory]);
+  }, [activeTab, searchTerm, selectedCategory, refreshToken]);
 
   const loadResources = async () => {
     try {
       setLoading(true);
       let response;
 
-      switch (activeTab) {
+      // When showCourseResources + hideTabs, force course-only scope
+      const scope = showCourseResources && hideTabs ? 'course' : activeTab;
+      switch (scope) {
         case 'course':
           if (courseId) {
             response = await resourcesApi.getCourseResources(courseId, {

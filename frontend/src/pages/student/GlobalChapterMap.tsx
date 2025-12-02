@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { chaptersApi, Chapter } from '@/services/api/chapters';
+import { chaptersApi, type Chapter } from '@/services/api/chapters';
 import { MapPin, Search, Globe, Mail, Clock, Navigation } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 

@@ -158,10 +158,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   });
 
   // Fetch course statistics
+  // Lazy-load analytics: only fetch when Analytics tab is active
   const { data: statsData } = useQuery({
     queryKey: ['course-stats', courseId],
     queryFn: () => coursesApi.getCourseAnalytics(courseId),
-    enabled: !!courseId && !!course,
+    enabled: !!courseId && !!course && activeTab === 'analytics',
   });
 
   // Fetch dynamic configuration options
@@ -625,6 +626,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     [tags, t]
   );
 
+  // UI trims: collapse heavy sections by default
+  const [showObjectives, setShowObjectives] = useState(false);
+  const [showTags, setShowTags] = useState(false);
+
   const isLoading = isLoadingCourse || isLoadingCategories || isLoadingLevels || isLoadingDurations || isLoadingTags;
 
   if (isLoading) {
@@ -1059,129 +1064,148 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               </div>
             </div>
 
-            {/* Learning Objectives */}
+            {/* Learning Objectives (collapsed) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('courses.creation.learning_objectives')}
-              </label>
-              <div className="space-y-3">
-                {formData.learning_objectives.map((objective, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-3">
-                      <GripVertical className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={objective}
-                        onChange={(e) => handleUpdateObjective(index, e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                        placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
-                      />
-                    </div>
-                    {formData.learning_objectives.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveObjective(index)}
-                        className="flex-shrink-0 mt-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('courses.creation.learning_objectives')}
+                </label>
                 <button
                   type="button"
-                  onClick={handleAddObjective}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                  onClick={() => setShowObjectives((v) => !v)}
+                  className="text-xs px-2 py-1 rounded-lg border border-stone-200 text-stone-700 hover:border-stone-300 hover:bg-stone-50"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('courses.creation.add_another_objective')}
+                  {showObjectives ? t('common.hide') : t('common.show')}
                 </button>
               </div>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('courses.creation.tags')}
-              </label>
-              <div className="space-y-3">
-                {/* Selected Tags */}
-                {formData.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    {formData.tags.map((tagName) => {
-                      const tag = tags.find(t => t.name === tagName);
-                      return (
-                        <span
-                          key={tagName}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                          style={{
-                            backgroundColor: tag?.color ? `${tag.color}20` : '#3B82F620',
-                            color: tag?.color || '#3B82F6',
-                            border: `1px solid ${tag?.color || '#3B82F6'}40`
-                          }}
+              {showObjectives && (
+                <div className="mt-3 space-y-3">
+                  {formData.learning_objectives.map((objective, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 mt-3">
+                        <GripVertical className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={objective}
+                          onChange={(e) => handleUpdateObjective(index, e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                          placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
+                        />
+                      </div>
+                      {formData.learning_objectives.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveObjective(index)}
+                          className="flex-shrink-0 mt-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                         >
-                          {tagName}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(tagName)}
-                            className="ml-2 hover:opacity-70"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Tag Input */}
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={newTagInput}
-                    onChange={(e) => setNewTagInput(e.target.value)}
-                    onKeyPress={handleTagKeyPress}
-                    placeholder={t('courses.creation.add_tag_placeholder')}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  />
+                          <X className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                   <button
                     type="button"
-                    onClick={handleAddTag}
-                    disabled={!newTagInput.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={handleAddObjective}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('courses.creation.add_another_objective')}
                   </button>
                 </div>
+              )}
+            </div>
 
-                {/* Tag Suggestions */}
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const tagName = e.target.value;
-                    if (tagName && !formData.tags.includes(tagName)) {
-                      handleChange('tags', [...formData.tags, tagName]);
-                    }
-                    e.target.value = '';
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            {/* Tags (collapsed) */}
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('courses.creation.tags')}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowTags((v) => !v)}
+                  className="text-xs px-2 py-1 rounded-lg border border-stone-200 text-stone-700 hover:border-stone-300 hover:bg-stone-50"
                 >
-                  <option value="">{t('courses.editor.select_from_suggestions')}</option>
-                  {Object.entries(groupedTags).map(([category, categoryTags]) => (
-                    <optgroup key={category} label={category}>
-                      {categoryTags
-                        .filter(tag => !formData.tags.includes(tag.name))
-                        .map((tag) => (
-                          <option key={tag.id} value={tag.name}>
-                            {tag.name} {tag.usage_count > 0 ? `(${tag.usage_count})` : ''}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  {showTags ? t('common.hide') : t('common.show')}
+                </button>
               </div>
+              {showTags && (
+                <div className="mt-3 space-y-3">
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      {formData.tags.map((tagName) => {
+                        const tag = tags.find(t => t.name === tagName);
+                        return (
+                          <span
+                            key={tagName}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                            style={{
+                              backgroundColor: tag?.color ? `${tag.color}20` : '#3B82F620',
+                              color: tag?.color || '#3B82F6',
+                              border: `1px solid ${tag?.color || '#3B82F6'}40`
+                            }}
+                          >
+                            {tagName}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tagName)}
+                              className="ml-2 hover:opacity-70"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      onKeyPress={handleTagKeyPress}
+                      placeholder={t('courses.creation.add_tag_placeholder')}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddTag}
+                      disabled={!newTagInput.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const tagName = e.target.value;
+                      if (tagName && !formData.tags.includes(tagName)) {
+                        handleChange('tags', [...formData.tags, tagName]);
+                      }
+                      e.target.value = '';
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  >
+                    <option value="">{t('courses.editor.select_from_suggestions')}</option>
+                    {Object.entries(groupedTags).map(([category, categoryTags]) => (
+                      <optgroup key={category} label={category}>
+                        {categoryTags
+                          .filter(tag => !formData.tags.includes(tag.name))
+                          .map((tag) => (
+                            <option key={tag.id} value={tag.name}>
+                              {tag.name} {tag.usage_count > 0 ? `(${tag.usage_count})` : ''}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         )}

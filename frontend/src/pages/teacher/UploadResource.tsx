@@ -11,13 +11,19 @@ interface UploadResourceProps {
   target?: 'library' | 'lesson';
   lessonId?: string;
   onUploadComplete?: () => void;
+  defaultScope?: 'chapter_wide' | 'platform_wide' | 'course_specific';
+  defaultCourseId?: string;
+  lockScope?: boolean;
 }
 
 const UploadResource: React.FC<UploadResourceProps> = ({ 
   variant = 'full', 
   target = 'library',
   lessonId,
-  onUploadComplete 
+  onUploadComplete,
+  defaultScope,
+  defaultCourseId,
+  lockScope = false
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -40,12 +46,24 @@ const UploadResource: React.FC<UploadResourceProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [compressionMessage, setCompressionMessage] = useState<string | null>(null);
+  const [enableImageCompression, setEnableImageCompression] = useState(variant === 'embedded');
 
   const isAdmin = user?.role === 'admin';
 
   // Initialize scope from URL params
   useEffect(() => {
     if (activeTarget === 'lesson') return;
+
+    // Priority: explicit defaults from props
+    if (defaultScope) {
+      setResourceScope(defaultScope);
+      if (defaultScope === 'course_specific') {
+        loadCourses();
+        if (defaultCourseId) setSelectedCourse(defaultCourseId);
+      }
+      return;
+    }
 
     const scopeParam = searchParams.get('scope');
     if (scopeParam === 'platform' && isAdmin) {
@@ -56,7 +74,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
     } else {
       setResourceScope('chapter_wide');
     }
-  }, [searchParams, isAdmin, activeTarget]);
+  }, [searchParams, isAdmin, activeTarget, defaultScope, defaultCourseId]);
 
   // Update activeTarget if target prop changes
   useEffect(() => {
@@ -74,7 +92,44 @@ const UploadResource: React.FC<UploadResourceProps> = ({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper: compress image to WebP (or JPEG fallback)
+  const compressImage = (inputFile: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1920;
+          let { width, height } = img as HTMLImageElement;
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > width && height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error('Canvas not supported'));
+          ctx.drawImage(img, 0, 0, width, height);
+          const type = 'image/webp';
+          canvas.toBlob((blob) => {
+            if (!blob) return reject(new Error('Compression failed'));
+            const compressedFile = new File([blob], inputFile.name.replace(/\.[^/.]+$/, '') + '.webp', { type });
+            resolve(compressedFile);
+          }, type, 0.8);
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(inputFile);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       
@@ -83,8 +138,24 @@ const UploadResource: React.FC<UploadResourceProps> = ({
         setError('File size exceeds 100MB limit');
         return;
       }
-      
-      setFile(selectedFile);
+      setCompressionMessage(null);
+
+      if (enableImageCompression && selectedFile.type.startsWith('image/')) {
+        try {
+          const compressed = await compressImage(selectedFile);
+          if (compressed && compressed.size < selectedFile.size) {
+            setFile(compressed);
+            setCompressionMessage(`Compressed image from ${(selectedFile.size/1024/1024).toFixed(2)} MB to ${(compressed.size/1024/1024).toFixed(2)} MB`);
+          } else {
+            setFile(selectedFile);
+          }
+        } catch (err) {
+          console.warn('Image compression failed, using original:', err);
+          setFile(selectedFile);
+        }
+      } else {
+        setFile(selectedFile);
+      }
       setError(null);
       
       // Auto-fill title if empty
@@ -250,7 +321,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
         {/* Main Form Card */}
         <div className={`${variant === 'full' ? 'bg-white rounded-2xl border border-slate-200 shadow-sm' : 'bg-white rounded-xl border border-slate-200'} overflow-hidden`}>
-          <div className={variant === 'full' ? "p-8" : "p-6"}>
+          <div className={variant === 'full' ? "p-8" : "p-4"}>
             
             {/* Target Toggle - Only if lessonId is present */}
             {lessonId && (
@@ -300,7 +371,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                       type="file"
                       className="hidden"
                       onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.mp3,.mp4,.avi,.mov"
+                      accept=".pdf,.doc,.docx,.rtf,.txt,.odt,.ppt,.pptx,.odp,.xls,.xlsx,.ods,.csv,.epub,.zip,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.mp3,.wav,.m4a,.aac,.flac,.mp4,.avi,.mov,.mkv,.webm"
                     />
                   </label>
                 ) : (
@@ -316,6 +387,9 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                         </p>
                       </div>
                     </div>
+                    {compressionMessage && (
+                      <div className="text-xs text-emerald-600 mr-3">{compressionMessage}</div>
+                    )}
                     <button
                       type="button"
                       onClick={() => setFile(null)}
@@ -360,6 +434,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
                 {activeTarget === 'library' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {!lockScope && (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Scope
@@ -380,8 +455,9 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                         <option value="course_specific">Course Specific</option>
                       </select>
                     </div>
+                    )}
 
-                    {resourceScope === 'course_specific' && (
+                    {resourceScope === 'course_specific' && !lockScope && (
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                           Select Course <span className="text-red-500">*</span>
@@ -398,6 +474,28 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                             </option>
                           ))}
                         </select>
+                      </div>
+                    )}
+
+                    {resourceScope === 'course_specific' && lockScope && selectedCourse && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Destination
+                        </label>
+                        <div className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
+                          Uploading to this course
+                        </div>
+                        {variant === 'embedded' && (
+                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                            <input
+                              id="compress-images"
+                              type="checkbox"
+                              checked={enableImageCompression}
+                              onChange={(e) => setEnableImageCompression(e.target.checked)}
+                            />
+                            <label htmlFor="compress-images">Compress images before upload</label>
+                          </div>
+                        )}
                       </div>
                     )}
 
