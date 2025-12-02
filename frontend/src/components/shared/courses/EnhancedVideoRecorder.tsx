@@ -1284,6 +1284,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     const persistentMessage = '🎉 Video processing completed successfully! Your video is now available for viewing.';
     persistentSuccessMessageRef.current = persistentMessage;
     setSuccessMessage(persistentMessage);
+    try {
+      // Also show a visible toast popup
+      addNotification(
+        'success',
+        'Success',
+        persistentMessage,
+        undefined,
+        true // auto-hide
+      );
+    } catch {}
     
     // If we have a transcoded video URL, notify parent components
     if (transcodedVideoUrl && processingLessonId) {

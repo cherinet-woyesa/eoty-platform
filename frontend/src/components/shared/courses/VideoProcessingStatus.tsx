@@ -30,6 +30,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   onProcessingComplete,
   videoProvider = 's3' // Default to S3 for backward compatibility
 }) => {
+  const DEBUG = false;
   const [processingState, setProcessingState] = useState<ProcessingState>({
     status: 'queued',
     progress: 0,
@@ -40,6 +41,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   const startTimeRef = useRef<number>(Date.now());
   
   const [retryCount, setRetryCount] = useState(0);
+  const [minimized, setMinimized] = useState(false);
   const socketRef = useRef<Socket | null>(null); // Change to Socket type
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isConnectingRef = useRef(false);
@@ -77,7 +79,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       }
       
       // Socket.IO automatically handles the path, just use the base URL
-      console.log('Connecting to WebSocket:', wsBase);
+      if (DEBUG) console.log('Connecting to WebSocket:', wsBase);
       
       const socket = io(wsBase, {
         transports: ['websocket', 'polling'], // Allow both transports
@@ -89,7 +91,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       socketRef.current = socket;
 
       socket.on('connect', () => {
-        console.log('WebSocket connected for progress updates');
+        if (DEBUG) console.log('WebSocket connected for progress updates');
         isConnectingRef.current = false;
         setProcessingState(prev => ({
           ...prev,
@@ -101,13 +103,13 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
       socket.on('progress', (data) => { // Listen for 'progress' event
         try {
-          console.log('Progress update:', data);
+          if (DEBUG) console.log('Progress update:', data);
 
           switch (data.type) {
             case 'progress':
               const newProgress = Math.max(data.progress || 0, 0);
               const newStep = data.currentStep || 'Processing...';
-              console.log(`Updating progress: ${newProgress}% - ${newStep}`);
+              if (DEBUG) console.log(`Updating progress: ${newProgress}% - ${newStep}`);
               
               setProcessingState(prev => {
                 // Only update if progress actually changed
@@ -155,7 +157,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
               break;
 
             default:
-              console.log('Unknown message type:', data.type);
+              if (DEBUG) console.log('Unknown message type:', data.type);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -167,7 +169,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       });
 
       socket.on('connect_error', (error) => { // Listen for 'connect_error'
-        console.error('WebSocket error:', error);
+        if (DEBUG) console.error('WebSocket error:', error);
         isConnectingRef.current = false;
         setProcessingState(prev => ({
           ...prev,
@@ -176,17 +178,17 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       });
 
       socket.on('disconnect', (reason) => { // Listen for 'disconnect'
-        console.log('WebSocket disconnected:', reason);
+        if (DEBUG) console.log('WebSocket disconnected:', reason);
         isConnectingRef.current = false;
         
         // If processing was in progress, don't immediately fail - wait a bit
         if (processingState.status === 'processing' && reason !== 'io client disconnect') {
-          console.log('Disconnected during processing - will attempt reconnect');
+          if (DEBUG) console.log('Disconnected during processing - will attempt reconnect');
         }
         
         // Only attempt reconnect if not a normal closure and component is still open
         if (reason !== 'io client disconnect' && isOpen && retryCount < 5) { // Check reason
-          console.log(`Attempting to reconnect... (${retryCount + 1}/5)`);
+          if (DEBUG) console.log(`Attempting to reconnect... (${retryCount + 1}/5)`);
           
           setProcessingState(prev => ({
             ...prev,
@@ -199,7 +201,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           }, 2000 * (retryCount + 1)); // Exponential backoff
         } else if (retryCount >= 5) {
           // After max retries, fall back to polling
-          console.log('WebSocket failed after max retries - switching to polling');
+          if (DEBUG) console.log('WebSocket failed after max retries - switching to polling');
           setUsePolling(true);
           setProcessingState(prev => ({
             ...prev,
@@ -211,7 +213,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
       // Add error handler for socket.io errors
       socket.on('error', (error) => {
-        console.error('Socket.io error:', error);
+        if (DEBUG) console.error('Socket.io error:', error);
         setProcessingState(prev => ({
           ...prev,
           error: `Connection error: ${error.message || 'Unknown error'}`
@@ -219,7 +221,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       });
 
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+      if (DEBUG) console.error('Failed to create WebSocket connection:', error);
       isConnectingRef.current = false;
       setProcessingState(prev => ({
         ...prev,
@@ -256,7 +258,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     // Check timeout - if processing has been going for more than 15 minutes, stop
     const elapsedTime = Date.now() - startTimeRef.current;
     if (elapsedTime > maxPollTimeRef.current) {
-      console.warn('[VideoProcessingStatus] Processing timeout exceeded (15 minutes)');
+      if (DEBUG) console.warn('[VideoProcessingStatus] Processing timeout exceeded (15 minutes)');
       setProcessingState(prev => ({
         ...prev,
         status: 'failed',
@@ -274,7 +276,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     // Check max poll count
     pollCountRef.current += 1;
     if (pollCountRef.current > maxPollCountRef.current) {
-      console.warn('[VideoProcessingStatus] Maximum poll count reached');
+      if (DEBUG) console.warn('[VideoProcessingStatus] Maximum poll count reached');
       setProcessingState(prev => ({
         ...prev,
         status: 'failed',
@@ -304,7 +306,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
       // 2) Fallback to course status (legacy)
       const response = await coursesApi.getVideoStatus(lessonId);
-      console.log('[VideoProcessingStatus] Poll response:', response);
+      if (DEBUG) console.log('[VideoProcessingStatus] Poll response:', response);
       
       // coursesApi.getVideoStatus returns response.data from axios
       // Backend returns: { success: true, data: { ... } }
@@ -318,7 +320,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       // Calculate elapsed time for time-based progress
       const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
-      console.log('[VideoProcessingStatus] Status data:', {
+      if (DEBUG) console.log('[VideoProcessingStatus] Status data:', {
         videoStatus,
         muxStatus,
         muxPlaybackId,
@@ -346,7 +348,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       }
 
       if (currentStatus === 'ready' && muxPlaybackId) {
-        console.log('[VideoProcessingStatus] Video ready!');
+        if (DEBUG) console.log('[VideoProcessingStatus] Video ready!');
         setProcessingState(prev => ({
           ...prev,
           status: 'completed',
@@ -364,7 +366,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       // NEW: Check if we have a playback ID even if status isn't explicitly 'ready'
       // This handles cases where status might be lagging but playback ID is available
       if (muxPlaybackId) {
-        console.log('[VideoProcessingStatus] Playback ID found, marking as complete!');
+        if (DEBUG) console.log('[VideoProcessingStatus] Playback ID found, marking as complete!');
         setProcessingState(prev => ({
           ...prev,
           status: 'completed',
@@ -379,7 +381,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       }
 
       if (currentStatus === 'errored' || currentStatus === 'failed') {
-        console.log('[VideoProcessingStatus] Video failed');
+        if (DEBUG) console.log('[VideoProcessingStatus] Video failed');
         setProcessingState(prev => ({
           ...prev,
           status: 'failed',
@@ -391,7 +393,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
       // Update progress based on status
       if (currentStatus === 'processing') {
-        console.log('[VideoProcessingStatus] Video processing...');
+        if (DEBUG) console.log('[VideoProcessingStatus] Video processing...');
         setProcessingState(prev => ({
           ...prev,
           status: 'processing',
@@ -400,7 +402,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           provider: 'mux'
         }));
       } else if (currentStatus === 'preparing') {
-        console.log('[VideoProcessingStatus] Video preparing...');
+        if (DEBUG) console.log('[VideoProcessingStatus] Video preparing...');
         
         // If stuck in preparing for more than 10 minutes, show warning
         if (elapsedSeconds > 600) {
@@ -445,7 +447,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           });
         }
       } else {
-        console.log('[VideoProcessingStatus] Unknown status:', currentStatus);
+        if (DEBUG) console.log('[VideoProcessingStatus] Unknown status:', currentStatus);
         // If status is unknown but we have a video, assume it's processing
         if (statusData.hasVideo) {
           setProcessingState(prev => ({
@@ -458,7 +460,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         }
       }
     } catch (error) {
-      console.error('[VideoProcessingStatus] Failed to poll Mux status:', error);
+      if (DEBUG) console.error('[VideoProcessingStatus] Failed to poll Mux status:', error);
     }
   }, [lessonId, isOpen, onProcessingComplete]);
 
@@ -481,7 +483,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   // Main effect for WebSocket connection
   useEffect(() => {
     if (isOpen && lessonId) {
-      console.log('Opening WebSocket connection for lesson:', lessonId);
+      if (DEBUG) console.log('Opening WebSocket connection for lesson:', lessonId);
       
       // Reset start time when component opens
       startTimeRef.current = Date.now();
@@ -576,7 +578,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   useEffect(() => {
     if (processingState.status === 'completed') {
       // Show success notification
-      console.log('✅ Video processing completed successfully!');
+      // Visible success message handled by parent + modal UI; no console log
       
       const timer = setTimeout(() => {
         onClose();
@@ -636,9 +638,59 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 
   if (!isOpen) return null;
 
+  // Minimized compact badge view
+  if (minimized) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 w-80 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {getStatusIcon()}
+              <span className="font-medium text-slate-800">{getStatusText()}</span>
+            </div>
+            <button
+              onClick={() => setMinimized(false)}
+              className="text-slate-500 hover:text-slate-700 text-sm"
+            >
+              Expand
+            </button>
+          </div>
+          {processingState.status === 'processing' && (
+            <div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="h-2 rounded-full transition-all duration-300 bg-blue-600"
+                  style={{ width: `${processingState.progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-gray-500">
+                <span>{processingState.currentStep}</span>
+                <span>{processingState.progress}%</span>
+              </div>
+            </div>
+          )}
+          {processingState.status === 'completed' && (
+            <div className="text-green-700 text-sm">Your video is ready.</div>
+          )}
+          {processingState.status === 'failed' && (
+            <div className="text-red-600 text-sm">Processing failed</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 relative">
+        {/* Minimize button */}
+        <button
+          onClick={() => setMinimized(true)}
+          className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 text-sm"
+          title="Continue in background"
+        >
+          Minimize
+        </button>
         {/* Simplified UI - Just show icon and message */}
         <div className="flex flex-col items-center text-center space-y-4">
           {getStatusIcon()}
@@ -715,12 +767,12 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             {(processingState.status === 'queued' || processingState.status === 'processing') && (
               <div className="flex flex-col items-center w-full">
                 <button
-                  onClick={handleManualClose}
+                  onClick={() => setMinimized(true)}
                   className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium mb-2"
                 >
                   Continue in Background
                 </button>
-                <p className="text-xs text-gray-500">You can safely close this window</p>
+                <p className="text-xs text-gray-500">This will minimize progress to a small card</p>
               </div>
             )}
           </div>
