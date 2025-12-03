@@ -16,7 +16,7 @@
     "resources_desc": "Library and Help Center",
     "students": "Students",
     "students_desc": "Students, Assignments & Analytics",
-    "content": "Content",
+    "content": "Record",
     "content_desc": "Record, Upload & Resources",
     "admin_panel": "Admin Panel",
     "admin_panel_desc": "System management",
@@ -32,7 +32,6 @@
     "assignments": "Assignments",
     "calendar": "Calendar"
   },
-  
   "common": {
     "welcome": "Welcome",
     "dashboard": "Dashboard",
@@ -243,13 +242,6 @@
   },
   "dashboard": {
     "teacher": {
-      "welcome_back": "Welcome back, {{name}}",
-      "live": "Live",
-      "unable_to_load_message": "We couldn't load your dashboard.",
-      "try_again": "Try Again",
-      "students_enrolled_in_courses": "{{students}} students enrolled in {{courses}} courses",
-      "complete_profile_title": "Complete your teacher profile",
-      "complete_profile_message": "Your profile is {{percentage}}% complete. Please add missing details.",
       "title": "Teacher Dashboard",
       "my_courses": "My Courses",
       "quick_actions": "Quick Actions",
@@ -289,26 +281,12 @@
       "student_performance": "Student Performance"
     },
     "student": {
-      "welcome_back": "Welcome back, {{name}}",
-      "live": "Live",
-      "unable_to_load_message": "We couldn't load your dashboard.",
-      "try_again": "Try Again",
       "title": "Student Dashboard",
       "my_courses": "My Courses",
       "progress": "Progress",
       "community": "Community",
       "continue_learning": "Continue Learning",
-      "recommended_courses": "Recommended Courses",
-      "browse_courses": "Browse Courses",
-      "spiritual_journeys": "Spiritual Journeys",
-      "courses_enrolled": "Courses Enrolled",
-      "lessons_completed": "Lessons Completed",
-      "study_streak": "Study Streak",
-      "total_points": "Total Points",
-      "view_all": "View All",
-      "no_active_courses": "You have no active courses",
-      "start_course_message": "Start a course to begin learning",
-      "browse_catalog": "Browse Catalog"
+      "recommended_courses": "Recommended Courses"
     }
   },
   "tasks": {
