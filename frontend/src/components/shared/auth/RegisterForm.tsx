@@ -298,6 +298,21 @@ const RegisterForm: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Registration form">
+        {/* Role Selection removed for Google sign up; email signup defaults to 'user' */}
+
+      {/* Social Login Section */}
+      <div className="space-y-4">
+        <SocialLoginButtons />
+        
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or register with email</span>
+          </div>
+        </div>
+      </div>
       {/* Messages Section - Prominent positioning at top */}
       <div className="space-y-3">
         {/* Success Message */}
@@ -327,7 +342,7 @@ const RegisterForm: React.FC = () => {
             message="Unable to load chapters. You can still register, but please contact support if you encounter issues."
             size="sm"
             dismissible={true}
-            onDismiss={() => setChapterError(null)}
+            onDismiss={() => setChapterError(false)}
           />
         )}
       </div>

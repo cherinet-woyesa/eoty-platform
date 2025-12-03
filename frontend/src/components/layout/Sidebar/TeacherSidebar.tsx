@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   ChevronLeft,
   ChevronRight,
@@ -21,6 +22,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
   isCollapsed = false, 
   onToggleCollapse 
 }) => {
+  const { t } = useTranslation();
   const { user, permissions } = useAuth();
   const location = useLocation();
 
@@ -37,19 +39,19 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
     
     return [
       {
-        name: 'Admin Panel',
+        name: 'nav.admin_panel',
         href: '/admin',
         icon: Settings,
         badge: null,
-        description: 'System management',
+        description: 'nav.admin_panel_desc',
         color: 'text-gray-600'
       },
       {
-        name: 'Revenue',
+        name: 'nav.revenue',
         href: '/revenue',
         icon: DollarSign,
         badge: null,
-        description: 'Earnings & payments',
+        description: 'nav.revenue_desc',
         color: 'text-green-600'
       }
     ];
@@ -154,14 +156,14 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 {!isCollapsed && (
                   <div className="ml-3 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="truncate font-semibold">{item.name}</span>
+                      <span className="truncate font-semibold">{t(item.name)}</span>
                       {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           {item.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
+                    <p className="text-xs text-gray-500 truncate">{t(item.description)}</p>
                   </div>
                 )}
               </Link>
@@ -178,7 +180,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
             {!isCollapsed && (
               <div className="px-3 mb-2">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Administration
+                  {t('nav.admin_panel')}
                 </h3>
               </div>
             )}

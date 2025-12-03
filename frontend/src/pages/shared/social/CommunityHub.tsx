@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Users, Image, Video, Mic, FileText, Calendar,
   MapPin, Clock, Heart, MessageCircle, Share2,
@@ -10,27 +11,31 @@ import { useAuth } from '@/context/AuthContext';
 import { communityPostsApi } from '@/services/api/communityPosts';
 import CommentSection from '@/components/shared/social/CommentSection';
 import ShareModal from '@/components/shared/social/ShareModal';
-
-interface Post {
-  id: string;
-  author_id: string;
-  author_name: string;
-  author_avatar?: string;
-  content: string;
-  media_type?: 'image' | 'video' | 'audio' | 'article';
-  media_url?: string;
-  created_at: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  liked_by_user: boolean;
-}
+import PostCard, { Post } from '@/components/shared/social/PostCard';
+import CommunitySidebar from '@/components/shared/social/CommunitySidebar';
 
 const CommunityHub: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'feed' | 'my-posts' | 'search' | 'trending'>('feed');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  // myPosts is derived from posts
+  const myPosts = useMemo(() => posts.filter(p => p.author_id === user?.id), [posts, user?.id]);
+  
+  // Filter posts based on active topic/filter
+  const filteredPosts = useMemo(() => {
+    let currentPosts = activeTab === 'my-posts' ? myPosts : posts;
+    
+    if (activeFilter === 'all') return currentPosts;
+    if (activeFilter === 'discussion') return currentPosts.filter(p => !p.media_type);
+    if (activeFilter === 'showcase') return currentPosts.filter(p => p.media_type === 'image' || p.media_type === 'video');
+    if (activeFilter === 'article') return currentPosts.filter(p => p.media_type === 'article');
+    if (activeFilter === 'qa') return currentPosts.filter(p => p.content.includes('?'));
+    
+    return currentPosts;
+  }, [posts, myPosts, activeTab, activeFilter]);
+
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -66,43 +71,19 @@ const CommunityHub: React.FC = () => {
     let isMounted = true;
     const fetch = async () => {
       setLoadingPosts(true);
-      console.log('🔄 Loading posts from API...');
       try {
-        console.log('🌐 Making API call to fetch posts...');
-        console.log('👤 Current user:', user);
-        console.log('🔑 Token exists:', !!localStorage.getItem('token'));
-
         const resp = await communityPostsApi.fetchPosts();
-        console.log('✅ Raw API Response:', resp);
-        console.log('📊 Response status:', resp?.status);
-        console.log('📦 Response data:', resp?.data);
-
-        if (!isMounted) {
-          console.log('🚫 Component unmounted, aborting');
-          return;
-        }
+        
+        if (!isMounted) return;
 
         const serverPosts = resp?.data?.posts || [];
-        console.log('📝 Server posts count:', serverPosts.length);
-        console.log('📝 Server posts:', serverPosts);
-
         setPosts(serverPosts);
-        // derive myPosts from server posts
-        const myFilteredPosts = serverPosts.filter((p: Post) => p.author_id === user?.id);
-        setMyPosts(myFilteredPosts);
-
-        console.log('✅ Posts loaded successfully');
-        console.log('👤 My posts count:', myFilteredPosts.length);
       } catch (err: any) {
         console.warn('Failed to load posts from server, falling back to localStorage', err);
         // fallback to localStorage if server unreachable
         const savedPosts = localStorage.getItem(`community_posts_${user?.id}`);
-        const savedMyPosts = localStorage.getItem(`my_posts_${user?.id}`);
         if (savedPosts) {
           try { setPosts(JSON.parse(savedPosts)); } catch (e) { console.warn('Failed to parse posts'); }
-        }
-        if (savedMyPosts) {
-          try { setMyPosts(JSON.parse(savedMyPosts)); } catch (e) { console.warn('Failed to parse my posts'); }
         }
       } finally {
         if (isMounted) setLoadingPosts(false);
@@ -178,7 +159,6 @@ const CommunityHub: React.FC = () => {
         const created = resp?.data?.post;
         if (created) {
           setPosts(prev => [created, ...prev]);
-          if (created.author_id === user?.id) setMyPosts(prev => [created, ...prev]);
         }
 
         // Reset form
@@ -195,24 +175,33 @@ const CommunityHub: React.FC = () => {
     };
 
     create();
-  }, [newPostContent, mediaFile, mediaPreview, selectedMediaType, posts, myPosts, user]);
+  }, [newPostContent, mediaFile, mediaPreview, selectedMediaType, posts, user]);
 
-  const handleLikePost = useCallback((postId: string) => {
-    const updatePostsArray = (postsArray: Post[]) =>
-      postsArray.map(post => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            likes: post.liked_by_user ? post.likes - 1 : post.likes + 1,
-            liked_by_user: !post.liked_by_user
-          };
-        }
-        return post;
-      });
+  const handleLikePost = useCallback(async (postId: string) => {
+    try {
+      // Optimistic update
+      const updatePostsArray = (postsArray: Post[]) =>
+        postsArray.map(post => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              likes: post.liked_by_user ? post.likes - 1 : post.likes + 1,
+              liked_by_user: !post.liked_by_user
+            };
+          }
+          return post;
+        });
 
-    setPosts(updatePostsArray(posts));
-    setMyPosts(updatePostsArray(myPosts));
-  }, [posts, myPosts]);
+      setPosts(updatePostsArray(posts));
+      
+      // Call API
+      await communityPostsApi.toggleLike(postId);
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      // Revert on error (could be improved)
+      loadPosts();
+    }
+  }, [posts, loadPosts]);
 
   const handleDeletePost = useCallback(async (postId: string) => {
     try {
@@ -220,7 +209,6 @@ const CommunityHub: React.FC = () => {
 
       // Update local state
       setPosts(prev => prev.filter(p => p.id !== postId));
-      setMyPosts(prev => prev.filter(p => p.id !== postId));
     } catch (error) {
       console.error('Failed to delete post:', error);
       // Could show an error toast here
@@ -238,7 +226,6 @@ const CommunityHub: React.FC = () => {
         posts.map(p => p.id === postId ? { ...p, content: editContent } : p);
 
       setPosts(updatePost);
-      setMyPosts(updatePost);
       setEditingPost(null);
       setEditContent('');
     } catch (error) {
@@ -252,7 +239,6 @@ const CommunityHub: React.FC = () => {
       posts.map(p => p.id === postId ? { ...p, comments: newCount } : p);
 
     setPosts(updatePost);
-    setMyPosts(updatePost);
   }, []);
 
   const handleSearch = useCallback(async () => {
@@ -315,7 +301,6 @@ const CommunityHub: React.FC = () => {
         posts.map(p => p.id === sharingPost.id ? { ...p, shares: p.shares + 1 } : p);
 
       setPosts(updatePost);
-      setMyPosts(updatePost);
     }
     setSharingPost(null);
   }, [sharingPost]);
@@ -326,248 +311,7 @@ const CommunityHub: React.FC = () => {
     setShowPostMenu(null);
   }, []);
 
-  const PostCard: React.FC<{
-    post: Post;
-    showActions?: boolean;
-    onDelete?: (postId: string) => void;
-    editingPost?: string | null;
-    editContent?: string;
-    onEditContentChange?: (content: string) => void;
-    onSaveEdit?: (postId: string) => void;
-    onCancelEdit?: () => void;
-    onCommentCountChange?: (postId: string, newCount: number) => void;
-  }> = ({
-    post,
-    showActions = true,
-    onDelete,
-    editingPost,
-    editContent = '',
-    onEditContentChange,
-    onSaveEdit,
-    onCancelEdit,
-    onCommentCountChange
-  }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md">
-      {/* Post Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold flex-shrink-0">
-            {post.author_avatar ? (
-              <img src={post.author_avatar} alt={post.author_name} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              post.author_name.charAt(0).toUpperCase()
-            )}
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{post.author_name}</h3>
-            <p className="text-sm text-gray-500">
-              {new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        </div>
-        {showActions && post.author_id === user?.id && (
-          <div className="relative">
-            <button
-              onClick={() => setShowPostMenu(showPostMenu === post.id ? null : post.id)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <MoreVertical className="h-5 w-5 text-gray-600" />
-            </button>
-            {showPostMenu === post.id && (
-              <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-32">
-                <button
-                  onClick={() => startEditing(post)}
-                  className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit Post
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete?.(post.id);
-                    setShowPostMenu(null);
-                  }}
-                  className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Post
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* Post Content */}
-      {editingPost === post.id ? (
-        <div className="mb-4">
-          <textarea
-            value={editContent}
-            onChange={(e) => onEditContentChange?.(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            rows={3}
-            placeholder="Edit your post..."
-          />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => onSaveEdit?.(post.id)}
-              disabled={!editContent.trim()}
-              className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              Save
-            </button>
-            <button
-              onClick={onCancelEdit}
-              className="px-4 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
-      )}
-
-      {/* Media */}
-      {post.media_url && post.media_type === 'image' && (
-        <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 relative">
-          {/* Loading placeholder */}
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
-            <div className="text-gray-500 text-sm">Loading image...</div>
-          </div>
-          <img
-            key={post.id}
-            src={post.media_url}
-            alt="Post media"
-            className="w-full max-h-96 object-cover transition-opacity duration-300 relative z-10"
-            onLoad={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.style.opacity = '1';
-              // Hide loading placeholder
-              const placeholder = img.parentElement?.querySelector('.animate-pulse');
-              if (placeholder) {
-                (placeholder as HTMLElement).style.display = 'none';
-              }
-            }}
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.style.display = 'none';
-              // Hide loading placeholder and show error
-              const placeholder = img.parentElement?.querySelector('.animate-pulse');
-              if (placeholder) {
-                placeholder.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><span>Image failed to load</span></div>';
-                (placeholder as HTMLElement).classList.remove('animate-pulse');
-              }
-            }}
-            style={{ opacity: 0 }}
-            loading="lazy"
-          />
-        </div>
-      )}
-      {post.media_url && post.media_type === 'video' && (
-        <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 relative">
-          {/* Loading placeholder */}
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse z-10">
-            <div className="text-gray-500 text-sm">Loading video...</div>
-          </div>
-          <video
-            key={post.id}
-            src={post.media_url}
-            controls
-            className="w-full max-h-96 transition-opacity duration-300 relative z-20"
-            preload="metadata"
-            onLoadedData={(e) => {
-              const video = e.target as HTMLVideoElement;
-              video.style.opacity = '1';
-              // Hide loading placeholder
-              const placeholder = video.parentElement?.querySelector('.animate-pulse');
-              if (placeholder) {
-                (placeholder as HTMLElement).style.display = 'none';
-              }
-            }}
-            onError={(e) => {
-              const video = e.target as HTMLVideoElement;
-              video.style.display = 'none';
-              // Hide loading placeholder and show error
-              const placeholder = video.parentElement?.querySelector('.animate-pulse');
-              if (placeholder) {
-                placeholder.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><span>Video failed to load</span></div>';
-                (placeholder as HTMLElement).classList.remove('animate-pulse');
-              }
-            }}
-            style={{ opacity: 0 }}
-          >
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      )}
-      {post.media_url && post.media_type === 'audio' && (
-        <div className="mb-4">
-          <audio
-            src={post.media_url}
-            controls
-            className="w-full"
-            onError={(e) => {
-              (e.target as HTMLAudioElement).style.display = 'none';
-              const parent = (e.target as HTMLAudioElement).parentElement;
-              if (parent) {
-                parent.innerHTML = '<div class="flex items-center justify-center h-16 bg-gray-200 text-gray-500 rounded"><span>Audio failed to load</span></div>';
-              }
-            }}
-          />
-        </div>
-      )}
-      {post.media_type === 'article' && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <FileText className="h-6 w-6 text-blue-600 mb-2" />
-          <p className="text-sm text-blue-900">Article content would appear here</p>
-        </div>
-      )}
-
-      {/* Post Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={() => handleLikePost(post.id)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            post.liked_by_user 
-              ? 'text-red-600 bg-red-50 hover:bg-red-100' 
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Heart className={`h-5 w-5 ${post.liked_by_user ? 'fill-current' : ''}`} />
-          <span className="font-medium">{post.likes}</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-          <MessageCircle className="h-5 w-5" />
-          <span className="font-medium">{post.comments}</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-          <Share2 className="h-5 w-5" />
-          <span className="font-medium">{post.shares}</span>
-        </button>
-        <button
-          onClick={() => {
-            setSharingPost(post);
-            setShowShareModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Share2 className="h-5 w-5" />
-          <span className="font-medium">{post.shares}</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-          <Bookmark className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Comments Section */}
-      <CommentSection
-        postId={post.id}
-        commentCount={post.comments}
-        onCommentCountChange={(newCount) => onCommentCountChange?.(post.id, newCount)}
-      />
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
@@ -577,8 +321,8 @@ const CommunityHub: React.FC = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Hub</h1>
-                <p className="text-gray-600">Share your journey, connect with others, and stay inspired</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('community_hub.title')}</h1>
+                <p className="text-gray-600">{t('community_hub.subtitle')}</p>
               </div>
 
               {/* Feed Stats */}
@@ -665,9 +409,19 @@ const CommunityHub: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Sidebar */}
+            <div className="hidden lg:block lg:col-span-3">
+              <CommunitySidebar
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+              />
+            </div>
+
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-9 xl:col-span-6 space-y-6">
               {/* Create Post Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -718,133 +472,18 @@ const CommunityHub: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="border-b border-gray-200">
-                  <nav className="flex">
-                    <button
-                      onClick={() => setActiveTab('feed')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
-                        activeTab === 'feed'
-                          ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                          : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <TrendingUp className="h-5 w-5" />
-                      My Feed
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('my-posts')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
-                        activeTab === 'my-posts'
-                          ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                          : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Edit3 className="h-5 w-5" />
-                      My Posts ({myPosts.length})
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('search')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
-                        activeTab === 'search'
-                          ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                          : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Search className="h-5 w-5" />
-                      Search ({searchResults.length})
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('trending')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
-                        activeTab === 'trending'
-                          ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                          : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <BarChart3 className="h-5 w-5" />
-                      Trending ({trendingPosts.length})
-                    </button>
-                  </nav>
-                </div>
-              </div>
+
 
               {/* Posts Feed */}
               <div className="space-y-4">
-                {activeTab === 'feed' ? (
-                  posts.length > 0 ? (
-                    posts.map(post => <PostCard
-                      key={post.id}
-                      post={post}
-                      onDelete={handleDeletePost}
-                      editingPost={editingPost}
-                      editContent={editContent}
-                      onEditContentChange={setEditContent}
-                      onSaveEdit={handleEditPost}
-                      onCancelEdit={() => {
-                        setEditingPost(null);
-                        setEditContent('');
-                      }}
-                      onCommentCountChange={handleCommentCountChange}
-                    />)
-                  ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                      <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
-                      <p className="text-gray-600 mb-4">Be the first to share something with the community!</p>
-                      <button
-                        onClick={() => setShowCreatePost(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
-                      >
-                        Create Your First Post
-                      </button>
-                    </div>
-                  )
-                ) : activeTab === 'my-posts' ? (
-                  myPosts.length > 0 ? (
-                    myPosts.map(post => (
-                      <div key={post.id} className="relative">
-                        <PostCard
-                          post={post}
-                          showActions={true}
-                          onDelete={handleDeletePost}
-                          editingPost={editingPost}
-                          editContent={editContent}
-                          onEditContentChange={setEditContent}
-                          onSaveEdit={handleEditPost}
-                          onCancelEdit={() => {
-                            setEditingPost(null);
-                            setEditContent('');
-                          }}
-                          onCommentCountChange={handleCommentCountChange}
-                        />
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          className="absolute top-4 right-4 p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                      <Edit3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">You haven't posted anything yet</h3>
-                      <p className="text-gray-600 mb-4">Share your thoughts, experiences, or insights with the community</p>
-                      <button
-                        onClick={() => setShowCreatePost(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
-                      >
-                        Create Post
-                      </button>
-                    </div>
-                  )
-                ) : activeTab === 'search' ? (
+                {activeTab === 'search' ? (
                   searchResults.length > 0 ? (
                     searchResults.map(post => <PostCard
                       key={post.id}
                       post={post}
+                      currentUserId={user?.id}
+                      onLike={handleLikePost}
+                      onShare={(p) => { setSharingPost(p); setShowShareModal(true); }}
                       onCommentCountChange={handleCommentCountChange}
                     />)
                   ) : (
@@ -868,6 +507,9 @@ const CommunityHub: React.FC = () => {
                     trendingPosts.map(post => <PostCard
                       key={post.id}
                       post={post}
+                      currentUserId={user?.id}
+                      onLike={handleLikePost}
+                      onShare={(p) => { setSharingPost(p); setShowShareModal(true); }}
                       onCommentCountChange={handleCommentCountChange}
                     />)
                   ) : (
@@ -883,12 +525,52 @@ const CommunityHub: React.FC = () => {
                       </button>
                     </div>
                   )
-                ) : null}
+                ) : (
+                  filteredPosts.length > 0 ? (
+                    filteredPosts.map(post => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        currentUserId={user?.id}
+                        showActions={true}
+                        onDelete={handleDeletePost}
+                        onLike={handleLikePost}
+                        onShare={(p) => { setSharingPost(p); setShowShareModal(true); }}
+                        editingPost={editingPost}
+                        editContent={editContent}
+                        onEditContentChange={setEditContent}
+                        onSaveEdit={handleEditPost}
+                        onCancelEdit={() => {
+                          setEditingPost(null);
+                          setEditContent('');
+                        }}
+                        onCommentCountChange={handleCommentCountChange}
+                        onStartEditing={startEditing}
+                      />
+                    ))
+                  ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                      <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts found</h3>
+                      <p className="text-gray-600 mb-4">
+                        {activeFilter !== 'all' 
+                          ? `No posts found in ${activeFilter}. Try another topic!` 
+                          : "Be the first to share something with the community!"}
+                      </p>
+                      <button
+                        onClick={() => setShowCreatePost(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
+                      >
+                        Create Post
+                      </button>
+                    </div>
+                  )
+                )}
               </div>
             </div>
 
             {/* Sidebar - My Chapters & Guidelines */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="hidden xl:block xl:col-span-3 space-y-6">
               {/* My Chapters Widget */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">

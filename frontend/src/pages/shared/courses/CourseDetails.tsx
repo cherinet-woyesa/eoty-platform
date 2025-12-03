@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { coursesApi, interactiveApi } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/api/apiClient';
 import UnifiedVideoPlayer from '@/components/shared/courses/UnifiedVideoPlayer';
 import RelatedVideos from '@/components/shared/courses/RelatedVideos';
@@ -145,11 +146,13 @@ const CourseDetails: React.FC = () => {
     return '/student/courses';
   }, [isAdmin, isOwner, user?.role]);
 
+  const { t } = useTranslation();
+
   const getBackLabel = useCallback(() => {
-    if (isAdmin) return 'Back to Admin Courses';
-    if (isOwner || user?.role === 'teacher') return 'Back to My Courses';
-    return 'Back to My Courses';
-  }, [isAdmin, isOwner, user?.role]);
+    if (isAdmin) return t('course_details.back_to_admin');
+    if (isOwner || user?.role === 'teacher') return t('course_details.back_to_my_courses');
+    return t('course_details.back_to_my_courses');
+  }, [isAdmin, isOwner, user?.role, t]);
 
   const formatDuration = useCallback((minutes: number) => {
     if (!minutes) return '0 min';
@@ -547,7 +550,7 @@ const CourseDetails: React.FC = () => {
                 }`}
               >
                 <Bookmark className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                {isBookmarked ? 'Saved' : 'Save'}
+                {isBookmarked ? t('common.saved') : t('common.save')}
               </button>
             )}
             <button className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">

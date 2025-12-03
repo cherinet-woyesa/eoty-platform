@@ -1824,6 +1824,76 @@ const videoController = {
         data: { videos: [] }
       });
     }
+  },
+
+  // Get Mux processing status
+  getMuxStatus: async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+
+      const lesson = await db('lessons')
+        .where({ id: lessonId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // If we have a mux asset ID, we can check the status
+      if (lesson.mux_asset_id) {
+        let status = lesson.mux_status || 'preparing';
+        let playbackId = lesson.mux_playback_id;
+        
+        // If it's processing OR if it's ready but missing playback ID, get fresh data
+        if (status === 'processing' || status === 'preparing' || (status === 'ready' && !playbackId)) {
+           try {
+             const asset = await muxService.getAsset(lesson.mux_asset_id);
+             if (asset) {
+               status = asset.status;
+               if (asset.playback_ids && asset.playback_ids.length > 0) {
+                 playbackId = asset.playback_ids[0].id;
+               }
+               
+               // Update DB if changed or if we found the missing playback ID
+               if (status !== lesson.mux_status || (playbackId && !lesson.mux_playback_id)) {
+                 await db('lessons')
+                   .where({ id: lessonId })
+                   .update({ 
+                     mux_status: status,
+                     mux_playback_id: playbackId,
+                     updated_at: new Date()
+                   });
+               }
+             }
+           } catch (err) {
+             console.error('Error fetching Mux asset:', err);
+           }
+        }
+
+        return res.json({
+          success: true,
+          status: status,
+          playbackId: playbackId,
+          assetId: lesson.mux_asset_id
+        });
+      }
+
+      return res.json({
+        success: true,
+        status: 'no_asset',
+        message: 'No Mux asset associated with this lesson'
+      });
+
+    } catch (error) {
+      console.error('Get Mux status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error checking video status'
+      });
+    }
   }
 };
 

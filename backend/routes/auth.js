@@ -40,6 +40,10 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login', session: false }),
   authController.googleCallback
 );
+router.post('/google/callback', (req, res, next) => {
+  console.log('Received POST /google/callback', req.body);
+  next();
+}, authController.googleCallback);
 
 // Facebook OAuth routes
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }));

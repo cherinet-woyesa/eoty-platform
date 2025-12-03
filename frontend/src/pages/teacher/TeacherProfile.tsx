@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 import { 
   User, Mail, Phone, MapPin, Calendar, 
   Save, Camera, Edit3, CheckCircle, 
@@ -23,6 +24,7 @@ interface ProfileData {
 }
 
 const TeacherProfile: React.FC = () => {
+  const { t } = useTranslation();
   const { user, refreshUser } = useUser();
   const { refreshUser: refreshAuthUser } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -102,13 +104,13 @@ const TeacherProfile: React.FC = () => {
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
-      setError('Please upload a JPG, PNG, WebP, or GIF image');
+      setError(t('teacher_profile.errors.invalid_file_type'));
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB');
+      setError(t('teacher_profile.errors.file_too_large'));
       return;
     }
 
@@ -148,7 +150,7 @@ const TeacherProfile: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to upload profile picture:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to upload profile picture. Please try again.');
+      setError(err.response?.data?.message || err.message || t('teacher_profile.errors.upload_failed'));
     } finally {
       setIsUploading(false);
       isUpdatingProfilePictureRef.current = false;
@@ -187,7 +189,7 @@ const TeacherProfile: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to remove profile picture:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to remove profile picture. Please try again.');
+      setError(err.response?.data?.message || err.message || t('teacher_profile.errors.remove_failed'));
     }
   };
 
@@ -246,7 +248,7 @@ const TeacherProfile: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to save profile:', err);
-      setError('Failed to save profile. Please try again.');
+      setError(t('teacher_profile.errors.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -255,7 +257,7 @@ const TeacherProfile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <LoadingSpinner size="lg" text="Loading profile..." variant="logo" />
+        <LoadingSpinner size="lg" text={t('teacher_profile.loading')} variant="logo" />
       </div>
     );
   }
@@ -277,8 +279,8 @@ const TeacherProfile: React.FC = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-[#2c1810] tracking-tight font-serif">Teacher Profile</h1>
-              <p className="text-[#5d4037] mt-2 text-lg">Manage your personal information and teaching credentials</p>
+              <h1 className="text-3xl font-bold text-[#2c1810] tracking-tight font-serif">{t('teacher_profile.title')}</h1>
+              <p className="text-[#5d4037] mt-2 text-lg">{t('teacher_profile.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -297,7 +299,7 @@ const TeacherProfile: React.FC = () => {
           <div className="mx-8 mt-8 bg-green-50 border-l-4 border-[#2e7d32] p-4 rounded-r-md">
             <div className="flex items-center space-x-3">
               <CheckCircle className="h-5 w-5 text-[#2e7d32]" />
-              <span className="text-[#1b5e20] font-medium">Profile updated successfully!</span>
+              <span className="text-[#1b5e20] font-medium">{t('teacher_profile.success_update')}</span>
             </div>
           </div>
         )}
@@ -305,7 +307,7 @@ const TeacherProfile: React.FC = () => {
         <form onSubmit={handleSaveProfile} className="p-8 space-y-8">
           {/* Profile Picture Section */}
           <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2">Profile Picture</h2>
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.profile_picture.title')}</h2>
             <div className="flex items-center space-x-8">
               <div className="relative group">
                 {profileData.profilePicture ? (
@@ -353,7 +355,7 @@ const TeacherProfile: React.FC = () => {
                 </button>
               </div>
               <div>
-                <p className="text-sm text-[#5d4037] mb-3">Upload a photo to personalize your teaching profile.</p>
+                <p className="text-sm text-[#5d4037] mb-3">{t('teacher_profile.profile_picture.description')}</p>
                 <div className="flex space-x-3">
                   <button
                     type="button"
@@ -361,7 +363,7 @@ const TeacherProfile: React.FC = () => {
                     className="px-5 py-2.5 bg-white border border-[#d4af37]/50 rounded-lg text-sm font-medium text-[#5d4037] hover:bg-[#fdfbf7] hover:border-[#d4af37] transition-all shadow-sm disabled:opacity-50"
                     disabled={isUploading}
                   >
-                    {isUploading ? 'Uploading...' : 'Upload Photo'}
+                    {isUploading ? t('teacher_profile.profile_picture.uploading') : t('teacher_profile.profile_picture.upload_btn')}
                   </button>
                   {profileData.profilePicture && (
                     <button
@@ -369,7 +371,7 @@ const TeacherProfile: React.FC = () => {
                       onClick={handleRemoveProfilePicture}
                       className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors shadow-sm"
                     >
-                      Remove
+                      {t('teacher_profile.profile_picture.remove_btn')}
                     </button>
                   )}
                 </div>
@@ -386,11 +388,11 @@ const TeacherProfile: React.FC = () => {
 
           {/* Basic Information */}
           <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">Basic Information</h2>
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.basic_info.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  First Name
+                  {t('teacher_profile.basic_info.first_name')}
                 </label>
                 <input
                   type="text"
@@ -404,7 +406,7 @@ const TeacherProfile: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Last Name
+                  {t('teacher_profile.basic_info.last_name')}
                 </label>
                 <input
                   type="text"
@@ -418,7 +420,7 @@ const TeacherProfile: React.FC = () => {
               </div>
               <div className="md:col-span-2">
                 <label htmlFor="email" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Email Address
+                  {t('teacher_profile.basic_info.email')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -435,11 +437,11 @@ const TeacherProfile: React.FC = () => {
                     disabled
                   />
                 </div>
-                <p className="text-xs text-[#8b0000]/70 mt-1 italic">Email cannot be changed</p>
+                <p className="text-xs text-[#8b0000]/70 mt-1 italic">{t('teacher_profile.basic_info.email_note')}</p>
               </div>
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Phone Number
+                  {t('teacher_profile.basic_info.phone')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -457,7 +459,7 @@ const TeacherProfile: React.FC = () => {
               </div>
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Location
+                  {t('teacher_profile.basic_info.location')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -478,11 +480,11 @@ const TeacherProfile: React.FC = () => {
 
           {/* Professional Information */}
           <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">Professional Information</h2>
+            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.professional_info.title')}</h2>
             <div className="space-y-6">
               <div>
                 <label htmlFor="bio" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Bio
+                  {t('teacher_profile.professional_info.bio')}
                 </label>
                 <textarea
                   id="bio"
@@ -490,13 +492,13 @@ const TeacherProfile: React.FC = () => {
                   rows={4}
                   value={profileData.bio}
                   onChange={handleInputChange}
-                  placeholder="Tell us about yourself, your teaching experience, and what you're passionate about..."
+                  placeholder={t('teacher_profile.professional_info.bio_placeholder')}
                   className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                 />
               </div>
               <div>
                 <label htmlFor="education" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Theological Education / Seminary
+                  {t('teacher_profile.professional_info.education')}
                 </label>
                 <input
                   type="text"
@@ -504,13 +506,13 @@ const TeacherProfile: React.FC = () => {
                   name="education"
                   value={profileData.education}
                   onChange={handleInputChange}
-                  placeholder="e.g., St. Paul's Theological College, Sunday School Certificate"
+                  placeholder={t('teacher_profile.professional_info.education_placeholder')}
                   className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                 />
               </div>
               <div>
                 <label htmlFor="teachingExperience" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Service Years (Teaching)
+                  {t('teacher_profile.professional_info.experience')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -529,14 +531,14 @@ const TeacherProfile: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#5d4037] mb-2">
-                  Church Service Areas
+                  {t('teacher_profile.professional_info.service_areas')}
                 </label>
                 <div className="flex space-x-2 mb-3">
                   <input
                     type="text"
                     value={newSpecialty}
                     onChange={(e) => setNewSpecialty(e.target.value)}
-                    placeholder="e.g., Bible Study, Ge'ez Language, Hymns (Zema)"
+                    placeholder={t('teacher_profile.professional_info.service_areas_placeholder')}
                     className="flex-1 px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpecialty())}
                   />
@@ -545,7 +547,7 @@ const TeacherProfile: React.FC = () => {
                     onClick={handleAddSpecialty}
                     className="px-5 py-2.5 bg-[#d4af37] text-white rounded-lg hover:bg-[#c5a028] transition-colors shadow-sm font-medium"
                   >
-                    Add
+                    {t('teacher_profile.professional_info.add_btn')}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -579,12 +581,12 @@ const TeacherProfile: React.FC = () => {
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Saving...
+                  {t('teacher_profile.saving')}
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-5 w-5" />
-                  Save Profile
+                  {t('teacher_profile.save_btn')}
                 </>
               )}
             </button>

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BookOpen, Users,
   AlertCircle, RefreshCw
@@ -11,6 +12,7 @@ import { apiClient } from '@/services/api/apiClient';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSkeleton from './DashboardSkeleton';
+import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 
 // Types
 interface TeacherStats {
@@ -25,7 +27,9 @@ interface TeacherStats {
 }
 
 const TeacherDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [teacherData, setTeacherData] = useState<TeacherStats>({
     totalCourses: 0,
@@ -82,6 +86,14 @@ const TeacherDashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    const flag = localStorage.getItem('show_profile_completion');
+    if (flag === 'true') {
+      localStorage.removeItem('show_profile_completion');
+      setProfileModalOpen(true);
+    }
+  }, [user]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -232,16 +244,16 @@ const TeacherDashboard: React.FC = () => {
         <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-stone-200 shadow-sm">
           <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-stone-800 mb-2">
-            Access Denied
+            {t('dashboard.teacher.access_denied_title')}
           </h3>
           <p className="text-stone-600 text-xs mb-3">
-            You must be logged in as a teacher to view this dashboard.
+            {t('dashboard.teacher.access_denied_message')}
           </p>
           <Link
             to="/login"
             className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
           >
-            Go to Login
+            {t('dashboard.teacher.go_to_login')}
           </Link>
         </div>
       </div>
@@ -259,21 +271,30 @@ const TeacherDashboard: React.FC = () => {
           <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm">
             <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
             <h3 className="text-sm font-semibold text-stone-800 mb-2">
-              Unable to Load Dashboard
+              {t('dashboard.teacher.unable_to_load_title')}
             </h3>
             <p className="text-stone-600 text-xs mb-3">
-              {error || 'We encountered an error while loading your dashboard data.'}
+              {error || t('dashboard.teacher.unable_to_load_message')}
             </p>
             <button
               onClick={handleRetry}
               className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
             >
               <RefreshCw className="h-3 w-3 mr-1.5" />
-              Try Again
+              {t('dashboard.teacher.try_again')}
             </button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Block dashboard UI for new users until setup completes
+  if (profileModalOpen) {
+    return (
+      <ErrorBoundary>
+        <ProfileCompletionModal isOpen={true} onClose={() => setProfileModalOpen(false)} />
+      </ErrorBoundary>
     );
   }
 
@@ -286,12 +307,12 @@ const TeacherDashboard: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1.5">
                 <h1 className="text-xl font-semibold text-stone-800">
-                  Welcome back, {user?.firstName}!
+                  {t('dashboard.teacher.welcome_back', { name: user?.firstName })}
                 </h1>
                 {isConnected && (
                   <div className="flex items-center space-x-1.5 bg-[#27AE60]/15 px-2 py-0.5 rounded-full border border-[#27AE60]/40">
                     <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-medium text-stone-700">Live</span>
+                    <span className="text-[10px] font-medium text-stone-700">{t('dashboard.teacher.live')}</span>
                   </div>
                 )}
               </div>
@@ -299,8 +320,7 @@ const TeacherDashboard: React.FC = () => {
                 {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
               <p className="text-stone-700 text-xs mt-1">
-                <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> students enrolled in{' '}
-                <span className="font-semibold text-[#16A085]">{teacherData.totalCourses}</span> courses
+                <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> {t('dashboard.teacher.students_enrolled_in_courses', { students: '', courses: teacherData.totalCourses }).replace(' students enrolled in ', ' ')}
               </p>
             </div>
           </div>
@@ -312,10 +332,10 @@ const TeacherDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800">
-                  Complete your teacher profile
+                  {t('dashboard.teacher.complete_profile_title')}
                 </h3>
                 <p className="text-xs text-stone-600 mt-0.5">
-                  Your profile is {user.profileCompletion.percentage}% complete. Add more details to build trust with students.
+                  {t('dashboard.teacher.complete_profile_message', { percentage: user.profileCompletion.percentage })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -331,7 +351,7 @@ const TeacherDashboard: React.FC = () => {
                   to="/teacher/profile"
                   className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 >
-                  Update Profile
+                  {t('dashboard.teacher.update_profile')}
                 </Link>
               </div>
             </div>
@@ -345,7 +365,7 @@ const TeacherDashboard: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-stone-200 p-4">
           <h3 className="text-sm font-semibold text-stone-800 mb-3 flex items-center gap-2">
             <span className="w-1 h-4 bg-gradient-to-b from-[#27AE60] to-[#16A085] rounded-full"></span>
-            Quick Actions
+            {t('dashboard.teacher.quick_actions')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Link
@@ -355,7 +375,7 @@ const TeacherDashboard: React.FC = () => {
               <div className="p-2 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-lg mb-2 group-hover:scale-110 transition-transform">
                 <BookOpen className="h-5 w-5 text-[#27AE60]" />
               </div>
-              <span className="font-medium text-stone-800 text-sm">Manage Courses</span>
+              <span className="font-medium text-stone-800 text-sm">{t('dashboard.teacher.manage_courses')}</span>
             </Link>
             <Link
               to="/teacher/students"
@@ -364,7 +384,7 @@ const TeacherDashboard: React.FC = () => {
               <div className="p-2 bg-gradient-to-br from-[#16A085]/15 to-[#2980B9]/15 rounded-lg mb-2 group-hover:scale-110 transition-transform">
                 <Users className="h-5 w-5 text-[#16A085]" />
               </div>
-              <span className="font-medium text-stone-800 text-sm">View Students</span>
+              <span className="font-medium text-stone-800 text-sm">{t('dashboard.teacher.view_students')}</span>
             </Link>
             <button
               onClick={handleRetry}
@@ -373,7 +393,7 @@ const TeacherDashboard: React.FC = () => {
               <div className="p-2 bg-stone-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
                 <RefreshCw className="h-5 w-5 text-stone-600" />
               </div>
-              <span className="font-medium text-stone-700 text-sm">Refresh Data</span>
+              <span className="font-medium text-stone-700 text-sm">{t('dashboard.teacher.refresh_data')}</span>
             </button>
           </div>
         </div>

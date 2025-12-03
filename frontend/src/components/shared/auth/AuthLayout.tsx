@@ -104,17 +104,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
           <div className={`mt-6 text-center transform transition-all duration-700 delay-200 ${
             isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
           }`}>
-            <div className="inline-flex items-center justify-center space-x-6 text-sm text-gray-600 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-sm border border-white/50">
-              <div className="flex items-center space-x-2">
-                <Heart className="h-4 w-4 text-[#27AE60]" />
-                <span className="font-medium">Faith-Centered</span>
-              </div>
-              <div className="w-px h-4 bg-gray-300" />
-              <div className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4 text-[#16A085]" />
-                <span className="font-medium">Community-Driven</span>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>

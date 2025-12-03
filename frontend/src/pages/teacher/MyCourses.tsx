@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  BookOpen, Plus, Search, Video, Users, Clock, 
-  TrendingUp, Eye, Edit3,
-  PlayCircle, Calendar, Zap,
-  Loader2, AlertCircle, RefreshCw, Grid, List,
+  BookOpen, Plus, Search, Video, Users,
+  Sparkles,
+  AlertCircle, RefreshCw, Grid, List,
   SortAsc, SortDesc
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { coursesApi } from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { useAuth } from '@/context/AuthContext';
 import { BulkActions } from '@/components/shared/courses/BulkActions';
 import type { Course } from '@/types/courses';
-import { dataCache } from '@/hooks/useRealTimeData';
 
 interface CourseStats {
   totalCourses: number;
@@ -25,9 +23,7 @@ interface CourseStats {
 }
 
 const MyCourses: React.FC = () => {
-  // const { t } = useTranslation();
-  const { user } = useAuth();
-  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'admin';
+  const { t } = useTranslation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,31 +33,29 @@ const MyCourses: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState('all');
-  // const [showFilters, setShowFilters] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
 
   // Memoize categories and sort options to prevent re-creation on each render
   const categories = useMemo(() => [
-    { value: 'all', label: 'All Categories', count: 0 },
-    { value: 'faith', label: 'Faith & Doctrine', count: 0 },
-    { value: 'history', label: 'Church History', count: 0 },
-    { value: 'spiritual', label: 'Spiritual Development', count: 0 },
-    { value: 'bible', label: 'Bible Study', count: 0 },
-    { value: 'liturgical', label: 'Liturgical Studies', count: 0 },
-    { value: 'youth', label: 'Youth Ministry', count: 0 }
-  ], []);
+    { value: 'all', label: t('teacher_courses.all_categories_filter'), count: 0 },
+    { value: 'faith', label: t('teacher_courses.faith_doctrine_filter'), count: 0 },
+    { value: 'history', label: t('teacher_courses.church_history_filter'), count: 0 },
+    { value: 'spiritual', label: t('teacher_courses.spiritual_development_filter'), count: 0 },
+    { value: 'bible', label: t('teacher_courses.bible_study_filter'), count: 0 },
+    { value: 'liturgical', label: t('teacher_courses.liturgical_studies_filter'), count: 0 },
+    { value: 'youth', label: t('teacher_courses.youth_ministry_filter'), count: 0 }
+  ], [t]);
 
   const sortOptions = useMemo(() => [
-    { value: 'created_at', label: 'Date Created' },
-    { value: 'updated_at', label: 'Last Updated' },
-    { value: 'title', label: 'Course Title' },
-    { value: 'lesson_count', label: 'Number of Lessons' },
-    { value: 'student_count', label: 'Number of Students' },
-    { value: 'total_duration', label: 'Total Duration' }
-  ], []);
+    { value: 'created_at', label: t('teacher_courses.sort_by_date_created') },
+    { value: 'updated_at', label: t('teacher_courses.sort_by_last_updated') },
+    { value: 'title', label: t('teacher_courses.sort_by_title') },
+    { value: 'lesson_count', label: t('teacher_courses.sort_by_lesson_count') },
+    { value: 'student_count', label: t('teacher_courses.sort_by_student_count') },
+    { value: 'total_duration', label: t('teacher_courses.sort_by_duration') }
+  ], [t]);
 
   const loadCourses = useCallback(async () => {
     try {
@@ -72,14 +66,7 @@ const MyCourses: React.FC = () => {
       
       if (response.success) {
         const coursesData = response.data.courses || [];
-        console.log('MyCourses - fetched courses:', coursesData.map(course => ({
-          id: course.id,
-          title: course.title,
-          cover_image: course.cover_image,
-          hasCoverImage: !!course.cover_image
-        })));
         setCourses(coursesData);
-        setLastUpdated(new Date());
         
         // Calculate stats
         const courseStats: CourseStats = {
@@ -105,11 +92,11 @@ const MyCourses: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to load courses:', err);
-      setError('Failed to load courses. Please try again.');
+      setError(t('teacher_courses.load_courses_fail'));
     } finally {
       setLoading(false);
     }
-  }, [categories]);
+  }, [categories, t]);
 
   useEffect(() => {
     loadCourses();
@@ -157,22 +144,22 @@ const MyCourses: React.FC = () => {
   }, []);
 
   const formatDuration = useCallback((minutes: number) => {
-    if (!minutes) return '0 min';
+    if (!minutes) return t('teacher_courses.duration_minutes', { minutes: 0 });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  }, []);
+    return hours > 0 ? t('teacher_courses.duration_hours_minutes', { hours, minutes: mins }) : t('teacher_courses.duration_minutes', { minutes: mins });
+  }, [t]);
 
   const getTimeAgo = useCallback((date: string | Date) => {
     const now = new Date();
     const courseDate = typeof date === 'string' ? new Date(date) : date;
     const diffInHours = Math.floor((now.getTime() - courseDate.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    if (diffInHours < 1) return t('teacher_courses.just_now');
+    if (diffInHours < 24) return t('teacher_courses.hours_ago', { count: diffInHours });
+    if (diffInHours < 168) return t('teacher_courses.days_ago', { count: Math.floor(diffInHours / 24) });
     return courseDate.toLocaleDateString();
-  }, []);
+  }, [t]);
 
   // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: Course) => (
@@ -198,483 +185,247 @@ const MyCourses: React.FC = () => {
       {viewMode === 'grid' ? (
         // Compact Grid View
         <>
-          {course.cover_image && (
-            <img
-              src={course.cover_image}
-              alt={`Cover for ${course.title}`}
-              className="w-full h-24 object-cover mb-3 rounded-t-lg"
-            />
-          )}
-          {/* Course Header */}
-          <div className={`bg-gradient-to-r from-[#27AE60]/20 via-[#16A085]/20 to-[#2980B9]/20 p-3 border-b border-[#27AE60]/30`}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-stone-800 mb-0.5 line-clamp-2">{course.title}</h3>
-                <p className="text-stone-600 text-xs line-clamp-2">
-                  {course.description || 'No description provided'}
-                </p>
+          <div className="relative h-32">
+            {course.cover_image ? (
+              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
+                <BookOpen className="h-8 w-8 text-white/50" />
               </div>
-              <div className="flex space-x-0.5 ml-2">
-                <Link
-                  to={`/teacher/courses/${course.id}`}
-                  className="p-1.5 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 rounded transition-all text-stone-700 hover:text-[#27AE60]"
-                  title="View Course"
-                >
-                  <Eye className="h-3 w-3" />
-                </Link>
-                <Link
-                  to={`/teacher/courses/${course.id}/edit`}
-                  className="p-1.5 bg-white/90 hover:bg-white border border-stone-200 hover:border-[#16A085]/50 rounded transition-all text-stone-700 hover:text-[#16A085]"
-                  title="Edit Course"
-                >
-                  <Edit3 className="h-3 w-3" />
-                </Link>
-              </div>
+            )}
+            <div className="absolute top-1.5 right-1.5">
+              <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
+                {course.is_published ? t('common.published') : t('common.draft')}
+              </span>
             </div>
           </div>
-
-          {/* Compact Course Stats */}
           <div className="p-3">
-            <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-              <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded p-2 border border-[#27AE60]/30">
-                <Video className="h-3 w-3 text-[#27AE60] mx-auto mb-0.5" />
-                <div className="text-sm font-bold text-stone-800">{course.lesson_count}</div>
-                <div className="text-[10px] text-stone-600">Lessons</div>
+            <h3 className="font-semibold text-sm text-stone-800 truncate mb-1">{course.title}</h3>
+            <div className="flex items-center text-xs text-stone-500 space-x-2">
+              <div className="flex items-center">
+                <Users className="h-3 w-3 mr-1" />
+                <span>{t('common.student_count', { count: course.student_count || 0 })}</span>
               </div>
-              <div className="bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded p-2 border border-[#16A085]/30">
-                <Users className="h-3 w-3 text-[#16A085] mx-auto mb-0.5" />
-                <div className="text-sm font-bold text-stone-800">{course.student_count}</div>
-                <div className="text-[10px] text-stone-600">Students</div>
+              <div className="flex items-center">
+                <Video className="h-3 w-3 mr-1" />
+                <span>{t('common.lesson_count', { count: course.lesson_count || 0 })}</span>
               </div>
-              <div className="bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded p-2 border border-[#2980B9]/30">
-                <Clock className="h-3 w-3 text-[#2980B9] mx-auto mb-0.5" />
-                <div className="text-sm font-bold text-stone-800">{formatDuration(course.total_duration || 0)}</div>
-                <div className="text-[10px] text-stone-600">Duration</div>
-              </div>
-            </div>
-
-            {/* Compact Course Metadata */}
-            <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
-              <span className="capitalize bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                {course.level || 'Beginner'}
-              </span>
-              <span className="text-gray-500 text-[10px]">
-                {getTimeAgo(course.created_at)}
-              </span>
-            </div>
-
-            {/* Compact Action Buttons */}
-            <div className="flex space-x-1.5">
-              <Link
-                to={`/teacher/courses/${course.id}`}
-                className="flex-1 inline-flex items-center justify-center px-2.5 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-xs font-semibold rounded transition-all shadow-sm hover:shadow-md"
-              >
-                <PlayCircle className="mr-1 h-3 w-3" />
-                View
-              </Link>
-              <Link
-                to={`/teacher/record?course=${course.id}`}
-                className="inline-flex items-center px-2.5 py-1.5 border border-stone-200 hover:border-[#27AE60]/50 text-xs font-medium rounded text-stone-700 bg-white/90 hover:bg-white transition-all"
-                title="Add Lesson"
-              >
-                <Video className="h-3 w-3" />
-              </Link>
             </div>
           </div>
         </>
       ) : (
         // List View
-        <div className="flex items-center space-x-4">
-          {course.cover_image ? (
-            <img 
-              src={course.cover_image} 
-              alt={`Cover for ${course.title}`}
-              className="w-16 h-16 object-cover rounded-lg"
+        <div className="flex items-center">
+          <div className="w-1/12 pl-6">
+            <input
+              type="checkbox"
+              checked={selectedCourses.includes(course.id)}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedCourses([...selectedCourses, course.id]);
+                } else {
+                  setSelectedCourses(selectedCourses.filter(id => id !== course.id));
+                }
+              }}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
             />
-          ) : (
-            <div className={`w-16 h-16 bg-gradient-to-r ${getCategoryColor(course.category)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
-              {course.title.charAt(0)}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 truncate">{course.title}</h3>
-            <p className="text-sm text-gray-500 truncate">{course.description || 'No description'}</p>
-            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-              <div className="flex items-center space-x-1">
-                <Video className="h-3 w-3" />
-                <span>{course.lesson_count} lessons</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Users className="h-3 w-3" />
-                <span>{course.student_count} students</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Clock className="h-3 w-3" />
-                <span>{formatDuration(course.total_duration || 0)}</span>
-              </div>
-            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Link
-              to={`/teacher/courses/${course.id}`}
-              className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-            <Link
-              to={`/teacher/courses/${course.id}/edit`}
-              className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-            >
-              <Edit3 className="h-4 w-4" />
-            </Link>
-            <Link
-              to={`/teacher/record?course=${course.id}`}
-              className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-            >
-              <Video className="h-4 w-4" />
-            </Link>
+          <div className="w-4/12">
+            <Link to={`/teacher/courses/${course.id}/edit`} className="font-semibold text-stone-800 hover:text-emerald-600">{course.title}</Link>
+          </div>
+          <div className="w-2/12 text-sm text-stone-600">{t('common.student_count', { count: course.student_count || 0 })}</div>
+          <div className="w-2/12 text-sm text-stone-600">{formatDuration(course.total_duration || 0)}</div>
+          <div className="w-2/12 text-sm text-stone-600">{getTimeAgo(course.updated_at)}</div>
+          <div className="w-1/12">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
+              {course.is_published ? t('common.published') : t('common.draft')}
+            </span>
           </div>
         </div>
       )}
     </div>
-  ), [viewMode, selectedCourses, getCategoryColor, formatDuration, getTimeAgo]);
+  ), [viewMode, selectedCourses, getCategoryColor, formatDuration, getTimeAgo, t]);
 
-  const handleDeleteCourse = useCallback(async (courseId: number) => {
-    try {
-      await coursesApi.deleteCourse(courseId.toString());
-      
-      // Remove the deleted course from the state
-      setCourses(prevCourses => prevCourses.filter(course => course.id !== courseId));
-      
-      // Clear the teacher dashboard cache to force a refresh of course counts
-      dataCache.delete('teacher_dashboard');
-      
-      // Show success message
-      // You might want to add a toast notification here
-    } catch (error) {
-      console.error('Failed to delete course:', error);
-      // Show error message
-      // You might want to add a toast notification here
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedCourses(filteredAndSortedCourses.map(c => c.id));
+    } else {
+      setSelectedCourses([]);
     }
-  }, []);
+  };
 
   if (loading) {
-    return (
-      <div className="w-full space-y-2 p-2">
-        <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text="Loading your courses..." variant="logo" />
-        </div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-96"><LoadingSpinner text={t('common.loading')} /></div>;
   }
 
   if (error) {
     return (
-      <div className="w-full space-y-2 p-2">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <p className="text-red-600 text-sm mb-3">{error}</p>
-            <button
-              onClick={loadCourses}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1.5" />
-              Try Again
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-col items-center justify-center h-96 bg-red-50 text-red-700 rounded-lg p-4">
+        <AlertCircle className="h-8 w-8 mb-2" />
+        <p className="font-semibold">{t('common.error')}</p>
+        <p>{error}</p>
+        <button onClick={() => loadCourses()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          {t('common.try_again')}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-2 p-2">
-      {/* Compact Stats Grid */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
-          {[
-            { 
-              name: 'Total Courses', 
-              value: stats.totalCourses.toString(), 
-              icon: BookOpen, 
-              change: 2, 
-              changeType: 'positive',
-              color: 'from-[#27AE60] to-[#16A085]',
-              bgColor: 'from-[#27AE60]/10 to-[#16A085]/10'
-            },
-            { 
-              name: 'Active Students', 
-              value: stats.activeStudents.toString(), 
-              icon: Users, 
-              change: 8, 
-              changeType: 'positive',
-              color: 'from-[#16A085] to-[#2980B9]',
-              bgColor: 'from-[#16A085]/10 to-[#2980B9]/10'
-            },
-            { 
-              name: 'Recorded Videos', 
-              value: stats.recordedVideos.toString(), 
-              icon: Video, 
-              change: 12, 
-              changeType: 'positive',
-              color: 'from-[#2980B9] to-[#27AE60]',
-              bgColor: 'from-[#2980B9]/10 to-[#27AE60]/10'
-            },
-            { 
-              name: 'Hours Taught', 
-              value: stats.hoursTaught.toString(), 
-              icon: Clock, 
-              change: 15, 
-              changeType: 'positive',
-              color: 'from-[#27AE60] to-[#16A085]',
-              bgColor: 'from-[#27AE60]/10 to-[#16A085]/10'
-            }
-          ].map((stat, index) => {
-            const neonColors = [
-              { icon: 'text-[#27AE60]', bg: 'from-[#27AE60]/10 to-[#16A085]/10', border: 'border-[#27AE60]/30' },
-              { icon: 'text-[#16A085]', bg: 'from-[#16A085]/10 to-[#2980B9]/10', border: 'border-[#16A085]/30' },
-              { icon: 'text-[#2980B9]', bg: 'from-[#2980B9]/10 to-[#27AE60]/10', border: 'border-[#2980B9]/30' },
-              { icon: 'text-[#27AE60]', bg: 'from-[#27AE60]/10 to-[#16A085]/10', border: 'border-[#27AE60]/30' }
-            ];
-            const colors = neonColors[index % neonColors.length];
-            return (
-              <div key={index} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-all p-4 hover:border-[#27AE60]/50">
-                <div className={`bg-gradient-to-br ${colors.bg} rounded-lg p-2 border ${colors.border} mb-3`}>
-                  <stat.icon className={`h-5 w-5 ${colors.icon}`} />
-                </div>
-                <p className="text-xs text-stone-600 mb-0.5 font-medium">{stat.name}</p>
-                <p className="text-xl font-bold text-stone-800">{stat.value}</p>
-                <p className={`text-xs mt-1.5 flex items-center ${(stat.change || 0) >= 0 ? 'text-[#27AE60]' : 'text-red-500'}`}>
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {(stat.change || 0) >= 0 ? '+' : ''}{stat.change}%
-                </p>
-              </div>
-            );
-          })}
-          </div>
-        )}
+    <div className="w-full space-y-4 p-2 sm:p-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-800">{t('teacher_courses.title')}</h1>
+          <p className="text-sm text-stone-600 mt-1">{t('teacher_courses.description')}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/teacher/courses/new" className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 flex items-center font-semibold text-sm">
+            <Plus className="h-4 w-4 mr-1" />
+            {t('teacher_courses.new_course_btn')}
+          </Link>
+          <button onClick={() => setShowTemplates(true)} className="px-4 py-2 bg-white border border-stone-300 text-stone-700 rounded-md hover:bg-stone-50 flex items-center font-semibold text-sm">
+            <Sparkles className="h-4 w-4 mr-1 text-amber-500" />
+            {t('teacher_courses.use_template_btn')}
+          </button>
+        </div>
+      </div>
 
-        {/* Compact Search and Filter Section */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-3">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-4 text-center">
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_total_courses')}</p><p className="font-bold text-lg text-stone-800">{stats.totalCourses}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_active_students')}</p><p className="font-bold text-lg text-stone-800">{stats.activeStudents}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_recorded_videos')}</p><p className="font-bold text-lg text-stone-800">{stats.recordedVideos}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_hours_taught')}</p><p className="font-bold text-lg text-stone-800">{stats.hoursTaught}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_published_courses')}</p><p className="font-bold text-lg text-stone-800">{stats.publishedCourses}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_avg_rating')}</p><p className="font-bold text-lg text-stone-800">{stats.averageRating}</p></div>
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_completion_rate')}</p><p className="font-bold text-lg text-stone-800">{stats.completionRate}%</p></div>
+        </div>
+      )}
+
+      {/* Filters and Actions */}
+      <div className="bg-white/90 backdrop-blur-md p-3 rounded-lg border border-stone-200 space-y-3">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div className="flex-grow sm:max-w-xs">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
               <input
                 type="text"
-                placeholder="Search courses..."
+                placeholder={t('common.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-md text-sm"
               />
             </div>
-
-            {/* Filter and Sort Controls */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              {/* Category Filter */}
-              <div className="sm:w-44">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-xs bg-white"
-                >
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label} ({category.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort */}
-              <div className="sm:w-36">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-xs bg-white"
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort Order */}
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-3 py-2 border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
-              >
-                {sortOrder === 'asc' ? <SortAsc className="h-5 w-5 text-stone-600" /> : <SortDesc className="h-5 w-5 text-stone-600" />}
-              </button>
-
-              {/* View Mode */}
-              <div className="flex border border-stone-300 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-[#27AE60] text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
-                >
-                  <Grid className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-[#27AE60] text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}
-                >
-                  <List className="h-5 w-5" />
-                </button>
-              </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => loadCourses()} className="p-2 text-stone-600 hover:text-emerald-600"><RefreshCw className="h-4 w-4" /></button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><Grid className="h-4 w-4" /></button>
+              <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><List className="h-4 w-4" /></button>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setSortOrder('asc')} className={`p-2 rounded-md ${sortOrder === 'asc' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><SortAsc className="h-4 w-4" /></button>
+              <button onClick={() => setSortOrder('desc')} className={`p-2 rounded-md ${sortOrder === 'desc' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><SortDesc className="h-4 w-4" /></button>
             </div>
           </div>
         </div>
-
-        {/* Selection Controls and Quick Features */}
-        {filteredAndSortedCourses.length > 0 && (
-          <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-md">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedCourses.length === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedCourses(filteredAndSortedCourses.map(c => c.id));
-                      } else {
-                        setSelectedCourses([]);
-                      }
-                    }}
-                    className="rounded border-stone-300 text-[#27AE60] focus:ring-[#27AE60]"
-                  />
-                  <span className="text-sm text-stone-600">
-                    {selectedCourses.length > 0 
-                      ? `${selectedCourses.length} selected` 
-                      : 'Select all'
-                    }
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  className="inline-flex items-center px-4 py-2 bg-white border border-[#27AE60] text-[#27AE60] text-sm font-medium rounded-lg hover:bg-[#27AE60]/5 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Templates
-                </button>
-                <Link
-                  to="/teacher/courses/new"
-                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-medium rounded-lg transition-colors shadow-sm"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Course
-                </Link>
-              </div>
-            </div>
-
-            {/* Course Templates Panel */}
-            {showTemplates && (
-              <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
-                <h4 className="text-base font-semibold text-stone-800 mb-3">Course Templates</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { name: 'Bible Study', category: 'bible', icon: BookOpen },
-                    { name: 'Church History', category: 'history', icon: Calendar },
-                    { name: 'Spiritual Growth', category: 'spiritual', icon: Zap },
-                    { name: 'Youth Ministry', category: 'youth', icon: Users }
-                  ].map((template, index) => (
-                    <button
-                      key={index}
-                      className="p-3 bg-white rounded-lg border border-stone-200 hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5 transition-colors text-left"
-                    >
-                      <template.icon className="h-5 w-5 text-[#27AE60] mb-2" />
-                      <div className="text-sm font-medium text-stone-800">{template.name}</div>
-                      <div className="text-xs text-stone-500 capitalize">{template.category}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex items-center border border-stone-200 rounded-md">
+            <button onClick={() => setActiveTab('all')} className={`px-3 py-1 rounded-l-md ${activeTab === 'all' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.all_tab')}</button>
+            <button onClick={() => setActiveTab('published')} className={`px-3 py-1 border-l ${activeTab === 'published' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.published_tab')}</button>
+            <button onClick={() => setActiveTab('drafts')} className={`px-3 py-1 border-l rounded-r-md ${activeTab === 'drafts' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.drafts_tab')}</button>
           </div>
-        )}
-
-      {/* Tabs for filtering */}
-      <div className="border-b border-stone-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`${
-              activeTab === 'all'
-                ? 'border-[#27AE60] text-[#27AE60]'
-                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            All Courses
-          </button>
-          <button
-            onClick={() => setActiveTab('published')}
-            className={`${
-              activeTab === 'published'
-                ? 'border-[#27AE60] text-[#27AE60]'
-                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            Published
-          </button>
-          <button
-            onClick={() => setActiveTab('drafts')}
-            className={`${
-              activeTab === 'drafts'
-                ? 'border-[#27AE60] text-[#27AE60]'
-                : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-          >
-            Drafts
-          </button>
-        </nav>
+          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
+            {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label} ({cat.count})</option>)}
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
+            {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+        </div>
       </div>
 
-        {/* Courses Display */}
-        {filteredAndSortedCourses.length > 0 ? (
-          <div className={viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" 
-            : "space-y-4 sm:space-y-6"
-          }>
-          {filteredAndSortedCourses.map(renderCourseCard)}
+      {/* Bulk Actions */}
+      {selectedCourses.length > 0 && (
+        <BulkActions
+          courses={courses}
+          selectedCourses={selectedCourses}
+          onActionComplete={() => {
+            setSelectedCourses([]);
+            loadCourses();
+          }}
+          onClearSelection={() => setSelectedCourses([])}
+        />
+      )}
+
+      {/* Courses Grid/List */}
+      {filteredAndSortedCourses.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredAndSortedCourses.map(renderCourseCard)}
           </div>
         ) : (
-          <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-8 text-center shadow-md">
-            <BookOpen className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-stone-800 mb-2">
-              {courses.length === 0 ? 'No courses yet' : 'No courses found'}
-            </h3>
-            <p className="text-stone-600 mb-6 max-w-lg mx-auto">
-              {courses.length === 0 
-                ? 'Create your first course to start teaching and sharing knowledge with your students.'
-                : 'Try adjusting your search or filter criteria to find what you\'re looking for.'
-              }
-            </p>
-            <Link
-              to="/teacher/courses/new"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Create Your First Course
-            </Link>
+          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200">
+            <div className="flex items-center p-2 border-b border-stone-200 text-xs font-semibold text-stone-500">
+              <div className="w-1/12 pl-6"><input type="checkbox" onChange={handleSelectAll} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" /></div>
+              <div className="w-4/12">{t('common.title')}</div>
+              <div className="w-2/12">{t('common.students')}</div>
+              <div className="w-2/12">{t('common.duration')}</div>
+              <div className="w-2/12">{t('common.last_updated')}</div>
+              <div className="w-1/12">{t('common.status')}</div>
+            </div>
+            <div className="divide-y divide-stone-100">
+              {filteredAndSortedCourses.map(renderCourseCard)}
+            </div>
           </div>
-        )}
+        )
+      ) : (
+        <div className="text-center py-16 bg-white/50 rounded-lg border border-dashed border-stone-200">
+          <BookOpen className="mx-auto h-12 w-12 text-stone-400" />
+          <h3 className="mt-2 text-lg font-medium text-stone-800">
+            {searchTerm || filterCategory !== 'all' || activeTab !== 'all' ? t('teacher_courses.no_courses_found') : t('teacher_courses.no_courses_yet')}
+          </h3>
+          <p className="mt-1 text-sm text-stone-500">
+            {searchTerm || filterCategory !== 'all' || activeTab !== 'all' ? t('teacher_courses.adjust_filters_prompt') : t('teacher_courses.create_first_course_prompt')}
+          </p>
+          {!(searchTerm || filterCategory !== 'all' || activeTab !== 'all') && (
+            <div className="mt-6">
+              <Link to="/teacher/courses/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="h-4 w-4 mr-2" />
+                {t('teacher_courses.create_first_course_btn')}
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Bulk Actions Floating Bar */}
-      <BulkActions
-        selectedCourses={selectedCourses}
-        courses={courses}
-        onActionComplete={loadCourses}
-        onClearSelection={() => setSelectedCourses([])}
-      />
+      {/* Course Templates Modal. */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setShowTemplates(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">{t('teacher_courses.templates_modal_title')}</h2>
+            <p className="text-stone-600 mb-4">{t('teacher_courses.templates_modal_description')}</p>
+            {/* Template options would be listed here */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="border p-4 rounded-md hover:bg-stone-50 cursor-pointer">
+                <h3 className="font-semibold">{t('teacher_courses.template_intro_faith_title')}</h3>
+                <p className="text-sm text-stone-500">{t('teacher_courses.template_intro_faith_desc')}</p>
+              </div>
+              <div className="border p-4 rounded-md hover:bg-stone-50 cursor-pointer">
+                <h3 className="font-semibold">{t('teacher_courses.template_church_history_title')}</h3>
+                <p className="text-sm text-stone-500">{t('teacher_courses.template_church_history_desc')}</p>
+              </div>
+            </div>
+            <div className="mt-6 text-right">
+              <button onClick={() => setShowTemplates(false)} className="px-4 py-2 bg-stone-200 text-stone-800 rounded-md hover:bg-stone-300">{t('teacher_courses.templates_modal_close_btn')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default React.memo(MyCourses);
+export default MyCourses;

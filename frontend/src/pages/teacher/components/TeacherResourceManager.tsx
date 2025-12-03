@@ -35,10 +35,10 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       setLoading(true);
       let response;
 
-      if (selectedScope === 'platform_wide') {
+      if (selectedScope === 'platform_wide' || !user?.chapter_id) {
         response = await resourcesApi.getPlatformResources({ search: searchTerm });
       } else {
-        response = await resourcesApi.getChapterResources(user?.chapter_id?.toString() || '', { search: searchTerm });
+        response = await resourcesApi.getChapterResources(user.chapter_id.toString(), { search: searchTerm });
       }
 
       if (response.success) {

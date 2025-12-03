@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, Search, RefreshCw, Mail, MessageSquare, 
   UserCheck, UserX, TrendingUp, BookOpen, Clock, Eye, X
@@ -28,6 +29,7 @@ interface StudentStats {
 }
 
 const StudentManagement: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ const StudentManagement: React.FC = () => {
   }, [students]);
 
   const formatTimeAgo = useCallback((dateString: string) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return t('student_management.time.never');
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -111,12 +113,12 @@ const StudentManagement: React.FC = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('student_management.time.just_now');
+    if (diffMins < 60) return `${diffMins}${t('student_management.time.m_ago')}`;
+    if (diffHours < 24) return `${diffHours}${t('student_management.time.h_ago')}`;
+    if (diffDays < 7) return `${diffDays}${t('student_management.time.d_ago')}`;
     return date.toLocaleDateString();
-  }, []);
+  }, [t]);
 
   const handleViewDetails = (student: Student) => {
     setSelectedStudent(student);
@@ -127,7 +129,7 @@ const StudentManagement: React.FC = () => {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="md" text="Loading students..." />
+          <LoadingSpinner size="md" text={t('student_management.loading')} />
         </div>
       </div>
     );
@@ -143,14 +145,14 @@ const StudentManagement: React.FC = () => {
             className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-medium text-xs"
           >
             <Mail className="h-3 w-3 mr-1.5" />
-            Invite
+            {t('student_management.invite')}
           </button>
           <button
             onClick={fetchStudents}
             className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#16A085]/50 text-stone-700 hover:text-[#16A085] rounded-lg transition-all font-medium text-xs"
           >
             <RefreshCw className="h-3 w-3 mr-1.5" />
-            Refresh
+            {t('student_management.refresh')}
           </button>
         </div>
       </div>
@@ -167,7 +169,7 @@ const StudentManagement: React.FC = () => {
             </div>
           </div>
           <p className="text-xl font-bold text-stone-800">{stats.totalStudents}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">Total Students</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.total_students')}</p>
         </div>
 
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#16A085]/50">
@@ -180,7 +182,7 @@ const StudentManagement: React.FC = () => {
             </div>
           </div>
           <p className="text-xl font-bold text-stone-800">{stats.activeStudents}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">Active Students</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.active_students')}</p>
         </div>
 
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#2980B9]/50">
@@ -193,7 +195,7 @@ const StudentManagement: React.FC = () => {
             </div>
           </div>
           <p className="text-xl font-bold text-stone-800">{stats.avgProgress}%</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">Avg. Progress</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.avg_progress')}</p>
         </div>
 
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#FFD700]/50">
@@ -206,7 +208,7 @@ const StudentManagement: React.FC = () => {
             </div>
           </div>
           <p className="text-xl font-bold text-stone-800">{stats.avgCourses}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">Avg. Courses</p>
+          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.avg_courses')}</p>
         </div>
       </div>
 
@@ -217,7 +219,7 @@ const StudentManagement: React.FC = () => {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search students by name or email..."
+              placeholder={t('student_management.search_placeholder')}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -235,9 +237,9 @@ const StudentManagement: React.FC = () => {
               }}
               className="px-2.5 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-xs text-stone-700"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('student_management.filters.all_status')}</option>
+              <option value="active">{t('student_management.filters.active')}</option>
+              <option value="inactive">{t('student_management.filters.inactive')}</option>
             </select>
           </div>
         </div>
@@ -246,13 +248,13 @@ const StudentManagement: React.FC = () => {
       {/* Error State */}
       {error && (
         <div className="bg-red-50/80 border border-red-200/50 rounded-xl p-4 text-red-700 text-sm">
-          <p className="font-medium">Error loading students</p>
+          <p className="font-medium">{t('student_management.error.loading')}</p>
           <p className="mt-1">{error}</p>
           <button
             onClick={fetchStudents}
             className="mt-3 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors"
           >
-            Try Again
+            {t('student_management.error.try_again')}
           </button>
         </div>
       )}
@@ -263,19 +265,19 @@ const StudentManagement: React.FC = () => {
           {students.length === 0 ? (
             <div className="bg-white/85 backdrop-blur-sm rounded-xl p-12 border border-slate-200/40 shadow-sm text-center">
               <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 text-lg font-medium mb-2">No students found</p>
+              <p className="text-slate-600 text-lg font-medium mb-2">{t('student_management.empty.no_students')}</p>
               <p className="text-slate-500 text-sm mb-4">
                 {searchTerm || statusFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria' 
-                  : 'Students enrolled in your courses will appear here. Make sure you have courses with enrolled students.'}
+                  ? t('student_management.empty.adjust_criteria')
+                  : t('student_management.empty.no_students_desc')}
               </p>
               {!searchTerm && statusFilter === 'all' && (
                 <div className="mt-6 space-y-2 text-sm text-slate-600">
-                  <p className="font-medium">To see students here:</p>
+                  <p className="font-medium">{t('student_management.empty.how_to_see')}</p>
                   <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
-                    <li>Create courses in "My Courses"</li>
-                    <li>Have students enroll in your courses</li>
-                    <li>Students will appear automatically once enrolled</li>
+                    <li>{t('student_management.empty.step_1')}</li>
+                    <li>{t('student_management.empty.step_2')}</li>
+                    <li>{t('student_management.empty.step_3')}</li>
                   </ul>
                 </div>
               )}

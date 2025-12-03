@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, Users as UsersIcon, Award, Grid, Plus, UserPlus, Calendar } from 'lucide-react';
 import Forums from '@/pages/shared/social/Forums';
 import TeacherAchievements from './TeacherAchievements';
 
 const TeacherCommunityPage: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'feed' | 'achievements'>('feed');
 
   const handleCreateDiscussion = () => {
@@ -13,6 +15,11 @@ const TeacherCommunityPage: React.FC = () => {
     if (forumInput instanceof HTMLElement) {
       forumInput.focus();
     }
+  };
+
+  const handleInviteToChapter = () => {
+    // Placeholder for invite logic
+    console.log('Invite to chapter clicked');
   };
 
   return (
@@ -25,8 +32,8 @@ const TeacherCommunityPage: React.FC = () => {
               <MessageSquare className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Community</h2>
-              <p className="text-xs text-slate-500">Connect with other teachers — discussions and recognition</p>
+              <h2 className="text-lg font-semibold text-slate-900">{t('teacher_community.title')}</h2>
+              <p className="text-xs text-slate-500">{t('teacher_community.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2" role="tablist" aria-label="Community Sections">
@@ -38,7 +45,7 @@ const TeacherCommunityPage: React.FC = () => {
               onClick={() => setActiveTab('feed')}
               className={`px-3 py-1.5 text-sm rounded-full flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#27AE60] ${activeTab === 'feed' ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20 font-medium' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
               <MessageSquare className="h-4 w-4" aria-hidden="true" />
-              Feed
+              {t('teacher_community.tabs.feed')}
             </button>
             <button
               role="tab"
@@ -48,7 +55,7 @@ const TeacherCommunityPage: React.FC = () => {
               onClick={() => setActiveTab('achievements')}
               className={`px-3 py-1.5 text-sm rounded-full flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#2980B9] ${activeTab === 'achievements' ? 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20 font-medium' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
               <Award className="h-4 w-4" aria-hidden="true" />
-              Achievements
+              {t('teacher_community.tabs.achievements')}
             </button>
           </div>
         </div>
@@ -69,9 +76,9 @@ const TeacherCommunityPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Grid className="h-5 w-5 text-slate-600" aria-hidden="true" />
-                    <h3 className="text-sm font-semibold text-slate-800">Latest Discussions</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">{t('teacher_community.feed.latest_discussions')}</h3>
                   </div>
-                  <div className="text-xs text-slate-500">Helping teachers share and learn</div>
+                  <div className="text-xs text-slate-500">{t('teacher_community.feed.subtitle')}</div>
                 </div>
                 <div>
                   <Forums embedded />
@@ -86,7 +93,7 @@ const TeacherCommunityPage: React.FC = () => {
                 aria-labelledby="achievements-tab"
                 className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 animate-in fade-in duration-200"
               >
-                <h3 className="text-sm font-semibold text-slate-800 mb-3">Achievements</h3>
+                <h3 className="text-sm font-semibold text-slate-800 mb-3">{t('teacher_community.achievements.title')}</h3>
                 <TeacherAchievements />
               </div>
             )}
@@ -95,16 +102,16 @@ const TeacherCommunityPage: React.FC = () => {
           {/* Right / Help Column */}
           <aside className="lg:col-span-4 space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <h4 className="text-sm font-semibold text-slate-800 mb-2">Quick Tips</h4>
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">{t('teacher_community.quick_tips.title')}</h4>
               <ul className="text-sm text-slate-600 space-y-2 list-disc list-inside">
-                <li>Start a discussion with a clear question or resource link.</li>
-                <li>Share lesson plans and tag chapters for local feedback.</li>
-                <li>Recognize contributors with badges and comments.</li>
+                <li>{t('teacher_community.quick_tips.tip_1')}</li>
+                <li>{t('teacher_community.quick_tips.tip_2')}</li>
+                <li>{t('teacher_community.quick_tips.tip_3')}</li>
               </ul>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <h4 className="text-sm font-semibold text-slate-800 mb-3">Community Tools</h4>
+              <h4 className="text-sm font-semibold text-slate-800 mb-3">{t('teacher_community.tools.title')}</h4>
               <div className="grid grid-cols-1 gap-2">
                 <button 
                   onClick={handleCreateDiscussion}
@@ -112,7 +119,7 @@ const TeacherCommunityPage: React.FC = () => {
                   aria-label="Create a new discussion topic"
                 >
                   <Plus className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm text-slate-700">Create Discussion</span>
+                  <span className="text-sm text-slate-700">{t('teacher_community.tools.create_discussion')}</span>
                 </button>
                 <button 
                   onClick={handleInviteToChapter}
@@ -120,14 +127,14 @@ const TeacherCommunityPage: React.FC = () => {
                   aria-label="Invite teachers to a chapter"
                 >
                   <UserPlus className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm text-slate-700">Invite to Chapter</span>
+                  <span className="text-sm text-slate-700">{t('teacher_community.tools.invite_chapter')}</span>
                 </button>
                 <button 
                   className="w-full text-left px-3 py-2 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-slate-400"
                   aria-label="View upcoming community events"
                 >
                   <Calendar className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm text-slate-700">View Events</span>
+                  <span className="text-sm text-slate-700">{t('teacher_community.tools.view_events')}</span>
                 </button>
               </div>
             </div>

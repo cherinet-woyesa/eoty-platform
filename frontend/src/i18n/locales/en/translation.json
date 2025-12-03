@@ -1,4 +1,38 @@
 {
+  "nav": {
+    "dashboard": "Dashboard",
+    "dashboard_desc": "Platform overview and metrics",
+    "courses": "Courses",
+    "courses_desc": "My Courses, Create & Browse",
+    "learning": "Learning",
+    "learning_desc": "Progress, Assignments, Paths & Achievements",
+    "ai_assistant": "AI Assistant",
+    "ai_assistant_desc": "Get instant help and answers",
+    "community": "Community",
+    "community_desc": "Feed, Groups & Forums",
+    "chapters": "Chapters",
+    "chapters_desc": "Join local communities",
+    "resources": "Resources",
+    "resources_desc": "Library and Help Center",
+    "students": "Students",
+    "students_desc": "Students, Assignments & Analytics",
+    "content": "Content",
+    "content_desc": "Record, Upload & Resources",
+    "admin_panel": "Admin Panel",
+    "admin_panel_desc": "System management",
+    "revenue": "Revenue",
+    "revenue_desc": "Earnings & payments",
+    "users_access": "Users & Access",
+    "users_access_desc": "Users, Chapters & Roles",
+    "ai_labeling": "AI Labeling",
+    "ai_labeling_desc": "Label AI responses for faith alignment",
+    "system": "System",
+    "system_desc": "Analytics, Config, Logs & Tools",
+    "home": "Home",
+    "assignments": "Assignments",
+    "calendar": "Calendar"
+  },
+  
   "common": {
     "welcome": "Welcome",
     "dashboard": "Dashboard",
@@ -84,9 +118,6 @@
     "lesson_count": "{{count}} lessons",
     "duration_hours_minutes": "{{hours}}h {{minutes}}m",
     "duration_minutes": "{{minutes}}m",
-    "yesterday": "Yesterday",
-    "days_ago": "{{count}} days ago",
-    "weeks_ago": "{{count}} weeks ago",
     "characters": "characters",
     "optional": "Optional",
     "upload_image": "Upload Image",
@@ -106,7 +137,6 @@
     "updating": "Updating",
     "creating": "Creating",
     "update_course": "Update Course",
-    "create_course": "Create Course",
     "public_course": "Public Course",
     "private_course": "Private Course",
     "english": "English",
@@ -213,6 +243,13 @@
   },
   "dashboard": {
     "teacher": {
+      "welcome_back": "Welcome back, {{name}}",
+      "live": "Live",
+      "unable_to_load_message": "We couldn't load your dashboard.",
+      "try_again": "Try Again",
+      "students_enrolled_in_courses": "{{students}} students enrolled in {{courses}} courses",
+      "complete_profile_title": "Complete your teacher profile",
+      "complete_profile_message": "Your profile is {{percentage}}% complete. Please add missing details.",
       "title": "Teacher Dashboard",
       "my_courses": "My Courses",
       "quick_actions": "Quick Actions",
@@ -252,12 +289,26 @@
       "student_performance": "Student Performance"
     },
     "student": {
+      "welcome_back": "Welcome back, {{name}}",
+      "live": "Live",
+      "unable_to_load_message": "We couldn't load your dashboard.",
+      "try_again": "Try Again",
       "title": "Student Dashboard",
       "my_courses": "My Courses",
       "progress": "Progress",
       "community": "Community",
       "continue_learning": "Continue Learning",
-      "recommended_courses": "Recommended Courses"
+      "recommended_courses": "Recommended Courses",
+      "browse_courses": "Browse Courses",
+      "spiritual_journeys": "Spiritual Journeys",
+      "courses_enrolled": "Courses Enrolled",
+      "lessons_completed": "Lessons Completed",
+      "study_streak": "Study Streak",
+      "total_points": "Total Points",
+      "view_all": "View All",
+      "no_active_courses": "You have no active courses",
+      "start_course_message": "Start a course to begin learning",
+      "browse_catalog": "Browse Catalog"
     }
   },
   "tasks": {
@@ -358,7 +409,7 @@
     "unique_viewers_description": "Number of unique students who watched",
     "avg_watch_time": "Avg. Watch Time",
     "avg_watch_time_description": "Average time students spend watching",
-    "completion_rate_description": "Percentage of students who complete videos",
+    "video_completion_rate_description": "Percentage of students who complete videos",
     "top_performing_lessons": "Top Performing Lessons",
     "most_viewed_engaging_lessons": "Most viewed and engaging lessons",
     "recent_activity_trends": "Recent Activity Trends",
@@ -520,28 +571,28 @@
       "9_plus_weeks": "9+ Weeks",
       "extended_program": "Extended program"
     },
-      "errors": {
-        "title_required": "Course title is required",
-        "title_too_short": "Title must be at least 3 characters",
-        "title_too_long": "Title must be 60 characters or less",
-        "description_required": "Course description is required",
-        "description_too_short": "Description must be at least 5 characters",
-        "description_too_long": "Description must be 2000 characters or less",
-        "category_required": "Please select a category",
-        "level_required": "Please select a difficulty level",
-        "objectives_required": "All learning objectives must be filled",
-        "tags_required": "At least one tag is required",
-        "language_required": "Please select a language",
-        "invalid_image_type": "Please upload a JPG, PNG, or WebP image",
-        "image_too_large": "Image size must be less than 5MB",
-        "creation_failed": "Failed to create course. Please try again.",
-        "update_failed": "Failed to update course. Please try again.",
-        "price_negative": "Price cannot be negative",
-        "price_too_high": "Price cannot be more than 1000",
-        "image_upload_failed": "Failed to upload image. Please try again.",
-        "failed_to_load": "Failed to load course data",
-        "course_load_error": "Unable to load course information"
-      }
+    "errors": {
+      "title_required": "Course title is required",
+      "title_too_short": "Title must be at least 3 characters",
+      "title_too_long": "Title must be 60 characters or less",
+      "description_required": "Course description is required",
+      "description_too_short": "Description must be at least 5 characters",
+      "description_too_long": "Description must be 2000 characters or less",
+      "category_required": "Please select a category",
+      "level_required": "Please select a difficulty level",
+      "objectives_required": "All learning objectives must be filled",
+      "tags_required": "At least one tag is required",
+      "language_required": "Please select a language",
+      "invalid_image_type": "Please upload a JPG, PNG, or WebP image",
+      "image_too_large": "Image size must be less than 5MB",
+      "creation_failed": "Failed to create course. Please try again.",
+      "update_failed": "Failed to update course. Please try again.",
+      "price_negative": "Price cannot be negative",
+      "price_too_high": "Price cannot be more than 1000",
+      "image_upload_failed": "Failed to upload image. Please try again.",
+      "failed_to_load": "Failed to load course data",
+      "course_load_error": "Unable to load course information"
+    }
   },
   "video_recorder": {
     "title": "Video Recorder",
@@ -589,6 +640,438 @@
       "register_button": "Register",
       "have_account": "Already have an account?",
       "login_link": "Login here"
+    }
+  },
+  "community_hub": {
+    "title": "Community Hub",
+    "subtitle": "Connect, share, and learn with fellow members."
+  },
+  "student_courses": {
+    "my_courses": "My Courses",
+    "manage_journey": "Manage your learning journey, track progress, and access your certificates.",
+    "enrolled_tab": "Enrolled",
+    "browse_tab": "Browse",
+    "bookmarked_tab": "Bookmarked",
+    "not_enrolled": "You are not enrolled in any courses yet.",
+    "get_started": "Get started by browsing the course catalog.",
+    "browse_courses_btn": "Browse Courses",
+    "load_courses_fail": "Failed to load your courses. Please try again.",
+    "unenroll_btn": "Unenroll",
+    "unenroll_confirm_title": "Are you sure you want to unenroll from this course?",
+    "unenroll_confirm_desc": "This action cannot be undone. You will lose all progress.",
+    "cancel_btn": "Cancel",
+    "confirm_unenroll_btn": "Confirm Unenrollment",
+    "unenrolling_toast": "Unenrolling...",
+    "unenroll_success_toast": "Successfully unenrolled.",
+    "unenroll_fail_toast": "Failed to unenroll. Please try again.",
+    "all_categories": "All Categories",
+    "faith_doctrine": "Faith & Doctrine",
+    "church_history": "Church History",
+    "spiritual_development": "Spiritual Development",
+    "bible_study": "Bible Study",
+    "liturgical_studies": "Liturgical Studies",
+    "youth_ministry": "Youth Ministry",
+    "all_levels": "All Levels",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "load_catalog_fail": "Failed to load course catalog. Please try again.",
+    "search_placeholder": "Search for courses...",
+    "filter_category_label": "Filter by category",
+    "filter_level_label": "Filter by level",
+    "no_courses_found": "No courses found.",
+    "adjust_filters_prompt": "Try adjusting your search or filters.",
+    "enroll_btn": "Enroll",
+    "enrolled_btn": "Enrolled",
+    "enrolling_btn": "Enrolling...",
+    "view_course_btn": "View Course",
+    "lessons_label": "Lessons",
+    "students_label": "Students",
+    "by_author": "by",
+    "pending_invites": "Pending Invites"
+  },
+  "learning_page": {
+    "title": "My Learning",
+    "subtitle": "Track your progress, assignments, and achievements",
+    "progress_tab": "Progress",
+    "assignments_tab": "Assignments",
+    "paths_tab": "Study Paths",
+    "achievements_tab": "Achievements"
+  },
+  "learning_paths": {
+    "loading_text": "Loading learning paths...",
+    "load_failed": "Failed to load learning paths. Please try again.",
+    "all_categories": "All Categories",
+    "all_levels": "All Levels",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "no_paths_found": "No learning paths found",
+    "try_adjust_filters": "Try adjusting your filters",
+    "enrolled_label": "Enrolled",
+    "progress_label": "Progress",
+    "courses_will_appear": "Courses will appear here",
+    "start_path": "Start Path",
+    "continue_btn": "Continue"
+  },
+  "bookmarks_page": {
+    "title": "My Bookmarks",
+    "subtitle": "Saved courses and lessons for quick access",
+    "loading_text": "Loading bookmarks...",
+    "error_title": "Error Loading Bookmarks",
+    "no_bookmarks_title": "No bookmarks found",
+    "no_bookmarks_desc_has_query": "No results found for \"{{query}}\"",
+    "no_bookmarks_desc_empty": "You haven't bookmarked any content yet. Look for the bookmark icon on courses and lessons to save them here.",
+    "browse_courses_btn": "Browse Courses",
+    "clear_search": "Clear search",
+    "all_items": "All Items",
+    "courses": "Courses",
+    "lessons": "Lessons",
+    "grid_view_title": "Grid View",
+    "list_view_title": "List View",
+    "type_course": "Course",
+    "type_lesson": "Lesson",
+    "remove_bookmark_title": "Remove bookmark",
+    "saved_prefix": "Saved"
+  },
+  "course_details": {
+    "back_to_admin": "Back to Admin Courses",
+    "back_to_my_courses": "Back to My Courses"
+  },
+  "spiritual_journeys": {
+    "loading_text": "Loading your spiritual journeys...",
+    "load_failed": "Failed to load journeys",
+    "title": "Spiritual Journeys",
+    "subtitle": "Guided paths to deepen your faith and understanding.",
+    "my_active_journeys": "My Active Journeys",
+    "available_journeys": "Available Journeys",
+    "status_completed": "Completed",
+    "status_in_progress": "In Progress",
+    "continue_journey": "Continue Journey",
+    "start_journey": "Start Journey",
+    "no_new_journeys": "No new journeys available at the moment."
+  },
+  "teacher_courses": {
+    "title": "My Courses",
+    "description": "Manage and track your course content",
+    "all_tab": "All",
+    "published_tab": "Published",
+    "drafts_tab": "Drafts",
+    "new_course_btn": "New Course",
+    "use_template_btn": "Use Template",
+    "all_categories_filter": "All Categories",
+    "faith_doctrine_filter": "Faith & Doctrine",
+    "church_history_filter": "Church History",
+    "spiritual_development_filter": "Spiritual Development",
+    "bible_study_filter": "Bible Study",
+    "liturgical_studies_filter": "Liturgical Studies",
+    "youth_ministry_filter": "Youth Ministry",
+    "sort_by_date_created": "Date Created",
+    "sort_by_last_updated": "Last Updated",
+    "sort_by_title": "Course Title",
+    "sort_by_lesson_count": "Number of Lessons",
+    "sort_by_student_count": "Number of Students",
+    "sort_by_duration": "Total Duration",
+    "stats_total_courses": "Total Courses",
+    "stats_active_students": "Active Students",
+    "stats_recorded_videos": "Recorded Videos",
+    "stats_hours_taught": "Hours Taught",
+    "stats_published_courses": "Published Courses",
+    "stats_avg_rating": "Average Rating",
+    "stats_completion_rate": "Completion Rate",
+    "no_courses_found": "No courses match your filters",
+    "no_courses_yet": "No courses yet",
+    "create_first_course_prompt": "Create amazing learning experiences for your students.",
+    "create_first_course_btn": "Create Your First Course",
+    "adjust_filters_prompt": "Try adjusting your search or filter criteria",
+    "last_updated_label": "Last updated",
+    "just_now": "Just now",
+    "hours_ago": "{{count}}h ago",
+    "days_ago": "{{count}}d ago",
+    "duration_minutes": "{{minutes}} min",
+    "duration_hours_minutes": "{{hours}}h {{minutes}}m",
+    "load_courses_fail": "Failed to load courses. Please try again.",
+    "templates_modal_title": "Create from Template",
+    "templates_modal_description": "Select a template to get started with a pre-built course structure.",
+    "template_intro_faith_title": "Introduction to Faith",
+    "template_intro_faith_desc": "A 5-lesson course covering the basics of the faith.",
+    "template_church_history_title": "Church History Overview",
+    "template_church_history_desc": "A 10-lesson journey through the history of the church.",
+    "templates_modal_close_btn": "Close"
+  },
+  "edit_course": {
+    "not_found_title": "Course Not Found",
+    "not_found_description": "The course you're looking for doesn't exist.",
+    "back_to_courses": "Back to Courses"
+  },
+  "create_course_page": {
+    "title": "Create a New Course",
+    "description": "Fill out the form below to get started with a new course.",
+    "back_to_courses": "Back to Courses"
+  },
+  "invite_student": {
+    "title": "Invite a Student",
+    "description": "Send an invitation so learners can join your classes and start learning.",
+    "back_to_students": "Back to Students",
+    "student_email": "Student Email",
+    "student_email_placeholder": "name@example.com",
+    "student_email_help": "The student will be able to sign in with this email and accept your invitation.",
+    "course_optional": "Course (optional)",
+    "no_specific_course": "No specific course",
+    "loading_courses": "Loading your courses...",
+    "course_help": "If you select a course, accepting the invite will automatically enroll the student.",
+    "send_invitation": "Send Invitation",
+    "sending_invitation": "Sending invitation...",
+    "success_message": "Invitation sent successfully.",
+    "error_invalid_email": "Please enter a valid email address.",
+    "error_load_courses": "Failed to load your courses. You can still invite a student without selecting a course.",
+    "error_send_invite": "Failed to send invitation. Please try again."
+  },
+  "record_video": {
+    "create_new_lesson": "Create New Lesson",
+    "record_video_for_lesson": "Record Video for Lesson",
+    "create_new_lesson_desc": "Record a video and create a new lesson in your course",
+    "record_video_desc": "Record a new video for your existing lesson",
+    "new_lesson_mode": "New Lesson Mode",
+    "recording_mode": "Recording Mode",
+    "hide_tips": "Hide Tips",
+    "recording_tips": "Recording Tips",
+    "back_to_courses": "Back to Courses",
+    "pro_tips_title": "Pro Tips for Great Recordings",
+    "close": "Close",
+    "tips": {
+      "lighting_title": "Lighting",
+      "lighting_desc": "Face a window or light source. Avoid backlighting which makes you look like a silhouette.",
+      "audio_title": "Audio",
+      "audio_desc": "Use a headset or external mic if possible. Minimize background noise and echo.",
+      "engagement_title": "Engagement",
+      "engagement_desc": "Look at the camera lens, not your screen. Keep videos short (5-10 mins) and focused."
+    },
+    "impact": {
+      "title": "Your Impact",
+      "this_month": "This Month",
+      "new_videos": "New videos",
+      "library": "Library",
+      "total_videos": "Total videos",
+      "students": "Students",
+      "enrolled": "Enrolled",
+      "rating": "Rating",
+      "avg_rating": "Avg. Rating"
+    },
+    "quick_actions": {
+      "title": "Quick Actions",
+      "create_course": "Create Course",
+      "start_series": "Start a new series",
+      "manage_content": "Manage Content",
+      "edit_videos": "Edit existing videos",
+      "view_engagement": "View engagement"
+    }
+  },
+  "student_management": {
+    "loading": "Loading students...",
+    "invite": "Invite",
+    "refresh": "Refresh",
+    "stats": {
+      "total_students": "Total Students",
+      "active_students": "Active Students",
+      "avg_progress": "Avg. Progress",
+      "avg_courses": "Avg. Courses"
+    },
+    "search_placeholder": "Search students by name or email...",
+    "filters": {
+      "all_status": "All Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "error": {
+      "loading": "Error loading students",
+      "try_again": "Try Again"
+    },
+    "empty": {
+      "no_students": "No students found",
+      "adjust_criteria": "Try adjusting your search or filter criteria",
+      "no_students_desc": "Students enrolled in your courses will appear here. Make sure you have courses with enrolled students.",
+      "how_to_see": "To see students here:",
+      "step_1": "Create courses in \"My Courses\"",
+      "step_2": "Have students enroll in your courses",
+      "step_3": "Students will appear automatically once enrolled"
+    },
+    "time": {
+      "never": "Never",
+      "just_now": "Just now",
+      "m_ago": "m ago",
+      "h_ago": "h ago",
+      "d_ago": "d ago"
+    }
+  },
+  "teacher_achievements": {
+    "categories": {
+      "all": "All Achievements",
+      "teaching": "Teaching Excellence",
+      "engagement": "Student Engagement",
+      "content": "Content Creation",
+      "leadership": "Leadership"
+    },
+    "error": {
+      "loading": "Error Loading Achievements",
+      "try_again": "Try Again"
+    },
+    "stats": {
+      "total_achievements": "Total Achievements",
+      "total_points": "Total Points",
+      "course_badges": "Course Badges",
+      "student_impact": "Student Impact"
+    },
+    "search_placeholder": "Search achievements...",
+    "points": "points",
+    "empty": {
+      "no_achievements": "No achievements found",
+      "adjust_search": "Try adjusting your search",
+      "keep_teaching": "Keep teaching to unlock achievements!"
+    }
+  },
+  "teacher_community": {
+    "title": "Community",
+    "subtitle": "Connect with other teachers — discussions and recognition",
+    "tabs": {
+      "feed": "Feed",
+      "achievements": "Achievements"
+    },
+    "feed": {
+      "latest_discussions": "Latest Discussions",
+      "subtitle": "Helping teachers share and learn"
+    },
+    "achievements": {
+      "title": "Achievements"
+    },
+    "quick_tips": {
+      "title": "Quick Tips",
+      "tip_1": "Start a discussion with a clear question or resource link.",
+      "tip_2": "Share lesson plans and tag chapters for local feedback.",
+      "tip_3": "Recognize contributors with badges and comments."
+    },
+    "tools": {
+      "title": "Community Tools",
+      "create_discussion": "Create Discussion",
+      "invite_chapter": "Invite to Chapter",
+      "view_events": "View Events"
+    }
+  },
+  "teacher_content": {
+    "go_back": "Go Back",
+    "tabs": {
+      "video_studio": "Video Studio",
+      "resources": "Resources"
+    },
+    "context": {
+      "editing_lesson": "Editing Lesson",
+      "course_mode": "Course Mode"
+    },
+    "loading_studio": "Loading Studio..."
+  },
+  "teacher_courses_page": {
+    "title": "Course Management",
+    "subtitle": "Create, manage, and discover courses",
+    "tabs": {
+      "my_courses": "My Courses",
+      "courses": "Courses",
+      "create_new": "Create New",
+      "create": "Create",
+      "browse_catalog": "Browse Catalog",
+      "browse": "Browse"
+    }
+  },
+  "teacher_profile": {
+    "title": "Teacher Profile",
+    "subtitle": "Manage your personal information and teaching credentials",
+    "errors": {
+      "invalid_file_type": "Please upload a JPG, PNG, WebP, or GIF image",
+      "file_too_large": "Image size must be less than 5MB",
+      "upload_failed": "Failed to upload profile picture. Please try again.",
+      "remove_failed": "Failed to remove profile picture. Please try again.",
+      "save_failed": "Failed to save profile. Please try again."
+    },
+    "loading": "Loading profile...",
+    "success_update": "Profile updated successfully!",
+    "profile_picture": {
+      "title": "Profile Picture",
+      "description": "Upload a photo to personalize your teaching profile.",
+      "upload_btn": "Upload Photo",
+      "uploading": "Uploading...",
+      "remove_btn": "Remove"
+    },
+    "basic_info": {
+      "title": "Basic Information",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "email": "Email Address",
+      "email_note": "Email cannot be changed",
+      "phone": "Phone Number",
+      "location": "Location"
+    },
+    "professional_info": {
+      "title": "Professional Information",
+      "bio": "Bio",
+      "bio_placeholder": "Tell us about yourself, your teaching experience, and what you're passionate about...",
+      "education": "Theological Education / Seminary",
+      "education_placeholder": "e.g., St. Paul's Theological College, Sunday School Certificate",
+      "experience": "Service Years (Teaching)",
+      "service_areas": "Church Service Areas",
+      "service_areas_placeholder": "e.g., Bible Study, Ge'ez Language, Hymns (Zema)",
+      "add_btn": "Add"
+    },
+    "save_btn": "Save Profile",
+    "saving": "Saving..."
+  },
+  "teacher_resources": {
+    "title": "Resource Library",
+    "subtitle": "Manage and distribute educational content to your students",
+    "back_dashboard": "Back to Dashboard",
+    "new_resource": "New Resource",
+    "stats": {
+      "total": "Total Resources",
+      "storage": "Storage Used",
+      "this_month": "This Month"
+    },
+    "tabs": {
+      "upload": "Upload Center",
+      "browse": "Browse Library"
+    },
+    "upload_center": {
+      "title": "Where would you like to upload?",
+      "subtitle": "Choose the visibility scope for your new resource",
+      "platform": {
+        "title": "Platform Wide",
+        "description": "Share resources with the entire Orthodox community worldwide.",
+        "badge": "Admin Access"
+      },
+      "chapter": {
+        "title": "Chapter Only",
+        "description": "Exclusive content for members of your local chapter.",
+        "badge": "Most Common"
+      },
+      "course": {
+        "title": "Course Specific",
+        "description": "Attach materials directly to your courses and lessons.",
+        "badge": "Targeted"
+      }
+    },
+    "browse": {
+      "search_placeholder": "Search by name, type, or tag...",
+      "scope": {
+        "chapter": "Chapter Resources",
+        "platform": "Platform Resources"
+      },
+      "loading": "Loading your library...",
+      "empty": {
+        "title": "No resources found",
+        "subtitle": "Get started by uploading your first resource",
+        "btn": "Upload Resource"
+      },
+      "uncategorized": "Uncategorized",
+      "no_description": "No description provided",
+      "general": "General",
+      "download": "Download"
     }
   }
 }

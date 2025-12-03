@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Bookmark, BookmarkCheck, Search, X, Clock, BookOpen, 
@@ -21,6 +22,7 @@ interface BookmarkedItem {
 const BookmarksPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [bookmarks, setBookmarks] = useState<BookmarkedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ const BookmarksPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadBookmarks();
@@ -106,9 +108,9 @@ const BookmarksPage: React.FC = () => {
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
+    if (days === 0) return t('common.today');
+    if (days === 1) return t('common.yesterday');
+    if (days < 7) return t('common.days_ago', { count: days });
     return date.toLocaleDateString();
   }, []);
 
@@ -126,7 +128,7 @@ const BookmarksPage: React.FC = () => {
     return (
       <div className="p-4">
         <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text="Loading bookmarks..." variant="logo" />
+          <LoadingSpinner size="lg" text={t('bookmarks_page.loading_text')} variant="logo" />
         </div>
       </div>
     );
@@ -137,8 +139,8 @@ const BookmarksPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Bookmarks</h1>
-          <p className="text-gray-500 mt-1">Saved courses and lessons for quick access</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('bookmarks_page.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('bookmarks_page.subtitle')}</p>
         </div>
         
         <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
@@ -149,7 +151,7 @@ const BookmarksPage: React.FC = () => {
                 ? 'bg-gray-100 text-gray-900' 
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
-            title="Grid View"
+            title={t('bookmarks_page.grid_view_title')}
           >
             <Grid className="w-5 h-5" />
           </button>
@@ -160,7 +162,7 @@ const BookmarksPage: React.FC = () => {
                 ? 'bg-gray-100 text-gray-900' 
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
-            title="List View"
+            title={t('bookmarks_page.list_view_title')}
           >
             <List className="w-5 h-5" />
           </button>
@@ -173,7 +175,7 @@ const BookmarksPage: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search bookmarks..."
+            placeholder={t('common.search') + '...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400 transition-all"
@@ -189,7 +191,7 @@ const BookmarksPage: React.FC = () => {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            All Items
+            {t('bookmarks_page.all_items')}
           </button>
           <button
             onClick={() => setFilterType('course')}
@@ -199,7 +201,7 @@ const BookmarksPage: React.FC = () => {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Courses
+            {t('bookmarks_page.courses')}
           </button>
           <button
             onClick={() => setFilterType('lesson')}
@@ -209,7 +211,7 @@ const BookmarksPage: React.FC = () => {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Lessons
+            {t('bookmarks_page.lessons')}
           </button>
         </div>
       </div>
@@ -218,13 +220,13 @@ const BookmarksPage: React.FC = () => {
       {error ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-red-900">Error Loading Bookmarks</h3>
+          <h3 className="text-lg font-medium text-red-900">{t('bookmarks_page.error_title')}</h3>
           <p className="text-red-600 mt-1">{error}</p>
           <button 
             onClick={loadBookmarks}
             className="mt-4 px-4 py-2 bg-white border border-red-200 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
           >
-            Try Again
+            {t('common.try_again')}
           </button>
         </div>
       ) : filteredBookmarks.length === 0 ? (
@@ -232,18 +234,18 @@ const BookmarksPage: React.FC = () => {
           <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <Bookmark className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900">No bookmarks found</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t('bookmarks_page.no_bookmarks_title')}</h3>
           <p className="text-gray-500 mt-1 max-w-md mx-auto">
             {searchTerm 
-              ? `No results found for "${searchTerm}"`
-              : "You haven't bookmarked any content yet. Look for the bookmark icon on courses and lessons to save them here."}
+              ? t('bookmarks_page.no_bookmarks_desc_has_query', { query: searchTerm })
+              : t('bookmarks_page.no_bookmarks_desc_empty')}
           </p>
           {searchTerm && (
             <button 
               onClick={() => setSearchTerm('')}
               className="mt-4 px-4 py-2 text-primary-600 font-medium hover:text-primary-700"
             >
-              Clear search
+              {t('bookmarks_page.clear_search')}
             </button>
           )}
           {!searchTerm && (
@@ -251,7 +253,7 @@ const BookmarksPage: React.FC = () => {
               to="/student/courses"
               className="mt-6 inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
-              Browse Courses
+              {t('bookmarks_page.browse_courses_btn')}
             </Link>
           )}
         </div>
@@ -290,7 +292,7 @@ const BookmarksPage: React.FC = () => {
                       ? 'bg-blue-900/80 text-white' 
                       : 'bg-gray-900/80 text-white'
                   }`}>
-                    {item.entity_type === 'course' ? 'Course' : 'Lesson'}
+                    {item.entity_type === 'course' ? t('bookmarks_page.type_course') : t('bookmarks_page.type_lesson')}
                   </span>
                 </div>
 
@@ -299,7 +301,7 @@ const BookmarksPage: React.FC = () => {
                   onClick={(e) => handleRemoveBookmark(item, e)}
                   disabled={removingId === item.id}
                   className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-500 hover:text-red-600 hover:bg-white transition-colors opacity-0 group-hover:opacity-100 shadow-sm"
-                  title="Remove bookmark"
+                  title={t('bookmarks_page.remove_bookmark_title')}
                 >
                   {removingId === item.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -331,9 +333,9 @@ const BookmarksPage: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>Saved {formatDate(item.created_at)}</span>
+                    <span>{t('bookmarks_page.saved_prefix')} {formatDate(item.created_at)}</span>
                   </div>
                   
                   {item.entity?.duration && (

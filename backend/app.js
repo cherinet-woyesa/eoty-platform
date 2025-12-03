@@ -124,6 +124,12 @@ const corsOptions = {
 };
 
 // Security middleware
+app.use((req, res, next) => {
+  // Allow popups to communicate with the opener (required for Google Auth popup)
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Important for video streaming
   contentSecurityPolicy: {

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   BookOpen, Loader2, AlertCircle, Search, Menu, CheckCircle, Zap, Award, Target, Clock
 } from 'lucide-react';
@@ -10,6 +11,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSearch from './DashboardSearch';
 import { apiClient } from '@/services/api/apiClient';
+import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 
 // Skeleton loader components
 const DashboardSkeleton: React.FC = React.memo(() => (
@@ -58,6 +60,7 @@ interface StudentDashboardData {
 }
 
 const StudentDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -66,6 +69,7 @@ const StudentDashboard: React.FC = () => {
   const [studentData, setStudentData] = useState<StudentDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Load dashboard data directly from API (same as StudentCourses page)
   const loadDashboardData = useCallback(async () => {
@@ -91,6 +95,14 @@ const StudentDashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    const flag = localStorage.getItem('show_profile_completion');
+    if (flag === 'true') {
+      localStorage.removeItem('show_profile_completion');
+      setProfileModalOpen(true);
+    }
+  }, [user]);
 
   // WebSocket for live updates with optimized settings
   const { lastMessage, isConnected } = useWebSocket('/student/updates', {
@@ -176,30 +188,30 @@ const StudentDashboard: React.FC = () => {
   // Enhanced stats with real-time updates and memoization
   const stats = useMemo(() => [
     { 
-      name: 'Courses Enrolled', 
+      name: t('dashboard.student.courses_enrolled'), 
       value: studentData?.progress?.totalCourses.toString() || '0', 
       icon: BookOpen, 
-      description: 'Total courses enrolled'
+      description: t('dashboard.student.courses_enrolled_desc')
     },
     { 
-      name: 'Lessons Completed', 
+      name: t('dashboard.student.lessons_completed'), 
       value: studentData?.progress?.completedLessons.toString() || '0', 
       icon: CheckCircle, 
-      description: 'Lessons finished this month'
+      description: t('dashboard.student.lessons_completed_desc')
     },
     { 
-      name: 'Study Streak', 
+      name: t('dashboard.student.study_streak'), 
       value: `${studentData?.progress?.studyStreak || 0} days`, 
       icon: Zap, 
-      description: 'Current learning streak'
+      description: t('dashboard.student.study_streak_desc')
     },
     { 
-      name: 'Total Points', 
+      name: t('dashboard.student.total_points'), 
       value: studentData?.progress?.totalPoints.toString() || '0', 
       icon: Award, 
-      description: 'Achievement points earned'
+      description: t('dashboard.student.total_points_desc')
     }
-  ], [studentData]);
+  ], [studentData, t]);
 
   const formatTime = useCallback((date: Date) => {
     return date.toLocaleTimeString('en-US', { 
@@ -264,9 +276,9 @@ const StudentDashboard: React.FC = () => {
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center max-w-md">
             <AlertCircle className="h-16 w-16 text-stone-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-stone-800 mb-2">Unable to Load Dashboard</h2>
+            <h2 className="text-xl font-bold text-stone-800 mb-2">{t('dashboard.teacher.unable_to_load_title')}</h2>
             <p className="text-stone-600 mb-4">
-              {error || 'We encountered an error while loading your dashboard data.'}
+              {error || t('dashboard.teacher.unable_to_load_message')}
             </p>
             <div className="flex gap-3 justify-center">
               <button 
@@ -274,12 +286,21 @@ const StudentDashboard: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
               >
                 <Loader2 className="h-4 w-4 mr-2" />
-                Try Again
+                {t('dashboard.teacher.try_again')}
               </button>
             </div>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Show only the profile completion modal for new users before dashboard UI
+  if (profileModalOpen) {
+    return (
+      <ErrorBoundary>
+        <ProfileCompletionModal isOpen={true} onClose={() => setProfileModalOpen(false)} />
+      </ErrorBoundary>
     );
   }
 
@@ -308,11 +329,11 @@ const StudentDashboard: React.FC = () => {
                     >
                       <Menu className="h-4 w-4" />
                     </button>
-                    <h1 className="text-xl font-semibold text-stone-800">Welcome back, {user?.firstName}!</h1>
+                    <h1 className="text-xl font-semibold text-stone-800">{t('dashboard.teacher.welcome_back', { name: user?.firstName })}</h1>
                     {isConnected && (
                       <div className="flex items-center space-x-1.5 bg-[#27AE60]/15 px-2 py-0.5 rounded-full border border-[#27AE60]/40">
                         <div className="w-1.5 h-1.5 bg-[#27AE60] rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-medium text-stone-700">Live</span>
+                        <span className="text-[10px] font-medium text-stone-700">{t('dashboard.teacher.live')}</span>
                       </div>
                     )}
                   </div>
@@ -334,14 +355,14 @@ const StudentDashboard: React.FC = () => {
                     className="inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Browse Courses
+                    {t('dashboard.student.browse_courses')}
                   </Link>
                   <Link
                     to="/student/journeys"
                     className="inline-flex items-center px-4 py-2 bg-white hover:bg-stone-50 text-[#27AE60] text-sm font-semibold rounded-lg border border-[#27AE60]/30 shadow-sm hover:shadow-md transition-all duration-200"
                   >
                     <Target className="h-4 w-4 mr-2" />
-                    Spiritual Journeys
+                    {t('dashboard.student.spiritual_journeys')}
                   </Link>
                 </div>
               </div>
@@ -384,10 +405,10 @@ const StudentDashboard: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
                     <Zap className="h-5 w-5 text-[#27AE60]" />
-                    {inProgressCourses.length > 0 && inProgressCourses[0].progress === 0 ? 'Start Learning' : 'Continue Learning'}
+                    {inProgressCourses.length > 0 && inProgressCourses[0].progress === 0 ? t('dashboard.student.start_learning') : t('dashboard.student.continue_learning')}
                   </h2>
                   <Link to="/student/all-courses" className="text-sm text-[#27AE60] font-medium hover:underline">
-                    View All
+                    {t('dashboard.student.view_all')}
                   </Link>
                 </div>
                 
@@ -400,13 +421,13 @@ const StudentDashboard: React.FC = () => {
                 ) : (
                   <div className="bg-white rounded-xl p-8 text-center border border-stone-200 border-dashed">
                     <BookOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
-                    <h3 className="text-stone-800 font-medium mb-1">No active courses</h3>
-                    <p className="text-stone-500 text-sm mb-4">Start a course to see your progress here!</p>
+                    <h3 className="text-stone-800 font-medium mb-1">{t('dashboard.student.no_active_courses')}</h3>
+                    <p className="text-stone-500 text-sm mb-4">{t('dashboard.student.start_course_message')}</p>
                     <Link
                       to="/student/browse-courses"
                       className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-colors"
                     >
-                      Browse Catalog
+                      {t('dashboard.student.browse_catalog')}
                     </Link>
                   </div>
                 )}
@@ -417,7 +438,7 @@ const StudentDashboard: React.FC = () => {
                 <div>
                   <h2 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
                     <Target className="h-5 w-5 text-[#27AE60]" />
-                    Recommended for You
+                    {t('dashboard.student.recommended_for_you')}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {studentData.recommendations.slice(0, 2).map((course: any, i: number) => (
@@ -438,7 +459,7 @@ const StudentDashboard: React.FC = () => {
                             to={`/student/courses/${course.id}`}
                             className="text-xs font-medium text-[#27AE60] hover:underline"
                           >
-                            View Course →
+                            {t('dashboard.student.view_course')} →
                           </Link>
                         </div>
                       </div>
@@ -453,15 +474,15 @@ const StudentDashboard: React.FC = () => {
           {searchQuery && transformedCourses.length === 0 && (
             <div className="text-center py-8">
               <Search className="h-12 w-12 text-stone-300 mx-auto mb-3" />
-              <h3 className="text-sm font-semibold text-stone-800 mb-1">No results found</h3>
+              <h3 className="text-sm font-semibold text-stone-800 mb-1">{t('dashboard.student.no_results_found')}</h3>
               <p className="text-stone-600 text-xs mb-3">
-                No courses match your search for "{searchQuery}"
+                {t('dashboard.student.no_results_message', { query: searchQuery })}
               </p>
               <button
                 onClick={() => setSearchQuery('')}
                 className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-xs font-semibold rounded-lg hover:shadow-md transition-all"
               >
-                Clear Search
+                {t('dashboard.student.clear_search')}
               </button>
             </div>
           )}

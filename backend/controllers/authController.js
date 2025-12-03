@@ -1021,7 +1021,7 @@ const authController = {
   // Update user profile
   async updateUserProfile(req, res) {
     try {
-      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth } = req.body;
+      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth, role, chapterId } = req.body;
       const userId = req.user.userId;
 
       // Extract relative path from profilePicture if it's a full URL
@@ -1055,6 +1055,10 @@ const authController = {
         date_of_birth: dateOfBirth && String(dateOfBirth).trim() ? dateOfBirth : null,
         updated_at: new Date()
       };
+
+      // Allow updating role and chapter if provided (e.g. during onboarding)
+      if (role) updateData.role = role;
+      if (chapterId) updateData.chapter_id = chapterId;
 
       // Remove undefined values to avoid issues
       Object.keys(updateData).forEach(key => {
@@ -2142,7 +2146,7 @@ const authController = {
   // Internal function to handle Google login (extracted from googleLogin)
   async processGoogleLogin(googleData) {
     try {
-      const { googleId, email, firstName, lastName, profilePicture } = googleData;
+      const { googleId, email, firstName, lastName, profilePicture, role = 'user' } = googleData;
 
       // Check if user exists with this Google ID
       let user = await db('users')
@@ -2167,15 +2171,14 @@ const authController = {
 
       // If user doesn't exist at all, create a new user
       if (!user) {
-        // Get default chapter (first active chapter) for new users
+        // For Google Sign Up, we allow creating user without chapter initially
+        // They will be redirected to complete profile page
+        
+        // Try to get a default chapter just in case, but don't fail if not found
         const defaultChapter = await db('chapters')
           .where({ is_active: true })
           .orderBy('id', 'asc')
           .first();
-
-        if (!defaultChapter) {
-          throw new Error('No active chapters found. Please contact administrator.');
-        }
 
         const userData = {
           first_name: firstName,
@@ -2183,8 +2186,8 @@ const authController = {
           email: email.toLowerCase(),
           google_id: googleId,
           profile_picture: profilePicture,
-          role: 'user',
-          chapter_id: defaultChapter.id,
+          role: role, // Use the passed role
+          chapter_id: defaultChapter ? defaultChapter.id : null, // Allow null if DB permits, or default
           is_active: true,
           created_at: new Date(),
           updated_at: new Date()
@@ -2199,6 +2202,9 @@ const authController = {
           .where({ id: userId })
           .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
           .first();
+          
+        // Mark as new user for frontend redirection
+        user.isNewUser = true;
       } else {
         // Update last login and profile picture
         await db('users')
@@ -2255,7 +2261,8 @@ const authController = {
             role: user.role,
             chapter: user.chapter_id,
             isActive: user.is_active,
-            profilePicture: getProfilePictureUrl(user.profile_picture)
+            profilePicture: getProfilePictureUrl(user.profile_picture),
+            isNewUser: !!user.isNewUser // Pass this flag to frontend
           },
           token
         }
@@ -2270,6 +2277,23 @@ const authController = {
   // Google OAuth callback - exchange authorization code for user data
   async googleCallback(req, res) {
     try {
+      // 1. Passport Flow (GET request, req.user populated by passport middleware)
+      if (req.user) {
+        const user = req.user;
+        const token = jwt.sign(
+          { id: user.id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+        
+        // Determine frontend URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        
+        // Redirect to frontend with token
+        return res.redirect(`${frontendUrl}/auth/google/callback?token=${token}`);
+      }
+
+      // 2. Manual Flow (POST request, req.body.code)
       const { code, redirectUri } = req.body;
 
       if (!code) {
@@ -2339,11 +2363,13 @@ const authController = {
         email: userData.email,
         firstName: userData.given_name || userData.name?.split(' ')[0] || '',
         lastName: userData.family_name || userData.name?.split(' ').slice(1).join(' ') || '',
-        profilePicture: userData.picture
+        profilePicture: userData.picture,
+        role: req.body.role || 'user' // Pass role from request body
       };
 
       // Process Google login
-      const result = await this.processGoogleLogin(googleData);
+      // Use authController directly since 'this' might be lost in callback
+      const result = await authController.processGoogleLogin(googleData);
 
       res.json(result);
 

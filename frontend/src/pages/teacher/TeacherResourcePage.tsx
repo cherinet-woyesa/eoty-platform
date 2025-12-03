@@ -8,10 +8,12 @@ import {
 import { resourcesApi } from '@/services/api/resources';
 import { coursesApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import type { Resource } from '@/types/resources';
 
 const TeacherResourcePage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'upload' | 'manage'>('upload');
@@ -34,10 +36,11 @@ const TeacherResourcePage: React.FC = () => {
       setLoading(true);
       let response;
 
-      if (selectedScope === 'platform_wide') {
+      if (selectedScope === 'platform_wide' || !user?.chapter_id) {
+        // Fallback to platform-wide if chapter is not set
         response = await resourcesApi.getPlatformResources({ search: searchTerm });
       } else {
-        response = await resourcesApi.getChapterResources(user?.chapter_id?.toString() || '', { search: searchTerm });
+        response = await resourcesApi.getChapterResources(user.chapter_id.toString(), { search: searchTerm });
       }
 
       if (response.success) {
@@ -57,9 +60,9 @@ const TeacherResourcePage: React.FC = () => {
 
   // Mock stats
   const stats = [
-    { label: 'Total Resources', value: resources.length, icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: 'Storage Used', value: '2.4 GB', icon: HardDrive, color: 'text-purple-600', bg: 'bg-purple-100' },
-    { label: 'This Month', value: '+12', icon: Clock, color: 'text-green-600', bg: 'bg-green-100' },
+    { label: t('teacher_resources.stats.total'), value: resources.length, icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { label: t('teacher_resources.stats.storage'), value: '2.4 GB', icon: HardDrive, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { label: t('teacher_resources.stats.this_month'), value: '+12', icon: Clock, color: 'text-green-600', bg: 'bg-green-100' },
   ];
 
   const getFileIcon = (type: string) => {
@@ -76,22 +79,22 @@ const TeacherResourcePage: React.FC = () => {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Resource Library</h1>
-            <p className="text-slate-500 mt-1">Manage and distribute educational content to your students</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('teacher_resources.title')}</h1>
+            <p className="text-slate-500 mt-1">{t('teacher_resources.subtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/teacher/dashboard"
               className="px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all text-sm font-medium shadow-sm"
             >
-              Back to Dashboard
+              {t('teacher_resources.back_dashboard')}
             </Link>
             <button 
               onClick={() => setActiveTab('upload')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-sm flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              New Resource
+              {t('teacher_resources.new_resource')}
             </button>
           </div>
         </div>
@@ -124,7 +127,7 @@ const TeacherResourcePage: React.FC = () => {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                Upload Center
+                {t('teacher_resources.tabs.upload')}
                 {activeTab === 'upload' && (
                   <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
                 )}
@@ -137,7 +140,7 @@ const TeacherResourcePage: React.FC = () => {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                Browse Library
+                {t('teacher_resources.tabs.browse')}
                 {activeTab === 'manage' && (
                   <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
                 )}
@@ -149,8 +152,8 @@ const TeacherResourcePage: React.FC = () => {
             {activeTab === 'upload' ? (
               <div className="max-w-5xl mx-auto">
                 <div className="text-center mb-10">
-                  <h2 className="text-2xl font-bold text-slate-900">Where would you like to upload?</h2>
-                  <p className="text-slate-500 mt-2">Choose the visibility scope for your new resource</p>
+                  <h2 className="text-2xl font-bold text-slate-900">{t('teacher_resources.upload_center.title')}</h2>
+                  <p className="text-slate-500 mt-2">{t('teacher_resources.upload_center.subtitle')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -162,12 +165,12 @@ const TeacherResourcePage: React.FC = () => {
                     <div className="w-16 h-16 mx-auto bg-blue-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <Globe className="h-8 w-8 text-blue-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Platform Wide</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{t('teacher_resources.upload_center.platform.title')}</h3>
                     <p className="text-sm text-slate-500 mb-6">
-                      Share resources with the entire Orthodox community worldwide.
+                      {t('teacher_resources.upload_center.platform.description')}
                     </p>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                      Admin Access
+                      {t('teacher_resources.upload_center.platform.badge')}
                     </span>
                   </div>
 
@@ -179,12 +182,12 @@ const TeacherResourcePage: React.FC = () => {
                     <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <Users className="h-8 w-8 text-emerald-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Chapter Only</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{t('teacher_resources.upload_center.chapter.title')}</h3>
                     <p className="text-sm text-slate-500 mb-6">
-                      Exclusive content for members of your local chapter.
+                      {t('teacher_resources.upload_center.chapter.description')}
                     </p>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                      Most Common
+                      {t('teacher_resources.upload_center.chapter.badge')}
                     </span>
                   </div>
 
@@ -196,12 +199,12 @@ const TeacherResourcePage: React.FC = () => {
                     <div className="w-16 h-16 mx-auto bg-purple-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <BookOpen className="h-8 w-8 text-purple-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Course Specific</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{t('teacher_resources.upload_center.course.title')}</h3>
                     <p className="text-sm text-slate-500 mb-6">
-                      Attach materials directly to your courses and lessons.
+                      {t('teacher_resources.upload_center.course.description')}
                     </p>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                      Targeted
+                      {t('teacher_resources.upload_center.course.badge')}
                     </span>
                   </div>
                 </div>
@@ -215,7 +218,7 @@ const TeacherResourcePage: React.FC = () => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Search by name, type, or tag..."
+                        placeholder={t('teacher_resources.browse.search_placeholder')}
                         value={searchTerm}
                         onChange={handleSearch}
                         className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
@@ -227,8 +230,8 @@ const TeacherResourcePage: React.FC = () => {
                       onChange={(e) => setSelectedScope(e.target.value as any)}
                       className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                      <option value="chapter_wide">Chapter Resources</option>
-                      {isAdmin && <option value="platform_wide">Platform Resources</option>}
+                      <option value="chapter_wide">{t('teacher_resources.browse.scope.chapter')}</option>
+                      {isAdmin && <option value="platform_wide">{t('teacher_resources.browse.scope.platform')}</option>}
                     </select>
                   </div>
                   
@@ -251,20 +254,20 @@ const TeacherResourcePage: React.FC = () => {
                 {/* Content Grid/List */}
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20">
-                    <LoadingSpinner size="lg" text="Loading your library..." variant="logo" />
+                    <LoadingSpinner size="lg" text={t('teacher_resources.browse.loading')} variant="logo" />
                   </div>
                 ) : resources.length === 0 ? (
                   <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FolderOpen className="h-8 w-8 text-slate-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900">No resources found</h3>
-                    <p className="text-slate-500 mt-1 mb-6">Get started by uploading your first resource</p>
+                    <h3 className="text-lg font-semibold text-slate-900">{t('teacher_resources.browse.empty.title')}</h3>
+                    <p className="text-slate-500 mt-1 mb-6">{t('teacher_resources.browse.empty.subtitle')}</p>
                     <button
                       onClick={() => setActiveTab('upload')}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium"
                     >
-                      Upload Resource
+                      {t('teacher_resources.browse.empty.btn')}
                     </button>
                   </div>
                 ) : (
@@ -284,7 +287,7 @@ const TeacherResourcePage: React.FC = () => {
                             {viewMode === 'list' && (
                               <div>
                                 <h3 className="font-semibold text-slate-900">{resource.title}</h3>
-                                <p className="text-sm text-slate-500">{resource.category || 'Uncategorized'}</p>
+                                <p className="text-sm text-slate-500">{resource.category || t('teacher_resources.browse.uncategorized')}</p>
                               </div>
                             )}
                           </div>
@@ -297,11 +300,11 @@ const TeacherResourcePage: React.FC = () => {
                           <div className="flex-1">
                             <h3 className="font-semibold text-slate-900 line-clamp-1 mb-1">{resource.title}</h3>
                             <p className="text-sm text-slate-500 line-clamp-2 mb-3 h-10">
-                              {resource.description || 'No description provided'}
+                              {resource.description || t('teacher_resources.browse.no_description')}
                             </p>
                             <div className="flex items-center gap-2 mb-4">
                               <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md font-medium">
-                                {resource.category || 'General'}
+                                {resource.category || t('teacher_resources.browse.general')}
                               </span>
                               <span className="text-xs text-slate-400">
                                 {new Date(resource.created_at).toLocaleDateString()}
@@ -319,7 +322,7 @@ const TeacherResourcePage: React.FC = () => {
                             }}
                           >
                             <Download className="h-3 w-3" />
-                            Download
+                            {t('teacher_resources.browse.download')}
                           </button>
                         </div>
                       </div>

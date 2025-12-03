@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, CheckSquare, Map, Award } from 'lucide-react';
 import ProgressPage from './ProgressPage';
 import StudentAssignments from './Assignments';
@@ -7,6 +8,7 @@ import Achievements from '@/pages/shared/social/Achievements';
 
 const LearningPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'progress' | 'assignments' | 'paths' | 'achievements'>('progress');
+  const { t } = useTranslation();
 
   return (
     <div className="w-full h-full">
@@ -15,9 +17,9 @@ const LearningPage: React.FC = () => {
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-stone-800 mb-1.5 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-[#27AE60]" />
-            My Learning
+            {t('learning_page.title')}
           </h1>
-          <p className="text-stone-600 text-sm">Track your progress, assignments, and achievements</p>
+          <p className="text-stone-600 text-sm">{t('learning_page.subtitle')}</p>
         </div>
 
         {/* Tabs */}
@@ -32,7 +34,7 @@ const LearningPage: React.FC = () => {
               }`}
             >
               <TrendingUp className="h-4 w-4" />
-              <span>Progress</span>
+              <span>{t('learning_page.progress_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('assignments')}
@@ -43,7 +45,7 @@ const LearningPage: React.FC = () => {
               }`}
             >
               <CheckSquare className="h-4 w-4" />
-              <span>Assignments</span>
+              <span>{t('learning_page.assignments_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('paths')}
@@ -54,7 +56,7 @@ const LearningPage: React.FC = () => {
               }`}
             >
               <Map className="h-4 w-4" />
-              <span>Study Paths</span>
+              <span>{t('learning_page.paths_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('achievements')}
@@ -65,7 +67,7 @@ const LearningPage: React.FC = () => {
               }`}
             >
               <Award className="h-4 w-4" />
-              <span>Achievements</span>
+              <span>{t('learning_page.achievements_tab')}</span>
             </button>
           </nav>
 

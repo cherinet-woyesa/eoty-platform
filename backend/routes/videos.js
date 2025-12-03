@@ -37,6 +37,7 @@ router.post('/mux/upload-url', requirePermission('video:upload'), videoControlle
 router.post('/mux/webhook', videoController.handleMuxWebhook); // No auth - verified by signature
 router.post('/mux/webhook/test', authenticateToken, videoController.testWebhook); // Test endpoint for debugging
 router.get('/:lessonId/playback', videoController.getPlaybackInfo);
+router.get('/:lessonId/mux-status', videoController.getMuxStatus);
 
 // Video analytics routes
 router.get('/:lessonId/analytics', videoController.getVideoAnalytics);

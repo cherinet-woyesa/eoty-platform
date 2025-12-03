@@ -5,11 +5,15 @@
 
 import React, { memo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { authApi } from '@/services/api';
+import { authApi, apiClient } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { extractErrorMessage } from '@/utils/errorMessages';
 
-const SocialLoginButtons: React.FC = memo(() => {
+interface SocialLoginButtonsProps {
+  role?: string;
+}
+
+const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'user' }) => {
   const { handleOAuthLogin } = useAuth();
   const navigate = useNavigate();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -76,84 +80,93 @@ const SocialLoginButtons: React.FC = memo(() => {
 
       popup.location.href = authUrl;
 
-      // Listen for message from popup
+      // Create BroadcastChannel for robust communication (fixes window.opener issues)
+      const channel = new BroadcastChannel('google_auth_channel');
+
+      const handleAuthCode = async (code: string) => {
+        // Cleanup
+        window.removeEventListener('message', handleMessage);
+        channel.close();
+        if (popup && !popup.closed) popup.close();
+
+        if (!code) {
+           setError('No authorization code received.');
+           setIsGoogleLoading(false);
+           return;
+        }
+
+        // Send code to backend
+        try {
+          const response = await fetch('http://localhost:5000/api/auth/google/callback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              code,
+              redirectUri: redirectUriStr,
+              role: role // Pass the selected role to the backend
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Login successful - use the OAuth login handler
+            await handleOAuthLogin(result.data);
+
+            // If user is new or missing chapter, trigger profile completion popup
+            const user = result.data.user;
+            if (user && (user.isNewUser || !user.chapter)) {
+              localStorage.setItem('show_profile_completion', 'true');
+            }
+
+            // Redirect to generic dashboard; DynamicDashboard will route by role
+            navigate('/dashboard');
+          } else {
+            console.error('Backend authentication failed:', result.message);
+            setError(result.message || 'Authentication failed on server.');
+          }
+        } catch (backendError) {
+          console.error('Backend error:', backendError);
+          const errorMessage = extractErrorMessage(backendError);
+          setError(errorMessage);
+        } finally {
+          setIsGoogleLoading(false);
+        }
+      };
+
+      const handleAuthError = (errorMsg: string) => {
+         window.removeEventListener('message', handleMessage);
+         channel.close();
+         if (popup && !popup.closed) popup.close();
+         setError(errorMsg || 'Google login failed.');
+         setIsGoogleLoading(false);
+      };
+
+      // Listen for message from popup (postMessage)
       const handleMessage = async (event: MessageEvent) => {
         // Verify origin matches
         if (event.origin !== window.location.origin) return;
 
         if (event.data?.type === 'GOOGLE_AUTH_CODE') {
-          const { code } = event.data;
-          
-          // Cleanup
-          window.removeEventListener('message', handleMessage);
-          if (popup && !popup.closed) popup.close();
-
-          if (!code) {
-             setError('No authorization code received.');
-             setIsGoogleLoading(false);
-             return;
-          }
-
-          // Send code to backend
-          try {
-            const response = await fetch('http://localhost:5000/api/auth/google/callback', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                code,
-                redirectUri: redirectUriStr
-              }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              // Login successful - use the OAuth login handler
-              await handleOAuthLogin(result.data);
-              navigate('/dashboard');
-            } else {
-              console.error('Backend authentication failed:', result.message);
-              setError(result.message || 'Authentication failed on server.');
-            }
-          } catch (backendError) {
-            console.error('Backend error:', backendError);
-            const errorMessage = extractErrorMessage(backendError);
-            setError(errorMessage);
-          } finally {
-            setIsGoogleLoading(false);
-          }
+          handleAuthCode(event.data.code);
         } else if (event.data?.type === 'GOOGLE_AUTH_ERROR') {
-           window.removeEventListener('message', handleMessage);
-           if (popup && !popup.closed) popup.close();
-           setError(event.data.error || 'Google login failed.');
-           setIsGoogleLoading(false);
+          handleAuthError(event.data.error);
+        }
+      };
+
+      // Listen for message from BroadcastChannel
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'GOOGLE_AUTH_CODE') {
+          handleAuthCode(event.data.code);
+        } else if (event.data?.type === 'GOOGLE_AUTH_ERROR') {
+          handleAuthError(event.data.error);
         }
       };
 
       window.addEventListener('message', handleMessage);
-
-      // Check if popup is closed manually
-      const checkClosed = setInterval(() => {
-        try {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            window.removeEventListener('message', handleMessage);
-            setIsGoogleLoading((loading) => {
-              if (loading) {
-                 // User closed popup without completing auth
-                 return false;
-              }
-              return false;
-            });
-          }
-        } catch (e) {
-          // Ignore cross-origin errors when checking closed status
-          // The popup might be on a different origin (accounts.google.com)
-          // We'll rely on the message event or user interaction
-        }
-      }, 1000);
+      // Removed popup close polling to avoid COOP-related errors; rely on BroadcastChannel
 
     } catch (error: any) {
       console.error('Google login failed:', error);

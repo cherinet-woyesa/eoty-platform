@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { journeysApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Compass, Loader2, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
@@ -16,6 +17,7 @@ interface Journey {
 }
 
 const SpiritualJourneys: React.FC = () => {
+  const { t } = useTranslation();
   const [myJourneys, setMyJourneys] = useState<Journey[]>([]);
   const [availableJourneys, setAvailableJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ const SpiritualJourneys: React.FC = () => {
         setAvailableJourneys(available);
       } catch (e: any) {
         console.error('Failed to load journeys', e);
-        setError(e.response?.data?.message || 'Failed to load journeys');
+        setError(e.response?.data?.message || t('spiritual_journeys.load_failed'));
       } finally {
         setLoading(false);
       }
@@ -69,7 +71,7 @@ const SpiritualJourneys: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading your spiritual journeys..." variant="logo" />
+        <LoadingSpinner size="lg" text={t('spiritual_journeys.loading_text')} variant="logo" />
       </div>
     );
   }
@@ -85,10 +87,10 @@ const SpiritualJourneys: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                Spiritual Journeys
+                {t('spiritual_journeys.title')}
               </h1>
               <p className="text-sm text-slate-600 mt-1">
-                Guided paths to deepen your faith and understanding.
+                {t('spiritual_journeys.subtitle')}
               </p>
             </div>
           </div>
@@ -99,7 +101,7 @@ const SpiritualJourneys: React.FC = () => {
           <section>
             <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <Compass className="h-5 w-5 text-emerald-600" />
-              My Active Journeys
+              {t('spiritual_journeys.my_active_journeys')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {myJourneys.map((journey) => (
@@ -107,7 +109,7 @@ const SpiritualJourneys: React.FC = () => {
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-semibold text-slate-900">{journey.title}</h3>
                     <span className="text-xs font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-                      {journey.status === 'completed' ? 'Completed' : 'In Progress'}
+                      {journey.status === 'completed' ? t('spiritual_journeys.status_completed') : t('spiritual_journeys.status_in_progress')}
                     </span>
                   </div>
                   <p className="text-sm text-slate-600 mb-4 line-clamp-2">{journey.description}</p>
@@ -123,7 +125,7 @@ const SpiritualJourneys: React.FC = () => {
                     onClick={() => navigate(`/student/journeys/${journey.id}`)}
                     className="w-full py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
-                    Continue Journey
+                    {t('spiritual_journeys.continue_journey')}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -136,11 +138,11 @@ const SpiritualJourneys: React.FC = () => {
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-amber-500" />
-            Available Journeys
+            {t('spiritual_journeys.available_journeys')}
           </h2>
           {availableJourneys.length === 0 ? (
             <div className="text-center py-12 bg-white/50 rounded-xl border border-dashed border-slate-200">
-              <p className="text-slate-500">No new journeys available at the moment.</p>
+              <p className="text-slate-500">{t('spiritual_journeys.no_new_journeys')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -153,12 +155,12 @@ const SpiritualJourneys: React.FC = () => {
                   </div>
                   <h3 className="font-semibold text-slate-900 mb-2">{journey.title}</h3>
                   <p className="text-sm text-slate-600 mb-4 line-clamp-3">{journey.description}</p>
-                  
-                  <button 
+                  <button
                     onClick={() => handleEnroll(journey.id)}
-                    className="w-full py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
+                    className="w-full py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
-                    Start Journey
+                    {t('spiritual_journeys.start_journey')}
+                    <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
               ))}

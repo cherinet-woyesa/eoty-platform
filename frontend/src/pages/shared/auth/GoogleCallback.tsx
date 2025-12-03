@@ -15,6 +15,12 @@ const GoogleCallback: React.FC = () => {
         if (error) {
           setStatus('error');
           setMessage(`Authentication failed: ${error}`);
+          
+          // Try BroadcastChannel first
+          const channel = new BroadcastChannel('google_auth_channel');
+          channel.postMessage({ type: 'GOOGLE_AUTH_ERROR', error });
+          channel.close();
+
           if (window.opener) {
              window.opener.postMessage({ type: 'GOOGLE_AUTH_ERROR', error }, window.location.origin);
           }
@@ -29,6 +35,11 @@ const GoogleCallback: React.FC = () => {
 
         setMessage('Completing authentication...');
 
+        // Try BroadcastChannel first (works even if window.opener is null due to COOP)
+        const channel = new BroadcastChannel('google_auth_channel');
+        channel.postMessage({ type: 'GOOGLE_AUTH_CODE', code });
+        channel.close();
+
         if (window.opener) {
           // Send code to parent window
           window.opener.postMessage({ type: 'GOOGLE_AUTH_CODE', code }, window.location.origin);
@@ -37,8 +48,10 @@ const GoogleCallback: React.FC = () => {
           // Close window after a short delay
           setTimeout(() => window.close(), 500);
         } else {
-          setStatus('error');
-          setMessage('This page should be opened as a popup.');
+          // Even if opener is missing, we sent the code via BroadcastChannel
+          setStatus('success');
+          setMessage('Authentication successful! Closing window...');
+          setTimeout(() => window.close(), 500);
         }
 
       } catch (error: any) {

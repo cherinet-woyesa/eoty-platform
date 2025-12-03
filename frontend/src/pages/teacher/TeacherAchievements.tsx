@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trophy, Award, Star, Target, Users, BookOpen, Video, TrendingUp, Sparkles, Medal, Crown, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAchievements } from '@/hooks/useCommunity';
 
 const TeacherAchievements: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { badges, totalPoints, loading, error, refetch } = useAchievements();
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -11,11 +13,11 @@ const TeacherAchievements: React.FC = () => {
 
   // Teacher-specific achievement categories
   const categories = [
-    { id: 'all', name: 'All Achievements', icon: Trophy, count: badges.length, color: 'text-[#27AE60]' },
-    { id: 'teaching', name: 'Teaching Excellence', icon: GraduationCap, count: badges.filter(b => b.badge_type === 'teaching' || b.badge_type === 'completion').length, color: 'text-[#16A085]' },
-    { id: 'engagement', name: 'Student Engagement', icon: Users, count: badges.filter(b => b.badge_type === 'participation' || b.badge_type === 'engagement').length, color: 'text-[#2980B9]' },
-    { id: 'content', name: 'Content Creation', icon: Video, count: badges.filter(b => b.badge_type === 'content' || b.badge_type === 'creation').length, color: 'text-[#F39C12]' },
-    { id: 'leadership', name: 'Leadership', icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#E67E22]' },
+    { id: 'all', name: t('teacher_achievements.categories.all'), icon: Trophy, count: badges.length, color: 'text-[#27AE60]' },
+    { id: 'teaching', name: t('teacher_achievements.categories.teaching'), icon: GraduationCap, count: badges.filter(b => b.badge_type === 'teaching' || b.badge_type === 'completion').length, color: 'text-[#16A085]' },
+    { id: 'engagement', name: t('teacher_achievements.categories.engagement'), icon: Users, count: badges.filter(b => b.badge_type === 'participation' || b.badge_type === 'engagement').length, color: 'text-[#2980B9]' },
+    { id: 'content', name: t('teacher_achievements.categories.content'), icon: Video, count: badges.filter(b => b.badge_type === 'content' || b.badge_type === 'creation').length, color: 'text-[#F39C12]' },
+    { id: 'leadership', name: t('teacher_achievements.categories.leadership'), icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#E67E22]' },
   ];
 
   const filteredBadges = useMemo(() => {
@@ -83,14 +85,14 @@ const TeacherAchievements: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-lg border border-red-200 p-4 shadow-sm">
           <h2 className="text-red-800 font-semibold mb-1 flex items-center gap-2 text-sm">
             <Award className="h-4 w-4" />
-            Error Loading Achievements
+            {t('teacher_achievements.error.loading')}
           </h2>
           <p className="text-red-600 mb-3 text-xs">{error}</p>
           <button
             onClick={() => refetch()}
             className="px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg font-semibold hover:shadow-lg transition-all text-xs"
           >
-            Try Again
+            {t('teacher_achievements.error.try_again')}
           </button>
         </div>
       </div>
@@ -107,7 +109,7 @@ const TeacherAchievements: React.FC = () => {
             <Trophy className="relative h-5 w-5 text-[#27AE60] mx-auto" />
           </div>
           <div className="text-lg font-bold text-stone-800 mb-0.5">{earnedBadgesCount}</div>
-          <div className="text-xs text-stone-600 font-medium">Total Achievements</div>
+          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.total_achievements')}</div>
         </div>
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
@@ -115,7 +117,7 @@ const TeacherAchievements: React.FC = () => {
             <Star className="relative h-5 w-5 text-[#16A085] mx-auto" />
           </div>
           <div className="text-lg font-bold text-stone-800 mb-0.5">{totalPoints}</div>
-          <div className="text-xs text-stone-600 font-medium">Total Points</div>
+          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.total_points')}</div>
         </div>
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
@@ -123,7 +125,7 @@ const TeacherAchievements: React.FC = () => {
             <BookOpen className="relative h-5 w-5 text-[#2980B9] mx-auto" />
           </div>
           <div className="text-lg font-bold text-stone-800 mb-0.5">{teachingStats.totalCourses}</div>
-          <div className="text-xs text-stone-600 font-medium">Course Badges</div>
+          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.course_badges')}</div>
         </div>
         <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
@@ -131,7 +133,7 @@ const TeacherAchievements: React.FC = () => {
             <Users className="relative h-5 w-5 text-[#F39C12] mx-auto" />
           </div>
           <div className="text-lg font-bold text-stone-800 mb-0.5">{teachingStats.totalStudents}</div>
-          <div className="text-xs text-stone-600 font-medium">Student Impact</div>
+          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.student_impact')}</div>
         </div>
       </div>
 
@@ -141,7 +143,7 @@ const TeacherAchievements: React.FC = () => {
           <div className="flex-1 relative">
             <input
               type="text"
-              placeholder="Search achievements..."
+              placeholder={t('teacher_achievements.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700 text-sm"
@@ -208,7 +210,7 @@ const TeacherAchievements: React.FC = () => {
                   <div className="flex items-center justify-between">
                     {badge.points && (
                       <span className="text-xs font-medium text-[#27AE60]">
-                        +{badge.points} points
+                        +{badge.points} {t('teacher_achievements.points')}
                       </span>
                     )}
                     {badge.earned_at && (
@@ -225,9 +227,9 @@ const TeacherAchievements: React.FC = () => {
       ) : (
         <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-8 text-center shadow-sm">
           <Trophy className="h-8 w-8 text-stone-300 mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-stone-800 mb-1">No achievements found</h3>
+          <h3 className="text-sm font-semibold text-stone-800 mb-1">{t('teacher_achievements.empty.no_achievements')}</h3>
           <p className="text-xs text-stone-600">
-            {searchQuery ? 'Try adjusting your search' : 'Keep teaching to unlock achievements!'}
+            {searchQuery ? t('teacher_achievements.empty.adjust_search') : t('teacher_achievements.empty.keep_teaching')}
           </p>
         </div>
       )}

@@ -574,15 +574,27 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     }
   }, [processingState.status, retryCount, processingState.progress, processingState.provider]);
 
-  // Auto-close on completion after delay (increased to 8 seconds to show success message)
+  // Auto-minimize when processing starts (after upload)
+  useEffect(() => {
+    if (processingState.status === 'processing' && !minimized && processingState.progress > 0) {
+      const timer = setTimeout(() => {
+        setMinimized(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [processingState.status, minimized, processingState.progress]);
+
+  // Auto-expand when completed to show success popup
   useEffect(() => {
     if (processingState.status === 'completed') {
+      setMinimized(false);
+      
       // Show success notification
       // Visible success message handled by parent + modal UI; no console log
       
       const timer = setTimeout(() => {
         onClose();
-      }, 8000); // Increased from 3s to 8s to give users time to see success
+      }, 5000); // Close after 5 seconds
       
       return () => clearTimeout(timer);
     }

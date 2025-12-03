@@ -1,5 +1,6 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Video, FolderOpen, Sparkles, ArrowLeft, Layout, Library } from 'lucide-react';
 import TeacherResourceManager from './components/TeacherResourceManager';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -8,6 +9,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 const RecordVideo = React.lazy(() => import('./RecordVideo'));
 
 const TeacherContentPage: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const lessonId = searchParams.get('lessonId') || undefined;
@@ -40,7 +42,7 @@ const TeacherContentPage: React.FC = () => {
             <button 
               onClick={() => navigate(-1)}
               className="p-2 hover:bg-stone-100 rounded-full transition-colors text-stone-500"
-              title="Go Back"
+              title={t('teacher_content.go_back')}
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -57,7 +59,7 @@ const TeacherContentPage: React.FC = () => {
               }`}
             >
               <Video className="h-4 w-4" />
-              <span>Video Studio</span>
+              <span>{t('teacher_content.tabs.video_studio')}</span>
             </button>
             <button
               onClick={() => handleTabChange('resources')}
@@ -68,7 +70,7 @@ const TeacherContentPage: React.FC = () => {
               }`}
             >
               <Library className="h-4 w-4" />
-              <span>Resources</span>
+              <span>{t('teacher_content.tabs.resources')}</span>
             </button>
           </div>
         </div>
@@ -77,7 +79,7 @@ const TeacherContentPage: React.FC = () => {
         {(lessonId || courseId) && (
           <div className="hidden sm:inline-flex items-center px-3 py-1 bg-stone-50 border border-stone-200 rounded-full text-xs font-medium text-stone-600">
             <Sparkles className="h-3.5 w-3.5 text-[#27AE60] mr-1.5" />
-            {lessonId ? 'Editing Lesson' : 'Course Mode'}
+            {lessonId ? t('teacher_content.context.editing_lesson') : t('teacher_content.context.course_mode')}
           </div>
         )}
       </div>
@@ -88,7 +90,7 @@ const TeacherContentPage: React.FC = () => {
           <div className="h-full w-full overflow-y-auto">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full">
-                <LoadingSpinner size="lg" text="Loading Studio..." variant="logo" />
+                <LoadingSpinner size="lg" text={t('teacher_content.loading_studio')} variant="logo" />
               </div>
             }>
               <RecordVideo courseId={courseId} lessonId={lessonId} variant="embedded" />

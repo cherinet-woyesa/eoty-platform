@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Plus, Search } from 'lucide-react';
 import MyCourses from './MyCourses';
 import CreateCourse from './CreateCourse';
 import CourseCatalog from '@/pages/student/courses/CourseCatalog';
 
 const TeacherCoursesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'my-courses' | 'create' | 'browse'>('my-courses');
 
   return (
@@ -14,9 +16,9 @@ const TeacherCoursesPage: React.FC = () => {
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-stone-800 mb-1 flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-[#27AE60]" />
-            Course Management
+            {t('teacher_courses_page.title')}
           </h1>
-          <p className="text-sm text-stone-600">Create, manage, and discover courses</p>
+          <p className="text-sm text-stone-600">{t('teacher_courses_page.subtitle')}</p>
         </div>
 
         {/* Compact Tabs */}
@@ -31,8 +33,8 @@ const TeacherCoursesPage: React.FC = () => {
               }`}
             >
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">My Courses</span>
-              <span className="sm:hidden">Courses</span>
+              <span className="hidden sm:inline">{t('teacher_courses_page.tabs.my_courses')}</span>
+              <span className="sm:hidden">{t('teacher_courses_page.tabs.courses')}</span>
             </button>
             <button
               onClick={() => setActiveTab('create')}
@@ -43,8 +45,8 @@ const TeacherCoursesPage: React.FC = () => {
               }`}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Create New</span>
-              <span className="sm:hidden">Create</span>
+              <span className="hidden sm:inline">{t('teacher_courses_page.tabs.create_new')}</span>
+              <span className="sm:hidden">{t('teacher_courses_page.tabs.create')}</span>
             </button>
             <button
               onClick={() => setActiveTab('browse')}
@@ -55,8 +57,8 @@ const TeacherCoursesPage: React.FC = () => {
               }`}
             >
               <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Browse Catalog</span>
-              <span className="sm:hidden">Browse</span>
+              <span className="hidden sm:inline">{t('teacher_courses_page.tabs.browse_catalog')}</span>
+              <span className="sm:hidden">{t('teacher_courses_page.tabs.browse')}</span>
             </button>
           </nav>
 

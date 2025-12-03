@@ -9,6 +9,7 @@ import ForgotPassword from '@/pages/shared/auth/ForgotPassword';
 import ResetPassword from '@/pages/shared/auth/ResetPassword';
 import EmailVerification from '@/pages/shared/auth/EmailVerification';
 import GoogleCallback from '@/pages/shared/auth/GoogleCallback';
+import CompleteProfile from '@/pages/shared/auth/CompleteProfile';
 import TeacherDashboard from '@/components/teacher/dashboard/TeacherDashboard';
 import StudentDashboard from '@/components/student/dashboard/StudentDashboard';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -214,6 +215,14 @@ function AppContent() {
         <Route
           path="/auth/google/callback"
           element={<GoogleCallback />}
+        />
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute>
+              <CompleteProfile />
+            </ProtectedRoute>
+          }
         />
 
         {/* Authenticated routes */}

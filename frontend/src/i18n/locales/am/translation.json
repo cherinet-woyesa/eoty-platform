@@ -1,4 +1,37 @@
 {
+  "nav": {
+    "dashboard": "ዳሽቦርድ",
+    "dashboard_desc": "የመድረክ አጠቃላይ እይታ እና መለኪያዎች",
+    "courses": "ኮርሶች",
+    "courses_desc": "የእኔ ኮርሶች፣ ይፍጠሩ እና ያስሱ",
+    "learning": "ትምህርት",
+    "learning_desc": "ሂደት፣ የቤት ስራዎች፣ መንገዶች እና ስኬቶች",
+    "ai_assistant": "AI ረዳት",
+    "ai_assistant_desc": "ፈጣን እርዳታ እና መልሶችን ያግኙ",
+    "community": "ማህበረሰብ",
+    "community_desc": "መጋቢ፣ ቡድኖች እና መድረኮች",
+    "chapters": "ምዕራፎች",
+    "chapters_desc": "የአካባቢ ማህበረሰቦችን ይቀላቀሉ",
+    "resources": "ግብዓቶች",
+    "resources_desc": "ቤተ-መጽሐፍት እና የእርዳታ ማዕከል",
+    "students": "ተማሪዎች",
+    "students_desc": "ተማሪዎች፣ የቤት ስራዎች እና ትንታኔዎች",
+    "content": "ይዘት",
+    "content_desc": "ይቅረጹ፣ ይስቀሉ እና ግብዓቶች",
+    "admin_panel": "የአስተዳዳሪ ፓነል",
+    "admin_panel_desc": "የስርዓት አስተዳደር",
+    "revenue": "ገቢ",
+    "revenue_desc": "ገቢዎች እና ክፍያዎች",
+    "users_access": "ተጠቃሚዎች እና መዳረሻ",
+    "users_access_desc": "ተጠቃሚዎች፣ ምዕራፎች እና ሚናዎች",
+    "ai_labeling": "AI መለያ መስጠት",
+    "ai_labeling_desc": "የእምነት አሰላለፍ የ AI ምላሾችን መለያ ይስጡ",
+    "system": "ስርዓት",
+    "system_desc": "ትንታኔዎች፣ ውቅር፣ ምዝግብ ማስታወሻዎች እና መሳሪያዎች",
+    "home": "መነሻ",
+    "assignments": "የቤት ስራዎች",
+    "calendar": "ቀን መቁጠሪያ"
+  },
   "common": {
     "welcome": "እንኳን ደህና መጡ",
     "dashboard": "ዳሽቦርድ",
@@ -147,6 +180,474 @@
       "register_button": "ተመዝገብ",
       "have_account": "መለያ አለዎት?",
       "login_link": "እዚህ ገብተው"
+    }
+  },
+  "community_hub": {
+    "title": "ማህበረሰብ ማዕከል",
+    "subtitle": "ጉዞዎን ያጋሩ፣ ከሌሎች ጋር ይገናኙ እና ተነሳሽነት ይኑርዎት",
+    "feed": "መጋቢ",
+    "my_posts": "የእኔ ልጥፎች",
+    "trending": "በመታየት ላይ ያሉ",
+    "topics": "ርዕሶች",
+    "discussion": "ውይይት",
+    "showcase": "ማሳያ",
+    "q_and_a": "ጥያቄ እና መልስ",
+    "create_post": "ልጥፍ ፍጠር",
+    "share_thoughts": "ሀሳብዎን ያጋሩ...",
+    "post": "ለጥፍ",
+    "like": "ውደድ",
+    "comment": "አስተያየት",
+    "share": "አጋራ",
+    "delete": "ሰርዝ",
+    "saved": "የተቀመጡ",
+    "search_posts": "ልጥፎችን ይፈልጉ...",
+    "no_posts_found": "ከፍለጋዎ ጋር የሚዛመዱ ልጥፎች አልተገኙም።",
+    "community_feed": "የማህበረሰብ መጋቢ",
+    "all_topics": "ሁሉም ርዕሶች",
+    "articles": "ጽሑፎች"
+  },
+  "dashboard": {
+    "teacher": {
+      "access_denied_title": "መግባት አልተፈቀደም",
+      "access_denied_message": "ይህንን ዳሽቦርድ ለማየት እንደ አስተማሪ መግባት አለብዎት።",
+      "go_to_login": "ወደ መግቢያ ይሂዱ",
+      "unable_to_load_title": "ዳሽቦርድ መጫን አልተቻለም",
+      "unable_to_load_message": "የዳሽቦርድ ውሂብዎን በመጫን ላይ ሳለን ስህተት አጋጥሞናል።",
+      "try_again": "እንደገና ይሞክሩ",
+      "welcome_back": "እንኳን ደህና መጡ፣ {{name}}!",
+      "live": "ቀጥታ",
+      "students_enrolled_in_courses": "{{students}} ተማሪዎች በ {{courses}} ኮርሶች ተመዝግበዋል",
+      "complete_profile_title": "የአስተማሪ መገለጫዎን ያጠናቅቁ",
+      "complete_profile_message": "መገለጫዎ {{percentage}}% ተጠናቅቋል። ከተማሪዎች ጋር መተማመንን ለመገንባት ተጨማሪ ዝርዝሮችን ያክሉ።",
+      "update_profile": "መገለጫ ያዘምኑ",
+      "quick_actions": "ፈጣን እርምጃዎች",
+      "manage_courses": "ኮርሶችን ያስተዳድሩ",
+      "view_students": "ተማሪዎችን ይመልከቱ",
+      "refresh_data": "ውሂብ ያድሱ"
+    },
+    "student": {
+      "browse_courses": "ኮርሶችን ያስሱ",
+      "spiritual_journeys": "መንፈሳዊ ጉዞዎች",
+      "courses_enrolled": "የተመዘገቡ ኮርሶች",
+      "courses_enrolled_desc": "ጠቅላላ የተመዘገቡ ኮርሶች",
+      "lessons_completed": "የተጠናቀቁ ትምህርቶች",
+      "lessons_completed_desc": "በዚህ ወር የተጠናቀቁ ትምህርቶች",
+      "study_streak": "የጥናት ተከታታይነት",
+      "study_streak_desc": "የአሁኑ የጥናት ተከታታይነት",
+      "total_points": "ጠቅላላ ነጥቦች",
+      "total_points_desc": "የተገኙ የውጤት ነጥቦች",
+      "continue_learning": "መማር ይቀጥሉ",
+      "start_learning": "መማር ይጀምሩ",
+      "view_all": "ሁሉንም ይመልከቱ",
+      "no_active_courses": "ምንም ንቁ ኮርሶች የሉም",
+      "start_course_message": "እድገትዎን እዚህ ለማየት ኮርስ ይጀምሩ!",
+      "browse_catalog": "ካታሎግ ያስሱ",
+      "recommended_for_you": "ለእርስዎ የተመከሩ",
+      "view_course": "ኮርስ ይመልከቱ",
+      "no_results_found": "ምንም ውጤቶች አልተገኙም",
+      "no_results_message": "ለ \"{{query}}\" ፍለጋዎ የሚዛመዱ ኮርሶች የሉም",
+      "clear_search": "ፍለጋ አጽዳ"
+    }
+  },
+  "bookmarks": {
+    "title": "ዕልባት",
+    "my_bookmarks": "የእኔ ዕልባቶች",
+    "no_bookmarks_yet": "እስካሁን ዕልባት የለም",
+    "no_bookmarks_found": "ምንም ዕልባት አልተገኘም",
+    "add_bookmark": "ዕልባት ይጨምሩ",
+    "remove_bookmark": "ዕልባት ይሰርዙ",
+    "view_course": "ኮርስ ይመልከቱ",
+    "by_author": "በ",
+    "pending_invites": "በመጠባበቅ ላይ ያሉ ግብዣዎች",
+    "load_bookmarks_fail": "ዕልባት የተደረገባቸውን ኮርሶች መጫን አልተሳካም። እባክዎ ዳግም ይሞክሩ.",
+    "removing_bookmark_toast": "ዕልባትን በማስወገድ ላይ...",
+    "remove_bookmark_success_toast": "ዕልባት በተሳካ ሁኔታ ተወግዷል።",
+    "remove_bookmark_fail_toast": "ዕልባትን ማስወገድ አልተሳካም። እባክዎ ዳግም ይሞክሩ.",
+    "no_bookmarked_courses": "ዕልባት የተደረገባቸው ኮርሶች የሉዎትም።",
+    "bookmark_courses_prompt": "ኮርሶችን ያስሱ እና በኋላ ላይ ዕልባት ያድርጉባቸው።",
+    "remove_bookmark_btn": "አስወግድ",
+    "remove_bookmark_confirm_title": "ይህን ዕልባት ማስወገድዎ እርግጠኛ ነዎት?",
+    "remove_bookmark_confirm_desc": "ይህ ኮርሱን ከዕልባት ካደረጉት ዝርዝርዎ ያስወግዳል።",
+    "confirm_remove_btn": "ማስወገድን አረጋግጥ"
+  }
+  ,
+  "learning_page": {
+    "title": "የእኔ ትምህርት",
+    "subtitle": "እድገትዎን፣ የቤት ስራዎችዎን እና ስኬቶችዎን ይከታተሉ",
+    "progress_tab": "እድገት",
+    "assignments_tab": "የቤት ስራዎች",
+    "paths_tab": "የትምህርት መንገዶች",
+    "achievements_tab": "ስኬቶች"
+  }
+  ,
+  "learning_paths": {
+    "loading_text": "የትምህርት መንገዶችን በመጫን ላይ...",
+    "load_failed": "የትምህርት መንገዶችን ማግኘት አልተቻለም። እባክዎ ዳግም ይሞክሩ።",
+    "all_categories": "ሁሉም ምድቦች",
+    "all_levels": "ሁሉም ደረጃዎች",
+    "beginner": "ጀማሪ",
+    "intermediate": "መካከለኛ",
+    "advanced": "ከፍተኛ",
+    "no_paths_found": "የትምህርት መንገዶች አልተገኙም",
+    "try_adjust_filters": "የማጣሪያዎን ያስተካክሉ",
+    "enrolled_label": "የተመዘገቡ",
+    "progress_label": "እድገት",
+    "courses_will_appear": "ኮርሶች እዚህ ይታያሉ",
+    "start_path": "መንገድ ይጀምሩ",
+    "continue_btn": "ይቀጥሉ"
+  }
+  ,
+  "bookmarks_page": {
+    "title": "የእኔ ዕልባት",
+    "subtitle": "የተቀመጡ ኮርሶች እና ትምህርቶች ለፈጣን መድረስ",
+    "loading_text": "ዕልባትን በመጫን ላይ...",
+    "error_title": "ዕልባት አልተጫነም",
+    "no_bookmarks_title": "ዕልባት አልተገኙም",
+    "no_bookmarks_desc_has_query": "\"{{query}}\" የለም የሚሉ ውጤቶች",
+    "no_bookmarks_desc_empty": "እስካሁን እስከዚህ ድረስ ምንም ዕልባት አልተደረገም። ኮርሶችን እና ትምህርቶችን ለማስቀር የሚገኝውን የዕልባት አዶ ይወቁ።",
+    "browse_courses_btn": "ኮርሶችን ያስሱ",
+    "clear_search": "ፍለጋ አጽዳ",
+    "all_items": "ሁሉም ንጥሎች",
+    "courses": "ኮርሶች",
+    "lessons": "ትምህርቶች",
+    "grid_view_title": "የቅርጸ ቅርጸ እይታ",
+    "list_view_title": "የዝርዝር እይታ",
+    "type_course": "ኮርስ",
+    "type_lesson": "ትምህርት",
+    "remove_bookmark_title": "ዕልባት አስወግድ",
+    "saved_prefix": "ተቀርቷል"
+  },
+  "course_details": {
+    "back_to_admin": "ወደ የአስተዳዳሪ ኮርሶች ተመለስ",
+    "back_to_my_courses": "ወደ የኔ ኮርሶች ተመለስ"
+  }
+  ,
+  "spiritual_journeys": {
+    "loading_text": "የመንገዶችዎን መረጃ በመጫን ላይ...",
+    "title": "የመንፈሳዊ ጉዞዎች",
+    "subtitle": "እምነትዎን ለማሳረፍ የተመሰረቱ መንገዶች።",
+    "my_active_journeys": "የእኔ ንጉሥ ጉዞዎች",
+    "available_journeys": "የሚገኙ ጉዞዎች",
+    "status_completed": "የተጠናቀቀ",
+    "status_in_progress": "በሂደት ውስጥ",
+    "continue_journey": "ጉዞውን ይቀጥሉ",
+    "start_journey": "ጉዞ ይጀምሩ",
+    "no_new_journeys": "በአሁኑ ጊዜ አዲስ ጉዞዎች የሉም።"
+  },
+  "teacher_courses": {
+    "title": "የእኔ ኮርሶች",
+    "description": "የኮርስዎን ይዘት ያስተዳድሩ እና ይከታተሉ",
+    "all_tab": "ሁሉም",
+    "published_tab": "የታተሙ",
+    "drafts_tab": "ረቂቆች",
+    "new_course_btn": "አዲስ ኮርስ",
+    "use_template_btn": "አብነት ይጠቀሙ",
+    "all_categories_filter": "ሁሉም ምድቦች",
+    "faith_doctrine_filter": "እምነት እና አስተምህሮ",
+    "church_history_filter": "የቤተክርስቲያን ታሪክ",
+    "spiritual_development_filter": "የመንፈስ እድገት",
+    "bible_study_filter": "የመጽሐፍ ቅዱስ ጥናት",
+    "liturgical_studies_filter": "የሥርዓተ አምልኮ ጥናቶች",
+    "youth_ministry_filter": "የወጣቶች አገልግሎት",
+    "sort_by_date_created": "የተፈጠረበት ቀን",
+    "sort_by_last_updated": "ለመጨረሻ ጊዜ የተሻሻለው",
+    "sort_by_title": "የኮርስ ርዕስ",
+    "sort_by_lesson_count": "የትምህርቶች ብዛት",
+    "sort_by_student_count": "የተማሪዎች ብዛት",
+    "sort_by_duration": "ጠቅላላ ቆይታ",
+    "stats_total_courses": "ጠቅላላ ኮርሶች",
+    "stats_active_students": "ንቁ ተማሪዎች",
+    "stats_recorded_videos": "የተቀረጹ ቪዲዮዎች",
+    "stats_hours_taught": "የተማሩባቸው ሰዓቶች",
+    "stats_published_courses": "የታተሙ ኮርሶች",
+    "stats_avg_rating": "አማካይ ደረጃ",
+    "stats_completion_rate": "የማጠናቀቂያ መጠን",
+    "no_courses_found": "ማጣሪያዎችዎን የሚዛመዱ ኮርሶች የሉም",
+    "no_courses_yet": "እስካሁን ምንም ኮርሶች የሉም",
+    "create_first_course_prompt": "ለተማሪዎችዎ አስደናቂ የመማር ልምዶችን ይፍጠሩ።",
+    "create_first_course_btn": "የመጀመሪያ ኮርስዎን ይፍጠሩ",
+    "adjust_filters_prompt": "የፍለጋ ወይም የማጣሪያ መስፈርትዎን ለማስተካከል ይሞክሩ",
+    "last_updated_label": "ለመጨረሻ ጊዜ የተሻሻለው",
+    "just_now": "አሁን",
+    "hours_ago": "ከ{{count}}ሰ በፊት",
+    "days_ago": "ከ{{count}}ቀ በፊት",
+    "duration_minutes": "{{minutes}} ደቂቃ",
+    "duration_hours_minutes": "{{hours}}ሰ {{minutes}}ደ",
+    "load_courses_fail": "ኮርሶችን መጫን አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "edit_course": {
+    "not_found_title": "ኮርስ አልተገኘም",
+    "not_found_description": "የሚፈልጉት ኮርስ የለም።",
+    "back_to_courses": "ወደ ኮርሶች ተመለስ"
+  },
+  "create_course_page": {
+    "title": "አዲስ ኮርስ ይፍጠሩ",
+    "description": "አዲስ ኮርስ ለመጀመር ከታች ያለውን ቅጽ ይሙሉ.",
+    "back_to_courses": "ወደ ኮርሶች ተመለስ"
+  },
+  "invite_student": {
+    "title": "ተማሪ ይጋብዙ",
+    "description": "ተማሪዎች ክፍልዎን እንዲቀላቀሉ እና መማር እንዲጀምሩ ግብዣ ይላኩ።",
+    "back_to_students": "ወደ ተማሪዎች ተመለስ",
+    "student_email": "የተማሪ ኢሜይል",
+    "student_email_placeholder": "name@example.com",
+    "student_email_help": "ተማሪው በዚህ ኢሜይል መግባት እና ግብዣዎን መቀበል ይችላል።",
+    "course_optional": "ኮርስ (አማራጭ)",
+    "no_specific_course": "ምንም የተወሰነ ኮርስ የለም",
+    "loading_courses": "ኮርሶችዎን በመጫን ላይ...",
+    "course_help": "ኮርስ ከመረጡ፣ ግብዣውን መቀበል ተማሪውን በራስ-ሰር ይመዘግባል።",
+    "send_invitation": "ግብዣ ላክ",
+    "sending_invitation": "ግብዣ በመላክ ላይ...",
+    "success_message": "ግብዣው በተሳካ ሁኔታ ተልኳል።",
+    "error_invalid_email": "እባክዎ ትክክለኛ የኢሜይል አድራሻ ያስገቡ።",
+    "error_load_courses": "ኮርሶችዎን መጫን አልተቻለም። ኮርስ ሳይመርጡ ተማሪ መጋበዝ ይችላሉ።",
+    "error_send_invite": "ግብዣ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "record_video": {
+    "create_new_lesson": "አዲስ ትምህርት ይፍጠሩ",
+    "record_video_for_lesson": "ለትምህርቱ ቪዲዮ ይቅረጹ",
+    "create_new_lesson_desc": "ቪዲዮ ይቅረጹ እና በኮርስዎ ውስጥ አዲስ ትምህርት ይፍጠሩ",
+    "record_video_desc": "ለነባር ትምህርትዎ አዲስ ቪዲዮ ይቅረጹ",
+    "new_lesson_mode": "አዲስ የትምህርት ሁኔታ",
+    "recording_mode": "የመቅረጽ ሁኔታ",
+    "hide_tips": "ጠቃሚ ምክሮችን ደብቅ",
+    "recording_tips": "የመቅረጽ ጠቃሚ ምክሮች",
+    "back_to_courses": "ወደ ኮርሶች ተመለስ",
+    "pro_tips_title": "ለጥሩ ቅጂዎች ጠቃሚ ምክሮች",
+    "close": "ዝጋ",
+    "tips": {
+      "lighting_title": "መብራት",
+      "lighting_desc": "ወደ መስኮት ወይም የብርሃን ምንጭ ፊት ለፊት ይሁኑ። እንደ ጥላ እንዳይታዩ ከኋላ የሚመጣ ብርሃንን ያስወግዱ።",
+      "audio_title": "ድምጽ",
+      "audio_desc": "ከተቻለ የጆሮ ማዳመጫ ወይም ውጫዊ ማይክሮፎን ይጠቀሙ። የጀርባ ድምጽን እና ማሚቶን ይቀንሱ።",
+      "engagement_title": "ተሳትፎ",
+      "engagement_desc": "ወደ ካሜራው ሌንስ ይመልከቱ፣ ወደ ስክሪንዎ አይደለም። ቪዲዮዎችን አጭር (5-10 ደቂቃዎች) እና ትኩረት ያደረጉ ያድርጉ።"
+    },
+    "impact": {
+      "title": "የእርስዎ ተጽዕኖ",
+      "this_month": "በዚህ ወር",
+      "new_videos": "አዲስ ቪዲዮዎች",
+      "library": "ቤተ-መጽሐፍት",
+      "total_videos": "ጠቅላላ ቪዲዮዎች",
+      "students": "ተማሪዎች",
+      "enrolled": "የተመዘገቡ",
+      "rating": "ደረጃ",
+      "avg_rating": "አማካይ ደረጃ"
+    },
+    "quick_actions": {
+      "title": "ፈጣን እርምጃዎች",
+      "create_course": "ኮርስ ይፍጠሩ",
+      "start_series": "አዲስ ተከታታይ ይጀምሩ",
+      "manage_content": "ይዘትን ያስተዳድሩ",
+      "edit_videos": "ነባር ቪዲዮዎችን ያርትዑ",
+      "view_engagement": "ተሳትፎን ይመልከቱ"
+    }
+  },
+  "student_management": {
+    "loading": "ተማሪዎችን በመጫን ላይ...",
+    "invite": "ጋብዝ",
+    "refresh": "አድስ",
+    "stats": {
+      "total_students": "ጠቅላላ ተማሪዎች",
+      "active_students": "ንቁ ተማሪዎች",
+      "avg_progress": "አማካይ እድገት",
+      "avg_courses": "አማካይ ኮርሶች"
+    },
+    "search_placeholder": "ተማሪዎችን በስም ወይም በኢሜይል ይፈልጉ...",
+    "filters": {
+      "all_status": "ሁሉም ሁኔታዎች",
+      "active": "ንቁ",
+      "inactive": "ንቁ ያልሆነ"
+    },
+    "error": {
+      "loading": "ተማሪዎችን መጫን ላይ ስህተት ተፈጥሯል",
+      "try_again": "እንደገና ይሞክሩ"
+    },
+    "empty": {
+      "no_students": "ምንም ተማሪዎች አልተገኙም",
+      "adjust_criteria": "እባክዎ ፍለጋዎን ወይም ማጣሪያዎን ያስተካክሉ",
+      "no_students_desc": "በኮርሶችዎ የተመዘገቡ ተማሪዎች እዚህ ይታያሉ። የተመዘገቡ ተማሪዎች ያሏቸው ኮርሶች እንዳሉዎት ያረጋግጡ።",
+      "how_to_see": "ተማሪዎችን እዚህ ለማየት:",
+      "step_1": "በ\"የእኔ ኮርሶች\" ውስጥ ኮርሶችን ይፍጠሩ",
+      "step_2": "ተማሪዎች በኮርሶችዎ እንዲመዘገቡ ያድርጉ",
+      "step_3": "ተማሪዎች አንዴ ከተመዘገቡ በኋላ በራስ-ሰር ይታያሉ"
+    },
+    "time": {
+      "never": "በጭራሽ",
+      "just_now": "አሁን",
+      "m_ago": "ደቂቃዎች በፊት",
+      "h_ago": "ሰዓታት በፊት",
+      "d_ago": "ቀናት በፊት"
+    }
+  },
+  "teacher_achievements": {
+    "categories": {
+      "all": "ሁሉም ስኬቶች",
+      "teaching": "የማስተማር ብቃት",
+      "engagement": "የተማሪ ተሳትፎ",
+      "content": "ይዘት መፍጠር",
+      "leadership": "አመራር"
+    },
+    "error": {
+      "loading": "ስኬቶችን በመጫን ላይ ስህተት ተፈጥሯል",
+      "try_again": "እንደገና ይሞክሩ"
+    },
+    "stats": {
+      "total_achievements": "ጠቅላላ ስኬቶች",
+      "total_points": "ጠቅላላ ነጥቦች",
+      "course_badges": "የኮርስ ባጆች",
+      "student_impact": "የተማሪ ተጽዕኖ"
+    },
+    "search_placeholder": "ስኬቶችን ይፈልጉ...",
+    "points": "ነጥቦች",
+    "empty": {
+      "no_achievements": "ምንም ስኬቶች አልተገኙም",
+      "adjust_search": "እባክዎ ፍለጋዎን ያስተካክሉ",
+      "keep_teaching": "ስኬቶችን ለመክፈት ማስተማርዎን ይቀጥሉ!"
+    }
+  },
+  "teacher_community": {
+    "title": "ማህበረሰብ",
+    "subtitle": "ከሌሎች መምህራን ጋር ይገናኙ — ውይይቶች እና እውቅና",
+    "tabs": {
+      "feed": "መጋቢ",
+      "achievements": "ስኬቶች"
+    },
+    "feed": {
+      "latest_discussions": "የቅርብ ጊዜ ውይይቶች",
+      "subtitle": "መምህራን እንዲለዋወጡ እና እንዲማሩ መርዳት"
+    },
+    "achievements": {
+      "title": "ስኬቶች"
+    },
+    "quick_tips": {
+      "title": "ፈጣን ምክሮች",
+      "tip_1": "ውይይት በግልጽ ጥያቄ ወይም በግብዓት አገናኝ ይጀምሩ።",
+      "tip_2": "የትምህርት ዕቅዶችን ያጋሩ እና ለአካባቢያዊ ግብረመልስ ምዕራፎችን መለያ ይስጡ።",
+      "tip_3": "አስተዋፅዖ አበርካቾችን በባጆች እና በአስተያየቶች እውቅና ይስጡ።"
+    },
+    "tools": {
+      "title": "የማህበረሰብ መሳሪያዎች",
+      "create_discussion": "ውይይት ይፍጠሩ",
+      "invite_chapter": "ወደ ምዕራፍ ይጋብዙ",
+      "view_events": "ክስተቶችን ይመልከቱ"
+    }
+  },
+  "teacher_content": {
+    "go_back": "ተመለስ",
+    "tabs": {
+      "video_studio": "ቪዲዮ ስቱዲዮ",
+      "resources": "ግብዓቶች"
+    },
+    "context": {
+      "editing_lesson": "ትምህርት በማርትዕ ላይ",
+      "course_mode": "የኮርስ ሁኔታ"
+    },
+    "loading_studio": "ስቱዲዮን በመጫን ላይ..."
+  },
+  "teacher_courses_page": {
+    "title": "የኮርስ አስተዳደር",
+    "subtitle": "ኮርሶችን ይፍጠሩ፣ ያስተዳድሩ እና ያግኙ",
+    "tabs": {
+      "my_courses": "የእኔ ኮርሶች",
+      "courses": "ኮርሶች",
+      "create_new": "አዲስ ይፍጠሩ",
+      "create": "ይፍጠሩ",
+      "browse_catalog": "ካታሎግ ያስሱ",
+      "browse": "ያስሱ"
+    }
+  },
+  "teacher_profile": {
+    "title": "የአስተማሪ መገለጫ",
+    "subtitle": "የግል መረጃዎን እና የማስተማር ምስክርነቶችን ያስተዳድሩ",
+    "errors": {
+      "invalid_file_type": "እባክዎ JPG፣ PNG፣ WebP ወይም GIF ምስል ይስቀሉ",
+      "file_too_large": "የምስል መጠን ከ 5MB በታች መሆን አለበት",
+      "upload_failed": "የመገለጫ ምስል መስቀል አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+      "remove_failed": "የመገለጫ ምስልን ማስወገድ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+      "save_failed": "መገለጫን ማስቀመጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+    },
+    "loading": "መገለጫ በመጫን ላይ...",
+    "success_update": "መገለጫ በተሳካ ሁኔታ ተዘምኗል!",
+    "profile_picture": {
+      "title": "የመገለጫ ምስል",
+      "description": "የማስተማር መገለጫዎን ለግል ለማበጀት ፎቶ ይስቀሉ።",
+      "upload_btn": "ፎቶ ይስቀሉ",
+      "uploading": "በመስቀል ላይ...",
+      "remove_btn": "አስወግድ"
+    },
+    "basic_info": {
+      "title": "መሰረታዊ መረጃ",
+      "first_name": "የመጀመሪያ ስም",
+      "last_name": "የአባት ስም",
+      "email": "ኢሜይል አድራሻ",
+      "email_note": "ኢሜይል መቀየር አይቻልም",
+      "phone": "ስልክ ቁጥር",
+      "location": "አካባቢ"
+    },
+    "professional_info": {
+      "title": "ሙያዊ መረጃ",
+      "bio": "ስለ እርስዎ",
+      "bio_placeholder": "ስለ እርስዎ፣ ስለ ማስተማር ልምድዎ እና ስለሚወዱት ነገር ይንገሩን...",
+      "education": "ቲዎሎጂካል ትምህርት / ሴሚናሪ",
+      "education_placeholder": "ለምሳሌ፡ ቅዱስ ጳውሎስ ቲዎሎጂካል ኮሌጅ፣ የሰንበት ትምህርት ቤት የምስክር ወረቀት",
+      "experience": "የአገልግሎት ዓመታት (ማስተማር)",
+      "service_areas": "የቤተክርስቲያን አገልግሎት ዘርፎች",
+      "service_areas_placeholder": "ለምሳሌ፡ መጽሐፍ ቅዱስ ጥናት፣ ግዕዝ ቋንቋ፣ ዜማ",
+      "add_btn": "ጨምር"
+    },
+    "save_btn": "መገለጫ አስቀምጥ",
+    "saving": "በማስቀመጥ ላይ..."
+  },
+  "teacher_resources": {
+    "title": "የግብዓት ቤተ-መጽሐፍት",
+    "subtitle": "ትምህርታዊ ይዘትን ያስተዳድሩ እና ለተማሪዎችዎ ያሰራጩ",
+    "back_dashboard": "ወደ ዳሽቦርድ ተመለስ",
+    "new_resource": "አዲስ ግብዓት",
+    "stats": {
+      "total": "ጠቅላላ ግብዓቶች",
+      "storage": "ጥቅም ላይ የዋለ ማከማቻ",
+      "this_month": "በዚህ ወር"
+    },
+    "tabs": {
+      "upload": "የመስቀያ ማዕከል",
+      "browse": "ቤተ-መጽሐፍትን ያስሱ"
+    },
+    "upload_center": {
+      "title": "የት መስቀል ይፈልጋሉ?",
+      "subtitle": "ለአዲሱ ግብዓትዎ የታይነት ወሰን ይምረጡ",
+      "platform": {
+        "title": "መድረክ አቀፍ",
+        "description": "ግብዓቶችን በዓለም ዙሪያ ካሉ የኦርቶዶክስ ማህበረሰብ ጋር ያጋሩ።",
+        "badge": "የአስተዳዳሪ መዳረሻ"
+      },
+      "chapter": {
+        "title": "ምዕራፍ ብቻ",
+        "description": "ለአካባቢዎ ምዕራፍ አባላት ብቻ የተወሰነ ይዘት።",
+        "badge": "በጣም የተለመደ"
+      },
+      "course": {
+        "title": "ኮርስ ተኮር",
+        "description": "ቁሳቁሶችን በቀጥታ ከኮርሶችዎ እና ትምህርቶችዎ ጋር ያያይዙ።",
+        "badge": "የታለመ"
+      }
+    },
+    "browse": {
+      "search_placeholder": "በስም፣ በአይነት ወይም በታግ ይፈልጉ...",
+      "scope": {
+        "chapter": "የምዕራፍ ግብዓቶች",
+        "platform": "የመድረክ ግብዓቶች"
+      },
+      "loading": "ቤተ-መጽሐፍትዎን በመጫን ላይ...",
+      "empty": {
+        "title": "ምንም ግብዓቶች አልተገኙም",
+        "subtitle": "የመጀመሪያውን ግብዓት በመስቀል ይጀምሩ",
+        "btn": "ግብዓት ይስቀሉ"
+      },
+      "uncategorized": "ያልተመደበ",
+      "no_description": "ምንም መግለጫ አልቀረበም",
+      "general": "አጠቃላይ",
+      "download": "አውርድ"
     }
   }
 }

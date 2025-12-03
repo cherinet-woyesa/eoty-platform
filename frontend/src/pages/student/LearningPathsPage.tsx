@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Target, BookOpen, CheckCircle, Clock, ArrowRight, 
@@ -36,6 +37,7 @@ interface PathCourse {
 
 const LearningPathsPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ const LearningPathsPage: React.FC = () => {
       // Get enrolled courses
       const dashboardResponse = await apiClient.get('/students/dashboard');
       if (!dashboardResponse.data.success) {
-        throw new Error('Failed to load courses');
+        throw new Error(t('learning_paths.load_failed'));
       }
       
       const enrolledCourses = dashboardResponse.data.data.enrolledCourses || [];
@@ -145,7 +147,7 @@ const LearningPathsPage: React.FC = () => {
       setPaths(allPaths);
     } catch (err: any) {
       console.error('Failed to load learning paths:', err);
-      setError('Failed to load learning paths. Please try again.');
+      setError(t('learning_paths.load_failed'));
     } finally {
       setLoading(false);
     }
@@ -198,7 +200,7 @@ const LearningPathsPage: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-center min-h-96">
-            <LoadingSpinner size="lg" text="Loading learning paths..." variant="logo" />
+            <LoadingSpinner size="lg" text={t('learning_paths.loading_text')} variant="logo" />
           </div>
         </div>
       </div>
@@ -217,7 +219,7 @@ const LearningPathsPage: React.FC = () => {
                 onClick={loadLearningPaths}
                 className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
               >
-                Try Again
+                {t('common.try_again')}
               </button>
             </div>
           </div>
@@ -230,25 +232,25 @@ const LearningPathsPage: React.FC = () => {
     <div className="w-full space-y-6">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <select
+          <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
         >
-          <option value="all">All Categories</option>
+          <option value="all">{t('learning_paths.all_categories')}</option>
           {categories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
-        <select
+          <select
           value={selectedDifficulty}
           onChange={(e) => setSelectedDifficulty(e.target.value)}
           className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
         >
-          <option value="all">All Levels</option>
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
+          <option value="all">{t('learning_paths.all_levels')}</option>
+          <option value="beginner">{t('learning_paths.beginner')}</option>
+          <option value="intermediate">{t('learning_paths.intermediate')}</option>
+          <option value="advanced">{t('learning_paths.advanced')}</option>
         </select>
       </div>
 
@@ -256,8 +258,8 @@ const LearningPathsPage: React.FC = () => {
       {filteredPaths.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No learning paths found</h3>
-          <p className="text-gray-500">Try adjusting your filters</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('learning_paths.no_paths_found')}</h3>
+          <p className="text-gray-500">{t('learning_paths.try_adjust_filters')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -273,11 +275,11 @@ const LearningPathsPage: React.FC = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <Target className="h-5 w-5 text-gray-900" />
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
-                        {path.difficulty}
+                        {t(`learning_paths.${path.difficulty}`)}
                       </span>
-                      {path.is_enrolled && (
+                        {path.is_enrolled && (
                         <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                          Enrolled
+                          {t('learning_paths.enrolled_label')}
                         </span>
                       )}
                     </div>
@@ -290,7 +292,7 @@ const LearningPathsPage: React.FC = () => {
                 {path.is_enrolled && path.progress > 0 && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                      <span>Progress</span>
+                      <span>{t('learning_paths.progress_label')}</span>
                       <span>{Math.round(path.progress)}%</span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2">
@@ -341,7 +343,7 @@ const LearningPathsPage: React.FC = () => {
                 ) : (
                   <div className="text-center py-6 text-gray-500">
                     <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Courses will appear here</p>
+                    <p className="text-sm">{t('learning_paths.courses_will_appear')}</p>
                   </div>
                 )}
 
@@ -366,7 +368,7 @@ const LearningPathsPage: React.FC = () => {
                       to={`/student/courses`}
                       className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
                     >
-                      Continue
+                      {t('learning_paths.continue_btn')}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   ) : (
@@ -374,7 +376,7 @@ const LearningPathsPage: React.FC = () => {
                       onClick={() => handleEnroll(path.id)}
                       className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
                     >
-                      Start Path
+                      {t('learning_paths.start_path')}
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   )}
