@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { 
   ChevronLeft,
@@ -22,6 +23,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   isCollapsed = false, 
   onToggleCollapse 
 }) => {
+  const { t } = useTranslation();
   const { user, permissions } = useAuth();
   const location = useLocation();
   const [isSystemConfigExpanded, setIsSystemConfigExpanded] = useState(false);
@@ -149,14 +151,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 {!isCollapsed && (
                   <div className="ml-3 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="truncate font-semibold">{item.name}</span>
+                      <span className="truncate font-medium">{t(item.name)}</span>
                       {item.badge && (
                         <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {item.badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">{t(item.description)}</p>
                   </div>
                 )}
               </Link>
@@ -177,7 +179,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       })}
                     </span>
                   )}
-                  {adminNavSections.content.title}
+                  {t(adminNavSections.content.title || '')}
                 </div>
               </div>
             )}
@@ -248,14 +250,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <div className="ml-3 flex-1 min-w-0 flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="truncate">{systemConfigItem.name}</span>
+                      <span className="truncate">{t(systemConfigItem.name)}</span>
                       {totalInactive > 0 && (
                         <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                           {totalInactive}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{systemConfigItem.description}</p>
+                    <p className="text-xs text-gray-500 truncate">{t(systemConfigItem.description)}</p>
                   </div>
                   <div className="ml-2">
                     {isSystemConfigExpanded ? (
@@ -303,14 +305,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       
                       <div className="ml-2 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="truncate font-medium text-sm">{subItem.name}</span>
+                          <span className="truncate font-medium text-sm">{t(subItem.name)}</span>
                           {inactiveCount > 0 && (
                             <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                               {inactiveCount}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{subItem.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{t(subItem.description)}</p>
                       </div>
                     </Link>
                   );
@@ -335,7 +337,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       })}
                     </span>
                   )}
-                  {adminNavSections.system.title}
+                  {t(adminNavSections.system.title || '')}
                 </div>
               </div>
             )}
@@ -365,14 +367,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     {!isCollapsed && (
                       <div className="ml-3 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate">{t(item.name)}</span>
                           {item.badge && (
                             <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
                               {item.badge}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{t(item.description)}</p>
                       </div>
                     )}
                   </Link>
@@ -395,7 +397,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       })}
                     </span>
                   )}
-                  {adminNavSections.reference.title}
+                  {t(adminNavSections.reference.title || '')}
                 </div>
               </div>
             )}
@@ -425,14 +427,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     {!isCollapsed && (
                       <div className="ml-3 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="truncate">{item.name}</span>
+                          <span className="truncate">{t(item.name)}</span>
                           {item.badge && (
                             <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                               {item.badge}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{item.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{t(item.description)}</p>
                       </div>
                     )}
                   </Link>

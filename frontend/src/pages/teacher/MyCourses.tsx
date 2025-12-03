@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Search, Video, Users,
   Sparkles,
   AlertCircle, RefreshCw, Grid, List,
-  SortAsc, SortDesc
+  SortAsc, SortDesc, Edit
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { coursesApi } from '@/services/api';
@@ -36,6 +36,13 @@ const MyCourses: React.FC = () => {
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, activeTab]);
 
   // Memoize categories and sort options to prevent re-creation on each render
   const categories = useMemo(() => [
@@ -143,6 +150,13 @@ const MyCourses: React.FC = () => {
     return colors[category] || 'from-stone-500 to-stone-600';
   }, []);
 
+  const paginatedCourses = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedCourses.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedCourses, currentPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedCourses.length / itemsPerPage);
+
   const formatDuration = useCallback((minutes: number) => {
     if (!minutes) return t('teacher_courses.duration_minutes', { minutes: 0 });
     const hours = Math.floor(minutes / 60);
@@ -163,12 +177,13 @@ const MyCourses: React.FC = () => {
 
   // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: Course) => (
-    <div key={course.id} className={`relative ${viewMode === 'grid'
-      ? "bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 hover:border-[#27AE60]/50"
-      : "bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-2 hover:shadow-md transition-all duration-200 hover:border-[#27AE60]/50"
-    } ${selectedCourses.includes(course.id) ? 'ring-1 ring-[#27AE60] bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10' : ''}`}>
-      {/* Selection Checkbox */}
-      <div className="absolute top-1.5 left-1.5 z-10">
+    <div key={course.id} className={`relative group ${viewMode === 'grid'
+      ? "bg-white rounded-lg border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-200"
+      : "bg-white rounded-lg border border-stone-200 p-3 hover:shadow-md transition-all duration-200"
+    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[#27AE60] bg-emerald-50/30' : ''}`}>
+      
+      {/* Selection Checkbox - Improved visibility */}
+      <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selectedCourses.includes(course.id)}
@@ -179,67 +194,86 @@ const MyCourses: React.FC = () => {
               setSelectedCourses(selectedCourses.filter(id => id !== course.id));
             }
           }}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3 h-3"
+          className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60] w-4 h-4 cursor-pointer shadow-sm"
         />
       </div>
+
+      {/* Quick Actions Overlay - Visible on Hover */}
+      <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <Link 
+          to={`/teacher/courses/${course.id}/edit`}
+          className="p-1.5 bg-white text-stone-600 rounded-full shadow-md hover:text-[#27AE60] hover:bg-emerald-50"
+          title={t('common.edit')}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Edit className="h-4 w-4" />
+        </Link>
+      </div>
+
       {viewMode === 'grid' ? (
         // Compact Grid View
-        <>
-          <div className="relative h-32">
+        <Link to={`/teacher/courses/${course.id}`} className="block h-full">
+          <div className="relative h-40 bg-stone-100">
             {course.cover_image ? (
-              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" />
+              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
-                <BookOpen className="h-8 w-8 text-white/50" />
+                <BookOpen className="h-10 w-10 text-white/60" />
               </div>
             )}
-            <div className="absolute top-1.5 right-1.5">
-              <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
+            <div className="absolute bottom-2 right-2">
+              <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
                 {course.is_published ? t('common.published') : t('common.draft')}
               </span>
             </div>
           </div>
-          <div className="p-3">
-            <h3 className="font-semibold text-sm text-stone-800 truncate mb-1">{course.title}</h3>
-            <div className="flex items-center text-xs text-stone-500 space-x-2">
-              <div className="flex items-center">
-                <Users className="h-3 w-3 mr-1" />
-                <span>{t('common.student_count', { count: course.student_count || 0 })}</span>
+          <div className="p-4">
+            <h3 className="font-bold text-stone-800 truncate mb-2 text-base group-hover:text-[#27AE60] transition-colors">{course.title}</h3>
+            <div className="flex items-center justify-between text-xs text-stone-500">
+              <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
+                <Users className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
+                <span>{course.student_count || 0} Students</span>
               </div>
-              <div className="flex items-center">
-                <Video className="h-3 w-3 mr-1" />
-                <span>{t('common.lesson_count', { count: course.lesson_count || 0 })}</span>
+              <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
+                <Video className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
+                <span>{course.lesson_count || 0} Lessons</span>
               </div>
             </div>
           </div>
-        </>
+        </Link>
       ) : (
         // List View
-        <div className="flex items-center">
-          <div className="w-1/12 pl-6">
-            <input
-              type="checkbox"
-              checked={selectedCourses.includes(course.id)}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setSelectedCourses([...selectedCourses, course.id]);
-                } else {
-                  setSelectedCourses(selectedCourses.filter(id => id !== course.id));
-                }
-              }}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-            />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-stone-100">
+             {course.cover_image ? (
+              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
+                <BookOpen className="h-5 w-5 text-white/60" />
+              </div>
+            )}
           </div>
-          <div className="w-4/12">
-            <Link to={`/teacher/courses/${course.id}/edit`} className="font-semibold text-stone-800 hover:text-emerald-600">{course.title}</Link>
+          <div className="flex-grow min-w-0">
+            <Link to={`/teacher/courses/${course.id}`} className="font-semibold text-stone-800 hover:text-[#27AE60] truncate block text-base">{course.title}</Link>
+            <div className="flex items-center gap-3 text-xs text-stone-500 mt-1">
+              <span>{t('common.student_count', { count: course.student_count || 0 })}</span>
+              <span>•</span>
+              <span>{formatDuration(course.total_duration || 0)}</span>
+              <span>•</span>
+              <span>{getTimeAgo(course.updated_at)}</span>
+            </div>
           </div>
-          <div className="w-2/12 text-sm text-stone-600">{t('common.student_count', { count: course.student_count || 0 })}</div>
-          <div className="w-2/12 text-sm text-stone-600">{formatDuration(course.total_duration || 0)}</div>
-          <div className="w-2/12 text-sm text-stone-600">{getTimeAgo(course.updated_at)}</div>
-          <div className="w-1/12">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
+          <div className="flex-shrink-0 flex items-center gap-3">
+            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
               {course.is_published ? t('common.published') : t('common.draft')}
             </span>
+            <Link 
+              to={`/teacher/courses/${course.id}/edit`}
+              className="p-2 text-stone-400 hover:text-[#27AE60] hover:bg-stone-50 rounded-full transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Edit className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       )}
@@ -294,21 +328,30 @@ const MyCourses: React.FC = () => {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-4 text-center">
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_total_courses')}</p><p className="font-bold text-lg text-stone-800">{stats.totalCourses}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_active_students')}</p><p className="font-bold text-lg text-stone-800">{stats.activeStudents}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_recorded_videos')}</p><p className="font-bold text-lg text-stone-800">{stats.recordedVideos}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_hours_taught')}</p><p className="font-bold text-lg text-stone-800">{stats.hoursTaught}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_published_courses')}</p><p className="font-bold text-lg text-stone-800">{stats.publishedCourses}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_avg_rating')}</p><p className="font-bold text-lg text-stone-800">{stats.averageRating}</p></div>
-          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-stone-200"><p className="text-xs text-stone-500">{t('teacher_courses.stats_completion_rate')}</p><p className="font-bold text-lg text-stone-800">{stats.completionRate}%</p></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_total_courses')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.totalCourses}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_active_students')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.activeStudents}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_recorded_videos')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.recordedVideos}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_avg_rating')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.averageRating}</p>
+          </div>
         </div>
       )}
 
       {/* Filters and Actions */}
-      <div className="bg-white/90 backdrop-blur-md p-3 rounded-lg border border-stone-200 space-y-3">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-          <div className="flex-grow sm:max-w-xs">
+      <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div className="flex-grow sm:max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
               <input
@@ -362,25 +405,50 @@ const MyCourses: React.FC = () => {
 
       {/* Courses Grid/List */}
       {filteredAndSortedCourses.length > 0 ? (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredAndSortedCourses.map(renderCourseCard)}
-          </div>
-        ) : (
-          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200">
-            <div className="flex items-center p-2 border-b border-stone-200 text-xs font-semibold text-stone-500">
-              <div className="w-1/12 pl-6"><input type="checkbox" onChange={handleSelectAll} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" /></div>
-              <div className="w-4/12">{t('common.title')}</div>
-              <div className="w-2/12">{t('common.students')}</div>
-              <div className="w-2/12">{t('common.duration')}</div>
-              <div className="w-2/12">{t('common.last_updated')}</div>
-              <div className="w-1/12">{t('common.status')}</div>
+        <>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {paginatedCourses.map(renderCourseCard)}
             </div>
-            <div className="divide-y divide-stone-100">
-              {filteredAndSortedCourses.map(renderCourseCard)}
+          ) : (
+            <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200">
+              <div className="flex items-center p-2 border-b border-stone-200 text-xs font-semibold text-stone-500">
+                <div className="w-1/12 pl-6"><input type="checkbox" onChange={handleSelectAll} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" /></div>
+                <div className="w-4/12">{t('common.title')}</div>
+                <div className="w-2/12">{t('common.students')}</div>
+                <div className="w-2/12">{t('common.duration')}</div>
+                <div className="w-2/12">{t('common.last_updated')}</div>
+                <div className="w-1/12">{t('common.status')}</div>
+              </div>
+              <div className="divide-y divide-stone-100">
+                {paginatedCourses.map(renderCourseCard)}
+              </div>
             </div>
-          </div>
-        )
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-stone-300 text-stone-600 disabled:opacity-50 hover:bg-stone-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-stone-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md border border-stone-300 text-stone-600 disabled:opacity-50 hover:bg-stone-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-16 bg-white/50 rounded-lg border border-dashed border-stone-200">
           <BookOpen className="mx-auto h-12 w-12 text-stone-400" />
