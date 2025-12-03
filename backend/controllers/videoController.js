@@ -69,9 +69,6 @@ const getFileInfo = (filePath) => {
   }
 };
 
-// ============================================================================
-// WEBHOOK EVENT HANDLERS
-// ============================================================================
 
 async function handleAssetReady(assetData) {
   const websocketService = require('../services/websocketService');
@@ -105,21 +102,39 @@ async function handleAssetReady(assetData) {
 
     console.log(`✅ Found lesson ${lesson.id}: ${lesson.title}`);
 
+    // Check which columns exist before updating
+    const hasMuxReadyAt = await db.schema.hasColumn('lessons', 'mux_ready_at');
+    const hasMuxMetadata = await db.schema.hasColumn('lessons', 'mux_metadata');
+
     // Update lesson with playback info
     const updateData = {
       mux_status: 'ready',
       mux_playback_id: playbackIds[0]?.id || null,
-      mux_ready_at: db.fn.now(),
-      mux_metadata: JSON.stringify({
-        duration: asset.duration,
-        aspectRatio: asset.aspectRatio,
-        maxResolution: asset.maxStoredResolution
-      }),
       duration: Math.ceil(asset.duration || 0),
       updated_at: db.fn.now()
     };
 
-    console.log(`💾 Updating lesson with data:`, JSON.stringify(updateData, null, 2));
+    if (hasMuxReadyAt) {
+      updateData.mux_ready_at = db.fn.now();
+    }
+
+    if (hasMuxMetadata) {
+      updateData.mux_metadata = JSON.stringify({
+        duration: asset.duration,
+        aspectRatio: asset.aspectRatio,
+        maxResolution: asset.maxStoredResolution
+      });
+    }
+
+    const logSafeUpdateData = {
+      ...updateData,
+      updated_at: 'NOW()'
+    };
+    if (hasMuxReadyAt) {
+      logSafeUpdateData.mux_ready_at = 'NOW()';
+    }
+
+    console.log(`💾 Updating lesson with data:`, JSON.stringify(logSafeUpdateData, null, 2));
     
     await db('lessons')
       .where({ id: lesson.id })
@@ -159,7 +174,12 @@ async function handleAssetError(assetData) {
     const assetId = assetData.id;
     const errors = assetData.errors || {};
 
-    console.error(`❌ Asset error: ${assetId}`, errors);
+    // Safe logging
+    try {
+      console.error(`❌ Asset error: ${assetId}`, JSON.stringify(errors));
+    } catch (e) {
+      console.error(`❌ Asset error: ${assetId}`, errors);
+    }
 
     // Find lesson by asset ID
     const lesson = await db('lessons')
@@ -171,12 +191,20 @@ async function handleAssetError(assetData) {
       return;
     }
 
+    // Safe stringify for DB
+    let errorMessage = 'Unknown error';
+    try {
+      errorMessage = typeof errors === 'string' ? errors : JSON.stringify(errors);
+    } catch (e) {
+      errorMessage = 'Error details could not be serialized';
+    }
+
     // Update lesson with error info
     await db('lessons')
       .where({ id: lesson.id })
       .update({
         mux_status: 'errored',
-        mux_error_message: JSON.stringify(errors),
+        mux_error_message: errorMessage,
         updated_at: db.fn.now()
       });
 
@@ -189,7 +217,7 @@ async function handleAssetError(assetData) {
       progress: 0,
       currentStep: 'Video processing failed',
       provider: 'mux',
-      error: typeof errors === 'string' ? errors : JSON.stringify(errors)
+      error: errorMessage
     });
   } catch (error) {
     console.error('❌ Error handling asset error:', error);
@@ -265,7 +293,12 @@ async function handleUploadError(uploadData) {
     const uploadId = uploadData.id;
     const error = uploadData.error || 'Upload failed';
 
-    console.error(`❌ Upload error: ${uploadId}`, error);
+    // Safe logging
+    try {
+      console.error(`❌ Upload error: ${uploadId}`, JSON.stringify(error));
+    } catch (e) {
+      console.error(`❌ Upload error: ${uploadId}`, error);
+    }
 
     // Check if Mux columns exist
     const hasMuxUploadId = await db.schema.hasColumn('lessons', 'mux_upload_id');
@@ -292,11 +325,19 @@ async function handleUploadError(uploadData) {
       updated_at: db.fn.now()
     };
 
+    // Safe stringify for DB
+    let errorMessage = 'Unknown error';
+    try {
+      errorMessage = typeof error === 'string' ? error : JSON.stringify(error);
+    } catch (e) {
+      errorMessage = 'Error details could not be serialized';
+    }
+
     if (hasMuxStatus) {
       updateData.mux_status = 'errored';
     }
     if (hasMuxErrorMessage) {
-      updateData.mux_error_message = typeof error === 'string' ? error : JSON.stringify(error);
+      updateData.mux_error_message = errorMessage;
     }
 
     // Update lesson with error info
@@ -313,7 +354,7 @@ async function handleUploadError(uploadData) {
       progress: 0,
       currentStep: 'Upload failed',
       provider: 'mux',
-      error: typeof error === 'string' ? error : JSON.stringify(error)
+      error: errorMessage
     });
   } catch (error) {
     console.error('❌ Error handling upload error:', error);
@@ -930,7 +971,7 @@ const videoController = {
             'lessons.mux_status',
             'lessons.mux_error_message'
           )
-          .orderBy('lessons.order', 'asc');
+          .orderBy('lessons.created_at', 'desc');
       } else {
         // Mux-only - no videos table needed
         lessons = await db('lessons')
@@ -944,7 +985,7 @@ const videoController = {
             'lessons.mux_status',
             'lessons.mux_error_message'
           )
-          .orderBy('lessons.order', 'asc');
+          .orderBy('lessons.created_at', 'desc');
       }
 
       // Parse resources JSON for each lesson
@@ -1482,6 +1523,9 @@ const videoController = {
     const hasMuxUploadId = await db.schema.hasColumn('lessons', 'mux_upload_id');
     const hasVideoProvider = await db.schema.hasColumn('lessons', 'video_provider');
     const hasMuxStatus = await db.schema.hasColumn('lessons', 'mux_status');
+    const hasMuxAssetId = await db.schema.hasColumn('lessons', 'mux_asset_id');
+    const hasMuxPlaybackId = await db.schema.hasColumn('lessons', 'mux_playback_id');
+    const hasMuxErrorMessage = await db.schema.hasColumn('lessons', 'mux_error_message');
 
     // Update lesson with upload info (only if columns exist)
     const updateData = {
@@ -1496,6 +1540,16 @@ const videoController = {
     }
     if (hasMuxStatus) {
       updateData.mux_status = 'preparing';
+    }
+    // Clear previous asset/error data for new upload
+    if (hasMuxAssetId) {
+      updateData.mux_asset_id = null;
+    }
+    if (hasMuxPlaybackId) {
+      updateData.mux_playback_id = null;
+    }
+    if (hasMuxErrorMessage) {
+      updateData.mux_error_message = null;
     }
     
     console.log(`💾 Updating lesson ${lessonId} with upload data:`, {
@@ -1698,6 +1752,105 @@ const videoController = {
     });
   }
 },
+
+  /**
+   * Get Mux processing status for a lesson
+   * GET /api/videos/:lessonId/mux-status
+   */
+  async getMuxStatus(req, res) {
+    try {
+      const { lessonId } = req.params;
+
+      let lesson = await db('lessons')
+        .where({ id: lessonId })
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // POLLING LOGIC: If status is not final, check with Mux
+      // This ensures status updates even if webhooks fail (e.g. localhost)
+      if (lesson.mux_status !== 'ready' && lesson.mux_status !== 'errored') {
+        try {
+          // Case 1: We have an asset ID - check asset status
+          if (lesson.mux_asset_id) {
+            const asset = await muxService.getAsset(lesson.mux_asset_id);
+            
+            if (asset.status === 'ready') {
+              // Asset is ready! Update DB
+              await handleAssetReady({
+                id: asset.id,
+                playback_ids: asset.playbackIds.map(pid => ({ id: pid.id, policy: pid.policy })) 
+              });
+              // Reload lesson
+              lesson = await db('lessons').where({ id: lessonId }).first();
+            } else if (asset.status === 'errored') {
+              // Asset errored
+              await handleAssetError({
+                id: asset.id,
+                errors: asset.errors
+              });
+              lesson = await db('lessons').where({ id: lessonId }).first();
+            }
+          } 
+          // Case 2: We only have an upload ID - check upload status
+          else if (lesson.mux_upload_id) {
+            const upload = await muxService.getUpload(lesson.mux_upload_id);
+            
+            if (upload.status === 'asset_created' && upload.asset_id) {
+              // Asset created! Update DB
+              await handleUploadAssetCreated({
+                id: upload.id,
+                asset_id: upload.asset_id
+              });
+              // Reload lesson
+              lesson = await db('lessons').where({ id: lessonId }).first();
+            } else if (upload.status === 'errored') {
+               await handleUploadError({
+                id: upload.id,
+                error: upload.error
+               });
+               lesson = await db('lessons').where({ id: lessonId }).first();
+            }
+          }
+        } catch (muxError) {
+          console.warn('⚠️ Failed to poll Mux status:', muxError.message);
+          // Continue with existing DB data if polling fails
+        }
+      }
+
+      const status = lesson.mux_status || 'preparing';
+      const uploadId = lesson.mux_upload_id || null;
+      const assetId = lesson.mux_asset_id || null;
+      const playbackId = lesson.mux_playback_id || null;
+      const errorMessage = lesson.mux_error_message || null;
+
+      res.json({
+        success: true,
+        data: {
+          lessonId: Number(lessonId),
+          status,
+          provider: 'mux',
+          errorMessage,
+          metadata: {
+            uploadId,
+            assetId,
+            playbackId
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Get Mux status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get Mux status: ' + error.message
+      });
+    }
+  },
 
   /**
    * Get playback information for a lesson

@@ -223,8 +223,8 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       });
 
       xhr.open('PUT', url);
-      // Use the blob's actual content type (could be MP4 or WebM)
-      const contentType = blob.type || 'video/webm';
+      // Force a conservative content type to satisfy Mux/GCS upload requirements
+      const contentType = 'application/octet-stream';
       xhr.setRequestHeader('Content-Type', contentType);
       console.log('Upload Content-Type:', contentType);
       
