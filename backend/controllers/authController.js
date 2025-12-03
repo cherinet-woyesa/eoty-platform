@@ -2313,6 +2313,17 @@ const authController = {
         });
       }
 
+      // Diagnostic logging: confirm runtime client and redirect
+      try {
+        console.log('[OAuth] Token exchange starting:', {
+          clientId,
+          redirectUriUsed: redirectUri || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
+          requestRedirectUri: redirectUri,
+          frontendUrlEnv: process.env.FRONTEND_URL,
+          serverOrigin: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`
+        });
+      } catch (_) {}
+
       // Exchange authorization code for access token
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',

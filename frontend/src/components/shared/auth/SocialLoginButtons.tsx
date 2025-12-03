@@ -44,6 +44,16 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
       // NOTE: Must match the backend GOOGLE_CLIENT_ID exactly
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '317256520378-35gg7hh4a755ggpig09jidpc8kkhll22.apps.googleusercontent.com';
 
+      // Create Google OAuth URL
+      const baseUrl = window.location.origin;
+      const redirectUriStr = `${baseUrl}/auth/google/callback`;
+      
+      console.log('Google Auth Debug:', {
+        clientId,
+        redirectUri: redirectUriStr,
+        origin: window.location.origin
+      });
+
       // WORKAROUND: Use manual popup instead of Google's library
       // This bypasses the strict origin checking for development
 
@@ -62,9 +72,6 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
         throw new Error('Popup blocked. Please allow popups for this site.');
       }
 
-      // Create Google OAuth URL
-      const baseUrl = window.location.origin;
-      const redirectUriStr = `${baseUrl}/auth/google/callback`;
       const redirectUri = encodeURIComponent(redirectUriStr);
       const scope = encodeURIComponent('openid email profile');
       const state = encodeURIComponent(JSON.stringify({ returnUrl: window.location.pathname }));
@@ -97,7 +104,9 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
 
         // Send code to backend
         try {
-          const response = await fetch('http://localhost:5000/api/auth/google/callback', {
+          // Use the configured API base URL instead of hardcoded localhost
+          const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${apiBase}/auth/google/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

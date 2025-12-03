@@ -300,19 +300,6 @@ const RegisterForm: React.FC = () => {
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Registration form">
         {/* Role Selection removed for Google sign up; email signup defaults to 'user' */}
 
-      {/* Social Login Section */}
-      <div className="space-y-4">
-        <SocialLoginButtons />
-        
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or register with email</span>
-          </div>
-        </div>
-      </div>
       {/* Messages Section - Prominent positioning at top */}
       <div className="space-y-3">
         {/* Success Message */}
@@ -347,6 +334,7 @@ const RegisterForm: React.FC = () => {
         )}
       </div>
 
+
       {/* Social Login Section - Moved to top for better UX */}
       <div className="space-y-4">
         <SocialLoginButtons />
@@ -357,7 +345,7 @@ const RegisterForm: React.FC = () => {
           <div className="h-px flex-1 bg-gray-200"></div>
         </div>
       </div>
-      
+
       {/* Personal Information Section - Grouped inputs */}
       <div className="space-y-5">
         <div className="hidden sm:block">
