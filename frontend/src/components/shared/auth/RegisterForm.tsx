@@ -336,15 +336,7 @@ const RegisterForm: React.FC = () => {
 
 
       {/* Social Login Section - Moved to top for better UX */}
-      <div className="space-y-4">
-        <SocialLoginButtons />
-        
-        <div className="flex items-center gap-3 my-2">
-          <div className="h-px flex-1 bg-gray-200"></div>
-          <span className="text-xs sm:text-sm text-gray-500 font-medium">Or register with email</span>
-          <div className="h-px flex-1 bg-gray-200"></div>
-        </div>
-      </div>
+     
 
       {/* Personal Information Section - Grouped inputs */}
       <div className="space-y-5">
@@ -574,7 +566,7 @@ const RegisterForm: React.FC = () => {
         ) : null}
         </div>
       </div>
-
+        
       {/* Security Section - Grouped password inputs */}
       <div className="space-y-3 sm:space-y-4 pt-2 border-t border-gray-100">
         <div className="hidden sm:block">
@@ -685,7 +677,15 @@ const RegisterForm: React.FC = () => {
           Create Account
         </LoadingButton>
       </div>
-
+       <div className="space-y-4">
+        <SocialLoginButtons />
+        
+        <div className="flex items-center gap-3 my-2">
+          <div className="h-px flex-1 bg-gray-200"></div>
+          <span className="text-xs sm:text-sm text-gray-500 font-medium">register with email</span>
+          <div className="h-px flex-1 bg-gray-200"></div>
+        </div>
+      </div>
       {/* Login Link */}
       <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign in navigation">
         <p className="text-xs sm:text-sm text-gray-600">

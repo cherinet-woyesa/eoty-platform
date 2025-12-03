@@ -1280,7 +1280,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Handle processing completion
   const handleProcessingComplete = (transcodedVideoUrl?: string) => {
-    setShowProcessingStatus(false);
+    // Don't close the modal immediately - let the user see the success state and click "Done"
+    // setShowProcessingStatus(false);
     
     // Show prominent success message that persists
     const persistentMessage = '🎉 Video processing completed successfully! Your video is now available for viewing.';
@@ -1323,13 +1324,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setProcessingLessonId(lessonId);
     setShowProcessingStatus(true);
     
-    // Redirect to course page if courseId is available
-    if (courseId) {
-      // Small delay to allow user to see success message
-      setTimeout(() => {
-        navigate(`/teacher/courses/${courseId}`);
-      }, 1500);
-    }
+    // Note: We do NOT navigate away here anymore. 
+    // We wait for processing to complete so the user sees the success status.
+    // Navigation can happen manually or after processing is confirmed.
     
     // Note: assetId and playbackId will come via webhooks and be updated in the database
     // The VideoProcessingStatus component will listen for WebSocket updates

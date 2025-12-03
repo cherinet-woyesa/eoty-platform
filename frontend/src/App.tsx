@@ -2,28 +2,9 @@ import * as React from 'react';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import Landing from '@/pages/shared/Landing';
-import Login from '@/pages/shared/auth/Login';
-import Register from '@/pages/shared/auth/Register';
-import ForgotPassword from '@/pages/shared/auth/ForgotPassword';
-import ResetPassword from '@/pages/shared/auth/ResetPassword';
-import EmailVerification from '@/pages/shared/auth/EmailVerification';
-import GoogleCallback from '@/pages/shared/auth/GoogleCallback';
-import CompleteProfile from '@/pages/shared/auth/CompleteProfile';
-import TeacherDashboard from '@/components/teacher/dashboard/TeacherDashboard';
-import StudentDashboard from '@/components/student/dashboard/StudentDashboard';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import '@/styles/globals.css';
-import MyCourses from '@/pages/teacher/MyCourses';
-import CourseCatalog from '@/pages/student/courses/CourseCatalog';
-import StudentEnrolledCourses from '@/pages/student/courses/StudentEnrolledCourses';
-import StudentVideos from '@/pages/student/StudentVideos';
-import AllCourses from '@/pages/admin/AllCourses';
-import CreateCourse from '@/pages/teacher/CreateCourse';
-import EditCourse from '@/pages/teacher/EditCourse';
 
-import AIAssistant from '@/pages/shared/ai/AIAssistant';
-import FloatingAIChat from '@/components/shared/ai/FloatingAIChat';
+import '@/styles/globals.css';
+
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
@@ -117,6 +98,31 @@ const LazyReactQueryDevtools = lazy(() =>
 const PageLoader = () => (
   <LoadingSpinner fullScreen size="xl" text="Loading..." variant="logo" />
 );
+
+// Lazy loaded pages
+const Landing = lazy(() => import('@/pages/shared/Landing'));
+const Login = lazy(() => import('@/pages/shared/auth/Login'));
+const Register = lazy(() => import('@/pages/shared/auth/Register'));
+// const Unauthorized = lazy(() => import('@/pages/auth/Unauthorized')); // Not found and unused
+// const NotFound = lazy(() => import('@/pages/NotFound')); // Not found and unused
+const MyCourses = lazy(() => import('@/pages/teacher/MyCourses'));
+const CourseCatalog = lazy(() => import('@/pages/student/courses/CourseCatalog'));
+// const CoursePlayer = lazy(() => import('@/pages/student/CoursePlayer')); // Unused and not found
+const CreateCourse = lazy(() => import('@/pages/teacher/CreateCourse'));
+const EditCourse = lazy(() => import('@/pages/teacher/EditCourse'));
+const TeacherDashboard = lazy(() => import('@/components/teacher/dashboard/TeacherDashboard'));
+const StudentDashboard = lazy(() => import('@/components/student/dashboard/StudentDashboard'));
+const ForgotPassword = lazy(() => import('@/pages/shared/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/shared/auth/ResetPassword'));
+const EmailVerification = lazy(() => import('@/pages/shared/auth/EmailVerification'));
+const GoogleCallback = lazy(() => import('@/pages/shared/auth/GoogleCallback'));
+const CompleteProfile = lazy(() => import('@/pages/shared/auth/CompleteProfile'));
+const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout'));
+const StudentEnrolledCourses = lazy(() => import('@/pages/student/courses/StudentEnrolledCourses'));
+const StudentVideos = lazy(() => import('@/pages/student/StudentVideos'));
+const AIAssistant = lazy(() => import('@/pages/shared/ai/AIAssistant'));
+const AllCourses = lazy(() => import('@/pages/admin/AllCourses'));
+const FloatingAIChat = lazy(() => import('@/components/shared/ai/FloatingAIChat'));
 
 // Lazy load heavy pages
 const LazyRecordVideo = lazy(() => import('@/pages/teacher/RecordVideo'));

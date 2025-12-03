@@ -34,14 +34,15 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.info', 'console.debug'], // Remove specific console methods
       },
     },
-    // Code splitting - DISABLED to prevent React loading issues
-    // All code will be in main bundle to ensure React loads first
-    // This fixes "Cannot read properties of undefined (reading 'useState')" errors
+    // Code splitting configuration
     rollupOptions: {
       output: {
-        // Disable manual chunking - everything goes in main bundle
-        // This ensures React and all dependencies load together in correct order
-        manualChunks: undefined,
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'framer-motion'],
+          'vendor-utils': ['date-fns', 'axios', 'i18next', 'react-i18next'],
+          'vendor-charts': ['recharts'],
+        },
       },
     },
     // Chunk size warnings

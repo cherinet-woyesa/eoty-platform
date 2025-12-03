@@ -1772,9 +1772,12 @@ const videoController = {
         });
       }
 
-      // POLLING LOGIC: If status is not final, check with Mux
+      // POLLING LOGIC: If status is not final OR if ready but missing playback ID, check with Mux
       // This ensures status updates even if webhooks fail (e.g. localhost)
-      if (lesson.mux_status !== 'ready' && lesson.mux_status !== 'errored') {
+      const shouldPoll = (lesson.mux_status !== 'ready' && lesson.mux_status !== 'errored') || 
+                         (lesson.mux_status === 'ready' && !lesson.mux_playback_id);
+
+      if (shouldPoll) {
         try {
           // Case 1: We have an asset ID - check asset status
           if (lesson.mux_asset_id) {

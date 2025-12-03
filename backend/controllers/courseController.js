@@ -1654,7 +1654,42 @@ const courseController = {
                     playbackId: playbackId
                   });
               } else {
-                  console.warn('Asset is ready but has no playback IDs');
+                  console.warn('Asset is ready but has no playback IDs. Attempting to create one...');
+                  try {
+                    const newPlaybackId = await muxService.createPlaybackId(lesson.mux_asset_id, 'public');
+                    if (newPlaybackId && newPlaybackId.id) {
+                       console.log(`✅ Created new playback_id: ${newPlaybackId.id}`);
+                       
+                       const updateData = {
+                         updated_at: db.fn.now()
+                       };
+                       
+                       if (hasMuxPlaybackId) updateData.mux_playback_id = newPlaybackId.id;
+                       if (hasMuxStatus) updateData.mux_status = 'ready';
+                       if (hasVideoProvider) updateData.video_provider = 'mux';
+                       
+                       await db('lessons')
+                         .where({ id: lessonId })
+                         .update(updateData);
+                         
+                       // Refresh lesson data
+                       const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+                       if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
+                       if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
+                       
+                       // Send WebSocket update
+                       const websocketService = require('../services/websocketService');
+                       websocketService.sendProgress(lessonId.toString(), {
+                         type: 'complete',
+                         progress: 100,
+                         currentStep: 'Video ready',
+                         provider: 'mux',
+                         playbackId: newPlaybackId.id
+                       });
+                    }
+                  } catch (createError) {
+                    console.error(`❌ Failed to create playback ID: ${createError.message}`);
+                  }
               }
             } else if (asset.status === 'errored') {
               // Asset errored, update lesson

@@ -358,6 +358,12 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           playbackId: muxPlaybackId
         }));
         
+        // Stop polling on success
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+
         // Trigger success notification via callback
         onProcessingComplete();
         return;
@@ -376,6 +382,12 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           playbackId: muxPlaybackId
         }));
         
+        // Stop polling on success
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+
         onProcessingComplete();
         return;
       }

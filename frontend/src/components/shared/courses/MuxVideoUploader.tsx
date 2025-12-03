@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FC } from 'react';
 import MuxUploader from '@mux/mux-uploader-react';
 import { apiClient } from '@/services/api/apiClient';
@@ -35,6 +35,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'preparing' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   // Fetch upload URL from backend
   const fetchUploadUrl = useCallback(async () => {
@@ -46,7 +47,10 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       return;
     }
 
+    if (isFetchingRef.current || uploadUrl) return;
+
     try {
+      isFetchingRef.current = true;
       setIsLoading(true);
       setUploadStatus('preparing');
       setErrorMessage(null);

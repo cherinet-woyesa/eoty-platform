@@ -63,8 +63,8 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "DB_NAME=$($EnvVars['DB_NAME'])" `
     --set-env-vars "DB_USER=$($EnvVars['DB_USER'])" `
     --set-env-vars "FRONTEND_URL=https://eoty-platform.vercel.app" `
-    --set-env-vars "API_BASE_URL=https://edu-platform-backend-o3rgchdw2q-uc.a.run.app" `
-    --set-env-vars "GOOGLE_CALLBACK_URL=https://edu-platform-backend-o3rgchdw2q-uc.a.run.app/api/auth/google/callback" `
+    --set-env-vars "API_BASE_URL=https://edu-platform-backend-317256520378.us-central1.run.app" `
+    --set-env-vars "GOOGLE_CALLBACK_URL=https://edu-platform-backend-317256520378.us-central1.run.app/api/auth/google/callback" `
     --set-env-vars "JWT_SECRET=$($EnvVars['JWT_SECRET'])" `
     --set-env-vars "SENDGRID_API_KEY=$($EnvVars['EMAIL_SERVICE_API_KEY'])" `
     --set-env-vars "MUX_TOKEN_ID=$($EnvVars['MUX_TOKEN_ID'])" `

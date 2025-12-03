@@ -1777,6 +1777,26 @@ class MuxService {
   }
 
   /**
+   * Create a playback ID for an asset
+   * 
+   * @param {string} assetId - Mux asset ID
+   * @param {string} policy - 'public' or 'signed'
+   * @returns {Promise<Object>} Playback ID information
+   */
+  async createPlaybackId(assetId, policy = 'public') {
+    try {
+      console.log(`Creating playback ID for asset ${assetId} with policy ${policy}`);
+      const playbackId = await this.mux.video.assets.createPlaybackId(assetId, {
+        policy: policy
+      });
+      return playbackId;
+    } catch (error) {
+      console.error('❌ Failed to create playback ID:', error.message);
+      throw new Error(`Failed to create playback ID: ${error.message}`);
+    }
+  }
+
+  /**
    * Get migration status for lessons
    * 
    * @param {Object} db - Database connection
