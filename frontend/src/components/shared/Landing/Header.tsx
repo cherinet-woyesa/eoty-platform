@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from './Navigation';
 import LanguageSelector from '@/components/common/LanguageSelector';
@@ -40,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
             <Link to="/" className="flex items-center space-x-3 group cursor-pointer">
               <div className="relative">
                 <div className={`absolute inset-0 rounded-lg blur-md transition-all ${showTransparent ? 'bg-white/10' : 'bg-[#00FFC6]/20'}`} />
-                <BookOpen className={`relative h-10 w-10 transform group-hover:scale-110 transition-transform ${showTransparent ? 'text-white' : 'text-gray-700'}`} />
+                <img src="/eoc.jpg" alt="EOTY Logo" className="relative h-10 w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
               </div>
               <span className={`text-2xl font-bold transition-colors ${showTransparent ? 'text-white' : 'text-gray-800'}`}>
                 EOTY Platform

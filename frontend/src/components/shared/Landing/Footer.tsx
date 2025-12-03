@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Heart, Mail, Phone } from 'lucide-react';
+import { Heart, Mail, Phone } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -18,8 +18,8 @@ const Footer: React.FC = () => {
             {/* Brand Section */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-[#27AE60] rounded-lg">
-                  <BookOpen className="h-8 w-8 text-white" />
+                <div className="h-12 w-12 rounded-lg overflow-hidden">
+                  <img src="/eoc.jpg" alt="Logo" className="h-full w-full object-cover" />
                 </div>
                 <span className="text-2xl font-bold">EOTY Platform</span>
               </div>

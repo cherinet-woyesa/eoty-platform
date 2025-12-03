@@ -1,6 +1,6 @@
 import React, { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Heart, Sparkles, Shield } from 'lucide-react';
+import { Heart, Sparkles, Shield } from 'lucide-react';
 import Header from '@/components/shared/Landing/Header';
 
 interface AuthLayoutProps {
@@ -61,8 +61,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
             <div className="px-8 pt-10 pb-6 text-center">
               <div className="flex justify-center mb-6">
                 <div className="relative group">
-                  <div className="relative w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center shadow-sm border border-gray-100">
-                    <BookOpen className="h-8 w-8 text-[#27AE60]" />
+                  <div className="relative w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden">
+                    <img src="/eoc.jpg" alt="Logo" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>

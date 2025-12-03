@@ -223,8 +223,8 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
       <div className="flex items-center justify-between h-12 px-3 border-b border-blue-200/50 bg-gradient-to-r from-blue-600 to-indigo-700">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">E</span>
+            <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/eoc.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-sm font-bold text-white">EOTY Platform</h1>
           </div>
