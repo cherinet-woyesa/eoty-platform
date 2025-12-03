@@ -1,5 +1,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { FC } from 'react';
 import { useVideoRecorder } from '@/hooks/useVideoRecorder';
 import { coursesApi } from '@/services/api';
@@ -84,6 +85,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   variant = 'default',
   onToggleTips
 }) => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   
   // Enhanced video recorder hook with production features
@@ -1321,9 +1323,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setProcessingLessonId(lessonId);
     setShowProcessingStatus(true);
     
+    // Redirect to course page if courseId is available
+    if (courseId) {
+      // Small delay to allow user to see success message
+      setTimeout(() => {
+        navigate(`/teacher/courses/${courseId}`);
+      }, 1500);
+    }
+    
     // Note: assetId and playbackId will come via webhooks and be updated in the database
     // The VideoProcessingStatus component will listen for WebSocket updates
-  }, []);
+  }, [courseId, navigate]);
 
   // NEW: Handle Mux upload error
   const handleMuxUploadError = useCallback((error: Error) => {
