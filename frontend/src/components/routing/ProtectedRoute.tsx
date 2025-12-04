@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 interface ProtectedRouteProps {
@@ -41,6 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles,
 }) => {
   const { isAuthenticated, user, hasPermission, isLoading } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -57,6 +58,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace state={{ from: window.location.pathname }} />;
+  }
+
+  // Check for incomplete profile (missing chapter)
+  // Exclude admin roles and the complete-profile page itself
+  if (user.role !== 'admin' && user.role !== 'chapter_admin' && !user.chapter && location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace state={{ from: location }} />;
   }
 
   // Helper function to check if user's role is equal to or higher than required role

@@ -27,6 +27,7 @@
     "@google-cloud/speech": "^6.1.0",
     "@google-cloud/storage": "^7.0.0",
     "@google-cloud/vertexai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
     "@mux/mux-node": "^12.8.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",

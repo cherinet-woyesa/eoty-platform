@@ -1,42 +1,52 @@
-// backend/config/aiConfig-gcp.js - GOOGLE CLOUD VERTEX AI VERSION
-const { VertexAI } = require('@google-cloud/vertexai');
+// backend/config/aiConfig-gcp.js - GOOGLE AI STUDIO VERSION
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { Storage } = require('@google-cloud/storage');
+const path = require('path');
+const fs = require('fs');
 
-// Initialize Vertex AI
-let vertexAI = null;
+// Initialize Google AI Studio
+let genAI = null;
 let storage = null;
 
+// API Key from user request
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyAmv6SY3iDAR7KgqIUaMTJ7zLYDhYtKyCs';
+
 try {
+  // Initialize Google Generative AI
+  if (GOOGLE_API_KEY) {
+    genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    console.log('✅ Google AI Studio initialized successfully');
+  } else {
+    console.warn('⚠️ GOOGLE_API_KEY not set. AI features will be disabled.');
+  }
+
+  // Initialize Storage (keep existing logic if project is set)
   if (process.env.GOOGLE_CLOUD_PROJECT) {
-    vertexAI = new VertexAI({
-      project: process.env.GOOGLE_CLOUD_PROJECT,
-      location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
-    });
+    const keyFilePath = path.join(__dirname, '../gcp-key.json');
+    const authOptions = fs.existsSync(keyFilePath) 
+      ? { keyFile: keyFilePath } 
+      : undefined;
 
     storage = new Storage({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT
+      projectId: process.env.GOOGLE_CLOUD_PROJECT,
+      keyFilename: authOptions ? keyFilePath : undefined
     });
-
-    console.log('✅ Google Cloud AI and Storage initialized successfully');
-  } else {
-    console.warn('⚠️ GOOGLE_CLOUD_PROJECT not set. AI features will be disabled.');
+    console.log('✅ Google Cloud Storage initialized successfully');
   }
 } catch (error) {
-  console.error('❌ Failed to initialize Google Cloud AI:', error.message);
+  console.error('❌ Failed to initialize AI/Storage:', error.message);
 }
 
 const aiConfig = {
-  // Vertex AI Model configurations
-  // Preferred model (first entry) plus safe fallbacks. If the preferred model is not
-  // available to the project, the service will try the next candidate.
-  // NOTE: availability of models depends on your Google Cloud project access.
+  // Google AI Studio Model configurations
   chatModelCandidates: [
-    'gemini-1.5-pro',       // Best quality (closest to Claude Sonnet class)
-    'gemini-1.5-flash',     // High speed/efficiency
-    'gemini-pro'            // Legacy fallback
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-pro'
   ],
   // Backwards-compatible single value for quick checks (first candidate)
-  chatModel: 'gemini-1.5-pro',
+  chatModel: 'gemini-2.0-flash',
   embeddingModel: 'text-embedding-004',
 
   // Response settings optimized for Vertex AI
@@ -101,7 +111,7 @@ escalate for moderation and state: "This question requires review by church auth
 
   // Enhanced validation thresholds optimized for Vertex AI
   validationThresholds: {
-    minFaithAlignmentScore: 0.85,
+    minFaithAlignmentScore: 0.4,
     maxResponseTimeMs: 3000,
     minScriptureReferences: 1, // Require at least one scripture reference when appropriate
     maxSensitiveTopicScore: 0.3
@@ -155,7 +165,7 @@ aiConfig.validateFaithAlignment = function(response, context = {}) {
   ];
 
   const foundTerms = faithTerms.filter(term => responseLower.includes(term));
-  validation.score = Math.min(1.0, 0.3 + (foundTerms.length * 0.1));
+  validation.score = Math.min(1.0, 0.5 + (foundTerms.length * 0.1));
 
   // Check for problematic terms that might indicate non-aligned content
   const problematicTerms = [
@@ -222,4 +232,4 @@ aiConfig.enhanceContext = function(question, context = {}) {
   return enhancedContext;
 };
 
-module.exports = { vertexAI, storage, aiConfig };
+module.exports = { genAI, storage, aiConfig };

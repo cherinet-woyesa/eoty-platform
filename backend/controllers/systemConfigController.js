@@ -1150,36 +1150,84 @@ async function mergeTags(req, res) {
 // ============================================================================
 
 /**
- * Get all chapters
+ * Get all chapters with enhanced analytics
  */
 async function getChapters(req, res) {
   try {
     const { active_only } = req.query;
 
-    let query = db('chapters')
-      .select('*');
+    // Build base query with aggregated data
+    let query = db('chapters as c')
+      .select(
+        'c.*',
+        // Count users in this chapter
+        db.raw(`(
+          SELECT COUNT(DISTINCT uc.user_id)
+          FROM user_chapters uc
+          WHERE uc.chapter_id = c.id
+        ) as user_count`),
+        // Calculate average completion rate from enrollments
+        db.raw(`(
+          SELECT COALESCE(AVG(e.progress), 0)
+          FROM enrollments e
+          INNER JOIN courses co ON e.course_id = co.id
+          WHERE co.chapter_id = c.id
+        ) as average_completion_rate`),
+        // Count monthly active users (users with activity in last 30 days)
+        db.raw(`(
+          SELECT COUNT(DISTINCT e.user_id)
+          FROM enrollments e
+          INNER JOIN courses co ON e.course_id = co.id
+          WHERE co.chapter_id = c.id
+          AND e.last_accessed_at >= NOW() - INTERVAL '30 days'
+        ) as monthly_active_users`),
+        // Calculate storage used (sum of video file sizes)
+        db.raw(`(
+          SELECT COALESCE(SUM(l.video_size_bytes), 0) / 1073741824.0
+          FROM lessons l
+          INNER JOIN courses co ON l.course_id = co.id
+          WHERE co.chapter_id = c.id
+        ) as storage_used_gb`),
+        // Get last activity timestamp
+        db.raw(`(
+          SELECT MAX(e.last_accessed_at)
+          FROM enrollments e
+          INNER JOIN courses co ON e.course_id = co.id
+          WHERE co.chapter_id = c.id
+        ) as last_activity`)
+      );
     
     // Check if display_order column exists
     try {
       const hasDisplayOrder = await db.schema.hasColumn('chapters', 'display_order');
       if (hasDisplayOrder) {
-        query = query.orderBy('display_order', 'asc');
+        query = query.orderBy('c.display_order', 'asc');
       } else {
-        query = query.orderBy('name', 'asc');
+        query = query.orderBy('c.name', 'asc');
       }
     } catch (err) {
-      query = query.orderBy('name', 'asc');
+      query = query.orderBy('c.name', 'asc');
     }
 
     if (active_only === 'true') {
-      query = query.where('is_active', true);
+      query = query.where('c.is_active', true);
     }
 
     const chapters = await query;
 
+    // Format the response data
+    const formattedChapters = chapters.map(chapter => ({
+      ...chapter,
+      user_count: parseInt(chapter.user_count) || 0,
+      average_completion_rate: parseFloat(chapter.average_completion_rate) || 0,
+      monthly_active_users: parseInt(chapter.monthly_active_users) || 0,
+      storage_used_gb: parseFloat(chapter.storage_used_gb) || 0,
+      last_activity: chapter.last_activity || null
+    }));
+
     res.json({
       success: true,
-      data: { chapters }
+      data: { chapters: formattedChapters }
     });
   } catch (error) {
     console.error('Error fetching chapters:', error);

@@ -134,7 +134,7 @@ const AdminProfile: React.FC = () => {
     setSuccess(false);
 
     try {
-      const response = await authApi.updateProfile(profileData);
+      const response = await authApi.updateUserProfile(profileData);
       if (response.success) {
         // Refresh both contexts
         await refreshAuthUser();

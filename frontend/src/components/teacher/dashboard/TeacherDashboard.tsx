@@ -320,7 +320,7 @@ const TeacherDashboard: React.FC = () => {
                 {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
               <p className="text-stone-700 text-xs mt-1">
-                <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> {t('dashboard.teacher.students_enrolled_in_courses', { students: '', courses: teacherData.totalCourses }).replace(' students enrolled in ', ' ')}
+                <span className="font-semibold text-[#27AE60]">{teacherData.totalStudentsEnrolled}</span> {t('dashboard.teacher.students_enrolled_in_courses', { courses: teacherData.totalCourses })}
               </p>
             </div>
           </div>

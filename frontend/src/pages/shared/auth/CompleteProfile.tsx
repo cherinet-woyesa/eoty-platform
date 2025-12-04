@@ -46,7 +46,7 @@ const CompleteProfile: React.FC = () => {
     setIsLoading(true);
     try {
       // Update user profile
-      await authApi.updateProfile({
+      await authApi.updateUserProfile({
         role: formData.role,
         chapterId: parseInt(formData.chapter as string)
       });

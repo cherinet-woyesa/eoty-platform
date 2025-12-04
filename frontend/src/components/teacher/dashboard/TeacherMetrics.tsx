@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   BookOpen, Users, Video, Target
 } from 'lucide-react';
@@ -57,13 +58,15 @@ const MetricsCard: React.FC<{ metric: MetricItem }> = ({ metric }) => {
 const TeacherMetrics: React.FC<TeacherMetricsProps> = ({ 
   stats
 }) => {
+  const { t } = useTranslation();
+  
   // Debug logging
   console.log('📈 TeacherMetrics received stats:', stats);
   
   // Compact metrics - only the essential ones with real data
   const metrics = useMemo((): MetricItem[] => [
     {
-      title: 'Total Courses',
+      title: t('dashboard.teacher.total_courses'),
       value: stats?.totalCourses || 0,
       icon: <BookOpen className="h-5 w-5 text-[#27AE60]" />,
       color: 'from-[#27AE60] to-[#16A085]',
@@ -71,7 +74,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
       bgColor: 'bg-[#27AE60]/10'
     },
     {
-      title: 'Active Students',
+      title: t('dashboard.teacher.active_students'),
       value: stats?.totalStudentsEnrolled || 0,
       icon: <Users className="h-5 w-5 text-[#16A085]" />,
       color: 'from-[#16A085] to-[#2980B9]',
@@ -79,7 +82,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
       bgColor: 'bg-[#16A085]/10'
     },
     {
-      title: 'Total Lessons',
+      title: t('dashboard.teacher.total_lessons'),
       value: stats?.totalLessons || 0,
       icon: <Video className="h-5 w-5 text-[#2980B9]" />,
       color: 'from-[#2980B9] to-[#27AE60]',
@@ -87,14 +90,14 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
       bgColor: 'bg-[#2980B9]/10'
     },
     {
-      title: 'Completion Rate',
+      title: t('dashboard.teacher.completion_rate'),
       value: `${stats?.averageCompletionRate || 0}%`,
       icon: <Target className="h-5 w-5 text-[#27AE60]" />,
       color: 'from-[#27AE60] to-[#16A085]',
       borderColor: 'border-[#27AE60]/20 hover:border-[#27AE60]/50',
       bgColor: 'bg-[#27AE60]/10'
     }
-  ], [stats]);
+  ], [stats, t]);
 
   return (
     <div className="space-y-3">

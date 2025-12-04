@@ -222,20 +222,36 @@ const adminController = {
         });
       }
 
+      // Pagination and Filtering params
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 25;
+      const offset = (page - 1) * limit;
+      const search = req.query.search || '';
+      const roleFilter = req.query.role || 'all';
+      const statusFilter = req.query.status || 'all';
+      const sortBy = req.query.sortBy || 'createdAt';
+      const sortOrder = req.query.sortOrder || 'desc';
+
       let query = db('users')
-        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
-        .select(
-          'users.id', 
-          'users.first_name', 
-          'users.last_name', 
-          'users.email', 
-          'users.role', 
-          'users.chapter_id', 
-          'users.is_active', 
-          'users.created_at', 
-          'users.last_login_at',
-          'chapters.name as chapter_name'
-        );
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id');
+
+      // Apply filters
+      if (search) {
+        query = query.where(function() {
+          this.where('users.first_name', 'like', `%${search}%`)
+            .orWhere('users.last_name', 'like', `%${search}%`)
+            .orWhere('users.email', 'like', `%${search}%`);
+        });
+      }
+
+      if (roleFilter !== 'all') {
+        query = query.where('users.role', roleFilter);
+      }
+
+      if (statusFilter !== 'all') {
+        const isActive = statusFilter === 'active';
+        query = query.where('users.is_active', isActive);
+      }
 
       // Chapter Admins can only see users in their chapter
       if (requestingUserRole === 'chapter_admin') {
@@ -255,7 +271,39 @@ const adminController = {
         }
       }
 
-      const users = await query.orderBy('users.created_at', 'desc');
+      // Get total count for pagination
+      const countQuery = query.clone().count('users.id as total').first();
+      const totalResult = await countQuery;
+      const total = totalResult ? parseInt(totalResult.total) : 0;
+
+      // Apply sorting and pagination
+      const sortMap = {
+        'name': 'users.first_name',
+        'email': 'users.email',
+        'role': 'users.role',
+        'createdAt': 'users.created_at',
+        'lastLogin': 'users.last_login_at'
+      };
+      const dbSortBy = sortMap[sortBy] || 'users.created_at';
+
+      query = query
+        .select(
+          'users.id', 
+          'users.first_name', 
+          'users.last_name', 
+          'users.email', 
+          'users.role', 
+          'users.chapter_id', 
+          'users.is_active', 
+          'users.created_at', 
+          'users.last_login_at',
+          'chapters.name as chapter_name'
+        )
+        .orderBy(dbSortBy, sortOrder)
+        .limit(limit)
+        .offset(offset);
+
+      const users = await query;
 
       res.json({
         success: true,
@@ -271,7 +319,13 @@ const adminController = {
             isActive: user.is_active,
             createdAt: user.created_at,
             lastLogin: user.last_login_at || null
-          }))
+          })),
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
         }
       });
 
@@ -1999,7 +2053,9 @@ const adminController = {
         teacherAppsCount,
         flaggedContent,
         totalEnrollments,
-        completedEnrollments
+        completedEnrollments,
+        adminsCount,
+        activeTodayCount
       ] = await Promise.all([
         // Total users
         safeCount(db('users')),
@@ -2031,7 +2087,13 @@ const adminController = {
         safeCount(db('user_course_enrollments')),
         
         // Completed enrollments
-        safeCount(db('user_course_enrollments').where('enrollment_status', 'completed'))
+        safeCount(db('user_course_enrollments').where('enrollment_status', 'completed')),
+
+        // Admins
+        safeCount(db('users').where('role', 'admin')),
+
+        // Active Today
+        safeCount(db('users').where('last_login_at', '>=', new Date(new Date().setHours(0,0,0,0))))
       ]);
 
       const pendingApprovals = contentApprovals + teacherAppsCount;
@@ -2050,7 +2112,9 @@ const adminController = {
           avgEngagement,
           pendingApprovals,
           flaggedContent,
-          newRegistrations
+          newRegistrations,
+          admins: adminsCount,
+          activeToday: activeTodayCount
         }
       });
     } catch (error) {
@@ -2830,6 +2894,267 @@ const adminController = {
       res.status(500).json({
         success: false,
         message: 'Failed to update featured courses'
+      });
+    }
+  },
+
+  // User Activity Monitoring
+  async getUserActivity(req, res) {
+    try {
+      const { userId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      // Get user activity from database
+      const activity = await db('user_activity')
+        .where('user_id', userId)
+        .orderBy('created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset(parseInt(offset))
+        .select('*');
+
+      // Get user details for context
+      const user = await db('users')
+        .where('id', userId)
+        .first('id', 'first_name', 'last_name', 'email');
+
+      res.json({
+        success: true,
+        data: {
+          user,
+          activity,
+          total: activity.length
+        }
+      });
+    } catch (error) {
+      console.error('Get user activity error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch user activity'
+      });
+    }
+  },
+
+  async getAllUsersActivity(req, res) {
+    try {
+      const { limit = 100, offset = 0, userId } = req.query;
+
+      let query = db('user_activity')
+        .join('users', 'user_activity.user_id', 'users.id')
+        .orderBy('user_activity.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset(parseInt(offset))
+        .select(
+          'user_activity.*',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        );
+
+      if (userId) {
+        query = query.where('user_activity.user_id', userId);
+      }
+
+      const activity = await query;
+
+      res.json({
+        success: true,
+        data: {
+          activity,
+          total: activity.length
+        }
+      });
+    } catch (error) {
+      console.error('Get all users activity error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch user activity'
+      });
+    }
+  },
+
+  // Audit Logging
+  async getAuditLogs(req, res) {
+    try {
+      const { limit = 100, offset = 0, adminId, action } = req.query;
+
+      let query = db('admin_audit_logs')
+        .join('users', 'admin_audit_logs.admin_id', 'users.id')
+        .orderBy('admin_audit_logs.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset(parseInt(offset))
+        .select(
+          'admin_audit_logs.*',
+          'users.first_name as admin_first_name',
+          'users.last_name as admin_last_name',
+          'users.email as admin_email'
+        );
+
+      if (adminId) {
+        query = query.where('admin_audit_logs.admin_id', adminId);
+      }
+
+      if (action) {
+        query = query.where('admin_audit_logs.action', action);
+      }
+
+      const logs = await query;
+
+      res.json({
+        success: true,
+        data: {
+          logs,
+          total: logs.length
+        }
+      });
+    } catch (error) {
+      console.error('Get audit logs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch audit logs'
+      });
+    }
+  },
+
+  async createAuditLog(req, res) {
+    try {
+      const { userId, action, details } = req.body;
+      const adminId = req.user.id;
+
+      await db('admin_audit_logs').insert({
+        admin_id: adminId,
+        user_id: userId || null,
+        action,
+        details,
+        ip_address: req.ip || req.connection.remoteAddress,
+        user_agent: req.get('User-Agent'),
+        created_at: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: 'Audit log created successfully'
+      });
+    } catch (error) {
+      console.error('Create audit log error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create audit log'
+      });
+    }
+  },
+
+  // Security Monitoring
+  async getSecurityAlerts(req, res) {
+    try {
+      const { limit = 50, offset = 0, severity } = req.query;
+
+      let query = db('security_alerts')
+        .join('users', 'security_alerts.user_id', 'users.id')
+        .where('security_alerts.resolved', false)
+        .orderBy('security_alerts.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset(parseInt(offset))
+        .select(
+          'security_alerts.*',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        );
+
+      if (severity) {
+        query = query.where('security_alerts.severity', severity);
+      }
+
+      const alerts = await query;
+
+      res.json({
+        success: true,
+        data: {
+          alerts,
+          total: alerts.length
+        }
+      });
+    } catch (error) {
+      console.error('Get security alerts error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch security alerts'
+      });
+    }
+  },
+
+  async getSecurityIncidents(req, res) {
+    try {
+      const { limit = 100, offset = 0, userId } = req.query;
+
+      let query = db('security_incidents')
+        .join('users', 'security_incidents.user_id', 'users.id')
+        .orderBy('security_incidents.created_at', 'desc')
+        .limit(parseInt(limit))
+        .offset(parseInt(offset))
+        .select(
+          'security_incidents.*',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        );
+
+      if (userId) {
+        query = query.where('security_incidents.user_id', userId);
+      }
+
+      const incidents = await query;
+
+      res.json({
+        success: true,
+        data: {
+          incidents,
+          total: incidents.length
+        }
+      });
+    } catch (error) {
+      console.error('Get security incidents error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch security incidents'
+      });
+    }
+  },
+
+  async resolveSecurityIncident(req, res) {
+    try {
+      const { incidentId } = req.params;
+      const { resolution_notes } = req.body;
+      const adminId = req.user.id;
+
+      await db('security_incidents')
+        .where('id', incidentId)
+        .update({
+          resolved: true,
+          resolved_by: adminId,
+          resolved_at: new Date(),
+          resolution_notes
+        });
+
+      // Log the resolution
+      await db('admin_audit_logs').insert({
+        admin_id: adminId,
+        action: 'SECURITY_INCIDENT_RESOLVED',
+        details: `Resolved security incident ${incidentId}: ${resolution_notes || 'No notes provided'}`,
+        ip_address: req.ip || req.connection.remoteAddress,
+        user_agent: req.get('User-Agent'),
+        created_at: new Date()
+      });
+
+      res.json({
+        success: true,
+        message: 'Security incident resolved successfully'
+      });
+    } catch (error) {
+      console.error('Resolve security incident error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to resolve security incident'
       });
     }
   }

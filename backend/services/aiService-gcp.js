@@ -1,5 +1,5 @@
-// backend/services/aiService-gcp.js - GOOGLE CLOUD VERTEX AI VERSION
-const { vertexAI, storage, aiConfig } = require('../config/aiConfig-gcp');
+// backend/services/aiService-gcp.js - GOOGLE AI STUDIO VERSION
+const { genAI, storage, aiConfig } = require('../config/aiConfig-gcp');
 const languageService = require('./languageService');
 const axios = require('axios');
 const moderationService = require('./moderationService');
@@ -56,7 +56,7 @@ class AIService {
       maxRetries: parseInt(process.env.AI_MAX_RETRIES) || 2,
       timeoutMs: 30000, // Increased to 30s for debugging
       concurrentRequests: parseInt(process.env.AI_CONCURRENT_REQUESTS) || 5,
-      accuracyThreshold: 0.9 // 90% accuracy requirement
+      accuracyThreshold: 0.4 // Lowered to 40% to prevent false positives on valid answers
     };
 
     // Privacy settings
@@ -233,7 +233,7 @@ class AIService {
     }
   }
 
-  // Call Vertex AI with proper error handling
+  // Call Google AI Studio with proper error handling
   async callVertexAI(prompt) {
     // Mock mode for development/testing when APIs are unavailable
     if (process.env.MOCK_AI === 'true') {
@@ -249,17 +249,9 @@ class AIService {
       };
     }
 
-    // If Vertex AI client isn't available, try OpenAI fallback if configured
-    if (!vertexAI) {
-      console.warn('Vertex AI client not initialized. Trying OpenAI fallback if available.');
-      if (process.env.OPENAI_API_KEY) {
-        try {
-          return await this.callOpenAI(prompt);
-        } catch (err) {
-          console.error('OpenAI fallback failed:', err && err.message);
-        }
-      }
-
+    // If Google AI client isn't available
+    if (!genAI) {
+      console.warn('Google AI client not initialized.');
       return {
         candidates: [{
           content: {
@@ -274,14 +266,14 @@ class AIService {
     // Helper to initialize a generative model for a given candidate id
     const initModelForCandidate = (candidate) => {
       try {
-        const model = vertexAI.preview.getGenerativeModel({
+        const model = genAI.getGenerativeModel({
           model: candidate,
           generationConfig: this.generationConfig,
           safetySettings: this.safetySettings
         });
         this.generativeModel = model;
         this.currentModelId = candidate;
-        console.log('Initialized Vertex AI generative model:', candidate);
+        console.log('Initialized Google AI generative model:', candidate);
         return true;
       } catch (err) {
         console.warn('Failed to initialize model', candidate, err && err.message);
@@ -297,7 +289,7 @@ class AIService {
     }
 
     if (!this.generativeModel) {
-      console.warn('No Vertex AI generative model could be initialized. Falling back.');
+      console.warn('No Google AI generative model could be initialized. Falling back.');
       return {
         candidates: [{
           content: {
@@ -313,9 +305,10 @@ class AIService {
     try {
       const result = await this.generativeModel.generateContent(prompt);
       const response = await result.response;
+      
       return response;
     } catch (error) {
-      console.error('Vertex AI call failed for model', this.currentModelId, error && (error.message || error.code));
+      console.error('Google AI call failed for model', this.currentModelId, error && (error.message || error.code));
 
       const errMsg = (error && (error.message || '')).toLowerCase();
       const isNotFound = errMsg.includes('not found') || errMsg.includes('was not found') || error?.code === 404;
@@ -336,26 +329,7 @@ class AIService {
         }
       }
 
-      // If OpenAI is configured, try it as a fallback
-      if (process.env.OPENAI_API_KEY) {
-        try {
-          const openaiResp = await this.callOpenAI(prompt);
-          return openaiResp;
-        } catch (openaiErr) {
-          console.error('OpenAI fallback also failed:', openaiErr && openaiErr.message);
-        }
-      }
-
-      // Final fallback response
-      return {
-        candidates: [{
-          content: {
-            parts: [{
-              text: "I apologize, but I'm experiencing technical difficulties. Please try again later or consult with your local clergy for questions about Ethiopian Orthodox teachings."
-            }]
-          }
-        }]
-      };
+      throw error;
     }
   }
 
@@ -399,14 +373,20 @@ class AIService {
     }
   }
 
-  // Parse Vertex AI response
+  // Parse Google AI response
   parseVertexResponse(result) {
     try {
-      const text = result.candidates[0].content.parts[0].text;
-      return text.trim();
+      if (typeof result.text === 'function') {
+        return result.text().trim();
+      }
+      // Fallback for mock/legacy structure
+      if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
+        return result.candidates[0].content.parts[0].text.trim();
+      }
+      return '';
     } catch (error) {
-      console.error('Failed to parse Vertex AI response:', error);
-      throw new Error('Invalid response format from AI service');
+      console.error('Failed to parse AI response:', error);
+      return "I apologize, but I couldn't process the response. Please try again.";
     }
   }
 

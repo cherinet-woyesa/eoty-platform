@@ -48,6 +48,7 @@ gcloud run deploy $SERVICE_NAME `
     --memory 2Gi `
     --cpu 1 `
     --max-instances 10 `
+    --service-account eoty-ai-service@eotconnect.iam.gserviceaccount.com `
     --concurrency 80 `
     --timeout 900 `
     --add-cloudsql-instances "${PROJECT_ID}:${REGION}:eoty-platform-db" `

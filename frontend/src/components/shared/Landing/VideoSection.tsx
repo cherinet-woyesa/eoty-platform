@@ -30,7 +30,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
           </div>
           
           <Link 
-            to="/videos" 
+            to="/resources?type=video" 
             className="group inline-flex items-center font-semibold text-[#27AE60] hover:text-[#219150] transition-colors"
           >
             View All Videos
