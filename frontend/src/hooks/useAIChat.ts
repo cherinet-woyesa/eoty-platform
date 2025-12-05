@@ -110,20 +110,31 @@ const useAIChat = (): UseAIChatReturn => {
       // Calculate response time
       const totalTimeMs = Date.now() - startTime;
 
+      // Handle nested data structure from API response
+      // The API returns { success: true, data: { answer: "...", ... } }
+      // But sometimes it might return the data directly depending on the interceptor
+      const responseData = response.data || response;
+      const answerContent = responseData.answer || responseData.content;
+
       // Create AI message from response
       const aiMessage: Message = {
         id: generateMessageId(),
         role: 'assistant',
-        content: response.answer || response.content || 'I apologize, but I could not generate a response.',
+        content: answerContent || 'I apologize, but I could not generate a response.',
         timestamp: new Date(),
         metadata: {
-          ...response.metadata,
+          // Map response data to metadata for UI components
+          relevantContent: responseData.relevantContent,
+          sources: responseData.sources,
+          faithAlignment: responseData.faithAlignment,
+          moderation: responseData.moderation,
           performanceMetrics: {
-            totalTimeMs
+            totalTimeMs,
+            ...responseData.performanceMetrics
           },
           sessionId: sessionIdRef.current
         },
-        detectedLanguage: response.detectedLanguage,
+        detectedLanguage: responseData.detectedLanguage,
         status: 'sent'
       };
 

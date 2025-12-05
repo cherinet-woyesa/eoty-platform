@@ -22,7 +22,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -213,6 +214,23 @@ const UserManagement: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to update user status:', err);
       setError(err.response?.data?.message || 'Failed to update user status');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+    
+    setActionLoading(userId);
+    try {
+      await adminApi.deleteUser(userId);
+      await fetchUsers();
+    } catch (err: any) {
+      console.error('Failed to delete user:', err);
+      setError(err.response?.data?.message || 'Failed to delete user');
     } finally {
       setActionLoading(null);
     }
@@ -752,6 +770,14 @@ const UserManagement: React.FC = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
+                              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -892,6 +918,13 @@ const UserManagement: React.FC = () => {
                         className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <Edit className="h-3 w-3" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
+                        className="inline-flex items-center px-3 py-1.5 border border-red-200 text-xs font-medium rounded-lg text-red-600 bg-white hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
                   </div>

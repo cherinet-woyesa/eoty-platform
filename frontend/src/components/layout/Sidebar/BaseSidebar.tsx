@@ -40,7 +40,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   const { user } = useAuth();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const { favorites, recentItems, addFavorite, removeFavorite, addRecent } = useSidebar();
+  const { favoriteHrefs, recentHrefs, toggleFavorite, addRecent, isFavorite } = useSidebar();
 
   // Base navigation items available to all roles
   const baseNavigationItems: NavigationItem[] = useMemo(() => [
@@ -184,9 +184,23 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
       !item.roles || item.roles.includes(user?.role || '')
     ).map(item => ({
       ...item,
-      isFavorite: favorites.some(fav => fav.href === item.href)
+      isFavorite: isFavorite(item.href)
     }));
-  }, [baseNavigationItems, roleNavigationItems, user?.role, favorites]);
+  }, [baseNavigationItems, roleNavigationItems, user?.role, isFavorite]);
+
+  // Reconstruct favorites from IDs
+  const favorites = useMemo(() => {
+    return favoriteHrefs
+      .map(href => navigationItems.find(item => item.href === href))
+      .filter((item): item is NavigationItem => item !== undefined);
+  }, [navigationItems, favoriteHrefs]);
+
+  // Reconstruct recent items from IDs
+  const recentItems = useMemo(() => {
+    return recentHrefs
+      .map(href => navigationItems.find(item => item.href === href))
+      .filter((item): item is NavigationItem => item !== undefined);
+  }, [navigationItems, recentHrefs]);
 
   // Filter items based on search query
   const filteredItems = useMemo(() => {
@@ -201,16 +215,12 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   }, [navigationItems, searchQuery]);
 
   const handleItemClick = useCallback((item: NavigationItem) => {
-    addRecent(item);
+    addRecent(item.href);
   }, [addRecent]);
 
   const handleFavoriteToggle = useCallback((item: NavigationItem, isFavorite: boolean) => {
-    if (isFavorite) {
-      addFavorite(item);
-    } else {
-      removeFavorite(item.href);
-    }
-  }, [addFavorite, removeFavorite]);
+    toggleFavorite(item.href);
+  }, [toggleFavorite]);
 
   const hasFavorites = favorites.length > 0;
   const hasRecentItems = recentItems.length > 0;

@@ -669,6 +669,82 @@ const adminController = {
     }
   },
 
+  // Delete user (admin only)
+  async deleteUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const requestingUserRole = req.user.role;
+
+      // Check if requesting user is an admin
+      if (requestingUserRole !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to delete users'
+        });
+      }
+
+      // Validate userId
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+
+      // Get the user to delete
+      const userToDelete = await db('users').where({ id: userId }).first();
+      if (!userToDelete) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Prevent users from deleting themselves
+      if (parseInt(userId) === req.user.userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cannot delete your own account'
+        });
+      }
+
+      // Delete the user
+      await db('users').where({ id: userId }).del();
+
+      // Log audit
+      try {
+        await AdminAudit.logAction(
+          req.user.userId,
+          'user_delete',
+          'user',
+          userId,
+          `Deleted user: ${userToDelete.email}`
+        );
+      } catch (auditError) {
+        console.warn('Failed to log audit for user deletion:', auditError.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'User deleted successfully'
+      });
+
+    } catch (error) {
+      console.error('Delete user error:', error);
+      // Check for foreign key constraint violation
+      if (error.code === '23503') {
+         return res.status(400).json({
+           success: false,
+           message: 'Cannot delete user because they have related records. Deactivate them instead.'
+         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  },
+
   // Upload management
   async getUploadQueue(req, res) {
     try {
@@ -1262,8 +1338,8 @@ const adminController = {
     
     switch (contentType) {
       case 'forum_post':
-        const post = await db('forum_posts').where({ id: contentId }).select('user_id').first();
-        userId = post.user_id;
+        const post = await db('forum_posts').where({ id: contentId }).select('author_id').first();
+        userId = post.author_id;
         break;
       // Add other content types as needed
     }

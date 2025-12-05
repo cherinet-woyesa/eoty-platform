@@ -53,11 +53,7 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
               {
                 label: 'Setup Profile',
                 onClick: () => {
-                  if (user.role === 'teacher') {
-                    navigate('/teacher/profile');
-                  } else {
-                    navigate('/dashboard');
-                  }
+                  navigate('/complete-profile');
                 }
               }
             ]

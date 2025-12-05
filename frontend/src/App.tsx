@@ -1383,6 +1383,17 @@ function AppContent() {
           } 
         />
 
+        <Route 
+          path="/help" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <HelpPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+
         {/* Landing Page - Always accessible (no redirect for authenticated users) */}
         <Route 
           path="/" 

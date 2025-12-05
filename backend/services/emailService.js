@@ -35,7 +35,7 @@ class EmailService {
     const smtpConfig = {
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: false, // true for 465, false for other ports
+      secure: parseInt(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD,
@@ -101,7 +101,65 @@ class EmailService {
   }
 
   /**
-   * Send welcome email after verification
+   * Send 2FA verification code
+   */
+  async send2FACodeEmail(email, code) {
+    const subject = 'Your Verification Code - EOTY Platform';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Verification Code</h2>
+        <p>Please use the following code to complete your login or verification:</p>
+        <div style="background-color: #f8f9fa; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
+          <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #2c3e50;">${code}</span>
+        </div>
+        <p>This code will expire in 10 minutes.</p>
+        <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">If you didn't request this code, please ignore this email.</p>
+      </div>
+    `;
+    const text = `Your verification code is: ${code}. This code will expire in 10 minutes.`;
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Send generic email
+   */
+  async sendWelcomeEmail(email, firstName) {
+    const subject = 'Welcome to EOTY Platform!';
+    const html = this.generateWelcomeHTML(firstName);
+    const text = this.generateWelcomeText(firstName);
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Send 2FA code email
+   */
+  async send2FACodeEmail(email, code) {
+    // Log code for development/testing purposes
+    console.log('=================================================');
+    console.log(`[2FA] Verification code for ${email}: ${code}`);
+    console.log('=================================================');
+
+    const subject = 'Your EOTY Platform Verification Code';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Verification Code</h2>
+        <p>Please use the following code to complete your login:</p>
+        <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; border-radius: 5px;">
+          ${code}
+        </div>
+        <p>This code will expire in 10 minutes.</p>
+        <p>If you did not request this code, please ignore this email.</p>
+      </div>
+    `;
+    const text = `Your verification code is: ${code}. It expires in 10 minutes.`;
+
+    return this.sendEmail(email, subject, html, text);
+  }
+
+  /**
+   * Generic email sending method
    */
   async sendWelcomeEmail(email, firstName) {
     const subject = 'Welcome to EOTY Platform!';
@@ -115,6 +173,20 @@ class EmailService {
    * Generic email sending method
    */
   async sendEmail(to, subject, html, text = null) {
+    // Log email details in development for testing
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('=================================================');
+      console.log(`[EmailService] Sending email to: ${to}`);
+      console.log(`[EmailService] Subject: ${subject}`);
+      console.log(`[EmailService] Content Preview: ${text || this.htmlToText(html).substring(0, 200)}...`);
+      // If it's a verification or reset link, try to extract and log it clearly
+      const linkMatch = html.match(/href="(http[^"]+)"/);
+      if (linkMatch) {
+        console.log(`[EmailService] LINK FOUND: ${linkMatch[1]}`);
+      }
+      console.log('=================================================');
+    }
+
     try {
       if (!this.transporter && this.serviceType === 'smtp') {
         throw new Error('Email service not initialized');

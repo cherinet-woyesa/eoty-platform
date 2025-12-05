@@ -157,7 +157,7 @@ const Students: React.FC = () => {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold">Students</h1>
+              <h1 className="text-lg sm:text-xl font-bold">Members</h1>
               <p className="text-blue-100 text-xs sm:text-sm">Manage your classroom and monitor progress</p>
             </div>
           </div>

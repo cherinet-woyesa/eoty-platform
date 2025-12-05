@@ -431,8 +431,8 @@ RESPONSE:`;
 
     // 2. Search Knowledge Base
     try {
-      if (vertexAI) {
-        const model = vertexAI.getGenerativeModel({ model: aiConfig.embeddingModel || 'text-embedding-004' });
+      if (genAI) {
+        const model = genAI.getGenerativeModel({ model: aiConfig.embeddingModel || 'text-embedding-004' });
         const result = await model.embedContent(question);
         let embedding = [];
         

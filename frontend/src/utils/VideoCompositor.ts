@@ -75,10 +75,10 @@ export class VideoCompositor {
     // Create hidden container for video elements to ensure they render
     this.hiddenContainer = document.createElement('div');
     this.hiddenContainer.style.position = 'absolute';
-    this.hiddenContainer.style.width = '1px';
-    this.hiddenContainer.style.height = '1px';
+    this.hiddenContainer.style.width = '10px';
+    this.hiddenContainer.style.height = '10px';
     this.hiddenContainer.style.overflow = 'hidden';
-    this.hiddenContainer.style.opacity = '0.001'; // Not 0 to avoid optimization
+    this.hiddenContainer.style.opacity = '0.01'; // Not 0 to avoid optimization
     this.hiddenContainer.style.pointerEvents = 'none';
     this.hiddenContainer.style.zIndex = '-1000';
     this.hiddenContainer.style.top = '0';
@@ -171,8 +171,21 @@ export class VideoCompositor {
     
     // CRITICAL: Check if source already exists - if so, remove it first to avoid conflicts
     if (this.videoElements.has(id)) {
-      console.log(`Video source ${id} already exists - removing old source before adding new one`);
       const existingSource = this.videoElements.get(id);
+      
+      // Check if it's the same stream to avoid unnecessary re-initialization
+      if (existingSource && existingSource.element.srcObject === stream) {
+        console.log(`Video source ${id} already exists with same stream - updating config only`);
+        existingSource.config = { ...existingSource.config, ...config };
+        
+        // Ensure it's playing just in case
+        if (existingSource.element.paused) {
+          existingSource.element.play().catch(err => console.warn(`Failed to resume existing source ${id}:`, err));
+        }
+        return;
+      }
+
+      console.log(`Video source ${id} already exists - removing old source before adding new one`);
       if (existingSource) {
         // Pause and clear existing video element
         existingSource.element.pause();
@@ -215,6 +228,25 @@ export class VideoCompositor {
     
     // Append to hidden container to ensure browser renders frames
     this.hiddenContainer.appendChild(video);
+
+    // Ensure browsers render screen-only video frames even when hidden.
+    // Some browsers optimize away rendering for fully-hidden elements; make
+    // the screen video element minimally visible but offscreen so frames
+    // continue to be painted and captureStream / canvas draw receive frames.
+    if (id === 'screen') {
+      video.style.position = 'absolute';
+      video.style.left = '-9999px';
+      video.style.top = '0px';
+      video.style.width = '1px';
+      video.style.height = '1px';
+      video.style.opacity = '0.01'; // not 0 to avoid rendering optimizations
+      video.style.display = 'block';
+      video.style.pointerEvents = 'none';
+    } else {
+      // Keep camera/video elements hidden normally to avoid UI clutter
+      video.style.display = 'none';
+      video.style.opacity = '0';
+    }
 
     // Enhanced metadata handler
     video.onloadedmetadata = () => {
@@ -314,7 +346,7 @@ export class VideoCompositor {
         }
         
         // Wait a bit for first frame (longer for screen sharing)
-        await new Promise(resolve => setTimeout(resolve, id === 'screen' ? 300 : 100));
+        await new Promise(resolve => setTimeout(resolve, id === 'screen' ? 500 : 100));
         
         // Verify video is actually rendering
         if (video.videoWidth > 0 && video.videoHeight > 0) {
@@ -329,6 +361,18 @@ export class VideoCompositor {
           console.warn(`Video source ${id} metadata loaded but no dimensions yet - will continue anyway`);
           // For screen sharing, dimensions might be 2x2 initially, continue anyway
           videoReady = true;
+          
+          // Force a retry check for dimensions
+          if (id === 'screen') {
+            const checkInterval = setInterval(() => {
+              if (video.videoWidth > 2 && video.videoHeight > 2) {
+                console.log(`Screen video dimensions finally updated: ${video.videoWidth}x${video.videoHeight}`);
+                clearInterval(checkInterval);
+              } else if (!video.srcObject || !(video.srcObject as MediaStream).active) {
+                clearInterval(checkInterval);
+              }
+            }, 500);
+          }
         }
       } catch (error) {
         console.error(`Failed to prepare video source ${id}:`, error);
@@ -459,7 +503,7 @@ export class VideoCompositor {
       const clamped = JSON.parse(JSON.stringify(l)) as CompositorLayout;
       const cw = this.canvas.width;
       const ch = this.canvas.height;
-      for (const [id, src] of Object.entries(clamped.sources)) {
+      for (const [, src] of Object.entries(clamped.sources)) {
         if (!src) continue;
         // Ensure positive dimensions
         src.width = Math.max(1, Math.min(src.width, cw));
@@ -892,12 +936,32 @@ export class VideoCompositor {
       }
       
       // Ensure video is playing if it has a source
-      if (video.srcObject && video.paused) {
-        // Don't require readyState >= 2 for screen sharing
-        if (sourceId === 'screen' || video.readyState >= 2) {
-          video.play().catch(err => {
-            console.warn(`Failed to play video during render for ${sourceId}:`, err);
-          });
+      if (video.srcObject) {
+        if (video.paused) {
+          // Don't require readyState >= 2 for screen sharing
+          if (sourceId === 'screen' || video.readyState >= 2) {
+            video.play().catch(err => {
+              // Only log occasionally to avoid spam
+              if (Math.random() < 0.01) {
+                console.warn(`Failed to play video during render for ${sourceId}:`, err);
+              }
+            });
+          }
+        }
+        
+        // Force load if stuck in HAVE_NOTHING
+        if (video.readyState === 0) {
+           // Use a custom property to avoid spamming load()
+           const lastLoad = parseInt(video.getAttribute('data-last-load') || '0');
+           const now = Date.now();
+           if (now - lastLoad > 2000) {
+              console.warn(`Video source ${sourceId} stuck in HAVE_NOTHING, forcing load()`);
+              video.load();
+              video.setAttribute('data-last-load', now.toString());
+              // Re-apply mute/playsinline just in case
+              video.muted = true;
+              video.playsInline = true;
+           }
         }
       }
       
@@ -1030,6 +1094,14 @@ export class VideoCompositor {
             }
           } else {
             // If screen dimensions are not ready, draw nothing to avoid visual flash or overlays
+            if (Math.random() < 0.01) {
+               console.warn(`Screen source ${sourceId} has invalid dimensions: ${video.videoWidth}x${video.videoHeight}, readyState: ${video.readyState}, paused: ${video.paused}, srcObject: ${!!video.srcObject}`);
+            }
+            
+            // Force play if paused and dimensions are 0
+            if (video.paused && video.srcObject) {
+                video.play().catch(() => {});
+            }
           }
         } else {
           // Camera: Use object-cover behavior to match preview

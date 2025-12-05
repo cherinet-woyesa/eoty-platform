@@ -22,6 +22,9 @@ router.delete('/posts/:id', authenticateToken, communityController.deletePost);
 // Protected: update post
 router.put('/posts/:id', authenticateToken, communityController.updatePost);
 
+// Protected: toggle like
+router.post('/posts/:postId/like', authenticateToken, communityController.toggleLike);
+
 // Protected: add comment to post
 router.post('/posts/:postId/comments', authenticateToken, communityController.addComment);
 

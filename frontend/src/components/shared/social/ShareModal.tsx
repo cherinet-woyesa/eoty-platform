@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, User, Globe, Send, MessageCircle } from 'lucide-react';
+import { chaptersApi } from '../../../services/api/chapters';
 import { communityPostsApi } from '../../../services/api/communityPosts';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -15,6 +16,7 @@ interface Chapter {
   id: number;
   name: string;
   description?: string;
+  location?: string;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -54,21 +56,24 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   const loadChapters = async () => {
     try {
-      // In a real app, this would fetch chapters from an API
-      // For now, using mock data
-      const mockChapters: Chapter[] = [
-        { id: 1, name: 'Youth Ministry Chapter', description: 'Young adults faith community' },
-        { id: 2, name: 'Study Group Alpha', description: 'Bible study and discussion' },
-        { id: 3, name: 'Prayer Warriors', description: 'Dedicated prayer group' }
-      ];
-      setChapters(mockChapters);
-
-      // Set default chapter to user's chapter if available
-      if (user?.chapter_id) {
-        setSelectedChapter(user.chapter_id);
+      const response = await chaptersApi.getChapters();
+      if (response.success) {
+        setChapters(response.data.chapters);
+        
+        // Set default chapter to user's chapter if available
+        if (user?.chapter) {
+          // user.chapter might be a string ID or number ID depending on interface
+          const userChapterId = typeof user.chapter === 'string' ? parseInt(user.chapter) : user.chapter;
+          // Verify the chapter exists in the list
+          const chapterExists = response.data.chapters.some((c: Chapter) => c.id === userChapterId);
+          if (chapterExists) {
+            setSelectedChapter(userChapterId as number);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load chapters:', error);
+      setError('Failed to load chapters');
     }
   };
 
@@ -99,7 +104,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
         setError(response.message || 'Failed to share post');
       }
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to share post');
+      console.error('Share error:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to share post');
     } finally {
       setLoading(false);
     }
@@ -109,22 +115,22 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[85vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Share Post</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Share Post</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4">
           {/* Post Preview */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
@@ -142,14 +148,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
           </div>
 
           {/* Share Options */}
-          <div className="space-y-4 mb-6">
-            <h3 className="font-medium text-gray-900">Share with</h3>
+          <div className="space-y-4 mb-4">
+            <h3 className="font-medium text-gray-900 text-sm">Share with</h3>
 
             {/* Share Type Options */}
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               <button
                 onClick={() => setShareType('chapter')}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
                   shareType === 'chapter'
                     ? 'border-[#27AE60] bg-[#27AE60]/5'
                     : 'border-gray-200 hover:bg-gray-50'
@@ -164,7 +170,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
               <button
                 onClick={() => setShareType('user')}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
                   shareType === 'user'
                     ? 'border-[#27AE60] bg-[#27AE60]/5'
                     : 'border-gray-200 hover:bg-gray-50'
@@ -179,7 +185,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
               <button
                 onClick={() => setShareType('public')}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
                   shareType === 'public'
                     ? 'border-[#27AE60] bg-[#27AE60]/5'
                     : 'border-gray-200 hover:bg-gray-50'

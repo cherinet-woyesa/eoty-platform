@@ -394,7 +394,7 @@ const LandingPageEditor: React.FC = () => {
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                             >
                               <option value="Target">Target</option>
-                              <option value="Users">Users</option>
+                              <option value="Users">Members</option>
                               <option value="Award">Award</option>
                               <option value="BookOpen">BookOpen</option>
                               <option value="Star">Star</option>
@@ -534,7 +534,7 @@ const LandingPageEditor: React.FC = () => {
                               }}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                             >
-                              <option value="User">User</option>
+                              <option value="User">Member</option>
                               <option value="BookOpen">BookOpen</option>
                               <option value="PlayCircle">PlayCircle</option>
                               <option value="Award">Award</option>

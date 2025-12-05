@@ -18,6 +18,7 @@ export interface Post {
   comments: number;
   shares: number;
   liked_by_user: boolean;
+  is_bookmarked?: boolean;
 }
 
 interface PostCardProps {
@@ -27,6 +28,7 @@ interface PostCardProps {
   onDelete?: (postId: string) => void;
   onLike?: (postId: string) => void;
   onShare?: (post: Post) => void;
+  onBookmark?: (postId: string) => void;
   editingPost?: string | null;
   editContent?: string;
   onEditContentChange?: (content: string) => void;
@@ -43,6 +45,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onDelete,
   onLike,
   onShare,
+  onBookmark,
   editingPost,
   editContent = '',
   onEditContentChange,
@@ -54,11 +57,11 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showPostMenu, setShowPostMenu] = useState<boolean>(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
       {/* Post Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
             {post.author_avatar ? (
               <img src={post.author_avatar} alt={post.author_name} className="w-full h-full object-cover" />
             ) : (
@@ -66,8 +69,8 @@ const PostCard: React.FC<PostCardProps> = ({
             )}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{post.author_name}</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-semibold text-gray-900 text-sm">{post.author_name}</h3>
+            <p className="text-xs text-gray-500">
               {new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
@@ -216,8 +219,15 @@ const PostCard: React.FC<PostCardProps> = ({
           <Share2 className="h-5 w-5" />
           <span className="font-medium">{post.shares}</span>
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-          <Bookmark className="h-5 w-5" />
+        <button
+          onClick={() => onBookmark?.(post.id)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            post.is_bookmarked 
+              ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Bookmark className={`h-5 w-5 ${post.is_bookmarked ? 'fill-current' : ''}`} />
         </button>
       </div>
 

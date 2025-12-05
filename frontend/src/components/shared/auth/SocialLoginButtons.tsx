@@ -11,9 +11,10 @@ import { extractErrorMessage } from '@/utils/errorMessages';
 
 interface SocialLoginButtonsProps {
   role?: string;
+  onRequires2FA?: (userId: string) => void;
 }
 
-const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'user' }) => {
+const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'user', onRequires2FA }) => {
   const { handleOAuthLogin } = useAuth();
   const navigate = useNavigate();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -121,6 +122,15 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
           const result = await response.json();
 
           if (result.success) {
+            // Check for 2FA requirement
+            if (result.requires2FA) {
+              if (onRequires2FA) {
+                onRequires2FA(result.data.userId);
+              }
+              setIsGoogleLoading(false);
+              return;
+            }
+
             // Login successful - use the OAuth login handler
             await handleOAuthLogin(result.data);
 
@@ -128,6 +138,9 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
             const user = result.data.user;
             if (user && (user.isNewUser || !user.chapter)) {
               localStorage.setItem('show_profile_completion', 'true');
+              // Redirect to complete profile page to allow role/chapter selection
+              navigate('/complete-profile');
+              return;
             }
 
             // Redirect to generic dashboard; DynamicDashboard will route by role

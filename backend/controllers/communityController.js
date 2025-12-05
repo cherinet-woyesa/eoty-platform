@@ -72,8 +72,9 @@ exports.createPost = async (req, res) => {
     const { content, mediaType, mediaUrl } = req.body;
     const user = req.user || null;
 
-    if (!content || content.trim().length === 0) {
-      return res.status(400).json({ success: false, message: 'Content is required' });
+    // Allow post if it has content OR media
+    if ((!content || content.trim().length === 0) && !mediaUrl) {
+      return res.status(400).json({ success: false, message: 'Content or media is required' });
     }
 
     const authorName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : req.body.author_name || 'Anonymous';
@@ -187,6 +188,53 @@ exports.updatePost = async (req, res) => {
   }
 };
 
+exports.toggleLike = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const user = req.user;
+
+    // Check if post exists
+    const post = await db('community_posts').where({ id: postId }).first();
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // Check if already liked
+    const existingLike = await db('community_post_likes')
+      .where({ post_id: postId, user_id: user.userId })
+      .first();
+
+    if (existingLike) {
+      // Unlike
+      await db('community_post_likes')
+        .where({ post_id: postId, user_id: user.userId })
+        .del();
+      
+      await db('community_posts')
+        .where({ id: postId })
+        .decrement('likes', 1);
+        
+      return res.json({ success: true, message: 'Post unliked', liked: false });
+    } else {
+      // Like
+      await db('community_post_likes').insert({
+        post_id: postId,
+        user_id: user.userId,
+        created_at: new Date()
+      });
+      
+      await db('community_posts')
+        .where({ id: postId })
+        .increment('likes', 1);
+        
+      return res.json({ success: true, message: 'Post liked', liked: true });
+    }
+  } catch (error) {
+    console.error('toggleLike error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to toggle like' });
+  }
+};
+
 // Comments functionality
 exports.addComment = async (req, res) => {
   try {
@@ -214,7 +262,7 @@ exports.addComment = async (req, res) => {
       author_name: authorName,
       author_avatar: authorAvatar,
       content,
-      parent_comment_id: parentCommentId || null,
+      parent_comment_id: parentCommentId ? parseInt(parentCommentId) : null,
       created_at: new Date(),
       updated_at: new Date()
     }).returning('*');

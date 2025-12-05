@@ -4,7 +4,7 @@ import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 export interface FormInputProps {
   id: string;
   name: string;
-  type: 'text' | 'email' | 'password' | 'tel' | 'number' | 'url';
+  type: 'text' | 'email' | 'password' | 'tel' | 'number' | 'url' | 'date';
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;

@@ -15,6 +15,7 @@ router.get('/users', requirePermission('user:view'), adminController.getUsers);
 router.put('/users', requirePermission('user:manage'), adminController.updateUser);
 router.put('/users/role', requirePermission('user:manage'), adminController.updateUserRole);
 router.put('/users/status', requirePermission('user:manage'), adminController.updateUserStatus);
+router.delete('/users/:userId', requirePermission('user:delete'), adminController.deleteUser);
 
 // User Activity Monitoring
 router.get('/users/:userId/activity', requirePermission('user:view'), adminController.getUserActivity);

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Crown, Trophy, Calendar, Users, Globe, Shield } from 'lucide-react';
+import { Crown, Trophy, Calendar, Users, Globe, Shield, ChevronDown } from 'lucide-react';
 import LeaderboardTable from '@/components/shared/social/LeaderboardTable';
+import Podium from '@/components/shared/social/Podium';
 import { useLeaderboard } from '@/hooks/useCommunity';
 import { useAuth } from '@/context/AuthContext';
 
@@ -75,6 +76,9 @@ const Leaderboards: React.FC = () => {
     updateAnonymity(!isCurrentlyAnonymous);
   }, [leaderboard, user?.id, updateAnonymity]);
 
+  const topThree = useMemo(() => leaderboard.slice(0, 3), [leaderboard]);
+  const restOfLeaderboard = useMemo(() => leaderboard.slice(3), [leaderboard]);
+
   if (loading && leaderboard.length === 0) {
     return <LoadingSkeleton />;
   }
@@ -85,172 +89,106 @@ const Leaderboards: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Ethiopian Orthodox Themed Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-          <div className="flex items-center justify-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
-              <Crown className="h-6 w-6 text-white" />
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-stone-800">Leaderboards</h1>
-              <p className="text-lg text-stone-600 mt-1">See how you rank in our community</p>
-            </div>
+      <div className="max-w-5xl mx-auto px-4">
+        {/* Header Section */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Leaderboards</h1>
+          <p className="text-lg text-gray-600">Celebrate growth and dedication in our community</p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-10 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+          {/* Type Toggle */}
+          <div className="flex bg-gray-100 p-1 rounded-xl">
+            {leaderboardTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setLeaderboardType(type.id)}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  leaderboardType === type.id
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <type.icon className={`w-4 h-4 mr-2 ${leaderboardType === type.id ? type.color : ''}`} />
+                {type.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Period Toggle */}
+          <div className="flex bg-gray-100 p-1 rounded-xl">
+            {periods.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  period === p.id
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <p.icon className="w-4 h-4 mr-2" />
+                {p.name}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full mb-4 border-4 border-white shadow-lg">
-            <Crown className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Leaderboards</h1>
-          <p className="text-gray-600">See how you rank in the community</p>
-        </div>
-
-        {/* User Rank Card */}
-        {userRank && (
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold mb-1">Your Ranking</h2>
-                <p className="text-blue-100">
-                  {userRankMessage}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">#{userRank}</div>
-                <div className="text-blue-100 text-sm">Out of {leaderboard.length} users</div>
-              </div>
-            </div>
+        {/* Podium for Top 3 */}
+        {leaderboard.length > 0 && (
+          <div className="mb-12">
+            <Podium topThree={topThree} currentUserId={Number(user?.id)} />
           </div>
         )}
 
-        {/* Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Leaderboard Type */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Leaderboard Type
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {leaderboardTypes.map(type => {
-                  const Icon = type.icon;
-                  const isActive = leaderboardType === type.id;
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => setLeaderboardType(type.id)}
-                      title={type.description}
-                      className={`p-5 rounded-xl border transition-all group ${
-                        isActive
-                          ? 'border-[#27AE60] bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 ring-2 ring-[#27AE60]/20 shadow-lg'
-                          : 'border-stone-300 hover:border-[#27AE60]/50 bg-white/90 backdrop-blur-md hover:bg-stone-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <Icon className={`h-6 w-6 ${
-                          isActive ? 'text-[#27AE60]' : 'text-stone-500 group-hover:text-[#27AE60]'
-                        } transition-colors`} />
-                        <div className="text-left">
-                          <div className={`font-bold text-lg ${
-                            isActive ? 'text-[#27AE60]' : 'text-stone-800 group-hover:text-[#27AE60]'
-                          } transition-colors`}>
-                            {type.name}
-                          </div>
-                          <div className={`text-sm mt-1 ${
-                            isActive ? 'text-[#16A085]' : 'text-stone-600'
-                          }`}>
-                            {type.description}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+        {/* User Stats Card (if logged in) */}
+        {user && (
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center gap-4 mb-4 md:mb-0">
+              <div className="bg-white/20 p-3 rounded-full">
+                <Trophy className="w-8 h-8 text-yellow-300" />
               </div>
-            </div>
-
-            {/* Time Period */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Time Period
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {periods.map(timePeriod => {
-                  const Icon = timePeriod.icon;
-                  return (
-                    <button
-                      key={timePeriod.id}
-                      onClick={() => setPeriod(timePeriod.id)}
-                      className={`p-3 rounded-lg border transition-all ${
-                        period === timePeriod.id
-                          ? 'border-green-500 bg-green-50 ring-2 ring-green-200'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 justify-center">
-                        <Icon className={`h-4 w-4 ${
-                          period === timePeriod.id ? 'text-green-600' : 'text-gray-500'
-                        }`} />
-                        <span className={`text-sm font-medium ${
-                          period === timePeriod.id ? 'text-green-900' : 'text-gray-900'
-                        }`}>
-                          {timePeriod.name}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Privacy Toggle */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-900">Privacy Settings</h3>
-                <p className="text-sm text-gray-500">
-                  Control how you appear on leaderboards
+                <h3 className="font-bold text-lg">{userRankMessage || 'Join the leaderboard!'}</h3>
+                <p className="text-blue-100 text-sm">Keep learning to climb the ranks</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right mr-4">
+                <p className="text-xs text-blue-200 uppercase font-semibold">Your Points</p>
+                <p className="text-2xl font-bold">
+                  {leaderboard.find(e => e.user_id === Number(user?.id))?.points || 0}
                 </p>
               </div>
               <button
                 onClick={handleUpdateAnonymity}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium backdrop-blur-sm border border-white/20"
               >
-                <Shield className="h-4 w-4" />
-                <span>
-                  {(() => {
-                    const currentUser = leaderboard.find(e => e.user_id === Number(user?.id));
-                    return currentUser?.is_anonymous ? 'Go Public' : 'Make Anonymous';
-                  })()}
-                </span>
+                <Shield className="w-4 h-4 mr-2" />
+                {leaderboard.find(e => e.user_id === Number(user?.id))?.is_anonymous ? 'Go Public' : 'Go Anonymous'}
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Leaderboard Table */}
-        <LeaderboardTable
-          entries={leaderboard}
-          currentUserId={user?.id ? Number(user.id) : undefined}
-          showChapter={leaderboardType === 'global'}
-        />
-
-        {/* Empty State */}
-        {leaderboard.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No leaderboard data yet
-            </h3>
-            <p className="text-gray-600">
-              Start participating in the community to earn points and appear on the leaderboard!
-            </p>
-          </div>
         )}
+
+        {/* Rest of the Leaderboard Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="font-bold text-gray-900">Rankings</h3>
+          </div>
+          <LeaderboardTable 
+            entries={restOfLeaderboard} 
+            currentUserId={Number(user?.id)}
+            showChapter={leaderboardType === 'global'}
+          />
+          {leaderboard.length === 0 && (
+            <div className="p-12 text-center text-gray-500">
+              No data available for this period yet. Be the first!
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  BookOpen, Users,
+  BookOpen, Users, Plus,
   AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -325,6 +325,28 @@ const TeacherDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Create First Course Prompt */}
+        {teacherData.totalCourses === 0 && !isLoading && (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-lg p-6 text-center shadow-sm">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-8 w-8 text-emerald-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-stone-800 mb-2">
+              {t('dashboard.teacher.start_teaching_title', 'Start Your Teaching Journey')}
+            </h2>
+            <p className="text-stone-600 mb-6 max-w-md mx-auto text-sm">
+              {t('dashboard.teacher.start_teaching_desc', 'Create your first course to start sharing your knowledge with students.')}
+            </p>
+            <Link
+              to="/teacher/courses"
+              className="inline-flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              {t('dashboard.teacher.create_first_course_btn', 'Create Course')}
+            </Link>
+          </div>
+        )}
 
         {/* Compact Teacher profile completion helper */}
         {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (

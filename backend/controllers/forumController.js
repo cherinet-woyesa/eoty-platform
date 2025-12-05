@@ -342,7 +342,7 @@ const forumController = {
       // Get replies (all forum_posts for this topic)
       const replies = await db('forum_posts')
         .where({ topic_id: topicId })
-        .join('users', 'forum_posts.user_id', 'users.id')
+        .join('users', 'forum_posts.author_id', 'users.id')
         .select(
           'forum_posts.*',
           db.raw("CONCAT(users.first_name, ' ', users.last_name) as author_name"),
@@ -416,7 +416,7 @@ const forumController = {
 
       const post = await ForumPost.create({
         topic_id: topicId,
-        user_id: userId,
+        author_id: userId,
         content,
         parent_id: parentId
       });
@@ -590,13 +590,13 @@ const forumController = {
       // Create reply (post)
       const [replyId] = await db('forum_posts').insert({
         topic_id: topicId,
-        user_id: userId,
+        author_id: userId,
         content: content.trim()
       }).returning('id');
 
       const reply = await db('forum_posts')
         .where({ id: replyId })
-        .leftJoin('users', 'forum_posts.user_id', 'users.id')
+        .leftJoin('users', 'forum_posts.author_id', 'users.id')
         .select(
           'forum_posts.*',
           db.raw("CONCAT(users.first_name, ' ', users.last_name) as author_name")

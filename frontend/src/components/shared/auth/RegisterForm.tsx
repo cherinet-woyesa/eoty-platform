@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, MapPin, ArrowRight, Check, X, BookOpen, GraduationCap, Shield } from 'lucide-react';
+import { Mail, Lock, User, MapPin, ArrowRight, Check, X, BookOpen, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
 import { chaptersApi } from '@/services/api/chapters';
 import FormInput from './FormInput';
 import FormError from './FormError';
 import LoadingButton from './LoadingButton';
-import { errorMessages, extractErrorMessage } from '@/utils/errorMessages';
+import { extractErrorMessage } from '@/utils/errorMessages';
 
 // Password strength calculation
 const calculatePasswordStrength = (password: string): number => {
@@ -57,18 +57,24 @@ const RegisterForm: React.FC = () => {
   const [chapterError, setChapterError] = useState(false);
   
   const navigate = useNavigate();
-  const { register, isAuthenticated } = useAuth();
+  const { register, verify2FA, isAuthenticated } = useAuth();
+
+  // 2FA State
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Redirect if already authenticated
   // Only redirect if we're on the /register route, not if we're on the landing page
   useEffect(() => {
-    if (isAuthenticated && window.location.pathname === '/register') {
+    // Don't redirect if we are in 2FA mode
+    if (isAuthenticated && window.location.pathname === '/register' && !requires2FA) {
       const timer = setTimeout(() => {
         navigate('/dashboard');
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, requires2FA]);
 
   // Fetch chapters with error handling and fallback
   useEffect(() => {
@@ -86,10 +92,9 @@ const RegisterForm: React.FC = () => {
         setChapterError(true);
         // Fallback data
         setChapters([
-          { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
-          { id: 2, name: 'toronto', location: 'Toronto, Canada' },
-          { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
-          { id: 4, name: 'london', location: 'London, UK' },
+          { id: 7, name: 'Main Headquarters', location: 'Addis Ababa, Ethiopia' },
+          { id: 8, name: 'Addis Ababa Chapter', location: 'Addis Ababa, Ethiopia' },
+          { id: 9, name: 'Bahir Dar Chapter', location: 'Bahir Dar, Ethiopia' },
         ]);
       } finally {
         setLoadingChapters(false);
@@ -178,6 +183,31 @@ const RegisterForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Handle 2FA submission
+    if (requires2FA) {
+      if (!twoFactorCode || twoFactorCode.length !== 6) {
+        setError('Please enter a valid 6-digit code');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        await verify2FA(userId!, twoFactorCode);
+        setSuccessMessage('Verification successful! Redirecting...');
+        // Store flag to show profile completion notification after redirect
+        localStorage.setItem('show_profile_completion', 'true');
+        navigate('/dashboard', { replace: true });
+      } catch (err: any) {
+        console.error('2FA error:', err);
+        setError(extractErrorMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
     
     // Mark all fields as touched
     const touchedFields: Record<string, boolean> = { 
@@ -216,8 +246,24 @@ const RegisterForm: React.FC = () => {
         role: formData.role
       };
 
-      await register(registerData);
+      console.log('Submitting registration data:', registerData);
+      const response = await register(registerData);
+      console.log('Registration response received in component:', response);
       
+      // Check for 2FA requirement - handle both direct property and nested data property
+      if (response && (response.requires2FA || (response.data && response.data.requires2FA))) {
+        console.log('2FA required detected, setting state...');
+        setRequires2FA(true);
+        setUserId(response.data?.userId || response.userId);
+        setSuccessMessage('Account created! Please enter the verification code sent to your email.');
+        setIsLoading(false);
+        console.log('State set: requires2FA=true');
+        return;
+      } else {
+        console.log('No 2FA flag in response:', response);
+      }
+      
+      console.log('Proceeding to standard success flow');
       // Show success message with email verification instruction
       setSuccessMessage(
         `Account created successfully! Please check your email (${formData.email}) and click the verification link to activate your account.`
@@ -295,6 +341,77 @@ const RegisterForm: React.FC = () => {
         return { label: 'Very Weak', color: 'bg-gray-300', textColor: 'text-gray-600' };
     }
   }, [passwordStrength]);
+
+  // Debug log for render
+  console.log('RegisterForm render:', { requires2FA, isLoading, userId });
+
+  if (requires2FA) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="2FA Verification">
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-gray-900 text-center">Two-Factor Authentication</h3>
+          <p className="text-sm text-gray-500 text-center">
+            Please enter the 6-digit code sent to your email.
+          </p>
+          
+          {error && (
+            <FormError
+              type="error"
+              message={error}
+              dismissible={true}
+              size="md"
+              onDismiss={() => setError(null)}
+            />
+          )}
+          
+          {successMessage && (
+            <FormError
+              type="success"
+              message={successMessage}
+              autoDismiss={true}
+              autoDismissDelay={4000}
+              size="md"
+            />
+          )}
+        </div>
+
+        <div className="space-y-5">
+          <FormInput
+            id="twoFactorCode"
+            name="twoFactorCode"
+            type="text"
+            label="Verification Code"
+            value={twoFactorCode}
+            onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            required
+            placeholder="123456"
+            icon={<Lock className="h-4 w-4" />}
+            autoComplete="one-time-code"
+            disabled={isLoading}
+          />
+        </div>
+
+        <LoadingButton
+          type="submit"
+          isLoading={isLoading}
+          loadingText="Verifying..."
+          className="w-full bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#219150] hover:to-[#12876F] text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+        >
+          Verify & Login
+        </LoadingButton>
+        
+        <div className="text-center">
+          <button 
+            type="button" 
+            onClick={() => setRequires2FA(false)}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Back to Registration
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Registration form">
@@ -437,7 +554,7 @@ const RegisterForm: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-sm text-slate-700">User</h3>
+                    <h3 className="font-semibold text-sm text-slate-700">Member</h3>
                     {formData.role === 'user' && (
                       <Check className="h-5 w-5 text-[#27AE60]" />
                     )}
@@ -678,7 +795,13 @@ const RegisterForm: React.FC = () => {
         </LoadingButton>
       </div>
        <div className="space-y-4">
-        <SocialLoginButtons />
+        <SocialLoginButtons 
+          onRequires2FA={(uid) => {
+            setRequires2FA(true);
+            setUserId(uid);
+            setSuccessMessage('Account created! Please enter the verification code sent to your email.');
+          }}
+        />
         
         <div className="flex items-center gap-3 my-2">
           <div className="h-px flex-1 bg-gray-200"></div>

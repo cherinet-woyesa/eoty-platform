@@ -5,7 +5,7 @@ import { authApi } from '@/services/api';
 import { 
   User, Mail, Phone, MapPin, Calendar, 
   Save, Camera, Edit3, CheckCircle, 
-  AlertCircle, Loader2, X, BookOpen, Target, Heart
+  AlertCircle, Loader2, X, BookOpen, Target, Heart, Lock
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
@@ -229,7 +229,8 @@ const StudentProfile: React.FC = () => {
         profilePicture: profileData.profilePicture,
         interests: profileData.interests,
         learningGoals: profileData.learningGoals,
-        dateOfBirth: profileData.dateOfBirth
+        dateOfBirth: profileData.dateOfBirth,
+        is2FAEnabled: profileData.is2FAEnabled
       };
 
       // Update user profile via API
@@ -249,7 +250,8 @@ const StudentProfile: React.FC = () => {
           profilePicture: updatedUser.profilePicture || prev.profilePicture,
           interests: Array.isArray(updatedUser.interests) ? updatedUser.interests : (prev.interests || []),
           learningGoals: updatedUser.learningGoals || prev.learningGoals || '',
-          dateOfBirth: updatedUser.dateOfBirth || prev.dateOfBirth || ''
+          dateOfBirth: updatedUser.dateOfBirth || prev.dateOfBirth || '',
+          is2FAEnabled: updatedUser.is2FAEnabled !== undefined ? updatedUser.is2FAEnabled : prev.is2FAEnabled
         }));
         
         // Refresh user contexts in background (non-blocking)
@@ -596,6 +598,43 @@ const StudentProfile: React.FC = () => {
                       </span>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Security Section */}
+            <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
+              <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2 flex items-center gap-2">
+                <Lock className="h-5 w-5 text-[#d4af37]" />
+                Security
+              </h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-[#2c1810]">Two-Factor Authentication</h3>
+                  <p className="text-[#5d4037] text-sm mt-1">
+                    Add an extra layer of security to your account by enabling 2FA.
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setProfileData(prev => ({ ...prev, is2FAEnabled: !prev.is2FAEnabled }))}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:ring-offset-2 ${
+                      profileData.is2FAEnabled ? 'bg-[#2e7d32]' : 'bg-gray-200'
+                    }`}
+                    role="switch"
+                    aria-checked={profileData.is2FAEnabled}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        profileData.is2FAEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="ml-3 text-sm font-medium text-[#2c1810]">
+                    {profileData.is2FAEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
                 </div>
               </div>
             </div>

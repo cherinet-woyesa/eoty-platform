@@ -32,6 +32,11 @@ export const authApi = {
     return response.data;
   },
 
+  verify2FA: async (userId: string, code: string) => {
+    const response = await apiClient.post('/auth/verify-2fa', { userId, code });
+    return response.data;
+  },
+
   register: async (userData: any) => {
     const response = await apiClient.post('/auth/register', userData);
     return response.data;

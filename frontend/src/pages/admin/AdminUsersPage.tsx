@@ -23,7 +23,7 @@ const AdminUsersPage: React.FC = () => {
               }`}
             >
               <Users className="h-4 w-4" />
-              <span className="text-xs">Users</span>
+              <span className="text-xs">Members</span>
             </button>
             <button
               onClick={() => setActiveTab('chapters')}

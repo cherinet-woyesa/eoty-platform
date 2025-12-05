@@ -55,8 +55,11 @@ const StudyGroupsPage: React.FC = () => {
       const publicGroups: StudyGroup[] = resp?.data?.publicGroups || [];
       const userGroups: StudyGroup[] = resp?.data?.myGroups || [];
 
-      setGroups(publicGroups);
-      setMyGroups(userGroups);
+      // Ensure lists are consistent: exclude user's groups from public list
+      const myGroupIds = new Set((userGroups || []).map(g => String(g.id)));
+      const filteredPublic = (publicGroups || []).filter(g => !myGroupIds.has(String(g.id)));
+      setGroups(filteredPublic);
+      setMyGroups(userGroups || []);
     } catch (err: any) {
       console.error('Failed to load study groups:', err);
       setError('Failed to load study groups. Please try again.');
@@ -71,10 +74,16 @@ const StudyGroupsPage: React.FC = () => {
 
   // Create new study group
   const handleCreateGroup = useCallback(async () => {
-    if (!newGroupName.trim() || !user?.id) return;
+    const name = newGroupName.trim();
+    const description = newGroupDescription.trim();
+    if (!name || !user?.id) return;
     try {
       setLoading(true);
-      await studyGroupsApi.create({ name: newGroupName, description: newGroupDescription, is_public: true, max_members: 50 });
+      const created = await studyGroupsApi.create({ name, description, is_public: true, max_members: 50 });
+      // Optimistically add to My Groups
+      const newG = created?.data?.group || { id: String(Date.now()), name, description, member_count: 1, max_members: 50, is_public: true, created_by: user.id, created_by_name: `${user.firstName} ${user.lastName}`, created_at: new Date().toISOString(), members: [{ id: user.id, name: `${user.firstName} ${user.lastName}`, role: 'admin', joined_at: new Date().toISOString() }] };
+      setMyGroups(prev => [newG as any, ...prev]);
+      setGroups(prev => prev.filter(g => String(g.id) !== String(newG.id)));
       setNewGroupName('');
       setNewGroupDescription('');
       setShowCreateModal(false);
@@ -93,6 +102,9 @@ const StudyGroupsPage: React.FC = () => {
     try {
       setLoading(true);
       await studyGroupsApi.join(Number(group.id));
+      // Optimistically move group to My Groups
+      setMyGroups(prev => [group, ...prev]);
+      setGroups(prev => prev.filter(g => g.id !== group.id));
       await loadStudyGroups();
     } catch (err) {
       console.error('Failed to join group:', err);
@@ -174,15 +186,15 @@ const StudyGroupsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-stone-800 mb-2">Study Groups</h1>
-          <p className="text-stone-600">Collaborate and learn together with peers</p>
+          <h1 className="text-3xl font-bold text-stone-800 mb-1">Study Groups</h1>
+          <p className="text-stone-600 text-sm">Collaborate with peers on focused Bible study.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg shadow-md hover:shadow-lg transition-all font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg shadow-md hover:shadow-lg transition-all font-semibold flex items-center gap-2"
         >
           <Plus className="h-5 w-5" />
-          Create Group
+          New Group
         </button>
       </div>
 
@@ -191,7 +203,7 @@ const StudyGroupsPage: React.FC = () => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
         <input
           type="text"
-          placeholder="Search study groups..."
+          placeholder="Search groups"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
@@ -200,17 +212,17 @@ const StudyGroupsPage: React.FC = () => {
 
       {/* My Groups */}
       <div>
-        <h2 className="text-xl font-bold text-stone-800 mb-4">My Study Groups</h2>
+        <h2 className="text-xl font-bold text-stone-800 mb-3">My Groups</h2>
         {filteredMyGroups.length === 0 ? (
           <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-stone-200">
             <Users className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-stone-800 mb-2">No study groups yet</h3>
-            <p className="text-stone-600 mb-4">Create or join a study group to start collaborating</p>
+            <h3 className="text-lg font-semibold text-stone-800 mb-2">No groups yet</h3>
+            <p className="text-stone-600 mb-4">Create or join a group to start collaborating.</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg hover:shadow-lg transition-all font-semibold"
+              className="px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg hover:shadow-lg transition-all font-semibold"
             >
-              Create Your First Group
+              Create Group
             </button>
           </div>
         ) : (
@@ -223,7 +235,7 @@ const StudyGroupsPage: React.FC = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="font-bold text-stone-800 mb-1">{group.name}</h3>
-                    <p className="text-sm text-stone-600 line-clamp-2">{group.description}</p>
+                    <p className="text-sm text-stone-600 line-clamp-2">{(group.description || '').slice(0, 140)}{(group.description || '').length > 140 ? '…' : ''}</p>
                   </div>
                   {group.members.some(m => m.id === user?.id && m.role === 'admin') && (
                     <Crown className="h-5 w-5 text-[#FFD700] flex-shrink-0" />
@@ -268,7 +280,7 @@ const StudyGroupsPage: React.FC = () => {
       {/* Public Groups */}
       {filteredPublicGroups.length > 0 && (
         <div>
-          <h2 className="text-xl font-bold text-stone-800 mb-4">Discover Groups</h2>
+          <h2 className="text-xl font-bold text-stone-800 mb-3">Discover</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPublicGroups.map((group) => (
               <div
@@ -277,7 +289,7 @@ const StudyGroupsPage: React.FC = () => {
               >
                 <div className="mb-4">
                   <h3 className="font-bold text-stone-800 mb-1">{group.name}</h3>
-                  <p className="text-sm text-stone-600 line-clamp-2">{group.description}</p>
+                  <p className="text-sm text-stone-600 line-clamp-2">{group.description?.trim() || 'No description provided.'}</p>
                 </div>
                 
                 <div className="flex items-center justify-between text-sm text-stone-600 mb-4">
@@ -296,7 +308,7 @@ const StudyGroupsPage: React.FC = () => {
                 <button
                   onClick={() => handleJoinGroup(group)}
                   disabled={group.member_count >= group.max_members}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UserPlus className="h-4 w-4" />
                   {group.member_count >= group.max_members ? 'Full' : 'Join Group'}
@@ -312,7 +324,7 @@ const StudyGroupsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-stone-800">Create Study Group</h2>
+              <h2 className="text-xl font-bold text-stone-800">Create Group</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
@@ -323,26 +335,22 @@ const StudyGroupsPage: React.FC = () => {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  Group Name
-                </label>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Group Name</label>
                 <input
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="Enter group name..."
+                  placeholder="e.g., Bible Study Tuesdays"
                   className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
                 <textarea
                   value={newGroupDescription}
                   onChange={(e) => setNewGroupDescription(e.target.value)}
-                  placeholder="Describe your study group..."
+                  placeholder="What will you study? When do you meet?"
                   rows={3}
                   className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50"
                 />
@@ -358,9 +366,9 @@ const StudyGroupsPage: React.FC = () => {
                 <button
                   onClick={handleCreateGroup}
                   disabled={!newGroupName.trim()}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Group
+                  Create
                 </button>
               </div>
             </div>

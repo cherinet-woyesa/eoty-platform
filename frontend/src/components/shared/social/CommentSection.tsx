@@ -85,7 +85,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       setSubmitting(true);
       const response = await communityPostsApi.addComment(postId, {
         content: replyContent.trim(),
-        parentCommentId
+        parentCommentId: parentCommentId // Ensure this matches the backend expectation
       });
 
       if (response.success) {
@@ -155,7 +155,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               <span className="text-xs text-gray-500">
                 {formatDate(comment.created_at)}
               </span>
-              {user && comment.author_id === user.userId && (
+              {user && comment.author_id === user.id && (
                 <button
                   onClick={() => handleDeleteComment(comment.id)}
                   className="text-gray-400 hover:text-red-500 transition-colors"
@@ -184,14 +184,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
         {/* Reply form */}
         {replyingTo === comment.id && (
-          <div className="mt-3 ml-3">
+          <div className="mt-3 ml-3 pl-3 border-l-2 border-gray-200">
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder={`Reply to ${comment.author_name}...`}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:bg-white transition-all"
+                autoFocus
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -202,9 +203,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               <button
                 onClick={() => handleAddReply(comment.id)}
                 disabled={!replyContent.trim() || submitting}
-                className="px-3 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#27AE60]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                className="p-2 bg-[#27AE60] text-white rounded-full hover:bg-[#219150] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
-                <Send className="w-3 h-3" />
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -236,30 +237,30 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
       {/* Add comment form */}
       {user && (
-        <div className="flex space-x-3 mb-4">
+        <div className="flex space-x-3 mb-6">
           <div className="flex-shrink-0">
             {user.profilePicture ? (
               <img
                 src={user.profilePicture}
                 alt={user.firstName}
-                className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center shadow-sm">
+                <span className="text-white text-sm font-bold">
                   {user.firstName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
           </div>
 
-          <div className="flex-1 flex space-x-2">
+          <div className="flex-1 relative">
             <input
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+              className="w-full pl-4 pr-12 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:bg-white transition-all"
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -270,7 +271,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             <button
               onClick={handleAddComment}
               disabled={!newComment.trim() || submitting}
-              className="px-3 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#27AE60]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+              className="absolute right-1 top-1 p-1.5 bg-[#27AE60] text-white rounded-full hover:bg-[#219150] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               <Send className="w-4 h-4" />
             </button>

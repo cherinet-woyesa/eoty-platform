@@ -74,6 +74,12 @@ export const adminApi = {
     return response.data;
   },
 
+  // Delete user
+  deleteUser: async (userId: string) => {
+    const response = await apiClient.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
   // Upload Management
   getUploadQueue: async (status?: string, chapter?: string, page: number = 1, limit: number = 20): Promise<UploadQueueResponse> => {
     const params = new URLSearchParams();

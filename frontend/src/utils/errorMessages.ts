@@ -47,6 +47,7 @@ export const errorMessages: ErrorMessageMap = {
   'PASSWORD_TOO_SHORT': 'Password must be at least 6 characters long.',
   'EMAIL_EXISTS': 'This email address is already registered. Please try logging in instead.',
   'WEAK_PASSWORD': 'Password is too weak. Please choose a stronger password.',
+  'User with this email already exists': 'This email address is already registered. Please try logging in instead.',
 
   // Password reset specific errors
   'INVALID_RESET_TOKEN': 'This password reset link is invalid or has expired.',
@@ -122,7 +123,7 @@ export const extractErrorMessage = (error: any): string => {
     }
 
     if (data?.message) {
-      return data.message;
+      return getErrorMessage(data.message, data.message);
     }
     
     // Fall back to HTTP status code

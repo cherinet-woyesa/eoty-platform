@@ -317,13 +317,15 @@ const RolesPermissionsManagement: React.FC = () => {
             <div className="flex items-center gap-3 mb-4">
               {role === 'admin' && <Shield className="h-8 w-8 text-[#27AE60]" />}
               {role === 'teacher' && <Users className="h-8 w-8 text-blue-600" />}
-              {role === 'user' && <Eye className="h-8 w-8 text-green-600" />}
+              {(role === 'user' || role === 'student') && <Eye className="h-8 w-8 text-green-600" />}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 capitalize">{role}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                  {role === 'student' ? 'member' : role === 'user' ? 'member' : role.replace(/_/g, ' ')}
+                </h3>
                 <p className="text-sm text-gray-600">
                   {role === 'admin' && 'Full system access and management'}
-                  {role === 'teacher' && 'Course creation and student management'}
-                  {role === 'user' && 'Access to courses and learning materials'}
+                  {role === 'teacher' && 'Course creation and member management'}
+                  {(role === 'user' || role === 'student') && 'Access to courses and learning materials'}
                 </p>
               </div>
             </div>

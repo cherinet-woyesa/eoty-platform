@@ -41,8 +41,9 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   permissions: string[];
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  verify2FA: (userId: string, code: string) => Promise<void>;
+  register: (userData: any) => Promise<any>;
   logout: () => void;
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
@@ -211,9 +212,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Login - persist session in memory and localStorage
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<any> => {
     try {
-      setIsLoading(true);
+      // Don't set global isLoading here as it causes PublicRoute to unmount the login form
+      // The LoginForm component handles its own loading state
       
       // Clear any existing state and storage
       setUser(null);
@@ -223,6 +225,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('auth_user');
       
       const response = await authApi.login(email, password);
+
+      // Handle 2FA requirement
+      if (response.requires2FA) {
+        return response;
+      }
       
       if (response.success && response.data) {
         const { token, user } = response.data;
@@ -250,6 +257,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: user.email,
           role: user.role 
         });
+
+        return response;
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -257,13 +266,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Login error:', error);
       // Re-throw the original error so components can access response data (like error codes)
       throw error;
-    } finally {
-      setIsLoading(false);
+    }
+    // No finally block needed as we're not setting isLoading
+  };
+
+  const verify2FA = async (userId: string, code: string): Promise<void> => {
+    try {
+      // Don't set global isLoading here
+      const response = await authApi.verify2FA(userId, code);
+
+      if (response.success && response.data) {
+        const { token, user } = response.data;
+
+        if (!token || !user) {
+          throw new Error('Invalid response from server');
+        }
+
+        setToken(token);
+        setUser(user);
+        setLastActivity(new Date());
+        
+        // Update apiClient token store
+        setAuthToken(token);
+        
+        // Persist to localStorage for session restoration
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        
+        await loadPermissions();
+      } else {
+        throw new Error(response.message || 'Verification failed');
+      }
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      throw error;
     }
   };
 
   // Register - persist session in memory and localStorage
-  const register = async (userData: any): Promise<void> => {
+  const register = async (userData: any): Promise<any> => {
     try {
       setIsLoading(true);
       
@@ -275,6 +316,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('auth_user');
       
       const response = await authApi.register(userData);
+      console.log('AuthContext register response:', response);
+
+      // Handle 2FA requirement
+      if (response.requires2FA) {
+        console.log('AuthContext: 2FA required');
+        return response;
+      }
       
       if (response.success && response.data) {
         const { token, user } = response.data;
@@ -300,7 +348,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Don't fail registration if onboarding fails
         }
 
-        return;
+        return response;
       } else {
         throw new Error(response.message || 'Registration failed');
       }
@@ -560,6 +608,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     token,
     permissions,
     login,
+    verify2FA,
     register,
     logout,
     isAuthenticated: !!user && !!token,

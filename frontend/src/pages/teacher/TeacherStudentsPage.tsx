@@ -14,9 +14,9 @@ const TeacherStudentsPage: React.FC = () => {
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-gray-900 mb-1 flex items-center gap-2">
             <Users className="h-5 w-5 text-[#2980B9]" />
-            Student Management
+            Member Management
           </h1>
-          <p className="text-sm text-gray-600">Manage students, assignments, and track performance</p>
+          <p className="text-sm text-gray-600">Manage members, assignments, and track performance</p>
         </div>
 
         {/* Compact Tabs */}
@@ -31,7 +31,7 @@ const TeacherStudentsPage: React.FC = () => {
               }`}
             >
               <Users className="h-4 w-4" />
-              <span>My Students</span>
+              <span>My Members</span>
             </button>
             <button
               onClick={() => setActiveTab('assignments')}

@@ -33,6 +33,7 @@ const upload = multer({
 // Public routes
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.post('/verify-2fa', authController.verify2FA);
 
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

@@ -56,7 +56,23 @@ const authController = {
         applicationText,
         qualifications,
         experience,
-        subjectAreas
+        subjectAreas,
+        // Teacher Profile fields (Banking & ID)
+        bankName,
+        accountNumber,
+        routingNumber,
+        idDocumentUrl,
+        // Location fields
+        address,
+        city,
+        state,
+        country,
+        zipCode,
+        latitude,
+        longitude,
+        // New fields
+        phoneNumber,
+        dateOfBirth
       } = req.body;
 
       console.log('Registration attempt:', { firstName, lastName, email, chapter, role });
@@ -67,6 +83,21 @@ const authController = {
           success: false,
           message: 'All fields are required'
         });
+      }
+
+      // Validate age (must be numeric and provided)
+      if (dateOfBirth) {
+        const birthDate = new Date(dateOfBirth);
+        const ageDifMs = Date.now() - birthDate.getTime();
+        const ageDate = new Date(ageDifMs); // miliseconds from epoch
+        const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+        
+        if (isNaN(age)) {
+           return res.status(400).json({
+            success: false,
+            message: 'Invalid date of birth'
+          });
+        }
       }
 
       // Validate email format
@@ -139,6 +170,16 @@ const authController = {
         role: userRole,
         chapter_id: chapterId, // Use validated chapter ID
         is_active: true,
+        // Location data
+        address: address || null,
+        city: city || null,
+        state: state || null,
+        country: country || null,
+        zip_code: zipCode || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        phone_number: phoneNumber || null,
+        date_of_birth: dateOfBirth || null,
         created_at: new Date(),
         updated_at: new Date()
       };
@@ -150,6 +191,25 @@ const authController = {
       const userId = result[0].id;
 
       console.log('User created with ID:', userId, 'Role:', userRole, 'Chapter:', chapterId);
+
+      // Create Teacher Profile if role is teacher
+      if (role === 'teacher') {
+        try {
+          await db('teacher_profiles').insert({
+            user_id: userId,
+            bank_name: bankName || null,
+            account_number: accountNumber || null,
+            routing_number: routingNumber || null,
+            id_document_url: idDocumentUrl || null,
+            id_verification_status: 'pending',
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+        } catch (profileError) {
+          console.error('Error creating teacher profile:', profileError);
+          // Continue, but log error
+        }
+      }
 
       // If teacher application details are provided, create application record
       if (role === 'teacher' && applicationText && qualifications) {
@@ -215,56 +275,42 @@ const authController = {
         // Don't fail registration if onboarding initialization fails
       }
 
-      // Generate email verification token
-      const verificationToken = crypto.randomBytes(18).toString('base64url');
-      const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
-      const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+      // Enable 2FA for new user
+      await db('users').where({ id: userId }).update({ is_2fa_enabled: true });
 
-      // Store email verification token
-      await db('email_verifications').insert({
+      // Generate 2FA code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store code in two_factor_codes table
+      await db('two_factor_codes').insert({
         user_id: userId,
-        email: email.toLowerCase(),
-        token_hash: verificationTokenHash,
-        expires_at: verificationExpiresAt,
-        verified: false,
-        used: false,
-        created_at: new Date(),
-        updated_at: new Date()
+        code: codeHash,
+        expires_at: expiresAt,
+        created_at: new Date()
       });
 
-      // Send verification email
-      const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
-
+      // Send 2FA email
       try {
-        await emailService.sendEmailVerificationEmail(email.toLowerCase(), verificationLink);
-        console.log(`Email verification sent to ${email.toLowerCase()}`);
+        await emailService.send2FACodeEmail(email.toLowerCase(), code);
+        console.log(`2FA code sent to ${email.toLowerCase()}`);
       } catch (emailError) {
-        console.error('Failed to send verification email:', emailError);
-        // Don't fail registration if email fails - user can request resend later
+        console.error('Failed to send 2FA email:', emailError);
+        // Don't fail registration if email fails
       }
 
       const responseMessage = role === 'teacher' 
-        ? 'Teacher account created successfully! Please check your email to verify your account. You now have access to creator tools.'
-        : 'Account created successfully! Please check your email to verify your account.';
+        ? 'Teacher account created successfully! Please check your email for the verification code.'
+        : 'Account created successfully! Please check your email for the verification code.';
 
       res.status(201).json({
         success: true,
+        requires2FA: true,
         message: responseMessage,
         data: {
-          user: {
-            id: user.id,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            email: user.email,
-            role: user.role,
-            roleRequested: user.role_requested,
-            status: user.status,
-            chapter: user.chapter_id,
-            isActive: user.is_active
-          },
-          token,
-          // Kept for backward compatibility; now just informational
-          isTeacherApplication: role === 'teacher'
+          userId: userId,
+          email: email.toLowerCase()
         }
       });
 
@@ -315,7 +361,8 @@ const authController = {
           'role',
           'chapter_id',
           'is_active',
-          'profile_picture'
+          'profile_picture',
+          'is_2fa_enabled'
         )
         .first();
 
@@ -392,6 +439,48 @@ const authController = {
           message: 'Invalid email or password'
         });
       }
+
+      // Check for 2FA
+      console.log(`[DEBUG] Checking 2FA for user ${user.id}: ${user.is_2fa_enabled} (type: ${typeof user.is_2fa_enabled})`);
+      
+      if (user.is_2fa_enabled) {
+        console.log('[DEBUG] 2FA is enabled, generating code...');
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Store code in two_factor_codes table
+        await db('two_factor_codes').insert({
+          user_id: user.id,
+          code: codeHash,
+          expires_at: expiresAt,
+          created_at: new Date()
+        });
+
+        // Send 2FA email
+        try {
+          await emailService.send2FACodeEmail(user.email, code);
+        } catch (emailError) {
+          console.error('Failed to send 2FA email:', emailError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to send verification code'
+          });
+        }
+
+        return res.json({
+          success: true,
+          requires2FA: true,
+          message: 'Verification code sent to your email',
+          data: {
+            userId: user.id,
+            email: user.email
+          }
+        });
+      }
+      
+      console.log('[DEBUG] 2FA check passed (not enabled), generating token...');
 
       // Successful login - update last login
       await db('users')
@@ -470,6 +559,124 @@ const authController = {
   },
 
   // Logout (REQUIREMENT: Activity logs)
+  async verify2FA(req, res) {
+    const activityLogService = require('../services/activityLogService');
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+
+    try {
+      const { userId, code } = req.body;
+
+      if (!userId || !code) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID and code are required'
+        });
+      }
+
+      const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+      // Find valid verification code
+      const verificationRecord = await db('two_factor_codes')
+        .where({
+          user_id: userId,
+          code: codeHash
+        })
+        .where('expires_at', '>', new Date())
+        .orderBy('created_at', 'desc')
+        .first();
+
+      if (!verificationRecord) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired verification code'
+        });
+      }
+
+      // Delete used code (or mark as used if we had a used column, but deleting is fine for OTP)
+      await db('two_factor_codes')
+        .where({ id: verificationRecord.id })
+        .del();
+
+      // Get user details
+      const user = await db('users')
+        .where({ id: userId })
+        .select(
+          'id',
+          'first_name',
+          'last_name',
+          'email',
+          'role',
+          'chapter_id',
+          'is_active',
+          'profile_picture'
+        )
+        .first();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Successful login - update last login
+      await db('users')
+        .where({ id: user.id })
+        .update({
+          last_login_at: new Date()
+        });
+
+      // Log successful login
+      await activityLogService.logActivity({
+        userId: user.id,
+        activityType: 'login_2fa',
+        ipAddress,
+        userAgent,
+        success: true
+      });
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          email: user.email, 
+          role: user.role,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          chapter: user.chapter_id
+        },
+        authConfig.jwtSecret,
+        { expiresIn: authConfig.jwtExpiresIn }
+      );
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: {
+            id: user.id,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            email: user.email,
+            role: user.role,
+            chapter: user.chapter_id,
+            isActive: user.is_active,
+            profilePicture: getProfilePictureUrl(user.profile_picture)
+          },
+          token
+        }
+      });
+
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during verification'
+      });
+    }
+  },
+
   async logout(req, res) {
     const activityLogService = require('../services/activityLogService');
     const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
@@ -608,6 +815,7 @@ const authController = {
           role: 'user', // Default role for Google signups (generic member)
           chapter_id: defaultChapter.id, // Use valid chapter ID
           is_active: true,
+          is_2fa_enabled: true, // Enable 2FA for new Google users
           created_at: new Date(),
           updated_at: new Date()
         };
@@ -619,7 +827,7 @@ const authController = {
         // Get the created user
         user = await db('users')
           .where({ id: userId })
-          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture', 'is_2fa_enabled')
           .first();
       } else {
         // Update last login and profile picture if it exists
@@ -634,8 +842,45 @@ const authController = {
         // Refresh user data
         user = await db('users')
           .where({ id: user.id })
-          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture', 'is_2fa_enabled')
           .first();
+      }
+
+      // Check for 2FA
+      if (user.is_2fa_enabled) {
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Store code in two_factor_codes table
+        await db('two_factor_codes').insert({
+          user_id: user.id,
+          code: codeHash,
+          expires_at: expiresAt,
+          created_at: new Date()
+        });
+
+        // Send 2FA email
+        try {
+          await emailService.send2FACodeEmail(user.email, code);
+        } catch (emailError) {
+          console.error('Failed to send 2FA email:', emailError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to send verification code'
+          });
+        }
+
+        return res.json({
+          success: true,
+          requires2FA: true,
+          message: 'Verification code sent to your email',
+          data: {
+            userId: user.id,
+            email: user.email
+          }
+        });
       }
 
       // Log successful SSO login (REQUIREMENT: Login history)
@@ -734,8 +979,10 @@ const authController = {
             db.raw('COALESCE(education, \'\') as education'),
             db.raw('COALESCE(interests, NULL) as interests'),
             db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
+            db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
             db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
-            'created_at'
+            'created_at',
+            'is_2fa_enabled'
           )
           .first();
       } catch (error) {
@@ -757,7 +1004,8 @@ const authController = {
               'is_active',
               'last_login_at',
               'profile_picture',
-              'created_at'
+              'created_at',
+              'is_2fa_enabled'
             )
             .first();
 
@@ -852,7 +1100,8 @@ const authController = {
             interests: interests,
             learningGoals: user.learning_goals || '',
             dateOfBirth: user.date_of_birth || null,
-            profileCompletion: profileCompletion
+            profileCompletion: profileCompletion,
+            is2FAEnabled: !!user.is_2fa_enabled
           }
         }
       });
@@ -1021,7 +1270,7 @@ const authController = {
   // Update user profile
   async updateUserProfile(req, res) {
     try {
-      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth, role, chapterId } = req.body;
+      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth, role, chapterId, bankName, accountNumber, routingNumber, idDocumentUrl } = req.body;
       const userId = req.user.userId;
 
       // Extract relative path from profilePicture if it's a full URL
@@ -1059,6 +1308,11 @@ const authController = {
       // Allow updating role and chapter if provided (e.g. during onboarding)
       if (role) updateData.role = role;
       if (chapterId) updateData.chapter_id = chapterId;
+      
+      // Allow updating 2FA status
+      if (req.body.is2FAEnabled !== undefined) {
+        updateData.is_2fa_enabled = req.body.is2FAEnabled;
+      }
 
       // Remove undefined values to avoid issues
       Object.keys(updateData).forEach(key => {
@@ -1073,12 +1327,43 @@ const authController = {
         .where({ id: userId })
         .update(updateData);
 
+      // Handle Teacher Profile Data
+      const targetRole = role || req.user.role;
+      if (targetRole === 'teacher') {
+          const teacherData = {
+              bank_name: bankName,
+              account_number: accountNumber,
+              routing_number: routingNumber,
+              id_document_url: idDocumentUrl,
+              updated_at: new Date()
+          };
+
+          // Remove undefined
+          Object.keys(teacherData).forEach(key => teacherData[key] === undefined && delete teacherData[key]);
+
+          // Check if teacher profile exists
+          const existingProfile = await db('teacher_profiles').where({ user_id: userId }).first();
+          
+          if (existingProfile) {
+              await db('teacher_profiles').where({ user_id: userId }).update(teacherData);
+          } else {
+              // Only insert if we have some data
+              if (bankName || accountNumber || routingNumber || idDocumentUrl) {
+                  await db('teacher_profiles').insert({
+                      user_id: userId,
+                      ...teacherData,
+                      created_at: new Date()
+                  });
+              }
+          }
+      }
+
       console.log('Profile update successful, fetching updated user...');
 
       // Get updated user data
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone_number as phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone_number as phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth', 'is_2fa_enabled')
         .first();
 
       if (!user) {
@@ -1140,7 +1425,8 @@ const authController = {
             learningGoals: user.learning_goals,
             dateOfBirth: user.date_of_birth,
             teachingExperience: user.teaching_experience,
-            education: user.education
+            education: user.education,
+            is2FAEnabled: user.is_2fa_enabled
           }
         }
       });

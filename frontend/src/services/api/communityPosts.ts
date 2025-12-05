@@ -57,6 +57,14 @@ export const communityPostsApi = {
     return response.data;
   },
 
+  toggleBookmark: async (postId: string) => {
+    const response = await apiClient.post('/bookmarks/toggle', {
+      entityType: 'community_post',
+      entityId: postId
+    });
+    return response.data;
+  },
+
   // Comments functionality
   addComment: async (postId: string, data: { content: string; parentCommentId?: string }) => {
     const response = await apiClient.post(`/community/posts/${postId}/comments`, data);

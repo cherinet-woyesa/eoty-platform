@@ -9,6 +9,7 @@ const ForumTopics: React.FC = () => {
   const navigate = useNavigate();
   const { topics, loading, error, hasMore, loadMore } = useForumTopics(Number(forumId));
   const { hasPermission } = useAuth();
+  const canCreateTopic = hasPermission('discussion:topic:create') || hasPermission('discussion:create') || hasPermission('admin');
 
   if (loading && topics.length === 0) {
     return (
@@ -62,13 +63,15 @@ const ForumTopics: React.FC = () => {
             </button>
           </div>
           
-          <Link
-            to={`/forums/${forumId}/new-topic`}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Topic</span>
-          </Link>
+          {canCreateTopic && (
+            <Link
+              to={`/forums/${forumId}/new-topic`}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Topic</span>
+            </Link>
+          )}
         </div>
 
         {/* Topics List */}
@@ -147,14 +150,16 @@ const ForumTopics: React.FC = () => {
             <div className="text-center py-12">
               <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No topics yet</h3>
-              <p className="text-gray-600 mb-4">Be the first to start a discussion!</p>
-              <Link
-                to={`/forums/${forumId}/new-topic`}
-                className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Create First Topic</span>
-              </Link>
+              <p className="text-gray-600 mb-4">{canCreateTopic ? 'Be the first to start a discussion!' : 'No topics yet.'}</p>
+              {canCreateTopic && (
+                <Link
+                  to={`/forums/${forumId}/new-topic`}
+                  className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create First Topic</span>
+                </Link>
+              )}
             </div>
           )}
         </div>

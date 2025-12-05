@@ -24,10 +24,16 @@ const LoginForm: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
-  const { login, isAuthenticated, getRoleDashboard } = useAuth();
+  // 2FA State
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  const { login, verify2FA, isAuthenticated, getRoleDashboard } = useAuth();
   const navigate = useNavigate();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const codeRef = useRef<HTMLInputElement>(null);
 
   // Form validation configuration with debouncing
   const {
@@ -82,15 +88,47 @@ const LoginForm: React.FC = () => {
   // Redirect when authentication state changes
   // Only redirect if we're on the /login route, not if we're on the landing page
   useEffect(() => {
-    if (isAuthenticated && window.location.pathname === '/login') {
+    // Don't redirect if we are in the middle of a 2FA flow
+    if (isAuthenticated && window.location.pathname === '/login' && !requires2FA) {
       const dashboardPath = getRoleDashboard();
       navigate(dashboardPath, { replace: true });
     }
-  }, [isAuthenticated, getRoleDashboard, navigate]);
+  }, [isAuthenticated, getRoleDashboard, navigate, requires2FA]);
+
+  // Debug logging for 2FA state
+  useEffect(() => {
+    if (requires2FA) {
+      console.log('LoginForm: 2FA state active, rendering verification screen');
+    }
+  }, [requires2FA]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Handle 2FA submission
+    if (requires2FA) {
+      if (!twoFactorCode || twoFactorCode.length !== 6) {
+        setError('Please enter a valid 6-digit code');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        await verify2FA(userId!, twoFactorCode);
+        setSuccessMessage('Verification successful! Redirecting...');
+        const dashboardPath = getRoleDashboard();
+        navigate(dashboardPath, { replace: true });
+      } catch (err: any) {
+        console.error('2FA error:', err);
+        setError(extractErrorMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     // Validate form
     const isFormValid = validateForm(formData);
     
@@ -110,7 +148,21 @@ const LoginForm: React.FC = () => {
     setSuccessMessage(null);
     
     try {
-      await login(formData.email, formData.password);
+      console.log('Attempting login for:', formData.email);
+      const response = await login(formData.email, formData.password);
+      console.log('Login response:', response);
+      
+      if (response?.requires2FA) {
+        console.log('2FA required, switching state...');
+        setRequires2FA(true);
+        setUserId(response.data.userId);
+        setSuccessMessage('Please enter the verification code sent to your email');
+        setIsLoading(false);
+        // Focus on code input after render
+        setTimeout(() => codeRef.current?.focus(), 100);
+        return;
+      }
+
       setSuccessMessage('Welcome back! Redirecting to your dashboard...');
       
       // Redirect immediately
@@ -213,6 +265,84 @@ const LoginForm: React.FC = () => {
       }
     }
   };
+
+  if (requires2FA) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="2FA Verification">
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-gray-900 text-center">Two-Factor Authentication</h3>
+          <p className="text-sm text-gray-500 text-center">
+            Please enter the 6-digit code sent to your email.
+          </p>
+          
+          {error && (
+            <FormError
+              type="error"
+              message={error}
+              dismissible={true}
+              size="md"
+              onDismiss={() => setError(null)}
+            />
+          )}
+          
+          {successMessage && (
+            <FormError
+              type="success"
+              message={successMessage}
+              autoDismiss={true}
+              autoDismissDelay={4000}
+              size="md"
+            />
+          )}
+        </div>
+
+        <div className="space-y-5">
+          <FormInput
+            ref={codeRef}
+            id="twoFactorCode"
+            name="twoFactorCode"
+            type="text"
+            label="Verification Code"
+            value={twoFactorCode}
+            onChange={(e) => setTwoFactorCode(e.target.value)}
+            required
+            placeholder="123456"
+            // maxLength={6} - Removed as it's not in props
+            // className="text-center tracking-widest text-lg" - Removed as it's not in props
+            autoComplete="one-time-code"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="pt-2 space-y-3">
+          <LoadingButton
+            type="submit"
+            isLoading={isLoading}
+            disabled={twoFactorCode.length !== 6}
+            loadingText="Verifying..."
+            variant="primary"
+            size="md"
+            // fullWidth - Removed as it's not in props
+          >
+            Verify Code
+          </LoadingButton>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setRequires2FA(false);
+              setTwoFactorCode('');
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className="w-full text-sm text-gray-600 hover:text-gray-900 font-medium"
+          >
+            Back to Login
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Login form">
@@ -351,7 +481,14 @@ const LoginForm: React.FC = () => {
           <div className="h-px flex-1 bg-gray-200"></div>
         </div>
 
-        <SocialLoginButtons />
+        <SocialLoginButtons 
+          onRequires2FA={(uid) => {
+            setRequires2FA(true);
+            setUserId(uid);
+            setSuccessMessage('Please enter the verification code sent to your email');
+            setTimeout(() => codeRef.current?.focus(), 100);
+          }}
+        />
       </div>
 
       {/* Sign up link */}

@@ -9,7 +9,7 @@ let genAI = null;
 let storage = null;
 
 // API Key from user request
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyAmv6SY3iDAR7KgqIUaMTJ7zLYDhYtKyCs';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 try {
   // Initialize Google Generative AI

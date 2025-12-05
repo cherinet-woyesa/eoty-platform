@@ -381,9 +381,9 @@ class Leaderboard {
   static async getLeaderboard(chapterId, leaderboardType = 'chapter', periodDate = null, limit = 100, includeAnonymous = true) {
     let query = db('leaderboard_entries')
       .where({
-        chapter_id: chapterId,
-        leaderboard_type: leaderboardType,
-        period_date: periodDate
+        'leaderboard_entries.chapter_id': chapterId,
+        'leaderboard_entries.leaderboard_type': leaderboardType,
+        'leaderboard_entries.period_date': periodDate
       })
       .join('users', 'leaderboard_entries.user_id', 'users.id')
       .select(
