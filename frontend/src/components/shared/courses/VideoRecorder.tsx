@@ -490,10 +490,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   useEffect(() => {
     if (videoRef.current && recordingSources.camera) {
       videoRef.current.srcObject = recordingSources.camera;
+      videoRef.current.play().catch(() => {/* autoplay may be blocked */});
     }
     
     if (screenVideoRef.current && recordingSources.screen) {
       screenVideoRef.current.srcObject = recordingSources.screen;
+      screenVideoRef.current.play().catch(() => {/* autoplay may be blocked */});
     }
     
     // Audio analysis setup

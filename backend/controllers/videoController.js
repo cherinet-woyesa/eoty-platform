@@ -926,8 +926,26 @@ const videoController = {
       // Check permissions: teacher owns course OR admin OR base user enrolled
       const isOwner = course.created_by === userId;
       const isAdmin = userRole === 'admin';
+      const isTeacher = userRole === 'teacher';
       
       if (!isOwner && !isAdmin) {
+        if (isTeacher) {
+          // Allow teachers to access even if they didn't create the course
+          const teacherAssignmentExists = await db.schema.hasTable('teacher_course_assignments');
+          if (teacherAssignmentExists) {
+            const assignment = await db('teacher_course_assignments')
+              .where({ teacher_id: userId, course_id: courseId })
+              .first();
+
+            if (!assignment) {
+              console.warn(`Teacher ${userId} requested course ${courseId} they are not assigned to`);
+            } else {
+              // Teacher explicitly assigned, allow access
+              // Fall through without returning 403
+            }
+          }
+        }
+
         // Check if base user is enrolled
         if (userRole === 'user' || userRole === 'student') {
           const enrollment = await db('user_course_enrollments')
@@ -940,7 +958,7 @@ const videoController = {
               message: 'You must be enrolled in this course to view lessons'
             });
           }
-        } else {
+        } else if (!isTeacher) {
           return res.status(403).json({
             success: false,
             message: 'You do not have permission to view these lessons'

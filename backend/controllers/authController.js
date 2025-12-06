@@ -300,6 +300,15 @@ const authController = {
         // Don't fail registration if email fails
       }
 
+      // Send a welcome email immediately after successful signup
+      try {
+        await emailService.sendWelcomeEmail(email.toLowerCase(), firstName || 'User');
+        console.log(`Welcome email sent to ${email.toLowerCase()}`);
+      } catch (welcomeError) {
+        console.error('Failed to send welcome email after signup:', welcomeError);
+        // Continue without failing the registration flow
+      }
+
       const responseMessage = role === 'teacher' 
         ? 'Teacher account created successfully! Please check your email for the verification code.'
         : 'Account created successfully! Please check your email for the verification code.';

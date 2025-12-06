@@ -3,9 +3,11 @@ import { Users, MessageSquare, Sparkles } from 'lucide-react';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import StudyGroupsPage from './StudyGroupsPage';
 import Forums from '@/pages/shared/social/Forums';
+import { useCommunityFeed } from '@/hooks/useCommunity';
 
 const CommunityPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'forums'>('feed');
+  const feed = useCommunityFeed();
 
   return (
     <div className="w-full h-full">
@@ -61,7 +63,7 @@ const CommunityPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'feed' && (
               <div className="animate-in fade-in duration-300">
-                <CommunityHub />
+                <CommunityHub variant="student" feedState={feed} />
               </div>
             )}
             {activeTab === 'groups' && (

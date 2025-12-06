@@ -62,6 +62,7 @@ export class VideoCompositor {
   // Audio mixing
   private audioMixer: AudioMixer | null;
   private audioEnabled: boolean;
+  private sourceReadyPromises: Map<string, Promise<void>>;
   
   // Hidden container for video elements to ensure they render
   private hiddenContainer: HTMLDivElement;
@@ -143,6 +144,7 @@ export class VideoCompositor {
         this.audioEnabled = false;
       }
     }
+    this.sourceReadyPromises = new Map();
     
     // Set default layout (will be overridden when sources are added)
     this.currentLayout = {
@@ -234,12 +236,15 @@ export class VideoCompositor {
     // the screen video element minimally visible but offscreen so frames
     // continue to be painted and captureStream / canvas draw receive frames.
     if (id === 'screen') {
-      video.style.position = 'absolute';
-      video.style.left = '-9999px';
+      video.style.position = 'fixed';
+      video.style.left = '-4000px';
       video.style.top = '0px';
-      video.style.width = '1px';
-      video.style.height = '1px';
-      video.style.opacity = '0.01'; // not 0 to avoid rendering optimizations
+      // Keep the element rendered at realistic dimensions so Chrome paints real frames
+      const fallbackWidth = Math.max(this.canvas.width, 1280);
+      const fallbackHeight = Math.max(this.canvas.height, 720);
+      video.style.width = `${fallbackWidth}px`;
+      video.style.height = `${fallbackHeight}px`;
+      video.style.opacity = '0.01'; // keep non-zero to bypass throttling optimizations
       video.style.display = 'block';
       video.style.pointerEvents = 'none';
     } else {
@@ -262,13 +267,21 @@ export class VideoCompositor {
       // CRITICAL: For screen sharing, dimensions might be wrong initially
       // Check if we have a valid stream
       if (id === 'screen' && (video.videoWidth <= 2 || video.videoHeight <= 2)) {
-        console.warn(`Screen video has invalid dimensions (${video.videoWidth}x${video.videoHeight}), waiting for actual dimensions...`);
+        const track = (video.srcObject as MediaStream | null)?.getVideoTracks?.()[0];
+        const settings = track?.getSettings ? track.getSettings() : undefined;
+        console.warn(`Screen video has invalid dimensions (${video.videoWidth}x${video.videoHeight}), waiting for actual dimensions...`, {
+          trackSettings: settings
+        });
         // Wait a bit more and check again
         setTimeout(() => {
           if (video.videoWidth > 2 && video.videoHeight > 2) {
             console.log(`Screen video dimensions updated: ${video.videoWidth}x${video.videoHeight}`);
           } else {
-            console.warn(`Screen video still has invalid dimensions after wait`);
+            const retryTrack = (video.srcObject as MediaStream | null)?.getVideoTracks?.()[0];
+            const retrySettings = retryTrack?.getSettings ? retryTrack.getSettings() : undefined;
+            console.warn(`Screen video still has invalid dimensions after wait`, {
+              trackSettings: retrySettings
+            });
           }
         }, 1000);
       }
@@ -381,12 +394,20 @@ export class VideoCompositor {
       }
     };
     
-    // Start preparing video immediately (don't wait for it to complete)
-    ensureVideoReady().catch(err => {
-      console.warn(`Error ensuring video ready for ${id}:`, err);
-      // Don't throw - video might still work
-      videoReady = true;
-    });
+    // Track readiness promise so callers can await full readiness when needed
+    const readinessPromise = ensureVideoReady();
+    this.sourceReadyPromises.set(id, readinessPromise);
+    readinessPromise
+      .catch(err => {
+        console.warn(`Error ensuring video ready for ${id}:`, err);
+        videoReady = true;
+      })
+      .finally(() => {
+        const stored = this.sourceReadyPromises.get(id);
+        if (stored === readinessPromise) {
+          this.sourceReadyPromises.delete(id);
+        }
+      });
     
     // Create default source config
     const defaultLayout: SourceLayout = {
@@ -438,6 +459,7 @@ export class VideoCompositor {
     const sourceData = this.videoElements.get(id);
     if (sourceData) {
       console.log(`Removing video source: ${id}`);
+      this.sourceReadyPromises.delete(id);
       
       // Remove audio source from mixer
       if (this.audioMixer) {
@@ -474,6 +496,152 @@ export class VideoCompositor {
       
       console.log(`Video source ${id} removed and cleaned up`);
     }
+  }
+
+  /**
+   * Wait for a specific source to report usable video frames.
+   * Helps avoid black frames when screen sharing is initialised.
+   */
+  async waitForSourceReady(id: string, timeout: number = 3000): Promise<boolean> {
+    const sourceData = this.videoElements.get(id);
+    if (!sourceData) {
+      console.warn(`waitForSourceReady called for missing source: ${id}`);
+      return false;
+    }
+
+    const video = sourceData.element;
+    const isScreenSource = id === 'screen';
+
+    const getTrackDimensions = () => {
+      const stream = video.srcObject as MediaStream | null;
+      const track = stream?.getVideoTracks()?.[0];
+      if (!track?.getSettings) {
+        return { width: 0, height: 0 };
+      }
+      const settings = track.getSettings();
+      return {
+        width: typeof settings.width === 'number' ? settings.width : 0,
+        height: typeof settings.height === 'number' ? settings.height : 0
+      };
+    };
+
+    const hasSufficientDimensions = () => {
+      const dims = getTrackDimensions();
+      const width = Math.max(video.videoWidth || 0, dims.width);
+      const height = Math.max(video.videoHeight || 0, dims.height);
+      return width > 16 && height > 16;
+    };
+
+    const hasReadyFrame = () => (
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      hasSufficientDimensions() &&
+      !video.paused
+    );
+
+    if (hasReadyFrame()) {
+      return true;
+    }
+
+    // Kick playback just in case the browser suspended it
+    video.play().catch(() => {
+      /* ignore autoplay errors */
+    });
+
+    const existingPromise = this.sourceReadyPromises.get(id);
+
+    return await new Promise<boolean>((resolve) => {
+      let settled = false;
+
+      const cleanup = () => {
+        video.removeEventListener('loadedmetadata', handleReady);
+        video.removeEventListener('loadeddata', handleReady);
+        video.removeEventListener('playing', handleReady);
+      };
+
+      const handleReady = () => {
+        if (!settled && hasReadyFrame()) {
+          settled = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      video.addEventListener('loadedmetadata', handleReady);
+      video.addEventListener('loadeddata', handleReady);
+      video.addEventListener('playing', handleReady);
+
+      const tryResolveWithFrame = () => {
+        if (!settled && hasReadyFrame()) {
+          settled = true;
+          cleanup();
+          resolve(true);
+          return;
+        }
+
+        if (!settled && hasSufficientDimensions()) {
+          settled = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+
+      const requestFrame = () => {
+        if (typeof (video as any).requestVideoFrameCallback === 'function') {
+          (video as any).requestVideoFrameCallback(() => {
+            tryResolveWithFrame();
+            if (!settled) {
+              requestFrame();
+            }
+          });
+        } else {
+          setTimeout(() => {
+            tryResolveWithFrame();
+            if (!settled) {
+              requestFrame();
+            }
+          }, 100);
+        }
+      };
+
+      requestFrame();
+
+      if (existingPromise) {
+        existingPromise
+          .then(() => {
+            tryResolveWithFrame();
+          })
+          .catch(() => {
+            /* ignore */
+          });
+      }
+
+      setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          if (hasReadyFrame() || hasSufficientDimensions()) {
+            resolve(true);
+            return;
+          }
+
+          if (isScreenSource) {
+            const track = (video.srcObject as MediaStream | null)?.getVideoTracks?.()[0];
+            const trackLive = track?.readyState === 'live';
+            console.warn('Screen source readiness timeout - proceeding with best effort', {
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              readyState: video.readyState,
+              trackReadyState: track?.readyState,
+              trackSettings: track?.getSettings ? track.getSettings() : undefined
+            });
+            resolve(!!trackLive);
+            return;
+          }
+
+          resolve(false);
+        }
+      }, timeout);
+    });
   }
 
   /**

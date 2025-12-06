@@ -15,6 +15,7 @@ interface ProtectedRouteProps {
 const ROLE_HIERARCHY: Record<string, number> = {
   // Base members
   user: 1,
+  member: 1,
   // Legacy alias kept for compatibility
   student: 1,
   // Elevated roles
@@ -67,9 +68,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Helper function to check if user's role is equal to or higher than required role
+  const normalizeRole = (role: string): string => {
+    if (role === 'member') return 'user';
+    return role;
+  };
+
   const isRoleOrHigher = (userRole: string, requiredRole: string): boolean => {
-    const userLevel = ROLE_HIERARCHY[userRole] || 0;
-    const requiredLevel = ROLE_HIERARCHY[requiredRole] || 0;
+    const userLevel = ROLE_HIERARCHY[normalizeRole(userRole)] || 0;
+    const requiredLevel = ROLE_HIERARCHY[normalizeRole(requiredRole)] || 0;
     return userLevel >= requiredLevel;
   };
 
@@ -123,7 +129,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               </p>
               <p className="text-sm text-gray-700 mt-1">
                 <span className="font-semibold">Required role:</span>{' '}
-                <span className="text-red-600">{roles.join(' or ')}</span>
+                <span className="text-red-600">{roles.map(role => role === 'user' ? 'member' : role).join(' or ')}</span>
               </p>
             </div>
             <button

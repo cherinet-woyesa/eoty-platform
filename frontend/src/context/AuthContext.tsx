@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { authApi } from '@/services/api';
 import { onboardingApi } from '@/services/api/onboarding';
 import { setAuthToken } from '@/services/api/apiClient';
-import { extractErrorMessage } from '@/utils/errorMessages';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface User {
@@ -68,9 +67,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // NOTE: Base role has been generalized from 'student' to 'user'; 'student' is treated as a legacy alias.
 const ROLE_HIERARCHY: Record<string, number> = {
   user: 1,
+  member: 1,
   student: 1, // legacy
   teacher: 2,
   admin: 3
+};
+
+const normalizeRole = (role: string): string => {
+  if (role === 'member') return 'user';
+  return role;
 };
 
 // Permission groups for common functionality
@@ -149,7 +154,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth - restore session from localStorage if present
+  // Initialize auth - restore from sessionStorage (cleared when browser session ends)
   useEffect(() => {
     // Only show the big splash screen if initialization takes longer than a short delay
     const loaderTimeout = setTimeout(() => {
@@ -158,48 +163,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
-        const storedToken = localStorage.getItem('auth_token');
-        const storedUser = localStorage.getItem('auth_user');
+        const storedToken = sessionStorage.getItem('auth_token');
+        const storedUser = sessionStorage.getItem('auth_user');
 
         if (storedToken && storedUser) {
           try {
             const parsedUser: User = JSON.parse(storedUser);
-            // Optimistically set user state
             setToken(storedToken);
             setUser(parsedUser);
             setAuthToken(storedToken);
             setLastActivity(new Date());
 
-            // Verify token with backend
             try {
               const response = await authApi.getCurrentUser();
               if (!response.success) {
                 throw new Error('Token validation failed');
               }
-              // Update user with fresh data
               if (response.data?.user) {
                 setUser(response.data.user);
-                localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+                sessionStorage.setItem('auth_user', JSON.stringify(response.data.user));
               }
-              
-              // Load permissions
               await loadPermissions();
             } catch (validateError) {
               console.warn('Session validation failed:', validateError);
-              // If validation fails (401/403), logout. 
-              // If it's a network error (timeout), we might want to keep the session 
-              // but for now, to fix the "Dashboard" issue when backend is down/unreachable
-              // and user expects to be logged out, we will clear it.
               logout();
             }
           } catch (parseError) {
             console.error('Failed to parse stored auth user:', parseError);
             logout();
           }
+        } else {
+          // Ensure any legacy localStorage entries are removed to avoid stale sessions
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
         }
       } catch (error) {
-        console.error('Error initializing auth from storage:', error);
-        logout();
+        console.error('Error clearing persisted auth state:', error);
       } finally {
         setIsLoading(false);
       }
@@ -211,7 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  // Login - persist session in memory and localStorage
+  // Login - persist session for current browser session (sessionStorage)
   const login = async (email: string, password: string): Promise<any> => {
     try {
       // Don't set global isLoading here as it causes PublicRoute to unmount the login form
@@ -221,8 +220,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(null);
       setToken(null);
       setPermissions([]);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_user');
       
       const response = await authApi.login(email, password);
 
@@ -245,10 +244,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
-        // Persist to localStorage for session restoration
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('auth_user', JSON.stringify(user));
-        
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('auth_user', JSON.stringify(user));
+
         await loadPermissions();
         
         // Track login event for analytics
@@ -289,10 +287,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
-        // Persist to localStorage for session restoration
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('auth_user', JSON.stringify(user));
-        
         await loadPermissions();
       } else {
         throw new Error(response.message || 'Verification failed');
@@ -303,7 +297,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Register - persist session in memory and localStorage
+  // Register - persist session for current browser session
   const register = async (userData: any): Promise<any> => {
     try {
       // Don't set global isLoading here as it causes PublicRoute to unmount the register form
@@ -313,8 +307,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(null);
       setToken(null);
       setPermissions([]);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_user');
       
       const response = await authApi.register(userData);
       console.log('AuthContext register response:', response);
@@ -343,10 +337,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
-        // Persist to localStorage for session restoration
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('auth_user', JSON.stringify(user));
-        
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('auth_user', JSON.stringify(user));
+
         await loadPermissions();
 
         // Trigger onboarding for new users (REQUIREMENT: 100% new users see guided onboarding)
@@ -368,7 +361,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Google login - persist session in memory and localStorage
+  // Google login - persist session for current browser session
   const loginWithGoogle = async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     try {
       const response = await authApi.googleLogin(googleData);
@@ -383,10 +376,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
-        // Persist to localStorage for session restoration
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('auth_user', JSON.stringify(user));
-        
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('auth_user', JSON.stringify(user));
+
         await loadPermissions();
         
         return;
@@ -411,8 +403,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setAuthToken(token);
 
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_user', JSON.stringify(user));
+      sessionStorage.setItem('auth_token', token);
+      sessionStorage.setItem('auth_user', JSON.stringify(user));
 
       await loadPermissions();
 
@@ -432,6 +424,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPermissions([]);
     
     // Clear persisted auth
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     
@@ -491,15 +485,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const hasRole = (role: string | string[]): boolean => {
     if (!user) return false;
     
+    const userRole = normalizeRole(user.role);
     const roles = Array.isArray(role) ? role : [role];
-    return roles.includes(user.role);
+    const normalizedRoles = roles.map(normalizeRole);
+    return normalizedRoles.includes(userRole);
   };
 
   const isRoleOrHigher = (role: string): boolean => {
     if (!user) return false;
     
-    const userLevel = ROLE_HIERARCHY[user.role] || 0;
-    const requiredLevel = ROLE_HIERARCHY[role] || 0;
+    const userLevel = ROLE_HIERARCHY[normalizeRole(user.role)] || 0;
+    const requiredLevel = ROLE_HIERARCHY[normalizeRole(role)] || 0;
     return userLevel >= requiredLevel;
   };
 

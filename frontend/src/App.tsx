@@ -1222,7 +1222,7 @@ function AppContent() {
           element={
             <StudentRoute>
               <DashboardLayout>
-                <CommunityHub />
+                <CommunityPage />
               </DashboardLayout>
             </StudentRoute>
           } 

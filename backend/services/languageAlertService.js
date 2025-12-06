@@ -17,31 +17,55 @@ class LanguageAlertService {
       detectedLang = await multilingualService.detectLanguage(text, context);
     }
 
-    // Normalize language code (e.g. 'en' -> 'en-US')
-    if (detectedLang === 'en') detectedLang = 'en-US';
-    if (detectedLang === 'am') detectedLang = 'am-ET';
-    if (detectedLang === 'ti') detectedLang = 'ti-ET';
-    if (detectedLang === 'om') detectedLang = 'om-ET';
+    const normalizedLang = this.normalizeLanguageCode(detectedLang);
 
     const isSupported =
-      this.supportedLanguages.includes(detectedLang) &&
-      multilingualService.isLanguageSupported(detectedLang);
+      this.supportedLanguages.includes(normalizedLang) &&
+      multilingualService.isLanguageSupported(normalizedLang);
 
     if (!isSupported) {
-      await this.logUnsupportedLanguageAttempt(text, detectedLang, userId, sessionId);
+      await this.logUnsupportedLanguageAttempt(text, normalizedLang, userId, sessionId);
       
       return {
         isSupported: false,
-        detectedLanguage: detectedLang,
+        detectedLanguage: normalizedLang,
+        originalDetectedLanguage: detectedLang,
         supportedLanguages: this.supportedLanguages,
-        alertMessage: this.generateUnsupportedLanguageAlert(detectedLang)
+        alertMessage: this.generateUnsupportedLanguageAlert(normalizedLang)
       };
     }
 
     return {
       isSupported: true,
-      detectedLanguage: detectedLang
+      detectedLanguage: normalizedLang,
+      originalDetectedLanguage: detectedLang
     };
+  }
+
+  normalizeLanguageCode(language) {
+    if (!language) {
+      return 'en-US';
+    }
+
+    const lowerCase = language.toLowerCase();
+
+    const [base, region] = lowerCase.split('-');
+
+    switch (base) {
+      case 'en':
+        return 'en-US';
+      case 'am':
+        return 'am-ET';
+      case 'ti':
+        return 'ti-ET';
+      case 'om':
+        return 'om-ET';
+      default:
+        if (region) {
+          return `${base}-${region.toUpperCase()}`;
+        }
+        return language;
+    }
   }
 
   // Generate user-friendly unsupported language alert

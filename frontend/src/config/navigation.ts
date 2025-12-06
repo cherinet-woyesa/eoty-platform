@@ -32,6 +32,7 @@ export interface NavItem {
 export const ROLE_HIERARCHY: Record<string, number> = {
   // Base members
   user: 1,
+  member: 1,
   // Legacy alias kept for compatibility
   student: 1,
   // Elevated roles

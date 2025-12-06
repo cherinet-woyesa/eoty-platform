@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { forumsApi, achievementsApi } from '@/services/api';
+import { communityPostsApi } from '@/services/api/communityPosts';
+import type { Post } from '@/components/shared/social/PostCard';
 
 // Types
 import type { Forum, ForumTopic, ForumPost, UserBadge, LeaderboardEntry } from '@/types/community';
@@ -28,6 +30,100 @@ export const useForums = () => {
   };
 
   return { forums, loading, error, refetch: fetchForums };
+};
+
+export const useCommunityFeed = (options?: { autoFetch?: boolean }) => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const autoFetch = options?.autoFetch ?? true;
+
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await communityPostsApi.fetchPosts();
+      const payload = response?.data?.posts ?? response?.posts ?? [];
+      setPosts(payload);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load community feed');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autoFetch) {
+      fetchPosts();
+    }
+  }, [autoFetch, fetchPosts]);
+
+  const metrics = useMemo(() => {
+    if (!posts.length) {
+      return {
+        totalPosts: 0,
+        weeklyPosts: 0,
+        todayPosts: 0,
+        activeContributors: 0,
+        totalReactions: 0,
+        bookmarkedPosts: 0,
+        latestPostAt: null as string | null
+      };
+    }
+
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const contributorMap = new Map<string, { name: string; count: number }>();
+    let weeklyPosts = 0;
+    let todayPosts = 0;
+    let totalReactions = 0;
+    let bookmarkedPosts = 0;
+    let latestPostAt: string | null = null;
+
+    posts.forEach(post => {
+      const createdAt = new Date(post.created_at).getTime();
+      if (!Number.isNaN(createdAt)) {
+        if (createdAt >= weekAgo) weeklyPosts += 1;
+        if (createdAt >= startOfDay.getTime()) todayPosts += 1;
+        if (!latestPostAt || createdAt > new Date(latestPostAt).getTime()) {
+          latestPostAt = post.created_at;
+        }
+      }
+
+      if (post.author_id) {
+        if (!contributorMap.has(post.author_id)) {
+          contributorMap.set(post.author_id, { name: post.author_name, count: 0 });
+        }
+        const contributor = contributorMap.get(post.author_id);
+        if (contributor) contributor.count += 1;
+      }
+
+      totalReactions += (post.likes ?? 0) + (post.comments ?? 0) + (post.shares ?? 0);
+      if (post.is_bookmarked) bookmarkedPosts += 1;
+    });
+
+    return {
+      totalPosts: posts.length,
+      weeklyPosts,
+      todayPosts,
+      activeContributors: contributorMap.size,
+      totalReactions,
+      bookmarkedPosts,
+      latestPostAt
+    };
+  }, [posts]);
+
+  return {
+    posts,
+    setPosts,
+    loading,
+    error,
+    refresh: fetchPosts,
+    metrics
+  };
 };
 
 export const useForumTopics = (forumId: number) => {
