@@ -319,10 +319,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authApi.register(userData);
       console.log('AuthContext register response:', response);
 
+      const requires2FAFlag = !!(response?.requires2FA ?? response?.data?.requires2FA);
+
       // Handle 2FA requirement
-      if (response.requires2FA) {
+      if (requires2FAFlag) {
         console.log('AuthContext: 2FA required');
-        return response;
+        const userId = response?.data?.userId ?? response?.userId ?? null;
+        return {
+          ...response,
+          requires2FA: true,
+          userId,
+          data: response?.data ? { ...response.data, userId } : { userId }
+        };
       }
       
       if (response.success && response.data) {
