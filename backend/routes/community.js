@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const communityController = require('../controllers/communityController');
 const upload = require('../middleware/upload');
+const gcsUpload = require('../middleware/gcs-upload');
 const { authenticateToken } = require('../middleware/auth');
 
 // Public: fetch posts
 router.get('/posts', communityController.fetchPosts);
 
 // Protected: upload media
-router.post('/media', authenticateToken, upload.contentUpload.single('file'), communityController.uploadMedia);
+router.post('/media', authenticateToken, gcsUpload.contentUpload.single('file'), gcsUpload.handleGCSUpload(process.env.GCS_DOCUMENT_BUCKET || 'edu-platform-documents', 'community/'), communityController.uploadMedia);
 
 // Protected: get presigned upload URL
 router.post('/presign', authenticateToken, communityController.getPresign);

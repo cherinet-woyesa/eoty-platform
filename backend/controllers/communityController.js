@@ -10,6 +10,16 @@ exports.uploadMedia = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
+    // Check if GCS upload was successful (or local fallback via middleware)
+    if (req.file.gcs && req.file.gcs.publicUrl) {
+        let publicUrl = req.file.gcs.publicUrl;
+        // If it's a local path (starts with /uploads), prepend backend URL
+        if (publicUrl.startsWith('/uploads')) {
+            publicUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}${publicUrl}`;
+        }
+        return res.json({ success: true, data: { url: publicUrl } });
+    }
+
     const uploadsDir = path.join(__dirname, '../uploads/community');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 

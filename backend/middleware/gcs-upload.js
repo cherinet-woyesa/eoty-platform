@@ -5,10 +5,16 @@ const path = require('path');
 // Initialize Google Cloud Storage with fallback for development
 let storage = null;
 try {
-  storage = new Storage({
-    projectId: process.env.GOOGLE_CLOUD_PROJECT,
-    keyFilename: process.env.GOOGLE_CLOUD_KEYFILE || '/secrets/service-account-key.json'
-  });
+  const storageOptions = {
+    projectId: process.env.GOOGLE_CLOUD_PROJECT
+  };
+  
+  // Only use keyFilename if explicitly provided
+  if (process.env.GOOGLE_CLOUD_KEYFILE) {
+    storageOptions.keyFilename = process.env.GOOGLE_CLOUD_KEYFILE;
+  }
+  
+  storage = new Storage(storageOptions);
   console.log('✅ Google Cloud Storage initialized successfully');
 } catch (error) {
   console.warn('⚠️ Google Cloud Storage not available, falling back to local storage:', error.message);
