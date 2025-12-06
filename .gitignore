@@ -117,3 +117,4 @@ RECORDING_FIX_PLAN.md
 backend/gcp-key.json
 *.key
 *.pem
+.vercel

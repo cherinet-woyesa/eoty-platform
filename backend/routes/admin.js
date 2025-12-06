@@ -44,8 +44,8 @@ router.get('/moderation/flagged', requirePermission('content:moderate'), adminCo
 router.post('/moderation/flagged/:flagId/review', requirePermission('content:moderate'), adminController.reviewFlaggedContent);
 
 // Forum Moderation
-router.get('/forum-reports', requirePermission('content:moderate'), adminController.getForumReports);
-router.post('/forum-reports/:reportId/moderate', requirePermission('content:moderate'), adminController.moderateForumReport);
+router.get('/moderation/forum-reports', requirePermission('content:moderate'), adminController.getForumReports);
+router.post('/moderation/forum-reports/:reportId/moderate', requirePermission('content:moderate'), adminController.moderateForumReport);
 // FR5: Moderation Tools Enhancements
 router.post('/users/:userId/ban', requirePermission('user:manage'), adminController.banUser);
 router.post('/users/:userId/unban', requirePermission('user:manage'), adminController.unbanUser);

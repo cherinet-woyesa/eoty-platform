@@ -79,6 +79,12 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "FACEBOOK_APP_ID=$($EnvVars['FACEBOOK_APP_ID'])" `
     --set-env-vars "FACEBOOK_APP_SECRET=$($EnvVars['FACEBOOK_APP_SECRET'])" `
     --set-env-vars "DB_PASSWORD=$($EnvVars['DB_PASSWORD'])" `
+    --set-env-vars "SMTP_HOST=$($EnvVars['SMTP_HOST'])" `
+    --set-env-vars "SMTP_PORT=$($EnvVars['SMTP_PORT'])" `
+    --set-env-vars "SMTP_USER=$($EnvVars['SMTP_USER'])" `
+    --set-env-vars "SMTP_PASSWORD=$($EnvVars['SMTP_PASSWORD'])" `
+    --set-env-vars "SMTP_FROM=$($EnvVars['SMTP_FROM'])" `
+    --set-env-vars "EMAIL_SERVICE_TYPE=smtp" `
     --set-env-vars "PGSSLMODE=disable"
 
 if ($LASTEXITCODE -ne 0) {

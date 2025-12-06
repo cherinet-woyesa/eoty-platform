@@ -388,6 +388,8 @@ const RegisterForm: React.FC = () => {
             icon={<Lock className="h-4 w-4" />}
             autoComplete="one-time-code"
             disabled={isLoading}
+            // Ensure the input is visible and styled correctly
+            className="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-[#27AE60] focus:border-[#27AE60] sm:text-sm"
           />
         </div>
 

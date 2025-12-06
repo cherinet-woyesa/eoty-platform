@@ -306,7 +306,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Register - persist session in memory and localStorage
   const register = async (userData: any): Promise<any> => {
     try {
-      setIsLoading(true);
+      // Don't set global isLoading here as it causes PublicRoute to unmount the register form
+      // The RegisterForm component handles its own loading state
       
       // Clear any existing state and storage
       setUser(null);
@@ -356,15 +357,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Registration error:', error);
       // Re-throw the original error so components can access response data
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   // Google login - persist session in memory and localStorage
   const loginWithGoogle = async (googleData: { googleId: string; email: string; firstName: string; lastName: string; profilePicture?: string }) => {
     try {
-      setIsLoading(true);
       const response = await authApi.googleLogin(googleData);
       
       if (response.success && response.data) {
@@ -390,8 +388,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       console.error('Google login error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 

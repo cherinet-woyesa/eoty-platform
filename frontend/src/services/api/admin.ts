@@ -98,6 +98,11 @@ export const adminApi = {
     return response.data;
   },
 
+  moderateForumReport: async (reportId: number, action: string, reason?: string) => {
+    const response = await apiClient.post(`/admin/moderation/forum-reports/${reportId}/moderate`, { action, reason });
+    return response.data;
+  },
+
   uploadContent: async (uploadData: CreateUploadRequest): Promise<{ success: boolean; data: { upload: ContentUpload } }> => {
     const formData = new FormData();
     formData.append('title', uploadData.title);
