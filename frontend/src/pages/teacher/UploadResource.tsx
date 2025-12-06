@@ -189,6 +189,11 @@ const UploadResource: React.FC<UploadResourceProps> = ({
       return;
     }
 
+    if (activeTarget === 'library' && !category) {
+      setError('Please select a category');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -501,12 +506,13 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Category
+                        Category <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                        required
                       >
                         <option value="">Select category...</option>
                         <option value="bible">Bible Study</option>

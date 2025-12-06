@@ -513,16 +513,22 @@ class ResourceService {
           if (!courseId) throw new Error('courseId required for course_specific scope');
 
           // Check if user has access to this course
-          const courseAccess = await db('user_course_enrollments')
-            .where({ course_id: courseId, user_id: userId })
-            .orWhere(function() {
-              this.where('course_id', courseId).whereExists(function() {
-                this.select('*').from('courses').whereRaw('courses.id = ? AND courses.created_by = ?', [courseId, userId]);
-              });
-            })
+          // 1. Check if user is the creator of the course
+          const isCreator = await db('courses')
+            .where({ id: courseId, created_by: userId })
             .first();
 
-          if (!courseAccess) throw new Error('Access denied to course resources');
+          // 2. Check if user is enrolled in the course
+          const isEnrolled = await db('user_course_enrollments')
+            .where({ course_id: courseId, user_id: userId })
+            .first();
+
+          if (!isCreator && !isEnrolled) {
+             // 3. Allow admins
+             if (user.role !== 'admin') {
+                throw new Error('Access denied to course resources');
+             }
+          }
 
           query = query.where({ resource_scope: 'course_specific', course_id: courseId });
           break;

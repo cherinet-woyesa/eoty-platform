@@ -287,6 +287,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Update apiClient token store
         setAuthToken(token);
         
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('auth_user', JSON.stringify(user));
+        
         await loadPermissions();
       } else {
         throw new Error(response.message || 'Verification failed');
