@@ -54,7 +54,12 @@ class ActivityLogService {
 
       return logEntry;
     } catch (error) {
-      console.error('Error logging activity:', error);
+      // Check if error is due to missing table
+      if (error.code === '42P01') { // undefined_table
+        console.warn('Activity logs table missing, skipping log entry');
+      } else {
+        console.error('Error logging activity:', error);
+      }
       // Don't throw - activity logging should not break the main flow
       return null;
     }

@@ -398,6 +398,19 @@ export const videoApi = {
 
 // Interactive Features API
 export const interactiveApi = {
+  // Notifications
+  getNotifications: async () => {
+    const response = await apiClient.get('/interactive/notifications');
+    return response.data;
+  },
+
+  markNotificationAsRead: async (notificationId: string | number) => {
+    const response = await apiClient.post('/interactive/notifications/read', {
+      notificationId
+    });
+    return response.data;
+  },
+
   // Quiz methods
   getLessonQuizzes: async (lessonId: string) => {
     const response = await apiClient.get(`/interactive/lessons/${lessonId}/quizzes`);

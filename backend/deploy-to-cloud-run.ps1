@@ -48,11 +48,12 @@ gcloud run deploy $SERVICE_NAME `
     --memory 2Gi `
     --cpu 1 `
     --max-instances 10 `
-    --service-account eoty-ai-service@eotconnect.iam.gserviceaccount.com `
+    --service-account 317256520378-compute@developer.gserviceaccount.com `
     --concurrency 80 `
     --timeout 900 `
     --add-cloudsql-instances "${PROJECT_ID}:${REGION}:eoty-platform-db" `
     --set-env-vars "NODE_ENV=production" `
+    --set-env-vars "ALLOW_MOCK_EMAIL=true" `
     --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT_ID" `
     --set-env-vars "GOOGLE_CLOUD_LOCATION=$REGION" `
     --set-env-vars "CLOUD_SQL_CONNECTION_NAME=${PROJECT_ID}:${REGION}:eoty-platform-db" `

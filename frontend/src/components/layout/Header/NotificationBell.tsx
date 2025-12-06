@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Bell, X, CheckCircle, AlertTriangle, Info, MessageSquare, Users, Award } from 'lucide-react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { interactiveApi } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface Notification {
   id: string;
@@ -18,55 +20,45 @@ const NotificationBell: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Simulate real-time notifications via WebSocket
   const { lastMessage } = useWebSocket('/notifications');
+
+  const mapType = (rawType?: string): Notification['type'] => {
+    const type = (rawType || '').toLowerCase();
+    if (type === 'success') return 'success';
+    if (type === 'warning') return 'warning';
+    if (type === 'error' || type === 'danger') return 'error';
+    if (type === 'message' || type === 'message_received') return 'message';
+    if (type === 'achievement' || type === 'badge') return 'achievement';
+    return 'info';
+  };
+
+  const mapNotification = (n: any): Notification => ({
+    id: String(n.id ?? n.notification_id ?? crypto.randomUUID()),
+    type: mapType(n.notification_type || n.type),
+    title: n.title || n.type || 'Notification',
+    message: n.message || n.content || '',
+    timestamp: new Date(n.created_at || n.timestamp || Date.now()),
+    read: Boolean(n.is_read ?? n.read),
+    actionUrl: n.action_url || n.actionUrl || (n.data?.action_url ?? n.data?.url),
+    sender: n.sender || n.data?.sender
+  });
 
   // Load initial notifications
   useEffect(() => {
     const loadNotifications = async () => {
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setNotifications([
-          {
-            id: '1',
-            type: 'message',
-            title: 'New Message',
-            message: 'You have a new message from John Doe',
-            timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-            read: false,
-            actionUrl: '/messages'
-          },
-          {
-            id: '2',
-            type: 'achievement',
-            title: 'Achievement Unlocked!',
-            message: 'You earned the "Fast Learner" badge',
-            timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-            read: false,
-            actionUrl: '/achievements'
-          },
-          {
-            id: '3',
-            type: 'success',
-            title: 'Course Completed',
-            message: 'Congratulations! You completed "Introduction to Theology"',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-            read: true
-          },
-          {
-            id: '4',
-            type: 'info',
-            title: 'New Course Available',
-            message: 'Check out the new "Biblical Hermeneutics" course',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-            read: true,
-            actionUrl: '/courses'
-          }
-        ]);
+      try {
+        const res = await interactiveApi.getNotifications();
+        const apiNotifications = res?.data?.notifications || res?.notifications || [];
+        setNotifications(apiNotifications.map(mapNotification));
+      } catch (error) {
+        console.error('Failed to load notifications', error);
+      } finally {
         setIsLoading(false);
-      }, 500);
+      }
     };
 
     loadNotifications();
@@ -75,8 +67,12 @@ const NotificationBell: React.FC = () => {
   // Handle new WebSocket messages
   useEffect(() => {
     if (lastMessage) {
-      const newNotification = JSON.parse(lastMessage.data);
-      setNotifications(prev => [newNotification, ...prev]);
+      try {
+        const incoming = JSON.parse(lastMessage.data);
+        setNotifications(prev => [mapNotification(incoming), ...prev]);
+      } catch (e) {
+        console.error('Failed to parse incoming notification', e);
+      }
     }
   }, [lastMessage]);
 
@@ -118,27 +114,31 @@ const NotificationBell: React.FC = () => {
 
   const handleToggleDropdown = useCallback(() => {
     setIsOpen(prev => !prev);
-    // Mark all as read when opening
-    if (!isOpen && unreadCount > 0) {
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-    }
-  }, [isOpen, unreadCount]);
+  }, []);
 
-  const handleMarkAsRead = useCallback((id: string) => {
+  const handleMarkAsRead = useCallback(async (id: string) => {
     setNotifications(prev =>
       prev.map(notif =>
         notif.id === id ? { ...notif, read: true } : notif
       )
     );
+    try {
+      await interactiveApi.markNotificationAsRead(id);
+    } catch (e) {
+      console.error('Failed to mark notification as read', e);
+    }
   }, []);
 
-  const handleMarkAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
-    );
-  }, []);
+  const handleMarkAllAsRead = useCallback(async () => {
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length === 0) return;
+    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+    try {
+      await Promise.all(unreadIds.map(id => interactiveApi.markNotificationAsRead(id)));
+    } catch (e) {
+      console.error('Failed to mark all notifications as read', e);
+    }
+  }, [notifications]);
 
   const handleClearAll = useCallback(() => {
     setNotifications([]);
@@ -146,12 +146,11 @@ const NotificationBell: React.FC = () => {
 
   const handleNotificationClick = useCallback((notification: Notification) => {
     if (notification.actionUrl) {
-      // Navigate to action URL
-      console.log('Navigating to:', notification.actionUrl);
+      navigate(notification.actionUrl);
     }
     handleMarkAsRead(notification.id);
     setIsOpen(false);
-  }, [handleMarkAsRead]);
+  }, [handleMarkAsRead, navigate]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

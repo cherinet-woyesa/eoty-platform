@@ -32,6 +32,25 @@ async function ensureLockoutColumns() {
   }
 }
 
+// Runtime feature detection for 2FA column
+let twoFAColumnChecked = false;
+let has2FAColumn = false;
+
+async function ensure2FAColumn() {
+  if (twoFAColumnChecked) return;
+  try {
+    has2FAColumn = await db.schema.hasColumn('users', 'is_2fa_enabled');
+    if (!has2FAColumn) {
+      console.warn('[auth] is_2fa_enabled column missing; 2FA will be disabled.');
+    }
+  } catch (err) {
+    console.error('[auth] Error checking 2FA column:', err);
+    has2FAColumn = false;
+  } finally {
+    twoFAColumnChecked = true;
+  }
+}
+
 // Helper function to convert relative profile picture path to full URL
 function getProfilePictureUrl(relativePath) {
   if (!relativePath) return null;
@@ -358,21 +377,28 @@ const authController = {
         });
       }
 
+      await ensure2FAColumn();
+
+      const selectFields = [
+        'id',
+        'first_name',
+        'last_name',
+        'email',
+        'password_hash',
+        'role',
+        'chapter_id',
+        'is_active',
+        'profile_picture'
+      ];
+
+      if (has2FAColumn) {
+        selectFields.push('is_2fa_enabled');
+      }
+
       // Find user (include profile_picture)
       const user = await db('users')
         .where({ email: email.toLowerCase() })
-        .select(
-          'id',
-          'first_name',
-          'last_name',
-          'email',
-          'password_hash',
-          'role',
-          'chapter_id',
-          'is_active',
-          'profile_picture',
-          'is_2fa_enabled'
-        )
+        .select(selectFields)
         .first();
 
       if (!user) {
@@ -450,9 +476,10 @@ const authController = {
       }
 
       // Check for 2FA
-      console.log(`[DEBUG] Checking 2FA for user ${user.id}: ${user.is_2fa_enabled} (type: ${typeof user.is_2fa_enabled})`);
+      const is2FAEnabled = has2FAColumn && user.is_2fa_enabled;
+      console.log(`[DEBUG] Checking 2FA for user ${user.id}: ${is2FAEnabled}`);
       
-      if (user.is_2fa_enabled) {
+      if (is2FAEnabled) {
         console.log('[DEBUG] 2FA is enabled, generating code...');
         // Generate 6-digit code
         const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -499,13 +526,17 @@ const authController = {
         });
 
       // Log successful login (REQUIREMENT: Login history)
-      await activityLogService.logActivity({
-        userId: user.id,
-        activityType: 'login',
-        ipAddress,
-        userAgent,
-        success: true
-      });
+      try {
+        await activityLogService.logActivity({
+          userId: user.id,
+          activityType: 'login',
+          ipAddress,
+          userAgent,
+          success: true
+        });
+      } catch (logError) {
+        console.error('Failed to log login activity (non-critical):', logError.message);
+      }
 
       // Generate JWT token
       const token = jwt.sign(
