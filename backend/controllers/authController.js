@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const db = require('../config/database');
 const authConfig = require('../config/auth');
 const emailService = require('../services/emailService');
+const gcsService = require('../services/gcsService');
 
 // NOTE: In production we might not have the newest lockout columns yet.
 // To keep login robust, we avoid hard dependencies on those columns.
@@ -1365,20 +1366,16 @@ const authController = {
         });
       }
 
-      // In a real implementation, you would:
-      // 1. Upload the file to a storage service (S3, Cloudinary, etc.)
-      // 2. Save the URL to the user's profile in the database
-      // 3. Return the URL to the frontend
+      // Upload to GCS
+      // This works on Cloud Run because we use memoryStorage in routes/auth.js
+      // and the GCS service uses the default service account credentials
+      const publicUrl = await gcsService.uploadFile(req.file, 'profiles');
 
-      // Construct full URL for profile picture
-      const relativePath = `/uploads/profiles/${req.file.filename}`;
-      const profilePictureUrl = getProfilePictureUrl(relativePath);
-
-      // Update user's profile picture in database (store relative path, return full URL)
+      // Update user's profile picture in database (store full URL)
       await db('users')
         .where({ id: req.user.userId })
         .update({ 
-          profile_picture: relativePath, // Store relative path in DB
+          profile_picture: publicUrl, 
           updated_at: new Date()
         });
 
@@ -1386,7 +1383,7 @@ const authController = {
         success: true,
         message: 'Profile picture uploaded successfully',
         data: {
-          profilePicture: profilePictureUrl // Return full URL to frontend
+          profilePicture: publicUrl
         }
       });
     } catch (error) {

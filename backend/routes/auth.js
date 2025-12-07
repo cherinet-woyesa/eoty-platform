@@ -6,15 +6,8 @@ const multer = require('multer');
 const passport = require('passport');
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/profiles/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
-  }
-});
+// Use memory storage for Cloud Run compatibility (files processed in memory then uploaded to GCS)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
