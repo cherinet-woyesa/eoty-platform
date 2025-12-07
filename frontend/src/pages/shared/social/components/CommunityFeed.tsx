@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, Sparkles } from 'lucide-react';
 import PostCard, { type Post } from '@/components/shared/social/PostCard';
 
 interface CommunityFeedProps {
@@ -12,6 +12,7 @@ interface CommunityFeedProps {
   onBookmark: (postId: string) => void;
   onCommentCountChange: (postId: string, count: number) => void;
   currentUserId?: string;
+  onStartPost?: () => void;
 }
 
 const CommunityFeed: React.FC<CommunityFeedProps> = ({
@@ -23,13 +24,30 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   onShare,
   onBookmark,
   onCommentCountChange,
-  currentUserId
+  currentUserId,
+  onStartPost
 }) => {
   if (isLoading && posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-[#27AE60] animate-spin mb-4" />
-        <p className="text-gray-500">Loading community posts...</p>
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-pulse space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-200" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 w-32 bg-gray-200 rounded" />
+                <div className="h-3 w-24 bg-gray-200 rounded" />
+              </div>
+            </div>
+            <div className="h-3 w-full bg-gray-200 rounded" />
+            <div className="h-3 w-2/3 bg-gray-200 rounded" />
+            <div className="flex gap-3 pt-2">
+              <div className="h-8 w-16 bg-gray-200 rounded" />
+              <div className="h-8 w-16 bg-gray-200 rounded" />
+              <div className="h-8 w-16 bg-gray-200 rounded" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -44,6 +62,15 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
         <p className="text-gray-500 max-w-md mx-auto">
           Be the first to share something with the community! Start a discussion or share your spiritual journey.
         </p>
+        {onStartPost && (
+          <button
+            onClick={onStartPost}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#1f8f50] transition-colors font-semibold"
+          >
+            <Sparkles className="h-4 w-4" />
+            Start a post
+          </button>
+        )}
       </div>
     );
   }

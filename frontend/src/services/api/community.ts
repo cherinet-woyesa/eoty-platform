@@ -84,6 +84,13 @@ export const forumsApi = {
     return response.data;
   },
 
+  // Reply to a post (fallback to topic reply with mention handled in hook)
+  replyToPost: async (topicId: number, postId: number, content: string): Promise<{ success: boolean; data: { reply: ForumPost } }> => {
+    // No dedicated endpoint for post replies; use topic reply with mention
+    const response = await forumsApi.createReply(topicId, { content: `@post-${postId} ${content}` });
+    return response.data;
+  },
+
   // Report a post
   reportPost: async (postId: number, reason: string, details: string): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post(`/forums/posts/${postId}/report`, { reason, details });

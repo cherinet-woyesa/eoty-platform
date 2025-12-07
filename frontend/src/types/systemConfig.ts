@@ -67,6 +67,12 @@ export interface Chapter {
   id: number;
   name: string;
   description?: string;
+  city?: string | null;
+  country?: string | null;
+  region?: string | null;
+  location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   display_order: number;
   is_active: boolean;
   course_count: number;
@@ -199,6 +205,12 @@ export interface TagFormData {
 export interface ChapterFormData {
   name: string;
   description?: string;
+  city?: string;
+  country?: string;
+  region?: string;
+  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // ============================================================================

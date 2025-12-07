@@ -19,6 +19,7 @@ const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -35,27 +36,33 @@ const NotificationBell: React.FC = () => {
     return 'info';
   };
 
-  const mapNotification = (n: any): Notification => ({
-    id: String(n.id ?? n.notification_id ?? crypto.randomUUID()),
-    type: mapType(n.notification_type || n.type),
-    title: n.title || n.type || 'Notification',
-    message: n.message || n.content || '',
-    timestamp: new Date(n.created_at || n.timestamp || Date.now()),
-    read: Boolean(n.is_read ?? n.read),
-    actionUrl: n.action_url || n.actionUrl || (n.data?.action_url ?? n.data?.url),
-    sender: n.sender || n.data?.sender
-  });
+  const mapNotification = (n: any): Notification => {
+    const ts = n?.created_at || n?.timestamp;
+    const parsedTs = ts ? new Date(ts) : new Date();
+    return {
+      id: String(n?.id ?? n?.notification_id ?? crypto.randomUUID()),
+      type: mapType(n?.notification_type || n?.type),
+      title: n?.title || n?.type || 'Notification',
+      message: n?.message || n?.content || '',
+      timestamp: parsedTs,
+      read: Boolean(n?.is_read ?? n?.read),
+      actionUrl: n?.action_url || n?.actionUrl || (n?.data?.action_url ?? n?.data?.url),
+      sender: n?.sender || n?.data?.sender
+    };
+  };
 
   // Load initial notifications
   useEffect(() => {
     const loadNotifications = async () => {
       setIsLoading(true);
       try {
+        setError(null);
         const res = await interactiveApi.getNotifications();
         const apiNotifications = res?.data?.notifications || res?.notifications || [];
         setNotifications(apiNotifications.map(mapNotification));
       } catch (error) {
         console.error('Failed to load notifications', error);
+        setError('Could not load notifications');
       } finally {
         setIsLoading(false);
       }
@@ -126,6 +133,7 @@ const NotificationBell: React.FC = () => {
       await interactiveApi.markNotificationAsRead(id);
     } catch (e) {
       console.error('Failed to mark notification as read', e);
+      setError('Could not mark notification as read');
     }
   }, []);
 
@@ -137,6 +145,7 @@ const NotificationBell: React.FC = () => {
       await Promise.all(unreadIds.map(id => interactiveApi.markNotificationAsRead(id)));
     } catch (e) {
       console.error('Failed to mark all notifications as read', e);
+      setError('Could not mark notifications as read');
     }
   }, [notifications]);
 
@@ -213,6 +222,12 @@ const NotificationBell: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {error && (
+            <div className="px-4 py-2 text-xs text-red-600 bg-red-50 border-b border-red-100">
+              {error}
+            </div>
+          )}
 
           {/* Notifications List */}
           <div className="flex-1 overflow-y-auto">

@@ -165,15 +165,25 @@ const studentsController = {
       try {
         const enrolledCourses = await db('courses as c')
           .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
+          .leftJoin('course_favorites as cf', function() {
+            this.on('cf.course_id', '=', 'c.id').andOn('cf.user_id', '=', db.raw('?', [studentId]));
+          })
+          .leftJoin('bookmarks as bm', function() {
+            this.on(db.raw('CAST(bm.entity_id AS INTEGER)'), '=', 'c.id')
+              .andOn('bm.entity_type', '=', db.raw('?', ['course']))
+              .andOn('bm.user_id', '=', db.raw('?', [studentId]));
+          })
           .where('uce.user_id', studentId)
           .select(
             'c.id',
             'c.title',
             'c.description',
             'c.cover_image',
-            'uce.enrollment_status'
+            'uce.enrollment_status',
+            db.raw('CASE WHEN cf.user_id IS NOT NULL THEN true ELSE false END as is_favorite'),
+            db.raw('CASE WHEN bm.id IS NOT NULL THEN true ELSE false END as is_bookmarked')
           )
-          .limit(10);
+          .groupBy('c.id', 'c.title', 'c.description', 'c.cover_image', 'uce.enrollment_status', 'cf.user_id', 'bm.id');
 
         // Get lesson counts and progress for each course
         coursesWithProgress = await Promise.all(enrolledCourses.map(async (course) => {
@@ -208,7 +218,9 @@ const studentsController = {
               id: course.id,
               title: course.title,
               description: course.description,
-              coverImage: course.cover_image,
+              cover_image: course.cover_image,
+              is_favorite: !!course.is_favorite,
+              is_bookmarked: !!course.is_bookmarked,
               progress,
               totalLessons,
               completedLessons,
@@ -220,7 +232,9 @@ const studentsController = {
               id: course.id,
               title: course.title,
               description: course.description,
-              coverImage: course.cover_image,
+              cover_image: course.cover_image,
+              is_favorite: !!course.is_favorite,
+              is_bookmarked: !!course.is_bookmarked,
               progress: 0,
               totalLessons: 0,
               completedLessons: 0,

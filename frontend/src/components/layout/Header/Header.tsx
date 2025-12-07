@@ -50,10 +50,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             </div>
           </div>
 
-          {/* Center section - Search Bar (Desktop only) */}
-          <div className="hidden lg:flex flex-1 max-w-2xl mx-4">
-            <SearchBar />
-          </div>
+          {/* Center section - Search Bar (Desktop only) - temporarily hidden */}
+          <div className="hidden lg:flex flex-1 max-w-2xl mx-4" />
 
           {/* Right section - User actions */}
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
@@ -75,13 +73,9 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </div>
         </div>
 
-        {/* Mobile breadcrumb and search - Only show on mobile */}
+        {/* Mobile breadcrumb and search - temporarily hide search */}
         <div className="md:hidden pb-2 space-y-2">
           <BreadcrumbNav />
-          {/* Mobile search bar */}
-          <div className="lg:hidden">
-            <SearchBar />
-          </div>
         </div>
       </div>
 

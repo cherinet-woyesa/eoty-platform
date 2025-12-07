@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, Users, Globe, GraduationCap, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BookOpen, Users, Globe, GraduationCap, Search, Filter, AlertCircle } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 import type { Resource } from '@/types/resources';
 import { useAuth } from '@/context/AuthContext';
+import { chaptersApi } from '@/services/api/chapters';
 
 interface UnifiedResourceViewProps {
   courseId?: string;
@@ -40,6 +41,8 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [userChapterId, setUserChapterId] = useState<string | null>(null);
 
   const tabs = showCourseResources && hideTabs
     ? [{
@@ -70,13 +73,30 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
       ];
 
   useEffect(() => {
+    const loadMembership = async () => {
+      try {
+        const resp = await chaptersApi.getUserChapters();
+        const chapters = resp?.data?.chapters || [];
+        const primary = chapters.find((c: any) => c.is_primary && c.status === 'approved');
+        const anyChapter = chapters[0];
+        const pick = primary || anyChapter;
+        setUserChapterId(pick ? String(pick.chapter_id || pick.id) : null);
+      } catch {
+        setUserChapterId(null);
+      }
+    };
+    loadMembership();
+  }, [user?.id]);
+
+  useEffect(() => {
     loadResources();
-  }, [activeTab, searchTerm, selectedCategory, refreshToken]);
+  }, [activeTab, searchTerm, selectedCategory, refreshToken, userChapterId]);
 
   const loadResources = async () => {
     try {
       setLoading(true);
       let response;
+      setError(null);
 
       // When showCourseResources + hideTabs, force course-only scope
       const scope = showCourseResources && hideTabs ? 'course' : activeTab;
@@ -90,7 +110,13 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
           }
           break;
         case 'chapter':
-          response = await resourcesApi.getChapterResources(user?.chapter_id?.toString() || '', {
+          if (!userChapterId) {
+            setResources([]);
+            setError('Join a chapter to view chapter resources.');
+            setLoading(false);
+            return;
+          }
+          response = await resourcesApi.getChapterResources(userChapterId, {
             search: searchTerm,
             category: selectedCategory
           });
@@ -105,9 +131,18 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
 
       if (response?.success) {
         setResources(response.data.resources || []);
+      } else if (response?.message) {
+        setError(response.message);
       }
-    } catch (error) {
-      console.error('Failed to load resources:', error);
+    } catch (err: any) {
+      console.error('Failed to load resources:', err);
+      const status = err.response?.status;
+      if (status === 403 || status === 401) {
+        setError('Access denied. Join this chapter or switch to one you are a member of.');
+        setResources([]);
+      } else {
+        setError(err.response?.data?.message || 'Failed to load resources.');
+      }
     } finally {
       setLoading(false);
     }
@@ -210,6 +245,13 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
           ? (variant === 'full' ? 'bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 p-6 mt-6' : 'bg-white rounded-lg border border-gray-200 p-4 mt-4')
           : ''
       }`}>
+        {error && (
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm">{error}</span>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
@@ -222,9 +264,8 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
               {activeTab === 'course'
                 ? 'No course-specific resources have been shared yet.'
                 : activeTab === 'chapter'
-                ? 'No chapter resources are available at the moment.'
-                : 'No platform resources are currently available.'
-              }
+                ? (userChapterId ? 'No chapter resources are available at the moment.' : 'Join a chapter to view chapter resources.')
+                : 'No platform resources are currently available.'}
             </p>
           </div>
         ) : (

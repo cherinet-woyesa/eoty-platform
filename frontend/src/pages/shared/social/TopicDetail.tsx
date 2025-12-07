@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Heart, Share2, Flag, User, Clock, Pin, Lock } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Heart, Share2, Flag, User, Clock, Pin, Lock, Shield } from 'lucide-react';
 import { useTopicDetail } from '@/hooks/useCommunity';
 import { useAuth } from '@/context/AuthContext';
 
 const TopicDetail: React.FC = () => {
   const { forumId, topicId } = useParams<{ forumId: string; topicId: string }>();
   const navigate = useNavigate();
-  const { topic, replies, loading, error, likeTopic, replyToTopic, shareTopic, reportTopic } = useTopicDetail(Number(topicId));
+  const { topic, replies, loading, error, likeTopic, replyToTopic, likeReply, replyToReply, shareTopic, reportTopic } = useTopicDetail(Number(topicId));
   const { user, hasPermission } = useAuth();
   const [newReply, setNewReply] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
+  const [activeReply, setActiveReply] = useState<number | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
+  const [pendingLike, setPendingLike] = useState<Record<number, boolean>>({});
+  const [sendingReply, setSendingReply] = useState<Record<number, boolean>>({});
 
   if (loading && !topic) {
     return (
@@ -71,6 +75,10 @@ const TopicDetail: React.FC = () => {
     );
   }
 
+  const topicAuthor = (topic as any)?.author_name ?? (topic as any)?.authorName ?? 'Anonymous';
+  const topicUserLiked = Boolean((topic as any)?.user_liked ?? (topic as any)?.liked);
+  const topicLikes = (topic as any)?.likes_count ?? (topic as any)?.likes ?? 0;
+
   const handleLike = async () => {
     if (user) {
       await likeTopic();
@@ -82,6 +90,41 @@ const TopicDetail: React.FC = () => {
       await replyToTopic(newReply);
       setNewReply('');
       setIsReplying(false);
+    }
+  };
+
+  const handleLikeReply = async (postId: number) => {
+    try {
+      setPendingLike((prev) => ({ ...prev, [postId]: true }));
+      await likeReply(postId);
+    } finally {
+      setPendingLike((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+    }
+  };
+
+  const handleReplyToReply = async (postId: number, content: string) => {
+    if (!content.trim()) return;
+    try {
+      setSendingReply((prev) => ({ ...prev, [postId]: true }));
+      await replyToReply(postId, content);
+      setReplyDrafts((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      setActiveReply(null);
+    } catch (err) {
+      alert('Failed to post reply');
+    } finally {
+      setSendingReply((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
     }
   };
 
@@ -135,8 +178,8 @@ const TopicDetail: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {topic.is_pinned && <Pin className="h-4 w-4 text-amber-600" title="Pinned Topic" />}
-              {topic.is_locked && <Lock className="h-4 w-4 text-stone-500" title="Locked Topic" />}
+              {topic.is_pinned && <Pin className="h-4 w-4 text-amber-600" aria-label="Pinned Topic" />}
+              {topic.is_locked && <Lock className="h-4 w-4 text-stone-500" aria-label="Locked Topic" />}
             </div>
           </div>
         </div>
@@ -149,7 +192,7 @@ const TopicDetail: React.FC = () => {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <span className="font-semibold text-stone-800">{topic.author_name}</span>
+                <span className="font-semibold text-stone-800">{topicAuthor}</span>
                 <span className="text-sm text-stone-500 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {new Date(topic.created_at).toLocaleDateString()}
@@ -162,13 +205,13 @@ const TopicDetail: React.FC = () => {
                 <button
                   onClick={handleLike}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
-                    topic.user_liked
+                    topicUserLiked
                       ? 'bg-red-50 text-red-600 border border-red-200'
                       : 'text-stone-600 hover:bg-stone-50 border border-stone-200'
                   }`}
                 >
-                  <Heart className={`h-4 w-4 ${topic.user_liked ? 'fill-current' : ''}`} />
-                  <span className="text-sm">{topic.likes_count || 0}</span>
+                  <Heart className={`h-4 w-4 ${topicUserLiked ? 'fill-current' : ''}`} />
+                  <span className="text-sm">{topicLikes || 0}</span>
                 </button>
                 <button
                   onClick={handleShare}
@@ -242,7 +285,11 @@ const TopicDetail: React.FC = () => {
           {/* Replies List */}
           <div className="divide-y divide-stone-200">
             {replies.length > 0 ? (
-              replies.map((reply) => (
+              replies.map((reply) => {
+                const replyAuthor = (reply as any).author_name ?? (reply as any).authorName ?? 'Anonymous';
+                const replyUserLiked = Boolean((reply as any).user_liked ?? (reply as any).liked);
+                const replyLikes = (reply as any).likes_count ?? (reply as any).like_count ?? (reply as any).likes ?? 0;
+                return (
                 <div key={reply.id} className="p-6 hover:bg-stone-50/50 transition-colors">
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 bg-gradient-to-r from-[#2980B9] to-[#27AE60] rounded-full flex items-center justify-center flex-shrink-0">
@@ -250,7 +297,7 @@ const TopicDetail: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="font-semibold text-stone-800">{reply.author_name}</span>
+                        <span className="font-semibold text-stone-800">{replyAuthor}</span>
                         <span className="text-sm text-stone-500 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {new Date(reply.created_at).toLocaleDateString()}
@@ -260,18 +307,75 @@ const TopicDetail: React.FC = () => {
                         <p className="text-stone-700 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                       </div>
                       <div className="flex items-center gap-4 pt-3 mt-3 border-t border-stone-200">
-                        <button className="flex items-center gap-2 px-3 py-1 text-stone-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                          <Heart className="h-3 w-3" />
-                          <span className="text-sm">{reply.likes_count || 0}</span>
+                        <button
+                          onClick={() => handleLikeReply(Number(reply.id))}
+                          disabled={pendingLike[Number(reply.id)]}
+                          className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all ${
+                            replyUserLiked
+                              ? 'text-red-600 bg-red-50 border border-red-200'
+                              : 'text-stone-600 hover:text-red-600 hover:bg-red-50 border border-transparent'
+                          } ${pendingLike[Number(reply.id)] ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        >
+                          <Heart className={`h-3 w-3 ${replyUserLiked ? 'fill-current' : ''}`} />
+                          <span className="text-sm">{replyLikes}</span>
                         </button>
-                        <button className="px-3 py-1 text-stone-600 hover:text-stone-800 transition-all">
+                        <button
+                          onClick={() => {
+                            setActiveReply((prev) => (prev === reply.id ? null : Number(reply.id)));
+                            setReplyDrafts((prev) => ({
+                              ...prev,
+                              [Number(reply.id)]: prev[Number(reply.id)] || `@${replyAuthor || 'user'} `
+                            }));
+                          }}
+                          className="px-3 py-1 text-stone-600 hover:text-stone-800 transition-all"
+                        >
                           <span className="text-sm">Reply</span>
                         </button>
                       </div>
+
+                      {activeReply === reply.id && (
+                        <div className="mt-3 space-y-2">
+                          <textarea
+                            value={replyDrafts[Number(reply.id)] || ''}
+                            onChange={(e) =>
+                              setReplyDrafts((prev) => ({
+                                ...prev,
+                                [Number(reply.id)]: e.target.value
+                              }))
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]"
+                            placeholder={`Reply to ${replyAuthor || 'this user'}...`}
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setActiveReply(null);
+                                setReplyDrafts((prev) => {
+                                  const next = { ...prev };
+                                  delete next[Number(reply.id)];
+                                  return next;
+                                });
+                              }}
+                              className="px-3 py-1.5 text-sm text-stone-600 hover:text-stone-800"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleReplyToReply(Number(reply.id), replyDrafts[Number(reply.id)] || '')}
+                              disabled={sendingReply[Number(reply.id)] || !(replyDrafts[Number(reply.id)] || '').trim()}
+                              className="px-4 py-1.5 text-sm bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {sendingReply[Number(reply.id)] ? 'Sending...' : 'Send Reply'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))
+              );
+              })
             ) : (
               <div className="p-12 text-center">
                 <MessageSquare className="h-12 w-12 text-stone-300 mx-auto mb-4" />

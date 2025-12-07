@@ -102,7 +102,8 @@ const adminController = {
       }
 
       // Validate role - only allow specific roles
-      const validRoles = ['student', 'teacher', 'admin'];
+      // Align with full role set supported elsewhere in admin update
+      const validRoles = ['student', 'teacher', 'admin', 'chapter_admin', 'regional_coordinator'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,

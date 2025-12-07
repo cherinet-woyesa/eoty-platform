@@ -9,6 +9,7 @@ import { studentsApi } from '@/services/api/students';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface CatalogCourse {
   id: number;
@@ -27,6 +28,7 @@ interface CatalogCourse {
 
 const CourseCatalog: React.FC = () => {
   const { user } = useAuth();
+  const { confirm } = useConfirmDialog();
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,15 +84,34 @@ const CourseCatalog: React.FC = () => {
     }
   }, []);
 
+  // Refresh when other parts of the app change enrollment state
+  useEffect(() => {
+    const handleEnrollmentUpdate = () => loadCatalog();
+    window.addEventListener('student-enrollment-updated', handleEnrollmentUpdate);
+    window.addEventListener('focus', handleEnrollmentUpdate);
+    return () => {
+      window.removeEventListener('student-enrollment-updated', handleEnrollmentUpdate);
+      window.removeEventListener('focus', handleEnrollmentUpdate);
+    };
+  }, [loadCatalog]);
+
   useEffect(() => {
     loadCatalog();
     loadInvitations();
   }, [loadCatalog, loadInvitations]);
 
-  const handleEnroll = useCallback(async (courseId: number) => {
+  const handleEnroll = useCallback(async (courseId: number, title?: string) => {
     try {
+      const ok = await confirm({
+        title: 'Enroll in course',
+        message: `Do you want to enroll in "${title || 'this course'}"? You can unenroll anytime and your progress will be saved.`,
+        confirmText: 'Enroll',
+        cancelText: 'Cancel'
+      });
+      if (!ok) return;
+
       setEnrolling(courseId);
-      await apiClient.post(`/courses/${courseId}/enroll`);
+      const res = await apiClient.post(`/courses/${courseId}/enroll`);
       
       // Update local state
       setCourses(courses.map(course => 
@@ -98,13 +119,28 @@ const CourseCatalog: React.FC = () => {
           ? { ...course, is_enrolled: true, student_count: course.student_count + 1 }
           : course
       ));
-    } catch (err) {
+      // Notify other parts of the app
+      window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+
+      // Optional: use res?.data?.message with a notification if needed
+    } catch (err: any) {
       console.error('Failed to enroll:', err);
+      const msg = err?.response?.data?.message || '';
+      if (msg.toLowerCase().includes('already enrolled')) {
+        // Treat as success: mark enrolled locally and emit event
+        setCourses(courses.map(course => 
+          course.id === courseId 
+            ? { ...course, is_enrolled: true }
+            : course
+        ));
+        window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+        return;
+      }
       alert('Failed to enroll in course. Please try again.');
     } finally {
       setEnrolling(null);
     }
-  }, [courses]);
+  }, [courses, confirm]);
 
   // Memoize filtered courses to prevent unnecessary re-calculations
   const filteredCourses = useMemo(() => {
@@ -215,7 +251,7 @@ const CourseCatalog: React.FC = () => {
 
               {!course.is_enrolled ? (
                 <button
-                  onClick={() => handleEnroll(course.id)}
+                  onClick={() => handleEnroll(course.id, course.title)}
                   disabled={enrolling === course.id}
                   className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                 >

@@ -38,6 +38,7 @@ const thumbnailRoutes = require('./routes/thumbnails');
 const relatedVideosRoutes = require('./routes/relatedVideos');
 const recordingPresetsRoutes = require('./routes/recordingPresets');
 const knowledgeBaseRoutes = require('./routes/knowledgeBase');
+const learningPathsRoutes = require('./routes/learningPaths');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -332,6 +333,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/learning-paths', authenticateToken, learningPathsRoutes);
 app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes
 app.use('/api/journeys', require('./routes/journeys')); // Spiritual Journeys

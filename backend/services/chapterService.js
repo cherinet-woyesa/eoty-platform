@@ -47,6 +47,35 @@ class ChapterService {
   }
 
   /**
+   * Get nearby chapters using Haversine formula
+   */
+  async getNearbyChapters({ lat, lng, radiusKm = 50, limit = 50 }) {
+    // Ensure columns exist
+    const hasLat = await db.schema.hasColumn('chapters', 'latitude');
+    const hasLng = await db.schema.hasColumn('chapters', 'longitude');
+    if (!hasLat || !hasLng) {
+      return [];
+    }
+
+    // Haversine calculation (km) - avoid alias in HAVING for Postgres
+    const earthRadius = 6371;
+    const distanceExpr = `${earthRadius} * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))`;
+    const bindings = [lat, lng, lat];
+
+    return db('chapters')
+      .whereNotNull('latitude')
+      .whereNotNull('longitude')
+      .andWhere('is_active', true)
+      .select(
+        '*',
+        db.raw(`${distanceExpr} as distance_km`, bindings)
+      )
+      .whereRaw(`${distanceExpr} <= ?`, [...bindings, radiusKm])
+      .orderBy('distance_km', 'asc')
+      .limit(limit);
+  }
+
+  /**
    * Get user's chapters (REQUIREMENT: Supports multiple chapters)
    * @param {number} userId - User ID
    */

@@ -51,6 +51,18 @@ async function ensure2FAColumn() {
   }
 }
 
+// Minimal cookie parser (avoid extra deps)
+function getCookie(req, name) {
+  const cookieHeader = req.headers?.cookie;
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';').map(c => c.trim());
+  for (const c of cookies) {
+    const [k, v] = c.split('=');
+    if (k === name) return decodeURIComponent(v || '');
+  }
+  return null;
+}
+
 // Helper function to convert relative profile picture path to full URL
 function getProfilePictureUrl(relativePath) {
   if (!relativePath) return null;
@@ -479,6 +491,68 @@ const authController = {
       const is2FAEnabled = has2FAColumn && user.is_2fa_enabled;
       console.log(`[DEBUG] Checking 2FA for user ${user.id}: ${is2FAEnabled}`);
       
+      // Remember-device: if cookie is valid, skip 2FA prompt
+      if (is2FAEnabled) {
+        const rememberCookie = getCookie(req, 'remember_device');
+        if (rememberCookie) {
+          try {
+            const decoded = jwt.verify(rememberCookie, authConfig.jwtSecret);
+            if (decoded.userId === user.id) {
+              console.log('[DEBUG] Remember device token valid; skipping 2FA.');
+              
+              await db('users')
+                .where({ id: user.id })
+                .update({ last_login_at: new Date() });
+
+              try {
+                await activityLogService.logActivity({
+                  userId: user.id,
+                  activityType: 'login',
+                  ipAddress,
+                  userAgent,
+                  success: true
+                });
+              } catch (logError) {
+                console.error('Failed to log login activity (non-critical):', logError.message);
+              }
+
+              const token = jwt.sign(
+                { 
+                  userId: user.id, 
+                  email: user.email, 
+                  role: user.role,
+                  firstName: user.first_name,
+                  lastName: user.last_name,
+                  chapter: user.chapter_id
+                },
+                authConfig.jwtSecret,
+                { expiresIn: authConfig.jwtExpiresIn }
+              );
+
+              return res.json({
+                success: true,
+                message: 'Login successful',
+                data: {
+                  user: {
+                    id: user.id,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    email: user.email,
+                    role: user.role,
+                    chapter: user.chapter_id,
+                    isActive: user.is_active,
+                    profilePicture: getProfilePictureUrl(user.profile_picture)
+                  },
+                  token
+                }
+              });
+            }
+          } catch (rememberErr) {
+            console.warn('Remember device token invalid or expired:', rememberErr.message);
+          }
+        }
+      }
+      
       if (is2FAEnabled) {
         console.log('[DEBUG] 2FA is enabled, generating code...');
         // Generate 6-digit code
@@ -553,6 +627,22 @@ const authController = {
       );
 
       console.log('Login successful for:', email, 'Role:', user.role);
+
+      // Set remember-device cookie to skip 2FA on this device for 30 days
+      if (is2FAEnabled) {
+        const rememberToken = jwt.sign(
+          { userId: user.id },
+          authConfig.jwtSecret,
+          { expiresIn: '30d' }
+        );
+        res.cookie('remember_device', rememberToken, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          path: '/'
+        });
+      }
 
       res.json({
         success: true,
@@ -689,6 +779,20 @@ const authController = {
         authConfig.jwtSecret,
         { expiresIn: authConfig.jwtExpiresIn }
       );
+
+      // Set remember-device cookie after successful 2FA (30 days)
+      const rememberToken = jwt.sign(
+        { userId: user.id },
+        authConfig.jwtSecret,
+        { expiresIn: '30d' }
+      );
+      res.cookie('remember_device', rememberToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
 
       res.json({
         success: true,
@@ -833,19 +937,6 @@ const authController = {
       
       // If user doesn't exist at all, create a new user
       if (!user) {
-        // Get default chapter (first active chapter) for new users
-        const defaultChapter = await db('chapters')
-          .where({ is_active: true })
-          .orderBy('id', 'asc')
-          .first();
-
-        if (!defaultChapter) {
-          return res.status(500).json({
-            success: false,
-            message: 'No active chapters found. Please contact administrator.'
-          });
-        }
-
         const userData = {
           first_name: firstName,
           last_name: lastName,
@@ -853,7 +944,7 @@ const authController = {
           google_id: googleId,
           profile_picture: profilePicture,
           role: 'user', // Default role for Google signups (generic member)
-          chapter_id: defaultChapter.id, // Use valid chapter ID
+          chapter_id: null, // Force chapter selection on first login
           is_active: true,
           is_2fa_enabled: true, // Enable 2FA for new Google users
           created_at: new Date(),
@@ -2473,6 +2564,7 @@ const authController = {
   async processGoogleLogin(googleData) {
     try {
       const { googleId, email, firstName, lastName, profilePicture, role = 'user' } = googleData;
+      await ensure2FAColumn();
 
       // Check if user exists with this Google ID
       let user = await db('users')
@@ -2499,13 +2591,6 @@ const authController = {
       if (!user) {
         // For Google Sign Up, we allow creating user without chapter initially
         // They will be redirected to complete profile page
-        
-        // Try to get a default chapter just in case, but don't fail if not found
-        const defaultChapter = await db('chapters')
-          .where({ is_active: true })
-          .orderBy('id', 'asc')
-          .first();
-
         const userData = {
           first_name: firstName,
           last_name: lastName,
@@ -2513,8 +2598,9 @@ const authController = {
           google_id: googleId,
           profile_picture: profilePicture,
           role: role, // Use the passed role
-          chapter_id: defaultChapter ? defaultChapter.id : null, // Allow null if DB permits, or default
+          chapter_id: null, // Force chapter selection after OAuth
           is_active: true,
+          ...(has2FAColumn ? { is_2fa_enabled: true } : {}),
           created_at: new Date(),
           updated_at: new Date()
         };
@@ -2526,7 +2612,7 @@ const authController = {
         // Get the created user
         user = await db('users')
           .where({ id: userId })
-          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture', ...(has2FAColumn ? ['is_2fa_enabled'] : []))
           .first();
           
         // Mark as new user for frontend redirection
@@ -2544,8 +2630,42 @@ const authController = {
         // Refresh user data
         user = await db('users')
           .where({ id: user.id })
-          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture')
+          .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'profile_picture', ...(has2FAColumn ? ['is_2fa_enabled'] : []))
           .first();
+      }
+
+      // Enforce 2FA for Google signups when column exists
+      if (has2FAColumn && (user.is_2fa_enabled || user.isNewUser)) {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await db('two_factor_codes').insert({
+          user_id: user.id,
+          code: codeHash,
+          expires_at: expiresAt,
+          created_at: new Date()
+        });
+
+        try {
+          await emailService.send2FACodeEmail(user.email, code);
+        } catch (emailError) {
+          console.error('Failed to send 2FA email:', emailError);
+          return {
+            success: false,
+            message: 'Failed to send verification code'
+          };
+        }
+
+        return {
+          success: true,
+          requires2FA: true,
+          message: 'Verification code sent to your email',
+          data: {
+            userId: user.id,
+            email: user.email
+          }
+        };
       }
 
       // Log successful SSO login

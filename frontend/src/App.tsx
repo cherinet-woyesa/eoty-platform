@@ -116,7 +116,7 @@ const ForgotPassword = lazy(() => import('@/pages/shared/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/shared/auth/ResetPassword'));
 const EmailVerification = lazy(() => import('@/pages/shared/auth/EmailVerification'));
 const GoogleCallback = lazy(() => import('@/pages/shared/auth/GoogleCallback'));
-const CompleteProfile = lazy(() => import('@/pages/shared/auth/CompleteProfile'));
+const CompleteProfile = lazy(() => import('@/pages/shared/auth/CompleteProfile.tsx'));
 const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout'));
 const StudentEnrolledCourses = lazy(() => import('@/pages/student/courses/StudentEnrolledCourses'));
 const StudentVideos = lazy(() => import('@/pages/student/StudentVideos'));

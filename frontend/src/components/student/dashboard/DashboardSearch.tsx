@@ -1,9 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, X, Filter, Clock, TrendingUp, BookOpen, Users, Zap } from 'lucide-react';
+import { Search, X, Filter, Clock, TrendingUp, BookOpen, Users, Zap, MapPin } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import { resourcesApi } from '@/services/api';
+import { chaptersApi } from '@/services/api/chapters';
+import communityPostsApi from '@/services/api/communityPosts';
+import { apiClient } from '@/services/api/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchResult {
   id: string;
-  type: 'course' | 'lesson' | 'activity' | 'resource';
+  type: 'course' | 'lesson' | 'activity' | 'resource' | 'chapter' | 'community';
   title: string;
   description: string;
   category?: string;
@@ -24,44 +30,22 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
   resultsCount,
   onQuickFilter
 }) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [popularSearches, setPopularSearches] = useState<string[]>([
-    'React Hooks',
-    'Machine Learning',
-    'JavaScript',
-    'Python',
-    'Web Development'
+    'Old Testament',
+    'New Testament',
+    'Liturgy',
+    'Fasting',
+    'Saints',
+    'Doctrine'
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Mock search results - in real app, this would come from API
-  const mockResults: SearchResult[] = [
-    {
-      id: '1',
-      type: 'course',
-      title: 'Advanced React Patterns',
-      description: 'Learn advanced React patterns and best practices',
-      category: 'Web Development',
-      progress: 75,
-      relevance: 95
-    },
-    {
-      id: '2',
-      type: 'lesson',
-      title: 'React Hooks Deep Dive',
-      description: 'Master React Hooks with practical examples',
-      category: 'Web Development',
-      relevance: 88
-    },
-    {
-      id: '3',
-      type: 'activity',
-      title: 'Completed Quiz: JavaScript Fundamentals',
-      description: 'You scored 85% on the JavaScript quiz',
-      relevance: 76
-    }
-  ];
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const debouncedQuery = useDebounce(searchQuery, 300);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -120,6 +104,10 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
         return <TrendingUp className="h-4 w-4 text-purple-500" />;
       case 'resource':
         return <Users className="h-4 w-4 text-orange-500" />;
+      case 'chapter':
+        return <MapPin className="h-4 w-4 text-blue-500" />;
+      case 'community':
+        return <Users className="h-4 w-4 text-indigo-500" />;
       default:
         return <Search className="h-4 w-4 text-gray-500" />;
     }
@@ -131,6 +119,122 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
     return 'text-gray-500';
   };
 
+  const fetchResults = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setResults([]);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const qLower = query.toLowerCase();
+    try {
+      const [coursesRes, enrolledRes, resourcesRes, chaptersRes, communityRes] = await Promise.allSettled([
+        apiClient.get('/courses/catalog'),
+        apiClient.get('/students/dashboard'),
+        resourcesApi.searchResources({ search: query, limit: 5 } as any),
+        chaptersApi.searchChapters(query),
+        communityPostsApi.searchPosts({ q: query, sort: 'most_liked' })
+      ]);
+
+      const next: SearchResult[] = [];
+
+      // Catalog courses
+      if (coursesRes.status === 'fulfilled' && coursesRes.value?.data?.success) {
+        const courses = coursesRes.value.data?.data?.courses || coursesRes.value.data?.courses || [];
+        courses
+          .filter((c: any) => (c.title || '').toLowerCase().includes(qLower) || (c.description || '').toLowerCase().includes(qLower))
+          .slice(0, 6)
+          .forEach((c: any) => {
+            next.push({
+              id: String(c.id),
+              type: 'course',
+              title: c.title,
+              description: c.description || 'Course',
+              category: c.category,
+              progress: c.progress_percentage || c.progress,
+              relevance: 90
+            });
+          });
+      }
+
+      // Enrolled courses from dashboard (to include drafts or non-catalog courses)
+      if (enrolledRes.status === 'fulfilled' && enrolledRes.value?.data?.success) {
+        const enrolled = enrolledRes.value.data?.data?.enrolledCourses || [];
+        enrolled
+          .filter((c: any) => (c.title || '').toLowerCase().includes(qLower) || (c.description || '').toLowerCase().includes(qLower))
+          .slice(0, 4)
+          .forEach((c: any) => {
+            // Avoid duplicate IDs if already added
+            if (!next.some((r) => r.type === 'course' && r.id === String(c.id))) {
+              next.push({
+                id: String(c.id),
+                type: 'course',
+                title: c.title,
+                description: c.description || 'Course',
+                category: c.category,
+                progress: c.progress_percentage || c.progress,
+                relevance: 88
+              });
+            }
+          });
+      }
+
+      if (resourcesRes.status === 'fulfilled' && resourcesRes.value?.success) {
+        const resources = resourcesRes.value.data?.resources || [];
+        resources.slice(0, 4).forEach((r: any) => {
+          next.push({
+            id: String(r.id),
+            type: 'resource',
+            title: r.title,
+            description: r.description || r.author || 'Resource',
+            category: r.category,
+            relevance: 82
+          });
+        });
+      }
+
+      if (chaptersRes.status === 'fulfilled' && chaptersRes.value?.success) {
+        const chapters = chaptersRes.value.data?.chapters || [];
+        chapters.slice(0, 3).forEach((ch: any) => {
+          next.push({
+            id: String(ch.id),
+            type: 'chapter',
+            title: ch.name,
+            description: `${ch.city || ''} ${ch.country || ''}`.trim() || 'Chapter',
+            category: ch.region,
+            relevance: 78
+          });
+        });
+      }
+
+      if (communityRes.status === 'fulfilled' && communityRes.value?.success) {
+        const posts = communityRes.value.data?.posts || [];
+        posts.slice(0, 3).forEach((p: any) => {
+          next.push({
+            id: String(p.id),
+            type: 'community',
+            title: p.content?.slice(0, 80) || 'Community post',
+            description: p.author_name || 'Community',
+            relevance: 70
+          });
+        });
+      }
+
+      setResults(next);
+      setError(null);
+    } catch (err: any) {
+      setResults([]);
+      setError(err.message || 'Search failed');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchResults(debouncedQuery);
+  }, [debouncedQuery, fetchResults]);
+
   return (
     <div className="relative w-full lg:w-96">
       <div className="relative">
@@ -138,7 +242,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search courses, lessons, activities..."
+          placeholder="Search courses, journeys, chapters..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           onFocus={() => setIsExpanded(true)}
@@ -209,12 +313,12 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Beginner', value: 'beginner', color: 'green' },
-                { label: 'In Progress', value: 'in-progress', color: 'blue' },
-                { label: 'Completed', value: 'completed', color: 'purple' },
-                { label: 'Trending', value: 'trending', color: 'orange' },
-                { label: 'New', value: 'new', color: 'red' },
-                { label: 'Recommended', value: 'recommended', color: 'indigo' }
+                { label: 'Bible Study', value: 'bible', color: 'green' },
+                { label: 'Doctrine', value: 'doctrine', color: 'blue' },
+                { label: 'Liturgical', value: 'liturgy', color: 'purple' },
+                { label: 'Spiritual Growth', value: 'spiritual', color: 'orange' },
+                { label: 'Amharic', value: 'amharic', color: 'red' },
+                { label: 'Ge\'ez', value: 'geez', color: 'indigo' }
               ].map((filter) => (
                 <button
                   key={filter.value}
@@ -239,14 +343,33 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
             <div className="p-4">
               <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-3">
                 <span>Search Results</span>
-                <span className="text-gray-500">{mockResults.length} found</span>
+                <span className="text-gray-500">{results.length} found {loading ? '(Searching...)' : ''}</span>
               </div>
               <div className="space-y-3">
-                {mockResults.map((result) => (
+                {results.map((result) => (
                   <div
                     key={result.id}
                     className="p-3 border border-gray-200 rounded-lg hover:border-[#27AE60]/50 hover:shadow-sm transition-all cursor-pointer group"
-                    onClick={() => handleSearch(result.title)}
+                    onClick={() => {
+                      handleSearch(result.title);
+                      // Navigate to relevant page
+                      switch (result.type) {
+                        case 'course':
+                          navigate(`/student/courses/${result.id}`);
+                          break;
+                        case 'chapter':
+                          navigate(`/student/chapters?chapterId=${result.id}`);
+                          break;
+                        case 'resource':
+                          navigate(`/student/all-resources?resourceId=${result.id}`);
+                          break;
+                        case 'community':
+                          navigate('/student/community-hub');
+                          break;
+                        default:
+                          break;
+                      }
+                    }}
                   >
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 mt-0.5">
@@ -289,12 +412,15 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
               </div>
               
               {/* No Results State */}
-              {mockResults.length === 0 && searchQuery && (
+              {results.length === 0 && !loading && (
                 <div className="text-center py-6">
                   <Search className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                   <p className="text-sm text-gray-500">No results found for "{searchQuery}"</p>
                   <p className="text-xs text-gray-400 mt-1">Try different keywords or check your spelling</p>
                 </div>
+              )}
+              {loading && (
+                <div className="text-center py-4 text-xs text-gray-500">Searching...</div>
               )}
             </div>
           )}
@@ -303,7 +429,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
           {!searchQuery && (
             <div className="p-4 bg-gray-50 border-t border-gray-100">
               <div className="text-xs text-gray-600">
-                <span className="font-medium">Tip:</span> Use specific keywords like "React hooks" or filter by difficulty level for better results.
+                <span className="font-medium">Tip:</span> Try keywords like "Old Testament", "Liturgy", "Saints", or filter by Bible/Doctrine/Spiritual Growth.
               </div>
             </div>
           )}

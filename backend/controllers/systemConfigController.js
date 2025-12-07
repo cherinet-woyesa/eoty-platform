@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const auditLogService = require('../services/auditLogService');
+const { geocodeAddress } = require('../services/geocodeService');
 const usageAnalyticsService = require('../services/usageAnalyticsService');
 
 /**
@@ -1156,24 +1157,33 @@ async function getChapters(req, res) {
   try {
     const { active_only } = req.query;
 
-    // Build base query with aggregated data
-    let query = db('chapters as c')
-      .select(
-        'c.*',
-        // Count users in this chapter
-        db.raw(`(
-          SELECT COUNT(DISTINCT uc.user_id)
-          FROM user_chapters uc
-          WHERE uc.chapter_id = c.id
-        ) as user_count`),
-        // Calculate average completion rate from enrollments
+    // Check dependent tables to avoid runtime failures on fresh DBs
+    const hasUserChapters = await db.schema.hasTable('user_chapters');
+    const hasEnrollments = await db.schema.hasTable('enrollments');
+    const hasCourses = await db.schema.hasTable('courses');
+    const hasLessons = await db.schema.hasTable('lessons');
+
+    // Build base query with aggregated data (only when supporting tables exist)
+    let selectClauses = ['c.*'];
+
+    if (hasUserChapters) {
+      selectClauses.push(db.raw(`(
+        SELECT COUNT(DISTINCT uc.user_id)
+        FROM user_chapters uc
+        WHERE uc.chapter_id = c.id
+      ) as user_count`));
+    } else {
+      selectClauses.push(db.raw('0 as user_count'));
+    }
+
+    if (hasEnrollments && hasCourses) {
+      selectClauses.push(
         db.raw(`(
           SELECT COALESCE(AVG(e.progress), 0)
           FROM enrollments e
           INNER JOIN courses co ON e.course_id = co.id
           WHERE co.chapter_id = c.id
         ) as average_completion_rate`),
-        // Count monthly active users (users with activity in last 30 days)
         db.raw(`(
           SELECT COUNT(DISTINCT e.user_id)
           FROM enrollments e
@@ -1181,14 +1191,6 @@ async function getChapters(req, res) {
           WHERE co.chapter_id = c.id
           AND e.last_accessed_at >= NOW() - INTERVAL '30 days'
         ) as monthly_active_users`),
-        // Calculate storage used (sum of video file sizes)
-        db.raw(`(
-          SELECT COALESCE(SUM(l.video_size_bytes), 0) / 1073741824.0
-          FROM lessons l
-          INNER JOIN courses co ON l.course_id = co.id
-          WHERE co.chapter_id = c.id
-        ) as storage_used_gb`),
-        // Get last activity timestamp
         db.raw(`(
           SELECT MAX(e.last_accessed_at)
           FROM enrollments e
@@ -1196,6 +1198,30 @@ async function getChapters(req, res) {
           WHERE co.chapter_id = c.id
         ) as last_activity`)
       );
+    } else {
+      selectClauses.push(
+        db.raw('0 as average_completion_rate'),
+        db.raw('0 as monthly_active_users'),
+        db.raw('NULL as last_activity')
+      );
+    }
+
+    const hasLessonSize = hasLessons && hasCourses && await db.schema.hasColumn('lessons', 'video_size_bytes');
+
+    if (hasLessonSize) {
+      selectClauses.push(
+        db.raw(`(
+          SELECT COALESCE(SUM(l.video_size_bytes), 0) / 1073741824.0
+          FROM lessons l
+          INNER JOIN courses co ON l.course_id = co.id
+          WHERE co.chapter_id = c.id
+        ) as storage_used_gb`)
+      );
+    } else {
+      selectClauses.push(db.raw('0 as storage_used_gb'));
+    }
+
+    let query = db('chapters as c').select(selectClauses);
     
     // Check if display_order column exists
     try {
@@ -1243,7 +1269,7 @@ async function getChapters(req, res) {
  */
 async function createChapter(req, res) {
   try {
-    const { name, description } = req.body;
+    const { name, description, city, country, region, address } = req.body;
     const userId = req.user.userId;
 
     console.log('Creating chapter with name:', name);
@@ -1270,10 +1296,26 @@ async function createChapter(req, res) {
 
     console.log('Inserting chapter into database...');
     
+    let geo = null;
+    if (address || city || country || region) {
+      try {
+        geo = await geocodeAddress({ address, city, region, country });
+      } catch (geoErr) {
+        console.error('Geocode failed (createChapter):', geoErr?.message || geoErr);
+        // proceed without blocking creation
+      }
+    }
+
     // Insert chapter
     const [result] = await db('chapters').insert({
       name,
       description: description || null,
+      city: city || null,
+      country: country || null,
+      region: region || null,
+      latitude: geo?.lat || null,
+      longitude: geo?.lng || null,
+      location: geo?.formatted || null,
       display_order,
       is_active: true,
       course_count: 0,
@@ -1327,7 +1369,7 @@ async function createChapter(req, res) {
 async function updateChapter(req, res) {
   try {
     const { id } = req.params;
-    const { name, description, is_active } = req.body;
+    const { name, description, is_active, city, country, region, address } = req.body;
     const userId = req.user.userId;
 
     // Get current state
@@ -1363,6 +1405,30 @@ async function updateChapter(req, res) {
     if (description !== undefined) updates.description = description;
     if (is_active !== undefined) updates.is_active = is_active;
 
+    if (city !== undefined) updates.city = city || null;
+    if (country !== undefined) updates.country = country || null;
+    if (region !== undefined) updates.region = region || null;
+
+    const addressProvided = address || city || country || region;
+    if (addressProvided) {
+      try {
+        const geo = await geocodeAddress({ address, city, region, country });
+        if (geo) {
+          updates.latitude = geo.lat;
+          updates.longitude = geo.lng;
+          updates.location = geo.formatted || null;
+        } else if (!address && !city && !country && !region) {
+          // explicitly cleared location
+          updates.latitude = null;
+          updates.longitude = null;
+          updates.location = null;
+        }
+      } catch (geoErr) {
+        console.error('Geocode failed (updateChapter):', geoErr?.message || geoErr);
+        // keep existing lat/lng on failure
+      }
+    }
+
     // Update chapter
     await db('chapters').where('id', id).update(updates);
 
@@ -1390,6 +1456,54 @@ async function updateChapter(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to update chapter'
+    });
+  }
+}
+
+/**
+ * Geocode preview (non-blocking). Returns best-effort lat/lng/location.
+ */
+async function geocodePreview(req, res) {
+  try {
+    const { address, city, region, country } = req.body;
+    const geo = await geocodeAddress({ address, city, region, country });
+
+    if (geo?.error === 'missing_api_key') {
+      return res.status(400).json({
+        success: false,
+        message: 'Geocoding unavailable: missing Google Maps API key (set GOOGLE_MAPS_API_KEY or GOOGLE_API_KEY)'
+      });
+    }
+
+    if (geo?.error === 'no_input') {
+      return res.status(400).json({
+        success: false,
+        message: 'Add address/city/region/country before previewing'
+      });
+    }
+
+    if (geo?.error) {
+      return res.json({
+        success: true,
+        data: null,
+        message: geo.message || geo.error || 'No result'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: geo ? {
+        latitude: geo.lat,
+        longitude: geo.lng,
+        location: geo.formatted
+      } : null,
+      message: geo ? 'Geocode successful' : 'No result'
+    });
+  } catch (error) {
+    console.error('Geocode preview error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to geocode preview'
     });
   }
 }
@@ -2067,6 +2181,7 @@ module.exports = {
   createChapter,
   updateChapter,
   deleteChapter,
+  geocodePreview,
   bulkActionCategories,
   bulkActionLevels,
   bulkActionDurations,

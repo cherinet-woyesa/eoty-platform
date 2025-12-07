@@ -9,6 +9,8 @@ import {
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useNotification } from '@/context/NotificationContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface BookmarkedItem {
   id: number;
@@ -23,6 +25,8 @@ const BookmarksPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { showNotification } = useNotification();
+  const { confirm } = useConfirmDialog();
   const [bookmarks, setBookmarks] = useState<BookmarkedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,15 +76,24 @@ const BookmarksPage: React.FC = () => {
   const handleRemoveBookmark = useCallback(async (item: BookmarkedItem, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      const confirmed = await confirm({
+        title: t('bookmarks_page.remove_title') || 'Remove bookmark',
+        message: t('bookmarks_page.remove_message') || 'Remove this item from bookmarks?',
+        confirmText: t('common.remove') || 'Remove',
+        cancelText: t('common.cancel') || 'Cancel'
+      });
+      if (!confirmed) return;
+
       setRemovingId(item.id);
-      
+
       await apiClient.post('/bookmarks/toggle', {
         entityType: item.entity_type,
         entityId: item.entity_id
       });
-      
+
       // Remove from local state immediately
       setBookmarks(prev => prev.filter(b => b.id !== item.id));
+      showNotification('success', t('common.success'), t('bookmarks_page.removed') || 'Removed from bookmarks.');
     } catch (err) {
       console.error('Failed to remove bookmark:', err);
       // Reload to ensure sync
@@ -250,10 +263,10 @@ const BookmarksPage: React.FC = () => {
           )}
           {!searchTerm && (
             <Link 
-              to="/student/courses"
-              className="mt-6 inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              to="/student/browse-courses"
+              className="mt-6 inline-flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
             >
-              {t('bookmarks_page.browse_courses_btn')}
+              {t('dashboard.student.browse_catalog')}
             </Link>
           )}
         </div>

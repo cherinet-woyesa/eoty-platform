@@ -197,6 +197,38 @@ const chapterController = {
     }
   },
 
+  // Nearby chapters using Haversine, guarded by column existence
+  async getNearbyChapters(req, res) {
+    try {
+      const { lat, lng, radiusKm = 50, limit = 50 } = req.query;
+
+      if (!lat || !lng) {
+        return res.status(400).json({
+          success: false,
+          message: 'lat and lng are required'
+        });
+      }
+
+      const chapters = await chapterService.getNearbyChapters({
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        radiusKm: parseFloat(radiusKm),
+        limit: parseInt(limit)
+      });
+
+      res.json({
+        success: true,
+        data: { chapters }
+      });
+    } catch (error) {
+      console.error('Get nearby chapters error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch nearby chapters'
+      });
+    }
+  },
+
   // Get chapter members
   async getChapterMembers(req, res) {
     try {

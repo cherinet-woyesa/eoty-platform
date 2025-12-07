@@ -77,6 +77,7 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "AWS_REGION=$($EnvVars['AWS_REGION'])" `
     --set-env-vars "GOOGLE_CLIENT_ID=$($EnvVars['GOOGLE_CLIENT_ID'])" `
     --set-env-vars "GOOGLE_CLIENT_SECRET=$($EnvVars['GOOGLE_CLIENT_SECRET'])" `
+           --set-env-vars "GOOGLE_API_KEY=$($EnvVars['GOOGLE_API_KEY'])" `
     --set-env-vars "FACEBOOK_APP_ID=$($EnvVars['FACEBOOK_APP_ID'])" `
     --set-env-vars "FACEBOOK_APP_SECRET=$($EnvVars['FACEBOOK_APP_SECRET'])" `
     --set-env-vars "DB_PASSWORD=$($EnvVars['DB_PASSWORD'])" `

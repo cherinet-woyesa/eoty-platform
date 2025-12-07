@@ -147,9 +147,13 @@ class ResourceService {
    */
   async getAllUserResources(userId, userRole) {
     try {
-      // Query the general resources table (not lesson_resources)
+      const user = await db('users')
+        .where({ id: userId })
+        .select('chapter_id')
+        .first();
+
+      // Base select (include scope + author so UI can render context)
       let query = db('resources')
-        .leftJoin('users', 'resources.uploaded_by', 'users.id')
         .select(
           'resources.id',
           'resources.title',
@@ -162,31 +166,75 @@ class ResourceService {
           'resources.language',
           'resources.tags',
           'resources.is_public',
+          'resources.resource_scope',
+          'resources.chapter_id',
+          'resources.course_id',
+          'resources.author',
           'resources.created_at',
           'resources.updated_at',
-          'resources.published_at',
-          'users.first_name',
-          'users.last_name'
+          'resources.published_at'
         );
 
-      // If user is admin, return all resources
+      // Admins see everything
       if (userRole === 'admin' || userRole === 'chapter_admin') {
-        return await query.orderBy('resources.created_at', 'desc');
+        const all = await query.orderBy('resources.created_at', 'desc');
+        console.log(`Retrieved ${all.length} resources for admin ${userId}`);
+        return all;
       }
 
-      // Filter resources based on user role and permissions
+      // Teacher: show platform public, chapter resources for their chapter, anything they authored, and their course-specific uploads
       if (userRole === 'teacher') {
-        // Teachers see resources they uploaded
-        query = query.where('resources.uploaded_by', userId);
-      } else {
-        // Students and other users see public resources
-        query = query.where('resources.is_public', true);
+        const teacherCourseIds = db('courses')
+          .where({ created_by: userId })
+          .select('id');
+
+        query = query.where(function(builder) {
+          // Public platform-wide
+          builder.where(function(b) {
+            b.where('resources.resource_scope', 'platform_wide')
+              .andWhere('resources.is_public', true);
+          });
+
+          // Chapter resources for same chapter
+          if (user?.chapter_id) {
+            builder.orWhere(function(b) {
+              b.where('resources.resource_scope', 'chapter_wide')
+                .andWhere('resources.chapter_id', user.chapter_id);
+            });
+          }
+
+          // Authored by this teacher
+          builder.orWhere('resources.author', userId);
+
+          // Course-specific resources for teacher-owned courses
+          builder.orWhere(function(b) {
+            b.where('resources.resource_scope', 'course_specific')
+              .andWhereIn('resources.course_id', teacherCourseIds);
+          });
+        });
+
+        const teacherResources = await query.orderBy('resources.created_at', 'desc');
+        console.log(`Retrieved ${teacherResources.length} resources for teacher ${userId}`);
+        return teacherResources;
       }
+
+      // Students/other roles: platform public + chapter resources for their chapter
+      query = query.where(function(builder) {
+        builder.where(function(b) {
+          b.where('resources.resource_scope', 'platform_wide')
+            .andWhere('resources.is_public', true);
+        });
+
+        if (user?.chapter_id) {
+          builder.orWhere(function(b) {
+            b.where('resources.resource_scope', 'chapter_wide')
+              .andWhere('resources.chapter_id', user.chapter_id);
+          });
+        }
+      });
 
       const resources = await query.orderBy('resources.created_at', 'desc');
-
       console.log(`Retrieved ${resources.length} resources for user ${userId}`);
-
       return resources;
     } catch (error) {
       console.error('Get all user resources error:', error);
@@ -533,16 +581,30 @@ class ResourceService {
           query = query.where({ resource_scope: 'course_specific', course_id: courseId });
           break;
 
-        case 'chapter_wide':
+        case 'chapter_wide': {
           if (!chapterId) throw new Error('chapterId required for chapter_wide scope');
 
-          // Check if user is in the chapter
-          if (user.chapter_id !== parseInt(chapterId) && user.role !== 'admin') {
-            throw new Error('Access denied to chapter resources');
+          // Allow if user has any non-rejected membership in the chapter, or legacy chapter_id match, or admin
+          const membership = await db('user_chapters')
+            .where({
+              user_id: userId,
+              chapter_id: chapterId
+            })
+            .whereNot('status', 'rejected')
+            .first();
+
+          const legacyChapterMatch =
+            user.chapter_id && parseInt(user.chapter_id, 10) === parseInt(chapterId, 10);
+
+          if (!membership && !legacyChapterMatch && user.role !== 'admin') {
+            const err = new Error('Access denied to chapter resources');
+            err.statusCode = 403;
+            throw err;
           }
 
           query = query.where({ resource_scope: 'chapter_wide', chapter_id: chapterId });
           break;
+        }
 
         case 'platform_wide':
           // Platform-wide resources are accessible to all authenticated users

@@ -7,6 +7,9 @@ import {
   Trash2, MoreVertical, Search, Filter, X, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { studyGroupsApi } from '@/services/api/studyGroups';
+import { useNotification } from '@/context/NotificationContext';
 
 interface GroupMember {
   id: string;
@@ -70,114 +73,154 @@ const GroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'assignments' | 'submissions'>('chat');
-  const [group, setGroup] = useState<StudyGroup | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [showNewAssignmentModal, setShowNewAssignmentModal] = useState(false);
   const [searchMember, setSearchMember] = useState('');
+  const [gradeInputs, setGradeInputs] = useState<Record<string, { grade?: number; feedback?: string }>>({});
 
-  // Load group data
-  useEffect(() => {
-    loadGroupData();
-    loadChatMessages();
-    loadAssignments();
-    loadSubmissions();
-  }, [groupId, user?.id]);
+  const queryClient = useQueryClient();
 
-  const loadGroupData = useCallback(() => {
-    try {
-      setLoading(true);
-      const savedGroups = localStorage.getItem(`study_groups_${user?.id}`);
-      if (savedGroups) {
-        const allGroups: StudyGroup[] = JSON.parse(savedGroups);
-        const foundGroup = allGroups.find(g => g.id === groupId);
-        if (foundGroup) {
-          setGroup(foundGroup);
-        }
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['study-group', groupId],
+    queryFn: async () => {
+      const res = await studyGroupsApi.get(Number(groupId));
+      if (res?.success === false) throw new Error(res?.message || 'Failed to load group');
+      return res?.data;
+    },
+    enabled: !!groupId,
+    staleTime: 1000 * 30
+  });
+
+  const group = useMemo<StudyGroup | null>(() => {
+    if (!data) return null;
+    if ((data as any).group) return (data as any).group as StudyGroup;
+    return data as StudyGroup;
+  }, [data]);
+
+  const membersData = useMemo(() => {
+    if (!data) return [];
+    if ((data as any).members) return (data as any).members as any[];
+    if ((data as any).group?.members) return (data as any).group.members as any[];
+    if ((data as any).members) return (data as any).members as any[];
+    if ((data as any).membersData) return (data as any).membersData as any[];
+    if ((data as any).members_list) return (data as any).members_list as any[];
+    return [];
+  }, [data]);
+
+  // Messages
+  const messagesQuery = useQuery({
+    queryKey: ['study-group-messages', groupId],
+    queryFn: async () => {
+      const res = await studyGroupsApi.listMessages(Number(groupId));
+      return res?.data?.messages || [];
+    },
+    enabled: !!groupId
+  });
+
+  const postMessageMutation = useMutation({
+    mutationFn: async () => {
+      const content = newMessage.trim();
+      return studyGroupsApi.postMessage(Number(groupId), content);
+    },
+    onSuccess: () => {
+      setNewMessage('');
+      queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to send message')
+  });
+
+  // Assignments
+  const assignmentsQuery = useQuery({
+    queryKey: ['study-group-assignments', groupId],
+    queryFn: async () => {
+      const res = await studyGroupsApi.listAssignments(Number(groupId));
+      return res?.data?.assignments || [];
+    },
+    enabled: !!groupId
+  });
+
+  const createAssignmentMutation = useMutation({
+    mutationFn: async (payload: { title: string; description?: string; due_date?: string; total_points?: number }) =>
+      studyGroupsApi.createAssignment(Number(groupId), payload),
+    onSuccess: () => {
+      showNotification('success', 'Assignment created', 'Group assignment posted');
+      queryClient.invalidateQueries({ queryKey: ['study-group-assignments', groupId] });
+      setShowNewAssignmentModal(false);
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to create assignment')
+  });
+
+  const assignments = useMemo(() => assignmentsQuery.data || [], [assignmentsQuery.data]);
+  const isTeacher = user?.role === 'teacher';
+
+  const submissionsQuery = useQuery({
+    queryKey: ['study-group-submissions', groupId, assignments.map((a: any) => a.id).join(',')],
+    queryFn: async () => {
+      const all: any[] = [];
+      for (const a of assignments) {
+        const res = await studyGroupsApi.listSubmissions(Number(a.id));
+        const subs = res?.data?.submissions || [];
+        all.push(...subs.map((s: any) => ({ ...s, assignment_id: a.id, assignment_title: a.title })));
       }
-    } catch (error) {
-      console.error('Failed to load group:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId, user?.id]);
+      return all;
+    },
+    enabled: !!groupId && assignments.length > 0
+  });
 
-  const loadChatMessages = useCallback(() => {
-    const savedMessages = localStorage.getItem(`group_chat_${groupId}`);
-    if (savedMessages) {
-      try {
-        setChatMessages(JSON.parse(savedMessages));
-      } catch (e) {
-        console.warn('Failed to parse chat messages');
-      }
-    }
-  }, [groupId]);
+  const submissions = useMemo(() => {
+    const subs = submissionsQuery.data || [];
+    if (isTeacher) return subs;
+    return subs.filter((s: any) => String(s.student_id) === String(user?.id));
+  }, [submissionsQuery.data, isTeacher, user?.id]);
 
-  const loadAssignments = useCallback(() => {
-    const savedAssignments = localStorage.getItem(`group_assignments_${groupId}`);
-    if (savedAssignments) {
-      try {
-        setAssignments(JSON.parse(savedAssignments));
-      } catch (e) {
-        console.warn('Failed to parse assignments');
-      }
-    }
-  }, [groupId]);
+  const submitMutation = useMutation({
+    mutationFn: async ({ assignmentId, content }: { assignmentId: number; content?: string }) => {
+      return studyGroupsApi.submitAssignment(assignmentId, { content: content || 'Submitted via app' });
+    },
+    onSuccess: () => {
+      showNotification('success', 'Submitted', 'Your submission is saved');
+      queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to submit assignment')
+  });
 
-  const loadSubmissions = useCallback(() => {
-    const savedSubmissions = localStorage.getItem(`group_submissions_${groupId}`);
-    if (savedSubmissions) {
-      try {
-        setSubmissions(JSON.parse(savedSubmissions));
-      } catch (e) {
-        console.warn('Failed to parse submissions');
-      }
-    }
-  }, [groupId]);
+  const gradeMutation = useMutation({
+    mutationFn: async ({ assignmentId, submissionId, grade, feedback }: { assignmentId: number; submissionId: number; grade?: number; feedback?: string }) => {
+      return studyGroupsApi.gradeSubmission(assignmentId, submissionId, { grade, feedback });
+    },
+    onSuccess: () => {
+      showNotification('success', 'Graded', 'Submission graded');
+      queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to grade submission')
+  });
 
-  // Send message
   const handleSendMessage = useCallback(() => {
     if (!newMessage.trim() || !user?.id) return;
-
-    const message: ChatMessage = {
-      id: `msg_${Date.now()}`,
-      sender_id: user.id,
-      sender_name: `${user.firstName} ${user.lastName}`,
-      message: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    const updatedMessages = [...chatMessages, message];
-    setChatMessages(updatedMessages);
-    localStorage.setItem(`group_chat_${groupId}`, JSON.stringify(updatedMessages));
-    setNewMessage('');
-    
-    // Auto-scroll to bottom
+    postMessageMutation.mutate();
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  }, [newMessage, chatMessages, groupId, user]);
+  }, [newMessage, postMessageMutation, user?.id]);
 
   // Check if user is admin
   const isAdmin = useMemo(() => {
-    return group?.members.some(m => m.id === user?.id && m.role === 'admin');
-  }, [group, user?.id]);
+    return (membersData || []).some(m => m.id === user?.id && m.role === 'admin');
+  }, [membersData, user?.id]);
 
   // Filtered members
   const filteredMembers = useMemo(() => {
-    if (!searchMember) return group?.members || [];
-    return group?.members.filter(m => 
+    if (!searchMember) return membersData || [];
+    return (membersData || []).filter(m => 
       m.name.toLowerCase().includes(searchMember.toLowerCase())
-    ) || [];
-  }, [group?.members, searchMember]);
+    );
+  }, [membersData, searchMember]);
 
-  if (loading) {
+  if (isLoading || messagesQuery.isLoading || assignmentsQuery.isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-[#27AE60]" />
@@ -185,7 +228,7 @@ const GroupDetailPage: React.FC = () => {
     );
   }
 
-  if (!group) {
+  if (isError || messagesQuery.isError || assignmentsQuery.isError || !group) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -199,6 +242,14 @@ const GroupDetailPage: React.FC = () => {
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Study Groups
           </Link>
+          <div className="mt-4">
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 text-sm bg-white border border-stone-200 rounded-lg hover:bg-stone-50 text-stone-700"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -275,7 +326,7 @@ const GroupDetailPage: React.FC = () => {
                 }`}
               >
                 <Users className="h-5 w-5" />
-                Members ({group.member_count})
+                Members ({membersData.length || group.member_count || 0})
               </button>
               <button
                 onClick={() => setActiveTab('assignments')}
@@ -286,7 +337,7 @@ const GroupDetailPage: React.FC = () => {
                 }`}
               >
                 <FileText className="h-5 w-5" />
-                Assignments ({assignments.length})
+                Assignments ({assignmentsQuery.data?.length || 0})
               </button>
               <button
                 onClick={() => setActiveTab('submissions')}
@@ -297,7 +348,7 @@ const GroupDetailPage: React.FC = () => {
                 }`}
               >
                 <Upload className="h-5 w-5" />
-                Submissions ({submissions.length})
+                Submissions ({submissions.length || 0})
               </button>
             </nav>
           </div>
@@ -308,7 +359,7 @@ const GroupDetailPage: React.FC = () => {
             {activeTab === 'chat' && (
               <div className="space-y-4">
                 <div className="h-[500px] bg-stone-50/50 rounded-lg p-4 overflow-y-auto border border-stone-200">
-                  {chatMessages.length === 0 ? (
+                  {messagesQuery.data?.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-center">
                       <div>
                         <MessageCircle className="h-16 w-16 text-stone-300 mx-auto mb-4" />
@@ -317,25 +368,25 @@ const GroupDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {chatMessages.map((msg) => (
+                      {messagesQuery.data?.map((msg: any) => (
                         <div
                           key={msg.id}
-                          className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
                         >
-                          <div className={`max-w-[70%] ${msg.sender_id === user?.id ? 'order-2' : 'order-1'}`}>
-                            {msg.sender_id !== user?.id && (
-                              <p className="text-xs text-stone-600 mb-1 px-1">{msg.sender_name}</p>
+                          <div className={`max-w-[70%] ${msg.user_id === user?.id ? 'order-2' : 'order-1'}`}>
+                            {msg.user_id !== user?.id && (
+                              <p className="text-xs text-stone-600 mb-1 px-1">{msg.user_name}</p>
                             )}
                             <div
                               className={`rounded-lg p-3 ${
-                                msg.sender_id === user?.id
+                                msg.user_id === user?.id
                                   ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white'
                                   : 'bg-white border border-stone-200 text-stone-800'
                               }`}
                             >
-                              <p className="text-sm">{msg.message}</p>
-                              <p className={`text-xs mt-1 ${msg.sender_id === user?.id ? 'text-white/70' : 'text-stone-500'}`}>
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              <p className="text-sm">{msg.content}</p>
+                              <p className={`text-xs mt-1 ${msg.user_id === user?.id ? 'text-white/70' : 'text-stone-500'}`}>
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                           </div>
@@ -368,10 +419,11 @@ const GroupDetailPage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || postMessageMutation.isLoading}
                     className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="h-5 w-5" />
+                  {postMessageMutation.isLoading ? 'Sending...' : 'Send'}
                   </button>
                 </div>
               </div>
@@ -418,7 +470,7 @@ const GroupDetailPage: React.FC = () => {
                           </div>
                           <p className="text-xs text-stone-600 capitalize">{member.role}</p>
                           <p className="text-xs text-stone-500 mt-1">
-                            Joined {new Date(member.joined_at).toLocaleDateString()}
+                            {member.joined_at ? `Joined ${new Date(member.joined_at).toLocaleDateString()}` : ''}
                           </p>
                         </div>
                       </div>
@@ -444,7 +496,7 @@ const GroupDetailPage: React.FC = () => {
                   )}
                 </div>
 
-                {assignments.length === 0 ? (
+                {(assignmentsQuery.data?.length || 0) === 0 ? (
                   <div className="text-center py-12 bg-stone-50/50 rounded-lg border border-stone-200">
                     <FileText className="h-16 w-16 text-stone-300 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-stone-800 mb-2">No assignments yet</h3>
@@ -454,7 +506,7 @@ const GroupDetailPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {assignments.map((assignment) => (
+                    {assignmentsQuery.data?.map((assignment: any) => (
                       <div
                         key={assignment.id}
                         className="bg-white border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all"
@@ -466,7 +518,7 @@ const GroupDetailPage: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                Due: {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'No due date'}
                               </span>
                               <span className="flex items-center gap-1">
                                 <FileText className="h-3 w-3" />
@@ -474,22 +526,26 @@ const GroupDetailPage: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            assignment.status === 'graded'
-                              ? 'bg-green-100 text-green-700'
-                              : assignment.status === 'submitted'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {assignment.status === 'graded' && <CheckCircle className="inline h-3 w-3 mr-1" />}
-                            {assignment.status === 'submitted' && <Clock className="inline h-3 w-3 mr-1" />}
-                            {assignment.status === 'pending' && <AlertCircle className="inline h-3 w-3 mr-1" />}
-                            {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                          <div className="flex flex-col gap-2 items-end">
+                            {!isTeacher && (
+                              <button
+                                onClick={() => submitMutation.mutate({ assignmentId: Number(assignment.id) })}
+                                disabled={submitMutation.isLoading}
+                                className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {submitMutation.isLoading ? 'Submitting...' : 'Submit'}
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] })}
+                                className="text-sm text-stone-600 underline"
+                              >
+                                Refresh submissions
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <button className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors font-medium text-sm">
-                          View Assignment
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -500,24 +556,31 @@ const GroupDetailPage: React.FC = () => {
             {/* Submissions Tab */}
             {activeTab === 'submissions' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-stone-800">My Submissions</h3>
+                <h3 className="text-lg font-semibold text-stone-800">
+                  {isTeacher ? 'All Submissions' : 'My Submissions'}
+                </h3>
                 
-                {submissions.length === 0 ? (
+                {(submissions.length || 0) === 0 ? (
                   <div className="text-center py-12 bg-stone-50/50 rounded-lg border border-stone-200">
                     <Upload className="h-16 w-16 text-stone-300 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-stone-800 mb-2">No submissions yet</h3>
-                    <p className="text-stone-600">Complete assignments to see your submissions here</p>
+                    <p className="text-stone-600">
+                      {isTeacher ? 'Students have not submitted work yet.' : 'Complete assignments to see your submissions here'}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {submissions.map((submission) => (
+                    {submissions.map((submission: any) => {
+                      const key = `${submission.assignment_id}-${submission.id}`;
+                      const gradeState = gradeInputs[key] || { grade: submission.grade, feedback: submission.feedback };
+                      return (
                       <div
                         key={submission.id}
                         className="bg-white border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-stone-800 mb-1">{submission.assignment_title}</h4>
+                            <h4 className="font-semibold text-stone-800 mb-1">{submission.assignment_title || `Assignment ${submission.assignment_id}`}</h4>
                             <p className="text-sm text-stone-600 mb-2">
                               Submitted on {new Date(submission.submitted_at).toLocaleString()}
                             </p>
@@ -538,6 +601,53 @@ const GroupDetailPage: React.FC = () => {
                             <p className="text-sm text-blue-800">{submission.feedback}</p>
                           </div>
                         )}
+
+                        {isTeacher && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex gap-3 items-center">
+                              <label className="text-sm text-stone-700">Grade</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={gradeState.grade ?? ''}
+                                onChange={(e) =>
+                                  setGradeInputs((prev) => ({
+                                    ...prev,
+                                    [key]: { ...gradeState, grade: e.target.value ? Number(e.target.value) : undefined }
+                                  }))
+                                }
+                                className="w-24 px-2 py-1 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/40"
+                              />
+                            </div>
+                            <textarea
+                              value={gradeState.feedback ?? ''}
+                              onChange={(e) =>
+                                setGradeInputs((prev) => ({
+                                  ...prev,
+                                  [key]: { ...gradeState, feedback: e.target.value }
+                                }))
+                              }
+                              placeholder="Feedback (optional)"
+                              className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/40"
+                              rows={2}
+                            />
+                            <button
+                              onClick={() => {
+                                gradeMutation.mutate({
+                                  assignmentId: submission.assignment_id,
+                                  submissionId: submission.id,
+                                  grade: gradeState.grade,
+                                  feedback: gradeState.feedback
+                                });
+                              }}
+                              disabled={gradeMutation.isLoading}
+                              className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                            >
+                              {gradeMutation.isLoading ? 'Saving...' : 'Save Grade'}
+                            </button>
+                          </div>
+                        )}
                         
                         <div className="flex gap-2">
                           {submission.file_url && (
@@ -552,7 +662,8 @@ const GroupDetailPage: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </div>

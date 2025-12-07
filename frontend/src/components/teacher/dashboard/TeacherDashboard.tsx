@@ -92,6 +92,10 @@ const TeacherDashboard: React.FC = () => {
     if (flag === 'true') {
       localStorage.removeItem('show_profile_completion');
       setProfileModalOpen(true);
+      return;
+    }
+    if (user && !user.chapter) {
+      setProfileModalOpen(true);
     }
   }, [user]);
 

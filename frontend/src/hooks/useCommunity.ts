@@ -314,6 +314,31 @@ export const useTopicDetail = (topicId: number) => {
     }
   };
 
+  const likeReply = async (postId: number) => {
+    try {
+      await forumsApi.likePost(postId);
+      setReplies(prev =>
+        prev.map(r =>
+          r.id === postId
+            ? {
+                ...r,
+                user_liked: !r.user_liked,
+                likes: r.user_liked ? (r.likes || r.likes_count || 0) - 1 : (r.likes || r.likes_count || 0) + 1,
+                likes_count: r.user_liked ? (r.likes_count || r.likes || 0) - 1 : (r.likes_count || r.likes || 0) + 1
+              }
+            : r
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to like reply');
+    }
+  };
+
+  const replyToReply = async (postId: number, content: string) => {
+    // Backend does not support nested replies; fallback to topic reply with mention
+    return replyToTopic(`@post-${postId} ${content}`);
+  };
+
   const shareTopic = async () => {
     if (!topic) return;
     try {
@@ -339,5 +364,5 @@ export const useTopicDetail = (topicId: number) => {
     }
   };
 
-  return { topic, replies, loading, error, likeTopic, replyToTopic, shareTopic, reportTopic, refetch: fetchTopicDetail };
+  return { topic, replies, loading, error, likeTopic, replyToTopic, likeReply, replyToReply, shareTopic, reportTopic, refetch: fetchTopicDetail };
 };

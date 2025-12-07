@@ -78,15 +78,13 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
   const {
     isRecording,
     audioBlob,
-    audioUrl,
     startRecording,
     stopRecording,
     error: audioError,
     detectedLanguage,
     setDetectedLanguage,
     recordingTime,
-    audioQuality,
-    resetRecording
+    audioQuality
   } = useAudioRecorder();
 
   // UI-controlled language selection (overrides automatic detection when set)
@@ -328,12 +326,6 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     return null;
   }, []);
 
-  // Enhanced performance metrics
-  const getPerformanceMetrics = useCallback((messages: Message[]) => {
-    const lastAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
-    return lastAiMessage?.metadata?.performanceMetrics || null;
-  }, []);
-
   // Enhanced faith alignment data
   const getFaithAlignment = useCallback((messages: Message[]) => {
     const lastAiMessage = messages.filter(msg => msg.role === 'assistant').pop();
@@ -341,7 +333,6 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
   }, []);
 
   const responseTime = calculateResponseTime(messages);
-  const performanceMetrics = getPerformanceMetrics(messages);
   const faithAlignment = getFaithAlignment(messages);
 
   // Enhanced vague input detection
@@ -445,6 +436,12 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     );
   };
 
+  const statusVariant = (() => {
+    if (error) return { label: 'Degraded', color: 'text-red-700 bg-red-50 border-red-200' };
+    if (isProcessing) return { label: 'Responding', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+    return { label: 'Ready', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+  })();
+
   return (
     <div className={`flex flex-col h-full bg-white rounded-2xl border border-gray-200 shadow-sm ${className}`} style={{ maxHeight }}>
       {/* Enhanced Header - Landing Page Friendly */}
@@ -459,6 +456,12 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {/* Status badge */}
+          <div className={`flex items-center text-xs px-2 py-1 rounded-full border ${statusVariant.color}`}>
+            <span className="w-2 h-2 rounded-full mr-2 bg-current opacity-80" />
+            {statusVariant.label}
+          </div>
+
           {/* Faith Alignment Indicator */}
           {faithAlignment && (
             <div className={`flex items-center text-xs px-2 py-1 rounded-full border ${
@@ -531,6 +534,32 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-25 to-gray-50"
         style={{ maxHeight: `calc(${maxHeight} - 140px)` }}
       >
+        {error && (
+          <div className="flex justify-center">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800 max-w-xl w-full flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold">AI assistant is experiencing issues.</p>
+                <p className="text-red-700/80">{error}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => retryLastQuestion()}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  >
+                    Retry last question
+                  </button>
+                  <button
+                    onClick={() => clearConversation()}
+                    className="px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50"
+                  >
+                    Clear conversation
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="text-center py-8">
             <div className="p-4 bg-gradient-to-r from-[#27AE60]/20 to-[#16A085]/20 rounded-2xl inline-block mb-4">
@@ -711,9 +740,22 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                       <span>Based on:</span>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
-                      {message.metadata.sources.slice(0, 2).map((source: string, index: number) => (
-                        <div key={index}>• {source}</div>
-                      ))}
+                      {message.metadata.sources.slice(0, 2).map((source: any, index: number) => {
+                        const label = typeof source === 'string' ? source : source?.title || source?.url || 'Source';
+                        const url = typeof source === 'object' ? source?.url : undefined;
+                        return (
+                          <div key={index} className="flex items-center gap-1">
+                            <span>•</span>
+                            {url ? (
+                              <a href={url} className="text-blue-600 hover:underline" target="_blank" rel="noreferrer">
+                                {label}
+                              </a>
+                            ) : (
+                              <span>{label}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -795,6 +837,18 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
             </div>
           </div>
         ))}
+
+        {/* Inline skeleton while processing */}
+        {isProcessing && (
+          <div className="flex space-x-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-slate-200 rounded w-1/3 animate-pulse" />
+              <div className="h-3 bg-slate-200 rounded w-2/3 animate-pulse" />
+              <div className="h-3 bg-slate-200 rounded w-1/2 animate-pulse" />
+            </div>
+          </div>
+        )}
 
         {/* Enhanced Processing Indicator */}
         {isProcessing && (

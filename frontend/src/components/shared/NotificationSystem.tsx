@@ -36,7 +36,8 @@ interface NotificationItemProps {
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onClose }) => {
-  const config = notificationConfig[notification.type];
+  const safeType = (notification.type in notificationConfig ? notification.type : 'info') as NotificationType;
+  const config = notificationConfig[safeType];
   const Icon = config.icon;
 
   useEffect(() => {
@@ -107,14 +108,17 @@ export const NotificationSystem: React.FC = () => {
 
   return (
     <div
-      className="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-10 sm:pt-14 pointer-events-none"
       style={{ zIndex: theme.zIndex.tooltip }}
     >
-      {notifications.map((notification) => (
-        <div key={notification.id} className="pointer-events-auto">
-          <NotificationItem notification={notification} onClose={hideNotification} />
-        </div>
-      ))}
+      {/* Stack notifications centered like modal cards, without blocking the page */}
+      <div className="relative w-full max-w-lg space-y-4 px-4">
+        {notifications.map((notification) => (
+          <div key={notification.id} className="pointer-events-auto">
+            <NotificationItem notification={notification} onClose={hideNotification} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -124,18 +128,18 @@ const style = document.createElement('style');
 style.textContent = `
   .notification-item {
     opacity: 0;
-    transform: translateX(100%);
-    transition: all 200ms ease-in-out;
+    transform: translateY(-8px) scale(0.98);
+    transition: all 180ms ease-in-out;
   }
   
   .notification-item.notification-enter-active {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
   }
   
   .notification-item.notification-exit-active {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-8px) scale(0.98);
   }
 `;
 document.head.appendChild(style);

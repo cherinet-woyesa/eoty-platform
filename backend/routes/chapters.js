@@ -11,6 +11,7 @@ const { authenticateToken } = require('../middleware/auth');
 // Public routes
 router.get('/', chapterController.getAllChapters);
 router.get('/search', chapterController.searchChapters);
+router.get('/nearby', chapterController.getNearbyChapters);
 
 // Protected routes
 router.use(authenticateToken); // All routes below require authentication

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -12,6 +12,10 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSearch from './DashboardSearch';
 import { apiClient } from '@/services/api/apiClient';
 import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
+import { useQuery } from '@tanstack/react-query';
+import Alert from '@/components/common/Alert';
+import ProgressBar from '@/components/common/ProgressBar';
+import { Skeleton } from '@/components/common/Skeleton';
 
 // Skeleton loader components
 const DashboardSkeleton: React.FC = React.memo(() => (
@@ -66,40 +70,38 @@ const StudentDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [studentData, setStudentData] = useState<StudentDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const wsRefreshTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Load dashboard data directly from API (same as StudentCourses page)
-  const loadDashboardData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const {
+    data: studentData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching
+  } = useQuery({
+    queryKey: ['student-dashboard'],
+    queryFn: async () => {
       const response = await apiClient.get('/students/dashboard');
-      
-      if (response.data.success) {
-        setStudentData(response.data.data);
-        console.log('✅ Dashboard data loaded from API:', response.data.data);
-      } else {
-        setError('Failed to load dashboard data');
+      if (!response.data.success) {
+        throw new Error('Failed to load dashboard data');
       }
-    } catch (err: any) {
-      console.error('Failed to load dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+      return response.data.data as StudentDashboardData;
+    },
+    staleTime: 60_000,
+    retry: 2,
+    refetchOnWindowFocus: false
+  });
 
   useEffect(() => {
     const flag = localStorage.getItem('show_profile_completion');
     if (flag === 'true') {
       localStorage.removeItem('show_profile_completion');
+      setProfileModalOpen(true);
+      return;
+    }
+    if (user && !user.chapter) {
       setProfileModalOpen(true);
     }
   }, [user]);
@@ -117,20 +119,20 @@ const StudentDashboard: React.FC = () => {
     if (lastMessage) {
       try {
         const message = JSON.parse(lastMessage.data);
-        
-        switch (message.type) {
-          case 'COURSE_PROGRESS_UPDATE':
-            // Refresh dashboard data
-            loadDashboardData();
-            break;
-          default:
-            console.log('Unknown message type:', message.type);
+        if (message.type === 'COURSE_PROGRESS_UPDATE') {
+          if (wsRefreshTimer.current) clearTimeout(wsRefreshTimer.current);
+          wsRefreshTimer.current = setTimeout(() => {
+            refetch();
+          }, 1200);
         }
       } catch (err) {
         console.error('Failed to parse WebSocket message:', err);
       }
     }
-  }, [lastMessage, loadDashboardData]);
+    return () => {
+      if (wsRefreshTimer.current) clearTimeout(wsRefreshTimer.current);
+    };
+  }, [lastMessage, refetch]);
 
   // Update time every minute with cleanup
   useEffect(() => {
@@ -141,11 +143,9 @@ const StudentDashboard: React.FC = () => {
   // Transform enrolled courses from API to match CourseGrid interface
   const transformedCourses = useMemo(() => {
     if (!studentData?.enrolledCourses || !Array.isArray(studentData.enrolledCourses)) {
-      console.log('📚 No enrolled courses found in studentData:', studentData);
       return [];
     }
     
-    console.log('📚 Transforming enrolled courses from API:', studentData.enrolledCourses);
     const transformed = studentData.enrolledCourses.map((course: any) => ({
       id: String(course.id || course.course_id || ''),
       title: course.title || 'Untitled Course',
@@ -167,7 +167,6 @@ const StudentDashboard: React.FC = () => {
       status: course.status || course.enrollment_status || 'enrolled'
     }));
     
-    console.log('📚 Transformed courses:', transformed);
     return transformed;
   }, [studentData?.enrolledCourses]);
 
@@ -184,6 +183,10 @@ const StudentDashboard: React.FC = () => {
       return new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime();
     });
   }, [transformedCourses]);
+
+  const continueCourse = useMemo(() => {
+    return inProgressCourses.length > 0 ? inProgressCourses[0] : null;
+  }, [inProgressCourses]);
 
   // Enhanced stats with real-time updates and memoization
   const stats = useMemo(() => [
@@ -231,12 +234,10 @@ const StudentDashboard: React.FC = () => {
   }, []);
 
   const handleRetry = useCallback(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    refetch();
+  }, [refetch]);
 
   const handleCourseAction = useCallback(async (courseId: string, action: string) => {
-    console.log('Course action:', action, courseId);
-    // Handle different course actions
     switch (action) {
       case 'view':
         navigate(`/student/courses/${courseId}`);
@@ -248,8 +249,6 @@ const StudentDashboard: React.FC = () => {
             entityType: 'course',
             entityId: courseId
           });
-          // Refresh dashboard data to ensure consistency
-          // loadDashboardData(); // Optional: might be too heavy
         } catch (err) {
           console.error('Failed to toggle bookmark:', err);
         }
@@ -258,7 +257,7 @@ const StudentDashboard: React.FC = () => {
         // Handle certificate download
         break;
       default:
-        console.log('Unknown course action:', action);
+        navigate(`/student/courses/${courseId}`);
     }
   }, [navigate]);
 
@@ -284,6 +283,7 @@ const StudentDashboard: React.FC = () => {
               <button 
                 onClick={handleRetry}
                 className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+                aria-label={t('dashboard.teacher.try_again')}
               >
                 <Loader2 className="h-4 w-4 mr-2" />
                 {t('dashboard.teacher.try_again')}
@@ -340,14 +340,8 @@ const StudentDashboard: React.FC = () => {
                   <p className="text-stone-600 font-medium text-sm">
                     {formatDate(currentTime)} • {formatTime(currentTime)}
                   </p>
-                  {/* Search Bar */}
-                  <div className="mt-4">
-                    <DashboardSearch
-                      searchQuery={searchQuery}
-                      onSearchChange={setSearchQuery}
-                      resultsCount={transformedCourses.length || 0}
-                    />
-                  </div>
+                  {/* Search Bar temporarily hidden */}
+                  <div className="mt-4" />
                 </div>
                 <div className="mt-4 lg:mt-0 lg:ml-6 flex space-x-2">
                   <Link
@@ -368,6 +362,50 @@ const StudentDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Inline alert if refetch failed but partial data exists */}
+          {isError && (
+            <Alert
+              variant="error"
+              title={t('dashboard.student.error_loading')}
+              description={t('dashboard.student.error_loading_message')}
+              actionLabel={t('dashboard.student.retry')}
+              onAction={handleRetry}
+            />
+          )}
+
+          {/* Continue CTA (single highlight) */}
+          {continueCourse && (
+          <div className="bg-white rounded-xl border border-[#27AE60]/30 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-semibold text-stone-800">
+                  <Zap className="h-4 w-4 text-[#27AE60]" />
+                  {t('dashboard.student.continue_learning')}
+                </div>
+                <h3 className="text-lg font-bold text-stone-900 line-clamp-1">{continueCourse.title}</h3>
+                <p className="text-sm text-stone-600 line-clamp-2">
+                  {continueCourse.description || t('dashboard.student.keep_it_up')}
+                </p>
+                <div className="flex items-center gap-3">
+                  <ProgressBar value={continueCourse.progress || 0} />
+                  <span className="text-xs font-semibold text-stone-700">
+                    {Math.round(continueCourse.progress || 0)}%
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col sm:items-end gap-1">
+                <Link
+                  to={`/student/courses/${continueCourse.id}`}
+                  className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-semibold rounded-lg hover:bg-[#219150] transition-colors shadow-sm"
+                >
+                  {t('dashboard.student.resume_now')}
+                </Link>
+                <span className="text-xs text-stone-500">
+                  {t('dashboard.student.last_accessed')}: {new Date(continueCourse.lastAccessed).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -418,55 +456,34 @@ const StudentDashboard: React.FC = () => {
                     compact={true}
                     onCourseAction={handleCourseAction}
                   />
+                ) : transformedCourses.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center border border-stone-200 border-dashed">
+                    <BookOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
+                    <h3 className="text-stone-800 font-medium mb-1">{t('dashboard.student.no_courses_title')}</h3>
+                    <p className="text-stone-500 text-sm mb-4">{t('dashboard.student.no_courses_message')}</p>
+                    <Link
+                      to="/student/all-courses"
+                      className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-colors"
+                    >
+                      {t('dashboard.student.view_all')}
+                    </Link>
+                  </div>
                 ) : (
                   <div className="bg-white rounded-xl p-8 text-center border border-stone-200 border-dashed">
                     <BookOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
                     <h3 className="text-stone-800 font-medium mb-1">{t('dashboard.student.no_active_courses')}</h3>
                     <p className="text-stone-500 text-sm mb-4">{t('dashboard.student.start_course_message')}</p>
                     <Link
-                      to="/student/browse-courses"
+                      to="/student/all-courses"
                       className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-colors"
                     >
-                      {t('dashboard.student.browse_catalog')}
+                      {t('dashboard.student.view_all')}
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Recommendations Section */}
-              {studentData?.recommendations && studentData.recommendations.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-[#27AE60]" />
-                    {t('dashboard.student.recommended_for_you')}
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {studentData.recommendations.slice(0, 2).map((course: any, i: number) => (
-                      <div key={i} className="bg-white rounded-xl p-4 border border-stone-200 shadow-sm flex gap-4">
-                        <div className="h-20 w-20 bg-stone-200 rounded-lg flex-shrink-0 overflow-hidden">
-                          {course.thumbnail ? (
-                            <img src={course.thumbnail} alt={course.title} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center bg-stone-100">
-                              <BookOpen className="h-8 w-8 text-stone-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-stone-800 truncate mb-1">{course.title}</h3>
-                          <p className="text-xs text-stone-500 line-clamp-2 mb-2">{course.description}</p>
-                          <Link 
-                            to={`/student/courses/${course.id}`}
-                            className="text-xs font-medium text-[#27AE60] hover:underline"
-                          >
-                            {t('dashboard.student.view_course')} →
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Recommendations Section - removed per request */}
             </div>
           </div>
 

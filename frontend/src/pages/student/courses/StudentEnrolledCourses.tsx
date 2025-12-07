@@ -4,11 +4,13 @@ import {
   BookOpen, Search, Users, Clock, Star, 
   TrendingUp, PlayCircle, Award, AlertCircle,
   Loader2, Heart, HeartOff, LogOut, Filter,
-  CheckCircle, BarChart3, Calendar
+  CheckCircle, BarChart3, Calendar, Bookmark
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useNotification } from '@/context/NotificationContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface EnrolledCourse {
   id: number;
@@ -27,10 +29,13 @@ interface EnrolledCourse {
   created_by_name: string;
   user_rating?: number;
   is_favorite?: boolean;
+  is_bookmarked?: boolean;
 }
 
 const StudentEnrolledCourses: React.FC = () => {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
+  const { confirm } = useConfirmDialog();
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +53,37 @@ const StudentEnrolledCourses: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get('/courses');
+      const response = await apiClient.get('/students/dashboard');
       
       if (response.data.success) {
-        setCourses(response.data.data.courses || []);
+        const rawCourses = response.data.data?.enrolledCourses || [];
+        const normalized = rawCourses
+          // drop unenrolled/dropped from the view
+          .filter((c: any) => (c.enrollment_status || c.status || 'active') !== 'dropped')
+          .map((c: any) => {
+            const progress = c.progress_percentage ?? c.progress ?? 0;
+            const enrollmentStatus = c.enrollment_status || c.status || (progress >= 100 ? 'completed' : 'active');
+            return {
+              id: c.id,
+              title: c.title,
+              description: c.description || '',
+              cover_image: c.cover_image ?? c.coverImage ?? null,
+              category: c.category || 'General',
+              level: c.level || 'All levels',
+              lesson_count: Number(c.lesson_count ?? c.totalLessons ?? 0),
+              student_count: Number(c.student_count ?? 0),
+              progress_percentage: Number(progress),
+              enrollment_status: enrollmentStatus,
+              enrolled_at: c.enrolled_at || '',
+              last_accessed_at: c.last_accessed_at || '',
+              completed_at: c.completed_at || (progress >= 100 ? new Date().toISOString() : null),
+              created_by_name: c.created_by_name || '',
+              user_rating: c.user_rating,
+            is_favorite: Boolean(c.is_favorite ?? c.isFavorite ?? false),
+            is_bookmarked: Boolean(c.is_bookmarked ?? c.isBookmarked ?? false)
+            } as EnrolledCourse;
+          });
+        setCourses(normalized);
       }
     } catch (err) {
       console.error('Failed to load enrolled courses:', err);
@@ -62,33 +94,85 @@ const StudentEnrolledCourses: React.FC = () => {
   };
 
   const handleUnenroll = async (courseId: number, courseTitle: string) => {
-    if (!confirm(`Are you sure you want to unenroll from "${courseTitle}"? Your progress will be saved.`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Unenroll',
+      message: `Are you sure you want to unenroll from "${courseTitle}"? Your progress will be saved.`,
+      confirmText: 'Unenroll',
+      cancelText: 'Keep enrolled'
+    });
+    if (!confirmed) return;
 
     try {
       await apiClient.post(`/courses/${courseId}/unenroll`);
-      setCourses(courses.filter(c => c.id !== courseId));
-      alert('Successfully unenrolled from course');
+      await loadEnrolledCourses();
+      // Notify other parts of the app (catalog) to refresh enrollment badges
+      window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+      showNotification('success', 'Unenrolled', 'You have been unenrolled. Progress is saved.');
     } catch (err: any) {
       console.error('Failed to unenroll:', err);
-      alert(err.response?.data?.message || 'Failed to unenroll. Please try again.');
+      showNotification('error', 'Error', err.response?.data?.message || 'Failed to unenroll. Please try again.');
     }
   };
 
   const handleToggleFavorite = async (courseId: number) => {
+    const target = courses.find(c => c.id === courseId);
+    const currentlyFav = Boolean(target?.is_favorite);
+
+    // Optimistic toggle for immediate UI feedback
+    setCourses(prev =>
+      prev.map(c => c.id === courseId ? { ...c, is_favorite: !currentlyFav } : c)
+    );
+
     try {
-      const course = courses.find(c => c.id === courseId);
-      const endpoint = course?.is_favorite ? 'unfavorite' : 'favorite';
-      
-      await apiClient.post(`/courses/${courseId}/${endpoint}`);
-      
-      setCourses(courses.map(c => 
-        c.id === courseId ? { ...c, is_favorite: !c.is_favorite } : c
-      ));
-    } catch (err) {
+      const endpoint = currentlyFav ? 'unfavorite' : 'favorite';
+      const res = await apiClient.post(`/courses/${courseId}/${endpoint}`);
+
+      // Sync with backend after request
+      await loadEnrolledCourses();
+      showNotification('success', 'Updated', res?.data?.message || (currentlyFav ? 'Removed from favorites' : 'Added to favorites'));
+    } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
-      alert('Failed to update favorite status');
+      const message = err.response?.data?.message || '';
+
+      // If already favorited, treat as success and attempt unfavorite
+      if (!currentlyFav && message.toLowerCase().includes('already in favorites')) {
+        try {
+          const res = await apiClient.post(`/courses/${courseId}/unfavorite`);
+          await loadEnrolledCourses();
+          showNotification('success', 'Updated', res?.data?.message || 'Removed from favorites');
+          return;
+        } catch (e) {
+          console.error('Fallback unfavorite failed:', e);
+        }
+      }
+
+      // Revert optimistic change on failure
+      setCourses(prev =>
+        prev.map(c => c.id === courseId ? { ...c, is_favorite: currentlyFav } : c)
+      );
+      await loadEnrolledCourses();
+      showNotification('error', 'Error', message || 'Failed to update favorite status');
+    }
+  };
+
+  const handleToggleBookmark = async (courseId: number) => {
+    // Optimistic toggle
+    setCourses(prev =>
+      prev.map(c => c.id === courseId ? { ...c, is_bookmarked: !c.is_bookmarked } : c)
+    );
+    try {
+      await apiClient.post('/bookmarks/toggle', {
+        entityType: 'course',
+        entityId: courseId
+      });
+      await loadEnrolledCourses();
+    } catch (err) {
+      console.error('Failed to toggle bookmark:', err);
+      // Revert on error
+      setCourses(prev =>
+        prev.map(c => c.id === courseId ? { ...c, is_bookmarked: !c.is_bookmarked } : c)
+      );
+      showNotification('error', 'Error', 'Failed to update bookmark. Please try again.');
     }
   };
 
@@ -108,10 +192,10 @@ const StudentEnrolledCourses: React.FC = () => {
       setShowRatingModal(null);
       setRatingValue(0);
       setReviewText('');
-      alert('Thank you for your rating!');
+      showNotification('success', 'Thank you', 'Thank you for your rating!');
     } catch (err: any) {
       console.error('Failed to submit rating:', err);
-      alert(err.response?.data?.message || 'Failed to submit rating');
+      showNotification('error', 'Error', err.response?.data?.message || 'Failed to submit rating');
     }
   };
 
@@ -133,16 +217,6 @@ const StudentEnrolledCourses: React.FC = () => {
     favorites: courses.filter(c => c.is_favorite).length,
     avgProgress: Math.round(courses.reduce((sum, c) => sum + (c.progress_percentage || 0), 0) / (courses.length || 1))
   };
-
-  if (loading) {
-    return (
-      <div className="p-4">
-        <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text="Loading your courses..." variant="logo" />
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -218,7 +292,24 @@ const StudentEnrolledCourses: React.FC = () => {
         </div>
 
         {/* Courses Grid - Light cards */}
-        {filteredCourses.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm overflow-hidden p-5 animate-pulse space-y-4">
+                <div className="h-32 bg-slate-200 rounded-md" />
+                <div className="h-4 bg-slate-200 rounded w-3/4" />
+                <div className="h-3 bg-slate-200 rounded w-full" />
+                <div className="h-3 bg-slate-200 rounded w-5/6" />
+                <div className="h-2 bg-slate-200 rounded w-full" />
+                <div className="flex gap-2">
+                  <div className="h-8 bg-slate-200 rounded w-20" />
+                  <div className="h-8 bg-slate-200 rounded w-20" />
+                  <div className="h-8 bg-slate-200 rounded w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredCourses.map(course => (
               <div key={course.id} className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm hover:shadow-md hover:border-slate-300/50 transition-all duration-200 overflow-hidden">
@@ -233,13 +324,20 @@ const StudentEnrolledCourses: React.FC = () => {
                   )}
                   <button
                     onClick={() => handleToggleFavorite(course.id)}
-                    className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-sm"
+                    className="absolute top-2 right-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
                   >
-                    {course.is_favorite ? (
-                      <Heart className="h-5 w-5 text-[#EF5350] fill-current" />
-                    ) : (
-                      <HeartOff className="h-5 w-5 text-slate-600" />
-                    )}
+                    <Heart
+                      className={`h-5 w-5 ${course.is_favorite ? 'text-[#EF5350] fill-current' : 'text-white stroke-[2px]'}`}
+                    />
+                  </button>
+                  <button
+                    onClick={() => handleToggleBookmark(course.id)}
+                    className="absolute top-2 left-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
+                    title={course.is_bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                  >
+                    <Bookmark
+                      className={`h-5 w-5 ${course.is_bookmarked ? 'text-amber-400 fill-current' : 'text-white stroke-[2px]'}`}
+                    />
                   </button>
                   {course.completed_at && (
                     <div className="absolute top-2 left-2 bg-gradient-to-r from-[#66BB6A]/90 to-[#4CAF50]/90 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border border-[#66BB6A]/30 shadow-sm">

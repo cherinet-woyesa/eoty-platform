@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, MapPin, ArrowRight, Check, X, BookOpen, GraduationCap } from 'lucide-react';
+import { Mail, Lock, User, MapPin, ArrowRight, Check, X, BookOpen, GraduationCap, Compass } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
 import { chaptersApi } from '@/services/api/chapters';
@@ -52,9 +52,13 @@ const RegisterForm: React.FC = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
+  const [chapters, setChapters] = useState<{id: number, name: string, location: string, distance?: number | null}[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [chapterError, setChapterError] = useState(false);
+  const [useNearby, setUseNearby] = useState(false);
+  const [distanceKm, setDistanceKm] = useState(50);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locError, setLocError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { register, verify2FA, isAuthenticated } = useAuth();
@@ -80,9 +84,18 @@ const RegisterForm: React.FC = () => {
   useEffect(() => {
     const fetchChapters = async () => {
       try {
-        const response = await chaptersApi.getChapters();
+        let response;
+        if (useNearby && coords) {
+          response = await chaptersApi.getNearby({ lat: coords.lat, lng: coords.lng, radiusKm: distanceKm, limit: 50 });
+        } else {
+          response = await chaptersApi.getChapters();
+        }
         if (response.success) {
-          setChapters(response.data.chapters);
+          const mapped = (response.data.chapters || []).map((ch: any) => ({
+            ...ch,
+            distance: ch.distance_km ?? ch.distance ?? ch.distanceKm ?? null
+          }));
+          setChapters(mapped);
           setChapterError(false);
         } else {
           throw new Error('Failed to fetch chapters');
@@ -96,13 +109,17 @@ const RegisterForm: React.FC = () => {
           { id: 8, name: 'Addis Ababa Chapter', location: 'Addis Ababa, Ethiopia' },
           { id: 9, name: 'Bahir Dar Chapter', location: 'Bahir Dar, Ethiopia' },
         ]);
+        if (useNearby) {
+          setUseNearby(false);
+          setLocError('Near me unavailable; showing fallback chapters.');
+        }
       } finally {
         setLoadingChapters(false);
       }
     };
 
     fetchChapters();
-  }, []);
+  }, [useNearby, coords, distanceKm]);
 
   // Validation
   const validateField = (name: string, value: string): string => {
@@ -451,6 +468,15 @@ const RegisterForm: React.FC = () => {
             onDismiss={() => setChapterError(false)}
           />
         )}
+        {locError && (
+          <FormError
+            type="warning"
+            message={locError}
+            size="sm"
+            dismissible={true}
+            onDismiss={() => setLocError(null)}
+          />
+        )}
       </div>
 
 
@@ -662,7 +688,7 @@ const RegisterForm: React.FC = () => {
             </option>
             {chapters.map(chapter => (
               <option key={chapter.id} value={chapter.id}>
-                {chapter.name} - {chapter.location}
+                {chapter.name} - {chapter.location}{typeof chapter.distance === 'number' && isFinite(chapter.distance) ? ` (${chapter.distance.toFixed(1)} km)` : ''}
               </option>
             ))}
           </select>
@@ -683,6 +709,42 @@ const RegisterForm: React.FC = () => {
             Using fallback chapter list. Some chapters may be unavailable.
           </p>
         ) : null}
+        <div className="flex items-center gap-3 pt-2">
+          <label className="flex items-center gap-2 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              checked={useNearby}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  if (!navigator.geolocation) {
+                    setLocError('Geolocation not supported by this browser.');
+                    setUseNearby(false);
+                    return;
+                  }
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                      setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                      setUseNearby(true);
+                      setLocError(null);
+                    },
+                    () => {
+                      setLocError('Unable to get location. Please allow location access.');
+                      setUseNearby(false);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+                  );
+                } else {
+                  setUseNearby(false);
+                }
+              }}
+              className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
+            />
+            <span className="inline-flex items-center gap-1">
+              <Compass className="h-4 w-4 text-[#27AE60]" />
+              Use nearest chapter
+            </span>
+          </label>
+        </div>
         </div>
       </div>
         

@@ -14,9 +14,10 @@ const upload = multer({
   },
   storage: multer.memoryStorage(), // Store in memory for direct streaming to Google API
   fileFilter: (req, file, cb) => {
-    // Accept audio files
+    // Accept audio files and webm (video) containers that include audio tracks
     if (file.mimetype.startsWith('audio/') ||
-        file.mimetype === 'application/octet-stream') {
+        file.mimetype === 'application/octet-stream' ||
+        file.mimetype.startsWith('video/webm')) {
       cb(null, true);
     } else {
       cb(new Error('Only audio files are allowed'));
@@ -52,20 +53,29 @@ router.post('/', authenticateToken, upload.single('audio'), async (req, res) => 
       content: audioBytes,
     };
 
+    // Normalize mimetype to handle variants like "audio/webm;codecs=opus"
+    const mime = (req.file.mimetype || '').toLowerCase();
+    const isWebm = mime.includes('webm');
+    const isWav = mime.includes('wav');
+    const isMp3 = mime.includes('mpeg') || mime.includes('mp3');
+
     const config = {
-      encoding: 'WEBM_OPUS', // Adjust based on your frontend recording format
-      sampleRateHertz: 48000, // Adjust based on your frontend recording format
+      encoding: isWav ? 'LINEAR16'
+               : isMp3 ? 'MP3'
+               : 'WEBM_OPUS', // default for webm/opus
+      sampleRateHertz: 48000, // typical for webm/opus from MediaRecorder
       languageCode: speechLanguage,
       alternativeLanguageCodes: ['am-ET', 'en-US'], // Try to detect Amharic or English if primary fails
       enableAutomaticPunctuation: true,
     };
     
-    // If mimetype is wav, change encoding
-    if (req.file.mimetype === 'audio/wav' || req.file.mimetype === 'audio/x-wav') {
-        config.encoding = 'LINEAR16';
-        // config.sampleRateHertz = 44100; // Often 44100 for wav
-    } else if (req.file.mimetype === 'audio/mpeg' || req.file.mimetype === 'audio/mp3') {
-        config.encoding = 'MP3';
+    // Adjust sample rate for wav/mp3 if needed
+    if (isWav) {
+      // Leave sampleRateHertz undefined to let API auto-detect for wav
+      delete config.sampleRateHertz;
+    } else if (isMp3) {
+      // MP3 usually 44100; allow auto-detect
+      delete config.sampleRateHertz;
     }
 
     const request = {

@@ -369,6 +369,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
           onShare={handleShare}
           onBookmark={handleBookmark}
           onCommentCountChange={handleCommentCountChange}
+          onStartPost={scrollToComposer}
         />
 
         {showShareModal && sharingPost && (

@@ -1,13 +1,18 @@
 import React, { useState, useCallback, useRef, memo, useEffect } from 'react';
-import { Search, X, Clock, BookOpen, Users, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, X, Clock, BookOpen, Users, TrendingUp, MapPin, MessageSquare } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { resourcesApi } from '@/services/api';
+import { chaptersApi } from '@/services/api/chapters';
+import communityPostsApi from '@/services/api/communityPosts';
+import { apiClient } from '@/services/api/apiClient';
 
 interface SearchResult {
   id: string;
-  type: 'course' | 'lesson' | 'user' | 'forum';
+  type: 'course' | 'lesson' | 'user' | 'forum' | 'resource' | 'chapter' | 'community';
   title: string;
   description: string;
-  url: string;
+  url?: string;
   icon: React.ReactNode;
   relevance: number;
 }
@@ -19,6 +24,7 @@ const SearchBar: React.FC = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -39,7 +45,7 @@ const SearchBar: React.FC = () => {
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   }, [recentSearches]);
 
-  // Mock search function - replace with actual API call
+  // Real search (aggregates courses, enrolled, resources, chapters, forums/community)
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -47,48 +53,126 @@ const SearchBar: React.FC = () => {
     }
 
     setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock search results with explicit typing to fix TypeScript error
-    const allResults: SearchResult[] = [
-      {
-        id: '1',
-        type: 'course',
-        title: 'Introduction to Theology',
-        description: 'Basic theological concepts and principles',
-        url: '/courses/1',
-        icon: <BookOpen className="h-4 w-4" />,
-        relevance: 0.95
-      },
-      {
-        id: '2',
-        type: 'lesson',
-        title: 'Biblical Hermeneutics',
-        description: 'Methods of biblical interpretation',
-        url: '/lessons/2',
-        icon: <BookOpen className="h-4 w-4" />,
-        relevance: 0.87
-      },
-      {
-        id: '3',
-        type: 'forum',
-        title: 'Theology Discussion Group',
-        description: 'Active discussions about theological topics',
-        url: '/forums/3',
-        icon: <Users className="h-4 w-4" />,
-        relevance: 0.76
+    try {
+      const [catalogRes, enrolledRes, resourcesRes, chaptersRes, forumsRes, communityRes] = await Promise.allSettled([
+        apiClient.get('/courses/catalog'),
+        apiClient.get('/students/dashboard'),
+        resourcesApi.searchResources({ search: query, limit: 5 } as any),
+        chaptersApi.searchChapters(query),
+        apiClient.get('/forums/search', { params: { q: query } }),
+        communityPostsApi.searchPosts({ q: query, sort: 'most_liked' })
+      ]);
+
+      const results: SearchResult[] = [];
+      const qLower = query.toLowerCase();
+
+      // Catalog courses
+      if (catalogRes.status === 'fulfilled' && catalogRes.value?.data?.success) {
+        const courses = catalogRes.value.data?.data?.courses || catalogRes.value.data?.courses || [];
+        courses
+          .filter((c: any) => (c.title || '').toLowerCase().includes(qLower) || (c.description || '').toLowerCase().includes(qLower))
+          .slice(0, 4)
+          .forEach((c: any) => {
+            results.push({
+              id: String(c.id),
+              type: 'course',
+              title: c.title,
+              description: c.description || 'Course',
+              url: `/student/all-courses?courseId=${c.id}`,
+              icon: <BookOpen className="h-4 w-4" />,
+              relevance: 0.9
+            });
+          });
       }
-    ];
 
-    const mockResults = allResults.filter(result => 
-      result.title.toLowerCase().includes(query.toLowerCase()) ||
-      result.description.toLowerCase().includes(query.toLowerCase())
-    );
+      // Enrolled courses
+      if (enrolledRes.status === 'fulfilled' && enrolledRes.value?.data?.success) {
+        const enrolled = enrolledRes.value.data?.data?.enrolledCourses || [];
+        enrolled
+          .filter((c: any) => (c.title || '').toLowerCase().includes(qLower) || (c.description || '').toLowerCase().includes(qLower))
+          .slice(0, 4)
+          .forEach((c: any) => {
+            if (!results.some((r) => r.type === 'course' && r.id === String(c.id))) {
+              results.push({
+                id: String(c.id),
+                type: 'course',
+                title: c.title,
+                description: c.description || 'Course',
+                url: `/student/all-courses?courseId=${c.id}`,
+                icon: <BookOpen className="h-4 w-4" />,
+                relevance: 0.86
+              });
+            }
+          });
+      }
 
-    setSearchResults(mockResults);
-    setIsLoading(false);
+      if (resourcesRes.status === 'fulfilled' && resourcesRes.value?.success) {
+        const resources = resourcesRes.value.data?.resources || [];
+        resources.slice(0, 4).forEach((r: any) => {
+          results.push({
+            id: String(r.id),
+            type: 'resource',
+            title: r.title,
+            description: r.description || r.author || 'Resource',
+            url: `/student/all-resources?resourceId=${r.id}`,
+            icon: <BookOpen className="h-4 w-4" />,
+            relevance: 0.82
+          });
+        });
+      }
+
+      if (chaptersRes.status === 'fulfilled' && chaptersRes.value?.success) {
+        const chapters = chaptersRes.value.data?.chapters || [];
+        chapters.slice(0, 3).forEach((ch: any) => {
+          results.push({
+            id: String(ch.id),
+            type: 'chapter',
+            title: ch.name,
+            description: `${ch.city || ''} ${ch.country || ''}`.trim() || 'Chapter',
+            url: `/student/chapters?chapterId=${ch.id}`,
+            icon: <MapPin className="h-4 w-4" />,
+            relevance: 0.78
+          });
+        });
+      }
+
+      if (forumsRes.status === 'fulfilled' && forumsRes.value?.data) {
+        const posts = forumsRes.value.data?.posts || forumsRes.value.data?.results || [];
+        posts.slice(0, 3).forEach((p: any) => {
+          results.push({
+            id: String(p.id),
+            type: 'forum',
+            title: p.title || p.content?.slice(0, 60) || 'Forum topic',
+            description: p.content?.slice(0, 100) || 'Forum discussion',
+            url: p.topic_id ? `/forums/topics/${p.topic_id}` : '/forums',
+            icon: <MessageSquare className="h-4 w-4" />,
+            relevance: 0.7
+          });
+        });
+      }
+
+      if (communityRes.status === 'fulfilled' && communityRes.value?.success) {
+        const posts = communityRes.value.data?.posts || [];
+        posts.slice(0, 3).forEach((p: any) => {
+          results.push({
+            id: String(p.id),
+            type: 'community',
+            title: p.content?.slice(0, 60) || 'Community post',
+            description: p.author_name || 'Community',
+            url: '/student/community-hub',
+            icon: <Users className="h-4 w-4" />,
+            relevance: 0.68
+          });
+        });
+      }
+
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search failed', err);
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -103,11 +187,11 @@ const SearchBar: React.FC = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       saveToRecentSearches(searchQuery);
-      // Navigate to search results page or trigger global search
-      console.log('Searching for:', searchQuery);
+      // Navigate to a global search route (fallback to dashboard with query param)
+      navigate(`/student/dashboard?search=${encodeURIComponent(searchQuery)}`);
       setIsFocused(false);
     }
-  }, [searchQuery, saveToRecentSearches]);
+  }, [searchQuery, saveToRecentSearches, navigate]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
@@ -122,11 +206,12 @@ const SearchBar: React.FC = () => {
   }, [saveToRecentSearches]);
 
   const handleResultClick = useCallback((result: SearchResult) => {
-    // Navigate to result URL
-    console.log('Navigating to:', result.url);
+    if (result.url) {
+      navigate(result.url);
+    }
     setIsFocused(false);
     setSearchQuery('');
-  }, []);
+  }, [navigate]);
 
   const showSuggestions = isFocused && (recentSearches.length > 0 || searchResults.length > 0);
 
@@ -143,7 +228,7 @@ const SearchBar: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          placeholder="Search courses, lessons, forums..."
+          placeholder="Search courses, resources, chapters, forums..."
           className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-gray-50/50 focus:bg-white placeholder-gray-500"
           aria-label="Search"
         />
@@ -239,7 +324,7 @@ const SearchBar: React.FC = () => {
               Quick Filters
             </div>
             <div className="flex flex-wrap gap-1">
-              {['Courses', 'Lessons', 'Forums', 'Users'].map((filter) => (
+              {['Courses', 'Resources', 'Chapters', 'Forums', 'Community'].map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setSearchQuery(filter.toLowerCase())}

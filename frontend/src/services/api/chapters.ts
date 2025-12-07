@@ -112,6 +112,11 @@ export const chaptersApi = {
     return response.data;
   },
 
+  getNearby: async (params: { lat: number; lng: number; radiusKm?: number; limit?: number }) => {
+    const response = await apiClient.get('/chapters/nearby', { params });
+    return response.data;
+  },
+
   createChapter: async (data: any) => {
     const response = await apiClient.post('/chapters', data);
     return response.data;

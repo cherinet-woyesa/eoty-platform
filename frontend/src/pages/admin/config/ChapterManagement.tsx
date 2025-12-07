@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, BookOpen } from 'lucide-react';
 import { systemConfigApi } from '@/services/api/systemConfig';
@@ -9,6 +9,38 @@ import { UsageAnalytics } from '@/components/admin/analytics/UsageAnalytics';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { Chapter, ChapterFormData } from '@/types/systemConfig';
+import { RefreshCw } from 'lucide-react';
+
+const COUNTRY_OPTIONS = [
+  'Ethiopia',
+  'United States',
+  'Canada',
+  'United Kingdom',
+  'Germany',
+  'France',
+  'Italy',
+  'Spain',
+  'Kenya',
+  'Nigeria',
+  'South Africa',
+  'India',
+  'Philippines',
+  'Australia',
+  'Brazil',
+  'Mexico',
+  'Other'
+];
+
+const REGION_OPTIONS_DEFAULT = [
+  'africa',
+  'europe',
+  'north america',
+  'south america',
+  'asia',
+  'oceania',
+  'antarctica',
+  'other'
+];
 
 export const ChapterManagement = () => {
   const queryClient = useQueryClient();
@@ -19,14 +51,68 @@ export const ChapterManagement = () => {
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [viewingUsage, setViewingUsage] = useState<Chapter | null>(null);
-  const [formData, setFormData] = useState<ChapterFormData>({ name: '', description: '' });
+  const [formData, setFormData] = useState<ChapterFormData>({
+    name: '',
+    description: '',
+    city: '',
+    country: '',
+    region: '',
+    address: '',
+  });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [regionFilter, setRegionFilter] = useState<string>('');
+  const [countryFilter, setCountryFilter] = useState<string>('');
+  const [countryOptions, setCountryOptions] = useState<string[]>(COUNTRY_OPTIONS);
+  const [regionOptions, setRegionOptions] = useState<string[]>(REGION_OPTIONS_DEFAULT);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [geoPreview, setGeoPreview] = useState<{ latitude?: number; longitude?: number; location?: string } | null>(null);
+  const [geoPreviewError, setGeoPreviewError] = useState<string | null>(null);
 
   // Fetch chapters
   const { data: chapters = [], isLoading } = useQuery({
     queryKey: ['chapters'],
     queryFn: () => systemConfigApi.getChapters(false),
+    onSuccess: () => setLastUpdated(new Date().toISOString())
   });
+
+  // Dynamic country/region load with fallback
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://restcountries.com/v3.1/all');
+        if (!res.ok) throw new Error('countries fetch failed');
+        const data = await res.json();
+        if (cancelled) return;
+        const countries = Array.from(
+          new Set(
+            data
+              .map((c: any) => c.name?.common)
+              .filter(Boolean)
+          )
+        ).sort((a: string, b: string) => a.localeCompare(b));
+        const regions = Array.from(
+          new Set(
+            data
+              .map((c: any) => (c.region || '').toLowerCase())
+              .filter(Boolean)
+          )
+        ).sort();
+        if (countries.length) setCountryOptions(countries);
+        if (regions.length) setRegionOptions(regions);
+      } catch (err) {
+        console.warn('Country/region fetch failed, using fallback', err);
+        if (cancelled) return;
+        setCountryOptions(COUNTRY_OPTIONS);
+        setRegionOptions(REGION_OPTIONS_DEFAULT);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Create mutation
   const createMutation = useMutation({
@@ -127,7 +213,7 @@ export const ChapterManagement = () => {
 
   // Form initialization
   const openCreateForm = () => {
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', city: '', country: '', region: '', address: '' });
     setFormErrors({});
     setIsCreating(true);
   };
@@ -136,6 +222,10 @@ export const ChapterManagement = () => {
     setFormData({
       name: chapter.name,
       description: chapter.description || '',
+      city: (chapter as any).city || '',
+      country: (chapter as any).country || '',
+      region: (chapter as any).region || '',
+      address: (chapter as any).location || '',
     });
     setFormErrors({});
     setEditingChapter(chapter);
@@ -144,7 +234,7 @@ export const ChapterManagement = () => {
   const closeForm = () => {
     setIsCreating(false);
     setEditingChapter(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', city: '', country: '', region: '', address: '' });
     setFormErrors({});
   };
 
@@ -241,6 +331,63 @@ export const ChapterManagement = () => {
     return await bulkActionMutation.mutateAsync({ action, ids });
   };
 
+  const filteredChapters = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return chapters.filter((ch) => {
+      const matchesTerm =
+        !term ||
+        ch.name?.toLowerCase().includes(term) ||
+        ch.description?.toLowerCase().includes(term);
+
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && ch.is_active) ||
+        (statusFilter === 'inactive' && !ch.is_active);
+
+      const matchesRegion = !regionFilter || (ch.region || '').toLowerCase() === regionFilter.toLowerCase();
+      const matchesCountry = !countryFilter || (ch.country || '').toLowerCase() === countryFilter.toLowerCase();
+
+      return matchesTerm && matchesStatus && matchesRegion && matchesCountry;
+    });
+  }, [chapters, searchTerm, statusFilter, regionFilter, countryFilter]);
+
+  const runGeoPreview = async () => {
+    setGeoPreviewError(null);
+    setGeoPreview(null);
+    if (!formData.address && !formData.city && !formData.country && !formData.region) {
+      setGeoPreviewError('Add address/city/country/region first.');
+      return;
+    }
+    try {
+      const data = await systemConfigApi.geocodePreview({
+        address: formData.address,
+        city: formData.city,
+        region: formData.region,
+        country: formData.country
+      });
+      if (!data?.latitude && !data?.longitude && !data?.location) {
+        setGeoPreviewError('No geocode result. Try a fuller address or add city/region.');
+        return;
+      }
+      setGeoPreview({
+        latitude: data?.latitude,
+        longitude: data?.longitude,
+        location: data?.location
+      });
+    } catch (err: any) {
+      setGeoPreviewError(err.message || 'Geocode preview failed');
+    }
+  };
+
+  const analyticsLikelyMissing = useMemo(() => {
+    if (isLoading || chapters.length === 0) return false;
+    return chapters.every((c) =>
+      (c as any).average_completion_rate === 0 &&
+      (c as any).monthly_active_users === 0 &&
+      (c as any).storage_used_gb === 0
+    );
+  }, [chapters, isLoading]);
+
   // Table columns
   const columns: ConfigTableColumn[] = [
     {
@@ -250,6 +397,20 @@ export const ChapterManagement = () => {
       width: '30%',
       render: (value) => (
         <span className="font-medium text-gray-900">{value}</span>
+      ),
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      sortable: false,
+      width: '25%',
+      render: (_value, row) => (
+        <div className="text-sm text-gray-700">
+          {(row as any).city || '—'}, {(row as any).country || '—'}
+          {(row as any).region && (
+            <div className="text-xs text-gray-500">{(row as any).region}</div>
+          )}
+        </div>
       ),
     },
     {
@@ -277,18 +438,49 @@ export const ChapterManagement = () => {
     },
   ];
 
+  if (isLoading && chapters.length === 0) {
+    return (
+      <div className="w-full h-full p-4 sm:p-6 lg:p-8 space-y-4">
+        <div className="flex justify-end">
+          <div className="h-10 w-36 bg-gray-100 border border-gray-200 rounded-lg animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-28 bg-white border border-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full">
       <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
         {/* Action Button */}
-        <div className="flex justify-end">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-stone-600">
+            {lastUpdated && (
+              <span className="px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
+                Last updated {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['chapters'] })}
+              className="inline-flex items-center px-3 py-2 bg-white border border-[#1F7A4C]/30 text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+            >
+              <RefreshCw className="h-4 w-4 mr-1 text-[#1F7A4C]" />
+              Refresh
+            </button>
           <button
             onClick={openCreateForm}
-            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
+              className="bg-[#1F7A4C] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#17623D] transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
           >
             <Plus className="h-5 w-5" />
             New Chapter
           </button>
+          </div>
         </div>
 
         {/* Bulk Actions */}
@@ -303,10 +495,62 @@ export const ChapterManagement = () => {
           />
         )}
 
+        {/* Search + Info */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center flex-col sm:flex-row gap-3">
+            <div className="w-full sm:w-80 relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search chapters by name or description..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              >
+                <option value="">All Regions</option>
+                {regionOptions.map((r) => (
+                  <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                ))}
+              </select>
+              <select
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              >
+                <option value="">All Countries</option>
+                {countryOptions.map((c) => (
+                  <option key={c} value={c.toLowerCase()}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {analyticsLikelyMissing && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+              Analytics fields are limited (missing enrollment/lesson metrics). Data will show once those tables/columns exist.
+            </div>
+          )}
+        </div>
+
         {/* Table */}
         <ConfigTable
           columns={columns}
-          data={chapters}
+          data={filteredChapters}
           isLoading={isLoading}
           onEdit={openEditForm}
           onDelete={handleDelete}
@@ -325,7 +569,7 @@ export const ChapterManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
+                <div className="bg-[#1F7A4C] px-6 py-4 text-white">
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -356,7 +600,7 @@ export const ChapterManagement = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Introduction to Catholic Faith"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60 ${
                         formErrors.name ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -378,7 +622,7 @@ export const ChapterManagement = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of this chapter..."
                       rows={4}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60 ${
                         formErrors.description ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -388,6 +632,87 @@ export const ChapterManagement = () => {
                     <p className="mt-1 text-sm text-gray-500">
                       Optional description (max 500 characters)
                     </p>
+                  </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      value={formData.city || ''}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      placeholder="e.g., Addis Ababa"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                    <input
+                      type="text"
+                      value={formData.country || ''}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      placeholder="e.g., Ethiopia"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Region/State</label>
+                    <input
+                      type="text"
+                      value={formData.region || ''}
+                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      placeholder="e.g., Oromia"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address (for pin)</label>
+                    <input
+                      type="text"
+                      value={formData.address || ''}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      placeholder="Street, building, etc. (optional)"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Used for geocoding the chapter location. Geocoding via Google Maps API.</p>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                        onClick={runGeoPreview}
+                      >
+                        Geocode Preview
+                      </button>
+                      {geoPreview && (
+                        <span className="text-xs text-green-700">
+                          {geoPreview.location || 'Location found'} ({geoPreview.latitude?.toFixed(4)}, {geoPreview.longitude?.toFixed(4)})
+                        </span>
+                      )}
+                      {geoPreviewError && (
+                        <span className="text-xs text-amber-700">
+                          {geoPreviewError}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Map Preview */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Map Preview</label>
+                  {editingChapter && (editingChapter as any).latitude && (editingChapter as any).longitude ? (
+                    <div className="rounded-lg overflow-hidden border border-gray-200">
+                      <iframe
+                        title="Chapter location map"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${(editingChapter as any).longitude - 0.01}%2C${(editingChapter as any).latitude - 0.01}%2C${(editingChapter as any).longitude + 0.01}%2C${(editingChapter as any).latitude + 0.01}&layer=mapnik&marker=${(editingChapter as any).latitude}%2C${(editingChapter as any).longitude}`}
+                        style={{ border: 0 }}
+                        className="w-full h-48"
+                        loading="lazy"
+                      ></iframe>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Map will appear after save once geocoding succeeds.</p>
+                  )}
                   </div>
 
                   {/* Action Buttons */}
@@ -402,7 +727,7 @@ export const ChapterManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 bg-[#1F7A4C] hover:bg-[#17623D] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>

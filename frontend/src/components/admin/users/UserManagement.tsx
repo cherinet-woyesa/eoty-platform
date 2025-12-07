@@ -47,6 +47,7 @@ const UserManagement: React.FC = () => {
   // State
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -58,6 +59,7 @@ const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -76,11 +78,13 @@ const UserManagement: React.FC = () => {
   // Fetch users
   const fetchUsers = useCallback(async () => {
     try {
-      setLoading(true);
+      setLoading(users.length === 0);
+      setIsRefreshing(users.length > 0);
       setError(null);
       const response = await adminApi.getUsers();
       if (response.success && response.data?.users) {
         setUsers(response.data.users);
+        setLastUpdated(new Date().toISOString());
       } else {
         throw new Error('Invalid response format');
       }
@@ -89,8 +93,17 @@ const UserManagement: React.FC = () => {
       setError(err.response?.data?.message || 'Failed to load users. Please try again.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
+
+  // Debounce search to avoid excessive filtering renders
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchTerm, roleFilter, statusFilter]);
 
   // Fetch chapters
   const fetchChapters = useCallback(async () => {
@@ -119,11 +132,12 @@ const UserManagement: React.FC = () => {
 
   // Filtered users
   const filteredUsers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
     return users.filter(user => {
-      const matchesSearch = 
-        user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = !term || 
+        user.firstName?.toLowerCase().includes(term) ||
+        user.lastName?.toLowerCase().includes(term) ||
+        user.email?.toLowerCase().includes(term);
       
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       const matchesStatus = statusFilter === 'all' || 
@@ -135,7 +149,7 @@ const UserManagement: React.FC = () => {
   }, [users, searchTerm, roleFilter, statusFilter]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
@@ -269,6 +283,8 @@ const UserManagement: React.FC = () => {
 
   const handleBulkStatusChange = async (isActive: boolean) => {
     if (selectedUsers.length === 0) return;
+    const confirmed = window.confirm(`Are you sure you want to ${isActive ? 'activate' : 'deactivate'} ${selectedUsers.length} user(s)?`);
+    if (!confirmed) return;
     setActionLoading('bulk');
     try {
       await Promise.all(
@@ -357,8 +373,21 @@ const UserManagement: React.FC = () => {
 
   if (loading && users.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <LoadingSpinner size="lg" text="Loading users..." />
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 space-y-4">
+        <div className="h-10 bg-white border border-stone-200 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-24 bg-white border border-stone-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+        <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="h-10 bg-gray-100 rounded-lg animate-pulse mb-3" />
+          <div className="grid gap-2">
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <div key={idx} className="h-12 bg-gray-100 rounded-md animate-pulse" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -367,23 +396,28 @@ const UserManagement: React.FC = () => {
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Compact Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm text-stone-600">
               {stats.total} total users • {stats.active} active • {stats.inactive} inactive
             </span>
+            {lastUpdated && (
+              <span className="text-xs px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
+                Last updated {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <button
               onClick={fetchUsers}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+              disabled={loading || isRefreshing}
+              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#1F7A4C]/25 shadow-sm hover:shadow-md hover:border-[#1F7A4C]/40 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4] disabled:opacity-50"
             >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#1F7A4C] ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-3 py-1.5 bg-[#1F7A4C] text-white text-xs font-medium rounded-md hover:bg-[#17623D] transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               New User
@@ -394,12 +428,12 @@ const UserManagement: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/15' },
-            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/15' },
-            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/25', glowColor: 'bg-red-500/15' },
-            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#2980B9]', bgColor: 'bg-[#2980B9]/10', borderColor: 'border-[#2980B9]/25', glowColor: 'bg-[#2980B9]/15' },
-            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#F39C12]', bgColor: 'bg-[#F39C12]/10', borderColor: 'border-[#F39C12]/25', glowColor: 'bg-[#F39C12]/15' },
-            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/15' },
+            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
+            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
+            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
+            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#2563EB]', bgColor: 'bg-[#2563EB]/10', borderColor: 'border-[#2563EB]/25', glowColor: 'bg-[#2563EB]/15' },
+            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#F59E0B]', bgColor: 'bg-[#F59E0B]/10', borderColor: 'border-[#F59E0B]/25', glowColor: 'bg-[#F59E0B]/15' },
+            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
           ].map((stat, index) => (
             <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
@@ -418,7 +452,7 @@ const UserManagement: React.FC = () => {
 
         {/* Search and Filters */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -430,7 +464,7 @@ const UserManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/50 focus:border-[#1F7A4C]/50 bg-white/90 backdrop-blur-sm"
             />
           </div>
 
@@ -442,7 +476,7 @@ const UserManagement: React.FC = () => {
                 setRoleFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/50 focus:border-[#1F7A4C]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Roles</option>
               <option value="student">Students</option>
@@ -458,7 +492,7 @@ const UserManagement: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/50 focus:border-[#1F7A4C]/50 bg-white/90 backdrop-blur-sm"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -468,13 +502,13 @@ const UserManagement: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-[#1F7A4C] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-[#1F7A4C] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -490,24 +524,32 @@ const UserManagement: React.FC = () => {
             <XCircle className="h-5 w-5 text-red-600 mr-2" />
             <span className="text-red-800">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchUsers}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-[#1F7A4C] rounded-md hover:bg-[#17623D] focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+            >
+              Retry
+            </button>
+            <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="bg-white border border-[#27AE60] rounded-lg p-4 flex items-center justify-between shadow-md animate-in fade-in slide-in-from-top-2">
+        <div className="bg-white border border-[#1F7A4C] rounded-lg p-4 flex items-center justify-between shadow-md animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center space-x-4">
-            <span className="text-[#27AE60] font-bold">
+            <span className="text-[#1F7A4C] font-bold">
               {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => handleBulkStatusChange(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-[#27AE60] text-white text-sm font-semibold rounded-lg hover:bg-[#219150] disabled:opacity-50 shadow-sm transition-colors"
+                className="inline-flex items-center px-3 py-1.5 bg-[#1F7A4C] text-white text-sm font-semibold rounded-lg hover:bg-[#17623D] disabled:opacity-50 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Activate
@@ -599,7 +641,7 @@ const UserManagement: React.FC = () => {
                   name="chapter"
                   value={newUser.chapter}
                   onChange={(e) => setNewUser({...newUser, chapter: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
                 >
                   <option value="">Select Chapter</option>
                   {chapters.map((ch) => (
@@ -615,7 +657,7 @@ const UserManagement: React.FC = () => {
                   name="role"
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
@@ -629,7 +671,7 @@ const UserManagement: React.FC = () => {
               <button
                 type="submit"
                 disabled={actionLoading === 'create'}
-                className="flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] disabled:opacity-50"
+                className="flex items-center px-4 py-2 bg-[#1F7A4C] text-white text-sm font-medium rounded-lg hover:bg-[#17623D] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
               >
                 {actionLoading === 'create' ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -655,7 +697,10 @@ const UserManagement: React.FC = () => {
         <>
           {viewMode === 'table' ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto relative">
+                {isRefreshing && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] animate-pulse pointer-events-none z-10" />
+                )}
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
@@ -684,7 +729,7 @@ const UserManagement: React.FC = () => {
                             type="checkbox"
                             checked={selectedUsers.includes(user.id)}
                             onChange={() => handleSelectUser(user.id)}
-                            className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
+                            className="rounded border-gray-300 text-[#1F7A4C] focus:ring-[#1F7A4C]"
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -708,10 +753,12 @@ const UserManagement: React.FC = () => {
                             value={user.role}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
-                            className={`text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-[#27AE60] disabled:opacity-50`}
+                            className={`text-xs px-2 py-1 rounded-md border ${getRoleColor(user.role)} focus:ring-2 focus:ring-[#1F7A4C] disabled:opacity-50`}
                           >
                             <option value="student">Student</option>
                             <option value="teacher">Teacher</option>
+                            <option value="chapter_admin">Chapter Admin</option>
+                            <option value="regional_coordinator">Regional Coordinator</option>
                             <option value="admin">Admin</option>
                           </select>
                         </td>
@@ -728,7 +775,7 @@ const UserManagement: React.FC = () => {
                             disabled={actionLoading === user.id}
                             className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
                               user.isActive
-                                ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20 hover:bg-[#27AE60]/20'
+                                ? 'bg-[#1F7A4C]/10 text-[#1F7A4C] border-[#1F7A4C]/20 hover:bg-[#1F7A4C]/15'
                                 : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
                             }`}
                           >
@@ -819,13 +866,12 @@ const UserManagement: React.FC = () => {
               {paginatedUsers.map((user) => (
                 <div 
                   key={user.id} 
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all relative"
                 >
-                  <div className={`bg-gradient-to-r ${
-                    user.role === 'admin' ? 'from-[#27AE60] to-[#16A085]' :
-                    user.role === 'teacher' ? 'from-[#27AE60] to-[#16A085]' :
-                    'from-[#27AE60] to-[#16A085]'
-                  } p-4 text-white`}>
+                  {isRefreshing && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] animate-pulse pointer-events-none z-10" />
+                  )}
+                  <div className="bg-[#1F7A4C] p-4 text-white">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center flex-1">
                         <div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">
@@ -854,6 +900,8 @@ const UserManagement: React.FC = () => {
                         >
                           <option value="student">Student</option>
                           <option value="teacher">Teacher</option>
+                          <option value="chapter_admin">Chapter Admin</option>
+                          <option value="regional_coordinator">Regional Coordinator</option>
                           <option value="admin">Admin</option>
                         </select>
                       </div>
@@ -1076,7 +1124,7 @@ const UserManagement: React.FC = () => {
                   <select
                     value={editingUser.role}
                     onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
                     disabled={String(editingUser.id) === String(currentUser?.id)}
                   >
                     <option value="student">Student</option>
@@ -1094,7 +1142,7 @@ const UserManagement: React.FC = () => {
                   <select
                     value={editingUser.chapterId || editingUser.chapter}
                     onChange={(e) => setEditingUser({...editingUser, chapterId: parseInt(e.target.value), chapter: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
                   >
                     {chapters.map((ch) => (
                       <option key={ch.id} value={ch.id}>{ch.location}</option>

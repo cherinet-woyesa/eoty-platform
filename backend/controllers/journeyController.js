@@ -3,7 +3,7 @@ const journeyService = require('../services/journeyService');
 class JourneyController {
   async createJourney(req, res) {
     try {
-      const journey = await journeyService.createJourney(req.body, req.user.id);
+      const journey = await journeyService.createJourney(req.body, req.user.userId);
       res.status(201).json(journey);
     } catch (error) {
       console.error('Error creating journey:', error);
@@ -34,7 +34,7 @@ class JourneyController {
 
   async enrollUser(req, res) {
     try {
-      const userJourney = await journeyService.enrollUser(req.user.id, req.params.id);
+      const userJourney = await journeyService.enrollUser(req.user.userId, req.params.id);
       res.status(201).json(userJourney);
     } catch (error) {
       console.error('Error enrolling user:', error);
@@ -44,7 +44,7 @@ class JourneyController {
 
   async getUserJourneys(req, res) {
     try {
-      const userJourneys = await journeyService.getUserJourneys(req.user.id);
+      const userJourneys = await journeyService.getUserJourneys(req.user.userId);
       res.json(userJourneys);
     } catch (error) {
       console.error('Error fetching user journeys:', error);
@@ -54,7 +54,7 @@ class JourneyController {
 
   async getUserJourneyDetails(req, res) {
     try {
-      const details = await journeyService.getUserJourneyDetails(req.params.id, req.user.id);
+      const details = await journeyService.getUserJourneyDetails(req.params.id, req.user.userId);
       if (!details) return res.status(404).json({ error: 'User journey not found' });
       res.json(details);
     } catch (error) {
@@ -66,7 +66,7 @@ class JourneyController {
   async completeMilestone(req, res) {
     try {
       const { userJourneyId, milestoneId } = req.params;
-      const result = await journeyService.completeMilestone(userJourneyId, milestoneId, req.user.id);
+      const result = await journeyService.completeMilestone(userJourneyId, milestoneId, req.user.userId);
       res.json(result);
     } catch (error) {
       console.error('Error completing milestone:', error);

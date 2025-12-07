@@ -463,7 +463,9 @@ const forumController = {
       const { postId } = req.params;
       const userId = req.user.userId;
 
-      const post = await ForumPost.findById(postId);
+      const post = await db('forum_posts')
+        .where('forum_posts.id', postId)
+        .first();
       if (!post) {
         return res.status(404).json({
           success: false,
@@ -477,27 +479,35 @@ const forumController = {
         .first();
 
       if (existingLike) {
-        return res.status(400).json({
-          success: false,
-          message: 'Post already liked'
+        // Toggle off (unlike)
+        await db('forum_post_likes')
+          .where({ post_id: postId, user_id: userId })
+          .del();
+
+        await db('forum_posts')
+          .where({ id: postId })
+          .decrement('like_count', 1);
+
+        res.json({
+          success: true,
+          message: 'Post unliked successfully'
+        });
+      } else {
+        // Add like
+        await db('forum_post_likes').insert({
+          post_id: postId,
+          user_id: userId
+        });
+
+        await db('forum_posts')
+          .where({ id: postId })
+          .increment('like_count', 1);
+
+        res.json({
+          success: true,
+          message: 'Post liked successfully'
         });
       }
-
-      // Add like
-      await db('forum_post_likes').insert({
-        post_id: postId,
-        user_id: userId
-      });
-
-      // Update like count
-      await db('forum_posts')
-        .where({ id: postId })
-        .increment('like_count', 1);
-
-      res.json({
-        success: true,
-        message: 'Post liked successfully'
-      });
     } catch (error) {
       console.error('Like post error:', error);
       res.status(500).json({
@@ -588,14 +598,15 @@ const forumController = {
       }
 
       // Create reply (post)
-      const [replyId] = await db('forum_posts').insert({
+      const [replyRow] = await db('forum_posts').insert({
         topic_id: topicId,
         author_id: userId,
         content: content.trim()
       }).returning('id');
+      const replyId = typeof replyRow === 'object' ? replyRow.id : replyRow;
 
       const reply = await db('forum_posts')
-        .where({ id: replyId })
+        .where('forum_posts.id', replyId)
         .leftJoin('users', 'forum_posts.author_id', 'users.id')
         .select(
           'forum_posts.*',

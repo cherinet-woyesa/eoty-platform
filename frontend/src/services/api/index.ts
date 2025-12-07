@@ -17,6 +17,7 @@ import { recordingPresetsApi } from './recordingPresets';
 import { moderationApi } from './moderation';
 import { assignmentsApi } from './assignments';
 import { aiApi } from './ai';
+import { chaptersApi } from './chapters';
 
 // Export apiClient so other modules can import it
 export { apiClient };
@@ -637,6 +638,7 @@ export type { RelatedVideo } from './relatedVideos';
 export { recordingPresetsApi };
 export type { RecordingPreset, CreatePresetData, UpdatePresetData } from './recordingPresets';
 export { assignmentsApi };
+export { chaptersApi };
 
 // Landing Page API (public)
 export const landingApi = {
@@ -683,5 +685,6 @@ export default {
   thumbnails: thumbnailsApi,
   relatedVideos: relatedVideosApi,
   recordingPresets: recordingPresetsApi,
-  landing: landingApi
+  landing: landingApi,
+  chapters: chaptersApi
 };

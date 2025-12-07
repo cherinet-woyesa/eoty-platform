@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { studyGroupsApi } from '@/services/api/studyGroups';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -6,8 +6,10 @@ import {
   BookOpen, User, Crown, Loader2, AlertCircle,
   X, Settings, UserPlus, LogOut, Clock, Target
 } from 'lucide-react';
-import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface StudyGroup {
   id: string;
@@ -35,99 +37,117 @@ interface GroupMember {
 
 const StudyGroupsPage: React.FC = () => {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
+  const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
-  const [groups, setGroups] = useState<StudyGroup[]>([]);
-  const [myGroups, setMyGroups] = useState<StudyGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
 
-  // Load study groups (backend)
-  const loadStudyGroups = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['study-groups'],
+    queryFn: async () => {
       const resp = await studyGroupsApi.list();
-      const publicGroups: StudyGroup[] = resp?.data?.publicGroups || [];
-      const userGroups: StudyGroup[] = resp?.data?.myGroups || [];
+      return resp?.data || {};
+    },
+    staleTime: 1000 * 30
+  });
 
-      // Ensure lists are consistent: exclude user's groups from public list
-      const myGroupIds = new Set((userGroups || []).map(g => String(g.id)));
-      const filteredPublic = (publicGroups || []).filter(g => !myGroupIds.has(String(g.id)));
-      setGroups(filteredPublic);
-      setMyGroups(userGroups || []);
-    } catch (err: any) {
-      console.error('Failed to load study groups:', err);
-      setError('Failed to load study groups. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    loadStudyGroups();
-  }, [loadStudyGroups]);
-
-  // Create new study group
-  const handleCreateGroup = useCallback(async () => {
-    const name = newGroupName.trim();
-    const description = newGroupDescription.trim();
-    if (!name || !user?.id) return;
-    try {
-      setLoading(true);
-      const created = await studyGroupsApi.create({ name, description, is_public: true, max_members: 50 });
-      // Optimistically add to My Groups
-      const newG = created?.data?.group || { id: String(Date.now()), name, description, member_count: 1, max_members: 50, is_public: true, created_by: user.id, created_by_name: `${user.firstName} ${user.lastName}`, created_at: new Date().toISOString(), members: [{ id: user.id, name: `${user.firstName} ${user.lastName}`, role: 'admin', joined_at: new Date().toISOString() }] };
-      setMyGroups(prev => [newG as any, ...prev]);
-      setGroups(prev => prev.filter(g => String(g.id) !== String(newG.id)));
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const name = newGroupName.trim();
+      const description = newGroupDescription.trim();
+      return studyGroupsApi.create({ name, description, is_public: true, max_members: 50 });
+    },
+    onSuccess: async () => {
+      setShowCreateModal(false);
       setNewGroupName('');
       setNewGroupDescription('');
-      setShowCreateModal(false);
-      await loadStudyGroups();
-    } catch (err) {
-      console.error('Failed to create group:', err);
-      setError('Failed to create group');
-    } finally {
-      setLoading(false);
-    }
-  }, [newGroupName, newGroupDescription, user, loadStudyGroups]);
+      showNotification('success', 'Group created', 'Your study group is now live');
+      await queryClient.invalidateQueries({ queryKey: ['study-groups'] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to create group')
+  });
 
-  // Join group
-  const handleJoinGroup = useCallback(async (group: StudyGroup) => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      await studyGroupsApi.join(Number(group.id));
-      // Optimistically move group to My Groups
-      setMyGroups(prev => [group, ...prev]);
-      setGroups(prev => prev.filter(g => g.id !== group.id));
-      await loadStudyGroups();
-    } catch (err) {
-      console.error('Failed to join group:', err);
-      setError('Failed to join group');
-    } finally {
-      setLoading(false);
-    }
-  }, [user, loadStudyGroups]);
+  const joinMutation = useMutation({
+    mutationFn: async (group: StudyGroup) => studyGroupsApi.join(Number(group.id)),
+    onSuccess: async (_, group) => {
+      showNotification('success', 'Joined group', 'You are now a member');
+      // Optimistically move to myGroups
+      queryClient.setQueryData(['study-groups'], (oldData: any) => {
+        if (!oldData) return oldData;
+        const myGroups = oldData.myGroups || [];
+        const publicGroups = oldData.publicGroups || [];
+        const target = publicGroups.find((g: any) => String(g.id) === String(group.id)) || group;
+        return {
+          ...oldData,
+          myGroups: [target, ...myGroups.filter((g: any) => String(g.id) !== String(group.id))],
+          publicGroups: publicGroups.filter((g: any) => String(g.id) !== String(group.id))
+        };
+      });
+      await queryClient.invalidateQueries({ queryKey: ['study-groups'] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to join group')
+  });
 
-  // Leave group
-  const handleLeaveGroup = useCallback(async (groupId: string) => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      await studyGroupsApi.leave(Number(groupId));
-      await loadStudyGroups();
-    } catch (err) {
-      console.error('Failed to leave group:', err);
-      setError('Failed to leave group');
-    } finally {
-      setLoading(false);
+  const leaveMutation = useMutation({
+    mutationFn: async (groupId: string) => studyGroupsApi.leave(Number(groupId)),
+    onSuccess: async () => {
+      showNotification('success', 'Left group', 'You have left the study group');
+      queryClient.setQueryData(['study-groups'], (oldData: any) => {
+        if (!oldData) return oldData;
+        const myGroups = (oldData.myGroups || []).filter((g: any) => String(g.id) !== String(groupId));
+        return { ...oldData, myGroups };
+      });
+      await queryClient.invalidateQueries({ queryKey: ['study-groups'] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to leave group')
+  });
+
+  const handleCreateGroup = useCallback(() => {
+    if (!newGroupName.trim()) return;
+    createMutation.mutate();
+  }, [createMutation, newGroupName]);
+
+  const handleJoinGroup = useCallback((group: StudyGroup) => {
+    if (group.member_count >= group.max_members) {
+      showNotification('error', 'Group is full', 'Please pick another group');
+      return;
     }
-  }, [user?.id, loadStudyGroups]);
+    joinMutation.mutate(group);
+  }, [joinMutation, showNotification]);
+
+  const handleLeaveGroup = useCallback(async (groupId: string, groupName: string) => {
+    const ok = await confirm({
+      title: 'Leave group',
+      message: `Are you sure you want to leave "${groupName}"?`,
+      confirmText: 'Leave',
+      cancelText: 'Stay'
+    });
+    if (!ok) return;
+    leaveMutation.mutate(groupId);
+  }, [leaveMutation, confirm]);
+
+  const publicGroups: StudyGroup[] = useMemo(() => {
+    const all = data?.publicGroups || [];
+    const mySet = new Set((data?.myGroups || []).map((g: any) => String(g.id)));
+    const createdByMe = all.filter((g: any) => String(g.created_by) === String(user?.id));
+    createdByMe.forEach((g: any) => mySet.add(String(g.id)));
+    return all.filter((g: any) => !mySet.has(String(g.id)));
+  }, [data, user?.id]);
+
+  const myGroups: StudyGroup[] = useMemo(() => {
+    const mine = data?.myGroups || [];
+    const created = (data?.publicGroups || []).filter((g: any) => String(g.created_by) === String(user?.id));
+    const merged = [...mine];
+    const existing = new Set(mine.map((g: any) => String(g.id)));
+    created.forEach((g: any) => {
+      if (!existing.has(String(g.id))) merged.push(g);
+    });
+    return merged;
+  }, [data, user?.id]);
 
   // Filtered groups
   const filteredMyGroups = useMemo(() => {
@@ -138,13 +158,13 @@ const StudyGroupsPage: React.FC = () => {
   }, [myGroups, searchTerm]);
 
   const filteredPublicGroups = useMemo(() => {
-    return groups.filter(group =>
+    return publicGroups.filter(group =>
       group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       group.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [groups, searchTerm]);
+  }, [publicGroups, searchTerm]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
@@ -159,16 +179,16 @@ const StudyGroupsPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <p className="text-red-600 text-lg mb-4">Failed to load study groups. Please try again.</p>
               <button 
-                onClick={loadStudyGroups}
+                onClick={() => refetch()}
                 className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
               >
                 Try Again
@@ -237,7 +257,7 @@ const StudyGroupsPage: React.FC = () => {
                     <h3 className="font-bold text-stone-800 mb-1">{group.name}</h3>
                     <p className="text-sm text-stone-600 line-clamp-2">{(group.description || '').slice(0, 140)}{(group.description || '').length > 140 ? '…' : ''}</p>
                   </div>
-                  {group.members.some(m => m.id === user?.id && m.role === 'admin') && (
+                  {(group.members || []).some(m => m.id === user?.id && m.role === 'admin') && (
                     <Crown className="h-5 w-5 text-[#FFD700] flex-shrink-0" />
                   )}
                 </div>
@@ -256,15 +276,15 @@ const StudyGroupsPage: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate(`/student/study-groups/${group.id}`)}
-                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1"
+                  <Link
+                    to={`/student/study-groups/${group.id}`}
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-1 text-center"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Open Group
-                  </button>
+                  </Link>
                   <button
-                    onClick={() => handleLeaveGroup(group.id)}
+                    onClick={() => handleLeaveGroup(group.id, group.name)}
                     className="px-3 py-2 bg-stone-200 text-stone-700 rounded-lg hover:bg-stone-300 transition-all"
                     title="Leave group"
                   >
@@ -305,14 +325,22 @@ const StudyGroupsPage: React.FC = () => {
                   )}
                 </div>
                 
-                <button
-                  onClick={() => handleJoinGroup(group)}
-                  disabled={group.member_count >= group.max_members}
+                <Link
+                  to={`/student/study-groups/${group.id}`}
+                  onClick={(e) => {
+                    if (group.member_count >= group.max_members || joinMutation.isLoading) {
+                      e.preventDefault();
+                      handleJoinGroup(group);
+                    } else {
+                      // ensure join before navigate for non-members
+                      handleJoinGroup(group);
+                    }
+                  }}
                   className="w-full px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UserPlus className="h-4 w-4" />
-                  {group.member_count >= group.max_members ? 'Full' : 'Join Group'}
-                </button>
+                  {group.member_count >= group.max_members ? 'Full' : 'Join / Open'}
+                </Link>
               </div>
             ))}
           </div>
@@ -365,10 +393,10 @@ const StudyGroupsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={handleCreateGroup}
-                  disabled={!newGroupName.trim()}
+                  disabled={!newGroupName.trim() || createMutation.isLoading}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create
+                  {createMutation.isLoading ? 'Creating...' : 'Create'}
                 </button>
               </div>
             </div>

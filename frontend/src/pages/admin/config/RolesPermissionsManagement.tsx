@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Users, Settings, Eye, Edit, Trash2, Plus, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shield, Users, Settings, Eye, Edit, Trash2, Plus, Save, X, Search, RefreshCw } from 'lucide-react';
 import { adminApi } from '@/services/api/admin';
 import { useNotification } from '@/context/NotificationContext';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
@@ -29,6 +29,8 @@ const RolesPermissionsManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const roles = ['admin', 'regional_coordinator', 'chapter_admin', 'teacher', 'student'];
 
@@ -38,7 +40,8 @@ const RolesPermissionsManagement: React.FC = () => {
 
   const loadData = async () => {
     try {
-      setIsLoading(true);
+      setIsLoading(permissions.length === 0);
+      setIsRefreshing(permissions.length > 0);
       setError(null);
 
       // Load all permissions and role permissions
@@ -61,6 +64,7 @@ const RolesPermissionsManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error loading roles and permissions:', err);
+      setError(err.response?.data?.message || 'Failed to load roles and permissions data');
       showNotification({
         type: 'error',
         title: 'Error',
@@ -68,6 +72,7 @@ const RolesPermissionsManagement: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -101,22 +106,34 @@ const RolesPermissionsManagement: React.FC = () => {
     }
   };
 
+  const filteredPermissions = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return permissions;
+    return permissions.filter(p =>
+      p.name.toLowerCase().includes(term) ||
+      p.permission_key.toLowerCase().includes(term) ||
+      p.description.toLowerCase().includes(term) ||
+      p.category.toLowerCase().includes(term)
+    );
+  }, [permissions, searchTerm]);
+
   const getPermissionCategories = () => {
-    const categories = [...new Set(permissions.map(p => p.category))];
+    const categories = [...new Set(filteredPermissions.map(p => p.category))];
     return categories;
   };
 
   const getPermissionsByCategory = (category: string) => {
-    return permissions.filter(p => p.category === category);
+    return filteredPermissions.filter(p => p.category === category);
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <div className="w-8 h-8 border-t-2 border-[#27AE60] border-solid rounded-full animate-spin"></div>
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">Loading Permissions</h3>
-          <p className="text-gray-600">Fetching role and permission data...</p>
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="h-12 bg-white border border-stone-200 rounded-lg animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-24 bg-white border border-stone-200 rounded-lg animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -130,13 +147,26 @@ const RolesPermissionsManagement: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Roles & Permissions</h2>
           <p className="text-gray-600 mt-1">Manage user roles and access permissions</p>
         </div>
-        <button
-          onClick={loadData}
-          className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors whitespace-nowrap"
-        >
-          <Settings className="h-4 w-4" />
-          Refresh
-        </button>
+        <div className="flex gap-2 items-center">
+          <div className="relative">
+            <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search permissions..."
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            />
+          </div>
+          <button
+            onClick={loadData}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#1F7A4C]/30 text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A3E6C4] whitespace-nowrap disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 text-[#1F7A4C] ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Error Display */}
@@ -151,23 +181,23 @@ const RolesPermissionsManagement: React.FC = () => {
 
       {/* Guide Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-100 rounded-full">
-            <Settings className="h-5 w-5 text-blue-600" />
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-[#1F7A4C]/10 rounded-full">
+              <Settings className="h-5 w-5 text-[#1F7A4C]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-stone-900">How to Manage Permissions</h3>
+              <p className="text-sm text-stone-700 mt-1">
+                This matrix allows you to control what each user role can do in the system.
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-stone-700 list-disc list-inside">
+                <li><strong>Rows</strong> represent specific actions (e.g., "Create Course").</li>
+                <li><strong>Columns</strong> represent user roles (e.g., "Teacher").</li>
+                <li>Click the toggle switch to <strong>Grant</strong> (Green) or <strong>Revoke</strong> (Gray) a permission.</li>
+                <li>Some permissions are locked (e.g., Admin always has full access) to prevent system lockouts.</li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-blue-900">How to Manage Permissions</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              This matrix allows you to control what each user role can do in the system.
-            </p>
-            <ul className="mt-2 space-y-1 text-sm text-blue-700 list-disc list-inside">
-              <li><strong>Rows</strong> represent specific actions (e.g., "Create Course").</li>
-              <li><strong>Columns</strong> represent user roles (e.g., "Teacher").</li>
-              <li>Click the toggle switch to <strong>Grant</strong> (Green) or <strong>Revoke</strong> (Gray) a permission.</li>
-              <li>Some permissions are locked (e.g., Admin always has full access) to prevent system lockouts.</li>
-            </ul>
-          </div>
-        </div>
       </div>
 
       {/* Permissions Matrix */}
@@ -209,7 +239,7 @@ const RolesPermissionsManagement: React.FC = () => {
                 {roles.map(role => (
                   <th key={role} className="px-2 sm:px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider min-w-[120px] bg-gray-100 border-x border-gray-200">
                     <div className="flex flex-col items-center gap-1 sm:gap-2">
-                      {role === 'admin' && <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-[#27AE60]" />}
+                      {role === 'admin' && <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-[#1F7A4C]" />}
                       {role === 'teacher' && <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
                       {role === 'student' && <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />}
                       <span className="font-bold text-gray-800">{role.replace('_', ' ').toUpperCase()}</span>
@@ -248,17 +278,17 @@ const RolesPermissionsManagement: React.FC = () => {
                       </td>
                       {roles.map(role => {
                         const hasPermission = rolePermissions[role]?.some(rp => rp.permission_id === permission.id);
-                        const isDisabled = role === 'admin' && permission.permission_key === 'system:admin';
+                        const isDisabled = role === 'admin'; // Admin always locked on
 
                         return (
                           <td key={role} className="px-2 sm:px-6 py-4 text-center min-w-[120px]">
                             <button
                               onClick={() => !isDisabled && togglePermission(role, permission.id, hasPermission)}
                               disabled={isDisabled}
-                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 ${
-                                hasPermission ? 'bg-[#27AE60]' : 'bg-gray-200'
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#1F7A4C] focus:ring-offset-2 ${
+                                hasPermission ? 'bg-[#1F7A4C]' : 'bg-gray-200'
                               } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              title={`${hasPermission ? 'Revoke' : 'Grant'} ${permission.name} permission for ${role}`}
+                              title={isDisabled ? 'Admin permissions are always on' : `${hasPermission ? 'Revoke' : 'Grant'} ${permission.name} for ${role}`}
                             >
                               <span
                                 aria-hidden="true"

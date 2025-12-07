@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { journeysApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Compass, Loader2, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Sparkles, Compass, Loader2, ArrowRight, CheckCircle2, Lock, RefreshCw, Target, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useNotification } from '@/context/NotificationContext';
 
 interface Journey {
   id: number;
@@ -14,59 +16,57 @@ interface Journey {
   progress_percentage?: number;
   status?: string;
   journey_id?: number; // For user journeys
+  is_locked?: boolean;
 }
 
 const SpiritualJourneys: React.FC = () => {
   const { t } = useTranslation();
-  const [myJourneys, setMyJourneys] = useState<Journey[]>([]);
-  const [availableJourneys, setAvailableJourneys] = useState<Journey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { showNotification } = useNotification();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [myJourneysData, allJourneysData] = await Promise.all([
-          journeysApi.getUserJourneys(),
-          journeysApi.getJourneys()
-        ]);
+  const userJourneysQuery = useQuery({
+    queryKey: ['journeys', 'user'],
+    queryFn: journeysApi.getUserJourneys,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
 
-        setMyJourneys(Array.isArray(myJourneysData) ? myJourneysData : []);
-        
-        // Filter out journeys the user is already enrolled in
-        const enrolledIds = new Set((Array.isArray(myJourneysData) ? myJourneysData : []).map((j: Journey) => j.journey_id || j.id));
-        const available = (Array.isArray(allJourneysData) ? allJourneysData : []).filter((j: Journey) => !enrolledIds.has(j.id));
-        
-        setAvailableJourneys(available);
-      } catch (e: any) {
-        console.error('Failed to load journeys', e);
-        setError(e.response?.data?.message || t('spiritual_journeys.load_failed'));
-      } finally {
-        setLoading(false);
-      }
-    };
+  const allJourneysQuery = useQuery({
+    queryKey: ['journeys', 'all'],
+    queryFn: journeysApi.getJourneys,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
 
-    void loadData();
-  }, []);
-
-  const handleEnroll = async (journeyId: number) => {
-    try {
-      await journeysApi.enroll(journeyId);
-      // Reload data
-      const [myJourneysData, allJourneysData] = await Promise.all([
-        journeysApi.getUserJourneys(),
-        journeysApi.getJourneys()
+  const enrollMutation = useMutation({
+    mutationFn: (journeyId: number) => journeysApi.enroll(journeyId),
+    onSuccess: async () => {
+      showNotification('success', t('common.success'), t('spiritual_journeys.enroll_success'));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['journeys', 'user'] }),
+        queryClient.invalidateQueries({ queryKey: ['journeys', 'all'] }),
       ]);
-      setMyJourneys(Array.isArray(myJourneysData) ? myJourneysData : []);
-      const enrolledIds = new Set((Array.isArray(myJourneysData) ? myJourneysData : []).map((j: Journey) => j.journey_id || j.id));
-      const available = (Array.isArray(allJourneysData) ? allJourneysData : []).filter((j: Journey) => !enrolledIds.has(j.id));
-      setAvailableJourneys(available);
-    } catch (e) {
-      console.error('Failed to enroll', e);
+    },
+    onError: () => {
+      showNotification('error', t('common.error'), t('spiritual_journeys.enroll_failed'));
     }
-  };
+  });
+
+  const loading = userJourneysQuery.isLoading || allJourneysQuery.isLoading;
+  const error = userJourneysQuery.error || allJourneysQuery.error;
+
+  const myJourneys = useMemo(() => {
+    const data = Array.isArray(userJourneysQuery.data) ? userJourneysQuery.data : [];
+    return data;
+  }, [userJourneysQuery.data]);
+
+  const availableJourneys = useMemo(() => {
+    const mine = Array.isArray(userJourneysQuery.data) ? userJourneysQuery.data : [];
+    const all = Array.isArray(allJourneysQuery.data) ? allJourneysQuery.data : [];
+    const enrolledIds = new Set(mine.map((j: Journey) => j.journey_id || j.id));
+    return all.filter((j: Journey) => !enrolledIds.has(j.id));
+  }, [userJourneysQuery.data, allJourneysQuery.data]);
 
   if (loading) {
     return (
@@ -96,6 +96,30 @@ const SpiritualJourneys: React.FC = () => {
           </div>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+            <div className="mt-0.5">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div className="flex-1 text-sm">
+              {t('spiritual_journeys.load_failed')}
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => {
+                    userJourneysQuery.refetch();
+                    allJourneysQuery.refetch();
+                  }}
+                  className="inline-flex items-center gap-1 text-red-800 underline"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  {t('common.retry')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* My Journeys */}
         {myJourneys.length > 0 && (
           <section>
@@ -121,13 +145,18 @@ const SpiritualJourneys: React.FC = () => {
                     />
                   </div>
                   
-                  <button 
-                    onClick={() => navigate(`/student/journeys/${journey.id}`)}
-                    className="w-full py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    {t('spiritual_journeys.continue_journey')}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <button 
+                      onClick={() => navigate(`/student/journeys/${journey.id}`)}
+                      className="inline-flex px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      {t('spiritual_journeys.continue_journey')}
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      {Math.round(journey.progress_percentage || 0)}%
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -156,11 +185,21 @@ const SpiritualJourneys: React.FC = () => {
                   <h3 className="font-semibold text-slate-900 mb-2">{journey.title}</h3>
                   <p className="text-sm text-slate-600 mb-4 line-clamp-3">{journey.description}</p>
                   <button
-                    onClick={() => handleEnroll(journey.id)}
-                    className="w-full py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    onClick={() => enrollMutation.mutate(journey.id)}
+                    disabled={enrollMutation.isPending}
+                    className="w-full py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                   >
-                    {t('spiritual_journeys.start_journey')}
-                    <ArrowRight className="h-4 w-4" />
+                    {enrollMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t('common.please_wait')}
+                      </>
+                    ) : (
+                      <>
+                        {t('spiritual_journeys.start_journey')}
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               ))}

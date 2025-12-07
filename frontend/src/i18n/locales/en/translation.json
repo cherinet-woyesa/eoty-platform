@@ -312,7 +312,16 @@
       "community": "Community",
       "continue_learning": "Continue Learning",
       "start_learning": "Start Learning",
-      "recommended_courses": "Recommended Courses"
+      "recommended_courses": "Recommended Courses",
+      "error_loading": "Unable to load dashboard",
+      "error_loading_message": "Please check your connection and try again.",
+      "retry": "Retry",
+      "no_courses_title": "You have no courses yet",
+      "no_courses_message": "Start your learning journey by exploring our catalog.",
+      "recommended_for_you": "Recommended for you",
+      "no_recommendations": "We’ll show recommendations once you start learning.",
+      "resume_now": "Resume now",
+      "last_accessed": "Last accessed"
     }
   },
   "tasks": {

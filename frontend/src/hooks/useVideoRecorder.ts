@@ -231,6 +231,18 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   const shouldStopAfterRestartRef = useRef<boolean>(false); // Flag to stop after restart completes
   const cleanupTimerRef = useRef<number | null>(null);
 
+  // NEW: Refs for stable access in callbacks
+  const isRecordingRef = useRef(isRecording);
+  const compositorInstanceRef = useRef(compositorInstance);
+  
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+  
+  useEffect(() => {
+    compositorInstanceRef.current = compositorInstance;
+  }, [compositorInstance]);
+
   // FIX: Export setRecordingTime function
   const setRecordingTimeState = useCallback((time: number) => {
     setRecordingTime(time);

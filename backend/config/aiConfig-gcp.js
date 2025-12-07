@@ -40,13 +40,15 @@ try {
 const aiConfig = {
   // Google AI Studio Model configurations
   chatModelCandidates: [
+    // Prefer the newest fast model first
+    'gemini-2.5-flash',
+    // Fallbacks
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
     'gemini-1.5-flash',
     'gemini-pro'
   ],
   // Backwards-compatible single value for quick checks (first candidate)
-  chatModel: 'gemini-2.0-flash',
+  chatModel: 'gemini-2.5-flash',
   embeddingModel: 'text-embedding-004',
 
   // Response settings optimized for Vertex AI

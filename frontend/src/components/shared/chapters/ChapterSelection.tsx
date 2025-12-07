@@ -3,8 +3,8 @@
  * REQUIREMENT: Multi-city/chapter membership, location/topic based
  */
 
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Users, Check, X, Star } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Search, MapPin, Users, Check, X, Star, Compass } from 'lucide-react';
 import { chaptersApi, type Chapter, type UserChapter } from '@/services/api/chapters';
 import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/context/NotificationContext';
@@ -30,13 +30,54 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
     city?: string;
     region?: string;
   }>({});
+  const [facetCountries, setFacetCountries] = useState<string[]>([]);
+  const [facetRegions, setFacetRegions] = useState<string[]>([]);
+  const [facetCities, setFacetCities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useNearby, setUseNearby] = useState(false);
+  const [distanceKm, setDistanceKm] = useState(50);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+  const [hasTriedNearby, setHasTriedNearby] = useState(false);
 
   useEffect(() => {
     fetchChapters();
     fetchUserChapters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  // Debounce search to reduce API chatter
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchChapters();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // Refetch when nearby params change
+  useEffect(() => {
+    if (useNearby && coords) {
+      fetchChapters();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useNearby, coords, distanceKm]);
+
+  const hydrateFacets = (list: Chapter[]) => {
+    const countries = new Set<string>();
+    const regions = new Set<string>();
+    const cities = new Set<string>();
+    list.forEach((ch) => {
+      if (ch.country) countries.add(ch.country);
+      if ((ch as any).region) regions.add((ch as any).region);
+      if (ch.city) cities.add(ch.city);
+    });
+    setFacetCountries(Array.from(countries).sort());
+    setFacetRegions(Array.from(regions).sort());
+    setFacetCities(Array.from(cities).sort());
+  };
 
   const fetchChapters = async () => {
     try {
@@ -44,18 +85,42 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
       setError(null);
       
       let response;
-      if (searchTerm) {
+      if (useNearby && coords) {
+        response = await chaptersApi.getNearby({ lat: coords.lat, lng: coords.lng, radiusKm: distanceKm, limit: 100 });
+      } else if (searchTerm) {
         response = await chaptersApi.searchChapters(searchTerm);
       } else {
         response = await chaptersApi.getChapters(filters);
       }
 
       if (response.success) {
-        setChapters(response.data.chapters || []);
+        const incoming = response.data.chapters || [];
+        const mapped = incoming.map((ch: any) => ({
+          ...ch,
+          distance: ch.distance_km ?? ch.distance ?? ch.distanceKm ?? null
+        }));
+        setChapters(mapped);
+        hydrateFacets(mapped);
+      } else {
+        throw new Error(response.message || 'Failed to load chapters');
       }
     } catch (err: any) {
       console.error('Failed to fetch chapters:', err);
       setError(err.message || 'Failed to load chapters');
+      // Fallback: if nearby fails, try default list once
+      if (useNearby && !coords) return;
+      if (useNearby) {
+        try {
+          const fallback = await chaptersApi.getChapters(filters);
+          if (fallback.success) {
+            setChapters(fallback.data.chapters || []);
+            setUseNearby(false);
+            setLocError('Near me unavailable; showing all chapters.');
+          }
+        } catch {
+          /* ignore */
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -149,12 +214,125 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
     return userChapters.some(uc => uc.chapter_id === chapterId && uc.is_primary);
   };
 
-  const filteredChapters = chapters.filter(ch => {
-    const isMember = isUserMember(ch.id);
-    if (showOnlyJoinable) return !isMember;
-    if (showOnlyMembership) return isMember;
+  const renderMembershipBadge = (chapterId: number) => {
+    const role = getUserChapterRole(chapterId);
+    const status = getUserChapterStatus(chapterId);
+    const primary = isPrimaryChapter(chapterId);
+
+    if (!role && !status) return null;
+
+    return (
+      <div className="flex items-center gap-2 flex-wrap text-xs">
+        {role && (
+          <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium capitalize">
+            {role.replace('_', ' ')}
+          </span>
+        )}
+        {status && (
+          <span className={`px-2 py-1 rounded-full border font-medium ${
+            status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+            status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+            'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {status}
+          </span>
+        )}
+        {primary && (
+          <span className="px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-medium">
+            Primary
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const membershipChapters = useMemo(() => {
+    if (!showOnlyMembership) return null;
+    // Prefer userChapters data directly so membership view works even if chapter list is filtered/empty
+    return (userChapters || []).map((uc) => ({
+      id: uc.chapter_id,
+      name: uc.chapter_name || uc.name || 'Chapter',
+      country: uc.country,
+      city: uc.city,
+      region: uc.region,
+      description: uc.description,
+      topics: uc.topics,
+      status: uc.status,
+      role: uc.role,
+      is_primary: uc.is_primary,
+      distance: uc.distance_km || uc.distance
+    })) as any[];
+  }, [showOnlyMembership, userChapters]);
+
+  const matchesFilters = useCallback((ch: any) => {
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      const haystack = [
+        ch.name,
+        ch.city,
+        ch.country,
+        ch.region,
+        ch.description
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(term)) return false;
+    }
+    if (filters.country && ch.country !== filters.country) return false;
+    if (filters.region && ch.region !== filters.region) return false;
+    if (filters.city && ch.city !== filters.city) return false;
     return true;
-  });
+  }, [searchTerm, filters.country, filters.region, filters.city]);
+
+  const filteredChapters = useMemo(() => {
+    if (showOnlyMembership && membershipChapters) {
+      const filtered = membershipChapters.filter(matchesFilters);
+      // If filters hide all but membership exists, fallback to showing all memberships
+      if (filtered.length === 0 && membershipChapters.length > 0) {
+        return membershipChapters;
+      }
+      return filtered;
+    }
+    return chapters
+      .filter(ch => {
+        const isMember = isUserMember(ch.id);
+        if (showOnlyJoinable) return !isMember;
+        if (showOnlyMembership) return isMember;
+        return true;
+      })
+      .filter(matchesFilters);
+  }, [chapters, showOnlyJoinable, showOnlyMembership, userChapters, membershipChapters, matchesFilters]);
+
+  const handleEnableNearby = () => {
+    if (coords) {
+      setUseNearby(true);
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocError('Geolocation not supported by this browser.');
+      setUseNearby(false);
+      return;
+    }
+    setIsLocating(true);
+    setLocError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setUseNearby(true);
+        setHasTriedNearby(true);
+        setIsLocating(false);
+      },
+      (geoErr) => {
+        console.error('Geolocation error', geoErr);
+        setLocError('Unable to get your location. Please allow location access.');
+        setUseNearby(false);
+        setHasTriedNearby(true);
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -166,12 +344,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
             type="text"
             placeholder="Search chapters by name, location, or topic..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              if (e.target.value) {
-                fetchChapters();
-              }
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -183,7 +356,9 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Countries</option>
-            {/* In production, populate from API */}
+            {facetCountries.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
 
           <select
@@ -192,13 +367,74 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Regions</option>
-            <option value="North America">North America</option>
-            <option value="Europe">Europe</option>
-            <option value="Asia">Asia</option>
-            <option value="Africa">Africa</option>
-            <option value="South America">South America</option>
+            {facetRegions.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
           </select>
+
+          <select
+            value={filters.city || ''}
+            onChange={(e) => setFilters({ ...filters, city: e.target.value || undefined })}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Cities</option>
+            {facetCities.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg">
+            <input
+              id="nearby"
+              type="checkbox"
+              checked={useNearby}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  handleEnableNearby();
+                } else {
+                  setUseNearby(false);
+                }
+              }}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="nearby" className="text-sm text-gray-700 flex items-center gap-1">
+              <Compass className="h-4 w-4 text-blue-600" />
+              Near me
+            </label>
+          </div>
+          {useNearby && (
+            <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 rounded-lg bg-blue-50">
+              <input
+                type="range"
+                min={5}
+                max={200}
+                step={5}
+                value={distanceKm}
+                onChange={(e) => setDistanceKm(Number(e.target.value))}
+              />
+              <span className="text-sm text-blue-800 font-medium">{distanceKm} km</span>
+              <button
+                onClick={() => handleEnableNearby()}
+                disabled={isLocating}
+                className="text-xs px-2 py-1 border border-blue-300 rounded bg-white hover:bg-blue-100 disabled:opacity-50"
+              >
+                {isLocating ? 'Locating...' : 'Refresh'}
+              </button>
+            </div>
+          )}
         </div>
+
+      {locError && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg text-sm">
+          {locError}
+        </div>
+      )}
+
+      {searchTerm && filteredChapters.length === 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
+          No chapters match “{searchTerm}”. Try another keyword or clear filters.
+        </div>
+      )}
       </div>
 
       {error && (
@@ -209,9 +445,59 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
 
       {/* Chapters List */}
       {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading chapters...</div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="border border-gray-200 rounded-lg p-4 animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
+              <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-3/4" />
+            </div>
+          ))}
+        </div>
       ) : filteredChapters.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">No chapters found</div>
+        <div className="text-center py-8 text-gray-600 space-y-3 bg-white border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center gap-2 text-gray-500">
+            <Compass className="h-5 w-5" />
+            <span>No chapters found</span>
+          </div>
+          {useNearby ? (
+            <p className="text-sm">Try increasing the radius or turn off “Near me”.</p>
+          ) : (
+            <p className="text-sm">Adjust filters or search to find a chapter.</p>
+          )}
+          <div className="flex items-center justify-center gap-2">
+            {useNearby && (
+              <button
+                onClick={() => setDistanceKm((d) => Math.min(d + 25, 200))}
+                className="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Expand radius
+              </button>
+            )}
+            {(useNearby || searchTerm || filters.country || filters.region) && (
+              <button
+                onClick={() => {
+                  setUseNearby(false);
+                  setDistanceKm(50);
+                  setSearchTerm('');
+                  setFilters({});
+                }}
+                className="px-3 py-1.5 text-xs rounded border border-gray-300 hover:bg-gray-100"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+          {!coords && hasTriedNearby && !useNearby && (
+            <button
+              onClick={handleEnableNearby}
+              className="px-3 py-1.5 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+            >
+              Try “Near me”
+            </button>
+          )}
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredChapters.map((chapter) => {
@@ -236,16 +522,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0 mr-2">
                     <h3 className="font-semibold text-lg text-gray-900 truncate" title={chapter.name}>{chapter.name}</h3>
-                    {role && status !== 'pending' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/50 text-gray-700 border border-gray-200 mt-1">
-                        {role}
-                      </span>
-                    )}
-                    {status === 'pending' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 mt-1">
-                        Pending Approval
-                      </span>
-                    )}
+                    {renderMembershipBadge(chapter.id)}
                   </div>
                   {isPrimary && (
                     <Star className="h-5 w-5 text-blue-500 fill-current flex-shrink-0" />
@@ -253,12 +530,17 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                 </div>
 
                 <div className="space-y-1 text-sm text-gray-600 mb-3 flex-1">
-                  {chapter.city && chapter.country && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{chapter.city}, {chapter.country}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">
+                      {chapter.city || '—'}, {chapter.country || '—'}
+                    </span>
+                    {typeof chapter.distance === 'number' && isFinite(chapter.distance) && (
+                      <span className="text-xs text-blue-700 font-medium ml-2">
+                        {chapter.distance.toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
                   {chapter.region && (
                     <div className="text-xs text-gray-500 truncate">{chapter.region}</div>
                   )}

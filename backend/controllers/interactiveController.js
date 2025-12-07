@@ -1276,6 +1276,14 @@ const interactiveController = {
   async getUserNotifications(req, res) {
     try {
       const userId = req.user.userId;
+
+      const hasNotifications = await db.schema.hasTable('notifications');
+      if (!hasNotifications) {
+        return res.json({
+          success: true,
+          data: { notifications: [] }
+        });
+      }
       
       const notifications = await db('notifications')
         .where('user_id', userId)
@@ -1300,6 +1308,14 @@ const interactiveController = {
     try {
       const userId = req.user.userId;
       const { notificationId } = req.body;
+
+      const hasNotifications = await db.schema.hasTable('notifications');
+      if (!hasNotifications) {
+        return res.status(200).json({
+          success: true,
+          message: 'Notifications table missing; nothing to update'
+        });
+      }
       
       const notification = await db('notifications')
         .where({ id: notificationId, user_id: userId })

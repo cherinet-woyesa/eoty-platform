@@ -48,7 +48,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-white">Student Portal</h1>
+            <h1 className="text-sm font-bold text-white">Member Portal</h1>
           </div>
         )}
         <button

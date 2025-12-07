@@ -26,6 +26,7 @@ router.get('/levels', authenticateToken, systemConfigController.getLevels);
 router.get('/durations', authenticateToken, systemConfigController.getDurations);
 router.get('/tags', authenticateToken, systemConfigController.getTags);
 router.get('/chapters', authenticateToken, systemConfigController.getChapters);
+router.post('/chapters/geocode-preview', authenticateToken, systemConfigController.geocodePreview);
 router.get('/languages', authenticateToken, systemConfigController.getLanguages);
 
 // ============================================================================

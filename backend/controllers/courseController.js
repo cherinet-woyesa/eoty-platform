@@ -1788,14 +1788,24 @@ const courseController = {
           this.on('c.id', '=', 'uce.course_id')
             .andOn('uce.user_id', '=', db.raw('?', [userId]));
         })
+        .leftJoin('course_favorites as cf', function() {
+          this.on('cf.course_id', '=', 'c.id').andOn('cf.user_id', '=', db.raw('?', [userId]));
+        })
+        .leftJoin('bookmarks as bm', function() {
+          this.on(db.raw('CAST(bm.entity_id AS INTEGER)'), '=', 'c.id')
+            .andOn('bm.entity_type', '=', db.raw('?', ['course']))
+            .andOn('bm.user_id', '=', db.raw('?', [userId]));
+        })
         .leftJoin('users as u', 'c.created_by', 'u.id')
         .where('c.is_published', true)
-        .groupBy('c.id', 'u.first_name', 'u.last_name', 'uce.user_id')
+        .groupBy('c.id', 'u.first_name', 'u.last_name', 'uce.user_id', 'uce.enrollment_status', 'cf.user_id', 'bm.id')
         .select(
           'c.*',
           db.raw('COUNT(DISTINCT l.id) as lesson_count'),
           db.raw('COUNT(DISTINCT CASE WHEN uce.user_id != ? THEN uce.user_id END) as student_count', [userId]),
-          db.raw('CASE WHEN uce.user_id = ? THEN true ELSE false END as is_enrolled', [userId]),
+          db.raw("CASE WHEN uce.user_id = ? AND uce.enrollment_status != 'dropped' THEN true ELSE false END as is_enrolled", [userId]),
+          db.raw('CASE WHEN cf.user_id IS NOT NULL THEN true ELSE false END as is_favorite'),
+          db.raw('CASE WHEN bm.id IS NOT NULL THEN true ELSE false END as is_bookmarked'),
           db.raw("CONCAT(u.first_name, ' ', u.last_name) as created_by_name")
         );
 
@@ -1827,25 +1837,35 @@ const courseController = {
         });
       }
 
-      // Check if already enrolled
+      // Check if already enrolled (or previously dropped) and handle idempotently
       const existing = await db('user_course_enrollments')
         .where({ user_id: userId, course_id: courseId })
         .first();
 
       if (existing) {
-        return res.status(400).json({
-          success: false,
-          message: 'Already enrolled in this course'
+        if (existing.enrollment_status === 'dropped') {
+          // Re-activate a dropped enrollment
+          await db('user_course_enrollments')
+            .where({ user_id: userId, course_id: courseId })
+            .update({
+              enrollment_status: 'active',
+              updated_at: new Date()
+            });
+        } else {
+          return res.json({
+            success: true,
+            message: 'Already enrolled in this course'
+          });
+        }
+      } else {
+        // Enroll student
+        await db('user_course_enrollments').insert({
+          user_id: userId,
+          course_id: courseId,
+          enrollment_status: 'active',
+          enrolled_at: new Date()
         });
       }
-
-      // Enroll student
-      await db('user_course_enrollments').insert({
-        user_id: userId,
-        course_id: courseId,
-        enrollment_status: 'active',
-        enrolled_at: new Date()
-      });
 
       // Emit WebSocket event to notify the course creator (teacher)
       const websocketService = require('../services/websocketService');
@@ -1922,14 +1942,14 @@ const courseController = {
         });
       }
 
-      // Check if already favorited
+      // Check if already favorited; make idempotent
       const existing = await db('course_favorites')
         .where({ user_id: userId, course_id: courseId })
         .first();
 
       if (existing) {
-        return res.status(400).json({
-          success: false,
+        return res.json({
+          success: true,
           message: 'Course already in favorites'
         });
       }
@@ -1960,20 +1980,19 @@ const courseController = {
       const userId = req.user.userId;
       const { courseId } = req.params;
 
-      const deleted = await db('course_favorites')
+      const existing = await db('course_favorites')
         .where({ user_id: userId, course_id: courseId })
-        .delete();
+        .first();
 
-      if (deleted === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Course not in favorites'
-        });
+      if (existing) {
+        await db('course_favorites')
+          .where({ user_id: userId, course_id: courseId })
+          .delete();
       }
 
       res.json({
         success: true,
-        message: 'Course removed from favorites'
+        message: existing ? 'Course removed from favorites' : 'Course already removed from favorites'
       });
     } catch (error) {
       console.error('Remove from favorites error:', error);

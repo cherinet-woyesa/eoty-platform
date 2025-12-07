@@ -255,6 +255,19 @@ export const bulkActionChapters = async (request: BulkActionRequest): Promise<Bu
   return response.data.data!;
 };
 
+export const geocodePreview = async (data: {
+  address?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+}): Promise<{ latitude?: number; longitude?: number; location?: string }> => {
+  const response = await apiClient.post<ApiResponse<{ latitude?: number; longitude?: number; location?: string }>>(
+    `${BASE_URL}/chapters/geocode-preview`,
+    data
+  );
+  return response.data.data!;
+};
+
 // ============================================================================
 // Audit Logs
 // ============================================================================
@@ -335,6 +348,7 @@ export const systemConfigApi = {
   updateChapter,
   deleteChapter,
   bulkActionChapters,
+  geocodePreview,
   
   // Audit & Analytics
   getAuditLogs,

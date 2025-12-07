@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { chaptersApi } from '@/services/api/chapters';
 import { authApi } from '@/services/api';
+import { Compass } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -12,15 +13,33 @@ const ProfileCompletionModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, refreshUser } = useAuth();
   const [role, setRole] = useState<'user' | 'teacher'>(user?.role === 'teacher' ? 'teacher' : 'user');
   const [chapterId, setChapterId] = useState<number | ''>(user?.chapter_id ?? '');
-  const [chapters, setChapters] = useState<Array<{ id: number; name: string; location: string }>>([]);
+  const [chapters, setChapters] = useState<Array<{ id: number; name: string; location: string; distance?: number | null }>>([]);
   const [loading, setLoading] = useState(false);
+  const [useNearby, setUseNearby] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locError, setLocError] = useState<string | null>(null);
+  const [isFetchingChapters, setIsFetchingChapters] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     const fetchChapters = async () => {
+      setIsFetchingChapters(true);
       try {
+        if (useNearby && coords) {
+          const res = await chaptersApi.getNearby({ lat: coords.lat, lng: coords.lng, radiusKm: 50, limit: 50 });
+          if (res.success && res.data?.chapters?.length) {
+            setChapters(res.data.chapters);
+            setChapterId(res.data.chapters[0].id);
+            return;
+          }
+        }
         const res = await chaptersApi.getChapters();
-        if (res.success) setChapters(res.data.chapters);
+        if (res.success && res.data?.chapters?.length) {
+          setChapters(res.data.chapters);
+          if (!chapterId) {
+            setChapterId(res.data.chapters[0].id);
+          }
+        }
       } catch (e) {
         setChapters([
           { id: 1, name: 'addis-ababa', location: 'Addis Ababa, Ethiopia' },
@@ -28,10 +47,16 @@ const ProfileCompletionModal: React.FC<Props> = ({ isOpen, onClose }) => {
           { id: 3, name: 'washington-dc', location: 'Washington DC, USA' },
           { id: 4, name: 'london', location: 'London, UK' },
         ]);
+        if (!chapterId) {
+          setChapterId(1);
+        }
+      } finally {
+        setIsFetchingChapters(false);
       }
     };
+
     fetchChapters();
-  }, [isOpen]);
+  }, [isOpen, useNearby, coords, chapterId]);
 
   const save = async () => {
     if (!chapterId) return;
@@ -76,17 +101,60 @@ const ProfileCompletionModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           <div>
             <label htmlFor="chapter" className="text-sm font-medium">Local Chapter</label>
+            <div className="mt-2 flex items-center gap-3 text-xs text-gray-700">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useNearby}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      if (!navigator.geolocation) {
+                        setLocError('Geolocation not supported by this browser.');
+                        setUseNearby(false);
+                        return;
+                      }
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                          setUseNearby(true);
+                          setLocError(null);
+                        },
+                        () => {
+                          setLocError('Unable to get location. Please allow location access.');
+                          setUseNearby(false);
+                        },
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+                      );
+                    } else {
+                      setUseNearby(false);
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="inline-flex items-center gap-1">
+                  <Compass className="h-4 w-4 text-blue-600" />
+                  Use nearest
+                </span>
+              </label>
+              {locError && <span className="text-amber-700">{locError}</span>}
+            </div>
+
             <select
               id="chapter"
-              className="mt-2 w-full border rounded-lg p-2"
+              className="mt-3 w-full border rounded-lg p-2"
               value={chapterId}
               onChange={(e) => setChapterId(Number(e.target.value))}
+              disabled={isFetchingChapters}
             >
               <option value="">Select your chapter</option>
               {chapters.map(c => (
-                <option key={c.id} value={c.id}>{c.name} - {c.location}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name} - {c.location}
+                  {typeof c.distance === 'number' ? ` (${c.distance.toFixed(1)} km)` : ''}
+                </option>
               ))}
             </select>
+            {isFetchingChapters && <p className="text-xs text-gray-500 mt-1">Loading chapters…</p>}
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -9,6 +9,7 @@ import {
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useQuery } from '@tanstack/react-query';
 
 interface LearningPath {
   id: string;
@@ -39,123 +40,24 @@ const LearningPathsPage: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [paths, setPaths] = useState<LearningPath[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
-  // Load learning paths from enrolled courses
-  const loadLearningPaths = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Get enrolled courses
-      const dashboardResponse = await apiClient.get('/students/dashboard');
-      if (!dashboardResponse.data.success) {
-        throw new Error(t('learning_paths.load_failed'));
-      }
-      
-      const enrolledCourses = dashboardResponse.data.data.enrolledCourses || [];
-      
-      // Create learning paths from enrolled courses
-      // Group courses by category and create paths
-      const pathsMap = new Map<string, LearningPath>();
-      
-      enrolledCourses.forEach((course: any, index: number) => {
-        const category = course.category || 'General';
-        const pathId = `path_${category.toLowerCase().replace(/\s+/g, '_')}`;
-        
-        if (!pathsMap.has(pathId)) {
-          pathsMap.set(pathId, {
-            id: pathId,
-            title: `${category} Learning Path`,
-            description: `Master ${category} through structured courses`,
-            category: category,
-            difficulty: (course.level || 'beginner').toLowerCase() as 'beginner' | 'intermediate' | 'advanced',
-            estimated_duration: 0,
-            courses: [],
-            progress: 0,
-            is_enrolled: true,
-            student_count: course.studentCount || 0,
-            rating: 4.5
-          });
-        }
-        
-        const path = pathsMap.get(pathId)!;
-        path.courses.push({
-          id: course.id.toString(),
-          title: course.title,
-          order: path.courses.length + 1,
-          is_completed: course.progress === 100,
-          is_locked: false,
-          progress: course.progress || 0,
-          estimated_duration: 0
-        });
-        
-        path.estimated_duration += course.duration || 0;
-        path.progress = Math.round(
-          path.courses.reduce((sum, c) => sum + c.progress, 0) / path.courses.length
-        );
-      });
-      
-      // Add some recommended paths
-      const recommendedPaths: LearningPath[] = [
-        {
-          id: 'path_faith_foundations',
-          title: 'Faith Foundations',
-          description: 'Build a strong foundation in Orthodox faith and doctrine',
-          category: 'Faith & Doctrine',
-          difficulty: 'beginner',
-          estimated_duration: 20,
-          courses: [],
-          progress: 0,
-          is_enrolled: false,
-          student_count: 1250,
-          rating: 4.8
-        },
-        {
-          id: 'path_church_history',
-          title: 'Church History Journey',
-          description: 'Explore the rich history of the Orthodox Church',
-          category: 'History',
-          difficulty: 'intermediate',
-          estimated_duration: 30,
-          courses: [],
-          progress: 0,
-          is_enrolled: false,
-          student_count: 890,
-          rating: 4.7
-        },
-        {
-          id: 'path_spiritual_growth',
-          title: 'Spiritual Growth',
-          description: 'Deepen your spiritual practice and understanding',
-          category: 'Spiritual Development',
-          difficulty: 'intermediate',
-          estimated_duration: 25,
-          courses: [],
-          progress: 0,
-          is_enrolled: false,
-          student_count: 1100,
-          rating: 4.9
-        }
-      ];
-      
-      const allPaths = [...Array.from(pathsMap.values()), ...recommendedPaths];
-      setPaths(allPaths);
-    } catch (err: any) {
-      console.error('Failed to load learning paths:', err);
-      setError(t('learning_paths.load_failed'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['learning-paths'],
+    queryFn: async () => {
+      const res = await apiClient.get('/learning-paths');
+      if (!res.data?.success) throw new Error('Failed to load learning paths');
+      return res.data.data;
+    },
+    staleTime: 1000 * 30
+  });
 
-  useEffect(() => {
-    loadLearningPaths();
-  }, [loadLearningPaths]);
+  const paths = useMemo<LearningPath[]>(() => {
+    const apiPaths = data?.paths || [];
+
+    return apiPaths as LearningPath[];
+  }, [data]);
 
   // Filtered paths
   const filteredPaths = useMemo(() => {
@@ -195,7 +97,7 @@ const LearningPathsPage: React.FC = () => {
     }
   }, [paths, navigate]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
@@ -207,16 +109,16 @@ const LearningPathsPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <p className="text-red-600 text-lg mb-4">{t('learning_paths.load_failed')}</p>
               <button 
-                onClick={loadLearningPaths}
+                onClick={() => refetch()}
                 className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
               >
                 {t('common.try_again')}

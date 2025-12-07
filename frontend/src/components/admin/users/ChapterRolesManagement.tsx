@@ -3,8 +3,8 @@
  * Admin interface for managing chapter-specific roles (FR7)
  */
 
-import React, { useState, useEffect } from 'react';
-import { UserCog, MapPin, Crown, Users } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { UserCog, MapPin, Crown, Users, Search, Loader2 } from 'lucide-react';
 import { useNotification } from '@/context/NotificationContext';
 import chapterRolesApi, { ChapterRole, RegionalCoordinator } from '@/services/api/chapterRoles';
 import { chaptersApi } from '@/services/api/chapters';
@@ -34,6 +34,13 @@ const ChapterRolesManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'chapter_admin' | 'regional_coordinator'>('all');
+  const [sortBy, setSortBy] = useState<'chapter' | 'user'>('chapter');
+  const [regionFilter, setRegionFilter] = useState<string>('');
+  const [countryFilter, setCountryFilter] = useState<string>('');
+  const [countryOptions, setCountryOptions] = useState<string[]>(['ethiopia', 'united states', 'canada', 'united kingdom', 'germany', 'france', 'italy', 'spain', 'kenya', 'nigeria', 'south africa', 'india', 'philippines', 'australia', 'brazil', 'mexico', 'other']);
+  const [regionOptions, setRegionOptions] = useState<string[]>(['africa', 'europe', 'north america', 'south america', 'asia', 'oceania', 'antarctica', 'other']);
 
   // Assignment form state
   const [showAssignForm, setShowAssignForm] = useState(false);
@@ -44,6 +51,36 @@ const ChapterRolesManagement: React.FC = () => {
   // Load data on component mount
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Load dynamic country/region lists with fallback
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://restcountries.com/v3.1/all');
+        if (!res.ok) throw new Error('countries fetch failed');
+        const data = await res.json();
+        if (cancelled) return;
+        const countries = Array.from(
+          new Set(
+            data.map((c: any) => c.name?.common).filter(Boolean)
+          )
+        ).sort((a: string, b: string) => a.localeCompare(b));
+        const regions = Array.from(
+          new Set(
+            data.map((c: any) => (c.region || '').toLowerCase()).filter(Boolean)
+          )
+        ).sort();
+        if (countries.length) setCountryOptions(countries.map((c: string) => c.toLowerCase()));
+        if (regions.length) setRegionOptions(regions);
+      } catch (err) {
+        console.warn('Country/region fetch failed, using fallback', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadData = async () => {
@@ -171,9 +208,9 @@ const ChapterRolesManagement: React.FC = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'chapter_admin':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30';
       case 'regional_coordinator':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-[#0EA5E9]/15 text-[#0369A1] border-[#0EA5E9]/30';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -201,11 +238,53 @@ const ChapterRolesManagement: React.FC = () => {
     }
   };
 
+  const filteredChapterRoles = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    let list = chapterRoles.filter(cr =>
+      (!term ||
+        cr.chapter_name?.toLowerCase().includes(term) ||
+        cr.user_name?.toLowerCase().includes(term) ||
+        cr.role?.toLowerCase().includes(term)) &&
+      (roleFilter === 'all' || cr.role === roleFilter) &&
+      (!regionFilter || (cr.region || '').toLowerCase() === regionFilter) &&
+      (!countryFilter || (cr.country || '').toLowerCase() === countryFilter)
+    );
+
+    list = list.sort((a, b) => {
+      if (sortBy === 'chapter') {
+        return (a.chapter_name || '').localeCompare(b.chapter_name || '');
+      }
+      return (a.user_name || '').localeCompare(b.user_name || '');
+    });
+
+    return list;
+  }, [chapterRoles, searchTerm, roleFilter, sortBy, regionFilter, countryFilter]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
-        <span className="ml-2 text-gray-600">Loading chapter roles...</span>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Chapter Roles Management</h2>
+            <p className="text-gray-600 mt-1">Manage chapter-specific roles for multi-city administration</p>
+          </div>
+          <div className="flex flex-col md:flex-row gap-2 md:items-center">
+            <div className="h-10 w-64 bg-gray-100 border border-gray-200 rounded-lg animate-pulse" />
+            <div className="h-10 w-36 bg-gray-100 border border-gray-200 rounded-lg animate-pulse" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div key={idx} className="h-24 bg-gray-100 border border-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-28 bg-gray-100 border border-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -213,25 +292,72 @@ const ChapterRolesManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Chapter Roles Management</h2>
           <p className="text-gray-600 mt-1">Manage chapter-specific roles for multi-city administration</p>
         </div>
-        <button
-          onClick={() => setShowAssignForm(true)}
-          className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-2"
-        >
-          <UserCog className="w-4 h-4" />
-          Assign Role
-        </button>
+        <div className="flex flex-col md:flex-row gap-2 md:items-center">
+          <div className="relative">
+            <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search user, chapter, or role..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as 'all' | 'chapter_admin' | 'regional_coordinator')}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+          >
+            <option value="all">All Roles</option>
+            <option value="chapter_admin">Chapter Admin</option>
+            <option value="regional_coordinator">Regional Coordinator</option>
+          </select>
+          <select
+            value={regionFilter}
+            onChange={(e) => setRegionFilter(e.target.value.toLowerCase())}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+          >
+            <option value="">All Regions</option>
+            {regionOptions.map((r) => (
+              <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+            ))}
+          </select>
+          <select
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value.toLowerCase())}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+          >
+            <option value="">All Countries</option>
+            {countryOptions.map((c) => (
+              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setSortBy(sortBy === 'chapter' ? 'user' : 'chapter')}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+          >
+            Sort by {sortBy === 'chapter' ? 'Chapter' : 'User'}
+          </button>
+          <button
+            onClick={() => setShowAssignForm(true)}
+            className="inline-flex items-center justify-center px-4 py-2 bg-[#1F7A4C] text-white text-sm font-medium rounded-lg hover:bg-[#17623D] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+          >
+            <UserCog className="w-4 h-4 mr-2" />
+            Assign Role
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <Crown className="w-8 h-8 text-orange-600" />
+            <Crown className="w-8 h-8 text-[#F59E0B]" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Chapter Admins</p>
               <p className="text-2xl font-bold text-gray-900">
@@ -243,7 +369,7 @@ const ChapterRolesManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <Users className="w-8 h-8 text-[#27AE60]" />
+            <Users className="w-8 h-8 text-[#0EA5E9]" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Regional Coordinators</p>
               <p className="text-2xl font-bold text-gray-900">{regionalCoordinators.length}</p>
@@ -253,7 +379,7 @@ const ChapterRolesManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <MapPin className="w-8 h-8 text-[#27AE60]" />
+            <MapPin className="w-8 h-8 text-[#1F7A4C]" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Chapters</p>
               <p className="text-2xl font-bold text-gray-900">{chapters.length}</p>
@@ -332,7 +458,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
                     required
                   >
                     <option value="">Select a user...</option>
@@ -349,7 +475,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedChapter}
                     onChange={(e) => setSelectedChapter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
                     required
                   >
                     <option value="">Select a chapter...</option>
@@ -366,7 +492,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value as 'chapter_admin' | 'regional_coordinator')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
                     required
                   >
                     <option value="chapter_admin">Chapter Admin</option>
@@ -390,7 +516,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <button
                     type="submit"
                     disabled={actionLoading === 'assign'}
-                    className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] disabled:opacity-50"
+                    className="px-4 py-2 bg-[#1F7A4C] text-white rounded-lg hover:bg-[#17623D] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
                   >
                     {actionLoading === 'assign' ? 'Assigning...' : 'Assign Role'}
                   </button>
