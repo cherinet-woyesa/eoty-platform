@@ -101,7 +101,15 @@ exports.createPost = async (req, res) => {
       updated_at: new Date()
     }).returning('*');
 
-    return res.json({ success: true, data: { post: inserted } });
+    // Add author_id alias for frontend compatibility
+    const post = { 
+      ...inserted, 
+      id: inserted.id.toString(),
+      author_id: inserted.user_id,
+      liked_by_user: false
+    };
+
+    return res.json({ success: true, data: { post } });
   } catch (error) {
     console.error('createPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to create post' });
@@ -112,14 +120,37 @@ exports.fetchPosts = async (req, res) => {
   try {
     console.log('🔄 fetchPosts called');
     console.log('👤 User:', req.user ? req.user.userId : 'No user');
-    console.log('📡 Request headers:', req.headers.authorization ? 'Has token' : 'No token');
 
-    const posts = await db('community_posts').select('*').orderBy('created_at', 'desc').limit(200);
+    // Fetch posts with author_id alias
+    const posts = await db('community_posts')
+      .select('*', 'user_id as author_id')
+      .orderBy('created_at', 'desc')
+      .limit(200);
+
+    // If user is logged in, check which posts they liked
+    if (req.user && posts.length > 0) {
+      const postIds = posts.map(p => p.id);
+      const userLikes = await db('community_post_likes')
+        .where('user_id', req.user.userId)
+        .whereIn('post_id', postIds)
+        .select('post_id');
+      
+      const likedPostIds = new Set(userLikes.map(l => l.post_id));
+      
+      posts.forEach(post => {
+        post.liked_by_user = likedPostIds.has(post.id);
+      });
+    } else {
+      posts.forEach(post => {
+        post.liked_by_user = false;
+      });
+    }
+
     console.log('📊 Posts found:', posts.length);
-    console.log('📋 Sample post:', posts[0] || 'No posts');
+    // console.log('📋 Sample post:', posts[0] || 'No posts');
 
     const response = { success: true, data: { posts } };
-    console.log('📤 Sending response:', response);
+    // console.log('📤 Sending response:', response);
 
     return res.json(response);
   } catch (error) {
@@ -191,7 +222,10 @@ exports.updatePost = async (req, res) => {
       })
       .returning('*');
 
-    return res.json({ success: true, data: { post: updated }, message: 'Post updated successfully' });
+    // Add author_id alias for frontend compatibility
+    const updatedPost = { ...updated, author_id: updated.user_id };
+
+    return res.json({ success: true, data: { post: updatedPost }, message: 'Post updated successfully' });
   } catch (error) {
     console.error('updatePost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to update post' });
@@ -542,9 +576,10 @@ exports.searchPosts = async (req, res) => {
     }
 
     let query = db('community_posts')
-      .leftJoin('users as u', 'community_posts.author_id', 'u.id')
+      .leftJoin('users as u', 'community_posts.user_id', 'u.id')
       .select([
         'community_posts.*',
+        'community_posts.user_id as author_id',
         'u.first_name as author_first_name',
         'u.last_name as author_last_name',
         'u.profile_picture as author_avatar'
@@ -648,9 +683,10 @@ exports.getTrendingPosts = async (req, res) => {
 
     // Calculate trending score based on recent engagement
     const posts = await db('community_posts')
-      .leftJoin('users as u', 'community_posts.author_id', 'u.id')
+      .leftJoin('users as u', 'community_posts.user_id', 'u.id')
       .select([
         'community_posts.*',
+        'community_posts.user_id as author_id',
         'u.first_name as author_first_name',
         'u.last_name as author_last_name',
         'u.profile_picture as author_avatar',
@@ -725,7 +761,7 @@ exports.getFeedStats = async (req, res) => {
         userLikes,
         userComments
       ] = await Promise.all([
-        db('community_posts').where({ author_id: user.userId }).count('id as count').first(),
+        db('community_posts').where({ user_id: user.userId }).count('id as count').first(),
         db('community_post_likes').where({ user_id: user.userId }).count('id as count').first(),
         db('community_post_comments').where({ author_id: user.userId }).count('id as count').first()
       ]);

@@ -17,6 +17,7 @@ router.get('/quizzes/:quizId/attempts', interactiveController.getUserQuizAttempt
 // Annotation routes
 router.post('/annotations', interactiveController.createAnnotation);
 router.get('/lessons/:lessonId/annotations', interactiveController.getLessonAnnotations);
+router.get('/lessons/:lessonId/bookmarks', interactiveController.getLessonBookmarks);
 router.get(
   '/lessons/:lessonId/summary',
   requirePermission('course:update'),

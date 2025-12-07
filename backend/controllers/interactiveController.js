@@ -334,6 +334,37 @@ const interactiveController = {
     }
   },
 
+  // Get bookmarks for lesson
+  async getLessonBookmarks(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+
+      const bookmarks = await db('video_annotations')
+        .where({ 
+          lesson_id: lessonId,
+          user_id: userId,
+          type: 'bookmark'
+        })
+        .select('*')
+        .orderBy('timestamp', 'asc');
+
+      res.json({
+        success: true,
+        data: { 
+          bookmarks,
+          totalCount: bookmarks.length
+        }
+      });
+    } catch (error) {
+      console.error('Get bookmarks error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch bookmarks'
+      });
+    }
+  },
+
   // Get aggregated lesson engagement summary for teachers/admins
   async getLessonSummary(req, res) {
     try {
