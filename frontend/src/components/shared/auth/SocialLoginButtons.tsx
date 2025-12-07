@@ -287,6 +287,7 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
         <div id="google-signin-button" className="hidden"></div>
         {/* Google Login (REQUIREMENT: Google OAuth) */}
         <button
+          type="button"
           onClick={handleGoogleLogin}
           disabled={isGoogleLoading}
           className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"
@@ -318,6 +319,7 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
 
         {/* Facebook Login (REQUIREMENT: Facebook OAuth) */}
         <button
+          type="button"
           onClick={handleFacebookLogin}
           disabled={isFacebookLoading}
           className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"

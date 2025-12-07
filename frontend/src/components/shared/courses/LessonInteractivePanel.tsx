@@ -10,6 +10,7 @@ import TimestampBadge from './ui/TimestampBadge';
 interface LessonInteractivePanelProps {
   lessonId: string;
   currentTime?: number;
+  onTimestampClick?: (timestamp: number) => void;
 }
 
 interface Annotation {
@@ -36,7 +37,7 @@ interface DiscussionPost extends DiscussionReply {
   is_auto_flagged?: boolean;
 }
 
-const LessonInteractivePanel: React.FC<LessonInteractivePanelProps> = ({ lessonId, currentTime = 0 }) => {
+const LessonInteractivePanel: React.FC<LessonInteractivePanelProps> = ({ lessonId, currentTime = 0, onTimestampClick }) => {
   const { user } = useAuth();
   const { confirm } = useConfirmDialog();
   const canModerate = user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'chapter_admin';
@@ -84,9 +85,8 @@ const LessonInteractivePanel: React.FC<LessonInteractivePanelProps> = ({ lessonI
       const response = await interactiveApi.getLessonDiscussions(lessonId);
       if (response.success && response.data?.posts) {
         const posts: DiscussionPost[] = response.data.posts;
-        // Students only see moderated posts
-        const filtered = canModerate ? posts : posts.filter(p => p.is_moderated);
-        setDiscussions(filtered);
+        // Backend already filters for non-moderated (safe) posts
+        setDiscussions(posts);
       }
     } catch (error) {
       console.error('Failed to load discussions:', error);
@@ -263,7 +263,13 @@ const LessonInteractivePanel: React.FC<LessonInteractivePanelProps> = ({ lessonI
                               ) : (
                                 annotations.map((a) => (
                                   <div key={a.id} className="rounded border border-slate-200 p-3">
-                                    <TimestampBadge seconds={a.timestamp} />
+                                    <button 
+                                      onClick={() => onTimestampClick?.(a.timestamp)}
+                                      className="hover:opacity-80 transition-opacity mb-1 block"
+                                      type="button"
+                                    >
+                                      <TimestampBadge seconds={a.timestamp} />
+                                    </button>
                                     <div className="mt-1 text-sm text-slate-900 whitespace-pre-wrap">{a.content}</div>
                                   </div>
                                 ))
@@ -300,7 +306,13 @@ const LessonInteractivePanel: React.FC<LessonInteractivePanelProps> = ({ lessonI
                               ) : (
                                 bookmarks.map((b) => (
                                   <div key={b.id} className="flex items-center gap-2 py-1">
-                                    <TimestampBadge seconds={b.videoTimestamp} />
+                                    <button 
+                                      onClick={() => onTimestampClick?.(b.videoTimestamp)}
+                                      className="hover:opacity-80 transition-opacity"
+                                      type="button"
+                                    >
+                                      <TimestampBadge seconds={b.videoTimestamp} />
+                                    </button>
                                     <span className="text-sm text-slate-800">{b.note || 'Bookmark'}</span>
                                   </div>
                                 ))

@@ -1299,11 +1299,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     } catch {}
     
     // If we have a transcoded video URL, notify parent components
-    if (transcodedVideoUrl && processingLessonId) {
-      console.log('Processing complete with transcoded URL:', transcodedVideoUrl);
+    if (processingLessonId) {
+      console.log('Processing complete. Lesson ID:', processingLessonId);
       // The video player will read from the database, which should have the updated URL
       // But we can notify parent components if needed
-      onUploadComplete?.(processingLessonId, transcodedVideoUrl);
+      // Pass empty string if URL is not provided, as parent might only need the ID
+      onUploadComplete?.(processingLessonId, transcodedVideoUrl || '');
     }
     
     // Don't auto-reset - let user see the success message

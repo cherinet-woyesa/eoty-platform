@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Video, BookOpen, Users, TrendingUp, FileVideo
@@ -19,6 +19,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
   variant = 'full'
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlLessonId = searchParams.get('lessonId') || undefined;
   const urlCourseId = searchParams.get('courseId') || undefined;
@@ -164,6 +165,15 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
             lessonId={lessonId} 
             variant={variant === 'embedded' ? 'embedded' : 'default'}
             onToggleTips={() => setShowTips(!showTips)}
+            onUploadComplete={(completedLessonId) => {
+              // Redirect to course details page after successful upload
+              if (courseId) {
+                navigate(`/teacher/courses/${courseId}`);
+              } else {
+                // If no course ID (e.g. standalone lesson), go to courses list
+                navigate('/teacher/courses');
+              }
+            }}
           />
         </div>
 

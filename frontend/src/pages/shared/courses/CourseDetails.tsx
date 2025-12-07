@@ -21,7 +21,7 @@ import {
   Search, CheckCircle, Bookmark,
   Download, Share2, Edit,
   Loader2, Plus, Trash2, Bot, BarChart3,
-  Maximize2, Minimize2, Monitor, MessageSquare
+  Maximize2, Minimize2, Monitor, MessageSquare, Activity
 } from 'lucide-react';
 
 interface Lesson {
@@ -49,7 +49,7 @@ interface LessonProgress {
   completed_at?: string;
 }
 
-type TabType = 'description' | 'resources' | 'polls' | 'discussion';
+type TabType = 'description' | 'resources' | 'polls' | 'discussion' | 'analytics';
 
 const CourseNotFound = React.memo(({ onBack }: { onBack: () => void }) => (
   <div className="text-center py-8 p-8">
@@ -97,6 +97,7 @@ const CourseDetails: React.FC = () => {
   const [newLessonDescription, setNewLessonDescription] = useState('');
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
   const [currentLessonTime, setCurrentLessonTime] = useState<number>(0);
+  const [seekTo, setSeekTo] = useState<number | null>(null);
   const [pollCount, setPollCount] = useState<number>(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
@@ -162,7 +163,7 @@ const CourseDetails: React.FC = () => {
   }, []);
 
   const handleTimestampClick = useCallback((timestamp: number) => {
-    console.log('Jumping to timestamp:', timestamp);
+    setSeekTo(timestamp);
   }, []);
 
 
@@ -485,67 +486,78 @@ const CourseDetails: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               to={getBackLink()}
-              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors group"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {getBackLabel()}
+              <div className="p-1.5 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-2 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+              </div>
+              <span className="hidden sm:inline">{getBackLabel()}</span>
             </Link>
-            <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-gray-900 truncate hidden sm:block">{course.title}</h1>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-gray-900 truncate max-w-md leading-tight">{course.title}</h1>
+              {(isAdmin || isOwner) && (
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit border border-amber-100">
+                  Instructor View
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-3">
             {isStudent && (
-               <div className="hidden md:flex items-center gap-3 mr-4">
+               <div className="hidden md:flex items-center gap-4 mr-4 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
                   <div className="text-right">
-                    <div className="text-xs text-gray-500">Your Progress</div>
-                    <div className="text-sm font-bold text-[#27AE60]">{progressPercentage}%</div>
+                    <div className="text-[10px] uppercase tracking-wider font-semibold text-gray-500">Your Progress</div>
+                    <div className="text-sm font-bold text-[#27AE60]">{progressPercentage}% Complete</div>
                   </div>
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                  <div className="w-32 bg-gray-200 rounded-full h-2.5 overflow-hidden">
                     <div 
-                      className="bg-[#27AE60] h-2 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-[#27AE60] to-[#2ECC71] h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(39,174,96,0.3)]"
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                   </div>
                </div>
             )}
 
-            <button 
-              onClick={() => setIsTheaterMode(!isTheaterMode)}
-              className="hidden lg:inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors mr-2"
-              title={isTheaterMode ? "Exit Theater Mode" : "Theater Mode"}
-            >
-              <Monitor className={`h-4 w-4 ${isTheaterMode ? 'text-[#27AE60]' : ''}`} />
-            </button>
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button 
+                onClick={() => setIsTheaterMode(!isTheaterMode)}
+                className={`p-2 rounded-md transition-all ${isTheaterMode ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
+                title={isTheaterMode ? "Exit Theater Mode" : "Theater Mode"}
+              >
+                <Monitor className="h-4 w-4" />
+              </button>
 
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="hidden lg:inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors mr-2"
-              title={isSidebarOpen ? "Expand View" : "Show Sidebar"}
-            >
-              {isSidebarOpen ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-            </button>
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={`p-2 rounded-md transition-all ${!isSidebarOpen ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
+                title={isSidebarOpen ? "Expand View" : "Show Sidebar"}
+              >
+                {isSidebarOpen ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+              </button>
+            </div>
             
             {(isAdmin || isOwner) && (
               <Link
                 to={`/teacher/courses/${courseId}/edit`}
-                className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-all shadow-sm hover:shadow-md"
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit
+                Edit Course
               </Link>
             )}
             {isStudent && (
               <button
                 onClick={toggleBookmark}
-                className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
                   isBookmarked 
-                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800' 
+                    ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' 
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -553,9 +565,8 @@ const CourseDetails: React.FC = () => {
                 {isBookmarked ? t('common.saved') : t('common.save')}
               </button>
             )}
-            <button className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+            <button className="inline-flex items-center px-3 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+              <Share2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -579,6 +590,7 @@ const CourseDetails: React.FC = () => {
                     courseTitle={course?.title}
                     showTheaterToggle={false}
                     onTimestampClick={handleTimestampClick}
+                    seekTo={seekTo}
                     onProgress={(time) => {
                       setCurrentLessonTime(time);
                       if (selectedLesson && isStudent) {
@@ -652,23 +664,37 @@ const CourseDetails: React.FC = () => {
             )}
 
             {/* Contextual Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
-                {/* Description Tab (Left) */}
-                <button
-                  onClick={() => setActiveTab('description')}
-                  className={`px-4 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-                    activeTab === 'description'
-                      ? 'border-[#27AE60] text-[#27AE60]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Description
-                </button>
-
-                {/* Action Buttons (Right) */}
-                <div className="flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
+              <div className="border-b border-gray-200 px-6 flex items-center justify-between">
+                <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
+                  {[
+                    { id: 'description', label: 'Overview', icon: BookOpen },
+                    { id: 'resources', label: 'Resources', icon: Download },
+                    { id: 'polls', label: 'Polls', icon: BarChart3, count: pollCount },
+                    { id: 'discussion', label: 'Discussion', icon: MessageSquare },
+                    ...((isAdmin || isOwner) ? [{ id: 'analytics', label: 'Analytics', icon: Activity }] : [])
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? 'border-[#27AE60] text-[#27AE60]'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <tab.icon className="h-4 w-4" />
+                      {tab.label}
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px]">
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="flex items-center gap-2 pl-4 border-l border-gray-200 ml-4">
                   <button
                     onClick={() => setShowAIPanel(true)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
@@ -677,60 +703,19 @@ const CourseDetails: React.FC = () => {
                     Ask AI
                   </button>
                   
-                  <button
-                    onClick={() => setActiveTab('resources')}
-                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                      activeTab === 'resources'
-                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
-                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
-                    }`}
-                  >
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Resources
-                  </button>
-
                   {(activeTab === 'resources') && (isAdmin || isOwner) && (
                     <button
                       onClick={() => setShowCourseUploader(v => !v)}
                       className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                         showCourseUploader
                           ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                          : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100 border-blue-200'
                       }`}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1.5" />
                       {showCourseUploader ? 'Hide Uploader' : 'Add Resource'}
                     </button>
                   )}
-
-                  <button
-                    onClick={() => setActiveTab('polls')}
-                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                      activeTab === 'polls'
-                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
-                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
-                    }`}
-                  >
-                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                    Polls
-                    {pollCount > 0 && (
-                      <span className="ml-1.5 bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px]">
-                        {pollCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('discussion')}
-                    className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                      activeTab === 'discussion'
-                        ? 'bg-[#27AE60]/10 text-[#27AE60] border-[#27AE60]/20'
-                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200'
-                    }`}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Discussion
-                  </button>
                 </div>
               </div>
               
@@ -743,7 +728,6 @@ const CourseDetails: React.FC = () => {
                              course={course}
                              onPublishSuccess={(updatedCourse: any) => setCourse(updatedCourse)}
                           />
-                          <LessonTeacherAnalytics lessonId={selectedLesson.id} />
                        </div>
                     )}
                     <p className="text-gray-600 leading-relaxed">{selectedLesson.description}</p>
@@ -782,6 +766,13 @@ const CourseDetails: React.FC = () => {
                       <p className="text-sm text-gray-600">{course.description}</p>
                     </div>
                   </div>
+                )}
+                
+                {activeTab === 'analytics' && selectedLesson && (isAdmin || isOwner) && (
+                   <div className="space-y-6">
+                      <h3 className="text-lg font-semibold text-gray-900">Lesson Analytics</h3>
+                      <LessonTeacherAnalytics lessonId={selectedLesson.id} />
+                   </div>
                 )}
                 
                 {activeTab === 'resources' && (
@@ -826,6 +817,7 @@ const CourseDetails: React.FC = () => {
                       <LessonInteractivePanel 
                         lessonId={selectedLesson.id} 
                         currentTime={currentLessonTime}
+                        onTimestampClick={handleTimestampClick}
                       />
                    </div>
                  )}
@@ -897,7 +889,10 @@ const CourseDetails: React.FC = () => {
             {/* Lesson List */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden max-h-[calc(100vh-300px)]">
                <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900">Course Content</h3>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Course Content</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{filteredLessons.length} Lessons • {formatDuration(filteredLessons.reduce((acc, l) => acc + (l.duration || 0), 0))}</p>
+                  </div>
                   {(isAdmin || isOwner) && (
                     <button
                       onClick={() => {
@@ -906,9 +901,9 @@ const CourseDetails: React.FC = () => {
                         setNewLessonDescription('');
                         setIsEditingLesson(null);
                       }}
-                      className="text-xs bg-[#27AE60] text-white px-2 py-1 rounded hover:bg-[#219150] transition-colors flex items-center gap-1"
+                      className="text-xs bg-[#27AE60] text-white px-3 py-1.5 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-1.5 font-medium shadow-sm"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3.5 w-3.5" />
                       Add Lesson
                     </button>
                   )}
@@ -916,28 +911,28 @@ const CourseDetails: React.FC = () => {
                
                {/* Create Lesson Form */}
                {(isCreatingLesson || isEditingLesson) && (
-                  <div className="p-4 bg-blue-50 border-b border-blue-100">
+                  <div className="p-4 bg-blue-50 border-b border-blue-100 animate-in slide-in-from-top-2">
                      <input
                         type="text"
                         value={newLessonTitle}
                         onChange={(e) => setNewLessonTitle(e.target.value)}
                         placeholder="Lesson Title"
-                        className="w-full mb-2 px-3 py-2 text-sm border border-gray-300 rounded"
+                        className="w-full mb-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         autoFocus
                      />
                      <div className="flex gap-2">
                         <button 
                            onClick={() => isEditingLesson ? handleUpdateLesson(isEditingLesson) : handleCreateLesson()}
-                           className="flex-1 bg-blue-600 text-white text-xs py-1.5 rounded hover:bg-blue-700"
+                           className="flex-1 bg-blue-600 text-white text-xs py-1.5 rounded-lg hover:bg-blue-700 font-medium"
                         >
-                           {isEditingLesson ? 'Save' : 'Create'}
+                           {isEditingLesson ? 'Save Changes' : 'Create Lesson'}
                         </button>
                         <button 
                            onClick={() => {
                               setIsCreatingLesson(false);
                               setIsEditingLesson(null);
                            }}
-                           className="flex-1 bg-white text-gray-700 text-xs py-1.5 rounded border border-gray-300 hover:bg-gray-50"
+                           className="flex-1 bg-white text-gray-700 text-xs py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium"
                         >
                            Cancel
                         </button>
@@ -945,7 +940,7 @@ const CourseDetails: React.FC = () => {
                   </div>
                )}
 
-               <div className="overflow-y-auto flex-1 p-2 space-y-1">
+               <div className="overflow-y-auto flex-1 p-2 space-y-1 custom-scrollbar">
                   {filteredLessons.map((lesson, index) => {
                      const progress = lessonProgress[lesson.id];
                      const isCompleted = progress?.is_completed || lesson.is_completed;
@@ -954,27 +949,29 @@ const CourseDetails: React.FC = () => {
                      return (
                         <div 
                            key={lesson.id}
-                           className={`group p-3 rounded-lg cursor-pointer transition-all ${
+                           className={`group p-3 rounded-lg cursor-pointer transition-all border-l-4 ${
                               isSelected 
-                                 ? 'bg-[#27AE60]/10 border border-[#27AE60]/20' 
-                                 : 'hover:bg-gray-50 border border-transparent'
+                                 ? 'bg-[#27AE60]/5 border-l-[#27AE60] border-y border-r border-gray-100 shadow-sm' 
+                                 : 'hover:bg-gray-50 border-l-transparent border-y border-r border-transparent'
                            }`}
                            onClick={() => setSelectedLesson(lesson)}
                         >
                            <div className="flex gap-3">
                               <div className="flex-shrink-0 mt-0.5">
                                  {isCompleted ? (
-                                    <CheckCircle className="h-5 w-5 text-[#27AE60]" />
+                                    <div className="h-5 w-5 rounded-full bg-[#27AE60] flex items-center justify-center">
+                                      <CheckCircle className="h-3.5 w-3.5 text-white" />
+                                    </div>
                                  ) : (
-                                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
-                                       isSelected ? 'border-[#27AE60] text-[#27AE60]' : 'border-gray-300 text-gray-500'
+                                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                                       isSelected ? 'border-[#27AE60] text-[#27AE60] bg-white' : 'border-gray-300 text-gray-500 group-hover:border-gray-400'
                                     }`}>
                                        {lesson.order !== undefined ? lesson.order + 1 : index + 1}
                                     </div>
                                  )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                 <h4 className={`text-sm font-medium mb-1 ${isSelected ? 'text-[#27AE60]' : 'text-gray-900'}`}>
+                                 <h4 className={`text-sm font-medium mb-1 leading-snug ${isSelected ? 'text-[#27AE60]' : 'text-gray-900'}`}>
                                     {lesson.title}
                                  </h4>
                                  <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -988,19 +985,21 @@ const CourseDetails: React.FC = () => {
                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
                                     <button 
                                        onClick={(e) => { e.stopPropagation(); setIsEditingLesson(lesson); }}
-                                       className="p-1 hover:bg-gray-200 rounded text-gray-500"
+                                       className="p-1.5 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                                       title="Edit Lesson"
                                     >
-                                       <Edit className="h-3 w-3" />
+                                       <Edit className="h-3.5 w-3.5" />
                                     </button>
                                     <button 
                                        onClick={(e) => { e.stopPropagation(); handleDeleteLesson(lesson.id); }}
                                        disabled={deletingLessonId === lesson.id}
-                                       className="p-1 hover:bg-red-100 rounded text-red-500 disabled:opacity-50"
+                                       className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors disabled:opacity-50"
+                                       title="Delete Lesson"
                                     >
                                        {deletingLessonId === lesson.id ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                        ) : (
-                                          <Trash2 className="h-3 w-3" />
+                                          <Trash2 className="h-3.5 w-3.5" />
                                        )}
                                     </button>
                                  </div>
