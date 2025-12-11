@@ -355,16 +355,16 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                       // Navigate to relevant page
                       switch (result.type) {
                         case 'course':
-                          navigate(`/student/courses/${result.id}`);
+                          navigate(`/member/courses/${result.id}`);
                           break;
                         case 'chapter':
-                          navigate(`/student/chapters?chapterId=${result.id}`);
+                          navigate(`/member/chapters?chapterId=${result.id}`);
                           break;
                         case 'resource':
-                          navigate(`/student/all-resources?resourceId=${result.id}`);
+                          navigate(`/member/all-resources?resourceId=${result.id}`);
                           break;
                         case 'community':
-                          navigate('/student/community-hub');
+                          navigate('/member/community-hub');
                           break;
                         default:
                           break;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BookOpen, Users, Globe, GraduationCap, Search, Filter, AlertCircle } from 'lucide-react';
+import { BookOpen, Users, Globe, GraduationCap, Search, Filter, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 import type { Resource } from '@/types/resources';
 import { useAuth } from '@/context/AuthContext';
@@ -43,6 +43,9 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [userChapterId, setUserChapterId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   const tabs = showCourseResources && hideTabs
     ? [{
@@ -90,6 +93,11 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
 
   useEffect(() => {
     loadResources();
+  }, [page, activeTab, searchTerm, selectedCategory, refreshToken, userChapterId]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
   }, [activeTab, searchTerm, selectedCategory, refreshToken, userChapterId]);
 
   const loadResources = async () => {
@@ -98,15 +106,19 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
       let response;
       setError(null);
 
+      const commonParams = {
+        search: searchTerm,
+        category: selectedCategory,
+        page,
+        limit: ITEMS_PER_PAGE
+      };
+
       // When showCourseResources + hideTabs, force course-only scope
       const scope = showCourseResources && hideTabs ? 'course' : activeTab;
       switch (scope) {
         case 'course':
           if (courseId) {
-            response = await resourcesApi.getCourseResources(courseId, {
-              search: searchTerm,
-              category: selectedCategory
-            });
+            response = await resourcesApi.getCourseResources(courseId, commonParams);
           }
           break;
         case 'chapter':
@@ -116,21 +128,18 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
             setLoading(false);
             return;
           }
-          response = await resourcesApi.getChapterResources(userChapterId, {
-            search: searchTerm,
-            category: selectedCategory
-          });
+          response = await resourcesApi.getChapterResources(userChapterId, commonParams);
           break;
         case 'platform':
-          response = await resourcesApi.getPlatformResources({
-            search: searchTerm,
-            category: selectedCategory
-          });
+          response = await resourcesApi.getPlatformResources(commonParams);
           break;
       }
 
       if (response?.success) {
         setResources(response.data.resources || []);
+        if (response.data.pagination) {
+          setTotalPages(Math.ceil(response.data.pagination.total / ITEMS_PER_PAGE));
+        }
       } else if (response?.message) {
         setError(response.message);
       }
@@ -269,44 +278,82 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
             </p>
           </div>
         ) : (
-          <div className={`grid gap-4 ${
-            variant === 'full' 
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-              : 'grid-cols-1 sm:grid-cols-2'
-          }`}>
-            {resources.map((resource) => (
-              <div
-                key={resource.id}
-                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => window.open(`/resources/${resource.id}`, '_blank')}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">
-                    {getResourceIcon(resource.file_type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate mb-1">
-                      {resource.title}
-                    </h3>
-                    {resource.category && (
-                      <span className="inline-block px-2 py-1 text-xs bg-[#27AE60]/10 text-[#27AE60] rounded-full mb-2">
-                        {resource.category}
-                      </span>
-                    )}
-                    {resource.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                        {resource.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{resource.author}</span>
-                      <span>{new Date(resource.created_at).toLocaleDateString()}</span>
+          <>
+            <div className={`grid gap-4 ${
+              variant === 'full' 
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+                : 'grid-cols-1 sm:grid-cols-2'
+            }`}>
+              {resources.map((resource) => (
+                <div
+                  key={resource.id}
+                  className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer group relative"
+                  onClick={() => window.open(`/resources/${resource.id}`, '_blank')}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">
+                      {getResourceIcon(resource.file_type)}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate mb-1 pr-8">
+                        {resource.title}
+                      </h3>
+                      {resource.category && (
+                        <span className="inline-block px-2 py-1 text-xs bg-[#27AE60]/10 text-[#27AE60] rounded-full mb-2">
+                          {resource.category}
+                        </span>
+                      )}
+                      {resource.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          {resource.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{resource.author}</span>
+                        <span>{new Date(resource.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Direct Download/View Button */}
+                    <button 
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          const url = resource.file_url || resource.file_path;
+                          if (url) window.open(url, '_blank');
+                      }}
+                      className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-[#27AE60] hover:bg-[#27AE60]/10 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      title="Download / View Direct"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-8">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5 text-gray-600" />
+                </button>
+                <span className="text-sm font-medium text-gray-600">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

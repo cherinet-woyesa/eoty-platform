@@ -18,7 +18,7 @@ class PrivacyComplianceService {
     this.sensitiveDataTables = [
       'ai_conversations',
       'user_lesson_progress',
-      'user_quiz_attempts',
+      'quiz_attempts',
       'video_annotations',
       'lesson_discussions',
       'moderated_content',
@@ -62,11 +62,11 @@ class PrivacyComplianceService {
       }
 
       // Anonymize quiz attempts (if table exists)
-      const quizAttemptsTableExists = await db.schema.hasTable('user_quiz_attempts');
+      const quizAttemptsTableExists = await db.schema.hasTable('quiz_attempts');
       if (quizAttemptsTableExists) {
-        const quizHasAnonymized = await db.schema.hasColumn('user_quiz_attempts', 'anonymized_at');
+        const quizHasAnonymized = await db.schema.hasColumn('quiz_attempts', 'anonymized_at');
         if (quizHasAnonymized) {
-          await db('user_quiz_attempts')
+          await db('quiz_attempts')
             .where({ user_id: userId })
             .update({
               user_id: null,
@@ -74,7 +74,7 @@ class PrivacyComplianceService {
               anonymized_at: new Date()
             });
         } else {
-          await db('user_quiz_attempts')
+          await db('quiz_attempts')
             .where({ user_id: userId })
             .update({
               user_id: null,
@@ -176,17 +176,17 @@ class PrivacyComplianceService {
       }
 
       // Delete expired quiz attempts (if table exists)
-      const quizAttemptsTableExists = await db.schema.hasTable('user_quiz_attempts');
+      const quizAttemptsTableExists = await db.schema.hasTable('quiz_attempts');
       if (quizAttemptsTableExists) {
-        const quizAttemptsHasAnonymized = await db.schema.hasColumn('user_quiz_attempts', 'anonymized_at');
+        const quizAttemptsHasAnonymized = await db.schema.hasColumn('quiz_attempts', 'anonymized_at');
         let quizAttemptsDeleted = 0;
         if (quizAttemptsHasAnonymized) {
-          quizAttemptsDeleted = await db('user_quiz_attempts')
+          quizAttemptsDeleted = await db('quiz_attempts')
             .where('completed_at', '<', cutoffDate)
             .whereNull('anonymized_at')
             .delete();
         } else {
-          quizAttemptsDeleted = await db('user_quiz_attempts')
+          quizAttemptsDeleted = await db('quiz_attempts')
             .where('completed_at', '<', cutoffDate)
             .delete();
         }

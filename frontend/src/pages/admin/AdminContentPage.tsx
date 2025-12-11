@@ -5,6 +5,7 @@ import ModerationTools from '@/components/admin/moderation/ModerationTools';
 import ForumModerationDashboard from '@/components/admin/moderation/ForumModerationDashboard';
 import TagManager from '@/components/admin/content/TagManager';
 import AllCourses from './AllCourses';
+import { brandColors } from '@/theme/brand';
 
 const AdminContentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'uploads' | 'moderation' | 'tags' | 'courses'>('uploads');
@@ -19,9 +20,14 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('uploads')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'uploads'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'bg-opacity-5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
+              style={activeTab === 'uploads' ? {
+                borderColor: brandColors.primaryHex,
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : undefined}
             >
               <FileText className="h-4 w-4" />
               <span className="text-sm">Upload Queue</span>
@@ -30,9 +36,14 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('moderation')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'moderation'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'bg-opacity-5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
+              style={activeTab === 'moderation' ? {
+                borderColor: brandColors.primaryHex,
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : undefined}
             >
               <Shield className="h-4 w-4" />
               <span className="text-sm">Moderation</span>
@@ -41,9 +52,14 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('tags')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'tags'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'bg-opacity-5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
+              style={activeTab === 'tags' ? {
+                borderColor: brandColors.primaryHex,
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : undefined}
             >
               <Tag className="h-4 w-4" />
               <span className="text-sm">Tags & Categories</span>
@@ -52,9 +68,14 @@ const AdminContentPage: React.FC = () => {
               onClick={() => setActiveTab('courses')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'courses'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'bg-opacity-5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
+              style={activeTab === 'courses' ? {
+                borderColor: brandColors.primaryHex,
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : undefined}
             >
               <BookOpen className="h-4 w-4" />
               <span className="text-sm">Courses</span>

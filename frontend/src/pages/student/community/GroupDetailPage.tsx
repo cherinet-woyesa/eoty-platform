@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   Users, MessageCircle, FileText, Upload, Calendar, 
   Crown, Settings, UserPlus, ArrowLeft, Send, Paperclip,
   CheckCircle, Clock, AlertCircle, File, Download, Eye,
-  Trash2, MoreVertical, Search, Filter, X, Loader2
+  Trash2, MoreVertical, Search, Filter, X, Loader2, Edit2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { studyGroupsApi } from '@/services/api/studyGroups';
 import { useNotification } from '@/context/NotificationContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import AssignmentSubmissionModal from '../components/AssignmentSubmissionModal';
+import { brandColors } from '@/theme/brand';
 
 interface GroupMember {
   id: string;
@@ -21,12 +24,19 @@ interface GroupMember {
 }
 
 interface ChatMessage {
-  id: string;
-  sender_id: string;
-  sender_name: string;
-  message: string;
-  timestamp: string;
+  id: string | number;
+  group_id?: string | number;
+  user_id: string | number;
+  user_name: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  profile_picture?: string;
+  parent_message_id?: string | number | null;
+  likes_count?: number;
+  liked_by_user?: boolean;
   attachments?: string[];
+  replies?: ChatMessage[];
 }
 
 interface Assignment {
@@ -73,14 +83,21 @@ const GroupDetailPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTab = (location.state as any)?.fromTab || 'my-groups';
   const { showNotification } = useNotification();
+  const { confirm } = useConfirmDialog();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [activeTab, setActiveTab] = useState<'chat' | 'members' | 'assignments' | 'submissions'>('chat');
   const [newMessage, setNewMessage] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [replyingToId, setReplyingToId] = useState<string | number | null>(null);
   const [showNewAssignmentModal, setShowNewAssignmentModal] = useState(false);
   const [searchMember, setSearchMember] = useState('');
   const [gradeInputs, setGradeInputs] = useState<Record<string, { grade?: number; feedback?: string }>>({});
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const messageBoxRef = useRef<HTMLTextAreaElement>(null);
 
   const queryClient = useQueryClient();
 
@@ -124,14 +141,238 @@ const GroupDetailPage: React.FC = () => {
   const postMessageMutation = useMutation({
     mutationFn: async () => {
       const content = newMessage.trim();
-      return studyGroupsApi.postMessage(Number(groupId), content);
+      return studyGroupsApi.postMessage(Number(groupId), content, replyingToId || undefined);
     },
     onSuccess: () => {
       setNewMessage('');
+      setReplyingToId(null);
       queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
     },
     onError: () => showNotification('error', 'Error', 'Failed to send message')
   });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: number) => studyGroupsApi.deleteMessage(Number(groupId), messageId),
+    onSuccess: () => {
+      showNotification('success', 'Deleted', 'Message deleted');
+      queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to delete message')
+  });
+
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, content }: { messageId: number; content: string }) => 
+      studyGroupsApi.editMessage(Number(groupId), messageId, content),
+    onSuccess: () => {
+      setEditingMessageId(null);
+      setNewMessage('');
+      setReplyingToId(null);
+      queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
+    },
+    onError: () => showNotification('error', 'Error', 'Failed to edit message')
+  });
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+    if (editingMessageId) {
+        editMessageMutation.mutate({ messageId: editingMessageId, content: newMessage.trim() });
+    } else {
+        postMessageMutation.mutate();
+    }
+  };
+
+  const handleToggleLike = (messageId: number | string) => {
+    studyGroupsApi.toggleMessageLike(Number(groupId), Number(messageId))
+      .then(() => queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] }))
+      .catch(() => showNotification('error', 'Error', 'Failed to like message'));
+  };
+
+  const handleReport = (messageId: number | string) => {
+    studyGroupsApi.reportMessage(Number(groupId), Number(messageId))
+      .then(() => showNotification('success', 'Reported', 'Thanks for letting us know'))
+      .catch(() => showNotification('error', 'Error', 'Failed to report message'));
+  };
+
+  const startReply = (msg: any) => {
+    setReplyingToId(msg.id);
+    setNewMessage('');
+    setEditingMessageId(null);
+    if (messageBoxRef.current) {
+      messageBoxRef.current.focus();
+    }
+  };
+
+  const messagesThread = useMemo(() => {
+    const flat: ChatMessage[] = (messagesQuery.data as any[]) || [];
+    const byId = new Map<string, ChatMessage>();
+    flat.forEach((m) => {
+      const id = String(m.id);
+      byId.set(id, { ...m, replies: [] });
+    });
+    const roots: ChatMessage[] = [];
+    byId.forEach((msg) => {
+      if (msg.parent_message_id) {
+        const parent = byId.get(String(msg.parent_message_id));
+        if (parent) {
+          parent.replies!.push(msg);
+          return;
+        }
+      }
+      roots.push(msg);
+    });
+    return roots;
+  }, [messagesQuery.data]);
+
+  const ChatMessageItem: React.FC<{
+    msg: ChatMessage;
+    depth: number;
+    currentUserId?: string | number;
+    onReply: (msg: ChatMessage) => void;
+    onEdit: (msg: ChatMessage) => void;
+    onDelete: (id: number) => void;
+    onLike: (id: number | string) => void;
+    onReport: (id: number | string) => void;
+  }> = ({ msg, depth, currentUserId, onReply, onEdit, onDelete, onLike, onReport }) => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isMine = String(msg.user_id) === String(currentUserId);
+    const indent = depth > 0 ? 'ml-8' : '';
+    const handleDelete = () => onDelete(Number(msg.id));
+    const handleReport = () => onReport(msg.id);
+    const handleLike = () => onLike(msg.id);
+    const handleReply = () => onReply(msg);
+    const handleEdit = () => onEdit(msg);
+    return (
+      <div className={`${indent} space-y-1`}>
+        <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-[80%] ${isMine ? 'order-2' : 'order-1'}`}>
+            {!isMine && (
+              <p className="text-xs text-slate-600 mb-1 px-1">{msg.user_name}</p>
+            )}
+            <div
+              className={`rounded-lg p-3 ${
+                isMine
+                  ? 'text-white'
+                  : 'bg-white border border-slate-200 text-slate-800'
+              }`}
+              style={
+                isMine
+                  ? { backgroundColor: brandColors.primaryHex }
+                  : {}
+              }
+            >
+              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <div className={`flex items-center gap-3 text-xs mt-2 ${isMine ? 'text-white/80' : 'text-slate-500'}`}>
+                <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <button
+                  type="button"
+                  onClick={handleLike}
+                  className={`flex items-center gap-1 ${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
+                >
+                  <span>👍</span>
+                  <span>{msg.likes_count || 0}</span>
+                  {msg.liked_by_user ? <span>(You)</span> : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReply}
+                  className={`${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
+                >
+                  Reply
+                </button>
+                <div className="ml-auto relative">
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className={`${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-10 w-36">
+                      {isMine ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setMenuOpen(false); handleEdit(); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setMenuOpen(false); handleDelete(); }}
+                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-100"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setMenuOpen(false); handleReport(); }}
+                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-100"
+                        >
+                          Report
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {msg.replies && msg.replies.length > 0 && (
+          <div className="space-y-2 mt-2">
+            {msg.replies.map((child) => (
+              <ChatMessageItem
+                key={child.id}
+                msg={child}
+                depth={depth + 1}
+                currentUserId={currentUserId}
+                onReply={onReply}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onLike={onLike}
+                    onReport={onReport}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    if (messageBoxRef.current) {
+      messageBoxRef.current.style.height = 'auto';
+      messageBoxRef.current.style.height = `${messageBoxRef.current.scrollHeight}px`;
+    }
+  }, [newMessage]);
+
+  const startEditing = (msg: any) => {
+    setEditingMessageId(msg.id);
+    setNewMessage(msg.content);
+    setReplyingToId(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setNewMessage('');
+    setReplyingToId(null);
+  };
+
+  const handleDeleteMessage = async (messageId: number) => {
+    const confirmed = await confirm({
+        title: 'Delete Message',
+        message: 'Are you sure you want to delete this message? This action cannot be undone.',
+        confirmLabel: 'Delete',
+        variant: 'danger'
+    });
+    if (confirmed) {
+        deleteMessageMutation.mutate(messageId);
+    }
+  };
 
   // Assignments
   const assignmentsQuery = useQuery({
@@ -199,13 +440,7 @@ const GroupDetailPage: React.FC = () => {
     onError: () => showNotification('error', 'Error', 'Failed to grade submission')
   });
 
-  const handleSendMessage = useCallback(() => {
-    if (!newMessage.trim() || !user?.id) return;
-    postMessageMutation.mutate();
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, [newMessage, postMessageMutation, user?.id]);
+
 
   // Check if user is admin
   const isAdmin = useMemo(() => {
@@ -236,7 +471,7 @@ const GroupDetailPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-stone-800 mb-2">Group Not Found</h2>
           <p className="text-stone-600 mb-6">The study group you're looking for doesn't exist or you don't have access to it.</p>
           <Link
-            to="/student/study-groups"
+            to="/member/study-groups"
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -256,33 +491,36 @@ const GroupDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl p-6 shadow-lg border border-stone-200">
-          <div className="flex items-start justify-between mb-4">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-start justify-between mb-3">
             <button
-              onClick={() => navigate('/student/study-groups')}
-              className="flex items-center text-stone-600 hover:text-stone-800 transition-colors"
+              onClick={() => navigate('/member/study-groups', { state: { activeTab: backTab } })}
+              className="flex items-center text-slate-600 hover:text-slate-800 transition-colors"
             >
               <ArrowLeft className="h-5 w-5 mr-1" />
               Back to Groups
             </button>
             {isAdmin && (
-              <button className="p-2 hover:bg-stone-100 rounded-lg transition-colors">
-                <Settings className="h-5 w-5 text-stone-600" />
+              <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <Settings className="h-5 w-5 text-slate-600" />
               </button>
             )}
           </div>
           
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+          <div className="flex items-start gap-3">
+            <div 
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0" 
+              style={{ backgroundColor: brandColors.primaryHex }}
+            >
               {group.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold text-stone-800 mb-2">{group.name}</h1>
-              <p className="text-stone-600 mb-3">{group.description}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-stone-600">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-800 mb-1">{group.name}</h1>
+              <p className="text-slate-600 mb-2">{group.description}</p>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
                 <span className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
                   {group.member_count} members
@@ -303,16 +541,17 @@ const GroupDetailPage: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-stone-200 overflow-hidden">
-          <div className="border-b border-stone-200">
+        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="border-b border-slate-200">
             <nav className="flex overflow-x-auto">
               <button
                 onClick={() => setActiveTab('chat')}
                 className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
                   activeTab === 'chat'
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                    ? 'bg-[#1e1b4b]/5'
+                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                 }`}
+                style={activeTab === 'chat' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
               >
                 <MessageCircle className="h-5 w-5" />
                 Chat
@@ -321,9 +560,10 @@ const GroupDetailPage: React.FC = () => {
                 onClick={() => setActiveTab('members')}
                 className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
                   activeTab === 'members'
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                    ? 'bg-[#1e1b4b]/5'
+                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                 }`}
+                style={activeTab === 'members' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
               >
                 <Users className="h-5 w-5" />
                 Members ({membersData.length || group.member_count || 0})
@@ -332,9 +572,10 @@ const GroupDetailPage: React.FC = () => {
                 onClick={() => setActiveTab('assignments')}
                 className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
                   activeTab === 'assignments'
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                    ? 'bg-[#1e1b4b]/5'
+                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                 }`}
+                style={activeTab === 'assignments' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
               >
                 <FileText className="h-5 w-5" />
                 Assignments ({assignmentsQuery.data?.length || 0})
@@ -343,9 +584,10 @@ const GroupDetailPage: React.FC = () => {
                 onClick={() => setActiveTab('submissions')}
                 className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors border-b-2 ${
                   activeTab === 'submissions'
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
-                    : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
+                    ? 'bg-[#1e1b4b]/5'
+                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                 }`}
+                style={activeTab === 'submissions' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
               >
                 <Upload className="h-5 w-5" />
                 Submissions ({submissions.length || 0})
@@ -358,39 +600,28 @@ const GroupDetailPage: React.FC = () => {
             {/* Chat Tab */}
             {activeTab === 'chat' && (
               <div className="space-y-4">
-                <div className="h-[500px] bg-stone-50/50 rounded-lg p-4 overflow-y-auto border border-stone-200">
-                  {messagesQuery.data?.length === 0 ? (
+                <div className="h-[500px] bg-slate-50/50 rounded-lg p-4 overflow-y-auto border border-slate-200">
+                  {messagesThread.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-center">
                       <div>
-                        <MessageCircle className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-                        <p className="text-stone-600">No messages yet. Start the conversation!</p>
+                        <MessageCircle className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-600">No messages yet. Start the conversation!</p>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {messagesQuery.data?.map((msg: any) => (
-                        <div
+                      {messagesThread.map((msg: any) => (
+                        <ChatMessageItem
                           key={msg.id}
-                          className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-[70%] ${msg.user_id === user?.id ? 'order-2' : 'order-1'}`}>
-                            {msg.user_id !== user?.id && (
-                              <p className="text-xs text-stone-600 mb-1 px-1">{msg.user_name}</p>
-                            )}
-                            <div
-                              className={`rounded-lg p-3 ${
-                                msg.user_id === user?.id
-                                  ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white'
-                                  : 'bg-white border border-stone-200 text-stone-800'
-                              }`}
-                            >
-                              <p className="text-sm">{msg.content}</p>
-                              <p className={`text-xs mt-1 ${msg.user_id === user?.id ? 'text-white/70' : 'text-stone-500'}`}>
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                          msg={msg}
+                          depth={0}
+                          currentUserId={user?.id}
+                          onReply={startReply}
+                          onEdit={startEditing}
+                          onDelete={handleDeleteMessage}
+                          onLike={handleToggleLike}
+                          onReport={handleReport}
+                        />
                       ))}
                       <div ref={messagesEndRef} />
                     </div>
@@ -400,7 +631,20 @@ const GroupDetailPage: React.FC = () => {
                 {/* Message Input */}
                 <div className="flex items-end gap-2">
                   <div className="flex-1 relative">
+                    {replyingToId && (
+                      <div className="absolute -top-6 left-1 text-xs text-slate-600 flex items-center gap-2">
+                        <span>Replying…</span>
+                        <button
+                          type="button"
+                          className="text-[color:#1e1b4b] hover:underline"
+                          onClick={() => setReplyingToId(null)}
+                        >
+                          cancel
+                        </button>
+                      </div>
+                    )}
                     <textarea
+                      ref={messageBoxRef}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
@@ -411,16 +655,17 @@ const GroupDetailPage: React.FC = () => {
                       }}
                       placeholder="Type a message..."
                       rows={1}
-                      className="w-full px-4 py-3 pr-12 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 resize-none"
+                      className="w-full px-4 py-3 pr-12 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/20 focus:border-[#1e1b4b] resize-none"
                     />
-                    <button className="absolute right-2 bottom-2 p-2 hover:bg-stone-100 rounded-lg transition-colors">
-                      <Paperclip className="h-5 w-5 text-stone-600" />
+                    <button className="absolute right-2 bottom-2 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                      <Paperclip className="h-5 w-5 text-slate-600" />
                     </button>
                   </div>
                   <button
                     onClick={handleSendMessage}
                   disabled={!newMessage.trim() || postMessageMutation.isLoading}
-                    className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                   >
                     <Send className="h-5 w-5" />
                   {postMessageMutation.isLoading ? 'Sending...' : 'Send'}
@@ -434,17 +679,17 @@ const GroupDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search members..."
                       value={searchMember}
                       onChange={(e) => setSearchMember(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50"
+                      className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/20 focus:border-[#1e1b4b]"
                     />
                   </div>
                   {isAdmin && (
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all">
+                    <button className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all" style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}>
                       <UserPlus className="h-5 w-5" />
                       Invite Members
                     </button>
@@ -455,21 +700,21 @@ const GroupDetailPage: React.FC = () => {
                   {filteredMembers.map((member) => (
                     <div
                       key={member.id}
-                      className="bg-white border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all"
+                      className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}>
                           {member.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-stone-800 truncate">{member.name}</h3>
+                            <h3 className="font-semibold text-slate-800 truncate">{member.name}</h3>
                             {member.role === 'admin' && (
-                              <Crown className="h-4 w-4 text-[#FFD700] flex-shrink-0" />
+                              <Crown className="h-4 w-4 text-[#cfa15a] flex-shrink-0" />
                             )}
                           </div>
-                          <p className="text-xs text-stone-600 capitalize">{member.role}</p>
-                          <p className="text-xs text-stone-500 mt-1">
+                          <p className="text-xs text-slate-600 capitalize">{member.role}</p>
+                          <p className="text-xs text-slate-500 mt-1">
                             {member.joined_at ? `Joined ${new Date(member.joined_at).toLocaleDateString()}` : ''}
                           </p>
                         </div>
@@ -484,11 +729,12 @@ const GroupDetailPage: React.FC = () => {
             {activeTab === 'assignments' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-stone-800">Group Assignments</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">Group Assignments</h3>
                   {isAdmin && (
                     <button
                       onClick={() => setShowNewAssignmentModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
+                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all"
+                      style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                     >
                       <FileText className="h-5 w-5" />
                       Create Assignment
@@ -497,10 +743,10 @@ const GroupDetailPage: React.FC = () => {
                 </div>
 
                 {(assignmentsQuery.data?.length || 0) === 0 ? (
-                  <div className="text-center py-12 bg-stone-50/50 rounded-lg border border-stone-200">
-                    <FileText className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-stone-800 mb-2">No assignments yet</h3>
-                    <p className="text-stone-600">
+                  <div className="text-center py-12 bg-slate-50/50 rounded-lg border border-slate-200">
+                    <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">No assignments yet</h3>
+                    <p className="text-slate-600">
                       {isAdmin ? 'Create your first assignment to get started' : 'No assignments have been created yet'}
                     </p>
                   </div>
@@ -509,13 +755,13 @@ const GroupDetailPage: React.FC = () => {
                     {assignmentsQuery.data?.map((assignment: any) => (
                       <div
                         key={assignment.id}
-                        className="bg-white border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all"
+                        className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-stone-800 mb-1">{assignment.title}</h4>
-                            <p className="text-sm text-stone-600 mb-2">{assignment.description}</p>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500">
+                            <h4 className="font-semibold text-slate-800 mb-1">{assignment.title}</h4>
+                            <p className="text-sm text-slate-600 mb-2">{assignment.description}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 Due: {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'No due date'}
@@ -529,9 +775,13 @@ const GroupDetailPage: React.FC = () => {
                           <div className="flex flex-col gap-2 items-end">
                             {!isTeacher && (
                               <button
-                                onClick={() => submitMutation.mutate({ assignmentId: Number(assignment.id) })}
+                                onClick={() => {
+                                  setSelectedAssignment(assignment);
+                                  setShowSubmissionModal(true);
+                                }}
                                 disabled={submitMutation.isLoading}
-                                className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                               >
                                 {submitMutation.isLoading ? 'Submitting...' : 'Submit'}
                               </button>
@@ -539,7 +789,7 @@ const GroupDetailPage: React.FC = () => {
                             {isAdmin && (
                               <button
                                 onClick={() => queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] })}
-                                className="text-sm text-stone-600 underline"
+                                className="text-sm text-slate-600 underline"
                               >
                                 Refresh submissions
                               </button>
@@ -556,15 +806,15 @@ const GroupDetailPage: React.FC = () => {
             {/* Submissions Tab */}
             {activeTab === 'submissions' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-stone-800">
+                <h3 className="text-lg font-semibold text-slate-800">
                   {isTeacher ? 'All Submissions' : 'My Submissions'}
                 </h3>
                 
                 {(submissions.length || 0) === 0 ? (
-                  <div className="text-center py-12 bg-stone-50/50 rounded-lg border border-stone-200">
-                    <Upload className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-stone-800 mb-2">No submissions yet</h3>
-                    <p className="text-stone-600">
+                  <div className="text-center py-12 bg-slate-50/50 rounded-lg border border-slate-200">
+                    <Upload className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">No submissions yet</h3>
+                    <p className="text-slate-600">
                       {isTeacher ? 'Students have not submitted work yet.' : 'Complete assignments to see your submissions here'}
                     </p>
                   </div>
@@ -576,16 +826,16 @@ const GroupDetailPage: React.FC = () => {
                       return (
                       <div
                         key={submission.id}
-                        className="bg-white border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all"
+                        className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-stone-800 mb-1">{submission.assignment_title || `Assignment ${submission.assignment_id}`}</h4>
-                            <p className="text-sm text-stone-600 mb-2">
+                            <h4 className="font-semibold text-slate-800 mb-1">{submission.assignment_title || `Assignment ${submission.assignment_id}`}</h4>
+                            <p className="text-sm text-slate-600 mb-2">
                               Submitted on {new Date(submission.submitted_at).toLocaleString()}
                             </p>
                             {submission.notes && (
-                              <p className="text-sm text-stone-500 italic">"{submission.notes}"</p>
+                              <p className="text-sm text-slate-500 italic">"{submission.notes}"</p>
                             )}
                           </div>
                           {submission.grade !== undefined && (
@@ -605,7 +855,7 @@ const GroupDetailPage: React.FC = () => {
                         {isTeacher && (
                           <div className="mt-3 space-y-2">
                             <div className="flex gap-3 items-center">
-                              <label className="text-sm text-stone-700">Grade</label>
+                              <label className="text-sm text-slate-700">Grade</label>
                               <input
                                 type="number"
                                 min={0}
@@ -617,7 +867,7 @@ const GroupDetailPage: React.FC = () => {
                                     [key]: { ...gradeState, grade: e.target.value ? Number(e.target.value) : undefined }
                                   }))
                                 }
-                                className="w-24 px-2 py-1 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/40"
+                                className="w-24 px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/20 focus:border-[#1e1b4b]"
                               />
                             </div>
                             <textarea
@@ -629,7 +879,7 @@ const GroupDetailPage: React.FC = () => {
                                 }))
                               }
                               placeholder="Feedback (optional)"
-                              className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/40"
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/20 focus:border-[#1e1b4b]"
                               rows={2}
                             />
                             <button
@@ -642,7 +892,8 @@ const GroupDetailPage: React.FC = () => {
                                 });
                               }}
                               disabled={gradeMutation.isLoading}
-                              className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                              className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                              style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                             >
                               {gradeMutation.isLoading ? 'Saving...' : 'Save Grade'}
                             </button>
@@ -651,12 +902,12 @@ const GroupDetailPage: React.FC = () => {
                         
                         <div className="flex gap-2">
                           {submission.file_url && (
-                            <button className="flex items-center gap-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors text-sm">
+                            <button className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm">
                               <Eye className="h-4 w-4" />
                               View File
                             </button>
                           )}
-                          <button className="flex items-center gap-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg transition-colors text-sm">
+                          <button className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm">
                             <Download className="h-4 w-4" />
                             Download
                           </button>
@@ -671,6 +922,20 @@ const GroupDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedAssignment && (
+        <AssignmentSubmissionModal
+          isOpen={!!selectedAssignment}
+          onClose={() => setSelectedAssignment(null)}
+          assignmentId={selectedAssignment.id}
+          assignmentTitle={selectedAssignment.title}
+          onSuccess={() => {
+            setSelectedAssignment(null);
+            queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] });
+          }}
+          customSubmitFn={handleStudyGroupSubmit}
+        />
+      )}
     </div>
   );
 };

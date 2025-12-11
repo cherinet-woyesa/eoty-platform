@@ -51,7 +51,7 @@ const ErrorDisplay = React.memo(({ error, onRetry }: { error: string; onRetry: (
         <p className="text-red-600 text-lg mb-4">{error}</p>
         <button 
           onClick={onRetry}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-indigo-900 text-white rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors"
         >
           Try Again
         </button>
@@ -238,13 +238,13 @@ const StudentCourses: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-indigo-900 text-white' : 'bg-white text-indigo-900 hover:bg-indigo-50'}`}
               >
                 <Grid className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`px-3 py-2 ${viewMode === 'list' ? 'bg-indigo-900 text-white' : 'bg-white text-indigo-900 hover:bg-indigo-50'}`}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -306,8 +306,8 @@ const StudentCourses: React.FC = () => {
                     </div>
 
                     <Link
-                      to={`/student/courses/${course.id}`}
-                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                      to={`/member/courses/${course.id}`}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-indigo-800 text-sm font-medium rounded-lg text-white bg-indigo-900 hover:bg-indigo-800 transition-colors"
                     >
                       <PlayCircle className="mr-2 h-4 w-4" />
                       {course.progress === 0 ? 'Start Learning' : course.progress === 100 ? 'Review' : 'Continue'}
@@ -334,8 +334,8 @@ const StudentCourses: React.FC = () => {
                     </div>
                   </div>
                   <Link
-                    to={`/student/courses/${course.id}`}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+                    to={`/member/courses/${course.id}`}
+                    className="px-4 py-2 bg-indigo-900 text-white rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors flex-shrink-0"
                   >
                     Continue
                   </Link>

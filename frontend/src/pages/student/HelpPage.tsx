@@ -163,7 +163,7 @@ const HelpPage: React.FC = () => {
         </button>
         
         <Link
-          to="/student/videos"
+          to="/member/videos"
           className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-stone-200 hover:border-[#16A085] hover:shadow-lg transition-all text-left"
         >
           <PlayCircle className="h-8 w-8 text-[#16A085] mb-3" />

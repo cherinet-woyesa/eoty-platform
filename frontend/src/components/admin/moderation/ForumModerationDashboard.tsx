@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
+import { brandColors } from '@/theme/brand';
 import { 
   Shield, 
   AlertTriangle, 
@@ -66,6 +67,16 @@ const ForumModerationDashboard: React.FC = () => {
   useEffect(() => {
     fetchModerationData();
   }, []);
+
+  // Auto-refresh every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && !showContentModal && !moderationAction.showModal) {
+        fetchModerationData();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading, showContentModal, moderationAction.showModal]);
 
   const fetchModerationData = async () => {
     try {
@@ -185,7 +196,7 @@ const ForumModerationDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4" style={{ color: brandColors.primaryHex }} />
           <p className="text-gray-600 text-lg">Loading moderation data...</p>
         </div>
       </div>

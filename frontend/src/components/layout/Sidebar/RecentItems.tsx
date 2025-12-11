@@ -28,10 +28,10 @@ const RecentItems: React.FC<RecentItemsProps> = ({
             key={item.href}
             href={item.href}
             onClick={() => onItemClick(item)}
-            className="flex items-center justify-center p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 group relative"
+            className="flex items-center justify-center p-2 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors duration-200 group relative"
             title={item.name}
           >
-            <div className="text-gray-600 group-hover:text-gray-900">
+            <div className="text-white group-hover:text-white">
               {item.icon}
             </div>
             {/* Tooltip */}
@@ -51,15 +51,15 @@ const RecentItems: React.FC<RecentItemsProps> = ({
           key={item.href}
           href={item.href}
           onClick={() => onItemClick(item)}
-          className="flex items-center px-2 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 group"
+          className="flex items-center px-2 py-2 text-sm rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors duration-200 group"
         >
-          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-500">
+          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-white/50">
             <Clock className="h-3 w-3" />
           </div>
           <div className="ml-3 flex-1 min-w-0">
             <span className="truncate font-medium">{item.name}</span>
             {item.description && (
-              <p className="text-xs text-gray-500 truncate mt-0.5">
+              <p className="text-xs text-white/50 truncate mt-0.5">
                 {item.description}
               </p>
             )}

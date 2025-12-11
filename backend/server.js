@@ -1,11 +1,11 @@
+// Load environment variables
+require('dotenv').config();
+
 const app = require('./app');
 const http = require('http');
 const websocketService = require('./services/websocketService');
 const fs = require('fs');
 const path = require('path');
-
-// Load environment variables
-require('dotenv').config();
 
 // In Google Cloud, we use Cloud Storage instead of local directories
 // Upload directories are no longer needed locally

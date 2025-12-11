@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Award, Star, Trophy, Gift, CheckCircle } from 'lucide-react';
 
 interface CompletionRewardsProps {
@@ -7,6 +8,7 @@ interface CompletionRewardsProps {
 }
 
 const CompletionRewards: React.FC<CompletionRewardsProps> = ({ rewards, onClaimReward }) => {
+  const { t } = useTranslation();
   const getRewardIcon = (type: string) => {
     switch (type) {
       case 'badge': return <Award className="h-6 w-6" />;
@@ -31,8 +33,8 @@ const CompletionRewards: React.FC<CompletionRewardsProps> = ({ rewards, onClaimR
         <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
           <Award className="h-8 w-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">No rewards yet</h3>
-        <p className="text-sm text-gray-500">Complete more steps to earn rewards!</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('onboarding.rewards.none_title')}</h3>
+        <p className="text-sm text-gray-500">{t('onboarding.rewards.none_subtitle')}</p>
       </div>
     );
   }
@@ -54,7 +56,7 @@ const CompletionRewards: React.FC<CompletionRewardsProps> = ({ rewards, onClaimR
                 {reward.claimed && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Claimed
+                    {t('onboarding.rewards.claimed')}
                   </span>
                 )}
               </div>
@@ -62,14 +64,15 @@ const CompletionRewards: React.FC<CompletionRewardsProps> = ({ rewards, onClaimR
               
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-xs text-gray-400 font-medium">
-                  Earned {new Date(reward.earned_at).toLocaleDateString()}
+                  {t('onboarding.rewards.earned_on', { date: new Date(reward.earned_at).toLocaleDateString() })}
                 </span>
                 {!reward.claimed && (
                   <button
                     onClick={() => onClaimReward(reward.id)}
-                    className="text-xs font-semibold bg-[#27AE60] hover:bg-[#219150] text-white px-4 py-1.5 rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
+                    className="text-xs font-semibold text-white px-4 py-1.5 rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
+                    style={{ background: 'linear-gradient(120deg, #1e1b4b, #312e81)' }}
                   >
-                    Claim Reward
+                    {t('onboarding.rewards.claim_cta')}
                   </button>
                 )}
               </div>

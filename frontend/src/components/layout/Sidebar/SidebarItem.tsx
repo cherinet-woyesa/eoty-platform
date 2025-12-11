@@ -47,16 +47,16 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
         onClick={handleItemClick}
         className={`flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
           isActive
-            ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200/50'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-white text-emerald-600 shadow-sm'
+            : 'text-white/90 hover:bg-white/10 hover:text-white'
         } ${hasChildren ? 'pr-8' : ''}`}
         title={isCollapsed ? item.description : undefined}
       >
         {/* Icon */}
         <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-          isActive ? 'bg-blue-200' : 'bg-gray-100 group-hover:bg-gray-200'
+          isActive ? 'bg-emerald-50' : 'bg-white/10 group-hover:bg-white/20'
         } transition-colors duration-200`}>
-          <div className={item.color || 'text-gray-600'}>
+          <div className={isActive ? (item.color || 'text-emerald-600') : 'text-white'}>
             {item.icon}
           </div>
         </div>
@@ -68,28 +68,30 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
               <span className="truncate font-medium">{item.name}</span>
               <div className="flex items-center space-x-2">
                 {item.badge && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-white/20 text-white'
+                  }`}>
                     {item.badge}
                   </span>
                 )}
                 {/* Favorite Star */}
                 <button
                   onClick={handleFavoriteClick}
-                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-white/50 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-white/20 focus:outline-none focus:ring-1 focus:ring-white/50"
                   aria-label={item.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Star
                     className={`h-3 w-3 ${
                       item.isFavorite 
-                        ? 'text-yellow-500 fill-current' 
-                        : 'text-gray-400'
+                        ? 'text-yellow-400 fill-current' 
+                        : isActive ? 'text-slate-400' : 'text-white/50'
                     }`}
                   />
                 </button>
               </div>
             </div>
             {item.description && (
-              <p className="text-xs text-gray-500 truncate mt-0.5">
+              <p className={`text-xs truncate mt-0.5 ${isActive ? 'text-slate-500' : 'text-white/50'}`}>
                 {item.description}
               </p>
             )}

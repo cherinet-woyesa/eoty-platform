@@ -79,13 +79,13 @@ const Poll: React.FC<PollProps> = ({
 
   if (!poll && canCreate) {
     return (
-      <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/20 rounded-lg p-6 text-center">
-        <BarChart3 className="h-12 w-12 text-[#27AE60] mx-auto mb-4" />
+      <div className="bg-gradient-to-r from-indigo-900/10 to-blue-800/10 border border-indigo-200 rounded-lg p-6 text-center">
+        <BarChart3 className="h-12 w-12 text-indigo-600 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Create a Poll</h3>
         <p className="text-gray-600 mb-4">Engage your community with polls and gather opinions</p>
         <button
           onClick={onCreatePoll}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-900 text-white rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors"
         >
           <Plus className="h-4 w-4" />
           Create Poll
@@ -134,7 +134,7 @@ const Poll: React.FC<PollProps> = ({
                 <div className="relative">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      {hasUserVoted && <CheckCircle className="h-4 w-4 text-[#27AE60]" />}
+                      {hasUserVoted && <CheckCircle className="h-4 w-4 text-indigo-600" />}
                       <span className="text-sm font-medium text-gray-900">
                         {option.option_text}
                       </span>
@@ -147,7 +147,7 @@ const Poll: React.FC<PollProps> = ({
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-500 ${
-                        hasUserVoted ? 'bg-[#27AE60]' : 'bg-[#2980B9]'
+                        hasUserVoted ? 'bg-indigo-600' : 'bg-blue-500'
                       }`}
                       style={{ width: `${percentage}%` }}
                     />
@@ -159,14 +159,14 @@ const Poll: React.FC<PollProps> = ({
                   onClick={() => handleOptionToggle(option.id)}
                   className={`w-full text-left p-3 rounded-lg border transition-colors ${
                     isSelected
-                      ? 'border-[#27AE60] bg-[#27AE60]/5'
+                      ? 'border-indigo-600 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                   disabled={hasEnded}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      isSelected ? 'border-[#27AE60] bg-[#27AE60]' : 'border-gray-300'
+                      isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300'
                     }`}>
                       {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                     </div>
@@ -194,7 +194,7 @@ const Poll: React.FC<PollProps> = ({
           <button
             onClick={handleVote}
             disabled={selectedOptions.length === 0 || isVoting}
-            className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-sm rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-indigo-900 text-white text-sm rounded-lg border border-indigo-800 hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isVoting ? (
               <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>

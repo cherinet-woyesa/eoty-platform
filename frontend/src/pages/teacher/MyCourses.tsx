@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   BookOpen, Plus, Search, Video, Users,
   Sparkles,
@@ -11,6 +11,7 @@ import { coursesApi } from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { BulkActions } from '@/components/shared/courses/BulkActions';
 import type { Course } from '@/types/courses';
+import { brandColors } from '@/theme/brand';
 
 interface CourseStats {
   totalCourses: number;
@@ -24,35 +25,50 @@ interface CourseStats {
 
 const MyCourses: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+  const [filterCategory, setFilterCategory] = useState(() => searchParams.get('cat') || 'all');
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('order') as 'asc' | 'desc') || 'desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (searchParams.get('view') as 'grid' | 'list') || 'grid');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('status') || 'all');
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page')) || 1);
+  const [totalAvailable, setTotalAvailable] = useState(0);
   const itemsPerPage = 12;
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterCategory, activeTab]);
+  }, [searchTerm, filterCategory, activeTab, sortBy, sortOrder]);
+
+  // Persist filters/sort/view/page to URL for deep links
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (searchTerm) next.set('q', searchTerm);
+    if (filterCategory && filterCategory !== 'all') next.set('cat', filterCategory);
+    if (sortBy && sortBy !== 'created_at') next.set('sort', sortBy);
+    if (sortOrder !== 'desc') next.set('order', sortOrder);
+    if (viewMode !== 'grid') next.set('view', viewMode);
+    if (activeTab && activeTab !== 'all') next.set('status', activeTab);
+    if (currentPage > 1) next.set('page', String(currentPage));
+    setSearchParams(next, { replace: true });
+  }, [searchTerm, filterCategory, sortBy, sortOrder, viewMode, activeTab, currentPage, setSearchParams]);
 
   // Memoize categories and sort options to prevent re-creation on each render
   const categories = useMemo(() => [
-    { value: 'all', label: t('teacher_courses.all_categories_filter'), count: 0 },
-    { value: 'faith', label: t('teacher_courses.faith_doctrine_filter'), count: 0 },
-    { value: 'history', label: t('teacher_courses.church_history_filter'), count: 0 },
-    { value: 'spiritual', label: t('teacher_courses.spiritual_development_filter'), count: 0 },
-    { value: 'bible', label: t('teacher_courses.bible_study_filter'), count: 0 },
-    { value: 'liturgical', label: t('teacher_courses.liturgical_studies_filter'), count: 0 },
-    { value: 'youth', label: t('teacher_courses.youth_ministry_filter'), count: 0 }
+    { value: 'all', label: t('teacher_courses.all_categories_filter') },
+    { value: 'faith', label: t('teacher_courses.faith_doctrine_filter') },
+    { value: 'history', label: t('teacher_courses.church_history_filter') },
+    { value: 'spiritual', label: t('teacher_courses.spiritual_development_filter') },
+    { value: 'bible', label: t('teacher_courses.bible_study_filter') },
+    { value: 'liturgical', label: t('teacher_courses.liturgical_studies_filter') },
+    { value: 'youth', label: t('teacher_courses.youth_ministry_filter') }
   ], [t]);
 
   const sortOptions = useMemo(() => [
@@ -69,33 +85,37 @@ const MyCourses: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await coursesApi.getCourses();
+      const response = await coursesApi.getCourses({
+        q: searchTerm || undefined,
+        category: filterCategory !== 'all' ? filterCategory : undefined,
+        status: activeTab !== 'all' ? activeTab : undefined,
+        sortBy,
+        sortOrder,
+        page: currentPage,
+        perPage: itemsPerPage
+      });
       
       if (response.success) {
-        const coursesData = response.data.courses || [];
+        const coursesData = response.data.courses || response.data || [];
         setCourses(coursesData);
-        
-        // Calculate stats
+
+        const paginationMeta = response.data?.pagination || {};
+        setTotalAvailable(paginationMeta.total ?? coursesData.length);
+
+        const counts = response.data?.counts || {};
         const courseStats: CourseStats = {
-          totalCourses: coursesData.length,
+          totalCourses: counts.total ?? coursesData.length,
           activeStudents: coursesData.reduce((sum: number, course: Course) => sum + (course.student_count || 0), 0),
           recordedVideos: coursesData.reduce((sum: number, course: Course) => sum + (course.lesson_count || 0), 0),
           hoursTaught: Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.total_duration || 0), 0) / 60),
-          publishedCourses: coursesData.filter((course: Course) => course.is_published).length,
-          averageRating: 4.8, // Mock data - would come from ratings system
-          completionRate: 87 // Mock data - would come from progress tracking
+          publishedCourses: counts.published ?? coursesData.filter((course: Course) => course.is_published || course.status === 'published').length,
+          averageRating: coursesData.length ? Math.round((coursesData.reduce((sum: number, course: Course) => sum + (course.average_rating || 4.8), 0) / coursesData.length) * 10) / 10 : 0,
+          completionRate: coursesData.length ? Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.completion_rate || 0), 0) / coursesData.length) : 0,
+          draftCourses: counts.draft ?? coursesData.filter((course: Course) => (!course.is_published && course.status !== 'archived') || course.status === 'draft').length,
+          archivedCourses: counts.archived ?? coursesData.filter((course: Course) => course.status === 'archived').length
         };
-        
+
         setStats(courseStats);
-        
-        // Update category counts
-        categories.forEach(category => {
-          if (category.value !== 'all') {
-            category.count = coursesData.filter((course: Course) => course.category === category.value).length;
-          } else {
-            category.count = coursesData.length;
-          }
-        });
       }
     } catch (err) {
       console.error('Failed to load courses:', err);
@@ -109,53 +129,32 @@ const MyCourses: React.FC = () => {
     loadCourses();
   }, [loadCourses]);
 
-  // Memoize filtered and sorted courses to prevent unnecessary re-calculations
-  const filteredAndSortedCourses = useMemo(() => {
-    return courses
-      .filter(course => {
-        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             course.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-        const matchesTab = activeTab === 'all' ||
-                           (activeTab === 'published' && course.is_published) ||
-                           (activeTab === 'drafts' && !course.is_published);
-        return matchesSearch && matchesCategory && matchesTab;
-      })
-      .sort((a, b) => {
-        let aValue: any = a[sortBy as keyof Course];
-        let bValue: any = b[sortBy as keyof Course];
-        
-        if (sortBy === 'created_at' || sortBy === 'updated_at') {
-          aValue = new Date(aValue).getTime();
-          bValue = new Date(bValue).getTime();
-        }
-        
-        if (sortOrder === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-  }, [courses, searchTerm, filterCategory, activeTab, sortBy, sortOrder]);
+  // Use backend-filtered/paginated courses directly
+  const filteredAndSortedCourses = useMemo(() => courses, [courses]);
 
   const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
-      faith: 'from-emerald-500 to-emerald-600',
-      history: 'from-amber-500 to-amber-600',
-      spiritual: 'from-teal-500 to-teal-600',
-      bible: 'from-green-500 to-green-600',
-      liturgical: 'from-red-500 to-red-600',
-      youth: 'from-cyan-500 to-cyan-600'
+      faith: 'from-[color:#1e1b4b] to-[color:#312e81]',
+      history: 'from-indigo-500 to-indigo-600',
+      spiritual: 'from-indigo-500 to-indigo-700',
+      bible: 'from-indigo-500 to-indigo-600',
+      liturgical: 'from-indigo-600 to-indigo-800',
+      youth: 'from-indigo-400 to-indigo-600'
     };
-    return colors[category] || 'from-stone-500 to-stone-600';
+    return colors[category] || 'from-indigo-500 to-indigo-700';
   }, []);
 
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedCourses.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAndSortedCourses, currentPage]);
+  const paginatedCourses = useMemo(() => filteredAndSortedCourses, [filteredAndSortedCourses]);
 
-  const totalPages = Math.ceil(filteredAndSortedCourses.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil((totalAvailable || courses.length) / itemsPerPage));
+
+  const getStatus = useCallback((course: Course) => {
+    const now = new Date();
+    if (course.status === 'archived') return 'archived';
+    if (course.scheduled_publish_at && new Date(course.scheduled_publish_at) > now) return 'scheduled';
+    if (course.is_published || course.status === 'published') return 'published';
+    return 'draft';
+  }, []);
 
   const formatDuration = useCallback((minutes: number) => {
     if (!minutes) return t('teacher_courses.duration_minutes', { minutes: 0 });
@@ -180,7 +179,7 @@ const MyCourses: React.FC = () => {
     <div key={course.id} className={`relative group ${viewMode === 'grid'
       ? "bg-white rounded-lg border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-200"
       : "bg-white rounded-lg border border-stone-200 p-3 hover:shadow-md transition-all duration-200"
-    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[#27AE60] bg-emerald-50/30' : ''}`}>
+    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[color:#1e1b4b] bg-indigo-50/40' : ''}`}>
       
       {/* Selection Checkbox - Improved visibility */}
       <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
@@ -194,7 +193,7 @@ const MyCourses: React.FC = () => {
               setSelectedCourses(selectedCourses.filter(id => id !== course.id));
             }
           }}
-          className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60] w-4 h-4 cursor-pointer shadow-sm"
+          className="rounded border-gray-300 text-[color:#1e1b4b] focus:ring-[color:#1e1b4b] w-4 h-4 cursor-pointer shadow-sm"
         />
       </div>
 
@@ -222,21 +221,32 @@ const MyCourses: React.FC = () => {
               </div>
             )}
             <div className="absolute bottom-2 right-2">
-              <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
-                {course.is_published ? t('common.published') : t('common.draft')}
+              <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${
+                getStatus(course) === 'published'
+                  ? 'bg-indigo-100 text-indigo-800'
+                  : getStatus(course) === 'scheduled'
+                  ? 'bg-amber-100 text-amber-800'
+                  : getStatus(course) === 'archived'
+                  ? 'bg-rose-100 text-rose-800'
+                  : 'bg-stone-100 text-stone-800'
+              }`}>
+                {getStatus(course) === 'published' && t('common.published')}
+                {getStatus(course) === 'scheduled' && t('teacher_courses.status_scheduled')}
+                {getStatus(course) === 'archived' && t('teacher_courses.status_archived')}
+                {getStatus(course) === 'draft' && t('common.draft')}
               </span>
             </div>
           </div>
           <div className="p-4">
-            <h3 className="font-bold text-stone-800 truncate mb-2 text-base group-hover:text-[#27AE60] transition-colors">{course.title}</h3>
+            <h3 className="font-bold text-stone-800 truncate mb-2 text-base group-hover:text-[color:#1e1b4b] transition-colors">{course.title}</h3>
             <div className="flex items-center justify-between text-xs text-stone-500">
               <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
                 <Users className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
-                <span>{course.student_count || 0} Students</span>
+                <span>{course.student_count || 0} {t('common.students', 'Students')}</span>
               </div>
               <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
                 <Video className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
-                <span>{course.lesson_count || 0} Lessons</span>
+                <span>{course.lesson_count || 0} {t('common.lessons', 'Lessons')}</span>
               </div>
             </div>
           </div>
@@ -254,7 +264,7 @@ const MyCourses: React.FC = () => {
             )}
           </div>
           <div className="flex-grow min-w-0">
-            <Link to={`/teacher/courses/${course.id}`} className="font-semibold text-stone-800 hover:text-[#27AE60] truncate block text-base">{course.title}</Link>
+            <Link to={`/teacher/courses/${course.id}`} className="font-semibold text-stone-800 hover:text-[color:#1e1b4b] truncate block text-base">{course.title}</Link>
             <div className="flex items-center gap-3 text-xs text-stone-500 mt-1">
               <span>{t('common.student_count', { count: course.student_count || 0 })}</span>
               <span>•</span>
@@ -264,12 +274,23 @@ const MyCourses: React.FC = () => {
             </div>
           </div>
           <div className="flex-shrink-0 flex items-center gap-3">
-            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${course.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-800'}`}>
-              {course.is_published ? t('common.published') : t('common.draft')}
+            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+              getStatus(course) === 'published'
+                ? 'bg-indigo-100 text-indigo-800'
+                : getStatus(course) === 'scheduled'
+                ? 'bg-amber-100 text-amber-800'
+                : getStatus(course) === 'archived'
+                ? 'bg-rose-100 text-rose-800'
+                : 'bg-stone-100 text-stone-800'
+            }`}>
+              {getStatus(course) === 'published' && t('common.published')}
+              {getStatus(course) === 'scheduled' && t('teacher_courses.status_scheduled')}
+              {getStatus(course) === 'archived' && t('teacher_courses.status_archived')}
+              {getStatus(course) === 'draft' && t('common.draft')}
             </span>
             <Link 
               to={`/teacher/courses/${course.id}/edit`}
-              className="p-2 text-stone-400 hover:text-[#27AE60] hover:bg-stone-50 rounded-full transition-colors"
+              className="p-2 text-stone-400 hover:text-[color:#1e1b4b] hover:bg-stone-50 rounded-full transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               <Edit className="h-4 w-4" />
@@ -315,7 +336,7 @@ const MyCourses: React.FC = () => {
           <p className="text-sm text-stone-600 mt-1">{t('teacher_courses.description')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/teacher/courses/new" className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 flex items-center font-semibold text-sm">
+          <Link to="/teacher/courses/new" className="px-4 py-2 bg-[color:#1e1b4b] text-white rounded-md hover:bg-[color:#312e81] flex items-center font-semibold text-sm">
             <Plus className="h-4 w-4 mr-1" />
             {t('teacher_courses.new_course_btn')}
           </Link>
@@ -329,21 +350,21 @@ const MyCourses: React.FC = () => {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
+          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
             <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_total_courses')}</p>
             <p className="font-bold text-2xl text-stone-800 mt-1">{stats.totalCourses}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_active_students')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.activeStudents}</p>
+          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_published_courses')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.publishedCourses}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_recorded_videos')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.recordedVideos}</p>
+          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_draft_courses')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.draftCourses || 0}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_avg_rating')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.averageRating}</p>
+          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
+            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_archived_courses')}</p>
+            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.archivedCourses || 0}</p>
           </div>
         </div>
       )}
@@ -377,9 +398,9 @@ const MyCourses: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <div className="flex items-center border border-stone-200 rounded-md">
-            <button onClick={() => setActiveTab('all')} className={`px-3 py-1 rounded-l-md ${activeTab === 'all' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.all_tab')}</button>
-            <button onClick={() => setActiveTab('published')} className={`px-3 py-1 border-l ${activeTab === 'published' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.published_tab')}</button>
-            <button onClick={() => setActiveTab('drafts')} className={`px-3 py-1 border-l rounded-r-md ${activeTab === 'drafts' ? 'bg-emerald-600 text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.drafts_tab')}</button>
+            <button onClick={() => setActiveTab('all')} className={`px-3 py-1 rounded-l-md ${activeTab === 'all' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.all_tab')}</button>
+            <button onClick={() => setActiveTab('published')} className={`px-3 py-1 border-l ${activeTab === 'published' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.published_tab')}</button>
+            <button onClick={() => setActiveTab('drafts')} className={`px-3 py-1 border-l rounded-r-md ${activeTab === 'drafts' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.drafts_tab')}</button>
           </div>
           <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
             {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label} ({cat.count})</option>)}
@@ -413,7 +434,7 @@ const MyCourses: React.FC = () => {
           ) : (
             <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200">
               <div className="flex items-center p-2 border-b border-stone-200 text-xs font-semibold text-stone-500">
-                <div className="w-1/12 pl-6"><input type="checkbox" onChange={handleSelectAll} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" /></div>
+                <div className="w-1/12 pl-6"><input type="checkbox" onChange={handleSelectAll} className="rounded border-gray-300 text-[color:#1e1b4b] focus:ring-[color:#1e1b4b] w-4 h-4" /></div>
                 <div className="w-4/12">{t('common.title')}</div>
                 <div className="w-2/12">{t('common.students')}</div>
                 <div className="w-2/12">{t('common.duration')}</div>
@@ -453,14 +474,14 @@ const MyCourses: React.FC = () => {
         <div className="text-center py-16 bg-white/50 rounded-lg border border-dashed border-stone-200">
           <BookOpen className="mx-auto h-12 w-12 text-stone-400" />
           <h3 className="mt-2 text-lg font-medium text-stone-800">
-            {searchTerm || filterCategory !== 'all' || activeTab !== 'all' ? t('teacher_courses.no_courses_found') : t('teacher_courses.no_courses_yet')}
+            {courses.length === 0 ? t('teacher_courses.empty_all_title') : t('teacher_courses.empty_filtered_title')}
           </h3>
           <p className="mt-1 text-sm text-stone-500">
-            {searchTerm || filterCategory !== 'all' || activeTab !== 'all' ? t('teacher_courses.adjust_filters_prompt') : t('teacher_courses.create_first_course_prompt')}
+            {courses.length === 0 ? t('teacher_courses.empty_all_desc') : t('teacher_courses.empty_filtered_desc')}
           </p>
           {!(searchTerm || filterCategory !== 'all' || activeTab !== 'all') && (
             <div className="mt-6">
-              <Link to="/teacher/courses/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700">
+              <Link to="/teacher/courses/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[color:#1e1b4b] hover:bg-[color:#312e81]">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('teacher_courses.create_first_course_btn')}
               </Link>

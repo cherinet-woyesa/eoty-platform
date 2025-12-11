@@ -105,22 +105,22 @@ const BreadcrumbNav: React.FC = () => {
   }
 
   return (
-    <nav className="flex items-center space-x-1 text-sm" aria-label="Breadcrumb">
+    <nav className="flex items-center space-x-1 text-sm text-indigo-50" aria-label="Breadcrumb">
       {breadcrumbItems.map((item, index) => (
         <div key={`${item.href}-${index}`} className="flex items-center space-x-1">
           {index > 0 && (
-            <ChevronRight className="h-3 w-3 text-gray-400 flex-shrink-0" aria-hidden="true" />
+            <ChevronRight className="h-3 w-3 text-indigo-200 flex-shrink-0" aria-hidden="true" />
           )}
           
           {item.isCurrent ? (
             <div className="flex items-center space-x-1 max-w-32 sm:max-w-none">
               {item.icon && (
-                <span className="text-gray-500 flex-shrink-0">
+                <span className="text-indigo-100 flex-shrink-0">
                   {item.icon}
                 </span>
               )}
               <span 
-                className="text-gray-700 font-medium truncate"
+                className="text-white font-medium truncate"
                 title={item.label}
                 aria-current="page"
               >
@@ -130,15 +130,15 @@ const BreadcrumbNav: React.FC = () => {
           ) : (
             <Link
               to={item.href}
-              className="flex items-center space-x-1 text-gray-500 hover:text-gray-700 transition-colors duration-150 group max-w-32 sm:max-w-none"
+              className="flex items-center space-x-1 text-indigo-100 hover:text-white transition-colors duration-150 group max-w-32 sm:max-w-none"
             >
               {item.icon && (
-                <span className="flex-shrink-0 group-hover:text-gray-700">
+                <span className="flex-shrink-0 group-hover:text-white">
                   {item.icon}
                 </span>
               )}
               <span 
-                className="truncate group-hover:text-gray-700"
+                className="truncate group-hover:text-white"
                 title={item.label}
               >
                 {item.label}

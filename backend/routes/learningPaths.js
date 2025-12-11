@@ -7,6 +7,8 @@ router.use(authenticateToken);
 
 // GET /api/learning-paths
 router.get('/', learningPathsController.list);
+router.get('/:pathId', learningPathsController.getOne);
+router.post('/:pathId/enroll', learningPathsController.enroll);
 
 module.exports = router;
 

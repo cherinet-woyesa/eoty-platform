@@ -11,12 +11,14 @@ interface RecordVideoProps {
   courseId?: string;
   lessonId?: string;
   variant?: 'full' | 'embedded';
+  onSuccess?: (lessonId: string) => void;
 }
 
 const RecordVideo: React.FC<RecordVideoProps> = ({ 
   courseId: propCourseId, 
   lessonId: propLessonId,
-  variant = 'full'
+  variant = 'full',
+  onSuccess
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -166,6 +168,11 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
             variant={variant === 'embedded' ? 'embedded' : 'default'}
             onToggleTips={() => setShowTips(!showTips)}
             onUploadComplete={(completedLessonId) => {
+              if (onSuccess) {
+                onSuccess(completedLessonId);
+                return;
+              }
+
               // Redirect to course details page after successful upload
               if (courseId) {
                 navigate(`/teacher/courses/${courseId}`);

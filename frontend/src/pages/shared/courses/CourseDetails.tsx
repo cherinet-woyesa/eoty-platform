@@ -9,7 +9,6 @@ import LessonPolls from '@/components/shared/courses/LessonPolls';
 import QuizButton from '@/components/shared/courses/QuizButton';
 import LessonInteractivePanel from '@/components/shared/courses/LessonInteractivePanel';
 import LessonTeacherAnalytics from '@/components/shared/courses/LessonTeacherAnalytics';
-import AIChatInterface from '@/components/shared/ai/AIChatInterface';
 import UploadResource from '@/pages/teacher/UploadResource';
 import { CoursePublisher } from '@/components/shared/courses/CoursePublisher';
 import UnifiedResourceView from '@/components/student/UnifiedResourceView';
@@ -55,14 +54,14 @@ const CourseNotFound = React.memo(({ onBack }: { onBack: () => void }) => (
   <div className="text-center py-8 p-8">
     <div>
       <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Not Found</h3>
-      <p className="text-gray-600 text-sm mb-4">The course you're looking for doesn't exist or has been removed.</p>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{useTranslation().t('course_details.not_found.title')}</h3>
+      <p className="text-gray-600 text-sm mb-4">{useTranslation().t('course_details.not_found.description')}</p>
       <button
         onClick={onBack}
-        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+        className="inline-flex items-center px-4 py-2 bg-indigo-900 text-white text-sm rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Courses
+        {useTranslation().t('course_details.back_to_courses')}
       </button>
     </div>
   </div>
@@ -104,8 +103,20 @@ const CourseDetails: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showCourseUploader, setShowCourseUploader] = useState(false);
   const [resourcesRefreshToken, setResourcesRefreshToken] = useState(0);
-  const [showAIPanel, setShowAIPanel] = useState(false);
   const { confirm } = useConfirmDialog();
+
+  const openAIAssistant = () => {
+    const event = new CustomEvent('open-ai-chat', {
+        detail: {
+            source: 'course-details',
+            courseId,
+            lessonId: selectedLesson?.id,
+            courseTitle: course?.title,
+            lessonTitle: selectedLesson?.title
+        }
+    });
+    window.dispatchEvent(event);
+  };
 
   // Check bookmark status
   useEffect(() => {
@@ -144,7 +155,7 @@ const CourseDetails: React.FC = () => {
   const getBackLink = useCallback(() => {
     if (isAdmin) return '/admin/courses';
     if (isOwner || user?.role === 'teacher') return '/teacher/courses';
-    return '/student/courses';
+    return '/member/courses';
   }, [isAdmin, isOwner, user?.role]);
 
   const { t } = useTranslation();
@@ -454,20 +465,20 @@ const CourseDetails: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Course</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('course_details.error_title')}</h3>
             <p className="text-gray-600 text-sm mb-4">{error}</p>
             <div className="flex justify-center gap-3">
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-indigo-900 text-white text-sm rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors"
               >
-                Try Again
+                {t('common.try_again')}
               </button>
               <button
                 onClick={() => navigate(getBackLink())}
-                className="px-4 py-2 bg-gray-200 text-gray-800 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-white text-indigo-900 text-sm rounded-lg border border-indigo-200 hover:border-indigo-400 transition-colors"
               >
-                Back to Courses
+                {t('common.back_to_courses')}
               </button>
             </div>
           </div>
@@ -503,7 +514,7 @@ const CourseDetails: React.FC = () => {
               <h1 className="text-lg font-bold text-gray-900 truncate max-w-md leading-tight">{course.title}</h1>
               {(isAdmin || isOwner) && (
                 <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit border border-amber-100">
-                  Instructor View
+                  {t('course_details.instructor_view')}
                 </span>
               )}
             </div>
@@ -513,8 +524,8 @@ const CourseDetails: React.FC = () => {
             {isStudent && (
                <div className="hidden md:flex items-center gap-4 mr-4 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
                   <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wider font-semibold text-gray-500">Your Progress</div>
-                    <div className="text-sm font-bold text-[#27AE60]">{progressPercentage}% Complete</div>
+                    <div className="text-[10px] uppercase tracking-wider font-semibold text-gray-500">{t('course_details.your_progress')}</div>
+                    <div className="text-sm font-bold text-[#27AE60]">{progressPercentage}% {t('course_details.complete_word')}</div>
                   </div>
                   <div className="w-32 bg-gray-200 rounded-full h-2.5 overflow-hidden">
                     <div 
@@ -529,7 +540,7 @@ const CourseDetails: React.FC = () => {
               <button 
                 onClick={() => setIsTheaterMode(!isTheaterMode)}
                 className={`p-2 rounded-md transition-all ${isTheaterMode ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
-                title={isTheaterMode ? "Exit Theater Mode" : "Theater Mode"}
+                title={isTheaterMode ? t('course_details.exit_theater_mode') : t('course_details.theater_mode')}
               >
                 <Monitor className="h-4 w-4" />
               </button>
@@ -537,7 +548,7 @@ const CourseDetails: React.FC = () => {
               <button 
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className={`p-2 rounded-md transition-all ${!isSidebarOpen ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
-                title={isSidebarOpen ? "Expand View" : "Show Sidebar"}
+                title={isSidebarOpen ? t('course_details.expand_view') : t('course_details.show_sidebar')}
               >
                 {isSidebarOpen ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
               </button>
@@ -549,7 +560,7 @@ const CourseDetails: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-all shadow-sm hover:shadow-md"
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Course
+                {t('common.edit_course')}
               </Link>
             )}
             {isStudent && (
@@ -614,7 +625,7 @@ const CourseDetails: React.FC = () => {
                   <div className="absolute inset-0 flex items-center justify-center text-white">
                     <div className="text-center">
                       <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p>Select a lesson to start watching</p>
+                      <p>{t('course_details.select_lesson_prompt')}</p>
                     </div>
                   </div>
                )}
@@ -631,7 +642,7 @@ const CourseDetails: React.FC = () => {
                       {formatDuration(selectedLesson.duration || 0)}
                     </span>
                     <span>•</span>
-                    <span>Lesson {(selectedLesson.order !== undefined ? selectedLesson.order + 1 : 1)} of {lessons.length}</span>
+                    <span>{t('course_details.lesson_of_total', { index: (selectedLesson.order !== undefined ? selectedLesson.order + 1 : 1), total: lessons.length })}</span>
                   </div>
                 </div>
                 
@@ -650,12 +661,12 @@ const CourseDetails: React.FC = () => {
                       ) : isSelectedLessonCompleted ? (
                         <>
                           <CheckCircle className="h-5 w-5" />
-                          Completed
+                          {t('common.completed')}
                         </>
                       ) : (
                         <>
                           <CheckCircle className="h-5 w-5" />
-                          Mark Complete
+                          {t('course_details.mark_complete')}
                         </>
                       )}
                    </button>
@@ -668,11 +679,11 @@ const CourseDetails: React.FC = () => {
               <div className="border-b border-gray-200 px-6 flex items-center justify-between">
                 <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
                   {[
-                    { id: 'description', label: 'Overview', icon: BookOpen },
-                    { id: 'resources', label: 'Resources', icon: Download },
-                    { id: 'polls', label: 'Polls', icon: BarChart3, count: pollCount },
-                    { id: 'discussion', label: 'Discussion', icon: MessageSquare },
-                    ...((isAdmin || isOwner) ? [{ id: 'analytics', label: 'Analytics', icon: Activity }] : [])
+                    { id: 'description', label: t('course_details.tabs.overview'), icon: BookOpen },
+                    { id: 'resources', label: t('course_details.tabs.resources'), icon: Download },
+                    { id: 'polls', label: t('course_details.tabs.polls'), icon: BarChart3, count: pollCount },
+                    { id: 'discussion', label: t('course_details.tabs.discussion'), icon: MessageSquare },
+                    ...((isAdmin || isOwner) ? [{ id: 'analytics', label: t('course_details.tabs.analytics'), icon: Activity }] : [])
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -696,11 +707,11 @@ const CourseDetails: React.FC = () => {
                 
                 <div className="flex items-center gap-2 pl-4 border-l border-gray-200 ml-4">
                   <button
-                    onClick={() => setShowAIPanel(true)}
+                    onClick={openAIAssistant}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
                   >
                     <Bot className="h-3.5 w-3.5 mr-1.5 text-[#16A085]" />
-                    Ask AI
+                    {t('course_details.ask_ai')}
                   </button>
                   
                   {(activeTab === 'resources') && (isAdmin || isOwner) && (
@@ -708,12 +719,12 @@ const CourseDetails: React.FC = () => {
                       onClick={() => setShowCourseUploader(v => !v)}
                       className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                         showCourseUploader
-                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100 border-blue-200'
+                          ? 'bg-indigo-900 text-white border-indigo-800 hover:bg-indigo-800'
+                          : 'bg-white text-indigo-900 border-indigo-200 hover:border-indigo-400'
                       }`}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1.5" />
-                      {showCourseUploader ? 'Hide Uploader' : 'Add Resource'}
+                      {showCourseUploader ? t('course_details.hide_uploader') : t('course_details.add_resource')}
                     </button>
                   )}
                 </div>
@@ -752,7 +763,7 @@ const CourseDetails: React.FC = () => {
                                    if (foundLesson) {
                                       setSelectedLesson(foundLesson);
                                    } else if (video.course_id) {
-                                      navigate(`/student/courses/${video.course_id}?lesson=${video.id}`);
+                                      navigate(`/member/courses/${video.course_id}?lesson=${video.id}`);
                                    }
                                 }} 
                              />
@@ -762,7 +773,7 @@ const CourseDetails: React.FC = () => {
                     
                     {/* Learning Objectives or other metadata could go here */}
                     <div className="mt-8 pt-8 border-t border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">About this Course</h3>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('course_details.about_heading')}</h3>
                       <p className="text-sm text-gray-600">{course.description}</p>
                     </div>
                   </div>
@@ -770,7 +781,7 @@ const CourseDetails: React.FC = () => {
                 
                 {activeTab === 'analytics' && selectedLesson && (isAdmin || isOwner) && (
                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold text-gray-900">Lesson Analytics</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{t('course_details.lesson_analytics')}</h3>
                       <LessonTeacherAnalytics lessonId={selectedLesson.id} />
                    </div>
                 )}
@@ -779,7 +790,7 @@ const CourseDetails: React.FC = () => {
                   <div className="space-y-4">
                     {(isAdmin || isOwner) && showCourseUploader && (
                       <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Add Resource to This Course</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('course_details.add_resource_to_course')}</h3>
                         <UploadResource
                           variant="embedded"
                           target="library"
@@ -825,34 +836,7 @@ const CourseDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* Inline AI Assistant Panel (modal) */}
-          {showAIPanel && (
-            <div className="fixed inset-0 z-40">
-              <div className="absolute inset-0 bg-black/30" onClick={() => setShowAIPanel(false)} />
-              <div className="absolute bottom-6 right-6 w-full max-w-xl bg-white rounded-2xl border border-gray-200 shadow-2xl z-50 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <Bot className="h-4 w-4 text-[#16A085]" />
-                    AI Assistant
-                  </div>
-                  <button onClick={() => setShowAIPanel(false)} className="text-gray-500 hover:text-gray-800 text-sm px-2 py-1">
-                    Close
-                  </button>
-                </div>
-                <div className="h-[520px]">
-                  <AIChatInterface
-                    context={{
-                      source: 'course-details',
-                      courseId,
-                      lessonId: selectedLesson?.id,
-                      courseTitle: course?.title,
-                      lessonTitle: selectedLesson?.title
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* Right Column - Sidebar */}
           <div className={`flex flex-col gap-6 transition-all duration-300 ${
@@ -866,22 +850,22 @@ const CourseDetails: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search lessons..."
+                    placeholder={t('course_details.search_lessons_placeholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60]/20 focus:border-[#27AE60]"
                   />
                </div>
                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{filteredLessons.length} lessons</span>
+                  <span>{filteredLessons.length} {t('common.lessons')}</span>
                   <select
                     value={filterCompleted}
                     onChange={(e) => setFilterCompleted(e.target.value as any)}
                     className="border-none bg-transparent font-medium text-gray-700 focus:ring-0 cursor-pointer"
                   >
-                    <option value="all">All Status</option>
-                    <option value="completed">Completed</option>
-                    <option value="incomplete">Incomplete</option>
+                    <option value="all">{t('course_details.filters.all_status')}</option>
+                    <option value="completed">{t('course_details.filters.completed')}</option>
+                    <option value="incomplete">{t('course_details.filters.incomplete')}</option>
                   </select>
                </div>
             </div>
@@ -890,8 +874,8 @@ const CourseDetails: React.FC = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden max-h-[calc(100vh-300px)]">
                <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                   <div>
-                    <h3 className="font-bold text-gray-900">Course Content</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{filteredLessons.length} Lessons • {formatDuration(filteredLessons.reduce((acc, l) => acc + (l.duration || 0), 0))}</p>
+                    <h3 className="font-bold text-gray-900">{t('course_details.course_content')}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{filteredLessons.length} {t('common.lessons')} • {formatDuration(filteredLessons.reduce((acc, l) => acc + (l.duration || 0), 0))}</p>
                   </div>
                   {(isAdmin || isOwner) && (
                     <button
@@ -904,7 +888,7 @@ const CourseDetails: React.FC = () => {
                       className="text-xs bg-[#27AE60] text-white px-3 py-1.5 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-1.5 font-medium shadow-sm"
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add Lesson
+                     {t('course_details.add_lesson')}
                     </button>
                   )}
                </div>
@@ -916,25 +900,25 @@ const CourseDetails: React.FC = () => {
                         type="text"
                         value={newLessonTitle}
                         onChange={(e) => setNewLessonTitle(e.target.value)}
-                        placeholder="Lesson Title"
+                      placeholder={t('course_details.lesson_title_placeholder')}
                         className="w-full mb-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         autoFocus
                      />
                      <div className="flex gap-2">
                         <button 
                            onClick={() => isEditingLesson ? handleUpdateLesson(isEditingLesson) : handleCreateLesson()}
-                           className="flex-1 bg-blue-600 text-white text-xs py-1.5 rounded-lg hover:bg-blue-700 font-medium"
+                           className="flex-1 bg-indigo-900 text-white text-xs py-1.5 rounded-lg border border-indigo-800 hover:bg-indigo-800 font-medium"
                         >
-                           {isEditingLesson ? 'Save Changes' : 'Create Lesson'}
+                        {isEditingLesson ? t('course_details.save_changes') : t('course_details.create_lesson')}
                         </button>
                         <button 
                            onClick={() => {
                               setIsCreatingLesson(false);
                               setIsEditingLesson(null);
                            }}
-                           className="flex-1 bg-white text-gray-700 text-xs py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium"
+                           className="flex-1 bg-white text-indigo-900 text-xs py-1.5 rounded-lg border border-indigo-200 hover:border-indigo-400 font-medium"
                         >
-                           Cancel
+                        {t('common.cancel')}
                         </button>
                      </div>
                   </div>
@@ -986,7 +970,7 @@ const CourseDetails: React.FC = () => {
                                     <button 
                                        onClick={(e) => { e.stopPropagation(); setIsEditingLesson(lesson); }}
                                        className="p-1.5 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded transition-colors"
-                                       title="Edit Lesson"
+                                      title={t('course_details.edit_lesson_title')}
                                     >
                                        <Edit className="h-3.5 w-3.5" />
                                     </button>
@@ -994,7 +978,7 @@ const CourseDetails: React.FC = () => {
                                        onClick={(e) => { e.stopPropagation(); handleDeleteLesson(lesson.id); }}
                                        disabled={deletingLessonId === lesson.id}
                                        className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors disabled:opacity-50"
-                                       title="Delete Lesson"
+                                      title={t('course_details.delete_lesson_title')}
                                     >
                                        {deletingLessonId === lesson.id ? (
                                           <Loader2 className="h-3.5 w-3.5 animate-spin" />

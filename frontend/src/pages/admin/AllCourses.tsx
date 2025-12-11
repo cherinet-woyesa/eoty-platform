@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { coursesApi } from '@/services/api';
 import { apiClient } from '@/services/api/apiClient';
+import { brandColors } from '@/theme/brand';
 import { 
   BookOpen, 
   Search, 
@@ -32,13 +33,14 @@ interface CourseWithCreator extends Course {
 
 const AllCourses: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // State
   const [courses, setCourses] = useState<CourseWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>((searchParams.get('status') as 'all' | 'published' | 'draft') || 'all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,6 +79,16 @@ const AllCourses: React.FC = () => {
   useEffect(() => {
     fetchCourses();
   }, [fetchCourses]);
+
+  // Auto-refresh every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && !actionLoading) {
+        fetchCourses();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading, actionLoading, fetchCourses]);
 
   // Filtered and sorted courses
   const filteredAndSortedCourses = useMemo(() => {
@@ -276,14 +288,16 @@ const AllCourses: React.FC = () => {
             <button
               onClick={fetchCourses}
               disabled={loading}
-              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+              style={{ borderColor: `${brandColors.primaryHex}40` }}
             >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
               Refresh
             </button>
             <button
-              onClick={() => navigate('/admin/courses/new')}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+              onClick={() => navigate('/admin/courses/create')}
+              className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
+              style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               New Course
@@ -294,23 +308,34 @@ const AllCourses: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/20' },
-            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/20' },
-            { name: 'Drafts', value: stats.draft, icon: XCircle, textColor: 'text-[#F39C12]', bgColor: 'bg-[#F39C12]/10', borderColor: 'border-[#F39C12]/25', glowColor: 'bg-[#F39C12]/20' },
-            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#2980B9]', bgColor: 'bg-[#2980B9]/10', borderColor: 'border-[#2980B9]/25', glowColor: 'bg-[#2980B9]/20' },
-            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: 'text-[#27AE60]', bgColor: 'bg-[#27AE60]/10', borderColor: 'border-[#27AE60]/25', glowColor: 'bg-[#27AE60]/20' },
-            { name: 'Total Hours', value: stats.totalDuration, icon: Clock, textColor: 'text-[#16A085]', bgColor: 'bg-[#16A085]/10', borderColor: 'border-[#16A085]/25', glowColor: 'bg-[#16A085]/20' },
+            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
+            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/20' },
+            { name: 'Drafts', value: stats.drafts, icon: Edit, textColor: 'text-[#F59E0B]', bgColor: 'bg-[#F59E0B]/10', borderColor: 'border-[#F59E0B]/25', glowColor: 'bg-[#F59E0B]/20' },
+            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
+            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#8B5CF6]', bgColor: 'bg-[#8B5CF6]/10', borderColor: 'border-[#8B5CF6]/25', glowColor: 'bg-[#8B5CF6]/20' },
+            { name: 'Avg. Rating', value: '4.8', icon: Eye, textColor: 'text-[#EC4899]', bgColor: 'bg-[#EC4899]/10', borderColor: 'border-[#EC4899]/25', glowColor: 'bg-[#EC4899]/20' },
           ].map((stat, index) => (
             <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
-                <div className={`relative ${stat.textColor}`}>
-                  <div className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}></div>
-                  <div className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}>
+                <div 
+                  className={`relative ${stat.textColor}`}
+                  style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { color: brandColors.primaryHex } : undefined}
+                >
+                  <div 
+                    className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}
+                    style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}33` } : undefined}
+                  ></div>
+                  <div 
+                    className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}
+                    style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}40` } : undefined}
+                  >
                     <stat.icon className="h-4 w-4" />
                   </div>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-stone-800">{stat.value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-stone-800">
+                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+              </p>
               <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
             </div>
           ))}
@@ -330,7 +355,11 @@ const AllCourses: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+              style={{
+                '--tw-ring-color': `${brandColors.primaryHex}80`,
+                borderColor: 'transparent' // Let ring handle the border visual or set border color explicitly if needed
+              } as React.CSSProperties}
             />
           </div>
 
@@ -342,7 +371,8 @@ const AllCourses: React.FC = () => {
                 setStatusFilter(e.target.value as 'all' | 'published' | 'draft');
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+              style={{ '--tw-ring-color': `${brandColors.primaryHex}80` } as React.CSSProperties}
             >
               <option value="all">All Status</option>
               <option value="published">Published</option>
@@ -355,7 +385,8 @@ const AllCourses: React.FC = () => {
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+              style={{ '--tw-ring-color': `${brandColors.primaryHex}80` } as React.CSSProperties}
             >
               <option value="all">All Categories</option>
               <option value="faith">Faith & Doctrine</option>
@@ -373,7 +404,8 @@ const AllCourses: React.FC = () => {
                 setSortBy(field as any);
                 setSortOrder(order as 'asc' | 'desc');
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+              style={{ '--tw-ring-color': `${brandColors.primaryHex}80` } as React.CSSProperties}
             >
               <option value="created_at-desc">Newest First</option>
               <option value="created_at-asc">Oldest First</option>
@@ -386,13 +418,15 @@ const AllCourses: React.FC = () => {
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 ${viewMode === 'table' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                style={viewMode === 'table' ? { background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` } : undefined}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                style={viewMode === 'grid' ? { background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` } : undefined}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>
@@ -416,7 +450,13 @@ const AllCourses: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedCourses.length > 0 && (
-        <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border border-[#27AE60]/25 rounded-lg p-4 flex items-center justify-between backdrop-blur-sm">
+        <div 
+          className="rounded-lg p-4 flex items-center justify-between backdrop-blur-sm border"
+          style={{
+            background: `linear-gradient(to right, ${brandColors.primaryHex}1A, ${brandColors.accentHex}1A)`,
+            borderColor: `${brandColors.primaryHex}40`
+          }}
+        >
           <div className="flex items-center space-x-4">
             <span className="text-stone-800 font-semibold">
               {selectedCourses.length} course{selectedCourses.length > 1 ? 's' : ''} selected
@@ -425,7 +465,11 @@ const AllCourses: React.FC = () => {
               <button
                 onClick={() => handleBulkPublish(true)}
                 disabled={actionLoading === 'bulk'}
-                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-800 text-sm font-semibold rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 shadow-md"
+                className="inline-flex items-center px-3 py-1.5 text-stone-800 text-sm font-semibold rounded-lg disabled:opacity-50 shadow-md"
+                style={{
+                  background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})`,
+                  color: brandColors.textOnPrimary
+                }}
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Publish
@@ -551,7 +595,7 @@ const AllCourses: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </Link>
                             <Link
-                              to={`/teacher/courses/${course.id}/edit`}
+                              to={`/admin/courses/${course.id}/edit`}
                               className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                               title="Edit"
                             >

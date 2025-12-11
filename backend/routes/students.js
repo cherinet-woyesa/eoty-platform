@@ -23,6 +23,9 @@ router.get('/stream', sseTokenAuth, studentsController.streamUpdates);
 // All student routes require authentication
 router.use(authenticateToken);
 
+// GET /api/students/enrolled-courses - paginated list of enrolled courses
+router.get('/enrolled-courses', studentsController.getEnrolledCourses);
+
 // GET /api/students/dashboard - accessible by all authenticated users
 router.get('/dashboard', studentsController.getStudentDashboard);
 

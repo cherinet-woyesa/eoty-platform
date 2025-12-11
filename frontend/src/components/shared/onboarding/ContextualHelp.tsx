@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { HelpCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { onboardingApi } from '@/services/api/onboarding';
 
@@ -17,6 +18,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
   position = 'right',
   children 
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [helpContent, setHelpContent] = useState<string | null>(null);
   const [faqs, setFaqs] = useState<any[]>([]);
@@ -54,15 +56,15 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
           setHelpContent(response.data.help.content);
           setFaqs(response.data.faqs || []);
         } else {
-          setHelpContent('No help content available for this component.');
+          setHelpContent(t('onboarding.help.none'));
           setFaqs([]);
         }
       } else {
-        setError('Failed to load help content.');
+        setError(t('onboarding.help.error'));
       }
     } catch (err: any) {
       console.error('Failed to fetch help content:', err);
-      setError(err.message || 'An error occurred while fetching help content.');
+      setError(err.message || t('onboarding.help.error_generic'));
     } finally {
       setLoading(false);
       setIsOpen(true);
@@ -97,7 +99,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
               <div className="bg-blue-100 p-1 rounded-md mr-2">
                 <HelpCircle className="h-3.5 w-3.5 text-blue-600" />
               </div>
-              Help & Resources
+              {t('onboarding.help.title')}
             </h4>
             <button 
               onClick={() => setIsOpen(false)}
@@ -110,11 +112,11 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-2">
               <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-xs text-gray-400">Loading content...</span>
+                <span className="text-xs text-gray-400">{t('common.loading')}</span>
             </div>
           ) : error ? (
             <div className="p-4 text-center">
-              <div className="text-red-500 text-sm font-medium mb-1">Unable to load help</div>
+                <div className="text-red-500 text-sm font-medium mb-1">{t('onboarding.help.error')}</div>
               <div className="text-xs text-gray-500">{error}</div>
             </div>
           ) : (
@@ -123,7 +125,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
                 {helpContent ? (
                   <div className="prose prose-sm max-w-none text-gray-600 prose-p:leading-relaxed prose-a:text-blue-600 hover:prose-a:text-blue-700" dangerouslySetInnerHTML={{ __html: helpContent }} />
                 ) : (
-                  <p className="text-sm text-gray-500 italic text-center py-2">No specific help content available.</p>
+                    <p className="text-sm text-gray-500 italic text-center py-2">{t('onboarding.help.none')}</p>
                 )}
               </div>
 
@@ -136,7 +138,7 @@ const ContextualHelp: React.FC<ContextualHelpProps> = ({
                   >
                     <span className="flex items-center">
                       <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] mr-2 font-bold">FAQ</span>
-                      Related Questions
+                      {t('onboarding.help.related_questions')}
                     </span>
                     {showFaqs ? <ChevronUp className="h-3 w-3 text-gray-400" /> : <ChevronDown className="h-3 w-3 text-gray-400" />}
                   </button>

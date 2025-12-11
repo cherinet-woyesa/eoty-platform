@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Bookmark, BookmarkCheck, Search, X, Clock, BookOpen, 
+  Bookmark, Search, Clock, BookOpen, 
   PlayCircle, Trash2, Loader2, AlertCircle, Grid, List,
-  Eye, CheckCircle, Calendar
+  Calendar
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
-import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
@@ -22,7 +21,7 @@ interface BookmarkedItem {
 }
 
 const BookmarksPage: React.FC = () => {
-  const { user } = useAuth();
+  
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { showNotification } = useNotification();
@@ -31,9 +30,13 @@ const BookmarksPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'lesson' | 'course'>('all');
+  const [sortBy, setSortBy] = useState<'title' | 'saved_at'>('saved_at');
+  const [visibleCount, setVisibleCount] = useState(12);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Load bookmarks from API
   const loadBookmarks = useCallback(async () => {
@@ -45,7 +48,7 @@ const BookmarksPage: React.FC = () => {
       setBookmarks(response.data);
     } catch (err: any) {
       console.error('Failed to load bookmarks:', err);
-      setError('Failed to load bookmarks. Please try again.');
+      setError(t('bookmarks_page.error_loading'));
     } finally {
       setLoading(false);
     }
@@ -55,6 +58,11 @@ const BookmarksPage: React.FC = () => {
     loadBookmarks();
   }, [loadBookmarks]);
 
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
+
   // Filtered bookmarks
   const filteredBookmarks = useMemo(() => {
     return bookmarks.filter(item => {
@@ -63,24 +71,59 @@ const BookmarksPage: React.FC = () => {
       const title = item.entity.title || item.entity.lesson_title || '';
       const description = item.entity.description || item.entity.lesson_description || '';
       
-      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                           description.toLowerCase().includes(debouncedSearch.toLowerCase());
       
       const matchesType = filterType === 'all' || item.entity_type === filterType;
       
       return matchesSearch && matchesType;
     });
-  }, [bookmarks, searchTerm, filterType]);
+  }, [bookmarks, debouncedSearch, filterType]);
+
+  const sortedBookmarks = useMemo(() => {
+    const arr = [...filteredBookmarks];
+    if (sortBy === 'title') return arr.sort((a, b) => (a.entity?.title || '').localeCompare(b.entity?.title || ''));
+    // saved_at default desc
+    return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [filteredBookmarks, sortBy]);
+
+  const visibleBookmarks = useMemo(
+    () => sortedBookmarks.slice(0, visibleCount),
+    [sortedBookmarks, visibleCount]
+  );
+  const canLoadMore = visibleCount < sortedBookmarks.length;
+
+  // reset visible count on changes
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [debouncedSearch, filterType, sortBy]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!canLoadMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setVisibleCount(v => v + 12);
+          }
+        });
+      },
+      { rootMargin: '200px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [canLoadMore]);
 
   // Remove bookmark
   const handleRemoveBookmark = useCallback(async (item: BookmarkedItem, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       const confirmed = await confirm({
-        title: t('bookmarks_page.remove_title') || 'Remove bookmark',
-        message: t('bookmarks_page.remove_message') || 'Remove this item from bookmarks?',
-        confirmText: t('common.remove') || 'Remove',
-        cancelText: t('common.cancel') || 'Cancel'
+        title: t('bookmarks_page.remove_bookmark_title'),
+        message: t('bookmarks_page.remove_message')
       });
       if (!confirmed) return;
 
@@ -93,7 +136,8 @@ const BookmarksPage: React.FC = () => {
 
       // Remove from local state immediately
       setBookmarks(prev => prev.filter(b => b.id !== item.id));
-      showNotification('success', t('common.success'), t('bookmarks_page.removed') || 'Removed from bookmarks.');
+      // Notification
+      showNotification({ type: 'success', title: t('common.success'), message: t('bookmarks_page.removed') });
     } catch (err) {
       console.error('Failed to remove bookmark:', err);
       // Reload to ensure sync
@@ -131,9 +175,9 @@ const BookmarksPage: React.FC = () => {
   const handleItemClick = useCallback((item: BookmarkedItem) => {
     if (item.entity_type === 'lesson') {
       // Assuming lesson entity has course_id
-      navigate(`/student/courses/${item.entity.course_id}?lesson=${item.entity_id}`);
+      navigate(`/member/courses/${item.entity.course_id}?lesson=${item.entity_id}`);
     } else if (item.entity_type === 'course') {
-      navigate(`/student/courses/${item.entity_id}`);
+      navigate(`/member/courses/${item.entity_id}`);
     }
   }, [navigate]);
 
@@ -182,7 +226,7 @@ const BookmarksPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Filters, Sort & Search */}
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -196,6 +240,15 @@ const BookmarksPage: React.FC = () => {
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200"
+            title={t('common.sort_by')}
+          >
+            <option value="saved_at">{t('bookmarks_page.sort_saved')}</option>
+            <option value="title">{t('bookmarks_page.sort_title')}</option>
+          </select>
           <button
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -225,6 +278,17 @@ const BookmarksPage: React.FC = () => {
             }`}
           >
             {t('bookmarks_page.lessons')}
+          </button>
+          <button
+            onClick={() => {
+              setFilterType('all');
+              setSearchTerm('');
+              setSortBy('saved_at');
+              setVisibleCount(12);
+            }}
+            className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200"
+          >
+            {t('bookmarks_page.clear_filters')}
           </button>
         </div>
       </div>
@@ -263,16 +327,17 @@ const BookmarksPage: React.FC = () => {
           )}
           {!searchTerm && (
             <Link 
-              to="/student/browse-courses"
+              to="/member/browse-courses"
               className="mt-6 inline-flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
             >
-              {t('dashboard.student.browse_catalog')}
+              {t('student.browse_catalog')}
             </Link>
           )}
         </div>
       ) : (
+        <>
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-          {filteredBookmarks.map((item) => (
+          {visibleBookmarks.map((item) => (
             <div 
               key={item.id}
               onClick={() => handleItemClick(item)}
@@ -362,6 +427,18 @@ const BookmarksPage: React.FC = () => {
             </div>
           ))}
         </div>
+        {canLoadMore && <div ref={sentinelRef} className="h-1" />}
+        {canLoadMore && (
+          <div className="flex items-center justify-center mt-4">
+            <button
+              className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:border-gray-300 hover:text-gray-900 transition-colors"
+              onClick={() => setVisibleCount(v => v + 12)}
+            >
+              {t('bookmarks_page.load_more')}
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

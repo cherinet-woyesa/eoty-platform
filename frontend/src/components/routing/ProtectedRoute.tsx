@@ -95,7 +95,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         if (user.role === 'teacher') {
           return '/teacher/dashboard';
         }
-        return '/student/dashboard';
+        return '/member/dashboard';
       };
 
       const dashboardPath = getRoleDashboard();
@@ -154,7 +154,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       if (user.role === 'teacher') {
         return '/teacher/dashboard';
       }
-      return '/student/dashboard';
+      return '/member/dashboard';
     };
 
     const dashboardPath = getRoleDashboard();

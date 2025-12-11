@@ -633,7 +633,18 @@ class ResourceService {
         });
       }
 
-      return await query.orderBy('created_at', 'desc');
+      // Pagination
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 50;
+      const offset = (page - 1) * limit;
+
+      // Get total count for pagination
+      const countResult = await query.clone().count('* as total').first();
+      const total = parseInt(countResult.total) || 0;
+
+      const resources = await query.orderBy('created_at', 'desc').limit(limit).offset(offset);
+
+      return { resources, total, page, limit };
 
     } catch (error) {
       console.error('Error getting resources by scope:', error);

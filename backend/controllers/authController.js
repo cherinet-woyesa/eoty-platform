@@ -1113,6 +1113,8 @@ const authController = {
             db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
             db.raw('COALESCE(learning_goals, \'\') as learning_goals'),
             db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
+            db.raw('COALESCE(is_public, true) as is_public'),
+            db.raw('COALESCE(notification_preferences, \'{}\') as notification_preferences'),
             'created_at',
             'is_2fa_enabled'
           )
@@ -1151,6 +1153,8 @@ const authController = {
           user.interests = null;
           user.learning_goals = '';
           user.date_of_birth = null;
+          user.is_public = true;
+          user.notification_preferences = {};
         } else {
           throw error;
         }
@@ -1398,7 +1402,7 @@ const authController = {
   // Update user profile
   async updateUserProfile(req, res) {
     try {
-      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth, role, chapterId, bankName, accountNumber, routingNumber, idDocumentUrl } = req.body;
+      const { firstName, lastName, bio, phone, location, profilePicture, specialties, teachingExperience, education, interests, learningGoals, dateOfBirth, role, chapterId, bankName, accountNumber, routingNumber, idDocumentUrl, isPublic, notificationPreferences, profileVisibility, linksPublicDefault, allowLinkedProfiles, shareLocation, preferredPublicLocation, timeZone, socialLinks, recentMedia, linkedAccounts, locationConsent, latitude, longitude, address, city, state, country, zipCode } = req.body;
       const userId = req.user.userId;
 
       // Extract relative path from profilePicture if it's a full URL
@@ -1430,6 +1434,25 @@ const authController = {
         interests: Array.isArray(interests) ? JSON.stringify(interests) : '[]',
         learning_goals: learningGoals && String(learningGoals).trim() ? learningGoals : null,
         date_of_birth: dateOfBirth && String(dateOfBirth).trim() ? dateOfBirth : null,
+        is_public: typeof isPublic === 'boolean' ? isPublic : undefined,
+        notification_preferences: notificationPreferences ? JSON.stringify(notificationPreferences) : undefined,
+        profile_visibility: profileVisibility || undefined,
+        links_public_default: typeof linksPublicDefault === 'boolean' ? linksPublicDefault : undefined,
+        allow_linked_profiles: typeof allowLinkedProfiles === 'boolean' ? allowLinkedProfiles : undefined,
+        share_location: typeof shareLocation === 'boolean' ? shareLocation : undefined,
+        preferred_public_location: preferredPublicLocation || undefined,
+        time_zone: timeZone || undefined,
+        social_links: Array.isArray(socialLinks) ? JSON.stringify(socialLinks) : undefined,
+        recent_media: Array.isArray(recentMedia) ? JSON.stringify(recentMedia) : undefined,
+        linked_accounts: Array.isArray(linkedAccounts) ? JSON.stringify(linkedAccounts) : undefined,
+        location_consent: typeof locationConsent === 'boolean' ? locationConsent : undefined,
+        latitude: latitude !== undefined ? latitude : undefined,
+        longitude: longitude !== undefined ? longitude : undefined,
+        address: address || undefined,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        zip_code: zipCode || undefined,
         updated_at: new Date()
       };
 
@@ -1491,7 +1514,7 @@ const authController = {
       // Get updated user data
       const user = await db('users')
         .where({ id: userId })
-        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone_number as phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth', 'is_2fa_enabled')
+        .select('id', 'first_name', 'last_name', 'email', 'role', 'chapter_id', 'is_active', 'last_login_at', 'profile_picture', 'bio', 'phone_number as phone', 'location', 'specialties', 'teaching_experience', 'education', 'interests', 'learning_goals', 'date_of_birth', 'is_public', 'notification_preferences', 'is_2fa_enabled', 'profile_visibility', 'links_public_default', 'allow_linked_profiles', 'share_location', 'preferred_public_location', 'time_zone', 'social_links', 'recent_media', 'linked_accounts', 'location_consent', 'latitude', 'longitude', 'address', 'city', 'state', 'country', 'zip_code')
         .first();
 
       if (!user) {
@@ -1554,6 +1577,53 @@ const authController = {
             dateOfBirth: user.date_of_birth,
             teachingExperience: user.teaching_experience,
             education: user.education,
+            isPublic: user.is_public !== false,
+            notificationPreferences: (() => {
+              if (!user.notification_preferences) return {};
+              if (typeof user.notification_preferences === 'object') return user.notification_preferences;
+              if (typeof user.notification_preferences === 'string') {
+                try { return JSON.parse(user.notification_preferences); } catch (e) { return {}; }
+              }
+              return {};
+            })(),
+            profileVisibility: user.profile_visibility || 'public',
+            linksPublicDefault: user.links_public_default !== false,
+            allowLinkedProfiles: user.allow_linked_profiles !== false,
+            shareLocation: !!user.share_location,
+            preferredPublicLocation: user.preferred_public_location || '',
+            timeZone: user.time_zone || '',
+            socialLinks: (() => {
+              if (!user.social_links) return [];
+              if (typeof user.social_links === 'object') return Array.isArray(user.social_links) ? user.social_links : [];
+              if (typeof user.social_links === 'string' && user.social_links.trim()) {
+                try { return JSON.parse(user.social_links); } catch (e) { return []; }
+              }
+              return [];
+            })(),
+            recentMedia: (() => {
+              if (!user.recent_media) return [];
+              if (typeof user.recent_media === 'object') return Array.isArray(user.recent_media) ? user.recent_media : [];
+              if (typeof user.recent_media === 'string' && user.recent_media.trim()) {
+                try { return JSON.parse(user.recent_media); } catch (e) { return []; }
+              }
+              return [];
+            })(),
+            linkedAccounts: (() => {
+              if (!user.linked_accounts) return [];
+              if (typeof user.linked_accounts === 'object') return Array.isArray(user.linked_accounts) ? user.linked_accounts : [];
+              if (typeof user.linked_accounts === 'string' && user.linked_accounts.trim()) {
+                try { return JSON.parse(user.linked_accounts); } catch (e) { return []; }
+              }
+              return [];
+            })(),
+            locationConsent: !!user.location_consent,
+            latitude: user.latitude,
+            longitude: user.longitude,
+            address: user.address || '',
+            city: user.city || '',
+            state: user.state || '',
+            country: user.country || '',
+            zipCode: user.zip_code || '',
             is2FAEnabled: user.is_2fa_enabled
           }
         }

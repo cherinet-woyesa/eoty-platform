@@ -53,7 +53,8 @@ class Forum {
     const user = await db('users').where({ id: userId }).select('chapter_id').first();
     
     // Check if forum is public or user is in same chapter
-    if (forum.is_public || forum.chapter_id === user.chapter_id) {
+    // Use loose equality or string conversion to handle potential type mismatches (string vs int)
+    if (forum.is_public || String(forum.chapter_id) === String(user.chapter_id)) {
       return true;
     }
 
@@ -272,8 +273,8 @@ class UserBadge {
       await db('user_engagement').insert({
         user_id: userId,
         engagement_type: 'badge_earned',
-        entity_type: 'badge',
-        entity_id: badgeId,
+        content_type: 'badge',
+        content_id: badgeId,
         points_earned: metadata.points || 0,
         metadata: { badge_id: badgeId }
       });

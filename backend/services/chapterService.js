@@ -47,6 +47,28 @@ class ChapterService {
   }
 
   /**
+   * Get unique locations (countries and regions) from active chapters
+   */
+  async getLocations() {
+    const countries = await db('chapters')
+      .distinct('country')
+      .where('is_active', true)
+      .whereNotNull('country')
+      .orderBy('country');
+      
+    const regions = await db('chapters')
+      .distinct('region')
+      .where('is_active', true)
+      .whereNotNull('region')
+      .orderBy('region');
+
+    return {
+      countries: countries.map(c => c.country).filter(Boolean),
+      regions: regions.map(r => r.region).filter(Boolean)
+    };
+  }
+
+  /**
    * Get nearby chapters using Haversine formula
    */
   async getNearbyChapters({ lat, lng, radiusKm = 50, limit = 50 }) {

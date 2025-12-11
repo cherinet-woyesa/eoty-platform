@@ -9,18 +9,22 @@ import useAIChat, { type Message, type UseAIChatReturn } from '@/hooks/useAIChat
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { speechToText } from '@/services/api/speechToText';
 import { aiApi } from '@/services/api';
-import { 
-  Send, Bot, User, Trash2, AlertTriangle, 
+import {
+  Send, Bot, User, Trash2, AlertTriangle,
   BookOpen, Loader, Mic, MicOff,
   Volume2, VolumeX, Globe, Clock, CheckCircle, FileText,
   Flag, MessageCircle, X, RotateCcw, ThumbsUp, ThumbsDown
 } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 export interface AIChatInterfaceProps {
   context?: any;
   onClose?: () => void;
   className?: string;
   maxHeight?: string;
+  onError?: (message: string) => void;
+  onSlow?: (isSlow: boolean) => void;
+  onMessageCountChange?: (count: number) => void;
 }
 
 export interface AIChatInterfaceHandle {
@@ -45,7 +49,10 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     context,
     onClose,
     className = '',
-    maxHeight = '600px'
+    maxHeight = '600px',
+    onError,
+    onSlow,
+    onMessageCountChange
   }, ref) => {
   const [input, setInput] = useState<string>('');
   const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
@@ -53,6 +60,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
   const [showLanguageWarning, setShowLanguageWarning] = useState<boolean>(false);
   const [inputRows, setInputRows] = useState<number>(1);
   const [userFeedback, setUserFeedback] = useState<{ [key: string]: 'positive' | 'negative' }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -62,6 +70,27 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
   const params = useParams();
   const { user } = useAuth();
   const { i18n, t } = useTranslation();
+  const [localError, setLocalError] = useState<string>('');
+  const normalizeError = useCallback((err: string) => {
+    if (!err) return '';
+    const lower = err.toLowerCase();
+    if (lower.includes('response time exceeded') || lower.includes('timeout')) {
+      return t('ai.timeout', 'Response is taking too long. Please retry or shorten your question.');
+    }
+    if (lower.includes('accuracy')) {
+      return t('ai.accuracy_error', 'Could not meet accuracy requirements. Please rephrase or add detail.');
+    }
+    return err;
+  }, [t]);
+
+  const reportError = useCallback((message: string) => {
+    setLocalError(message);
+  }, []);
+
+  const clearErrors = useCallback(() => {
+    setLocalError('');
+    if (onError) onError('');
+  }, [onError]);
   
   // Properly typed hook usage
   const {
@@ -123,6 +152,41 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     }
   }, [audioBlob, isRecording]);
 
+  const handleFileUpload = async (file: File | null | undefined) => {
+    if (!file) return;
+    const supportedTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg'];
+    const isSupported = supportedTypes.includes(file.type) || file.type.startsWith('audio/');
+    if (!isSupported) {
+      reportError(t('ai.audio_format', 'Unsupported audio format. Please use mp4/wav/ogg or switch browser.'));
+      return;
+    }
+    const qualityCheck = speechToText.validateAudioQuality(file);
+    if (!qualityCheck.valid) {
+      const issuesText = qualityCheck.issues.join(', ');
+      const isFormatIssue = qualityCheck.issues.some((i: string) => i.toLowerCase().includes('unsupported audio format'));
+      const qualityMessage = isFormatIssue
+        ? t('ai.audio_format', 'Unsupported audio format. Please use mp4/wav/ogg or switch browser.')
+        : t('ai.audio_quality_issue', 'Audio quality issue: {{issues}}. Please try again in a quieter environment.', { issues: issuesText });
+      reportError(qualityMessage);
+      return;
+    }
+
+    try {
+      const transcription = await speechToText.transcribeWithCloudService(file, selectedLanguage || 'en-US');
+      setInput(transcription.transcript);
+      setDetectedLanguage(transcription.language || selectedLanguage || null);
+      if (transcription.isFallback) {
+        setShowLanguageWarning(true);
+        setTimeout(() => setShowLanguageWarning(false), 5000);
+      }
+    } catch (err: any) {
+      console.error('Audio upload transcribe failed', err);
+      reportError(t('ai.audio_upload_error', 'Could not process the audio. Please try again or use text.'));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -150,6 +214,37 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     };
   }, [isProcessing]);
 
+  // Notify parent about message count
+  useEffect(() => {
+    if (onMessageCountChange) {
+      onMessageCountChange(messages.length);
+    }
+  }, [messages.length, onMessageCountChange]);
+
+  // Notify parent about errors
+  useEffect(() => {
+    const combined = error || localError;
+    const friendly = normalizeError(combined ? `${t('ai.error_heading', 'AI assistant is experiencing issues.')} ${combined}` : '');
+    if (onError) {
+      onError(friendly);
+    }
+  }, [error, localError, normalizeError, onError, t]);
+
+  // Notify parent about slow state
+  useEffect(() => {
+    if (onSlow) {
+      onSlow(isSlowResponse);
+    }
+  }, [isSlowResponse, onSlow]);
+
+  // Keep UI language in sync with explicit chat language selection
+  useEffect(() => {
+    const nextLang = selectedLanguage?.startsWith('am') ? 'am' : 'en';
+    if (i18n.language !== nextLang) {
+      void i18n.changeLanguage(nextLang);
+    }
+  }, [selectedLanguage, i18n]);
+
   const transcribeAudio = async () => {
     if (!audioBlob) return;
 
@@ -158,7 +253,12 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
       // Enhanced audio quality validation
       const qualityCheck = speechToText.validateAudioQuality(audioBlob);
       if (!qualityCheck.valid) {
-        const qualityMessage = `Audio quality issue: ${qualityCheck.issues.join(', ')}. Please try again in a quieter environment.`;
+        // Provide concise, user-friendly message
+        const issuesText = qualityCheck.issues.join(', ');
+        const isFormatIssue = qualityCheck.issues.some((i: string) => i.toLowerCase().includes('unsupported audio format'));
+        const qualityMessage = isFormatIssue
+          ? t('ai.audio_format', 'Unsupported audio format. Please use mp4/wav/ogg or switch browser.')
+          : t('ai.audio_quality_issue', 'Audio quality issue: {{issues}}. Please try again in a quieter environment.', { issues: issuesText });
         setInput(qualityMessage);
         setIsUsingAudio(false);
         return;
@@ -190,7 +290,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
           // Enhanced confidence handling
           if (transcription.confidence < 0.7) {
-            setInput(`${transcription.transcript} (Low confidence - please verify)`);
+            setInput(`${transcription.transcript} ${t('ai.lowConfidence', '(Low confidence - please verify)')}`);
           } else {
             setInput(transcription.transcript);
           }
@@ -220,17 +320,18 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     } catch (err: any) {
       console.error('Transcription error:', err);
       
-      let errorMessage = 'Error transcribing audio. Please type your question instead.';
+      let errorMessage = t('ai.audio_upload_error', 'Could not process the audio. Please try again or use text.');
       
       if (err.message.includes('language') || err.message.includes('not supported')) {
-        errorMessage = `Language support issue: ${err.message}. Please try typing instead or switch to a supported language.`;
+        errorMessage = t('ai.audio_language_issue', 'Language support issue: {{message}}. Try typing instead or switch to a supported language.', { message: err.message });
       } else if (err.message.includes('permission') || err.message.includes('microphone')) {
-        errorMessage = 'Microphone access denied. Please allow microphone permissions in your browser settings and try again.';
+        errorMessage = t('ai.audio_permission_error', 'Microphone access denied. Allow mic permissions in your browser and try again.');
       } else if (err.message.includes('network') || err.message.includes('offline')) {
-        errorMessage = 'Network issue. Please check your internet connection and try again.';
+        errorMessage = t('ai.audio_network_error', 'Network issue. Please check your internet connection and try again.');
       }
       
-      setInput(errorMessage);
+      reportError(errorMessage);
+      setInput('');
     } finally {
       setIsUsingAudio(false);
     }
@@ -240,6 +341,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
+    clearErrors();
     await handleSubmitWithText(input.trim());
     setInput('');
     setInputRows(1);
@@ -334,6 +436,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
   const responseTime = calculateResponseTime(messages);
   const faithAlignment = getFaithAlignment(messages);
+  const combinedError = error || localError;
+  const displayError = normalizeError(combinedError || '');
 
   // Enhanced vague input detection
   const isVague = useCallback((text: string) => {
@@ -437,22 +541,28 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
   };
 
   const statusVariant = (() => {
-    if (error) return { label: 'Degraded', color: 'text-red-700 bg-red-50 border-red-200' };
-    if (isProcessing) return { label: 'Responding', color: 'text-amber-700 bg-amber-50 border-amber-200' };
-    return { label: 'Ready', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+    if (error) return { label: t('ai.status.degraded', 'Degraded'), color: 'text-red-700 bg-red-50 border-red-200' };
+    if (isProcessing) return { label: t('ai.status.responding', 'Responding'), color: 'text-amber-700 bg-amber-50 border-amber-200' };
+    return { label: t('ai.status.ready', 'Ready'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' };
   })();
 
   return (
     <div className={`flex flex-col h-full bg-white rounded-2xl border border-gray-200 shadow-sm ${className}`} style={{ maxHeight }}>
       {/* Enhanced Header - Landing Page Friendly */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 rounded-t-2xl">
+      <div
+        className="flex items-center justify-between p-4 border-b border-gray-200 rounded-t-2xl"
+        style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}14, ${brandColors.primaryHoverHex}14)` }}
+      >
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl shadow-sm">
+          <div
+            className="p-2 rounded-xl shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+          >
             <Bot className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-lg">AI Assistant</h3>
-            <p className="text-sm text-gray-600">Questions about the platform?</p>
+            <h3 className="font-semibold text-gray-900 text-lg">{t('ai_assistant.title')}</h3>
+            <p className="text-sm text-gray-600">{t('ai.header_subtitle', 'Questions about the platform?')}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -466,13 +576,13 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           {faithAlignment && (
             <div className={`flex items-center text-xs px-2 py-1 rounded-full border ${
               faithAlignment.score >= 0.8 
-                ? 'text-green-700 bg-green-50 border-green-200' 
+                ? 'text-indigo-800 bg-indigo-50 border-indigo-100' 
                 : faithAlignment.score >= 0.6 
-                  ? 'text-yellow-700 bg-yellow-50 border-yellow-200' 
+                  ? 'text-amber-700 bg-amber-50 border-amber-200' 
                   : 'text-red-700 bg-red-50 border-red-200'
             }`}>
               <CheckCircle className="h-3 w-3 mr-1" />
-              {Math.round(faithAlignment.score * 100)}% Aligned
+              {t('ai.faith_alignment', '{{score}}% aligned', { score: Math.round(faithAlignment.score * 100) })}
             </div>
           )}
 
@@ -481,18 +591,17 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[#27AE60] mr-2"
-              title="Select response / transcription language"
-            >
-              {Object.entries(speechToText.supportedLanguages).map(([code, name]) => (
-                <option key={code} value={code}>{name}</option>
-              ))}
-            </select>
+            className="text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[color:#1e1b4b] mr-2"
+            title={t('ai.language_select', 'Select response / transcription language')}
+          >
+            <option value="en-US">{t('ai.language_en', 'English (US)')}</option>
+            <option value="am-ET">{t('ai.language_am', 'Amharic (Ethiopia)')}</option>
+          </select>
           </div>
 
           {/* Response Time Indicator */}
           {responseTime !== null && responseTime < 3 && (
-            <div className="flex items-center text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">
+            <div className="flex items-center text-xs text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.08)] border border-[color:rgba(30,27,75,0.18)] px-2 py-1 rounded-full">
               <Clock className="h-3 w-3 mr-1" />
               {t('ai.responseTime', '{{seconds}}s', { seconds: responseTime })}
             </div>
@@ -500,15 +609,15 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
 
           {/* Slow Response Warning */}
           {isSlowResponse && (
-            <div className="flex items-center text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-full">
+            <div className="flex items-center text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
               <AlertTriangle className="h-3 w-3 mr-1" />
-              {t('ai.slowResponse', 'Taking longer')}
+              {t('ai.slowResponse', 'Taking longer than usual...')}
             </div>
           )}
 
           {/* Action Buttons */}
           <button
-            onClick={clearConversation}
+            onClick={() => { clearErrors(); clearConversation(); }}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-150 hover:shadow-sm"
             title={t('ai.clearConversation', 'Clear conversation')}
             disabled={isProcessing}
@@ -534,25 +643,26 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-25 to-gray-50"
         style={{ maxHeight: `calc(${maxHeight} - 140px)` }}
       >
-        {error && (
+        {displayError && (
           <div className="flex justify-center">
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800 max-w-xl w-full flex items-start gap-3">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="font-semibold">AI assistant is experiencing issues.</p>
-                <p className="text-red-700/80">{error}</p>
+                <p className="font-semibold">{t('ai.error_heading', 'AI assistant is experiencing issues.')}</p>
+                <p className="text-red-700/80">{displayError}</p>
                 <div className="mt-2 flex gap-2">
                   <button
                     onClick={() => retryLastQuestion()}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                    className="px-3 py-1.5 text-xs font-medium text-white rounded-lg hover:brightness-110"
+                    style={{ backgroundColor: brandColors.primaryHex }}
                   >
-                    Retry last question
+                    {t('ai.retry_last', 'Retry last question')}
                   </button>
                   <button
                     onClick={() => clearConversation()}
                     className="px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50"
                   >
-                    Clear conversation
+                    {t('ai.clearConversation', 'Clear conversation')}
                   </button>
                 </div>
               </div>
@@ -561,42 +671,26 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         )}
 
         {messages.length === 0 && (
-          <div className="text-center py-8">
-            <div className="p-4 bg-gradient-to-r from-[#27AE60]/20 to-[#16A085]/20 rounded-2xl inline-block mb-4">
-              <Bot className="h-12 w-12 text-[#27AE60]" />
+          <div className="text-center py-6">
+            <div className="p-3 rounded-2xl inline-block mb-3" style={{ background: `${brandColors.primaryHex}1A` }}>
+              <Bot className="h-10 w-10" style={{ color: brandColors.primaryHex }} />
             </div>
-            <h4 className="text-xl font-semibold text-gray-900 mb-3">👋 Welcome to EOTY AI Assistant</h4>
-            <p className="text-gray-600 max-w-md mx-auto mb-6 text-sm leading-relaxed">
-              I'm here to help you understand the platform, answer questions about Ethiopian Orthodox teachings,
-              and guide you through your spiritual learning journey.
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">👋 {t('ai.welcome_title', 'Welcome to EOTY AI Assistant')}</h4>
+            <p className="text-gray-600 max-w-sm mx-auto mb-4 text-sm leading-relaxed">
+              {t('ai.welcome_body_short', 'Ask faith or platform questions; I’ll keep answers brief and aligned.')}
             </p>
 
-            {/* Quick Start Suggestions */}
-            <div className="bg-gradient-to-r from-[#27AE60]/5 to-[#16A085]/5 rounded-xl p-4 mb-6 border border-[#27AE60]/20">
-              <h5 className="font-medium text-gray-800 mb-3 flex items-center justify-center">
-                <MessageCircle className="h-4 w-4 mr-2 text-[#27AE60]" />
-                Try asking me about:
-              </h5>
-              <div className="grid grid-cols-1 gap-2 text-sm max-w-sm mx-auto">
+            {/* Quick Start Suggestions as chips */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {[t('ai.quickstart_1', 'How do I get started with learning?'), t('ai.quickstart_2', 'What courses are available?'), t('ai.quickstart_3', 'How does AI assistance work?')].map((q, idx) => (
                 <button
-                  onClick={() => setInput('How do I get started with learning?')}
-                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
+                  key={idx}
+                  onClick={() => setInput(q)}
+                  className="px-3 py-2 text-xs bg-white border border-gray-200 rounded-full hover:border-[color:rgba(30,27,75,0.4)] hover:bg-[color:rgba(30,27,75,0.05)] transition-colors"
                 >
-                  <span className="font-medium text-[#27AE60]">🚀</span> How do I get started with learning?
+                  {q}
                 </button>
-                <button
-                  onClick={() => setInput('What courses are available?')}
-                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
-                >
-                  <span className="font-medium text-[#27AE60]">📚</span> What courses are available?
-                </button>
-                <button
-                  onClick={() => setInput('How does AI assistance work?')}
-                  className="p-3 bg-white hover:bg-[#27AE60]/5 rounded-lg border border-gray-200 hover:border-[#27AE60]/30 shadow-sm transition-all text-left group cursor-pointer"
-                >
-                  <span className="font-medium text-[#27AE60]">🤖</span> How does AI assistance work?
-                </button>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -608,7 +702,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800 max-w-md w-full">
               <div className="flex items-center">
                 <Globe className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span>Voice input switched to {speechToText.getLanguageDisplayName(detectedLanguage || 'en-US')} for better accuracy</span>
+                <span>{t('ai.voice_switched', 'Voice input switched to {{language}} for better accuracy', { language: speechToText.getLanguageDisplayName(detectedLanguage || 'en-US') })}</span>
               </div>
             </div>
           </div>
@@ -664,16 +758,15 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                     <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm text-yellow-800">
-                        <div className="font-semibold mb-1">Content Review Notice</div>
+                        <div className="font-semibold mb-1">{t('ai.moderation.notice_title', 'Content Review Notice')}</div>
                         <p className="mb-2">
-                          This question has been flagged for moderator review to ensure doctrinal accuracy 
-                          and alignment with Ethiopian Orthodox teachings.
+                          {t('ai.moderation.notice_body', 'This question was flagged for moderator review to ensure doctrinal accuracy and alignment with Ethiopian Orthodox teachings.')}
                         </p>
                         
                         {/* Show specific moderation flags */}
                         {message.metadata.moderation.flags && message.metadata.moderation.flags.length > 0 && (
                           <div className="mb-2">
-                            <span className="font-medium">Flags: </span>
+                            <span className="font-medium">{t('ai.moderation.flags_label', 'Flags: ')} </span>
                             {message.metadata.moderation.flags
                               .filter((flag: string) => !flag.includes('guidance_needed'))
                               .map((flag: string) => flag.replace(/_/g, ' '))
@@ -684,12 +777,12 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                         {/* Faith alignment score */}
                         {message.metadata.moderation.faithAlignmentScore !== undefined && (
                           <div className="mb-3">
-                            <span className="font-medium">Faith Alignment: </span>
+                            <span className="font-medium">{t('ai.moderation.faith_alignment', 'Faith Alignment: ')} </span>
                             <span className={
                               message.metadata.moderation.faithAlignmentScore >= 0.8 
-                                ? 'text-green-600' 
+                                ? 'text-indigo-700' 
                                 : message.metadata.moderation.faithAlignmentScore >= 0.6 
-                                  ? 'text-yellow-600' 
+                                  ? 'text-amber-700' 
                                   : 'text-red-600'
                             }>
                               {Math.round(message.metadata.moderation.faithAlignmentScore * 100)}%
@@ -709,13 +802,13 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                         
                         <button
                           onClick={() => {
-                            const guidance = "For doctrinal questions, try being more specific about Ethiopian Orthodox teachings. Example: 'What does the Ethiopian Orthodox Church teach about...'";
+                            const guidance = t('ai.moderation.rephrase_suggestion', "For doctrinal questions, be specific about Ethiopian Orthodox teachings. Example: 'What does the Ethiopian Orthodox Church teach about...'");
                             setInput(guidance);
                           }}
                           className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-all duration-150 shadow-sm"
                         >
                           <BookOpen className="h-3 w-3 mr-1" />
-                          Get Rephrasing Help
+                          {t('ai.moderation.rephrase_help', 'Get Rephrasing Help')}
                         </button>
                       </div>
                     </div>
@@ -727,7 +820,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-start space-x-2">
                     <Bot className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="text-sm text-blue-800">
-                      <strong>Helpful Tip:</strong> {message.metadata.guidance[0]}
+                      <strong>{t('ai.helpful_tip', 'Helpful Tip:')}</strong> {message.metadata.guidance[0]}
                     </div>
                   </div>
                 )}
@@ -737,11 +830,11 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
                       <BookOpen className="h-3 w-3" />
-                      <span>Based on:</span>
+                      <span>{t('ai.sources_based_on', 'Based on:')}</span>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
                       {message.metadata.sources.slice(0, 2).map((source: any, index: number) => {
-                        const label = typeof source === 'string' ? source : source?.title || source?.url || 'Source';
+                        const label = typeof source === 'string' ? source : source?.title || source?.url || t('ai.sources_generic', 'Source');
                         const url = typeof source === 'object' ? source?.url : undefined;
                         return (
                           <div key={index} className="flex items-center gap-1">
@@ -765,7 +858,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="flex items-center space-x-1 text-sm text-gray-600 mb-1">
                       <FileText className="h-3 w-3" />
-                      <span>Related Resources:</span>
+                      <span>{t('ai.related_resources', 'Related Resources:')}</span>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
                       {message.metadata.relatedResources.slice(0, 3).map((resource: any, index: number) => (
@@ -783,7 +876,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="flex items-center space-x-1 text-xs text-gray-500">
                       <Globe className="h-3 w-3" />
-                      <span>Response in {speechToText.getLanguageDisplayName(message.detectedLanguage)}</span>
+                      <span>{t('ai.response_language', 'Response in {{language}}', { language: speechToText.getLanguageDisplayName(message.detectedLanguage) })}</span>
                     </div>
                   </div>
                 )}
@@ -799,8 +892,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                         onClick={() => submitFeedback(message.id, 'positive')}
                         className={`p-1 rounded transition-all duration-150 ${
                           userFeedback[message.id] === 'positive' 
-                            ? 'text-green-600 bg-green-50' 
-                            : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                            ? 'text-indigo-700 bg-indigo-50' 
+                            : 'text-gray-400 hover:text-indigo-700 hover:bg-indigo-50'
                         }`}
                         title={t('ai.helpful', 'Helpful')}
                       >
@@ -853,7 +946,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         {/* Enhanced Processing Indicator */}
         {isProcessing && (
           <div className="flex space-x-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center shadow-sm">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[color:#1e1b4b] to-[color:#312e81] flex items-center justify-center shadow-sm">
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div className="flex-1 max-w-[85%]">
@@ -879,8 +972,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
                     <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                   </div>
                   <div>
-                    <span className="font-medium">Recording... {formatRecordingTime(recordingTime)}</span>
-                    <p className="text-xs text-red-600 mt-1">Click stop when finished</p>
+                    <span className="font-medium">{t('ai.recording', 'Recording...')} {formatRecordingTime(recordingTime)}</span>
+                    <p className="text-xs text-red-600 mt-1">{t('ai.recording_hint', 'Click stop when finished')}</p>
                   </div>
                 </div>
                 <Volume2 className="h-5 w-5 text-red-600" />
@@ -893,7 +986,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               )}
               {audioQuality && (
                 <div className="text-xs text-red-500 mt-1">
-                  Quality: {audioQuality.sampleRate/1000}kHz, {audioQuality.bitDepth}bit
+                  {t('ai.audio_quality_metrics', 'Quality: {{rate}}kHz, {{bitDepth}}bit', { rate: audioQuality.sampleRate/1000, bitDepth: audioQuality.bitDepth })}
                 </div>
               )}
             </div>
@@ -906,19 +999,19 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 max-w-md w-full shadow-sm">
               <div className="flex items-center space-x-2 text-blue-800">
                 <Loader className="h-4 w-4 animate-spin" />
-                <span className="text-sm font-medium">Transcribing audio...</span>
+                <span className="text-sm font-medium">{t('ai.transcribing', 'Transcribing audio...')}</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Enhanced Error Messages */}
-        {error && (
+        {displayError && (
           <div className="flex justify-center">
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 max-w-md w-full shadow-sm">
               <div className="flex items-center space-x-2 text-red-800">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm">{displayError}</span>
               </div>
               <div className="flex justify-center mt-2">
                 <button
@@ -956,14 +1049,32 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ask me anything about the platform, courses, or Ethiopian Orthodox teachings..."
-              className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] transition-all duration-200 shadow-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
+              placeholder={t('ai.placeholder', 'Ask about the platform, courses, or Ethiopian Orthodox teachings...')}
+              className="w-full px-4 py-3 pr-24 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b] transition-all duration-200 shadow-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
               rows={inputRows}
               style={{ minHeight: '48px', maxHeight: '120px' }}
               disabled={isRecording || isProcessing}
               maxLength={500}
             />
             
+            {/* Upload audio file */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => handleFileUpload(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing || isUsingAudio}
+              className="absolute right-24 top-1/2 transform -translate-y-1/2 p-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-sm transition-all duration-150 disabled:opacity-50"
+              title={t('ai.upload_audio', 'Upload audio file')}
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+
             {/* Enhanced Audio Recording Button */}
             <button
               type="button"
@@ -990,7 +1101,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           <button
             type="submit"
             disabled={!input.trim() || isProcessing || isRecording || isUsingAudio}
-            className="px-4 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-xl hover:from-[#16A085] hover:to-[#27AE60] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center min-w-[60px]"
+            className="px-4 py-3 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center min-w-[60px]"
+            style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
           >
             {isProcessing ? (
               <Loader className="h-4 w-4 animate-spin" />
@@ -1004,32 +1116,27 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
         <div className="mt-3 flex flex-col items-center space-y-2">
           {!speechToText.isBrowserSupported() && (
             <div className="text-xs text-yellow-600 text-center bg-yellow-50 px-3 py-1 rounded-lg border border-yellow-200">
-              Voice recording available but transcription limited in this browser. For better voice support, use Chrome or Edge.
+              {t('ai.browser_limit', 'Voice recording available but transcription is limited in this browser. For better voice support, use Chrome or Edge.')}
             </div>
           )}
           
           {/* Enhanced Language Support Information */}
           <div className="text-xs text-gray-500 text-center">
             <div className="flex flex-wrap justify-center gap-2 mb-1">
-              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
-                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                English (US)
-              </span>
-              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
-                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                Amharic (Ethiopia)
-              </span>
-              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
-                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                Tigrigna (Ethiopia)
-              </span>
-              <span className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
-                <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                Oromo (Ethiopia)
-              </span>
+              {[
+                t('ai.language_en', 'English (US)'),
+                t('ai.language_am', 'Amharic (Ethiopia)'),
+                t('ai.language_ti', 'Tigrigna (Ethiopia)'),
+                t('ai.language_om', 'Oromo (Ethiopia)')
+              ].map((label, idx) => (
+                <span key={idx} className="flex items-center bg-gray-100 px-2 py-1 rounded-md">
+                  <CheckCircle className="h-3 w-3 text-[color:#1e1b4b] mr-1" />
+                  {label}
+                </span>
+              ))}
             </div>
             <div className="text-gray-400">
-              Supported in Chrome, Edge, and Safari
+              {t('ai.languages_supported', 'Supported in Chrome, Edge, and Safari')}
             </div>
           </div>
         </div>

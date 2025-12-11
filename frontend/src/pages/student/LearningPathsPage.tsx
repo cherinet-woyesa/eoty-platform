@@ -1,15 +1,14 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Target, BookOpen, CheckCircle, Clock, ArrowRight, 
-  PlayCircle, Loader2, AlertCircle, TrendingUp, Award,
-  Zap, Star, Lock, Unlock, Users, Calendar
+  AlertCircle, Star, Lock, Unlock, Users, RefreshCw, Search, Filter
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
-import { useAuth } from '@/context/AuthContext';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
+import { brandColors } from '@/theme/brand';
+import { useNotification } from '@/context/NotificationContext';
 
 interface LearningPath {
   id: string;
@@ -37,13 +36,17 @@ interface PathCourse {
 }
 
 const LearningPathsPage: React.FC = () => {
-  const { user } = useAuth();
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const { showNotification } = useNotification();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedEnrollment, setSelectedEnrollment] = useState<'all' | 'enrolled' | 'not_enrolled'>('all');
+  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'duration' | 'progress'>('recommended');
+  const [search, setSearch] = useState('');
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['learning-paths'],
     queryFn: async () => {
       const res = await apiClient.get('/learning-paths');
@@ -53,20 +56,51 @@ const LearningPathsPage: React.FC = () => {
     staleTime: 1000 * 30
   });
 
+  useEffect(() => {
+    if (data) {
+      setLastUpdated(new Date().toISOString());
+    }
+  }, [data]);
+
   const paths = useMemo<LearningPath[]>(() => {
     const apiPaths = data?.paths || [];
 
     return apiPaths as LearningPath[];
   }, [data]);
 
-  // Filtered paths
+  // Filtered + sorted paths
   const filteredPaths = useMemo(() => {
-    return paths.filter(path => {
+    let list = [...paths];
+    list = list.filter(path => {
       const matchesCategory = selectedCategory === 'all' || path.category === selectedCategory;
       const matchesDifficulty = selectedDifficulty === 'all' || path.difficulty === selectedDifficulty;
-      return matchesCategory && matchesDifficulty;
+      const matchesEnrollment =
+        selectedEnrollment === 'all' ||
+        (selectedEnrollment === 'enrolled' && path.is_enrolled) ||
+        (selectedEnrollment === 'not_enrolled' && !path.is_enrolled);
+      const matchesSearch =
+        !search.trim() ||
+        path.title.toLowerCase().includes(search.toLowerCase()) ||
+        path.description.toLowerCase().includes(search.toLowerCase());
+      return matchesCategory && matchesDifficulty && matchesEnrollment && matchesSearch;
     });
-  }, [paths, selectedCategory, selectedDifficulty]);
+
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'duration':
+          return (a.estimated_duration || 0) - (b.estimated_duration || 0);
+        case 'progress':
+          return (b.progress || 0) - (a.progress || 0);
+        case 'recommended':
+        default:
+          return (b.is_enrolled ? 1 : 0) - (a.is_enrolled ? 1 : 0);
+      }
+    });
+
+    return list;
+  }, [paths, selectedCategory, selectedDifficulty, selectedEnrollment, search, sortBy]);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -89,20 +123,48 @@ const LearningPathsPage: React.FC = () => {
   }, []);
 
   // Handle path enrollment
-  const handleEnroll = useCallback((pathId: string) => {
-    // Navigate to browse courses with category filter
-    const path = paths.find(p => p.id === pathId);
-    if (path) {
-      navigate(`/student/browse-courses?category=${encodeURIComponent(path.category)}`);
+  const handleEnroll = useCallback(async (pathId: string) => {
+    try {
+      await apiClient.post(`/learning-paths/${pathId}/enroll`);
+      refetch();
+      setToast({ type: 'success', message: t('learning_paths.enrolled_label') });
+      showNotification({
+        type: 'success',
+        title: t('learning_paths.enrolled_label'),
+        message: t('learning_paths.start_path')
+      });
+    } catch (err) {
+      console.error('Failed to enroll in path', err);
+      setToast({ type: 'error', message: t('learning_paths.load_failed') });
+      showNotification({
+        type: 'error',
+        title: t('learning_paths.enroll_error'),
+        message: t('learning_paths.load_failed')
+      });
     }
-  }, [paths, navigate]);
+  }, [refetch, showNotification, t]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center justify-center min-h-96">
-            <LoadingSpinner size="lg" text={t('learning_paths.loading_text')} variant="logo" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="bg-white rounded-xl border border-stone-200 p-5 space-y-4">
+                <div className="h-4 bg-stone-200 rounded w-1/3" />
+                <div className="h-3 bg-stone-200 rounded w-2/3" />
+                <div className="h-2 bg-stone-200 rounded w-full" />
+                <div className="h-2 bg-stone-200 rounded w-5/6" />
+                <div className="h-10 bg-stone-200 rounded" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -132,55 +194,128 @@ const LearningPathsPage: React.FC = () => {
 
   return (
     <div className="w-full space-y-6">
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div
+            className={`pointer-events-auto px-5 py-3 rounded-xl shadow-2xl border text-white text-sm font-semibold`}
+            style={{
+              background: toast.type === 'success'
+                ? `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`
+                : 'linear-gradient(120deg, #ef4444, #b91c1c)',
+              borderColor: toast.type === 'success' ? 'rgba(49,46,129,0.25)' : 'rgba(239,68,68,0.35)'
+            }}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="flex flex-1 flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 text-stone-400 absolute left-3 top-3" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('learning_paths.search_placeholder')}
+              className="w-full pl-10 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[color:rgba(30,27,75,0.15)] focus:border-[color:rgba(30,27,75,0.35)]"
+            />
+          </div>
           <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
-        >
-          <option value="all">{t('learning_paths.all_categories')}</option>
-          {categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:rgba(30,27,75,0.15)] focus:border-[color:rgba(30,27,75,0.35)] text-sm"
+          >
+            <option value="all">{t('learning_paths.all_categories')}</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
           <select
-          value={selectedDifficulty}
-          onChange={(e) => setSelectedDifficulty(e.target.value)}
-          className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900"
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:rgba(30,27,75,0.15)] focus:border-[color:rgba(30,27,75,0.35)] text-sm"
+          >
+            <option value="all">{t('learning_paths.all_levels')}</option>
+            <option value="beginner">{t('learning_paths.beginner')}</option>
+            <option value="intermediate">{t('learning_paths.intermediate')}</option>
+            <option value="advanced">{t('learning_paths.advanced')}</option>
+          </select>
+          <select
+            value={selectedEnrollment}
+            onChange={(e) => setSelectedEnrollment(e.target.value as any)}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:rgba(30,27,75,0.15)] focus:border-[color:rgba(30,27,75,0.35)] text-sm"
+          >
+            <option value="all">{t('learning_paths.filter_all')}</option>
+            <option value="enrolled">{t('learning_paths.filter_enrolled')}</option>
+            <option value="not_enrolled">{t('learning_paths.filter_not_enrolled')}</option>
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:rgba(30,27,75,0.15)] focus:border-[color:rgba(30,27,75,0.35)] text-sm"
+          >
+            <option value="recommended">{t('learning_paths.sort_recommended')}</option>
+            <option value="rating">{t('learning_paths.sort_rating')}</option>
+            <option value="duration">{t('learning_paths.sort_duration')}</option>
+            <option value="progress">{t('learning_paths.sort_progress')}</option>
+          </select>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white shadow-sm disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
         >
-          <option value="all">{t('learning_paths.all_levels')}</option>
-          <option value="beginner">{t('learning_paths.beginner')}</option>
-          <option value="intermediate">{t('learning_paths.intermediate')}</option>
-          <option value="advanced">{t('learning_paths.advanced')}</option>
-        </select>
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          {isFetching ? t('common.refreshing') || 'Refreshing' : t('common.refresh') || 'Refresh'}
+        </button>
       </div>
 
       {/* Learning Paths */}
+      <div className="flex items-center gap-2 text-xs text-stone-500">
+        <span>{t('learning_paths.last_synced')}</span>
+        <span className="font-medium text-stone-700">
+          {lastUpdated ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(lastUpdated)) : '—'}
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-stone-100 text-stone-700">
+          <Filter className="h-3 w-3" /> {filteredPaths.length} {t('learning_paths.paths_label', { count: filteredPaths.length })}
+        </span>
+      </div>
+
       {filteredPaths.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('learning_paths.no_paths_found')}</h3>
           <p className="text-gray-500">{t('learning_paths.try_adjust_filters')}</p>
+          <Link
+            to="/member/all-courses?tab=browse"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg text-white text-sm font-semibold"
+            style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+          >
+            {t('learning_paths.browse_courses')}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredPaths.map((path) => (
             <div
               key={path.id}
-              className="bg-white rounded-xl overflow-hidden border border-gray-200"
+              className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all"
             >
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-gray-900" />
+                      <Target className="h-5 w-5 text-[color:#1e1b4b]" />
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
                         {t(`learning_paths.${path.difficulty}`)}
                       </span>
                         {path.is_enrolled && (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-[color:rgba(30,27,75,0.05)] text-[color:#1e1b4b] border border-[color:rgba(30,27,75,0.15)]">
                           {t('learning_paths.enrolled_label')}
                         </span>
                       )}
@@ -211,19 +346,19 @@ const LearningPathsPage: React.FC = () => {
               <div className="p-6">
                 {path.courses.length > 0 ? (
                   <div className="space-y-3 mb-4">
-                    {path.courses.map((course, index) => (
+                    {path.courses.map((course) => (
                       <div
                         key={course.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-900 transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[color:rgba(30,27,75,0.25)] transition-colors"
                       >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[color:rgba(30,27,75,0.08)] text-[color:#1e1b4b] flex items-center justify-center text-sm font-semibold">
                           {course.order}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-gray-900 text-sm">{course.title}</h3>
                             {course.is_completed ? (
-                              <CheckCircle className="h-4 w-4 text-gray-900 flex-shrink-0" />
+                              <CheckCircle className="h-4 w-4 text-[color:#1e1b4b] flex-shrink-0" />
                             ) : course.is_locked ? (
                               <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             ) : (
@@ -233,8 +368,8 @@ const LearningPathsPage: React.FC = () => {
                           {course.progress > 0 && !course.is_completed && (
                             <div className="w-full bg-gray-100 rounded-full h-1 mt-1">
                               <div
-                                className="bg-gray-900 h-1 rounded-full"
-                                style={{ width: `${course.progress}%` }}
+                                className="h-1 rounded-full"
+                                style={{ width: `${course.progress}%`, background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                               />
                             </div>
                           )}
@@ -258,7 +393,7 @@ const LearningPathsPage: React.FC = () => {
                     </span>
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {path.student_count}
+                      {path.student_count} {t('learning_paths.enrolled_label')}
                     </span>
                     <span className="flex items-center gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -267,8 +402,9 @@ const LearningPathsPage: React.FC = () => {
                   </div>
                   {path.is_enrolled ? (
                     <Link
-                      to={`/student/courses`}
-                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
+                      to={`/member/all-courses?tab=enrolled`}
+                      className="px-4 py-2 text-white rounded-lg transition-all font-semibold text-sm flex items-center gap-1"
+                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                     >
                       {t('learning_paths.continue_btn')}
                       <ArrowRight className="h-4 w-4" />
@@ -276,7 +412,8 @@ const LearningPathsPage: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => handleEnroll(path.id)}
-                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-sm flex items-center gap-1"
+                      className="px-4 py-2 text-white rounded-lg transition-all font-semibold text-sm flex items-center gap-1 disabled:opacity-60"
+                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                     >
                       {t('learning_paths.start_path')}
                       <ArrowRight className="h-4 w-4" />

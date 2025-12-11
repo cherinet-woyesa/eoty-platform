@@ -20,6 +20,7 @@ export { default as useSidebar } from './useSidebar';
 export { default as useTheme } from './useTheme';
 export { default as useUnsavedChanges } from './useUnsavedChanges';
 export { default as useVideoRecorder } from './useVideoRecorder';
+export { default as useGeolocation } from './useGeolocation';
 
 // Named exports (functions)
 export { useRealTimeData, useDashboardData, useCourseData, useUserProgress } from './useRealTimeData';

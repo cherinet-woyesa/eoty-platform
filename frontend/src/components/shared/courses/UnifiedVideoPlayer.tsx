@@ -53,6 +53,8 @@ interface UnifiedVideoPlayerProps {
   onComplete?: () => void;
   /** When false, hides the in-player Theater toggle button to avoid duplicate controls when the parent owns it. */
   showTheaterToggle?: boolean;
+  /** If provided, seeks the player to this time (in seconds) when it changes. */
+  seekTo?: number | null;
 }
 
 interface ViewingSession {
@@ -83,7 +85,8 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
   onLoad,
   onProgress,
   onComplete,
-  showTheaterToggle = true
+  showTheaterToggle = true,
+  seekTo
 }) => {
   const muxPlayerRef = React.useRef<any>(null);
   const [viewingSession, setViewingSession] = React.useState<ViewingSession>({
@@ -316,6 +319,17 @@ const UnifiedVideoPlayer: React.FC<UnifiedVideoPlayerProps> = ({
       }
     };
   }, []);
+
+  // External seekTo prop support
+  React.useEffect(() => {
+    if (typeof seekTo === 'number' && muxPlayerRef.current) {
+      const player = muxPlayerRef.current;
+      if (player.currentTime !== undefined) {
+        player.currentTime = seekTo;
+        setCurrentTime(seekTo);
+      }
+    }
+  }, [seekTo]);
 
   // Handle seeking to a specific timestamp
   const handleSeekTo = React.useCallback((timestamp: number) => {

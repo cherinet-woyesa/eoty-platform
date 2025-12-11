@@ -81,7 +81,7 @@ const JourneyDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-8 flex flex-col items-center justify-center">
         <p className="text-rose-600 mb-4">{error || 'Journey not found'}</p>
-        <button onClick={() => navigate('/student/journeys')} className="text-emerald-600 hover:underline">
+        <button onClick={() => navigate('/member/journeys')} className="text-emerald-600 hover:underline">
           Back to Journeys
         </button>
       </div>
@@ -92,7 +92,7 @@ const JourneyDetail: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#FEFCF8] via-[#FAF8F3] to-[#F5F3ED] p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <button 
-          onClick={() => navigate('/student/journeys')}
+          onClick={() => navigate('/member/journeys')}
           className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

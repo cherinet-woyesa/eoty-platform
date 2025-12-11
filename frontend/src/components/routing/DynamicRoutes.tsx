@@ -16,10 +16,10 @@ export const DynamicAIAssistant: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/ai-assistant${search}`} replace />;
+    return <Navigate to={`/member/ai-assistant${search}`} replace />;
   }
 
-  return <Navigate to={`/student/ai-assistant${search}`} replace />;
+  return <Navigate to={`/member/ai-assistant${search}`} replace />;
 };
 
 export const DynamicForums: React.FC = () => {
@@ -32,10 +32,10 @@ export const DynamicForums: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/forums${search}`} replace />;
+    return <Navigate to={`/member/forums${search}`} replace />;
   }
 
-  return <Navigate to={`/student/forums${search}`} replace />;
+  return <Navigate to={`/member/forums${search}`} replace />;
 };
 
 export const DynamicResources: React.FC = () => {
@@ -48,10 +48,10 @@ export const DynamicResources: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/resources${search}`} replace />;
+    return <Navigate to={`/member/resources${search}`} replace />;
   }
 
-  return <Navigate to={`/student/resources${search}`} replace />;
+  return <Navigate to={`/member/resources${search}`} replace />;
 };
 
 export const DynamicChapters: React.FC = () => {
@@ -64,10 +64,10 @@ export const DynamicChapters: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/chapters${search}`} replace />;
+    return <Navigate to={`/member/chapters${search}`} replace />;
   }
 
-  return <Navigate to={`/student/chapters${search}`} replace />;
+  return <Navigate to={`/member/chapters${search}`} replace />;
 };
 
 export const DynamicAchievements: React.FC = () => {
@@ -80,9 +80,9 @@ export const DynamicAchievements: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/achievements${search}`} replace />;
+    return <Navigate to={`/member/achievements${search}`} replace />;
   }
 
-  return <Navigate to={`/student/achievements${search}`} replace />;
+  return <Navigate to={`/member/achievements${search}`} replace />;
 };
 

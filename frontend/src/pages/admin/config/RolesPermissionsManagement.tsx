@@ -4,6 +4,7 @@ import { adminApi } from '@/services/api/admin';
 import { useNotification } from '@/context/NotificationContext';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
 import FormError from '@/components/shared/auth/FormError';
+import { brandColors } from '@/theme/brand';
 
 interface Permission {
   id: number;
@@ -155,15 +156,17 @@ const RolesPermissionsManagement: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search permissions..."
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             />
           </div>
           <button
             onClick={loadData}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#1F7A4C]/30 text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A3E6C4] whitespace-nowrap disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 bg-white border text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 whitespace-nowrap disabled:opacity-60"
+            style={{ borderColor: `${brandColors.primaryHex}4D`, '--tw-ring-color': brandColors.secondaryHex } as React.CSSProperties}
           >
-            <RefreshCw className={`h-4 w-4 text-[#1F7A4C] ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
@@ -182,20 +185,14 @@ const RolesPermissionsManagement: React.FC = () => {
       {/* Guide Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-[#1F7A4C]/10 rounded-full">
-              <Settings className="h-5 w-5 text-[#1F7A4C]" />
+            <div className="p-2 rounded-full" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+              <Settings className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-stone-900">How to Manage Permissions</h3>
+              <h3 className="text-sm font-bold text-stone-900">Permission Management</h3>
               <p className="text-sm text-stone-700 mt-1">
-                This matrix allows you to control what each user role can do in the system.
+                Configure access controls for each user role. Changes take effect immediately.
               </p>
-              <ul className="mt-2 space-y-1 text-sm text-stone-700 list-disc list-inside">
-                <li><strong>Rows</strong> represent specific actions (e.g., "Create Course").</li>
-                <li><strong>Columns</strong> represent user roles (e.g., "Teacher").</li>
-                <li>Click the toggle switch to <strong>Grant</strong> (Green) or <strong>Revoke</strong> (Gray) a permission.</li>
-                <li>Some permissions are locked (e.g., Admin always has full access) to prevent system lockouts.</li>
-              </ul>
             </div>
           </div>
       </div>
@@ -223,7 +220,8 @@ const RolesPermissionsManagement: React.FC = () => {
               <p className="text-gray-600">Unable to load permissions data. Please check your connection and try again.</p>
               <button
                 onClick={loadData}
-                className="mt-4 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
+                className="mt-4 px-4 py-2 text-white rounded-lg transition-colors hover:opacity-90"
+                style={{ backgroundColor: brandColors.secondaryHex }}
               >
                 Retry Loading
               </button>
@@ -239,7 +237,7 @@ const RolesPermissionsManagement: React.FC = () => {
                 {roles.map(role => (
                   <th key={role} className="px-2 sm:px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider min-w-[120px] bg-gray-100 border-x border-gray-200">
                     <div className="flex flex-col items-center gap-1 sm:gap-2">
-                      {role === 'admin' && <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-[#1F7A4C]" />}
+                      {role === 'admin' && <Shield className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: brandColors.primaryHex }} />}
                       {role === 'teacher' && <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
                       {role === 'student' && <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />}
                       <span className="font-bold text-gray-800">{role.replace('_', ' ').toUpperCase()}</span>
@@ -255,7 +253,7 @@ const RolesPermissionsManagement: React.FC = () => {
                   <tr className="bg-gray-100">
                     <td colSpan={roles.length + 1} className="px-6 py-3">
                       <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-[#27AE60]" />
+                        <Settings className="h-4 w-4" style={{ color: brandColors.secondaryHex }} />
                         <span className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
                           {category.replace('_', ' ')}
                         </span>
@@ -285,9 +283,13 @@ const RolesPermissionsManagement: React.FC = () => {
                             <button
                               onClick={() => !isDisabled && togglePermission(role, permission.id, hasPermission)}
                               disabled={isDisabled}
-                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#1F7A4C] focus:ring-offset-2 ${
-                                hasPermission ? 'bg-[#1F7A4C]' : 'bg-gray-200'
-                              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              style={{ 
+                                backgroundColor: hasPermission ? brandColors.primaryHex : '#e5e7eb',
+                                '--tw-ring-color': brandColors.primaryHex 
+                              } as React.CSSProperties}
                               title={isDisabled ? 'Admin permissions are always on' : `${hasPermission ? 'Revoke' : 'Grant'} ${permission.name} for ${role}`}
                             >
                               <span
@@ -324,28 +326,12 @@ const RolesPermissionsManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Debug Panel - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-yellow-900 mb-2">Debug Information</h4>
-          <div className="text-xs text-yellow-800 space-y-1">
-            <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-            <div>Permissions Count: {permissions.length}</div>
-            <div>Role Permissions: {Object.keys(rolePermissions).length} roles loaded</div>
-            <div>Admin Permissions: {rolePermissions.admin?.length || 0}</div>
-            <div>Teacher Permissions: {rolePermissions.teacher?.length || 0}</div>
-            <div>User Permissions: {rolePermissions.user?.length || 0}</div>
-            {error && <div className="text-red-600">Error: {error}</div>}
-          </div>
-        </div>
-      )}
-
       {/* Role Descriptions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {roles.map(role => (
           <div key={role} className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
             <div className="flex items-center gap-3 mb-4">
-              {role === 'admin' && <Shield className="h-8 w-8 text-[#27AE60]" />}
+              {role === 'admin' && <Shield className="h-8 w-8" style={{ color: brandColors.secondaryHex }} />}
               {role === 'teacher' && <Users className="h-8 w-8 text-blue-600" />}
               {(role === 'user' || role === 'student') && <Eye className="h-8 w-8 text-green-600" />}
               <div>

@@ -237,14 +237,16 @@ export class VideoCompositor {
     // continue to be painted and captureStream / canvas draw receive frames.
     if (id === 'screen') {
       video.style.position = 'fixed';
-      video.style.left = '-4000px';
+      // FIX: Keep it within viewport bounds but invisible to ensure Chrome renders it
+      video.style.left = '0px';
       video.style.top = '0px';
       // Keep the element rendered at realistic dimensions so Chrome paints real frames
       const fallbackWidth = Math.max(this.canvas.width, 1280);
       const fallbackHeight = Math.max(this.canvas.height, 720);
       video.style.width = `${fallbackWidth}px`;
       video.style.height = `${fallbackHeight}px`;
-      video.style.opacity = '0.01'; // keep non-zero to bypass throttling optimizations
+      video.style.opacity = '0.001'; // keep non-zero to bypass throttling optimizations
+      video.style.zIndex = '-9999'; // Ensure it's behind everything
       video.style.display = 'block';
       video.style.pointerEvents = 'none';
     } else {

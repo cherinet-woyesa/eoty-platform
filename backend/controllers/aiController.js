@@ -846,6 +846,45 @@ const aiController = {
         message: 'Failed to fetch system health status'
       });
     }
+  },
+  // NEW: Faith alignment classifier
+  async faithClassify(req, res) {
+    try {
+      const { text, context } = req.body;
+      if (!text) {
+        return res.status(400).json({ success: false, message: 'Text is required' });
+      }
+      const result = await faithClassifierService.classify(text, context);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Faith classify error:', error);
+      res.status(500).json({ success: false, message: 'Classification failed' });
+    }
+  },
+
+  // NEW: Submit faith alignment label
+  async faithLabel(req, res) {
+    try {
+      const { sessionId, text, label, notes } = req.body;
+      const userId = req.user.userId;
+      
+      if (!text || label === undefined) {
+        return res.status(400).json({ success: false, message: 'Text and label are required' });
+      }
+
+      const result = await faithClassifierService.storeLabel({
+        userId,
+        sessionId,
+        text,
+        label,
+        notes
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Faith label error:', error);
+      res.status(500).json({ success: false, message: 'Failed to submit label' });
+    }
   }
 };
 

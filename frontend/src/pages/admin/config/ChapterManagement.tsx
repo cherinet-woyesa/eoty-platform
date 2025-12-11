@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, BookOpen } from 'lucide-react';
+import { Plus, BookOpen, RefreshCw, Search } from 'lucide-react';
 import { systemConfigApi } from '@/services/api/systemConfig';
+import { chaptersApi } from '@/services/api/chapters';
 import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/system/ConfigTable';
 import type { ConfigTableColumn } from '@/components/admin/system/ConfigTable';
 import { BulkActionBar } from '@/components/admin/moderation/BulkActionBar';
@@ -9,7 +10,7 @@ import { UsageAnalytics } from '@/components/admin/analytics/UsageAnalytics';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { Chapter, ChapterFormData } from '@/types/systemConfig';
-import { RefreshCw } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 const COUNTRY_OPTIONS = [
   'Ethiopia',
@@ -69,6 +70,7 @@ export const ChapterManagement = () => {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [geoPreview, setGeoPreview] = useState<{ latitude?: number; longitude?: number; location?: string } | null>(null);
   const [geoPreviewError, setGeoPreviewError] = useState<string | null>(null);
+  const { requestLocation, error: geoError, isLoading: geoLoading } = useGeolocation({ timeoutMs: 8000, maximumAgeMs: 60000, highAccuracy: true });
 
   // Fetch chapters
   const { data: chapters = [], isLoading } = useQuery({
@@ -77,42 +79,31 @@ export const ChapterManagement = () => {
     onSuccess: () => setLastUpdated(new Date().toISOString())
   });
 
-  // Dynamic country/region load with fallback
+  // Fetch locations for filters
+  const { data: locations } = useQuery({
+    queryKey: ['chapter-locations'],
+    queryFn: () => chaptersApi.getLocations(),
+  });
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('https://restcountries.com/v3.1/all');
-        if (!res.ok) throw new Error('countries fetch failed');
-        const data = await res.json();
-        if (cancelled) return;
-        const countries = Array.from(
-          new Set(
-            data
-              .map((c: any) => c.name?.common)
-              .filter(Boolean)
-          )
-        ).sort((a: string, b: string) => a.localeCompare(b));
-        const regions = Array.from(
-          new Set(
-            data
-              .map((c: any) => (c.region || '').toLowerCase())
-              .filter(Boolean)
-          )
-        ).sort();
-        if (countries.length) setCountryOptions(countries);
-        if (regions.length) setRegionOptions(regions);
-      } catch (err) {
-        console.warn('Country/region fetch failed, using fallback', err);
-        if (cancelled) return;
-        setCountryOptions(COUNTRY_OPTIONS);
-        setRegionOptions(REGION_OPTIONS_DEFAULT);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (locations?.data) {
+      setCountryOptions(locations.data.countries);
+      setRegionOptions(locations.data.regions);
+    }
+  }, [locations]);
+
+  // Dynamic country/region load with fallback (kept for form creation if needed, or removed if we strictly use backend)
+  // User requested "real data from backend", so we prioritize that.
+  // We can keep the restcountries fetch for the *form* options if we want to allow new countries, 
+  // but for filters we use the backend data.
+  
+  /* 
+  useEffect(() => {
+    // ... existing restcountries fetch ...
+  }, []); 
+  */
+
+
 
   // Create mutation
   const createMutation = useMutation({
@@ -468,14 +459,22 @@ export const ChapterManagement = () => {
           <div className="flex gap-2">
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['chapters'] })}
-              className="inline-flex items-center px-3 py-2 bg-white border border-[#1F7A4C]/30 text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+              className="inline-flex items-center px-3 py-2 bg-white border text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-opacity-40"
+              style={{ 
+                borderColor: `${brandColors.primaryHex}4D`, // 30% opacity
+                '--tw-ring-color': brandColors.primaryHex 
+              } as React.CSSProperties}
             >
-              <RefreshCw className="h-4 w-4 mr-1 text-[#1F7A4C]" />
+              <RefreshCw className="h-4 w-4 mr-1" style={{ color: brandColors.primaryHex }} />
               Refresh
             </button>
           <button
             onClick={openCreateForm}
-              className="bg-[#1F7A4C] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#17623D] transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+              className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-opacity-40"
+              style={{ 
+                backgroundColor: brandColors.primaryHex,
+                '--tw-ring-color': brandColors.primaryHex 
+              } as React.CSSProperties}
           >
             <Plus className="h-5 w-5" />
             New Chapter
@@ -499,19 +498,25 @@ export const ChapterManagement = () => {
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center flex-col sm:flex-row gap-3">
             <div className="w-full sm:w-80 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search chapters by name or description..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ 
+                  '--tw-ring-color': brandColors.primaryHex,
+                  borderColor: searchTerm ? brandColors.primaryHex : undefined
+                } as React.CSSProperties}
               />
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -520,7 +525,8 @@ export const ChapterManagement = () => {
               <select
                 value={regionFilter}
                 onChange={(e) => setRegionFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
                 <option value="">All Regions</option>
                 {regionOptions.map((r) => (
@@ -530,7 +536,8 @@ export const ChapterManagement = () => {
               <select
                 value={countryFilter}
                 onChange={(e) => setCountryFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
                 <option value="">All Countries</option>
                 {countryOptions.map((c) => (
@@ -539,12 +546,6 @@ export const ChapterManagement = () => {
               </select>
             </div>
           </div>
-
-          {analyticsLikelyMissing && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
-              Analytics fields are limited (missing enrollment/lesson metrics). Data will show once those tables/columns exist.
-            </div>
-          )}
         </div>
 
         {/* Table */}
@@ -559,7 +560,7 @@ export const ChapterManagement = () => {
           selectable
           selectedItems={selectedItems}
           onSelectionChange={setSelectedItems}
-          searchPlaceholder="Search chapters..."
+          searchable={false}
           emptyMessage="No chapters found. Create your first chapter to get started."
         />
 
@@ -569,7 +570,7 @@ export const ChapterManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-[#1F7A4C] px-6 py-4 text-white">
+                <div className="px-6 py-4 text-white" style={{ backgroundColor: brandColors.primaryHex }}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -599,10 +600,11 @@ export const ChapterManagement = () => {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., Introduction to Catholic Faith"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60 ${
+                      placeholder="e.g., Introduction to Orthodox Faith"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
                         formErrors.name ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                     {formErrors.name && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
@@ -622,9 +624,10 @@ export const ChapterManagement = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of this chapter..."
                       rows={4}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
                         formErrors.description ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                     {formErrors.description && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
@@ -641,7 +644,8 @@ export const ChapterManagement = () => {
                       type="text"
                       value={formData.city || ''}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder="e.g., Addis Ababa"
                     />
                   </div>
@@ -651,7 +655,8 @@ export const ChapterManagement = () => {
                       type="text"
                       value={formData.country || ''}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder="e.g., Ethiopia"
                     />
                   </div>
@@ -661,7 +666,8 @@ export const ChapterManagement = () => {
                       type="text"
                       value={formData.region || ''}
                       onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder="e.g., Oromia"
                     />
                   </div>
@@ -671,7 +677,8 @@ export const ChapterManagement = () => {
                       type="text"
                       value={formData.address || ''}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder="Street, building, etc. (optional)"
                     />
                     <p className="mt-1 text-xs text-gray-500">Used for geocoding the chapter location. Geocoding via Google Maps API.</p>
@@ -727,7 +734,8 @@ export const ChapterManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-[#1F7A4C] hover:bg-[#17623D] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+                      className="px-6 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 hover:opacity-90"
+                      style={{ backgroundColor: brandColors.primaryHex, '--tw-ring-color': brandColors.secondaryHex } as React.CSSProperties}
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>

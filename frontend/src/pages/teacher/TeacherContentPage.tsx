@@ -93,7 +93,17 @@ const TeacherContentPage: React.FC = () => {
                 <LoadingSpinner size="lg" text={t('teacher_content.loading_studio')} variant="logo" />
               </div>
             }>
-              <RecordVideo courseId={courseId} lessonId={lessonId} variant="embedded" />
+              <RecordVideo 
+                courseId={courseId} 
+                lessonId={lessonId} 
+                variant="embedded" 
+                onSuccess={(newLessonId) => {
+                  setSearchParams(prev => {
+                    prev.set('lessonId', newLessonId);
+                    return prev;
+                  });
+                }}
+              />
             </Suspense>
           </div>
         ) : (

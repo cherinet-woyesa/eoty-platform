@@ -4,12 +4,12 @@ import { Heart, Mail, Phone } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
+    <footer className="relative bg-gradient-to-br from-[#0f172a] via-[#2f3f82] to-[#0f172a] text-white overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-[#27AE60] rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-[#00FFC6] rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#FFD700] rounded-full blur-3xl" />
+        <div className="absolute top-10 left-10 w-32 h-32 bg-[#cfa15a] rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-[#2f3f82] rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#d8b26d] rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 px-4 lg:px-6 py-16">
@@ -39,16 +39,16 @@ const Footer: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-6 text-white">Quick Links</h3>
               <div className="space-y-3">
-                <Link to="/" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Home
                 </Link>
-                <Link to="/courses" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/courses" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Courses
                 </Link>
-                <Link to="/about" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/about" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   About
                 </Link>
-                <Link to="/contact" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/contact" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Contact
                 </Link>
               </div>
@@ -58,16 +58,16 @@ const Footer: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-6 text-white">Community</h3>
               <div className="space-y-3">
-                <Link to="/register" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/register" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Join Us
                 </Link>
-                <Link to="/login" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/login" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Sign In
                 </Link>
-                <Link to="/resources" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/resources" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Resources
                 </Link>
-                <Link to="/support" className="block text-gray-300 hover:text-[#00FFC6] transition-colors">
+                <Link to="/support" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   Support
                 </Link>
               </div>
@@ -78,12 +78,12 @@ const Footer: React.FC = () => {
               <h3 className="text-lg font-semibold mb-6 text-white">Stay Updated</h3>
               <p className="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and courses.</p>
               <div className="flex flex-col space-y-3">
-                <input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#27AE60] transition-colors"
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="px-4 py-2 bg-[#111827] border border-[#2f3f82] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#cfa15a] transition-colors"
                 />
-                <button className="px-4 py-2 bg-[#27AE60] hover:bg-[#219150] text-white font-medium rounded-lg transition-colors">
+                <button className="px-4 py-2 bg-[#2f3f82] hover:bg-[#3a4c94] text-white font-medium rounded-lg transition-colors">
                   Subscribe
                 </button>
               </div>

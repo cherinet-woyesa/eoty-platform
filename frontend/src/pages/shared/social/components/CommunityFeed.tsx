@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, MessageSquare, Sparkles } from 'lucide-react';
 import PostCard, { type Post } from '@/components/shared/social/PostCard';
 
@@ -7,12 +8,17 @@ interface CommunityFeedProps {
   isLoading: boolean;
   onLike: (postId: string) => void;
   onDelete: (postId: string) => void;
-  onEdit: (postId: string) => void;
+  onEdit: (post: Post) => void;
   onShare: (post: Post) => void;
   onBookmark: (postId: string) => void;
   onCommentCountChange: (postId: string, count: number) => void;
   currentUserId?: string;
   onStartPost?: () => void;
+  editingPostId?: string | null;
+  editContent?: string;
+  onEditContentChange?: (content: string) => void;
+  onSaveEdit?: (postId: string) => void;
+  onCancelEdit?: () => void;
 }
 
 const CommunityFeed: React.FC<CommunityFeedProps> = ({
@@ -25,8 +31,15 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   onBookmark,
   onCommentCountChange,
   currentUserId,
-  onStartPost
+  onStartPost,
+  editingPostId,
+  editContent,
+  onEditContentChange,
+  onSaveEdit,
+  onCancelEdit
 }) => {
+  const { t } = useTranslation();
+
   if (isLoading && posts.length === 0) {
     return (
       <div className="space-y-4">
@@ -55,20 +68,21 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   if (posts.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <MessageSquare className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-100">
+          <MessageSquare className="w-8 h-8 text-[color:#1e1b4b]" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('community.feed.empty_title')}</h3>
         <p className="text-gray-500 max-w-md mx-auto">
-          Be the first to share something with the community! Start a discussion or share your spiritual journey.
+          {t('community.feed.empty_body')}
         </p>
         {onStartPost && (
           <button
             onClick={onStartPost}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#1f8f50] transition-colors font-semibold"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors font-semibold"
+            style={{ backgroundColor: '#1e1b4b' }}
           >
             <Sparkles className="h-4 w-4" />
-            Start a post
+            {t('community.feed.empty_cta')}
           </button>
         )}
       </div>
@@ -84,16 +98,21 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
           currentUserId={currentUserId}
           onLike={() => onLike(post.id)}
           onDelete={() => onDelete(post.id)}
-          onStartEditing={() => onEdit(post.id)}
+          onStartEditing={onEdit}
           onShare={onShare}
           onBookmark={() => onBookmark(post.id)}
           onCommentCountChange={onCommentCountChange}
+          editingPost={editingPostId}
+          editContent={editContent}
+          onEditContentChange={onEditContentChange}
+          onSaveEdit={onSaveEdit}
+          onCancelEdit={onCancelEdit}
         />
       ))}
       
       {isLoading && (
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 text-[#27AE60] animate-spin" />
+          <Loader2 className="w-6 h-6 text-[color:#1e1b4b] animate-spin" />
         </div>
       )}
     </div>

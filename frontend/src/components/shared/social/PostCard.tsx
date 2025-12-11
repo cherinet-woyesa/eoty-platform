@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   MoreVertical, Edit3, Trash2, Heart, MessageCircle, Share2,
   FileText, Bookmark
 } from 'lucide-react';
 import CommentSection from '@/components/shared/social/CommentSection';
+import { brandColors } from '@/theme/brand';
 
 export interface Post {
   id: string;
   author_id: string;
   author_name: string;
   author_avatar?: string;
+  authorAvatar?: string;
+  author_profile_picture?: string;
+  authorProfilePicture?: string;
   content: string;
   media_type?: 'image' | 'video' | 'audio' | 'article';
   media_url?: string;
@@ -56,23 +60,54 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const [showPostMenu, setShowPostMenu] = useState<boolean>(false);
 
+  const avatarUrl = useMemo(
+    () =>
+      post.author_avatar ||
+      post.authorAvatar ||
+      post.author_profile_picture ||
+      post.authorProfilePicture ||
+      undefined,
+    [post.authorProfilePicture, post.authorAvatar, post.author_avatar, post.author_profile_picture]
+  );
+
+  const displayName = useMemo(
+    () =>
+      post.author_name ||
+      (post as any).authorName ||
+      (post as any).author_full_name ||
+      (post as any).authorFullName ||
+      'User',
+    [post.author_name]
+  );
+
+  const formattedDate = useMemo(() => {
+    const date = new Date(post.created_at);
+    return date.toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  }, [post.created_at]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
       {/* Post Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
-            {post.author_avatar ? (
-              <img src={post.author_avatar} alt={post.author_name} className="w-full h-full object-cover" />
-            ) : (
-              post.author_name.charAt(0).toUpperCase()
-            )}
-          </div>
+          {avatarUrl ? (
+            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border border-gray-100 shadow-sm">
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm"
+              style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm">{post.author_name}</h3>
-            <p className="text-xs text-gray-500">
-              {new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
+            <h3 className="font-semibold text-gray-900 text-sm">{displayName}</h3>
+            <p className="text-xs text-gray-500">{formattedDate}</p>
           </div>
         </div>
         {showActions && post.author_id === currentUserId && (
@@ -84,7 +119,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <MoreVertical className="h-5 w-5 text-gray-600" />
             </button>
             {showPostMenu && (
-              <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[150px]">
+            <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[150px]">
                 <button
                   onClick={() => {
                     onStartEditing?.(post);
@@ -138,7 +173,7 @@ const PostCard: React.FC<PostCardProps> = ({
           </div>
         </div>
       ) : (
-        <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
+        post.media_type !== 'article' && <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
       )}
 
       {/* Media */}
@@ -191,7 +226,7 @@ const PostCard: React.FC<PostCardProps> = ({
       {post.media_type === 'article' && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <FileText className="h-6 w-6 text-blue-600 mb-2" />
-          <p className="text-sm text-blue-900">Article content would appear here</p>
+          <div className="text-gray-800 whitespace-pre-wrap">{post.content || 'Article content would appear here'}</div>
         </div>
       )}
 

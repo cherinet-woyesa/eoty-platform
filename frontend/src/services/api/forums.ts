@@ -30,6 +30,7 @@ export interface ForumTopic {
   updated_at: string;
   pinned_at?: string;
   pinned_by?: string;
+  tags?: string[];
 }
 
 export interface ForumPost {
@@ -99,8 +100,8 @@ export const forumApi = {
   },
 
   // Topics
-  getTopics: async (forumId: string) => {
-    const response = await apiClient.get(`/forums/${forumId}/topics`);
+  getTopics: async (forumId: string, page = 1, limit = 20) => {
+    const response = await apiClient.get(`/forums/${forumId}/topics`, { params: { page, limit } });
     return response.data;
   },
 
@@ -109,13 +110,33 @@ export const forumApi = {
     return response.data;
   },
 
-  createTopic: async (data: { forum_id: string; title: string; content: string; is_private?: boolean }) => {
-    const response = await apiClient.post('/forums/topics', data);
+  createTopic: async (data: {
+    forumId: string;
+    title: string;
+    content: string;
+    isPrivate?: boolean;
+    allowedChapterId?: string | null;
+    tags?: string[];
+    teacherOnly?: boolean;
+    attachments?: string[];
+  }) => {
+    // map frontend-friendly keys to backend expectation
+    const payload = {
+      forumId: data.forumId,
+      title: data.title,
+      content: data.content,
+      isPrivate: data.isPrivate,
+      allowedChapterId: data.allowedChapterId,
+      tags: data.tags,
+      teacherOnly: data.teacherOnly,
+      attachments: data.attachments,
+    };
+    const response = await apiClient.post('/forums/topics', payload);
     return response.data;
   },
 
   // Posts
-  createPost: async (data: { topic_id: string; content: string; parent_id?: string }) => {
+  createPost: async (data: { topic_id: string; content: string; parent_id?: string; attachments?: string[] }) => {
     const response = await apiClient.post('/forums/posts', data);
     return response.data;
   },
@@ -126,7 +147,7 @@ export const forumApi = {
     return response.data;
   },
 
-  createReply: async (topicId: string, data: { content: string; parent_id?: string }) => {
+  createReply: async (topicId: string, data: { content: string; parent_id?: string; attachments?: string[] }) => {
     const response = await apiClient.post(`/forums/topics/${topicId}/replies`, data);
     return response.data;
   },
@@ -155,6 +176,21 @@ export const forumApi = {
 
   moderatePost: async (postId: string, action: string, reason?: string) => {
     const response = await apiClient.post(`/forums/posts/${postId}/moderate`, { action, reason });
+    return response.data;
+  },
+
+  // Attachments
+  uploadAttachment: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post('/forums/attachments', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  deleteAttachment: async (attachmentId: string) => {
+    const response = await apiClient.delete(`/forums/attachments/${attachmentId}`);
     return response.data;
   },
 
@@ -206,19 +242,6 @@ export const forumApi = {
 
   unpinTopic: async (forumId: string, topicId: string) => {
     const response = await apiClient.post(`/forums/${forumId}/topics/${topicId}/unpin`);
-    return response.data;
-  },
-
-  // File attachments functionality
-  uploadAttachment: async (formData: FormData) => {
-    const response = await apiClient.post('/forums/attachments', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  },
-
-  deleteAttachment: async (attachmentId: string) => {
-    const response = await apiClient.delete(`/forums/attachments/${attachmentId}`);
     return response.data;
   }
 };

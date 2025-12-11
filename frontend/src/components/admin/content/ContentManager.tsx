@@ -3,6 +3,7 @@ import { adminApi } from '@/services/api';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { ContentUpload } from '@/types/admin';
 import UnifiedUploadForm from './UnifiedUploadForm';
+import { brandColors } from '@/theme/brand';
 import {
   Upload,
   Plus,
@@ -16,7 +17,9 @@ import {
   Eye,
   Hash,
   RefreshCw,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const ContentManager: React.FC = () => {
@@ -65,6 +68,11 @@ const ContentManager: React.FC = () => {
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [previewData, setPreviewData] = useState<Record<number, any>>({});
   const [loadingPreview, setLoadingPreview] = useState<number | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0
+  });
 
   // Template variable processing
   const processTemplate = (template: string, variables: Record<string, any>): string => {
@@ -112,21 +120,44 @@ const ContentManager: React.FC = () => {
 
   // Fetch uploads on mount and when filters change
   useEffect(() => {
-    fetchUploads();
+    fetchUploads(1);
   }, [statusFilter]);
 
-  const fetchUploads = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Fetching uploads with status filter:', statusFilter);
+  // Auto-refresh every 30 seconds (less aggressive)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && !showUnifiedUpload) {
+        fetchUploads(pagination.page, true);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loading, showUnifiedUpload, statusFilter, pagination.page]);
 
-      const response = await adminApi.getUploadQueue(statusFilter !== '' ? statusFilter : undefined);
+  const fetchUploads = async (page = pagination.page, background = false) => {
+    try {
+      if (!background) setLoading(true);
+      setError(null);
+      console.log('Fetching uploads with status filter:', statusFilter, 'page:', page);
+
+      const response = await adminApi.getUploadQueue(
+        statusFilter !== '' ? statusFilter : undefined,
+        undefined,
+        page,
+        pagination.limit
+      );
       console.log('Upload queue response:', response);
 
       if (response.success && response.data) {
         console.log('Setting uploads:', response.data.uploads?.length || 0, 'items');
         setUploads(response.data.uploads || []);
+        if (response.data.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            page: response.data.pagination.page,
+            limit: response.data.pagination.limit,
+            total: response.data.pagination.total
+          }));
+        }
       } else {
         console.warn('Upload response not successful:', response);
         setUploads([]);
@@ -134,10 +165,12 @@ const ContentManager: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to fetch uploads:', err);
       console.error('Error details:', err.response?.data || err.message);
-      setError(`Failed to load content uploads: ${err.response?.data?.message || err.message}`);
+      if (!background) {
+        setError(`Failed to load content uploads: ${err.response?.data?.message || err.message}`);
+      }
       setUploads([]);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   };
 
@@ -323,17 +356,17 @@ const ContentManager: React.FC = () => {
 
   // Filtered uploads
   const filteredUploads = uploads.filter(upload =>
-    upload.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    upload.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    upload.chapter_id.toString().includes(searchTerm.toLowerCase()) ||
-    upload.file_type.toLowerCase().includes(searchTerm.toLowerCase())
+    (upload.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (upload.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (upload.chapter_id?.toString() || '').includes(searchTerm.toLowerCase()) ||
+    (upload.file_type || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin text-[#27AE60] mx-auto mb-4" />
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4" style={{ color: brandColors.primaryHex }} />
           <p className="text-gray-600 text-lg">Loading content...</p>
         </div>
       </div>
@@ -355,7 +388,8 @@ const ContentManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowUnifiedUpload(true)}
-                  className="inline-flex items-center px-4 py-2 bg-[#27AE60] hover:bg-[#219150] text-white text-sm font-medium rounded-lg transition-all shadow-sm hover:shadow-md"
+                  className="inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg transition-all shadow-sm hover:shadow-md hover:opacity-90"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Upload Files
@@ -662,6 +696,63 @@ const ContentManager: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {pagination.total > 0 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-lg shadow-sm">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => fetchUploads(pagination.page - 1)}
+              disabled={pagination.page === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => fetchUploads(pagination.page + 1)}
+              disabled={pagination.page * pagination.limit >= pagination.total}
+              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{((pagination.page - 1) * pagination.limit) + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(pagination.page * pagination.limit, pagination.total)}
+                </span>{' '}
+                of <span className="font-medium">{pagination.total}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={() => fetchUploads(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </button>
+                {/* Simple page indicator */}
+                <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                  Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
+                </span>
+                <button
+                  onClick={() => fetchUploads(pagination.page + 1)}
+                  disabled={pagination.page * pagination.limit >= pagination.total}
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

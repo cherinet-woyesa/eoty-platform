@@ -27,11 +27,11 @@ const DynamicCourses: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/browse-courses${search}`} replace />;
+    return <Navigate to={`/member/browse-courses${search}`} replace />;
   }
 
-  // Fallback for unknown roles - redirect to student browse courses
-  return <Navigate to={`/student/browse-courses${search}`} replace />;
+  // Fallback for unknown roles - redirect to member browse courses
+  return <Navigate to={`/member/browse-courses${search}`} replace />;
 };
 
 export default DynamicCourses;

@@ -110,7 +110,7 @@ const Invitations: React.FC = () => {
               When a teacher invites you to a course, you’ll see it here.
             </p>
             <button
-              onClick={() => navigate('/student/dashboard')}
+              onClick={() => navigate('/member/dashboard')}
               className="inline-flex items-center px-4 py-2 text-sm rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-700"
             >
               Go to dashboard

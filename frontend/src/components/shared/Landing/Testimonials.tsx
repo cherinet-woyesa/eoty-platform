@@ -16,14 +16,14 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
         visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
       style={{
-        background: 'linear-gradient(135deg, rgba(255, 248, 220, 0.95) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(245, 245, 220, 0.85) 100%)'
+        background: 'linear-gradient(135deg, rgba(247, 246, 240, 0.95) 0%, rgba(248, 248, 252, 0.92) 50%, rgba(242, 242, 248, 0.88) 100%)'
       }}
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-16 w-96 h-96 bg-gradient-to-br from-[#FFD700]/6 to-[#FFA500]/4 rounded-full blur-3xl animate-float" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-24 right-16 w-80 h-80 bg-gradient-to-br from-[#27AE60]/5 to-[#16A085]/3 rounded-full blur-3xl animate-float" style={{ animationDuration: '12s', animationDelay: '4s' }} />
-        <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-gradient-to-br from-[#00FFC6]/4 to-[#00D4FF]/2 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-20 left-16 w-96 h-96 bg-gradient-to-br from-[#cfa15a]/7 to-[#d8b26d]/5 rounded-full blur-3xl animate-float" style={{ animationDuration: '10s' }} />
+        <div className="absolute bottom-24 right-16 w-80 h-80 bg-gradient-to-br from-[#2f3f82]/6 to-[#3a4c94]/5 rounded-full blur-3xl animate-float" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-gradient-to-br from-[#2f3f82]/6 to-[#cfa15a]/5 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '8s' }} />
       </div>
       <div className="w-full px-4 lg:px-6">
         <div className="max-w-7xl mx-auto">

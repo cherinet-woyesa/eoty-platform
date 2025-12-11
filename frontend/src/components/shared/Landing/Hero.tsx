@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface HeroProps {
@@ -12,14 +12,15 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
 
   return (
     <section ref={ref} id="hero" data-section-id="hero" className="relative min-h-screen flex items-center justify-center pt-20 z-10 overflow-hidden">
-      {/* Background Image with Overlay */}
+      {/* Background Image with Warm Sepia Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src="/eoc.jpg" 
-          alt="Background" 
+        <img
+          src="/eoc.jpg"
+          alt="Background"
           className="w-full h-full object-cover"
+          style={{ filter: 'sepia(0.45) saturate(1.15) brightness(0.95)' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-[#3b2b1b]/65 to-black/75 mix-blend-multiply" />
       </div>
 
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
@@ -27,27 +28,27 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg mx-auto">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#27AE60] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#27AE60]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-300 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-100"></span>
             </span>
             <span className="text-sm font-medium text-white tracking-wide">
-              {landingContent.hero?.badge || 'For Ethiopian Orthodox Youths'}
+              {landingContent.hero?.badge || 'For Orthodox Faith Members'}
             </span>
           </div>
 
           {/* Main Title */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight tracking-tight text-white drop-shadow-lg">
-            <span className="block mb-2">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight tracking-tight text-white drop-shadow-xl">
+            <span className="block mb-2 text-white/95">
               {landingContent.hero?.title || 'Transform Your'}
             </span>
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#2ECC71] via-[#27AE60] to-[#16A085]">
-              {landingContent.hero?.titleGradient || 'Learning Journey'}
+            <span className="block text-white/90">
+              {landingContent.hero?.titleGradient || 'Spiritual Journey'}
             </span>
           </h1>
 
           {/* Description */}
-          <p className="text-xl md:text-2xl text-gray-200 leading-relaxed max-w-3xl mx-auto font-light drop-shadow-md">
-            {landingContent.hero?.description || 'Join our faith-centered learning community. Access courses, track progress, and grow in your spiritual journey with expert guidance.'}
+          <p className="text-xl md:text-2xl text-slate-100 leading-relaxed max-w-3xl mx-auto font-light drop-shadow-md">
+            {landingContent.hero?.description || 'A reverent, tranquil space to grow in faith and learning—focused on Orthodox tradition and spiritual depth.'}
           </p>
 
           {/* CTA Buttons */}
@@ -55,32 +56,26 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
             {!isAuthenticated ? (
               <>
                 <Link
-                  to="/register"
-                  className="group relative inline-flex items-center justify-center px-8 py-4 bg-[#27AE60] text-white rounded-full overflow-hidden transition-all duration-300 shadow-lg shadow-[#27AE60]/30 hover:shadow-[#27AE60]/50 hover:-translate-y-1 hover:scale-105"
+                  to="/donate"
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-rose-600 text-white border border-rose-500 hover:bg-rose-700 transition-all duration-200"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#2ECC71] to-[#27AE60] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <span className="relative font-bold text-lg flex items-center">
-                    Start Learning Free
-                    <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-                  </span>
+                  Donate Now
+                  <Heart className="ml-2 h-5 w-5 fill-current" />
                 </Link>
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/30 hover:bg-white/20 transition-all duration-300 font-bold text-lg shadow-lg hover:-translate-y-1 hover:scale-105"
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-all duration-200"
                 >
-                  Sign In
+                  Explore Courses
                 </Link>
               </>
             ) : (
               <Link
                 to={getRoleDashboard()}
-                className="group relative inline-flex items-center justify-center px-8 py-4 bg-[#27AE60] text-white rounded-full overflow-hidden transition-all duration-300 shadow-lg shadow-[#27AE60]/30 hover:shadow-[#27AE60]/50 hover:-translate-y-1 hover:scale-105"
+                className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#2ECC71] to-[#27AE60] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative font-bold text-lg flex items-center">
-                  Go to Dashboard
-                  <ArrowRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
-                </span>
+                Go to Dashboard
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             )}
           </div>

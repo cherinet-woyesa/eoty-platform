@@ -46,9 +46,9 @@ const RelatedVideos: React.FC<RelatedVideosProps> = ({
     } else {
       // Navigate to the video
       if (video.course_id && video.course_id.toString() !== currentCourseId) {
-        navigate(`/student/courses/${video.course_id}?lesson=${video.id}`);
+        navigate(`/member/courses/${video.course_id}?lesson=${video.id}`);
       } else if (currentCourseId) {
-        navigate(`/student/courses/${currentCourseId}?lesson=${video.id}`);
+        navigate(`/member/courses/${currentCourseId}?lesson=${video.id}`);
       }
     }
   };

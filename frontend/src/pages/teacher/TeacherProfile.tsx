@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
-import { authApi } from '@/services/api';
+import { authApi, teacherApi } from '@/services/api';
 import { useTranslation } from 'react-i18next';
 import { 
   User, Mail, Phone, MapPin, Calendar, 
   Save, Camera, Edit3, CheckCircle, 
-  AlertCircle, Loader2, X
+  AlertCircle, Loader2, X, Shield, FileText, ListChecks, Globe, CreditCard
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { brandColors } from '@/theme/brand';
 
 interface ProfileData {
   firstName: string;
@@ -22,6 +23,22 @@ interface ProfileData {
   teachingExperience?: number;
   education?: string;
 }
+
+type DocStatus = 'ACTION_REQUIRED' | 'PENDING' | 'VERIFIED';
+
+const docBadge = (status: DocStatus, label: string) => {
+  const color =
+    status === 'VERIFIED'
+      ? 'text-green-700 bg-green-50 border-green-200'
+      : status === 'PENDING'
+        ? 'text-amber-700 bg-amber-50 border-amber-200'
+        : 'text-red-700 bg-red-50 border-red-200';
+  return (
+    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${color}`}>
+      {label}
+    </span>
+  );
+};
 
 const TeacherProfile: React.FC = () => {
   const { t } = useTranslation();
@@ -47,6 +64,8 @@ const TeacherProfile: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isUpdatingProfilePictureRef = useRef(false);
+  const [teacherProfile, setTeacherProfile] = useState<any>({});
+  const [loadingProfileExtras, setLoadingProfileExtras] = useState<boolean>(true);
 
   // Load user profile data
   useEffect(() => {
@@ -67,6 +86,22 @@ const TeacherProfile: React.FC = () => {
       setLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    const loadExtras = async () => {
+      try {
+        const res = await teacherApi.getProfile();
+        if (res?.success) {
+          setTeacherProfile(res.data.teacherProfile || {});
+        }
+      } catch (err) {
+        console.warn('Failed to load teacher profile extras', err);
+      } finally {
+        setLoadingProfileExtras(false);
+      }
+    };
+    loadExtras();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -285,6 +320,85 @@ const TeacherProfile: React.FC = () => {
           </div>
         </div>
 
+        {/* Onboarding + Verification + Payout */}
+        <div className="bg-white rounded-xl shadow-sm border border-stone-200/80 p-6 space-y-6">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-[color:#1e1b4b]" />
+              <div>
+                <p className="text-xs uppercase tracking-wide text-stone-500">{t('teacher_profile.welcome_label')}</p>
+                <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.welcome_title', { name: user?.firstName || '' })}</h2>
+                <p className="text-sm text-stone-600">{t('teacher_profile.welcome_subtitle')}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
+                <div className="flex items-center gap-2 mb-2">
+                  <ListChecks className="h-5 w-5 text-[color:#1e1b4b]" />
+                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.checklist.title')}</p>
+                </div>
+                <ul className="space-y-2 text-sm text-stone-700">
+                  {(teacherProfile.onboarding_status?.steps || [
+                    { key: 'identity', label: t('teacher_profile.checklist.identity'), done: false },
+                    { key: 'docs', label: t('teacher_profile.checklist.docs'), done: false },
+                    { key: 'payout', label: t('teacher_profile.checklist.payout'), done: false }
+                  ]).map((step: any) => (
+                    <li key={step.key} className="flex items-center gap-2">
+                      <div className={`h-2.5 w-2.5 rounded-full ${step.done ? 'bg-green-500' : 'bg-amber-400'}`} />
+                      <span className={step.done ? 'text-stone-500 line-through' : ''}>{step.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="h-5 w-5 text-[color:#1e1b4b]" />
+                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.verification.title')}</p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { key: 'national_id', label: t('teacher_profile.verification.national_id'), status: teacherProfile.verification_docs?.national_id || 'ACTION_REQUIRED' },
+                    { key: 'ordination', label: t('teacher_profile.verification.ordination'), status: teacherProfile.verification_docs?.ordination || 'PENDING' },
+                    { key: 'teaching_license', label: t('teacher_profile.verification.license'), status: teacherProfile.verification_docs?.teaching_license || 'VERIFIED' },
+                  ].map(item => (
+                    <div key={item.key} className="flex items-center justify-between text-sm">
+                      <span className="text-stone-700">{item.label}</span>
+                      {docBadge(item.status, t(`teacher_profile.verification.status.${item.status.toLowerCase()}`))}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-white rounded-lg"
+                  style={{ backgroundColor: brandColors.primaryHex }}
+                  onClick={() => document.getElementById('verification-section')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  {t('teacher_profile.verification.cta')}
+                </button>
+              </div>
+              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="h-5 w-5 text-[color:#1e1b4b]" />
+                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.payout.title')}</p>
+                </div>
+                <p className="text-sm text-stone-700 mb-2">{t('teacher_profile.payout.subtitle')}</p>
+                <div className="flex items-center gap-2 text-sm text-stone-700">
+                  <Globe className="h-4 w-4 text-stone-500" />
+                  <span>{teacherProfile.payout_region || t('teacher_profile.payout.region_placeholder')}</span>
+                </div>
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-white rounded-lg"
+                  style={{ backgroundColor: brandColors.primaryHex }}
+                  onClick={() => document.getElementById('payout-section')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  {t('teacher_profile.payout.cta')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-[#e0e0e0]">
           {error && (
             <div className="mx-8 mt-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
@@ -305,6 +419,99 @@ const TeacherProfile: React.FC = () => {
         )}
 
         <form onSubmit={handleSaveProfile} className="p-8 space-y-8">
+          {/* Verification & Documents */}
+          <div id="verification-section" className="bg-[#f8fafc] rounded-lg p-6 border border-stone-200">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-[color:#1e1b4b]" />
+              <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.verification.section_title')}</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { key: 'national_id', label: t('teacher_profile.verification.national_id') },
+                { key: 'ordination', label: t('teacher_profile.verification.ordination') },
+                { key: 'teaching_license', label: t('teacher_profile.verification.license') },
+              ].map(item => {
+                const status = teacherProfile.verification_docs?.[item.key] || 'ACTION_REQUIRED';
+                return (
+                  <div key={item.key} className="p-4 bg-white rounded-lg border border-stone-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-stone-800">{item.label}</p>
+                      {docBadge(status, t(`teacher_profile.verification.status.${status.toLowerCase()}`))}
+                    </div>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-white rounded-lg px-3 py-2"
+                      style={{ backgroundColor: brandColors.primaryHex }}
+                      onClick={async () => {
+                        const nextStatus: DocStatus = status === 'ACTION_REQUIRED' ? 'PENDING' : status === 'PENDING' ? 'VERIFIED' : 'VERIFIED';
+                        const next = {
+                          ...teacherProfile.verification_docs,
+                          [item.key]: nextStatus
+                        };
+                        setTeacherProfile((prev: any) => ({ ...prev, verification_docs: next }));
+                        await teacherApi.updateProfile({ verificationDocs: next });
+                      }}
+                    >
+                      {status === 'VERIFIED' ? t('teacher_profile.verification.reupload') : t('teacher_profile.verification.upload')}
+                    </button>
+                    <p className="text-xs text-stone-500">{t('teacher_profile.verification.hint')}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Payout Setup */}
+          <div id="payout-section" className="bg-white rounded-lg p-6 border border-stone-200 space-y-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-[color:#1e1b4b]" />
+              <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.payout.section_title')}</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.region')}</label>
+                <select
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
+                  value={teacherProfile.payout_region || ''}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    setTeacherProfile((prev: any) => ({ ...prev, payout_region: val }));
+                    await teacherApi.updateProfile({ payoutRegion: val });
+                  }}
+                >
+                  <option value="">{t('teacher_profile.payout.region_placeholder')}</option>
+                  <option value="US">United States</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="ET">Ethiopia</option>
+                  <option value="CA">Canada</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.method')}</label>
+                <select
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
+                  value={teacherProfile.payout_method || ''}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    setTeacherProfile((prev: any) => ({ ...prev, payout_method: val }));
+                    await teacherApi.updateProfile({ payoutMethod: val });
+                  }}
+                >
+                  <option value="">{t('teacher_profile.payout.method_placeholder')}</option>
+                  <option value="bank">{t('teacher_profile.payout.bank_transfer')}</option>
+                  <option value="stripe">Stripe Connect</option>
+                  <option value="paypal">PayPal</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.status')}</label>
+                <div className="px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-stone-50/60">
+                  {teacherProfile.payout_method ? t('teacher_profile.payout.in_progress') : t('teacher_profile.payout.not_started')}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Profile Picture Section */}
           <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
             <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.profile_picture.title')}</h2>

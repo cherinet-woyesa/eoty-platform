@@ -1284,6 +1284,12 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       // This ensures the canvas has actual video frames to capture
       if (!screenOnly) {
         console.log('Waiting for video sources to be ready and producing frames...');
+
+        // FIX: Explicitly wait for compositor sources to be ready
+        if (hasScreen) {
+          console.log('Waiting for screen source to be ready in compositor...');
+          await compositor!.waitForSourceReady('screen', 5000);
+        }
       
       // For screen sharing, we need to ensure the track is actually producing frames
       // Chrome has a bug where screen tracks initially report 2x2 dimensions

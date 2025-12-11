@@ -82,13 +82,29 @@ exports.getBookmarks = async (req, res) => {
           .select('id', 'title', 'cover_image', 'description', 'level')
           .first();
         return { ...bookmark, entity: course };
+      } else if (bookmark.entity_type === 'lesson') {
+        const lesson = await db('lessons')
+          .where('id', bookmark.entity_id)
+          .select('id', 'title', 'description', 'thumbnail_url', 'duration')
+          .first();
+        return { ...bookmark, entity: lesson };
+      } else if (bookmark.entity_type === 'resource') {
+        const resource = await db('resources')
+          .where('id', bookmark.entity_id)
+          .select('id', 'title', 'description', 'file_type')
+          .first();
+        return { ...bookmark, entity: resource };
       }
-      // Add other entity types here as needed (lesson, resource, etc.)
       return bookmark;
     }));
 
-    // Filter out bookmarks where the entity no longer exists
-    const validBookmarks = enrichedBookmarks.filter(b => b.entity || b.entity_type !== 'course');
+    // Filter out bookmarks where the entity no longer exists (if we tried to fetch it)
+    const validBookmarks = enrichedBookmarks.filter(b => {
+      if (['course', 'lesson', 'resource'].includes(b.entity_type)) {
+        return !!b.entity;
+      }
+      return true;
+    });
 
     res.json(validBookmarks);
   } catch (error) {

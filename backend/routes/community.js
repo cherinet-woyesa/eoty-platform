@@ -35,6 +35,9 @@ router.get('/posts/:postId/comments', communityController.fetchComments);
 // Protected: delete comment
 router.delete('/comments/:commentId', authenticateToken, communityController.deleteComment);
 
+// Protected: update comment
+router.put('/comments/:commentId', authenticateToken, communityController.updateComment);
+
 // Protected: share post
 router.post('/posts/:postId/share', authenticateToken, communityController.sharePost);
 

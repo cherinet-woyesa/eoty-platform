@@ -1,23 +1,186 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MessageSquare, Plus, Search, Filter } from 'lucide-react';
-import ForumCard from '@/components/shared/social/ForumCard';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, Plus, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import DiscussionCard, { type DiscussionCardData } from '@/components/shared/social/DiscussionCard';
+import CreateDiscussionModal from '@/components/shared/social/CreateDiscussionModal';
+import CreateForumModal from '@/components/shared/social/CreateForumModal';
 import { useForums } from '@/hooks/useCommunity';
-import { useAuth } from '@/context/AuthContext';
+import { forumApi } from '@/services/api/forums';
+import { useNotification } from '@/context/NotificationContext';
+import { brandColors } from '@/theme/brand';
 
 interface ForumsProps {
   embedded?: boolean;
 }
 
 const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
-  const { forums, loading, error } = useForums();
-  const { hasPermission } = useAuth();
+  const { t } = useTranslation();
+  const { forums, loading, error, refetch: refreshForums } = useForums();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [showCreateForum, setShowCreateForum] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [discussions, setDiscussions] = useState<DiscussionCardData[]>([]);
+  const [loadingDiscussions, setLoadingDiscussions] = useState(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+  const [selectedForumId, setSelectedForumId] = useState<string>('all');
+  const [pageByForum, setPageByForum] = useState<Record<string, number>>({});
+  const [hasMoreByForum, setHasMoreByForum] = useState<Record<string, boolean>>({});
+  const [sortBy, setSortBy] = useState<'newest' | 'replies' | 'views' | 'pinned'>('newest');
+  const [likedTopics, setLikedTopics] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const filteredForums = forums.filter(forum =>
-    forum.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    forum.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const loadDiscussions = useCallback(
+    async (forumId: string, page = 1, append = false) => {
+      const targetForums = forumId === 'all' ? forums : forums.filter(f => String(f.id) === forumId);
+      if (!targetForums.length) return;
+      setLoadingDiscussions(true);
+      setTopicsError(null);
+      try {
+        const topicResults = await Promise.all(
+          targetForums.map(async (forum) => {
+            const res = await forumApi.getTopics(String(forum.id), page, 20);
+            const topics = res?.data?.topics || res?.topics || [];
+            setHasMoreByForum(prev => ({ ...prev, [forumId]: topics.length === 20 }));
+            return topics.map((topic: any) => ({
+              id: String(topic.id),
+              title: topic.title,
+              excerpt: topic.content ? topic.content.slice(0, 220) : t('community.forums.no_description'),
+              tags: topic.tags || (forum as any).tags || [t('community.forums.tag_general')],
+              visibility: topic.is_private ? 'private' : forum.is_public ? 'public' : 'chapter',
+              replies: topic.post_count || topic.reply_count || 0,
+              lastActivity: topic.last_activity_at
+                ? new Date(topic.last_activity_at).toLocaleString()
+                : topic.updated_at
+                ? new Date(topic.updated_at).toLocaleDateString()
+                : t('community.forums.recently'),
+              participants: topic.participants || [],
+              forumId: forum.id,
+              forumName: forum.title,
+              pinned: topic.is_pinned,
+              locked: topic.is_locked,
+              views: topic.view_count || 0,
+              likes: topic.like_count || topic.likes_count || 0,
+              userLiked: topic.user_liked || false
+            }));
+          })
+        );
+        const flattened = topicResults.flat();
+        setPageByForum(prev => ({ ...prev, [forumId]: page }));
+        setDiscussions(prev => (append ? [...prev, ...flattened] : flattened));
+      } catch (err: any) {
+      setTopicsError(err?.message || t('community.forums.load_error'));
+      showNotification({ type: 'error', title: t('common.error'), message: err?.message || t('community.forums.load_error') });
+      } finally {
+        setLoadingDiscussions(false);
+      }
+    },
+    [forums, showNotification, t]
   );
+
+  useEffect(() => {
+    setDiscussions([]);
+    const startPage = pageByForum[selectedForumId] || 1;
+    loadDiscussions(selectedForumId, startPage, false);
+  }, [forums, selectedForumId, loadDiscussions]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first.isIntersecting) return;
+        if (loadingDiscussions) return;
+        if (!hasMoreByForum[selectedForumId]) return;
+        if (searchTerm || activeTag) return; // pause infinite scroll while filtering/searching
+        const nextPage = (pageByForum[selectedForumId] || 1) + 1;
+        loadDiscussions(selectedForumId, nextPage, true);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [selectedForumId, hasMoreByForum, loadingDiscussions, pageByForum, loadDiscussions]);
+
+  const filteredDiscussions = discussions.filter((d) => {
+    const matchSearch =
+      d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchTag = activeTag ? d.tags.includes(activeTag) : true;
+    return matchSearch && matchTag;
+  }).sort((a, b) => {
+    if (sortBy === 'pinned') {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+    }
+    if (sortBy === 'replies') return (b.replies || 0) - (a.replies || 0);
+    if (sortBy === 'views') return (b.views || 0) - (a.views || 0);
+    // newest
+    const da = new Date(a.lastActivity).getTime();
+    const db = new Date(b.lastActivity).getTime();
+    return db - da;
+  });
+
+  const handleCreateSubmit = async (payload: {
+    title: string;
+    content: string;
+    tags: string[];
+    visibility: 'public' | 'chapter' | 'private';
+    teacherOnly: boolean;
+    invites: string[];
+    forumId?: string;
+  }) => {
+    try {
+      const targetForumId = payload.forumId || (forums[0] ? String(forums[0].id) : '');
+      if (!targetForumId) {
+        throw new Error(t('community.forums.no_forum_error'));
+      }
+      const isPrivate = payload.visibility === 'private';
+      await forumApi.createTopic({
+        forumId: targetForumId,
+        title: payload.title,
+        content: payload.content,
+        isPrivate,
+        allowedChapterId: payload.visibility === 'chapter' ? payload.forumId || forums[0]?.chapter_id : null,
+        tags: payload.tags,
+        teacherOnly: payload.teacherOnly
+      });
+      setShowCreate(false);
+      await loadDiscussions(selectedForumId, 1, false);
+    } catch (err) {
+      console.error('Failed to create discussion', err);
+      setTopicsError(err instanceof Error ? err.message : t('community.forums.create_failed_message'));
+      showNotification({
+        type: 'error',
+        title: t('community.forums.create_failed_title'),
+        message: err instanceof Error ? err.message : t('community.forums.create_failed_message')
+      });
+    }
+  };
+
+  const handleLikeCard = async (id: string) => {
+    if (likedTopics.has(id)) return;
+    try {
+      await forumApi.likeTopic(id);
+      setLikedTopics((prev) => new Set(prev).add(id));
+      setDiscussions((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, likes: (d.likes || 0) + 1, userLiked: true } : d))
+      );
+    } catch (err) {
+      console.error('Failed to like topic card', err);
+      showNotification({
+        type: 'error',
+        title: t('community.forums.like_failed_title'),
+        message: t('community.forums.like_failed_message')
+      });
+      throw err;
+    }
+  };
 
   if (loading) {
     return (
@@ -40,149 +203,208 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-red-200 p-6 shadow-md">
           <h2 className="text-red-800 font-semibold mb-2 flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Error Loading Forums
+            {t('community.forums.error_title')}
           </h2>
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error || t('community.forums.load_error')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={embedded ? "" : "min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50"}>
-      <div className={embedded ? "" : "p-6 lg:p-8"}>
-        {/* Ethiopian Orthodox Themed Header - Only show when not embedded */}
-        {!embedded && (
-          <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-xl flex items-center justify-center">
-                  <MessageSquare className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-stone-800">Chapter Forums</h1>
-                  <p className="text-lg text-stone-600 mt-1">Join faith-based discussions with your Orthodox community</p>
-                </div>
+    <div className={embedded ? '' : 'min-h-screen bg-slate-50'}>
+      <div className={embedded ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 space-y-4'}>
+        {/* Header & Forum Selection */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm mb-3">
+          <div className="grid gap-3 sm:grid-cols-2 items-center p-4">
+            {!embedded && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[#1e1b4b] font-semibold">{t('community.forums.badge')}</p>
+                <h1 className="text-2xl font-bold text-slate-900">{t('community.forums.header_title')}</h1>
               </div>
-              {hasPermission('discussion:create') && (
-                <Link
-                  to="/forums/create"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            )}
+            
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <label className="flex items-center gap-2 min-w-[200px]">
+                <span className="text-sm font-medium text-slate-600 whitespace-nowrap">{t('community.forums.forum_label')}</span>
+                <select
+                  value={selectedForumId}
+                  onChange={(e) => setSelectedForumId(e.target.value)}
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create Forum
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
+                  <option value="all">{t('community.forums.all_forums')}</option>
+                  {forums.map((f) => (
+                    <option key={f.id} value={String(f.id)}>
+                      {f.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-        {/* Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-6 shadow-md mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
-              <input
-                type="text"
-                placeholder="🔍 Search forums by name or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] text-stone-700 transition-all duration-200"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              {hasPermission('discussion:create') && !embedded && (
-                <Link
-                  to="/forums/create"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  <Plus className="h-4 w-4" />
-                  ✏️ Create Forum
-                </Link>
-              )}
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-300 hover:border-[#27AE60]/40 text-stone-700 hover:text-[#27AE60] text-sm font-semibold rounded-lg transition-all duration-200">
-                <Filter className="h-4 w-4" />
-                Filters
+              <button
+                onClick={() => setShowCreateForum(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold shadow-sm bg-white text-[#1e1b4b] border border-[#1e1b4b]/20 hover:bg-slate-50 transition-colors text-sm whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4" />
+                Create Forum
               </button>
             </div>
           </div>
         </div>
 
-        {/* Community Stats - Only show when not embedded */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 mb-4">
+          <div className="grid gap-2 md:grid-cols-3 md:items-center">
+            <div className="md:col-span-2 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder={t('community.forums.search')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 md:justify-end">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 focus:ring-[#1e1b4b] focus:border-[#1e1b4b]"
+              >
+                <option value="newest">{t('community.forums.sort.newest')}</option>
+                <option value="replies">{t('community.forums.sort.replies')}</option>
+                <option value="views">{t('community.forums.sort.views')}</option>
+                <option value="pinned">{t('community.forums.sort.pinned')}</option>
+              </select>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold shadow-sm text-white hover:shadow-md transition-all"
+                style={{ backgroundColor: brandColors.primaryHex }}
+              >
+                <Plus className="h-4 w-4" />
+                {t('community.forums.new')}
+              </button>
+            </div>
+          </div>
+          {activeTag && (
+            <div className="mt-2 text-xs text-[#1e1b4b] flex items-center gap-2">
+              <span className="px-2 py-1 bg-[#1e1b4b]/5 border border-[#1e1b4b]/10 rounded-full">{t('community.forums.filtering', { tag: activeTag })}</span>
+              <button onClick={() => setActiveTag(null)} className="text-slate-500 hover:text-slate-700">{t('community.forums.clear_filters')}</button>
+            </div>
+          )}
+        </div>
+
         {!embedded && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-[#27AE60]/10 to-[#27AE60]/5 rounded-xl p-4 border border-[#27AE60]/20 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-lg flex items-center justify-center">
-                <MessageSquare className="h-5 w-5 text-white" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-[#1e1b4b] text-white rounded-xl p-4 shadow-sm">
+              <p className="text-sm opacity-80">{t('community.forums.stats.total')}</p>
+              <p className="text-2xl font-bold mt-1">{discussions.length}</p>
+            </div>
+            <div className="bg-[#1e1b4b]/5 text-[#1e1b4b] border border-[#1e1b4b]/10 rounded-xl p-4 shadow-sm">
+              <p className="text-sm opacity-80">{t('community.forums.stats.mine')}</p>
+              <p className="text-2xl font-bold mt-1">{discussions.filter(d => d.visibility !== 'private').length}</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-slate-600">{t('community.forums.stats.active_today')}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{Math.max(4, Math.round(discussions.length / 3))}</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm sm:col-span-3">
+              <p className="text-sm text-slate-600 mb-2">{t('community.forums.stats.popular_tags')}</p>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(
+                  discussions.reduce((map, d) => {
+                    d.tags.forEach((t) => map.set(t, (map.get(t) || 0) + 1));
+                    return map;
+                  }, new Map<string, number>())
+                )
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 12)
+                  .map(([tag, count]) => (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className={`px-3 py-1 rounded-full text-xs border ${
+                        activeTag === tag ? 'bg-[#1e1b4b]/5 border-[#1e1b4b]/20 text-[#1e1b4b]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      #{tag} ({count})
+                    </button>
+                  ))}
               </div>
-                <div>
-                  <div className="text-2xl font-bold text-[#27AE60]">{forums.length}</div>
-                  <div className="text-sm text-stone-600 font-medium">Total Forums</div>
-                </div>
             </div>
           </div>
+        )}
 
-          <div className="bg-gradient-to-r from-[#16A085]/10 to-[#16A085]/5 rounded-xl p-4 border border-[#16A085]/20 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#16A085] to-[#2980B9] rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg">✨</span>
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+            {loadingDiscussions ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-24 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+                ))}
               </div>
-                <div>
-                  <div className="text-2xl font-bold text-[#16A085]">{forums.filter(f => f.is_active).length}</div>
-                  <div className="text-sm text-stone-600 font-medium">Active Forums</div>
-                </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-[#2980B9]/10 to-[#2980B9]/5 rounded-xl p-4 border border-[#2980B9]/20 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#2980B9] to-[#27AE60] rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg">🌍</span>
+            ) : topicsError ? (
+              <div className="text-center py-8 bg-white border border-rose-200 rounded-xl shadow-sm text-rose-700">
+                {topicsError}
               </div>
-                <div>
-                  <div className="text-2xl font-bold text-[#2980B9]">{forums.filter(f => f.is_public).length}</div>
-                  <div className="text-sm text-stone-600 font-medium">Public Forums</div>
+            ) : filteredDiscussions.length > 0 ? (
+              <div className={embedded ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'}>
+                {filteredDiscussions.map((discussion) => (
+                  <DiscussionCard
+                    key={discussion.id}
+                    discussion={discussion}
+                    onClick={(id) => navigate(`/forums/${id}/thread`)}
+                    onTagClick={(tag) => setActiveTag(tag)}
+                    onLike={(id) => handleLikeCard(id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="h-7 w-7 text-indigo-800" />
                 </div>
+                <h3 className="text-lg font-semibold text-slate-900">{t('community.forums.empty_title')}</h3>
+                <p className="text-sm text-slate-600 max-w-md mx-auto mt-1">
+                  {t('community.forums.empty_body')}
+                </p>
+                <div className="mt-4 flex justify-center gap-3">
+                  <button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-lg font-semibold shadow-sm bg-indigo-900 text-white hover:bg-indigo-800">
+                    {t('community.forums.new')}
+                  </button>
+                  <button onClick={() => setActiveTag(null)} className="px-4 py-2 rounded-lg font-semibold bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400">
+                    {t('community.forums.clear_filters')}
+                  </button>
+                </div>
+              </div>
+            )}
+            <div ref={hasMoreByForum[selectedForumId] ? loadMoreRef : null} className="h-10 flex justify-center items-center">
+              {loadingDiscussions && filteredDiscussions.length > 0 && (
+                <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+                  <span className="h-4 w-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                  Loading more...
+                </div>
+              )}
             </div>
           </div>
         </div>
-        )}
 
-      {/* Forums Grid */}
-      <div className="space-y-2">
-        {filteredForums.length > 0 ? (
-          filteredForums.map(forum => (
-            <ForumCard key={forum.id} forum={forum} />
-          ))
-        ) : (
-          <div className="text-center py-12 bg-gradient-to-r from-stone-50 to-neutral-50 rounded-xl border border-stone-200 shadow-sm">
-            <div className="w-16 h-16 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageSquare className="h-8 w-8 text-[#27AE60]" />
-            </div>
-            <h3 className="text-lg font-bold text-stone-800 mb-2">
-              {searchTerm ? 'No forums found' : 'No forums available yet'}
-            </h3>
-            <p className="text-sm text-stone-500 max-w-md mx-auto">
-              {searchTerm
-                ? '🙏 Try different search terms or browse all forums'
-                : '🙏 Be the first to start a faith-based discussion in your chapter. Share wisdom, ask questions, and grow together in Orthodox tradition.'}
-            </p>
-            {!searchTerm && hasPermission('discussion:create') && (
-              <div className="mt-6">
-                <Link
-                  to="/forums/create"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  <Plus className="h-4 w-4" />
-                  ✏️ Create First Forum
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="mt-10 text-xs text-center text-slate-500">
+          © 2025 Community Threads. All rights reserved. • Made with Visily
+        </div>
       </div>
-    </div>
+
+      <CreateDiscussionModal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSubmit={handleCreateSubmit}
+        forums={forums}
+      />
+
+      <CreateForumModal
+        isOpen={showCreateForum}
+        onClose={() => setShowCreateForum(false)}
+        onSuccess={refreshForums}
+      />
     </div>
   );
 };

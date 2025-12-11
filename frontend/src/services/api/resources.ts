@@ -167,5 +167,17 @@ export const resourcesApi = {
   shareNote: async (noteId: number): Promise<{ success: boolean; message: string; data: any }> => {
     const response = await apiClient.post(`/resources/notes/${noteId}/share`, {});
     return response.data;
+  },
+
+  // Update resource
+  updateResource: async (id: number, data: Partial<Resource>): Promise<{ success: boolean; data: Resource }> => {
+    const response = await apiClient.put(`/resources/${id}`, data);
+    return response.data;
+  },
+
+  // Delete resource
+  deleteResource: async (id: number): Promise<{ success: boolean }> => {
+    const response = await apiClient.delete(`/resources/${id}`);
+    return response.data;
   }
 };

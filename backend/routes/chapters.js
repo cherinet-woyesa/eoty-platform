@@ -10,6 +10,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 // Public routes
 router.get('/', chapterController.getAllChapters);
+router.get('/locations', chapterController.getLocations);
 router.get('/search', chapterController.searchChapters);
 router.get('/nearby', chapterController.getNearbyChapters);
 

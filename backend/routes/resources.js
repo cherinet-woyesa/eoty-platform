@@ -70,14 +70,17 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'chapter_wide', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'chapter_wide', {
         chapterId: parseInt(chapterId),
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get chapter resources error:', error);
@@ -100,13 +103,16 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'platform_wide', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'platform_wide', {
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get platform resources error:', error);
@@ -131,14 +137,17 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'course_specific', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'course_specific', {
         courseId: parseInt(courseId),
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get course resources error:', error);
@@ -208,14 +217,17 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'chapter_wide', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'chapter_wide', {
         chapterId: parseInt(chapterId),
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get chapter resources error:', error);
@@ -238,13 +250,16 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'platform_wide', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'platform_wide', {
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get platform resources error:', error);
@@ -269,14 +284,17 @@ router.get(
       const userId = req.user.userId;
       const filters = req.query;
 
-      const resources = await resourceService.getResourcesByScope(userId, 'course_specific', {
+      const { resources, total, page, limit } = await resourceService.getResourcesByScope(userId, 'course_specific', {
         courseId: parseInt(courseId),
         filters
       });
 
       res.json({
         success: true,
-        data: { resources }
+        data: { 
+          resources,
+          pagination: { total, page, limit }
+        }
       });
     } catch (error) {
       console.error('Get course resources error:', error);
@@ -409,6 +427,26 @@ router.delete(
   requirePermission('lesson:delete'),
   validateResourceDelete,
   resourceController.deleteResource
+);
+
+/**
+ * PUT /api/resources/:id
+ * Update resource metadata
+ */
+router.put(
+  '/:id',
+  requirePermission('content:manage'),
+  resourceLibraryController.updateResource
+);
+
+/**
+ * DELETE /api/resources/:id
+ * Delete a resource
+ */
+router.delete(
+  '/:id',
+  requirePermission('content:manage'),
+  resourceLibraryController.deleteResource
 );
 
 module.exports = router;

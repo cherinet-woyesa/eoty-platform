@@ -268,8 +268,15 @@ const useAIChat = (): UseAIChatReturn => {
     try {
       // FIXED OPTIONAL METHOD CHECK
       if ('getConversationHistory' in aiApi && typeof aiApi.getConversationHistory === 'function') {
-        const history = await (aiApi as ExtendedAIApi).getConversationHistory!(sessionIdRef.current);
-        
+        const raw = await (aiApi as ExtendedAIApi).getConversationHistory!(sessionIdRef.current);
+
+        // Unwrap possible response shapes:
+        // { success, data: { history } } or { history } or direct array
+        const history =
+          raw?.data?.history ||
+          raw?.history ||
+          (Array.isArray(raw?.data) ? { messages: raw.data } : raw);
+
         if (history && Array.isArray(history.messages)) {
           const formattedMessages: Message[] = history.messages.map((msg: any) => ({
             id: msg.id || generateMessageId(),

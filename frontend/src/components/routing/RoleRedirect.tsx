@@ -34,7 +34,7 @@ const RoleRedirect: React.FC<RoleRedirectProps> = ({
     if (user.role === 'teacher') {
       return '/teacher/dashboard';
     }
-    return '/student/dashboard';
+    return '/member/dashboard';
   };
 
   useEffect(() => {

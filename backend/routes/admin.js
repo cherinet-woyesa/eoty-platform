@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const announcementController = require('../controllers/announcementController');
+const eventController = require('../controllers/eventController');
 const { contentUpload, handleGCSUpload } = require('../middleware/gcs-upload');
 const { authenticateToken } = require('../middleware/auth');
 const { requireAdmin, requirePermission } = require('../middleware/rbac');
@@ -102,5 +104,15 @@ router.get('/permissions', requirePermission('system:admin'), adminController.ge
 router.get('/role-permissions', requirePermission('system:admin'), adminController.getRolePermissions);
 router.post('/role-permissions', requirePermission('system:admin'), adminController.addRolePermission);
 router.delete('/role-permissions', requirePermission('system:admin'), adminController.removeRolePermission);
+
+// Announcements Management
+router.post('/announcements', requirePermission('system:manage'), announcementController.createAnnouncement);
+router.get('/announcements', requirePermission('system:view'), announcementController.getAnnouncements);
+router.delete('/announcements/:id', requirePermission('system:manage'), announcementController.deleteAnnouncement);
+
+// Events Management
+router.post('/events', requirePermission('system:manage'), eventController.createEvent);
+router.get('/events', requirePermission('system:view'), eventController.getEvents);
+router.delete('/events/:id', requirePermission('system:manage'), eventController.deleteEvent);
 
 module.exports = router;

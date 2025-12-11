@@ -545,6 +545,53 @@ const resourceLibraryController = {
         message: error.message || 'Failed to upload resource'
       });
     }
+  },
+
+  // Update resource
+  async updateResource(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.userId;
+      const data = req.body;
+
+      const resourceService = require('../services/resourceService');
+      const result = await resourceService.updateResource(parseInt(id), data, userId);
+
+      res.json({
+        success: true,
+        message: 'Resource updated successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Update resource error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to update resource'
+      });
+    }
+  },
+
+  // Delete resource
+  async deleteResource(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.userId;
+
+      const resourceService = require('../services/resourceService');
+      const result = await resourceService.deleteResource(parseInt(id), userId);
+
+      res.json({
+        success: true,
+        message: 'Resource deleted successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Delete resource error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to delete resource'
+      });
+    }
   }
 };
 

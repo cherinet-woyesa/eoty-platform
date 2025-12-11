@@ -30,6 +30,7 @@ const systemConfigRoutes = require('./routes/systemConfig');
 const studyGroupsRoutes = require('./routes/studyGroups');
 const assignmentsRoutes = require('./routes/assignments');
 const subtitleRoutes = require('./routes/subtitles');
+const linkedAccountRoutes = require('./routes/linkedAccounts');
 const accessLogRoutes = require('./routes/accessLogs');
 const muxMigrationRoutes = require('./routes/muxMigration');
 const videoNotesRoutes = require('./routes/videoNotes');
@@ -307,6 +308,9 @@ app.use('/api/social', require('./routes/socialFeatures'));
 // Community posts and media
 app.use('/api/community', require('./routes/community'));
 
+// Donations
+app.use('/api/donations', require('./routes/donations'));
+
 // Study groups
 app.use('/api/study-groups', studyGroupsRoutes);
 
@@ -333,6 +337,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/translation', translationRoutes);
 app.use('/api/teacher', authenticateToken, teacherRoutes);
 app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/linked-accounts', linkedAccountRoutes);
 app.use('/api/learning-paths', authenticateToken, learningPathsRoutes);
 app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/localization', require('./routes/localization')); // FR7: Localization routes

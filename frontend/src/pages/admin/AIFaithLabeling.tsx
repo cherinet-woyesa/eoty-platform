@@ -7,6 +7,7 @@ export default function AIFaithLabeling() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<'pending' | 'assistant'>('pending');
+  const [language, setLanguage] = useState<string>('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -20,7 +21,7 @@ export default function AIFaithLabeling() {
 
   useEffect(() => {
     fetchItems(1);
-  }, [source]);
+  }, [source, language]);
 
   useEffect(() => {
     fetchItems(page);
@@ -33,7 +34,7 @@ export default function AIFaithLabeling() {
       if (source === 'pending') {
         res = await adminApi.getPendingAIModeration(pageNum, 20);
       } else {
-        res = await adminApi.getAILabelingCandidates(pageNum, 20, 14);
+        res = await adminApi.getAILabelingCandidates(pageNum, 20, 14, language);
       }
       
       const data = res.data || {};
@@ -137,6 +138,21 @@ export default function AIFaithLabeling() {
                 Recent AI Responses
               </button>
             </div>
+
+            {source === 'assistant' && (
+              <select
+                value={language}
+                onChange={(e) => { setLanguage(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                <option value="">All Languages</option>
+                <option value="en">English</option>
+                <option value="am">Amharic</option>
+                <option value="ti">Tigrinya</option>
+                <option value="om">Oromo</option>
+                <option value="so">Somali</option>
+              </select>
+            )}
           </div>
         </div>
 

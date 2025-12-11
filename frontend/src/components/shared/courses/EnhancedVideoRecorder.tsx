@@ -807,10 +807,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   useEffect(() => {
     // Keep default layout predictable without requesting camera permissions automatically
     const hasCamera = !!recordingSources.camera;
-    if (!hasCamera && !isRecording) {
+    const hasScreen = !!recordingSources.screen;
+    
+    // Only reset layout if we have NO sources and are not recording
+    // This prevents overriding the user's layout choice (e.g. screen-only) when they stop sharing
+    if (!hasCamera && !hasScreen && !isRecording) {
       handleLayoutChange('camera-only');
     }
-  }, [recordingSources.camera, isRecording, handleLayoutChange]);
+  }, [recordingSources.camera, recordingSources.screen, isRecording, handleLayoutChange]);
 
   // Load teacher's courses
   useEffect(() => {
@@ -1572,7 +1576,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden" />
               <button 
                 onClick={() => fileInputRef.current?.click()} 
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto shadow-md"
+                className="px-6 py-3 bg-indigo-900 text-white rounded-xl hover:bg-indigo-800 transition-colors flex items-center space-x-2 mx-auto shadow-md"
               >
                 <Upload className="h-4 w-4" />
                 <span>Choose Video File</span>
@@ -2292,7 +2296,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       
       {/* Layout change notification (Task 7.2) */}
       {layoutChangeNotification && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-indigo-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
           {layoutChangeNotification}
         </div>
       )}
@@ -2384,7 +2388,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         setShowPreview(false);
                         setShowLessonForm(true);
                     }}
-                    className="flex-1 min-w-[140px] py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 text-sm"
+                    className="flex-1 min-w-[140px] py-2 px-4 bg-indigo-900 text-white rounded-lg hover:bg-indigo-800 font-medium shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 text-sm"
                 >
                     <span>Continue to Upload</span>
                     <ArrowRight className="h-4 w-4" />

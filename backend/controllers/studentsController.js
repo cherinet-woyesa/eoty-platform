@@ -67,6 +67,156 @@ const studentsController = {
     }
   }
   ,
+  // Get enrolled courses with pagination and filtering
+  async getEnrolledCourses(req, res) {
+    try {
+      const studentId = req.user.userId;
+      const { page = 1, limit = 12, search = '', status = 'all', sort = 'last_accessed' } = req.query;
+      const offset = (page - 1) * limit;
+
+      let query = db('user_course_enrollments as uce')
+        .join('courses as c', 'uce.course_id', 'c.id')
+        .leftJoin('users as instructor', 'c.created_by', 'instructor.id')
+        .leftJoin('course_favorites as cf', function() {
+          this.on('cf.course_id', '=', 'c.id').andOn('cf.user_id', '=', db.raw('?', [studentId]));
+        })
+        .leftJoin('bookmarks as bm', function() {
+          this.on(db.raw('CAST(bm.entity_id AS INTEGER)'), '=', 'c.id')
+            .andOn('bm.entity_type', '=', db.raw('?', ['course']))
+            .andOn('bm.user_id', '=', db.raw('?', [studentId]));
+        })
+        .where('uce.user_id', studentId)
+        .whereNot('uce.enrollment_status', 'dropped');
+
+      if (search) {
+        query = query.where(function() {
+          this.where('c.title', 'ilike', `%${search}%`)
+            .orWhere('c.description', 'ilike', `%${search}%`);
+        });
+      }
+
+      if (status === 'in-progress') {
+        query = query.where('uce.progress', '<', 100);
+      } else if (status === 'completed') {
+        query = query.where('uce.progress', '>=', 100);
+      } else if (status === 'favorites') {
+        query = query.whereNotNull('cf.id');
+      }
+
+      // Sorting
+      if (sort === 'title') {
+        query = query.orderBy('c.title', 'asc');
+      } else if (sort === 'progress') {
+        query = query.orderBy('uce.progress', 'desc');
+      } else {
+        // Default: last_accessed
+        query = query.orderBy('uce.last_accessed_at', 'desc');
+      }
+
+      // Get total count for pagination (remove ordering to avoid PG group-by errors)
+      const countResult = await query
+        .clone()
+        .clearSelect()
+        .clearOrder()
+        .count('* as count')
+        .first();
+      const total = parseInt(countResult.count, 10);
+
+      // Get data
+      const courses = await query
+        .select(
+          'c.id',
+          'c.title',
+          'c.description',
+          'c.cover_image',
+          'c.category',
+          'c.level',
+          'uce.progress as progress_percentage',
+          'uce.enrollment_status',
+          'uce.enrolled_at',
+          'uce.last_accessed_at',
+          'uce.completed_at',
+          db.raw('CASE WHEN cf.user_id IS NOT NULL THEN true ELSE false END as is_favorite'),
+          db.raw('CASE WHEN bm.id IS NOT NULL THEN true ELSE false END as is_bookmarked'),
+          db.raw("(SELECT COUNT(*) FROM lessons WHERE course_id = c.id) as lesson_count"),
+          db.raw("(SELECT COUNT(*) FROM user_course_enrollments WHERE course_id = c.id) as student_count"),
+          db.raw("CONCAT(instructor.first_name, ' ', instructor.last_name) as created_by_name")
+        )
+        .limit(limit)
+        .offset(offset);
+
+      // Get next lessons for these courses
+      const nextLessons = {};
+      for (const course of courses) {
+        const nextLesson = await db('lessons as l')
+          .leftJoin('user_lesson_progress as ulp', function() {
+            this.on('l.id', '=', 'ulp.lesson_id').andOn('ulp.user_id', '=', db.raw('?', [studentId]));
+          })
+          .where('l.course_id', course.id)
+          .where(function() {
+            this.whereNull('ulp.is_completed').orWhere('ulp.is_completed', false);
+          })
+          // lessons table uses "order" column, not order_index
+          .orderBy('l.order', 'asc')
+          .first('l.id', 'l.title');
+        
+        if (nextLesson) {
+          nextLessons[course.id] = nextLesson;
+        }
+      }
+
+      // Get stats
+      const stats = {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        favorites: 0,
+        avgProgress: 0
+      };
+
+      try {
+        const statsResult = await db('user_course_enrollments')
+          .where('user_id', studentId)
+          .whereNot('status', 'dropped')
+          .select(
+            db.raw('COUNT(*) as total'),
+            db.raw('COUNT(CASE WHEN progress < 100 THEN 1 END) as in_progress'),
+            db.raw('COUNT(CASE WHEN progress >= 100 THEN 1 END) as completed'),
+            db.raw('COUNT(CASE WHEN is_favorite = true THEN 1 END) as favorites'),
+            db.raw('AVG(progress) as avg_progress')
+          )
+          .first();
+        
+        stats.total = parseInt(statsResult.total, 10) || 0;
+        stats.inProgress = parseInt(statsResult.in_progress, 10) || 0;
+        stats.completed = parseInt(statsResult.completed, 10) || 0;
+        stats.favorites = parseInt(statsResult.favorites, 10) || 0;
+        stats.avgProgress = Math.round(parseFloat(statsResult.avg_progress) || 0);
+      } catch (err) {
+        console.warn('Error fetching course stats:', err);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          courses,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            pages: Math.ceil(total / limit)
+          },
+          nextLessons,
+          stats
+        }
+      });
+
+    } catch (err) {
+      console.error('Error fetching enrolled courses:', err);
+      res.status(500).json({ success: false, message: 'Failed to fetch enrolled courses' });
+    }
+  },
+
   async getStudentDashboard(req, res) {
     try {
       const studentId = req.user.userId;
@@ -266,6 +416,68 @@ const studentsController = {
         console.warn('Error fetching weekly progress:', err.message);
       }
 
+      // Get recent activity
+      let recentActivity = [];
+      try {
+        recentActivity = await db('user_lesson_progress as ulp')
+          .join('lessons as l', 'ulp.lesson_id', 'l.id')
+          .join('courses as c', 'l.course_id', 'c.id')
+          .where('ulp.user_id', studentId)
+          .orderBy('ulp.last_accessed_at', 'desc')
+          .limit(5)
+          .select(
+            'l.id as lesson_id',
+            'l.title as lesson_title',
+            'c.title as course_title',
+            'c.id as course_id',
+            'ulp.last_accessed_at',
+            'ulp.progress',
+            'ulp.is_completed'
+          );
+      } catch (err) {
+        console.warn('Error fetching recent activity:', err.message);
+      }
+
+      // Get recommendations (courses not enrolled in)
+      let recommendations = [];
+      try {
+        const enrolledCourseIds = await db('user_course_enrollments')
+          .where('user_id', studentId)
+          .pluck('course_id');
+        
+        recommendations = await db('courses')
+          .whereNotIn('id', enrolledCourseIds)
+          .where('is_published', true)
+          .orderByRaw('RANDOM()')
+          .limit(3)
+          .select('id', 'title', 'description', 'cover_image', 'level', 'category');
+      } catch (err) {
+        console.warn('Error fetching recommendations:', err.message);
+      }
+
+      // Get next lessons for enrolled courses
+      let nextLessons = {};
+      try {
+        for (const course of coursesWithProgress) {
+          const nextLesson = await db('lessons as l')
+            .leftJoin('user_lesson_progress as ulp', function() {
+              this.on('l.id', '=', 'ulp.lesson_id').andOn('ulp.user_id', '=', db.raw('?', [studentId]));
+            })
+            .where('l.course_id', course.id)
+            .where(function() {
+              this.whereNull('ulp.is_completed').orWhere('ulp.is_completed', false);
+            })
+            .orderBy('l.order_index', 'asc')
+            .first('l.id', 'l.title');
+          
+          if (nextLesson) {
+            nextLessons[course.id] = nextLesson;
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching next lessons:', err.message);
+      }
+
       res.json({
         success: true,
         data: {
@@ -281,8 +493,9 @@ const studentsController = {
             weeklyProgress
           },
           enrolledCourses: coursesWithProgress,
-          recentActivity: [],
-          recommendations: []
+          recentActivity,
+          recommendations,
+          nextLessons
         }
       });
 

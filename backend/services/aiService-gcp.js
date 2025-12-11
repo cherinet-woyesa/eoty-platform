@@ -471,18 +471,66 @@ RESPONSE:`;
 
   // Extract sources from relevant content
   extractSources(relevantContent) {
-    // TODO: Implement proper source extraction
-    return relevantContent.map(content => ({
-      title: content,
-      type: 'context',
-      url: null
-    }));
+    const sources = [];
+    const sourceRegex = /\[Source: (.*?) \((.*?)\)\]/g;
+    
+    if (Array.isArray(relevantContent)) {
+      relevantContent.forEach(content => {
+        let match;
+        while ((match = sourceRegex.exec(content)) !== null) {
+          sources.push({
+            title: match[1],
+            type: match[2] || 'reference',
+            url: null
+          });
+        }
+      });
+    }
+    
+    return sources;
   }
 
-  // Get related resources (placeholder)
+  // Get related resources
   async getRelatedResources(question, context) {
-    // TODO: Implement resource recommendation logic
-    return [];
+    try {
+      // Simple keyword search
+      const keywords = question.split(' ').filter(w => w.length > 3);
+      
+      if (keywords.length === 0) return [];
+
+      const query = db('resources')
+        .where('is_public', true)
+        .andWhere(builder => {
+          builder.where(sub => {
+            keywords.forEach(word => {
+              sub.orWhere('title', 'ilike', `%${word}%`)
+                 .orWhere('description', 'ilike', `%${word}%`);
+            });
+          });
+        })
+        .select('id', 'title', 'category')
+        .limit(3);
+
+      // Boost relevance with context if available
+      if (context.courseId) {
+        // We could add a separate query or union, but for now let's just rely on keywords
+        // or maybe prioritize resources in the same course?
+        // For simplicity, we'll stick to keyword search across platform
+      }
+      
+      const resources = await query;
+      
+      return resources.map(r => ({
+        id: r.id,
+        title: r.title,
+        type: 'resource',
+        category: r.category,
+        url: `/resources/${r.id}`
+      }));
+    } catch (error) {
+      console.error('Error fetching related resources:', error);
+      return [];
+    }
   }
 
   // Generate cache key

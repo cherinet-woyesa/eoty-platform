@@ -26,7 +26,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
 
   useEffect(() => {
     // Construct file URL
-    let url = resource.file_path || '';
+    let url = resource.file_url || resource.file_path || '';
     if (url && !url.startsWith('http')) {
       // Assuming backend serves uploads at /uploads
       // Use the API_URL from environment or default

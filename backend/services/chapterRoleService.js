@@ -260,6 +260,37 @@ class ChapterRoleService {
       throw error;
     }
   }
+
+  /**
+   * Get all chapter role assignments
+   */
+  static async getAllChapterRoles() {
+    try {
+      const roles = await db('user_chapter_roles')
+        .join('chapters', 'user_chapter_roles.chapter_id', 'chapters.id')
+        .join('users', 'user_chapter_roles.user_id', 'users.id')
+        .select(
+          'user_chapter_roles.*',
+          'chapters.name as chapter_name',
+          'chapters.location as chapter_location',
+          'chapters.city as chapter_city',
+          'chapters.country as chapter_country',
+          'users.first_name',
+          'users.last_name',
+          'users.email'
+        );
+
+      return roles.map(role => ({
+        ...role,
+        permissions: typeof role.permissions === 'string'
+          ? JSON.parse(role.permissions)
+          : role.permissions
+      }));
+    } catch (error) {
+      console.error('Error getting all chapter roles:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = ChapterRoleService;

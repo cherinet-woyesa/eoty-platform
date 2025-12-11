@@ -89,7 +89,7 @@ const ExportManager: React.FC<ExportManagerProps> = ({
                   <Icon className={`h-5 w-5 ${exportFormat === option.id ? 'text-[#27AE60]' : 'text-stone-400'}`} />
                   <span className="ml-3 text-sm font-medium text-stone-800">{option.name}</span>
                   {exportFormat === option.id && (
-                    <div className="ml-auto w-3 h-3 rounded-full bg-[#27AE60]"></div>
+                    <div className="ml-auto w-3 h-3 rounded-full bg-indigo-900"></div>
                   )}
                 </div>
               );
@@ -100,11 +100,11 @@ const ExportManager: React.FC<ExportManagerProps> = ({
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center px-6 py-3 bg-indigo-900 hover:bg-indigo-800 text-white border border-indigo-800 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isExporting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-900 mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   📤 Exporting...
                 </>
               ) : (

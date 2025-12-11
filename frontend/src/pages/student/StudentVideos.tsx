@@ -269,7 +269,7 @@ const StudentVideos: React.FC = () => {
 
   // Navigate to course
   const handleCourseClick = useCallback((courseId: string) => {
-    navigate(`/student/courses/${courseId}`);
+    navigate(`/member/courses/${courseId}`);
   }, [navigate]);
 
   if (loading) {

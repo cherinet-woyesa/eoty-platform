@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BarChart, TrendingUp, Clock, Target } from 'lucide-react';
 import { onboardingApi } from '@/services/api/onboarding';
 
@@ -7,6 +8,7 @@ interface CompletionAnalyticsProps {
 }
 
 const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => {
+  const { t } = useTranslation();
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +50,7 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
         <BarChart className="h-5 w-5 mr-2 text-[#27AE60]" />
-        Onboarding Analytics
+        {t('onboarding.analytics.title')}
       </h3>
 
       <div className="grid grid-cols-2 gap-4">
@@ -56,7 +58,7 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
         <div className="bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Completion Rate</p>
+          <p className="text-sm text-gray-600">{t('onboarding.analytics.completion_rate')}</p>
               <p className="text-2xl font-bold text-[#27AE60]">{completionRate}%</p>
             </div>
             <Target className="h-8 w-8 text-[#27AE60]" />
@@ -75,7 +77,7 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
         <div className={`rounded-lg p-3 ${sevenDayCompletion >= 95 ? 'bg-green-50' : sevenDayCompletion >= 85 ? 'bg-yellow-50' : 'bg-red-50'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">7-Day Completion</p>
+          <p className="text-sm text-gray-600">{t('onboarding.analytics.seven_day')}</p>
               <p className={`text-2xl font-bold ${sevenDayCompletion >= 95 ? 'text-green-600' : sevenDayCompletion >= 85 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {sevenDayCompletion}%
               </p>
@@ -100,7 +102,7 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
         <div className="bg-blue-50 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Users</p>
+          <p className="text-sm text-gray-600">{t('onboarding.analytics.total_users')}</p>
               <p className="text-2xl font-bold text-blue-600">{totalUsers}</p>
             </div>
             <Clock className="h-8 w-8 text-blue-600" />
@@ -111,7 +113,7 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
         <div className="bg-purple-50 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Completed</p>
+          <p className="text-sm text-gray-600">{t('onboarding.analytics.total_completed')}</p>
               <p className="text-2xl font-bold text-purple-600">{totalCompletions}</p>
             </div>
             <BarChart className="h-8 w-8 text-purple-600" />
@@ -122,13 +124,13 @@ const CompletionAnalytics: React.FC<CompletionAnalyticsProps> = ({ flowId }) => 
       {/* Goal Indicators */}
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Target: 95% completion within {analytics.timeframe_days || 7} days</span>
+          <span className="text-gray-600">{t('onboarding.analytics.target', { days: analytics.timeframe_days || 7 })}</span>
           <span className={`font-medium ${analytics.meets_requirement ? 'text-green-600' : 'text-red-600'}`}>
-            {analytics.meets_requirement ? '✓ Goal Achieved' : '⚠ Below Target'}
+            {analytics.meets_requirement ? t('onboarding.analytics.goal_met') : t('onboarding.analytics.goal_miss')}
           </span>
         </div>
         <div className="mt-2 text-xs text-gray-500">
-          {totalCompletions} of {totalUsers} users completed onboarding
+          {t('onboarding.analytics.summary', { completed: totalCompletions, total: totalUsers })}
         </div>
       </div>
     </div>

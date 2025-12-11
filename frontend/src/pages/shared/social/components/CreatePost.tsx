@@ -4,6 +4,7 @@ import { Image, Video, Mic, FileText, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { communityPostsApi } from '@/services/api/communityPosts';
 import type { Post } from '@/components/shared/social/PostCard';
+import { brandColors } from '@/theme/brand';
 
 interface CreatePostProps {
   onPostCreated: (post: Post) => void;
@@ -98,7 +99,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-100" 
             />
           ) : (
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+            <div
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm"
+              style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+            >
               {user?.firstName?.[0] || 'U'}
             </div>
           )}
@@ -112,8 +116,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onFocus={() => setIsExpanded(true)}
-              placeholder={t('community.share_thoughts', "What's on your mind, " + (user?.firstName || 'friend') + "?")}
-              className="w-full h-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:bg-white resize-none transition-all duration-200 text-gray-700 placeholder-gray-400"
+              placeholder={t('community.share_thoughts', { name: user?.firstName || 'friend' })}
+              className="w-full h-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:bg-white resize-none transition-all duration-200 text-gray-700 placeholder-gray-400"
               style={{ minHeight: isExpanded ? '120px' : '48px' }}
             />
           </div>
@@ -179,7 +183,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || (!content.trim() && !mediaFile)}
-              className="px-6 py-2 bg-[#27AE60] text-white rounded-full font-medium hover:bg-[#219150] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+              className="px-6 py-2 text-white rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 bg-[color:#1e1b4b] hover:bg-[color:#312e81]"
             >
               {isSubmitting ? (
                 <>
@@ -207,7 +211,7 @@ const MediaTypeButton: React.FC<{
     onClick={onClick}
     className={`p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-2 transition-colors ${
       active 
-        ? 'bg-[#27AE60]/10 text-[#27AE60]' 
+        ? 'bg-[color:#1e1b4b]/10 text-[color:#1e1b4b]' 
         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
     }`}
     title={label}

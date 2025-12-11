@@ -247,6 +247,78 @@ const teacherController = {
     }
   },
 
+  // Teacher profile with onboarding, verification, payout
+  async getProfile(req, res) {
+    try {
+      const userId = req.user.userId;
+      const user = await db('users')
+        .where({ id: userId })
+        .select(
+          'id',
+          'first_name',
+          'last_name',
+          'email',
+          'role',
+          'profile_picture',
+          'phone_number as phone',
+          'location',
+          'bio'
+        )
+        .first();
+
+      const teacherProfile = await db('teacher_profiles')
+        .where({ user_id: userId })
+        .first();
+
+      res.json({
+        success: true,
+        data: {
+          user,
+          teacherProfile: teacherProfile || {}
+        }
+      });
+    } catch (error) {
+      console.error('Get teacher profile error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch teacher profile' });
+    }
+  },
+
+  async updateProfile(req, res) {
+    try {
+      const userId = req.user.userId;
+      const {
+        onboardingStatus,
+        verificationDocs,
+        payoutRegion,
+        payoutMethod,
+        payoutDetails,
+        taxStatus
+      } = req.body;
+
+      const payload = {
+        onboarding_status: onboardingStatus || {},
+        verification_docs: verificationDocs || {},
+        payout_region: payoutRegion || null,
+        payout_method: payoutMethod || null,
+        payout_details: payoutDetails || {},
+        tax_status: taxStatus || null,
+        updated_at: new Date()
+      };
+
+      const exists = await db('teacher_profiles').where({ user_id: userId }).first();
+      if (exists) {
+        await db('teacher_profiles').where({ user_id: userId }).update(payload);
+      } else {
+        await db('teacher_profiles').insert({ user_id: userId, ...payload, created_at: new Date() });
+      }
+
+      res.json({ success: true, message: 'Profile updated', data: payload });
+    } catch (error) {
+      console.error('Update teacher profile error:', error);
+      res.status(500).json({ success: false, message: 'Failed to update teacher profile' });
+    }
+  },
+
   // Get student details with progress
   async getStudentDetails(req, res) {
     try {

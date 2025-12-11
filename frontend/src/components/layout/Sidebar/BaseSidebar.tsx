@@ -13,6 +13,7 @@ import SidebarItem from './SidebarItem';
 import SidebarSearch from './SidebarSearch';
 import FavoriteItems from './FavoriteItems';
 import RecentItems from './RecentItems';
+import { brandColors } from '@/theme/brand';
 
 import { useSidebar } from '@/hooks/useSidebar';
 
@@ -226,35 +227,40 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   const hasRecentItems = recentItems.length > 0;
 
   return (
-    <div className={`flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-gray-200/60 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div 
+      className={`flex flex-col h-full border-r border-slate-200 transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}
+      style={{ backgroundColor: brandColors.primaryHex }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between h-12 px-3 border-b border-blue-200/50 bg-gradient-to-r from-blue-600 to-indigo-700">
+      <div 
+        className="flex items-center justify-between h-12 px-3 border-b border-slate-200 bg-white"
+      >
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
               <img src="/eoc.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-sm font-bold text-white">EOTY Platform</h1>
+            <h1 className="text-sm font-bold text-slate-900">EOTY Platform</h1>
           </div>
         )}
         <button
           onClick={onToggleCollapse}
-          className="p-1 rounded-md hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="p-1 rounded-md hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <ChevronRight className="h-3 w-3 text-white" />
+            <ChevronRight className="h-3 w-3 text-slate-500" />
           ) : (
-            <ChevronLeft className="h-3 w-3 text-white" />
+            <ChevronLeft className="h-3 w-3 text-slate-500" />
           )}
         </button>
       </div>
 
       {/* Search Bar - Only show when expanded */}
       {!isCollapsed && (
-        <div className="p-3 border-b border-gray-200/50">
+        <div className="p-3 border-b border-white/10">
           <SidebarSearch
             value={searchQuery}
             onChange={setSearchQuery}
@@ -269,7 +275,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
         {!isCollapsed && hasFavorites && (
           <div className="mb-4">
             <div className="px-3 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
                 Favorites
               </h3>
             </div>
@@ -286,7 +292,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
         {!isCollapsed && hasRecentItems && searchQuery === '' && (
           <div className="mb-4">
             <div className="px-3 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
                 Recent
               </h3>
             </div>
@@ -315,9 +321,9 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
         {/* Empty Search State */}
         {searchQuery && filteredItems.length === 0 && (
           <div className="px-3 py-8 text-center">
-            <Search className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No results found</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <Search className="h-8 w-8 text-white/30 mx-auto mb-2" />
+            <p className="text-sm text-white/70">No results found</p>
+            <p className="text-xs text-white/50 mt-1">
               Try searching with different terms
             </p>
           </div>
@@ -326,25 +332,25 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
 
       {/* User Profile & Quick Stats */}
       {!isCollapsed && (
-        <div className="p-3 border-t border-gray-200/50 bg-white/50 backdrop-blur-sm">
+        <div className="p-3 border-t border-white/10 bg-white/10 backdrop-blur-sm">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md ring-2 ring-white">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-md ring-2 ring-white/20">
                 <span className="text-white text-sm font-medium">
                   {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
                 </span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-white truncate">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs text-gray-600 capitalize truncate">
+              <p className="text-xs text-white/70 capitalize truncate">
                 {user?.role}
               </p>
               <div className="flex items-center space-x-2 mt-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs text-gray-500">Online</span>
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-xs text-white/70">Online</span>
               </div>
             </div>
           </div>

@@ -9,6 +9,8 @@ router.use(authenticateToken, requireRole(['teacher', 'admin']));
 
 // GET /api/teacher/dashboard
 router.get('/dashboard', teacherController.getDashboard);
+router.get('/profile', teacherController.getProfile);
+router.post('/profile', teacherController.updateProfile);
 
 // Student Management
 // GET /api/teacher/students - Get all students enrolled in teacher's courses

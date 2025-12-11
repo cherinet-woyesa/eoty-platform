@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, BookOpen, Search, Filter, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon } from 'lucide-react';
+import { Upload, BookOpen, Search, Filter, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 import { coursesApi } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import type { Resource } from '@/types/resources';
 import UploadResource from '../UploadResource';
+import EditResourceModal from './EditResourceModal';
 
 interface TeacherResourceManagerProps {
   lessonId?: string;
@@ -20,6 +21,14 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedScope, setSelectedScope] = useState<'chapter_wide' | 'platform_wide'>('chapter_wide');
   const [attaching, setAttaching] = useState<number | null>(null);
+  
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const LIMIT = 9;
+
+  // Edit State
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
 
   const isAdmin = user?.role === 'admin';
 
@@ -28,21 +37,29 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     if (lessonId) {
       loadAttachedResources();
     }
-  }, [selectedScope, lessonId]);
+  }, [selectedScope, lessonId, page]);
 
   const loadResources = async () => {
     try {
       setLoading(true);
       let response;
+      const filters = { 
+        search: searchTerm,
+        page,
+        limit: LIMIT
+      };
 
       if (selectedScope === 'platform_wide' || !user?.chapter_id) {
-        response = await resourcesApi.getPlatformResources({ search: searchTerm });
+        response = await resourcesApi.getPlatformResources(filters);
       } else {
-        response = await resourcesApi.getChapterResources(user.chapter_id.toString(), { search: searchTerm });
+        response = await resourcesApi.getChapterResources(user.chapter_id.toString(), filters);
       }
 
       if (response.success) {
         setResources(response.data.resources || []);
+        if (response.data.pagination) {
+          setTotalPages(Math.ceil(response.data.pagination.total / LIMIT));
+        }
       }
     } catch (error) {
       console.error('Failed to load resources:', error);
@@ -54,8 +71,6 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const loadAttachedResources = async () => {
     if (!lessonId) return;
     try {
-      // Assuming there's an endpoint to get resources for a lesson
-      // If not, we might need to fetch lesson details which include resources
       const response = await coursesApi.getLesson(parseInt(lessonId));
       if (response.success && response.data.lesson.resources) {
         setAttachedResources(response.data.lesson.resources);
@@ -67,6 +82,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setPage(1); // Reset to first page on search
     // Debounce search
     setTimeout(() => loadResources(), 300);
   };
@@ -77,7 +93,6 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     try {
       await coursesApi.addResourceToLesson(parseInt(lessonId), resourceId);
       await loadAttachedResources();
-      // Show success toast or notification
     } catch (error) {
       console.error('Failed to attach resource:', error);
     } finally {
@@ -92,6 +107,19 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       await loadAttachedResources();
     } catch (error) {
       console.error('Failed to detach resource:', error);
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: number) => {
+    if (!window.confirm('Are you sure you want to delete this resource? This action cannot be undone.')) return;
+    
+    try {
+      await resourcesApi.deleteResource(resourceId);
+      loadResources();
+      if (lessonId) loadAttachedResources();
+    } catch (error) {
+      console.error('Failed to delete resource:', error);
+      alert('Failed to delete resource');
     }
   };
 
@@ -208,7 +236,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
               </select>
             </div>
             <div className="text-xs text-stone-500 font-medium">
-              {resources.length} items available
+              {resources.length} items shown
             </div>
           </div>
         </div>
@@ -246,31 +274,51 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                            resource.file_type?.includes('video') ? '🎬' :
                            resource.file_type?.includes('audio') ? '🎵' : '📝'}
                         </div>
-                        {lessonId && (
-                          <button
-                            onClick={() => attached ? handleDetachResource(resource.id) : handleAttachResource(resource.id)}
-                            disabled={attaching === resource.id}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                              attached
-                                ? 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700'
-                                : 'bg-stone-100 text-stone-600 hover:bg-[#27AE60] hover:text-white'
-                            }`}
-                          >
-                            {attaching === resource.id ? (
-                              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : attached ? (
-                              <>
-                                <CheckCircle className="h-3 w-3" />
-                                Attached
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-3 w-3" />
-                                Attach
-                              </>
-                            )}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {lessonId && (
+                            <button
+                              onClick={() => attached ? handleDetachResource(resource.id) : handleAttachResource(resource.id)}
+                              disabled={attaching === resource.id}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                                attached
+                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700'
+                                  : 'bg-stone-100 text-stone-600 hover:bg-[#27AE60] hover:text-white'
+                              }`}
+                            >
+                              {attaching === resource.id ? (
+                                <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : attached ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  Attached
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-3 w-3" />
+                                  Attach
+                                </>
+                              )}
+                            </button>
+                          )}
+                          
+                          {/* Edit/Delete Actions */}
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => setEditingResource(resource)}
+                              className="p-1.5 text-stone-400 hover:text-[#27AE60] hover:bg-stone-100 rounded-md transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteResource(resource.id)}
+                              className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                       
                       <h3 className="font-semibold text-stone-900 truncate mb-1" title={resource.title}>
@@ -321,7 +369,40 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="h-5 w-5 text-stone-600" />
+            </button>
+            <span className="text-sm font-medium text-stone-600">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="h-5 w-5 text-stone-600" />
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Edit Modal */}
+      {editingResource && (
+        <EditResourceModal
+          resource={editingResource}
+          isOpen={!!editingResource}
+          onClose={() => setEditingResource(null)}
+          onUpdate={loadResources}
+        />
+      )}
     </div>
   );
 };

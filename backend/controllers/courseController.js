@@ -119,11 +119,20 @@ const courseController = {
     }
   },
 
-  // Get all courses for the logged-in teacher with statistics
+  // Get all courses for the logged-in user (teacher/admin/student) with optional filters/sort/pagination
   async getUserCourses(req, res) {
     try {
       const userId = req.user.userId;
       const userRole = req.user.role;
+      const {
+        q,
+        category,
+        status,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+        page = 1,
+        perPage = 20
+      } = req.query;
 
       let coursesQuery = db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
@@ -134,8 +143,7 @@ const courseController = {
           db.raw('COUNT(DISTINCT l.id) as lesson_count'),
           db.raw('COUNT(DISTINCT ulp.user_id) as student_count'),
           db.raw('SUM(l.duration) as total_duration')
-        )
-        .orderBy('c.created_at', 'desc');
+        );
 
       if (userRole === 'user' || userRole === 'student') {
         coursesQuery = coursesQuery
@@ -147,10 +155,10 @@ const courseController = {
         // Admins can see all courses, no additional where clause needed
       }
 
-      const courses = await coursesQuery;
+      const rawCourses = await coursesQuery;
 
       // Process metadata for each course (similar to getCourse)
-      const processedCourses = courses.map(course => {
+      let processedCourses = rawCourses.map(course => {
         let metadata = {};
         try {
           if (course.metadata) {
@@ -175,8 +183,76 @@ const courseController = {
         course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
         course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
 
+        // Derive status (published/draft/scheduled/archived)
+        const now = new Date();
+        const metaStatus = metadata.status;
+        const scheduled = course.scheduled_publish_at ? new Date(course.scheduled_publish_at) : null;
+        let derivedStatus = 'draft';
+        if (metaStatus) {
+          derivedStatus = metaStatus;
+        } else if (course.status) {
+          derivedStatus = course.status;
+        } else if (scheduled && scheduled > now && !course.is_published) {
+          derivedStatus = 'scheduled';
+        } else if (course.is_published) {
+          derivedStatus = 'published';
+        }
+        course.status = derivedStatus;
+
         return course;
       });
+
+      // In-memory filters
+      if (q) {
+        const needle = String(q).toLowerCase();
+        processedCourses = processedCourses.filter(c =>
+          (c.title || '').toLowerCase().includes(needle) ||
+          (c.description || '').toLowerCase().includes(needle)
+        );
+      }
+
+      if (category) {
+        processedCourses = processedCourses.filter(c => c.category === category);
+      }
+
+      if (status && status !== 'all') {
+        processedCourses = processedCourses.filter(c => c.status === status);
+      }
+
+      // Sort in-memory to support aggregate fields
+      const sortKey = sortBy;
+      processedCourses = processedCourses.sort((a, b) => {
+        let aVal = a[sortKey];
+        let bVal = b[sortKey];
+
+        if (['created_at', 'updated_at', 'published_at', 'scheduled_publish_at'].includes(sortKey)) {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        }
+
+        if (sortKey === 'title') {
+          aVal = (aVal || '').toLowerCase();
+          bVal = (bVal || '').toLowerCase();
+        }
+
+        if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
+        return aVal < bVal ? 1 : -1;
+      });
+
+      // Pagination
+      const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+      const perPageNum = Math.max(parseInt(perPage, 10) || 20, 1);
+      const start = (pageNum - 1) * perPageNum;
+      const paginatedCourses = processedCourses.slice(start, start + perPageNum);
+
+      // Aggregate counts for status badges
+      const counts = {
+        total: processedCourses.length,
+        published: processedCourses.filter(c => c.status === 'published').length,
+        draft: processedCourses.filter(c => c.status === 'draft').length,
+        archived: processedCourses.filter(c => c.status === 'archived').length,
+        scheduled: processedCourses.filter(c => c.status === 'scheduled').length
+      };
 
       console.log('Returning courses list:', processedCourses.map(course => ({
         id: course.id,
@@ -187,7 +263,15 @@ const courseController = {
 
       res.json({
         success: true,
-        data: { courses: processedCourses }
+        data: {
+          courses: paginatedCourses,
+          pagination: {
+            total: processedCourses.length,
+            page: pageNum,
+            perPage: perPageNum
+          },
+          counts
+        }
       });
     } catch (error) {
       console.error('Get user courses error:', error);

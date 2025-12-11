@@ -37,6 +37,23 @@ export const teacherApi = {
     const response = await apiClient.get(`/teacher/students/${studentId}`);
     return response.data;
   },
+
+  getProfile: async () => {
+    const response = await apiClient.get('/teacher/profile');
+    return response.data;
+  },
+
+  updateProfile: async (payload: {
+    onboardingStatus?: any;
+    verificationDocs?: any;
+    payoutRegion?: string;
+    payoutMethod?: string;
+    payoutDetails?: any;
+    taxStatus?: string;
+  }) => {
+    const response = await apiClient.post('/teacher/profile', payload);
+    return response.data;
+  },
 };
 
 

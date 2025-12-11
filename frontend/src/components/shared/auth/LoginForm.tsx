@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import SocialLoginButtons from './SocialLoginButtons';
 import FormInput from './FormInput';
@@ -8,6 +9,7 @@ import FormError from './FormError';
 import LoadingButton from './LoadingButton';
 import { extractErrorMessage } from '@/utils/errorMessages';
 import { useFormValidation, validationRules } from '@/hooks/useFormValidation';
+import { brandColors } from '@/theme/brand';
 
 interface LoginFormData {
   email: string;
@@ -15,6 +17,7 @@ interface LoginFormData {
 }
 
 const LoginForm: React.FC = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -23,14 +26,14 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   
-  const { login, verify2FA, isAuthenticated, getRoleDashboard } = useAuth();
-  const navigate = useNavigate();
+  const { login, verify2FA } = useAuth();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -47,16 +50,16 @@ const LoginForm: React.FC = () => {
   } = useFormValidation<LoginFormData>({
     email: {
       rules: [
-        validationRules.required('Email address is required'),
-        validationRules.email('Please enter a valid email address'),
+        validationRules.required(t('auth.login.validation.email_required')),
+        validationRules.email(t('auth.login.validation.email_invalid')),
       ],
       validateOnBlur: true,
       debounceMs: 300,
     },
     password: {
       rules: [
-        validationRules.required('Password is required'),
-        validationRules.minLength(6, 'Password must be at least 6 characters long'),
+        validationRules.required(t('auth.login.validation.password_required')),
+        validationRules.minLength(6, t('auth.login.validation.password_min')),
       ],
       validateOnBlur: true,
       debounceMs: 300,
@@ -87,6 +90,7 @@ const LoginForm: React.FC = () => {
 
   // Redirect when authentication state changes
   // Only redirect if we're on the /login route, not if we're on the landing page
+  /* 
   useEffect(() => {
     // Don't redirect if we are in the middle of a 2FA flow
     if (isAuthenticated && window.location.pathname === '/login' && !requires2FA) {
@@ -94,6 +98,7 @@ const LoginForm: React.FC = () => {
       navigate(dashboardPath, { replace: true });
     }
   }, [isAuthenticated, getRoleDashboard, navigate, requires2FA]);
+  */
 
   // Debug logging for 2FA state
   useEffect(() => {
@@ -108,7 +113,7 @@ const LoginForm: React.FC = () => {
     // Handle 2FA submission
     if (requires2FA) {
       if (!twoFactorCode || twoFactorCode.length !== 6) {
-        setError('Please enter a valid 6-digit code');
+        setError(t('auth.login.validation.code_invalid'));
         return;
       }
 
@@ -117,12 +122,14 @@ const LoginForm: React.FC = () => {
 
       try {
         await verify2FA(userId!, twoFactorCode);
-        setSuccessMessage('Verification successful! Redirecting...');
-        const dashboardPath = getRoleDashboard();
-        navigate(dashboardPath, { replace: true });
+        setSuccessMessage(t('auth.login.messages.verified'));
+        setToast({ type: 'success', message: t('auth.login.messages.verified') });
+        // Navigation handled by PublicRoute
+        // const dashboardPath = getRoleDashboard();
+        // navigate(dashboardPath, { replace: true });
       } catch (err: any) {
         console.error('2FA error:', err);
-        setError(extractErrorMessage(err));
+        setError(extractErrorMessage(err)); // inline only to avoid duplicate toast
       } finally {
         setIsLoading(false);
       }
@@ -156,18 +163,19 @@ const LoginForm: React.FC = () => {
         console.log('2FA required, switching state...');
         setRequires2FA(true);
         setUserId(response.data.userId);
-        setSuccessMessage('Please enter the verification code sent to your email');
+        setSuccessMessage(t('auth.login.twofa_subtitle'));
         setIsLoading(false);
         // Focus on code input after render
         setTimeout(() => codeRef.current?.focus(), 100);
         return;
       }
 
-      setSuccessMessage('Welcome back! Redirecting to your dashboard...');
+      setSuccessMessage(t('auth.login.messages.success'));
+      setToast({ type: 'success', message: t('auth.login.messages.success_toast') });
       
-      // Redirect immediately
-      const dashboardPath = getRoleDashboard();
-      navigate(dashboardPath, { replace: true });
+      // Redirect immediately - Handled by PublicRoute
+      // const dashboardPath = getRoleDashboard();
+      // navigate(dashboardPath, { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
 
@@ -181,17 +189,18 @@ const LoginForm: React.FC = () => {
       if (err.response?.data?.code === 'GOOGLE_ACCOUNT_NO_PASSWORD') {
         setError(
           <span>
-            This account was created with Google. To sign in with a password, please{' '}
+            {t('auth.login.messages.google_password')}{' '}
             <Link 
               to={`/forgot-password?email=${encodeURIComponent(formData.email)}`}
               className="underline font-semibold hover:text-red-800"
             >
-              set a password here
+              {t('auth.login.messages.google_password_link')}
             </Link>.
           </span> as any
         );
       } else {
         setError(errorMessage);
+        // inline only to avoid duplicate toast
       }
 
       // Clear password field on authentication errors (but not network errors)
@@ -266,13 +275,35 @@ const LoginForm: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(id);
+  }, [toast]);
+
   if (requires2FA) {
     return (
+      <div className="relative">
+        {toast && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div
+              className="pointer-events-auto px-5 py-3 rounded-xl shadow-2xl border text-white text-sm font-semibold"
+              style={{
+                background: toast.type === 'success'
+                  ? `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`
+                  : 'linear-gradient(120deg, #ef4444, #b91c1c)',
+                borderColor: toast.type === 'success' ? 'rgba(49,46,129,0.25)' : 'rgba(239,68,68,0.35)'
+              }}
+            >
+              {toast.message}
+            </div>
+          </div>
+        )}
       <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="2FA Verification">
         <div className="space-y-3">
-          <h3 className="text-lg font-medium text-gray-900 text-center">Two-Factor Authentication</h3>
+          <h3 className="text-lg font-medium text-gray-900 text-center">{t('auth.login.twofa_title')}</h3>
           <p className="text-sm text-gray-500 text-center">
-            Please enter the 6-digit code sent to your email.
+            {t('auth.login.twofa_subtitle')}
           </p>
           
           {error && (
@@ -302,11 +333,11 @@ const LoginForm: React.FC = () => {
             id="twoFactorCode"
             name="twoFactorCode"
             type="text"
-            label="Verification Code"
+            label={t('auth.login.twofa_label')}
             value={twoFactorCode}
             onChange={(e) => setTwoFactorCode(e.target.value)}
             required
-            placeholder="123456"
+            placeholder={t('auth.login.twofa_placeholder')}
             // maxLength={6} - Removed as it's not in props
             // className="text-center tracking-widest text-lg" - Removed as it's not in props
             autoComplete="one-time-code"
@@ -319,12 +350,12 @@ const LoginForm: React.FC = () => {
             type="submit"
             isLoading={isLoading}
             disabled={twoFactorCode.length !== 6}
-            loadingText="Verifying..."
+            loadingText={t('auth.login.twofa_verify_loading')}
             variant="primary"
             size="md"
             // fullWidth - Removed as it's not in props
           >
-            Verify Code
+            {t('auth.login.twofa_verify')}
           </LoadingButton>
           
           <button
@@ -337,14 +368,31 @@ const LoginForm: React.FC = () => {
             }}
             className="w-full text-sm text-gray-600 hover:text-gray-900 font-medium"
           >
-            Back to Login
+            {t('auth.login.twofa_back')}
           </button>
         </div>
       </form>
+    </div>
     );
   }
 
   return (
+    <div className="relative">
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div
+            className="pointer-events-auto px-5 py-3 rounded-xl shadow-2xl border text-white text-sm font-semibold"
+            style={{
+              background: toast.type === 'success'
+                ? `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`
+                : 'linear-gradient(120deg, #ef4444, #b91c1c)',
+              borderColor: toast.type === 'success' ? 'rgba(49,46,129,0.25)' : 'rgba(239,68,68,0.35)'
+            }}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Login form">
       {/* Messages Section - Prominent positioning at top */}
       <div className="space-y-3">
@@ -374,7 +422,7 @@ const LoginForm: React.FC = () => {
         {retryCount > 2 && !error?.includes('Network') && (
           <FormError
             type="warning"
-            message={`Having trouble logging in? Try resetting your password or contact support if the problem persists.`}
+            message={t('auth.login.retry_help')}
             size="sm"
           />
         )}
@@ -396,7 +444,7 @@ const LoginForm: React.FC = () => {
           error={errors.email}
           touched={touched.email}
           required
-          placeholder="Enter your email address"
+          placeholder={t('auth.login.email_placeholder')}
           icon={<Mail className="h-4 w-4" />}
           autoComplete="email"
           successIndicator
@@ -416,7 +464,7 @@ const LoginForm: React.FC = () => {
           error={errors.password}
           touched={touched.password}
           required
-          placeholder="Enter your password"
+          placeholder={t('auth.login.password_placeholder')}
           icon={<Lock className="h-4 w-4" />}
           showPasswordToggle
           autoComplete="current-password"
@@ -433,27 +481,27 @@ const LoginForm: React.FC = () => {
             name="remember-me"
             type="checkbox"
             disabled={isLoading}
-            className="h-4 w-4 text-[#27AE60] focus:ring-[#27AE60] border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             aria-describedby="remember-me-description"
           />
           <label 
             htmlFor="remember-me" 
             className="ml-2 sm:ml-3 block text-xs sm:text-sm font-medium text-gray-700 cursor-pointer"
           >
-            Remember me for 30 days
+            {t('auth.login.remember_me')}
           </label>
           <span id="remember-me-description" className="sr-only">
-            Keep me signed in on this device for 30 days
+            {t('auth.login.remember_me_desc')}
           </span>
         </div>
 
         <div className="text-xs sm:text-sm min-h-[44px] flex items-center">
           <Link 
             to="/forgot-password" 
-            className="text-[#27AE60] hover:text-[#16A085] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 rounded px-2 py-2"
+            className="text-indigo-700 hover:text-indigo-900 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded px-2 py-2"
             aria-label="Reset your password"
           >
-            Forgot password?
+            {t('auth.login.forgot_password')}
           </Link>
         </div>
       </div>
@@ -464,12 +512,12 @@ const LoginForm: React.FC = () => {
           type="submit"
           isLoading={isLoading}
           disabled={!isValid && Object.keys(touched).length > 0}
-          loadingText="Signing you in..."
+          loadingText={t('auth.login.loading')}
           variant="primary"
           size="md"
           icon={!isLoading ? <ArrowRight className="w-4 h-4 ml-2" /> : undefined}
         >
-          Sign in to your account
+          {t('auth.login.login_button')}
         </LoadingButton>
       </div>
 
@@ -477,7 +525,7 @@ const LoginForm: React.FC = () => {
       <div className="space-y-4 pt-2">
         <div className="flex items-center gap-3 my-4">
           <div className="h-px flex-1 bg-gray-200"></div>
-          <span className="text-xs sm:text-sm text-gray-500 font-medium">Or continue with</span>
+          <span className="text-xs sm:text-sm text-gray-500 font-medium">{t('auth.login.or_continue')}</span>
           <div className="h-px flex-1 bg-gray-200"></div>
         </div>
 
@@ -485,7 +533,7 @@ const LoginForm: React.FC = () => {
           onRequires2FA={(uid) => {
             setRequires2FA(true);
             setUserId(uid);
-            setSuccessMessage('Please enter the verification code sent to your email');
+            setSuccessMessage(t('auth.login.twofa_subtitle'));
             setTimeout(() => codeRef.current?.focus(), 100);
           }}
         />
@@ -494,17 +542,18 @@ const LoginForm: React.FC = () => {
       {/* Sign up link */}
       <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign up navigation">
         <p className="text-xs sm:text-sm text-gray-600">
-          New to our community?{' '}
+          {t('auth.login.no_account')}{' '}
           <Link 
             to="/register" 
-            className="text-[#27AE60] hover:text-[#16A085] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:ring-offset-2 rounded px-1 py-1"
+            className="text-indigo-700 hover:text-indigo-900 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Create a new account"
           >
-            Create your account
+            {t('auth.login.register_link')}
           </Link>
         </p>
       </div>
     </form>
+    </div>
   );
 };
 

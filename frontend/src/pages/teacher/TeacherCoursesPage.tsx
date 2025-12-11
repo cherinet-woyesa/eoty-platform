@@ -15,7 +15,7 @@ const TeacherCoursesPage: React.FC = () => {
         {/* Compact Header */}
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-stone-800 mb-1 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[#27AE60]" />
+            <BookOpen className="h-5 w-5 text-[color:#1e1b4b]" />
             {t('teacher_courses_page.title')}
           </h1>
           <p className="text-sm text-stone-600">{t('teacher_courses_page.subtitle')}</p>
@@ -28,7 +28,7 @@ const TeacherCoursesPage: React.FC = () => {
               onClick={() => setActiveTab('my-courses')}
               className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'my-courses'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.08)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
               }`}
             >
@@ -40,7 +40,7 @@ const TeacherCoursesPage: React.FC = () => {
               onClick={() => setActiveTab('create')}
               className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'create'
-                  ? 'border-[#16A085] text-[#16A085] bg-[#16A085]/5'
+                  ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.08)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
               }`}
             >
@@ -52,7 +52,7 @@ const TeacherCoursesPage: React.FC = () => {
               onClick={() => setActiveTab('browse')}
               className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'browse'
-                  ? 'border-[#2980B9] text-[#2980B9] bg-[#2980B9]/5'
+                  ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.08)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
               }`}
             >

@@ -60,6 +60,27 @@ const studyGroupController = {
     }
   },
 
+  // Delete a study group (creator only)
+  async deleteGroup(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id } = req.params;
+
+      const group = await db('study_groups').where({ id }).first();
+      if (!group) return res.status(404).json({ success: false, message: 'Group not found' });
+      if (String(group.created_by) !== String(userId)) {
+        return res.status(403).json({ success: false, message: 'Only the creator can delete this group' });
+      }
+
+      await db('study_groups').where({ id }).del();
+
+      return res.json({ success: true, message: 'Group deleted' });
+    } catch (error) {
+      console.error('deleteGroup error:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete group' });
+    }
+  },
+
   // Get group detail
   async getGroup(req, res) {
     try {
@@ -136,19 +157,32 @@ const studyGroupController = {
   async listMessages(req, res) {
     try {
       const { id } = req.params;
+      const userId = req.user?.userId || null;
       const messages = await db('study_group_messages as m')
         .join('users as u', 'u.id', 'm.user_id')
+        .leftJoin('study_group_message_likes as l', function() {
+          this.on('l.message_id', '=', 'm.id');
+          if (userId) {
+            this.on('l.user_id', '=', db.raw('?', [userId]));
+          } else {
+            this.on('l.user_id', '=', db.raw('null'));
+          }
+        })
         .where('m.group_id', id)
         .orderBy('m.created_at', 'asc')
-        .limit(200)
+        .limit(500)
         .select(
           'm.id',
           'm.group_id',
           'm.user_id',
           'm.content',
           'm.created_at',
+          'm.updated_at',
+          'm.parent_message_id',
+          'm.likes_count',
           db.raw("COALESCE(u.first_name || ' ' || u.last_name, u.email) as user_name"),
-          'u.profile_picture'
+          'u.profile_picture',
+          db.raw('CASE WHEN l.id IS NULL THEN false ELSE true END as liked_by_user')
         );
       res.json({ success: true, data: { messages } });
     } catch (error) {
@@ -161,19 +195,30 @@ const studyGroupController = {
     try {
       const userId = req.user.userId;
       const { id } = req.params;
-      const { content } = req.body;
+      const { content, parent_message_id } = req.body;
       if (!content) return res.status(400).json({ success: false, message: 'Content is required' });
 
       // Ensure membership
       const member = await db('study_group_members').where({ group_id: id, user_id: userId }).first();
       if (!member) return res.status(403).json({ success: false, message: 'Not a group member' });
 
+      // Optional: validate parent belongs to same group
+      let parentId = null;
+      if (parent_message_id) {
+        const parent = await db('study_group_messages').where({ id: parent_message_id, group_id: id }).first();
+        if (parent) {
+          parentId = parent_message_id;
+        }
+      }
+
       const [message] = await db('study_group_messages')
         .insert({
           group_id: id,
           user_id: userId,
           content,
-          created_at: new Date()
+          parent_message_id: parentId,
+          created_at: new Date(),
+          updated_at: new Date()
         })
         .returning('*');
 
@@ -181,6 +226,113 @@ const studyGroupController = {
     } catch (error) {
       console.error('postMessage error:', error);
       res.status(500).json({ success: false, message: 'Failed to post message' });
+    }
+  },
+
+  async deleteMessage(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id, messageId } = req.params;
+
+      const message = await db('study_group_messages').where({ id: messageId, group_id: id }).first();
+      if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+      if (message.user_id !== userId) {
+        // Check if admin
+        const member = await db('study_group_members').where({ group_id: id, user_id: userId }).first();
+        if (member?.role !== 'admin') {
+          return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+      }
+
+      await db('study_group_messages').where({ id: messageId }).del();
+      res.json({ success: true, message: 'Message deleted' });
+    } catch (error) {
+      console.error('deleteMessage error:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete message' });
+    }
+  },
+
+  async toggleMessageLike(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id, messageId } = req.params; // id is group id
+      const message = await db('study_group_messages').where({ id: messageId, group_id: id }).first();
+      if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+      const existing = await db('study_group_message_likes').where({ message_id: messageId, user_id: userId }).first();
+      if (existing) {
+        await db('study_group_message_likes').where({ id: existing.id }).del();
+        await db('study_group_messages').where({ id: messageId }).decrement('likes_count', 1);
+        return res.json({ success: true, liked: false });
+      }
+
+      await db('study_group_message_likes').insert({
+        message_id: messageId,
+        user_id: userId,
+        created_at: new Date()
+      });
+      await db('study_group_messages').where({ id: messageId }).increment('likes_count', 1);
+
+      return res.json({ success: true, liked: true });
+    } catch (error) {
+      console.error('toggleMessageLike error:', error);
+      res.status(500).json({ success: false, message: 'Failed to toggle like' });
+    }
+  },
+
+  async reportMessage(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id, messageId } = req.params;
+      const { reason } = req.body || {};
+
+      const message = await db('study_group_messages').where({ id: messageId, group_id: id }).first();
+      if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+      const existing = await db('study_group_message_reports').where({ message_id: messageId, user_id: userId }).first();
+      if (existing) {
+        await db('study_group_message_reports').where({ id: existing.id }).update({ reason: reason || existing.reason, created_at: new Date() });
+      } else {
+        await db('study_group_message_reports').insert({
+          message_id: messageId,
+          user_id: userId,
+          reason: reason || null,
+          created_at: new Date()
+        });
+      }
+
+      return res.json({ success: true, message: 'Reported' });
+    } catch (error) {
+      console.error('reportMessage error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to report message' });
+    }
+  },
+
+  async editMessage(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id, messageId } = req.params;
+      const { content } = req.body;
+
+      if (!content) return res.status(400).json({ success: false, message: 'Content is required' });
+
+      const message = await db('study_group_messages').where({ id: messageId, group_id: id }).first();
+      if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+
+      if (message.user_id !== userId) {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      const [updated] = await db('study_group_messages')
+        .where({ id: messageId })
+        .update({ content, updated_at: new Date() })
+        .returning('*');
+
+      res.json({ success: true, data: { message: updated } });
+    } catch (error) {
+      console.error('editMessage error:', error);
+      res.status(500).json({ success: false, message: 'Failed to edit message' });
     }
   },
 

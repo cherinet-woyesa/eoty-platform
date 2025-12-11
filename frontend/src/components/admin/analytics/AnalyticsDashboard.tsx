@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
 import type { AdminDashboard } from '@/types/admin';
 import MetricsCard from './MetricsCard';
+import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
 import { 
   Users, 
   BookOpen, 
@@ -20,7 +21,8 @@ import {
   Zap,
   Cpu,
   Video,
-  Star
+  Star,
+  Plus
 } from 'lucide-react';
 
 const AnalyticsDashboard: React.FC = () => {
@@ -34,6 +36,7 @@ const AnalyticsDashboard: React.FC = () => {
   const [accuracyScore, setAccuracyScore] = useState<number | null>(null);
   const [isVerifyingAccuracy, setIsVerifyingAccuracy] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'chapters' | 'alerts'>('overview');
 
   useEffect(() => {
@@ -198,6 +201,13 @@ const AnalyticsDashboard: React.FC = () => {
           </span>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setIsCreateEventModalOpen(true)}
+            className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Create Event
+          </button>
           {/* FR5: Accuracy verification button (REQUIREMENT: 99% dashboard accuracy) */}
           <button
             onClick={handleVerifyAccuracy}
@@ -332,7 +342,16 @@ const AnalyticsDashboard: React.FC = () => {
               description="Currently enrolled students"
             />
             <MetricsCard 
-              title="Recorded Videos" 
+              title="New Students" 
+              value={analytics.metrics.users.new_this_week} 
+              change={10}
+              icon={<Users className="h-6 w-6" />}
+              color="blue"
+              trend="up"
+              description="Joined this week"
+            />
+            <MetricsCard 
+              title="Recorded Videos"  
             value={metrics.video_count ?? metrics.content.total} 
               change={8}
               icon={<Video className="h-6 w-6" />}
@@ -671,6 +690,15 @@ const AnalyticsDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      <CreateEventModal
+        isOpen={isCreateEventModalOpen}
+        onClose={() => setIsCreateEventModalOpen(false)}
+        onSuccess={() => {
+          // Optionally refresh analytics if needed
+          fetchAnalytics();
+        }}
+      />
     </div>
   );
 };

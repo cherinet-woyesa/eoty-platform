@@ -18,10 +18,12 @@ import { moderationApi } from './moderation';
 import { assignmentsApi } from './assignments';
 import { aiApi } from './ai';
 import { chaptersApi } from './chapters';
+import { activityApi } from './activity';
 
 // Export apiClient so other modules can import it
 export { apiClient };
 export { aiApi };
+export { activityApi };
 
 // Note: Request/response interceptors are handled in apiClient.ts
 // No duplicate interceptors needed here
@@ -94,6 +96,20 @@ export const authApi = {
     return response.data;
   },
 
+  // Linked accounts
+  listLinkedAccounts: async () => {
+    const response = await apiClient.get('/linked-accounts');
+    return response.data;
+  },
+  connectLinkedAccount: async (provider: string, externalId?: string) => {
+    const response = await apiClient.post('/linked-accounts/connect', { provider, externalId });
+    return response.data;
+  },
+  disconnectLinkedAccount: async (provider: string) => {
+    const response = await apiClient.post('/linked-accounts/disconnect', { provider });
+    return response.data;
+  },
+
   validateToken: async (token: string) => {
     try {
       // Make a request to a protected endpoint to validate the token
@@ -153,9 +169,9 @@ export const authApi = {
 
 // Enhanced Courses API (with role checking)
 export const coursesApi = {
-  // Get teacher's courses
-  getCourses: async () => {
-    const response = await apiClient.get('/courses');
+  // Get teacher's courses (supports filters/sort/pagination)
+  getCourses: async (params: Record<string, any> = {}) => {
+    const response = await apiClient.get('/courses', { params });
     return response.data;
   },
 
@@ -686,5 +702,6 @@ export default {
   relatedVideos: relatedVideosApi,
   recordingPresets: recordingPresetsApi,
   landing: landingApi,
-  chapters: chaptersApi
+  chapters: chaptersApi,
+  activity: activityApi
 };

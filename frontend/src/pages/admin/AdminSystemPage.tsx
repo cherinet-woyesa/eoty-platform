@@ -6,7 +6,6 @@ import AdminActivityLogs from './AdminActivityLogs';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Lazy load components
-const MuxMigration = React.lazy(() => import('./MuxMigration'));
 const LandingPageEditor = React.lazy(() => import('./LandingPageEditor'));
 const KnowledgeBaseManager = React.lazy(() => import('./KnowledgeBaseManager'));
 
@@ -17,7 +16,7 @@ const PageLoader = () => (
 );
 
 const AdminSystemPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'mux' | 'landing' | 'knowledge'>('landing');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'landing' | 'knowledge'>('landing');
 
   return (
     <div className="w-full h-full">
@@ -70,17 +69,6 @@ const AdminSystemPage: React.FC = () => {
               <span className="text-sm">Activity Logs</span>
             </button>
             <button
-              onClick={() => setActiveTab('mux')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'mux'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              <Video className="h-4 w-4" />
-              <span className="text-sm">Mux Migration</span>
-            </button>
-            <button
               onClick={() => setActiveTab('analytics')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'analytics'
@@ -108,13 +96,6 @@ const AdminSystemPage: React.FC = () => {
             {activeTab === 'logs' && (
               <div className="animate-in fade-in duration-300">
                 <AdminActivityLogs />
-              </div>
-            )}
-            {activeTab === 'mux' && (
-              <div className="animate-in fade-in duration-300 h-full">
-                <Suspense fallback={<PageLoader />}>
-                  <MuxMigration />
-                </Suspense>
               </div>
             )}
             {activeTab === 'landing' && (

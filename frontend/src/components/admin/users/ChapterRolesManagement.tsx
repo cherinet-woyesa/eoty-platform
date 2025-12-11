@@ -9,6 +9,7 @@ import { useNotification } from '@/context/NotificationContext';
 import chapterRolesApi, { ChapterRole, RegionalCoordinator } from '@/services/api/chapterRoles';
 import { chaptersApi } from '@/services/api/chapters';
 import { adminApi } from '@/services/api/admin';
+import { brandColors } from '@/theme/brand';
 
 interface Chapter {
   id: number;
@@ -39,8 +40,8 @@ const ChapterRolesManagement: React.FC = () => {
   const [sortBy, setSortBy] = useState<'chapter' | 'user'>('chapter');
   const [regionFilter, setRegionFilter] = useState<string>('');
   const [countryFilter, setCountryFilter] = useState<string>('');
-  const [countryOptions, setCountryOptions] = useState<string[]>(['ethiopia', 'united states', 'canada', 'united kingdom', 'germany', 'france', 'italy', 'spain', 'kenya', 'nigeria', 'south africa', 'india', 'philippines', 'australia', 'brazil', 'mexico', 'other']);
-  const [regionOptions, setRegionOptions] = useState<string[]>(['africa', 'europe', 'north america', 'south america', 'asia', 'oceania', 'antarctica', 'other']);
+  const [countryOptions, setCountryOptions] = useState<string[]>([]);
+  const [regionOptions, setRegionOptions] = useState<string[]>([]);
 
   // Assignment form state
   const [showAssignForm, setShowAssignForm] = useState(false);
@@ -53,34 +54,20 @@ const ChapterRolesManagement: React.FC = () => {
     loadData();
   }, []);
 
-  // Load dynamic country/region lists with fallback
+  // Load dynamic country/region lists from backend
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
+    const fetchLocations = async () => {
       try {
-        const res = await fetch('https://restcountries.com/v3.1/all');
-        if (!res.ok) throw new Error('countries fetch failed');
-        const data = await res.json();
-        if (cancelled) return;
-        const countries = Array.from(
-          new Set(
-            data.map((c: any) => c.name?.common).filter(Boolean)
-          )
-        ).sort((a: string, b: string) => a.localeCompare(b));
-        const regions = Array.from(
-          new Set(
-            data.map((c: any) => (c.region || '').toLowerCase()).filter(Boolean)
-          )
-        ).sort();
-        if (countries.length) setCountryOptions(countries.map((c: string) => c.toLowerCase()));
-        if (regions.length) setRegionOptions(regions);
+        const data = await chaptersApi.getLocations();
+        if (data.success) {
+          setCountryOptions(data.data.countries.map((c: string) => c.toLowerCase()));
+          setRegionOptions(data.data.regions.map((r: string) => r.toLowerCase()));
+        }
       } catch (err) {
-        console.warn('Country/region fetch failed, using fallback', err);
+        console.warn('Country/region fetch failed', err);
       }
-    })();
-    return () => {
-      cancelled = true;
     };
+    fetchLocations();
   }, []);
 
   const loadData = async () => {
@@ -97,6 +84,17 @@ const ChapterRolesManagement: React.FC = () => {
       const usersResponse = await adminApi.getUsers();
       if (usersResponse.success) {
         setUsers(usersResponse.data.users);
+      }
+
+      // Load all chapter roles
+      const rolesResponse = await chapterRolesApi.getAllChapterRoles();
+      if (rolesResponse.success) {
+        const mappedRoles = rolesResponse.data.roles.map((role: any) => ({
+          ...role,
+          user_name: `${role.first_name} ${role.last_name}`,
+          user_email: role.email
+        }));
+        setChapterRoles(mappedRoles);
       }
 
       // Load regional coordinators
@@ -290,7 +288,7 @@ const ChapterRolesManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -305,13 +303,18 @@ const ChapterRolesManagement: React.FC = () => {
               placeholder="Search user, chapter, or role..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+              style={{ 
+                '--tw-ring-color': brandColors.primaryHex,
+                borderColor: searchTerm ? brandColors.primaryHex : undefined
+              } as React.CSSProperties}
             />
           </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as 'all' | 'chapter_admin' | 'regional_coordinator')}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <option value="all">All Roles</option>
             <option value="chapter_admin">Chapter Admin</option>
@@ -320,7 +323,8 @@ const ChapterRolesManagement: React.FC = () => {
           <select
             value={regionFilter}
             onChange={(e) => setRegionFilter(e.target.value.toLowerCase())}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <option value="">All Regions</option>
             {regionOptions.map((r) => (
@@ -330,7 +334,8 @@ const ChapterRolesManagement: React.FC = () => {
           <select
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value.toLowerCase())}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <option value="">All Countries</option>
             {countryOptions.map((c) => (
@@ -339,13 +344,15 @@ const ChapterRolesManagement: React.FC = () => {
           </select>
           <button
             onClick={() => setSortBy(sortBy === 'chapter' ? 'user' : 'chapter')}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/60"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             Sort by {sortBy === 'chapter' ? 'Chapter' : 'User'}
           </button>
           <button
             onClick={() => setShowAssignForm(true)}
-            className="inline-flex items-center justify-center px-4 py-2 bg-[#1F7A4C] text-white text-sm font-medium rounded-lg hover:bg-[#17623D] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+            className="inline-flex items-center justify-center px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ backgroundColor: brandColors.primaryHex, '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <UserCog className="w-4 h-4 mr-2" />
             Assign Role
@@ -379,12 +386,69 @@ const ChapterRolesManagement: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <MapPin className="w-8 h-8 text-[#1F7A4C]" />
+            <MapPin className="w-8 h-8" style={{ color: brandColors.primaryHex }} />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Chapters</p>
               <p className="text-2xl font-bold text-gray-900">{chapters.length}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Chapter Admins Section */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Chapter Admins</h3>
+          <p className="text-sm text-gray-600">Users managing specific chapters</p>
+        </div>
+
+        <div className="p-6">
+          {chapterRoles.filter(r => r.role === 'chapter_admin').length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No chapter admins assigned yet</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {chapterRoles.filter(r => r.role === 'chapter_admin').map((admin) => (
+                <div key={admin.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${brandColors.primaryHex}20` }}>
+                          {getRoleIcon(admin.role)}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {admin.user_name}
+                        </h4>
+                        <p className="text-sm text-gray-500">{admin.user_email}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveRole(
+                        admin.id,
+                        admin.user_id,
+                        admin.chapter_id,
+                        admin.role
+                      )}
+                      disabled={actionLoading === `remove-${admin.id}`}
+                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                    >
+                      {actionLoading === `remove-${admin.id}` ? 'Removing...' : 'Remove'}
+                    </button>
+                  </div>
+                  <div className="mt-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(admin.role)}`}>
+                      {getRoleIcon(admin.role)}
+                      <span className="ml-1">{getRoleDisplayName(admin.role)}</span>
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {admin.chapter_name} - {admin.chapter_location}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -405,7 +469,7 @@ const ChapterRolesManagement: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${brandColors.primaryHex}20` }}>
                           {getRoleIcon(coordinator.role)}
                         </div>
                       </div>
@@ -458,7 +522,8 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
                   >
                     <option value="">Select a user...</option>
@@ -475,7 +540,8 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedChapter}
                     onChange={(e) => setSelectedChapter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
                   >
                     <option value="">Select a chapter...</option>
@@ -492,7 +558,8 @@ const ChapterRolesManagement: React.FC = () => {
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value as 'chapter_admin' | 'regional_coordinator')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1F7A4C]/40 focus:border-[#1F7A4C]/50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
                   >
                     <option value="chapter_admin">Chapter Admin</option>
@@ -516,7 +583,11 @@ const ChapterRolesManagement: React.FC = () => {
                   <button
                     type="submit"
                     disabled={actionLoading === 'assign'}
-                    className="px-4 py-2 bg-[#1F7A4C] text-white rounded-lg hover:bg-[#17623D] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#A3E6C4]"
+                    className="px-4 py-2 text-white rounded-lg disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                    style={{ 
+                      backgroundColor: brandColors.primaryHex,
+                      '--tw-ring-color': brandColors.primaryHex 
+                    } as React.CSSProperties}
                   >
                     {actionLoading === 'assign' ? 'Assigning...' : 'Assign Role'}
                   </button>

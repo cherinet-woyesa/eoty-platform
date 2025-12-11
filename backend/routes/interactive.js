@@ -47,6 +47,10 @@ router.get('/progress', interactiveController.getUserProgress);
 router.get('/quiz-attempts/:attemptId/results', interactiveController.getQuizResults);
 
 // Notification routes
+router.get('/announcements/global', interactiveController.getGlobalAnnouncements);
+router.get('/events/global', interactiveController.getGlobalEvents);
+router.post('/events/:eventId/rsvp', interactiveController.rsvpGlobalEvent);
+router.get('/events/:eventId/rsvp', interactiveController.getGlobalEventRsvp);
 router.get('/notifications', interactiveController.getUserNotifications);
 router.post('/notifications/read', interactiveController.markNotificationAsRead);
 

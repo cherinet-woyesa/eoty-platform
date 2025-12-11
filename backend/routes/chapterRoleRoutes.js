@@ -80,4 +80,10 @@ router.get('/permissions/:userId',
   ChapterRoleController.getUserEffectivePermissions
 );
 
+// Get all chapter roles
+router.get('/all',
+  requirePermission('user:view'),
+  ChapterRoleController.getAllChapterRoles
+);
+
 module.exports = router;

@@ -20,12 +20,29 @@ interface User {
   bio?: string;
   phone?: string;
   location?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zipCode?: string;
   specialties?: string[];
   teachingExperience?: number;
   education?: string;
   interests?: string[];
   learningGoals?: string;
   dateOfBirth?: string | null;
+  profileVisibility?: 'public' | 'friends' | 'private';
+  linksPublicDefault?: boolean;
+  allowLinkedProfiles?: boolean;
+  shareLocation?: boolean;
+  preferredPublicLocation?: string;
+  timeZone?: string;
+  socialLinks?: { label?: string; url: string; visible?: boolean }[];
+  recentMedia?: { url: string; title?: string; visible?: boolean }[];
+  linkedAccounts?: { provider: string; connected: boolean }[];
+  locationConsent?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   profileCompletion?: {
     percentage: number;
     completedFields: number;
@@ -511,7 +528,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       case 'teacher':
         return '/teacher/dashboard';
       default:
-        return '/student/dashboard';
+        return '/member/dashboard';
     }
   };
 
@@ -532,8 +549,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return isRoleOrHigher('teacher');
     }
 
-    // Student routes - accessible by all authenticated users
-    if (normalizedPath.startsWith('/student')) {
+    // Member (formerly student) routes - accessible by all authenticated users
+    if (normalizedPath.startsWith('/member') || normalizedPath.startsWith('/student')) {
       return true;
     }
 

@@ -213,6 +213,27 @@ class ChapterRoleController {
       });
     }
   }
+
+  /**
+   * Get all chapter role assignments
+   * GET /api/admin/chapter-roles/all
+   */
+  static async getAllChapterRoles(req, res) {
+    try {
+      const roles = await ChapterRoleService.getAllChapterRoles();
+
+      res.json({
+        success: true,
+        data: { roles }
+      });
+    } catch (error) {
+      console.error('Error getting all chapter roles:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get all chapter roles'
+      });
+    }
+  }
 }
 
 module.exports = ChapterRoleController;

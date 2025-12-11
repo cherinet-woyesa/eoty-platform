@@ -60,7 +60,7 @@ const interactiveController = {
       // Get user's attempt status for each quiz
       const quizzesWithAttempts = await Promise.all(
         quizzes.map(async (quiz) => {
-          const userAttempt = await db('user_quiz_attempts')
+          const userAttempt = await db('quiz_attempts')
             .where({ user_id: userId, quiz_id: quiz.id })
             .select('score', 'max_score', 'is_completed', 'completed_at')
             .orderBy('created_at', 'desc')
@@ -179,7 +179,7 @@ const interactiveController = {
       }
 
       // Check if user has attempts remaining
-      const previousAttempts = await db('user_quiz_attempts')
+      const previousAttempts = await db('quiz_attempts')
         .where({ user_id: userId, quiz_id: quizId })
         .count('* as count')
         .first();
@@ -192,7 +192,7 @@ const interactiveController = {
       }
 
       // Save attempt
-      const [inserted] = await db('user_quiz_attempts').insert({
+      const [inserted] = await db('quiz_attempts').insert({
         user_id: userId,
         quiz_id: quizId,
         score,
@@ -407,7 +407,7 @@ const interactiveController = {
       };
 
       if (quizIds.length > 0) {
-        const attemptsAggregate = await db('user_quiz_attempts')
+        const attemptsAggregate = await db('quiz_attempts')
           .whereIn('quiz_id', quizIds)
           .select(
             db.raw('COUNT(*) as total_attempts'),
@@ -493,7 +493,7 @@ const interactiveController = {
       const { quizId } = req.params;
       const userId = req.user.userId;
 
-      const attempts = await db('user_quiz_attempts')
+      const attempts = await db('quiz_attempts')
         .where({ user_id: userId, quiz_id: quizId })
         .select('*')
         .orderBy('completed_at', 'desc');
@@ -1128,7 +1128,7 @@ const interactiveController = {
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
         .leftJoin('user_lesson_progress as ulp', function() {
           this.on('l.id', '=', 'ulp.lesson_id')
-              .andOn('ulp.user_id', '=', userId);
+              .andOnVal('ulp.user_id', '=', userId);
         })
         .select(
           'c.id as course_id',
@@ -1141,7 +1141,7 @@ const interactiveController = {
           'ulp.last_accessed_at'
         )
         .orderBy('c.id')
-        .orderBy('l.order_number');
+        .orderBy('l.order');
 
       // Group by course
       const courses = {};
@@ -1184,9 +1184,9 @@ const interactiveController = {
 
       // Get quiz progress
       const quizProgress = await db('quizzes as q')
-        .leftJoin('user_quiz_attempts as uqa', function() {
+        .leftJoin('quiz_attempts as uqa', function() {
           this.on('q.id', '=', 'uqa.quiz_id')
-              .andOn('uqa.user_id', '=', userId);
+              .andOnVal('uqa.user_id', '=', userId);
         })
         .leftJoin('lessons as l', 'q.lesson_id', 'l.id')
         .select(
@@ -1236,7 +1236,7 @@ const interactiveController = {
       }
 
       // Get user's previous attempts
-      const previousAttempts = await db('user_quiz_attempts')
+      const previousAttempts = await db('quiz_attempts')
         .where({ user_id: userId, quiz_id: quizId })
         .count('* as count')
         .first();
@@ -1277,7 +1277,7 @@ const interactiveController = {
       const userId = req.user.userId;
 
       // Get the attempt
-      const attempt = await db('user_quiz_attempts')
+      const attempt = await db('quiz_attempts')
         .where({ id: attemptId, user_id: userId })
         .first();
 
@@ -1300,6 +1300,115 @@ const interactiveController = {
         success: false,
         message: 'Failed to fetch quiz results'
       });
+    }
+  },
+
+  // Get global announcements
+  async getGlobalAnnouncements(req, res) {
+    try {
+      const announcements = await db('announcements')
+        .where('is_active', true)
+        .where(function() {
+          this.where('type', 'global')
+            .orWhereNull('type');
+        })
+        .where(function() {
+          this.whereNull('expires_at')
+            .orWhere('expires_at', '>', new Date());
+        })
+        .orderBy('created_at', 'desc')
+        .limit(10);
+
+      res.json({
+        success: true,
+        data: { announcements }
+      });
+    } catch (error) {
+      console.error('Get global announcements error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch announcements'
+      });
+    }
+  },
+
+  // Get global events
+  async getGlobalEvents(req, res) {
+    try {
+      const events = await db('events')
+        .where('is_cancelled', false)
+        .where(function() {
+          this.where('type', 'global')
+            .orWhereNull('type');
+        })
+        .where('start_time', '>=', new Date())
+        .orderBy('start_time', 'asc')
+        .limit(10);
+
+      res.json({
+        success: true,
+        data: { events }
+      });
+    } catch (error) {
+      console.error('Get global events error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch events'
+      });
+    }
+  },
+
+  // RSVP to global event
+  async rsvpGlobalEvent(req, res) {
+    try {
+      const { eventId } = req.params;
+      const { status } = req.body; // 'going', 'maybe', 'not_going'
+      const userId = req.user.userId;
+
+      // Check if event exists
+      const event = await db('events').where({ id: eventId }).first();
+      if (!event) {
+        return res.status(404).json({ success: false, message: 'Event not found' });
+      }
+
+      // Check existing RSVP
+      const existing = await db('global_event_attendance')
+        .where({ event_id: eventId, user_id: userId })
+        .first();
+
+      if (existing) {
+        await db('global_event_attendance')
+          .where({ id: existing.id })
+          .update({ status, updated_at: new Date() });
+      } else {
+        await db('global_event_attendance').insert({
+          event_id: eventId,
+          user_id: userId,
+          status
+        });
+      }
+
+      res.json({ success: true, message: 'RSVP updated' });
+    } catch (error) {
+      console.error('RSVP error:', error);
+      res.status(500).json({ success: false, message: 'Failed to update RSVP' });
+    }
+  },
+
+  // Get user's RSVP status for an event
+  async getGlobalEventRsvp(req, res) {
+    try {
+      const { eventId } = req.params;
+      const userId = req.user.userId;
+
+      const rsvp = await db('global_event_attendance')
+        .where({ event_id: eventId, user_id: userId })
+        .first();
+
+      res.json({ success: true, data: { status: rsvp ? rsvp.status : null } });
+    } catch (error) {
+      console.error('Get RSVP error:', error);
+      res.status(500).json({ success: false, message: 'Failed to get RSVP status' });
     }
   },
 

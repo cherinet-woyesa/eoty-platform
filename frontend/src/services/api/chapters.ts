@@ -33,6 +33,7 @@ export interface UserChapter {
   status: 'pending' | 'approved' | 'rejected';
   joined_at: string;
   chapter_name?: string;
+  name?: string;
   location?: string;
   country?: string;
   city?: string;
@@ -52,8 +53,8 @@ export const chaptersApi = {
     return response.data;
   },
 
-  getMembers: async (chapterId: number) => {
-    const response = await apiClient.get(`/chapters/${chapterId}/members`);
+  getLocations: async () => {
+    const response = await apiClient.get('/chapters/locations');
     return response.data;
   },
 
@@ -67,6 +68,14 @@ export const chaptersApi = {
    */
   getUserChapters: async () => {
     const response = await apiClient.get('/chapters/user');
+    return response.data;
+  },
+
+  /**
+   * Get members of a chapter
+   */
+  getMembers: async (chapterId: number) => {
+    const response = await apiClient.get(`/chapters/${chapterId}/members`);
     return response.data;
   },
 

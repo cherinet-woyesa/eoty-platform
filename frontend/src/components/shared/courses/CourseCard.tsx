@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { 
   BookOpen, Users, Clock, PlayCircle, Edit3, Video, 
@@ -36,13 +37,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
   onPublish 
 }) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const role = user?.role;
   const baseCoursePath =
     role === 'admin'
       ? '/admin/courses'
       : role === 'teacher'
       ? '/teacher/courses'
-      : '/student/courses';
+      : '/member/courses';
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -134,7 +136,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="h-3 w-3" />
-                    <span>{course.student_count} students</span>
+                    <span>{t('common.student_count', { count: course.student_count })}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Clock className="h-3 w-3" />
@@ -316,12 +318,12 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <div className="bg-blue-50 rounded-md p-2 hover:bg-blue-100 transition-colors">
             <Video className="h-3 w-3 text-blue-600 mx-auto mb-1" />
             <div className="text-sm font-bold text-gray-900">{course.lesson_count}</div>
-            <div className="text-xs text-gray-500">Lessons</div>
+            <div className="text-xs text-gray-500">{t('common.lessons')}</div>
           </div>
           <div className="bg-purple-50 rounded-md p-2 hover:bg-purple-100 transition-colors">
             <Users className="h-3 w-3 text-purple-600 mx-auto mb-1" />
             <div className="text-sm font-bold text-gray-900">{course.student_count}</div>
-            <div className="text-xs text-gray-500">Students</div>
+            <div className="text-xs text-gray-500">{t('common.students')}</div>
           </div>
           <div className="bg-green-50 rounded-md p-2 hover:bg-green-100 transition-colors">
             <Clock className="h-3 w-3 text-green-600 mx-auto mb-1" />

@@ -1,7 +1,4 @@
-/**
- * FR7: Localization Settings Page
- * REQUIREMENT: City/country-based content filters, UI translations
- */
+
 
 import React, { useState, useEffect } from 'react';
 import { Globe, MapPin, Calendar, DollarSign, Save, Check, Clock } from 'lucide-react';

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import { communityPostsApi } from '../../../services/api/communityPosts';
 import { useAuth } from '../../../context/AuthContext';
+import { brandColors } from '@/theme/brand';
 
 interface Comment {
   id: string;
@@ -36,6 +37,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const normalizeId = (id: string | number | null | undefined) => (id != null ? String(id) : '');
 
   const loadComments = async () => {
     try {
@@ -78,14 +82,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }
   };
 
-  const handleAddReply = async (parentCommentId: string) => {
+  const handleAddReply = async (parentCommentId: string | number) => {
+    const parentId = normalizeId(parentCommentId);
     if (!replyContent.trim() || !user) return;
 
     try {
       setSubmitting(true);
       const response = await communityPostsApi.addComment(postId, {
         content: replyContent.trim(),
-        parentCommentId: parentCommentId // Ensure this matches the backend expectation
+        parentCommentId: parentId // Ensure this matches the backend expectation
       });
 
       if (response.success) {
@@ -101,7 +106,29 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleStartEdit = (commentId: string | number, content: string) => {
+    setEditingCommentId(normalizeId(commentId));
+    setEditContent(content);
+  };
+
+  const handleUpdateComment = async () => {
+    if (!editingCommentId || !editContent.trim() || !user) return;
+    try {
+      setSubmitting(true);
+      const response = await communityPostsApi.updateComment(editingCommentId, { content: editContent.trim() });
+      if (response.success) {
+        await loadComments();
+        setEditingCommentId(null);
+        setEditContent('');
+      }
+    } catch (error) {
+      console.error('Failed to update comment:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string | number) => {
     if (!user) return;
 
     try {
@@ -127,7 +154,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     return date.toLocaleDateString();
   };
 
-  const CommentItem: React.FC<{ comment: Comment; isReply?: boolean }> = ({ comment, isReply = false }) => (
+  const CommentItem: React.FC<{ comment: Comment; isReply?: boolean }> = ({ comment, isReply = false }) => {
+    const commentId = normalizeId(comment.id);
+    const isMyComment = user && normalizeId(comment.author_id) === normalizeId(user.id);
+    const isEditing = editingCommentId === commentId;
+    const isReplying = replyingTo === commentId;
+
+    return (
     <div className={`${isReply ? 'ml-8 mt-3' : 'mb-4'} flex space-x-3`}>
       <div className="flex-shrink-0">
         {comment.author_avatar ? (
@@ -137,7 +170,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             className="w-8 h-8 rounded-full object-cover border border-gray-200"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+          >
             <span className="text-white text-sm font-medium">
               {comment.author_name.charAt(0).toUpperCase()}
             </span>
@@ -155,26 +191,71 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               <span className="text-xs text-gray-500">
                 {formatDate(comment.created_at)}
               </span>
-              {user && comment.author_id === user.id && (
-                <button
-                  onClick={() => handleDeleteComment(comment.id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+              {isMyComment && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(comment.id, comment.content)}
+                    className="text-gray-400 hover:text-[color:#1e1b4b] transition-colors"
+                    aria-label="Edit comment"
+                    title="Edit comment"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    aria-label="Delete comment"
+                    title="Delete comment"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </>
               )}
             </div>
           </div>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">
-            {comment.content}
-          </p>
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b]"
+                rows={2}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUpdateComment}
+                  disabled={!editContent.trim() || submitting}
+                  className="px-3 py-1 text-white text-xs rounded-md disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: brandColors.primaryHex }}
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingCommentId(null);
+                    setEditContent('');
+                  }}
+                  className="px-3 py-1 text-xs rounded-md border border-gray-200 text-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              {comment.content}
+            </p>
+          )}
         </div>
 
         {!isReply && (
           <div className="flex items-center space-x-4 mt-1 ml-3">
             <button
-              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-              className="text-xs text-gray-500 hover:text-[#27AE60] transition-colors flex items-center space-x-1"
+              type="button"
+              onClick={() => setReplyingTo(isReplying ? null : commentId)}
+              className="text-xs text-gray-500 hover:text-[color:#1e1b4b] transition-colors flex items-center space-x-1"
             >
               <Reply className="w-3 h-3" />
               <span>Reply</span>
@@ -183,7 +264,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         )}
 
         {/* Reply form */}
-        {replyingTo === comment.id && (
+        {isReplying && (
           <div className="mt-3 ml-3 pl-3 border-l-2 border-gray-200">
             <div className="flex space-x-2">
               <input
@@ -191,7 +272,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder={`Reply to ${comment.author_name}...`}
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:bg-white transition-all"
+                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:bg-white transition-all"
                 autoFocus
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -201,9 +282,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 }}
               />
               <button
+                type="button"
                 onClick={() => handleAddReply(comment.id)}
                 disabled={!replyContent.trim() || submitting}
-                className="p-2 bg-[#27AE60] text-white rounded-full hover:bg-[#219150] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                className="p-2 text-white rounded-full hover:bg-[color:#312e81] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -222,13 +305,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       </div>
     </div>
   );
+  };
 
   return (
     <div className="border-t border-gray-100 pt-4">
       {/* Comments toggle */}
       <button
+        type="button"
         onClick={() => setShowComments(!showComments)}
-        className="flex items-center space-x-2 text-sm text-gray-600 hover:text-[#27AE60] transition-colors mb-3"
+            className="flex items-center space-x-2 text-sm text-gray-600 hover:text-[color:#1e1b4b] transition-colors mb-3"
       >
         <MessageCircle className="w-4 h-4" />
         <span>{commentCount} {commentCount === 1 ? 'Comment' : 'Comments'}</span>
@@ -246,7 +331,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#27AE60] to-[#16A085] flex items-center justify-center shadow-sm">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
+                style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+              >
                 <span className="text-white text-sm font-bold">
                   {user.firstName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                 </span>
@@ -260,7 +348,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="w-full pl-4 pr-12 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:bg-white transition-all"
+              className="w-full pl-4 pr-12 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:bg-white transition-all"
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -269,9 +357,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               }}
             />
             <button
+              type="button"
               onClick={handleAddComment}
               disabled={!newComment.trim() || submitting}
-              className="absolute right-1 top-1 p-1.5 bg-[#27AE60] text-white rounded-full hover:bg-[#219150] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              className="absolute right-1 top-1 p-1.5 text-white rounded-full hover:bg-[color:#312e81] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <Send className="w-4 h-4" />
             </button>
@@ -284,7 +374,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         <div className="space-y-4">
           {loading ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#27AE60] mx-auto"></div>
+              <div
+                className="animate-spin rounded-full h-6 w-6 border-b-2 mx-auto"
+                style={{ borderColor: brandColors.primaryHex, borderBottomColor: 'transparent' }}
+              ></div>
             </div>
           ) : comments.length > 0 ? (
             comments.map((comment) => (

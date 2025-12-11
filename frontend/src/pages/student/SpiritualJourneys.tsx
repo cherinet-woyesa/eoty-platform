@@ -147,7 +147,7 @@ const SpiritualJourneys: React.FC = () => {
                   
                   <div className="flex items-center justify-between">
                     <button 
-                      onClick={() => navigate(`/student/journeys/${journey.id}`)}
+                      onClick={() => navigate(`/member/journeys/${journey.id}`)}
                       className="inline-flex px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-2"
                     >
                       {t('spiritual_journeys.continue_journey')}

@@ -67,7 +67,11 @@ export const communityPostsApi = {
 
   // Comments functionality
   addComment: async (postId: string, data: { content: string; parentCommentId?: string }) => {
-    const response = await apiClient.post(`/community/posts/${postId}/comments`, data);
+    const payload = {
+      content: data.content,
+      parent_comment_id: data.parentCommentId
+    };
+    const response = await apiClient.post(`/community/posts/${postId}/comments`, payload);
     return response.data;
   },
 
@@ -78,6 +82,11 @@ export const communityPostsApi = {
 
   deleteComment: async (commentId: string) => {
     const response = await apiClient.delete(`/community/comments/${commentId}`);
+    return response.data;
+  },
+
+  updateComment: async (commentId: string, data: { content: string }) => {
+    const response = await apiClient.put(`/community/comments/${commentId}`, data);
     return response.data;
   },
 

@@ -9,7 +9,9 @@ import {
   Brain,
   FolderTree,
   TrendingUp,
-  Globe
+  Globe,
+  Calendar,
+  Megaphone
 } from 'lucide-react';
 
 export interface NavItem {
@@ -79,6 +81,16 @@ export const adminNavItems: NavItem[] = [
     badge: null,
     description: 'nav.content_desc',
     color: 'text-[#F39C12]',
+    requiredRole: 'chapter_admin',
+    section: 'primary',
+  },
+  {
+    name: 'nav.communications',
+    href: '/admin/communications',
+    icon: Megaphone,
+    badge: null,
+    description: 'nav.communications_desc',
+    color: 'text-[#3498DB]',
     requiredRole: 'chapter_admin',
     section: 'primary',
   },
@@ -229,7 +241,7 @@ export const studentNavItems: NavItem[] = [
   // PRIMARY NAVIGATION - Core items, always visible (Top 6 → Reduced to 6)
   {
     name: 'nav.dashboard',
-    href: '/student/dashboard',
+    href: '/member/dashboard',
     icon: LayoutDashboard,
     badge: null,
     description: 'nav.dashboard_desc',
@@ -239,7 +251,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.courses',
-    href: '/student/all-courses',
+    href: '/member/all-courses',
     icon: BookOpen,
     badge: null,
     description: 'nav.courses_desc',
@@ -249,7 +261,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.learning',
-    href: '/student/learning',
+    href: '/member/learning',
     icon: TrendingUp,
     badge: null,
     description: 'nav.learning_desc',
@@ -259,7 +271,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.ai_assistant',
-    href: '/student/ai-assistant',
+    href: '/member/ai-assistant',
     icon: Brain,
     badge: null,
     description: 'nav.ai_assistant_desc',
@@ -269,7 +281,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.community',
-    href: '/student/community-hub',
+    href: '/member/community-hub',
     icon: Users,
     badge: null,
     description: 'nav.community_desc',
@@ -279,7 +291,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.chapters',
-    href: '/student/chapters',
+    href: '/member/chapters',
     icon: Globe,
     badge: null,
     description: 'nav.chapters_desc',
@@ -289,7 +301,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.resources',
-    href: '/student/all-resources',
+    href: '/member/all-resources',
     icon: FolderTree,
     badge: null,
     description: 'nav.resources_desc',

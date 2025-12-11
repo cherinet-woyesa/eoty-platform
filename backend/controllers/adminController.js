@@ -421,7 +421,7 @@ const adminController = {
 
       // Handle role update
       if (role !== undefined) {
-        const validRoles = ['student', 'teacher', 'admin', 'chapter_admin', 'regional_coordinator'];
+        const validRoles = ['student', 'teacher', 'admin', 'chapter_admin', 'regional_coordinator', 'moderator'];
         if (!validRoles.includes(role)) {
           return res.status(400).json({
             success: false,
@@ -1390,6 +1390,24 @@ const adminController = {
         ? JSON.parse(snapshot.metrics) 
         : snapshot.metrics;
       
+      // Calculate real-time active users (users who logged in within last 30 days)
+      const activeUsersCount = await db('users')
+        .where('last_login', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .count('id as count')
+        .first();
+      
+      // Calculate new users this week
+      const newUsersCount = await db('users')
+        .where('created_at', '>=', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+        .count('id as count')
+        .first();
+
+      // Update metrics with real-time data
+      if (metrics && metrics.users) {
+        metrics.users.active = parseInt(activeUsersCount.count);
+        metrics.users.new_this_week = parseInt(newUsersCount.count);
+      }
+
       const chapterComparison = typeof snapshot.chapter_comparison === 'string'
         ? JSON.parse(snapshot.chapter_comparison)
         : snapshot.chapter_comparison;
@@ -2742,8 +2760,8 @@ const adminController = {
         });
       }
 
-      // Validate role (should be one of: admin, teacher, user)
-      const validRoles = ['admin', 'teacher', 'user'];
+      // Validate role (should be one of: admin, teacher, user, student, regional_coordinator, chapter_admin)
+      const validRoles = ['admin', 'teacher', 'user', 'student', 'regional_coordinator', 'chapter_admin'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,
@@ -2804,8 +2822,8 @@ const adminController = {
         });
       }
 
-      // Validate role (should be one of: admin, teacher, user)
-      const validRoles = ['admin', 'teacher', 'user'];
+      // Validate role (should be one of: admin, teacher, user, student, regional_coordinator, chapter_admin)
+      const validRoles = ['admin', 'teacher', 'user', 'student', 'regional_coordinator', 'chapter_admin'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,

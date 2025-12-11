@@ -292,7 +292,7 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2.5 text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg font-medium transition-colors"
+            className="px-6 py-2.5 bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 rounded-lg font-medium transition-colors"
           >
             ❌ Cancel
           </button>
@@ -300,11 +300,11 @@ const NotesEditor: React.FC<NotesEditorProps> = ({
             type="button"
             onClick={handleSave}
             disabled={!content.trim() || isSaving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-900 hover:bg-indigo-800 text-white border border-indigo-800 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
           >
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-900"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 💾 Saving...
               </>
             ) : (

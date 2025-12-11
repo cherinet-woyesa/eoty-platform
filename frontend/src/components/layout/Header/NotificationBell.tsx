@@ -4,6 +4,10 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { interactiveApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 
+interface NotificationBellProps {
+  onDark?: boolean;
+}
+
 interface Notification {
   id: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'message' | 'achievement';
@@ -15,7 +19,7 @@ interface Notification {
   sender?: string;
 }
 
-const NotificationBell: React.FC = () => {
+const NotificationBell: React.FC<NotificationBellProps> = ({ onDark = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -187,10 +191,16 @@ const NotificationBell: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleToggleDropdown}
-        className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        className={`relative p-1.5 rounded-lg transition-colors duration-200 group focus:outline-none focus:ring-2 ${
+          onDark ? 'hover:bg-white/10 focus:ring-white/30' : 'hover:bg-gray-100 focus:ring-blue-500/20'
+        }`}
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
       >
-        <Bell className="h-4 w-4 text-gray-600 group-hover:text-blue-600 transition-colors" />
+        <Bell
+          className={`h-4 w-4 transition-colors ${
+            onDark ? 'text-white group-hover:text-white' : 'text-gray-600 group-hover:text-blue-600'
+          }`}
+        />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center font-semibold animate-pulse shadow-sm">
             {unreadCount > 9 ? '9+' : unreadCount}

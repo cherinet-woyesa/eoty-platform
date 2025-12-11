@@ -31,13 +31,15 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
   useEffect(() => {
     // Check if this is a new user (just signed up)
     const showProfileCompletion = localStorage.getItem('show_profile_completion');
+    const sessionNotificationShown = sessionStorage.getItem('profile_notification_shown');
     
-    if (show && user && !hasCheckedNewUser.current) {
+    if (show && user && !hasCheckedNewUser.current && !sessionNotificationShown) {
       hasCheckedNewUser.current = true;
       
       // If new user, show welcome notification with profile completion prompt
       if (showProfileCompletion === 'true') {
         localStorage.removeItem('show_profile_completion');
+        sessionStorage.setItem('profile_notification_shown', 'true');
         
         // Clear previous timeout if exists
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -64,7 +66,7 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
     }
 
     // Show profile completion reminder if profile is incomplete
-    if (show && user && user.profileCompletion && !hasShownNotification.current) {
+    if (show && user && user.profileCompletion && !hasShownNotification.current && !sessionNotificationShown) {
       const { percentage, isComplete } = user.profileCompletion;
       
       // Only show if profile is not complete (less than 80%) and not a new user
@@ -72,6 +74,7 @@ const ProfileCompletionNotification: React.FC<ProfileCompletionNotificationProps
         // Clear previous timeout if exists
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
+        sessionStorage.setItem('profile_notification_shown', 'true');
         timeoutRef.current = setTimeout(() => {
           showNotification({
             type: 'info',

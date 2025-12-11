@@ -5,6 +5,7 @@ export interface Resource {
   file_name: string;
   file_type: string;
   file_path: string;
+  file_url?: string;
   file_size?: string;
   author?: string;
   category: string;

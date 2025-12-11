@@ -39,9 +39,9 @@ const CommunitySidebar: React.FC<SidebarProps> = ({
   return (
     <div className="space-y-6">
       {/* Main Navigation */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('common.menu') || 'Menu'}</h3>
+      <div className="bg-[#1e1b4b] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-white/10">
+          <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">{t('common.menu') || 'Menu'}</h3>
         </div>
         <nav className="p-2 space-y-1">
           {navItems.map((item) => (
@@ -50,11 +50,11 @@ const CommunitySidebar: React.FC<SidebarProps> = ({
               onClick={() => onTabChange(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === item.id
-                  ? 'bg-[#27AE60]/10 text-[#27AE60]'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-white text-[#1e1b4b]'
+                  : 'text-white/90 hover:bg-white/10'
               }`}
             >
-              <item.icon className={`h-5 w-5 ${activeTab === item.id ? 'text-[#27AE60]' : 'text-gray-400'}`} />
+              <item.icon className={`h-5 w-5 ${activeTab === item.id ? 'text-[#1e1b4b]' : 'text-white/70'}`} />
               {item.label}
             </button>
           ))}
@@ -62,9 +62,9 @@ const CommunitySidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Topics / Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Topics</h3>
+      <div className="bg-[#1e1b4b] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-white/10">
+          <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">Topics</h3>
         </div>
         <nav className="p-2 space-y-1">
           {topics.map((topic) => (
@@ -73,11 +73,11 @@ const CommunitySidebar: React.FC<SidebarProps> = ({
               onClick={() => onFilterChange(topic.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 activeFilter === topic.id
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-white text-[#1e1b4b]'
+                  : 'text-white/90 hover:bg-white/10'
               }`}
             >
-              <topic.icon className={`h-4 w-4 ${activeFilter === topic.id ? 'text-blue-600' : 'text-gray-400'}`} />
+              <topic.icon className={`h-4 w-4 ${activeFilter === topic.id ? 'text-[#1e1b4b]' : 'text-white/70'}`} />
               {topic.label}
             </button>
           ))}

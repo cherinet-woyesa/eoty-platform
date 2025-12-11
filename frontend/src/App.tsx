@@ -17,6 +17,7 @@ import Forums from '@/pages/shared/social/Forums';
 import ForumTopics from '@/pages/shared/social/ForumTopics';
 import CreateForum from '@/pages/shared/social/CreateForum';
 import TopicDetail from '@/pages/shared/social/TopicDetail';
+import DiscussionThread from '@/pages/shared/social/DiscussionThread';
 import CreateTopic from '@/pages/shared/social/CreateTopic';
 import Achievements from '@/pages/shared/social/Achievements';
 import TeacherAchievements from '@/pages/teacher/TeacherAchievements';
@@ -81,8 +82,10 @@ import TeacherResourcePage from '@/pages/teacher/TeacherResourcePage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminContentPage from '@/pages/admin/AdminContentPage';
 import AdminSystemPage from '@/pages/admin/AdminSystemPage';
+import AdminCommunicationsPage from '@/pages/admin/AdminCommunicationsPage';
 import Invitations from '@/pages/student/Invitations';
 import StudentAssignments from '@/pages/student/Assignments';
+import DonationPage from '@/pages/shared/DonationPage';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
@@ -183,9 +186,11 @@ function AppContent() {
   }
 
   return (
-    <div className="App w-full h-full">
-      <Routes>
+    <Suspense fallback={<PageLoader />}>
+      <div className="App w-full h-full">
+        <Routes>
         {/* Public routes */}
+        <Route path="/donate" element={<DonationPage />} />
         <Route 
           path="/login" 
           element={
@@ -194,6 +199,8 @@ function AppContent() {
             </PublicRoute>
           } 
         />
+        {/* Normalize capitalized login URL to avoid blank screen */}
+        <Route path="/Login" element={<Navigate to="/login" replace />} />
         <Route
           path="/register"
           element={
@@ -243,9 +250,9 @@ function AppContent() {
           } 
         />
         
-        {/* Student Dashboard */}
+        {/* Member Dashboard (renamed from Student) */}
         <Route 
-          path="/student/dashboard" 
+          path="/member/dashboard" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -267,11 +274,11 @@ function AppContent() {
           } 
         />
 
-        {/* ========== CONSOLIDATED STUDENT PAGES ========== */}
+        {/* ========== CONSOLIDATED MEMBER PAGES (was student) ========== */}
         
         {/* Consolidated Courses Page - My Courses | Browse | Bookmarks */}
         <Route 
-          path="/student/all-courses" 
+          path="/member/all-courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -283,7 +290,7 @@ function AppContent() {
         
         {/* Consolidated Learning Page - Progress | Assignments | Paths | Achievements */}
         <Route 
-          path="/student/learning" 
+          path="/member/learning" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -295,7 +302,7 @@ function AppContent() {
         
         {/* Consolidated Community Page - Feed | Groups | Forums | Chapters */}
         <Route 
-          path="/student/community-hub" 
+          path="/member/community-hub" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -307,7 +314,7 @@ function AppContent() {
         
         {/* Consolidated Resources Page - Library | Help */}
         <Route 
-          path="/student/all-resources" 
+          path="/member/all-resources" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -319,9 +326,9 @@ function AppContent() {
 
         {/* ========== LEGACY STUDENT ROUTES (Keep for backward compatibility) ========== */}
 
-        {/* Student Courses - Browse catalog (students only) */}
+        {/* Member Courses - Browse catalog (renamed from student) */}
         <Route 
-          path="/student/browse-courses" 
+          path="/member/browse-courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -331,7 +338,7 @@ function AppContent() {
           } 
         />
         
-        {/* Course Catalog - Alias for student browse courses */}
+        {/* Course Catalog - Alias for member browse courses */}
         <Route 
           path="/catalog" 
           element={
@@ -349,9 +356,9 @@ function AppContent() {
           element={<DynamicCourses />}
         />
         
-        {/* Student Course Routes - Specific routes before parameterized ones */}
+        {/* Member Course Routes - Specific routes before parameterized ones */}
         <Route 
-          path="/student/courses" 
+          path="/member/courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -362,7 +369,7 @@ function AppContent() {
         />
         
         <Route 
-          path="/student/my-courses" 
+          path="/member/my-courses" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -373,7 +380,7 @@ function AppContent() {
         />
         
         <Route 
-          path="/student/courses/:courseId" 
+          path="/member/courses/:courseId" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -384,7 +391,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/videos" 
+          path="/member/videos" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -395,7 +402,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/progress" 
+          path="/member/progress" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -406,7 +413,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/achievements" 
+          path="/member/achievements" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -417,7 +424,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/journeys" 
+          path="/member/journeys" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -428,7 +435,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/journeys/:id" 
+          path="/member/journeys/:id" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -439,7 +446,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/chapters/map" 
+          path="/member/chapters/map" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -449,9 +456,9 @@ function AppContent() {
           } 
         />
 
-        {/* New Student Routes */}
+        {/* New Member Routes */}
         <Route 
-          path="/student/learning-paths" 
+          path="/member/learning-paths" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -462,7 +469,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/bookmarks" 
+          path="/member/bookmarks" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -473,7 +480,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/study-groups" 
+          path="/member/study-groups" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -484,7 +491,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/study-groups/:groupId" 
+          path="/member/study-groups/:groupId" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -495,7 +502,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/help" 
+          path="/member/help" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -506,7 +513,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/profile" 
+          path="/member/profile" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -516,7 +523,7 @@ function AppContent() {
           } 
         />
         <Route
-          path="/student/invitations"
+          path="/member/invitations"
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -526,9 +533,9 @@ function AppContent() {
           }
         />
 
-        {/* Legacy student routes - redirect to namespaced routes */}
-        <Route path="/courses/:courseId" element={<Navigate to={`/student/courses/${window.location.pathname.split('/')[2]}`} replace />} />
-        <Route path="/progress" element={<Navigate to="/student/progress" replace />} />
+        {/* Legacy student routes - redirect to member routes */}
+        <Route path="/courses/:courseId" element={<Navigate to={`/member/courses/${window.location.pathname.split('/')[2]}`} replace />} />
+        <Route path="/progress" element={<Navigate to="/member/progress" replace />} />
         <Route 
           path="/achievements" 
           element={
@@ -790,7 +797,7 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/student/ai-assistant" 
+          path="/member/ai-assistant" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -800,7 +807,7 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/student/assignments" 
+          path="/member/assignments" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -929,6 +936,18 @@ function AppContent() {
           } 
         />
 
+        {/* Admin Communications Page */}
+        <Route 
+          path="/admin/communications" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminCommunicationsPage />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
         {/* ========== LEGACY ADMIN ROUTES (Keep for backward compatibility) ========== */}
 
         <Route 
@@ -970,6 +989,17 @@ function AppContent() {
             <AdminRoute>
               <DashboardLayout>
                 <ModerationTools />
+              </DashboardLayout>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/courses/create" 
+          element={
+            <AdminRoute>
+              <DashboardLayout>
+                <AdminCreateCourse />
               </DashboardLayout>
             </AdminRoute>
           } 
@@ -1122,7 +1152,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/forums" 
+          path="/member/forums" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -1185,6 +1215,17 @@ function AppContent() {
         />
 
         <Route
+          path="/forums/:discussionId/thread"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <DiscussionThread />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/forums/:forumId/new-topic"
           element={
             <ProtectedRoute>
@@ -1218,7 +1259,7 @@ function AppContent() {
         />
 
         <Route 
-          path="/student/community" 
+          path="/member/community" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -1240,7 +1281,7 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/student/resources" 
+          path="/member/resources" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -1292,7 +1333,7 @@ function AppContent() {
           } 
         />
         <Route 
-          path="/student/chapters" 
+          path="/member/chapters" 
           element={
             <StudentRoute>
               <DashboardLayout>
@@ -1418,14 +1459,15 @@ function AppContent() {
             </div>
           } 
         />
-      </Routes>
-      
-      {/* Floating AI Chat - Only show for authenticated users */}
-      {user && <FloatingAIChat />}
-      
-      {/* Profile Completion Notification - Show for new users, but not on landing page */}
-      {user && location.pathname !== '/' && <ProfileCompletionNotification show={true} />}
-    </div>
+        </Routes>
+        
+        {/* Floating AI Chat - Only show for authenticated users */}
+        {user && <FloatingAIChat />}
+        
+        {/* Profile Completion Notification - Show for new users, but not on landing page */}
+        {user && location.pathname !== '/' && <ProfileCompletionNotification show={true} />}
+      </div>
+    </Suspense>
   );
 }
 

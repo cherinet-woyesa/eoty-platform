@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/api/apiClient';
 import { 
   PlayCircle, Clock, Users, Star, BookOpen, ArrowRight, Eye, 
@@ -37,6 +38,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
   compact = false,
   onCourseAction 
 }) => {
+  const { t } = useTranslation();
   const [bookmarkedCourses, setBookmarkedCourses] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'progress' | 'recent' | 'title' | 'difficulty'>('recent');
   const [filterBy, setFilterBy] = useState<'all' | 'in-progress' | 'completed' | 'not-started'>('all');
@@ -177,14 +179,14 @@ const CourseGrid: React.FC<CourseGridProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-stone-800 flex items-center">
             <BookOpen className="h-5 w-5 mr-2 text-stone-600" />
-            My Courses ({filteredAndSortedCourses.length})
+            {t('student.course_grid.my_courses')} ({filteredAndSortedCourses.length})
           </h3>
           <div className="flex items-center space-x-2">
             <div className="relative">
               <Search className="h-4 w-4 text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search courses..."
+                placeholder={t('student.course_grid.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 pr-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
@@ -194,7 +196,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               to="/courses"
               className="text-sm text-[#27AE60] hover:text-[#16A085] font-medium flex items-center"
             >
-              View All
+              {t('student.course_grid.view_all')}
               <ArrowRight className="h-4 w-4 ml-1" />
             </Link>
           </div>
@@ -218,14 +220,14 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                     </span>
                     {course.isFeatured && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                        ⭐ Featured
+                        ⭐ {t('student.course_grid.featured')}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                     <div className="flex items-center space-x-1">
                       <PlayCircle className="h-3 w-3" />
-                      <span>{course.completedLessons}/{course.totalLessons} lessons</span>
+                      <span>{course.completedLessons}/{course.totalLessons} {t('student.course_grid.lessons')}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Star className="h-3 w-3 text-yellow-500" />
@@ -246,9 +248,9 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                       ></div>
                     </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>{course.progress}% complete</span>
+                      <span>{course.progress}% {t('student.course_grid.complete')}</span>
                       {course.progress === 100 && (
-                        <span className="text-green-600 font-medium">Completed! 🎉</span>
+                        <span className="text-green-600 font-medium">{t('student.course_grid.completed_exclamation')}</span>
                       )}
                     </div>
                   </div>
@@ -267,7 +269,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                     />
                   </button>
                   <Link
-                    to={`/student/courses/${course.id}`}
+                    to={`/member/courses/${course.id}`}
                     className="p-2 text-gray-400 hover:text-[#27AE60] transition-colors rounded-lg hover:bg-[#27AE60]/10"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -281,17 +283,17 @@ const CourseGrid: React.FC<CourseGridProps> = ({
           <div className="text-center py-8">
             <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 mb-2">
-              {searchQuery ? 'No courses match your search' : 'No courses enrolled yet'}
+              {searchQuery ? t('student.course_grid.no_match') : t('student.course_grid.no_enrolled')}
             </p>
             <p className="text-gray-400 text-sm mb-4">
-              {searchQuery ? 'Try adjusting your search terms' : 'Start your learning journey today'}
+              {searchQuery ? t('student.course_grid.adjust_search') : t('student.course_grid.start_journey')}
             </p>
             <Link
-              to="/student/browse-courses"
+              to="/member/browse-courses"
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              {searchQuery ? 'Browse All Courses' : 'Browse Available Courses'}
+              {searchQuery ? t('student.course_grid.browse_all') : t('student.course_grid.browse_available')}
             </Link>
           </div>
         )}
@@ -300,16 +302,16 @@ const CourseGrid: React.FC<CourseGridProps> = ({
         {filteredAndSortedCourses.length > 0 && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
             <div className="flex items-center space-x-2 text-sm">
-              <span className="text-gray-500">Filter:</span>
+              <span className="text-gray-500">{t('student.course_grid.filter_label')}</span>
               <select
                 value={filterBy}
                 onChange={(e) => setFilterBy(e.target.value as any)}
                 className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
               >
-                <option value="all">All Courses</option>
-                <option value="not-started">Not Started</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
+                <option value="all">{t('student.course_grid.filter_all')}</option>
+                <option value="not-started">{t('student.course_grid.filter_not_started')}</option>
+                <option value="in-progress">{t('student.course_grid.filter_in_progress')}</option>
+                <option value="completed">{t('student.course_grid.filter_completed')}</option>
               </select>
             </div>
             {searchQuery && (
@@ -317,7 +319,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 onClick={() => setSearchQuery('')}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
-                Clear search
+                {t('student.course_grid.clear_search')}
               </button>
             )}
           </div>
@@ -330,9 +332,9 @@ const CourseGrid: React.FC<CourseGridProps> = ({
     <div className="bg-gradient-to-br from-stone-50 to-neutral-50 rounded-xl p-6 border border-stone-200/50 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
         <div>
-          <h2 className="text-xl font-bold text-stone-800">My Courses</h2>
+          <h2 className="text-xl font-bold text-stone-800">{t('student.course_grid.my_courses')}</h2>
           <p className="text-stone-600 mt-1">
-            {filteredAndSortedCourses.length} course{filteredAndSortedCourses.length !== 1 ? 's' : ''} • Continue your learning journey
+            {filteredAndSortedCourses.length} course{filteredAndSortedCourses.length !== 1 ? 's' : ''} • {t('student.course_grid.continue_journey_desc')}
           </p>
         </div>
         
@@ -342,7 +344,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search courses..."
+              placeholder={t('student.course_grid.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-48"
@@ -355,10 +357,10 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             onChange={(e) => setSortBy(e.target.value as any)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="recent">Recently Accessed</option>
-            <option value="progress">Progress</option>
-            <option value="title">Title</option>
-            <option value="difficulty">Difficulty</option>
+            <option value="recent">{t('student.course_grid.sort_recent')}</option>
+            <option value="progress">{t('student.course_grid.sort_progress')}</option>
+            <option value="title">{t('student.course_grid.sort_title')}</option>
+            <option value="difficulty">{t('student.course_grid.sort_difficulty')}</option>
           </select>
 
           {/* Filter */}
@@ -367,10 +369,10 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             onChange={(e) => setFilterBy(e.target.value as any)}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
           >
-            <option value="all">All Courses</option>
-            <option value="not-started">Not Started</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
+            <option value="all">{t('student.course_grid.filter_all')}</option>
+            <option value="not-started">{t('student.course_grid.filter_not_started')}</option>
+            <option value="in-progress">{t('student.course_grid.filter_in_progress')}</option>
+            <option value="completed">{t('student.course_grid.filter_completed')}</option>
           </select>
 
           <Link
@@ -378,7 +380,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             className="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 text-sm font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             <BookOpen className="h-4 w-4 mr-2" />
-            Browse Courses
+            {t('student.course_grid.browse_courses')}
           </Link>
         </div>
       </div>
@@ -409,7 +411,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 {course.isFeatured && (
                   <div className="absolute top-2 left-2">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500 text-white">
-                      ⭐ Featured
+                      ⭐ {t('student.course_grid.featured')}
                     </span>
                   </div>
                 )}
@@ -434,7 +436,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 {/* Progress Overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1">
                   <div className="flex justify-between items-center">
-                    <span>Progress</span>
+                    <span>{t('student.course_grid.sort_progress')}</span>
                     <span>{course.progress}%</span>
                   </div>
                   <div className="w-full bg-white/30 rounded-full h-1 mt-1">
@@ -472,7 +474,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 
                 {/* Instructor */}
                 <div className="flex items-center text-xs text-stone-500 mb-3">
-                  <span>by {course.instructor}</span>
+                  <span>{t('student.course_grid.by')} {course.instructor}</span>
                 </div>
                 
                 {/* Metadata */}
@@ -480,11 +482,11 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <Users className="h-3 w-3" />
-                      <span>{course.studentCount.toLocaleString()} students</span>
+                      <span>{course.studentCount.toLocaleString()} {t('student.course_grid.students')}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <PlayCircle className="h-3 w-3" />
-                      <span>{course.totalLessons} lessons</span>
+                      <span>{course.totalLessons} {t('student.course_grid.lessons')}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -526,7 +528,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 hover:shadow-lg transition-all"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {course.progress === 100 ? 'Review' : course.progress > 0 ? 'Continue' : 'Start'}
+                      {course.progress === 100 ? t('student.course_grid.action_review') : course.progress > 0 ? t('student.course_grid.action_continue') : t('student.course_grid.action_start')}
                     </Link>
                     
                     {course.progress === 100 && (
@@ -535,7 +537,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                         className="text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center space-x-1"
                       >
                         <Download className="h-3 w-3" />
-                        <span>Certificate</span>
+                        <span>{t('student.course_grid.action_certificate')}</span>
                       </button>
                     )}
                   </div>
@@ -560,12 +562,12 @@ const CourseGrid: React.FC<CourseGridProps> = ({
         <div className="text-center py-12">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {searchQuery ? 'No courses found' : 'No courses yet'}
+            {searchQuery ? t('student.course_grid.no_found') : t('student.course_grid.no_yet')}
           </h3>
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
             {searchQuery 
-              ? 'No courses match your search criteria. Try adjusting your filters or search terms.'
-              : 'Start your learning journey by enrolling in courses that match your interests and goals.'
+              ? t('student.course_grid.no_match_desc')
+              : t('student.course_grid.start_journey_desc')
             }
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -574,7 +576,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
             >
               <BookOpen className="h-5 w-5 mr-2" />
-              Explore Courses
+              {t('student.course_grid.explore_courses')}
             </Link>
             {searchQuery && (
               <button
@@ -585,7 +587,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
                 }}
                 className="inline-flex items-center px-6 py-3 bg-stone-100 text-stone-700 font-medium rounded-lg hover:bg-stone-200 transition-colors"
               >
-                Clear Filters
+                {t('student.course_grid.clear_filters')}
               </button>
             )}
           </div>
@@ -599,7 +601,7 @@ const CourseGrid: React.FC<CourseGridProps> = ({
             to="/courses"
             className="inline-flex items-center text-sm text-[#27AE60] hover:text-[#16A085] font-medium"
           >
-            View All Courses
+            {t('student.course_grid.view_all_courses')}
             <ArrowRight className="h-4 w-4 ml-1" />
           </Link>
         </div>

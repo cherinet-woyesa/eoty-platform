@@ -27,11 +27,11 @@ const DynamicDashboard: React.FC = () => {
   }
 
   if (user?.role === 'user' || user?.role === 'student') {
-    return <Navigate to={`/student/dashboard${search}`} replace />;
+    return <Navigate to={`/member/dashboard${search}`} replace />;
   }
 
-  // Fallback for unknown roles - redirect to student dashboard
-  return <Navigate to={`/student/dashboard${search}`} replace />;
+  // Fallback for unknown roles - redirect to member dashboard
+  return <Navigate to={`/member/dashboard${search}`} replace />;
 };
 
 export default DynamicDashboard;

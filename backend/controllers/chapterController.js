@@ -33,6 +33,23 @@ const chapterController = {
     }
   },
 
+  // Get available locations (countries/regions)
+  async getLocations(req, res) {
+    try {
+      const locations = await chapterService.getLocations();
+      res.json({
+        success: true,
+        data: locations
+      });
+    } catch (error) {
+      console.error('Get locations error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch locations'
+      });
+    }
+  },
+
   // Get chapter by ID
   async getChapterById(req, res) {
     try {

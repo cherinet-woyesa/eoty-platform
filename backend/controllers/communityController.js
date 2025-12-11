@@ -121,13 +121,20 @@ exports.fetchPosts = async (req, res) => {
     console.log('🔄 fetchPosts called');
     console.log('👤 User:', req.user ? req.user.userId : 'No user');
 
-    // Fetch posts with author_id alias
-    const posts = await db('community_posts')
-      .select('*', 'user_id as author_id')
-      .orderBy('created_at', 'desc')
+    // Fetch posts with latest author profile info
+    const posts = await db('community_posts as p')
+      .leftJoin('users as u', 'p.user_id', 'u.id')
+      .select(
+        'p.*',
+        'p.user_id as author_id',
+        'u.first_name as author_first_name',
+        'u.last_name as author_last_name',
+        'u.profile_picture as author_profile_picture'
+      )
+      .orderBy('p.created_at', 'desc')
       .limit(200);
 
-    // If user is logged in, check which posts they liked
+    // If user is logged in, check which posts they liked and bookmarked
     if (req.user && posts.length > 0) {
       const postIds = posts.map(p => p.id);
       const userLikes = await db('community_post_likes')
@@ -136,13 +143,40 @@ exports.fetchPosts = async (req, res) => {
         .select('post_id');
       
       const likedPostIds = new Set(userLikes.map(l => l.post_id));
+
+      // Check bookmarks
+      const userBookmarks = await db('bookmarks')
+        .where('user_id', req.user.userId)
+        .where('entity_type', 'community_post')
+        .whereIn('entity_id', postIds)
+        .select('entity_id');
+      
+      const bookmarkedPostIds = new Set(userBookmarks.map(b => b.entity_id));
       
       posts.forEach(post => {
+        // prefer live profile/name if available
+        const liveName = `${post.author_first_name || ''} ${post.author_last_name || ''}`.trim();
+        if (liveName) {
+          post.author_name = liveName;
+        }
+        if (post.author_profile_picture) {
+          post.author_avatar = post.author_profile_picture;
+        }
+
         post.liked_by_user = likedPostIds.has(post.id);
+        post.is_bookmarked = bookmarkedPostIds.has(post.id);
       });
     } else {
       posts.forEach(post => {
+        const liveName = `${post.author_first_name || ''} ${post.author_last_name || ''}`.trim();
+        if (liveName) {
+          post.author_name = liveName;
+        }
+        if (post.author_profile_picture) {
+          post.author_avatar = post.author_profile_picture;
+        }
         post.liked_by_user = false;
+        post.is_bookmarked = false;
       });
     }
 
@@ -283,7 +317,7 @@ exports.toggleLike = async (req, res) => {
 exports.addComment = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { content, parentCommentId } = req.body;
+    const { content, parentCommentId, parent_comment_id } = req.body;
     const user = req.user;
 
     if (!content || content.trim().length === 0) {
@@ -306,7 +340,11 @@ exports.addComment = async (req, res) => {
       author_name: authorName,
       author_avatar: authorAvatar,
       content,
-      parent_comment_id: parentCommentId ? parseInt(parentCommentId) : null,
+      parent_comment_id: parentCommentId
+        ? parseInt(parentCommentId)
+        : parent_comment_id
+        ? parseInt(parent_comment_id)
+        : null,
       created_at: new Date(),
       updated_at: new Date()
     }).returning('*');
@@ -333,15 +371,30 @@ exports.fetchComments = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Fetch comments (parent comments first, then replies)
-    const comments = await db('community_post_comments')
+    // Fetch comments (parent comments first, then replies) with live author info
+    const comments = await db('community_post_comments as c')
+      .leftJoin('users as u', 'c.author_id', 'u.id')
       .where({ post_id: postId })
-      .orderBy('created_at', 'asc')
-      .select('*');
+      .orderBy('c.created_at', 'asc')
+      .select(
+        'c.*',
+        'u.first_name as author_first_name',
+        'u.last_name as author_last_name',
+        'u.profile_picture as author_profile_picture'
+      );
 
     // Organize comments into parent and replies
-    const parentComments = comments.filter(c => !c.parent_comment_id);
-    const replies = comments.filter(c => c.parent_comment_id);
+    const withLiveAuthors = comments.map(c => {
+      const liveName = `${c.author_first_name || ''} ${c.author_last_name || ''}`.trim();
+      return {
+        ...c,
+        author_name: liveName || c.author_name,
+        author_avatar: c.author_profile_picture || c.author_avatar
+      };
+    });
+
+    const parentComments = withLiveAuthors.filter(c => !c.parent_comment_id);
+    const replies = withLiveAuthors.filter(c => c.parent_comment_id);
 
     // Attach replies to parent comments
     const commentsWithReplies = parentComments.map(parent => ({
@@ -401,6 +454,42 @@ exports.deleteComment = async (req, res) => {
   } catch (error) {
     console.error('deleteComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete comment' });
+  }
+};
+
+exports.updateComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+    const user = req.user;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Comment content is required' });
+    }
+
+    const comment = await db('community_post_comments').where({ id: commentId }).first();
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    if (comment.author_id !== user.userId) {
+      return res.status(403).json({ success: false, message: 'You can only edit your own comments' });
+    }
+
+    const [updated] = await db('community_post_comments')
+      .where({ id: commentId })
+      .update(
+        {
+          content: content.trim(),
+          updated_at: new Date()
+        },
+        '*'
+      );
+
+    return res.json({ success: true, data: { comment: updated } });
+  } catch (error) {
+    console.error('updateComment error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update comment' });
   }
 };
 

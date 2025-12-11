@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Users, User, Globe, Send, MessageCircle } from 'lucide-react';
 import { chaptersApi } from '../../../services/api/chapters';
 import { communityPostsApi } from '../../../services/api/communityPosts';
@@ -105,7 +106,13 @@ const ShareModal: React.FC<ShareModalProps> = ({
       }
     } catch (error: any) {
       console.error('Share error:', error);
-      setError(error.response?.data?.message || error.message || 'Failed to share post');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to share post';
+      
+      if (errorMessage.toLowerCase().includes('already shared')) {
+        setError('You have already shared this post with this destination.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -113,9 +120,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[85vh] overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-y-auto relative">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Share Post</h2>
@@ -132,7 +139,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
           {/* Post Preview */}
           <div className="bg-gray-50 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#27AE60] to-[#16A085] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#1e1b4b] to-[#312e81] flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user?.firstName?.charAt(0) || 'U'}
                 </span>
@@ -251,7 +258,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Add a message..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-[#1e1b4b] resize-none"
               />
             </div>
           </div>
@@ -267,14 +274,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2 bg-white text-[#1e1b4b] border border-[#1e1b4b]/20 hover:border-[#1e1b4b]/40 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleShare}
               disabled={loading || (shareType === 'chapter' && !selectedChapter) || (shareType === 'user' && !selectedUser)}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-[#1e1b4b] text-white border border-[#1e1b4b] hover:bg-[#312e81] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -288,7 +295,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   BookOpen, Search, Users, Clock, Star, 
   TrendingUp, PlayCircle, Award, AlertCircle,
   Loader2, Heart, HeartOff, LogOut, Filter,
   CheckCircle, BarChart3, Calendar, Bookmark
 } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 import { apiClient } from '@/services/api/apiClient';
-import { useAuth } from '@/context/AuthContext';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
@@ -32,91 +32,153 @@ interface EnrolledCourse {
   is_bookmarked?: boolean;
 }
 
+interface CourseStats {
+  total: number;
+  inProgress: number;
+  completed: number;
+  favorites: number;
+  avgProgress: number;
+}
+
 const StudentEnrolledCourses: React.FC = () => {
-  const { user } = useAuth();
+  const { t } = useTranslation();
   const { showNotification } = useNotification();
   const { confirm } = useConfirmDialog();
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'in-progress' | 'completed' | 'favorites'>('all');
+  const [sortBy, setSortBy] = useState<'title' | 'progress' | 'last_accessed'>('last_accessed');
   const [showRatingModal, setShowRatingModal] = useState<number | null>(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [compact, setCompact] = useState(false);
+  const [nextLessonMap, setNextLessonMap] = useState<Record<number, { id: number; title: string }>>({});
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [stats, setStats] = useState<CourseStats>({
+    total: 0,
+    inProgress: 0,
+    completed: 0,
+    favorites: 0,
+    avgProgress: 0
+  });
+  
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Debounce searchTerm
   useEffect(() => {
-    loadEnrolledCourses();
-  }, []);
+    const id = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
 
-  const loadEnrolledCourses = async () => {
+  // Reset and reload when filters change
+  useEffect(() => {
+    setPage(1);
+    setCourses([]);
+    setHasMore(true);
+    loadEnrolledCourses(1, true);
+  }, [debouncedSearch, filterStatus, sortBy]);
+
+  const loadEnrolledCourses = async (pageNum: number, reset = false) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get('/students/dashboard');
+      
+      const response = await apiClient.get('/students/enrolled-courses', {
+        params: {
+          page: pageNum,
+          limit: 12,
+          search: debouncedSearch,
+          status: filterStatus,
+          sort: sortBy
+        }
+      });
       
       if (response.data.success) {
-        const rawCourses = response.data.data?.enrolledCourses || [];
-        const normalized = rawCourses
-          // drop unenrolled/dropped from the view
-          .filter((c: any) => (c.enrollment_status || c.status || 'active') !== 'dropped')
-          .map((c: any) => {
-            const progress = c.progress_percentage ?? c.progress ?? 0;
-            const enrollmentStatus = c.enrollment_status || c.status || (progress >= 100 ? 'completed' : 'active');
-            return {
-              id: c.id,
-              title: c.title,
-              description: c.description || '',
-              cover_image: c.cover_image ?? c.coverImage ?? null,
-              category: c.category || 'General',
-              level: c.level || 'All levels',
-              lesson_count: Number(c.lesson_count ?? c.totalLessons ?? 0),
-              student_count: Number(c.student_count ?? 0),
-              progress_percentage: Number(progress),
-              enrollment_status: enrollmentStatus,
-              enrolled_at: c.enrolled_at || '',
-              last_accessed_at: c.last_accessed_at || '',
-              completed_at: c.completed_at || (progress >= 100 ? new Date().toISOString() : null),
-              created_by_name: c.created_by_name || '',
-              user_rating: c.user_rating,
-            is_favorite: Boolean(c.is_favorite ?? c.isFavorite ?? false),
-            is_bookmarked: Boolean(c.is_bookmarked ?? c.isBookmarked ?? false)
-            } as EnrolledCourse;
-          });
-        setCourses(normalized);
+        const { courses: newCourses, pagination, nextLessons, stats: newStats } = response.data.data;
+        
+        setCourses(prev => reset ? newCourses : [...prev, ...newCourses]);
+        setNextLessonMap(prev => ({ ...prev, ...nextLessons }));
+        setStats(newStats);
+        setHasMore(pagination.page < pagination.pages);
       }
     } catch (err) {
       console.error('Failed to load enrolled courses:', err);
-      setError('Failed to load your courses. Please try again.');
+      setError(t('enrolled_courses.error.load_failed'));
     } finally {
       setLoading(false);
     }
   };
 
+  // Infinite scroll observer
+  const lastCourseElementRef = React.useCallback((node: HTMLDivElement) => {
+    if (loading) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => {
+          const nextPage = prevPage + 1;
+          loadEnrolledCourses(nextPage, false);
+          return nextPage;
+        });
+      }
+    });
+    
+    if (node) observerRef.current.observe(node);
+  }, [loading, hasMore]);
+
   const handleUnenroll = async (courseId: number, courseTitle: string) => {
     const confirmed = await confirm({
-      title: 'Unenroll',
-      message: `Are you sure you want to unenroll from "${courseTitle}"? Your progress will be saved.`,
-      confirmText: 'Unenroll',
-      cancelText: 'Keep enrolled'
+      title: t('enrolled_courses.unenroll.title'),
+      message: t('enrolled_courses.unenroll.message', { title: courseTitle }),
+      confirmText: t('enrolled_courses.unenroll.confirm'),
+      cancelText: t('common.cancel')
     });
     if (!confirmed) return;
 
     try {
       await apiClient.post(`/courses/${courseId}/unenroll`);
-      await loadEnrolledCourses();
+      // Reload current view
+      loadEnrolledCourses(1, true);
+      setPage(1);
+      
       // Notify other parts of the app (catalog) to refresh enrollment badges
       window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
-      showNotification('success', 'Unenrolled', 'You have been unenrolled. Progress is saved.');
+      showNotification({ 
+        type: 'success', 
+        title: t('enrolled_courses.unenrolled_title'), 
+        message: t('enrolled_courses.unenrolled_message') 
+      });
     } catch (err: any) {
       console.error('Failed to unenroll:', err);
-      showNotification('error', 'Error', err.response?.data?.message || 'Failed to unenroll. Please try again.');
+      showNotification({ 
+        type: 'error', 
+        title: t('common.error'), 
+        message: err.response?.data?.message || t('enrolled_courses.unenrolled_error') 
+      });
     }
   };
 
-  const handleToggleFavorite = async (courseId: number) => {
+  const handleToggleFavorite = async (courseId: number, title: string) => {
     const target = courses.find(c => c.id === courseId);
     const currentlyFav = Boolean(target?.is_favorite);
+
+    const ok = await confirm({
+      title: currentlyFav ? t('enrolled_courses.favorite_remove_title') : t('enrolled_courses.favorite_add_title'),
+      message: currentlyFav
+        ? t('enrolled_courses.favorite_remove_message', { title })
+        : t('enrolled_courses.favorite_add_message', { title }),
+      confirmText: currentlyFav ? t('enrolled_courses.remove_favorite') : t('enrolled_courses.add_favorite'),
+      cancelText: t('common.cancel')
+    });
+    if (!ok) return;
 
     // Optimistic toggle for immediate UI feedback
     setCourses(prev =>
@@ -127,52 +189,59 @@ const StudentEnrolledCourses: React.FC = () => {
       const endpoint = currentlyFav ? 'unfavorite' : 'favorite';
       const res = await apiClient.post(`/courses/${courseId}/${endpoint}`);
 
-      // Sync with backend after request
-      await loadEnrolledCourses();
-      showNotification('success', 'Updated', res?.data?.message || (currentlyFav ? 'Removed from favorites' : 'Added to favorites'));
+      // Update stats if needed, but maybe not strictly necessary for UX
+      showNotification({ 
+        type: 'success', 
+        title: t('common.success'), 
+        message: res?.data?.message || (currentlyFav ? t('enrolled_courses.favorite_removed') : t('enrolled_courses.favorite_added')) 
+      });
     } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
       const message = err.response?.data?.message || '';
-
-      // If already favorited, treat as success and attempt unfavorite
-      if (!currentlyFav && message.toLowerCase().includes('already in favorites')) {
-        try {
-          const res = await apiClient.post(`/courses/${courseId}/unfavorite`);
-          await loadEnrolledCourses();
-          showNotification('success', 'Updated', res?.data?.message || 'Removed from favorites');
-          return;
-        } catch (e) {
-          console.error('Fallback unfavorite failed:', e);
-        }
-      }
 
       // Revert optimistic change on failure
       setCourses(prev =>
         prev.map(c => c.id === courseId ? { ...c, is_favorite: currentlyFav } : c)
       );
-      await loadEnrolledCourses();
-      showNotification('error', 'Error', message || 'Failed to update favorite status');
+      showNotification({ type: 'error', title: t('common.error'), message: message || t('enrolled_courses.favorite_error') });
     }
   };
 
-  const handleToggleBookmark = async (courseId: number) => {
+  const handleToggleBookmark = async (courseId: number, title: string) => {
+    const target = courses.find(c => c.id === courseId);
+    const currentlyBookmarked = Boolean(target?.is_bookmarked);
+
+    const ok = await confirm({
+      title: currentlyBookmarked ? t('enrolled_courses.bookmark_remove_title') : t('enrolled_courses.bookmark_add_title'),
+      message: currentlyBookmarked
+        ? t('enrolled_courses.bookmark_remove_message', { title })
+        : t('enrolled_courses.bookmark_add_message', { title }),
+      confirmText: currentlyBookmarked ? t('enrolled_courses.remove_bookmark') : t('enrolled_courses.add_bookmark'),
+      cancelText: t('common.cancel')
+    });
+    if (!ok) return;
+
     // Optimistic toggle
     setCourses(prev =>
-      prev.map(c => c.id === courseId ? { ...c, is_bookmarked: !c.is_bookmarked } : c)
+      prev.map(c => c.id === courseId ? { ...c, is_bookmarked: !currentlyBookmarked } : c)
     );
     try {
       await apiClient.post('/bookmarks/toggle', {
         entityType: 'course',
         entityId: courseId
       });
-      await loadEnrolledCourses();
+      showNotification({
+        type: 'success',
+        title: t('common.success'),
+        message: currentlyBookmarked ? t('enrolled_courses.bookmark_removed') : t('enrolled_courses.bookmark_added')
+      });
     } catch (err) {
       console.error('Failed to toggle bookmark:', err);
       // Revert on error
       setCourses(prev =>
-        prev.map(c => c.id === courseId ? { ...c, is_bookmarked: !c.is_bookmarked } : c)
+        prev.map(c => c.id === courseId ? { ...c, is_bookmarked: currentlyBookmarked } : c)
       );
-      showNotification('error', 'Error', 'Failed to update bookmark. Please try again.');
+      showNotification({ type: 'error', title: t('common.error'), message: t('enrolled_courses.bookmark_error') });
     }
   };
 
@@ -192,33 +261,14 @@ const StudentEnrolledCourses: React.FC = () => {
       setShowRatingModal(null);
       setRatingValue(0);
       setReviewText('');
-      showNotification('success', 'Thank you', 'Thank you for your rating!');
+      showNotification({ type: 'success', title: t('common.success'), message: t('enrolled_courses.rating_thanks') });
     } catch (err: any) {
       console.error('Failed to submit rating:', err);
-      showNotification('error', 'Error', err.response?.data?.message || 'Failed to submit rating');
+      showNotification({ type: 'error', title: t('common.error'), message: err.response?.data?.message || t('enrolled_courses.rating_error') });
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'in-progress' && course.enrollment_status === 'active' && !course.completed_at) ||
-                         (filterStatus === 'completed' && course.completed_at) ||
-                         (filterStatus === 'favorites' && course.is_favorite);
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = {
-    total: courses.length,
-    inProgress: courses.filter(c => c.enrollment_status === 'active' && !c.completed_at).length,
-    completed: courses.filter(c => c.completed_at).length,
-    favorites: courses.filter(c => c.is_favorite).length,
-    avgProgress: Math.round(courses.reduce((sum, c) => sum + (c.progress_percentage || 0), 0) / (courses.length || 1))
-  };
-
-  if (error) {
+  if (error && courses.length === 0) {
     return (
       <div className="p-4">
         <div className="flex items-center justify-center min-h-64">
@@ -226,10 +276,10 @@ const StudentEnrolledCourses: React.FC = () => {
             <AlertCircle className="h-8 w-8 text-[#EF5350] mx-auto mb-3" />
             <p className="text-stone-700 text-sm mb-3">{error}</p>
             <button
-              onClick={loadEnrolledCourses}
+              onClick={() => loadEnrolledCourses(1, true)}
               className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
             >
-              Try Again
+              {t('enrolled_courses.error.try_again')}
             </button>
           </div>
         </div>
@@ -242,17 +292,17 @@ const StudentEnrolledCourses: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            { label: 'Total Courses', value: stats.total, icon: BookOpen, color: 'from-[#27AE60]/15 to-[#16A085]/10', iconColor: 'text-[#27AE60]' },
-            { label: 'In Progress', value: stats.inProgress, icon: TrendingUp, color: 'from-[#16A085]/15 to-[#27AE60]/10', iconColor: 'text-[#16A085]' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-[#2980B9]/15 to-[#16A085]/10', iconColor: 'text-[#2980B9]' },
-            { label: 'Favorites', value: stats.favorites, icon: Heart, color: 'from-[#E74C3C]/15 to-[#E67E22]/10', iconColor: 'text-[#E74C3C]' },
-            { label: 'Avg Progress', value: `${stats.avgProgress}%`, icon: BarChart3, color: 'from-[#2980B9]/15 to-[#34495E]/10', iconColor: 'text-[#2980B9]' }
+            { label: t('enrolled_courses.stats.total'), value: stats.total, icon: BookOpen, color: 'from-[#2f3f82]/15 to-[#3a4c94]/10', iconColor: 'text-[#2f3f82]' },
+            { label: t('enrolled_courses.stats.in_progress'), value: stats.inProgress, icon: TrendingUp, color: 'from-[#cfa15a]/15 to-[#d8b26d]/10', iconColor: 'text-[#cfa15a]' },
+            { label: t('enrolled_courses.stats.completed'), value: stats.completed, icon: CheckCircle, color: 'from-[#2980B9]/15 to-[#16A085]/10', iconColor: 'text-[#2980B9]' },
+            { label: t('enrolled_courses.stats.favorites'), value: stats.favorites, icon: Heart, color: 'from-[#E74C3C]/15 to-[#E67E22]/10', iconColor: 'text-[#E74C3C]' },
+            { label: t('enrolled_courses.stats.avg_progress'), value: `${stats.avgProgress}%`, icon: BarChart3, color: 'from-[#2f3f82]/15 to-[#34495E]/10', iconColor: 'text-[#2f3f82]' }
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/40">
+            <div key={idx} className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm hover:shadow-md transition-all" style={{ borderColor: 'transparent' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#27AE60]/15 to-[#16A085]/15 rounded-md blur-md"></div>
-                  <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/8 to-[#16A085]/8 rounded-md border border-[#27AE60]/25">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} rounded-md blur-md`}></div>
+                  <div className={`relative p-1.5 bg-gradient-to-br ${stat.color} rounded-md border border-white/50`}>
                     <stat.icon className={`h-3 w-3 ${stat.iconColor}`} />
                   </div>
                 </div>
@@ -265,75 +315,110 @@ const StudentEnrolledCourses: React.FC = () => {
           ))}
         </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+        {/* Search, Filters & Sort */}
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm space-y-3">
           <div className="flex flex-col lg:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
               <input
                 type="text"
-                placeholder="Search your courses..."
+                placeholder={t('enrolled_courses.search_placeholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-stone-50/50 text-stone-700"
+                className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2f3f82]/50 focus:border-[#2f3f82]/50 text-sm bg-stone-50/50 text-stone-700"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-stone-50/50 text-stone-700 text-sm"
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCompact(prev => !prev)}
+                className={`px-3 py-2 rounded-md border text-sm transition-colors ${
+                  compact
+                    ? 'border-[#2f3f82]/50 bg-[#2f3f82]/10 text-[#1f2e6e]'
+                    : 'border-stone-300 bg-stone-50/50 text-stone-700 hover:border-[#2f3f82]/30'
+                }`}
+              >
+                {compact ? t('enrolled_courses.view_dense') : t('enrolled_courses.view_comfy')}
+              </button>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2f3f82]/50 focus:border-[#2f3f82]/50 bg-stone-50/50 text-stone-700 text-sm"
+              >
+                <option value="last_accessed">{t('enrolled_courses.sort.last_accessed')}</option>
+                <option value="progress">{t('enrolled_courses.sort.progress')}</option>
+                <option value="title">{t('enrolled_courses.sort.title')}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'all', count: stats.total, label: t('enrolled_courses.filter.all') },
+              { key: 'in-progress', count: stats.inProgress, label: t('enrolled_courses.filter.in_progress') },
+              { key: 'completed', count: stats.completed, label: t('enrolled_courses.filter.completed') },
+              { key: 'favorites', count: stats.favorites, label: t('enrolled_courses.filter.favorites') },
+            ] as const).map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setFilterStatus(chip.key)}
+                className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                  filterStatus === chip.key
+                    ? 'border-[#2f3f82] bg-[#2f3f82]/10 text-[#1f2e6e] font-semibold'
+                    : 'border-stone-300 bg-white text-stone-700 hover:border-[#2f3f82]/30'
+                }`}
+              >
+                {chip.label} ({chip.count})
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setFilterStatus('all');
+                setSearchTerm('');
+                setSortBy('last_accessed');
+              }}
+              className="px-3 py-1.5 rounded-full border border-stone-300 text-sm text-stone-600 hover:border-[#2f3f82]/30 hover:text-[#1f2e6e] transition-colors"
             >
-              <option value="all">All Courses ({stats.total})</option>
-              <option value="in-progress">In Progress ({stats.inProgress})</option>
-              <option value="completed">Completed ({stats.completed})</option>
-              <option value="favorites">Favorites ({stats.favorites})</option>
-            </select>
+              {t('enrolled_courses.filter.clear')}
+            </button>
           </div>
         </div>
 
         {/* Courses Grid - Light cards */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm overflow-hidden p-5 animate-pulse space-y-4">
-                <div className="h-32 bg-slate-200 rounded-md" />
-                <div className="h-4 bg-slate-200 rounded w-3/4" />
-                <div className="h-3 bg-slate-200 rounded w-full" />
-                <div className="h-3 bg-slate-200 rounded w-5/6" />
-                <div className="h-2 bg-slate-200 rounded w-full" />
-                <div className="flex gap-2">
-                  <div className="h-8 bg-slate-200 rounded w-20" />
-                  <div className="h-8 bg-slate-200 rounded w-20" />
-                  <div className="h-8 bg-slate-200 rounded w-24" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredCourses.map(course => (
-              <div key={course.id} className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm hover:shadow-md hover:border-slate-300/50 transition-all duration-200 overflow-hidden">
+        {courses.length > 0 ? (
+          <>
+          <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 ${compact ? 'sm:grid-cols-2 xl:grid-cols-3' : ''}`}>
+            {courses.map((course, index) => (
+              <div 
+                key={course.id} 
+                ref={index === courses.length - 1 ? lastCourseElementRef : null}
+                className={`bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 shadow-sm hover:shadow-md hover:border-slate-300/50 transition-all duration-200 overflow-hidden ${compact ? 'p-0' : ''}`}
+              >
                 {/* Course Header */}
                 <div className="relative">
                   {course.cover_image ? (
-                    <img src={course.cover_image} alt={course.title} className="w-full h-40 object-cover" />
+                    <img src={course.cover_image} alt={course.title} className="w-full h-36 md:h-40 object-cover" />
                   ) : (
-                    <div className="w-full h-40 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                    <div className="w-full h-36 md:h-40 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
                       <BookOpen className="h-12 w-12 text-slate-400" />
                     </div>
                   )}
                   <button
-                    onClick={() => handleToggleFavorite(course.id)}
+                    onClick={() => handleToggleFavorite(course.id, course.title)}
                     className="absolute top-2 right-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
+                    title={course.is_favorite ? t('enrolled_courses.remove_favorite') : t('enrolled_courses.add_favorite')}
                   >
                     <Heart
                       className={`h-5 w-5 ${course.is_favorite ? 'text-[#EF5350] fill-current' : 'text-white stroke-[2px]'}`}
                     />
                   </button>
                   <button
-                    onClick={() => handleToggleBookmark(course.id)}
-                    className="absolute top-2 left-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
-                    title={course.is_bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                    onClick={() => handleToggleBookmark(course.id, course.title)}
+                    className="absolute top-12 right-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
+                    title={course.is_bookmarked ? t('enrolled_courses.remove_bookmark') : t('enrolled_courses.add_bookmark')}
                   >
                     <Bookmark
                       className={`h-5 w-5 ${course.is_bookmarked ? 'text-amber-400 fill-current' : 'text-white stroke-[2px]'}`}
@@ -342,45 +427,53 @@ const StudentEnrolledCourses: React.FC = () => {
                   {course.completed_at && (
                     <div className="absolute top-2 left-2 bg-gradient-to-r from-[#66BB6A]/90 to-[#4CAF50]/90 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border border-[#66BB6A]/30 shadow-sm">
                       <CheckCircle className="h-3 w-3 inline mr-1" />
-                      Completed
+                      {t('enrolled_courses.filter.completed')}
                     </div>
                   )}
                 </div>
 
-                <div className="p-5">
-                  <h3 className="text-lg font-bold text-slate-700 mb-2 line-clamp-2">{course.title}</h3>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">{course.description}</p>
+                <div className={compact ? "p-4" : "p-5"}>
+                  <h3 className={`font-bold text-slate-700 mb-2 line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>{course.title}</h3>
+                  <p className={`text-slate-600 line-clamp-2 ${compact ? 'text-xs mb-3' : 'text-sm mb-4'}`}>{course.description}</p>
 
                   {/* Progress Bar */}
-                  <div className="mb-4">
+                  <div className={compact ? "mb-3" : "mb-4"}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-600">Progress</span>
+                      <span className="text-slate-600">{t('common.progress')}</span>
                       <span className="font-semibold text-slate-700">{Math.round(course.progress_percentage || 0)}%</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-[#27AE60] to-[#16A085] rounded-full transition-all duration-300 shadow-sm"
-                        style={{ width: `${course.progress_percentage || 0}%` }}
+                        className="h-full rounded-full transition-all duration-300 shadow-sm"
+                        style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`, width: `${course.progress_percentage || 0}%` }}
                       />
                     </div>
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center justify-between text-sm text-slate-600 mb-4">
+                  <div className={`flex items-center justify-between text-sm text-slate-600 ${compact ? 'mb-3' : 'mb-4'}`}>
                     <div className="flex items-center gap-1">
                       <PlayCircle className="h-4 w-4" />
-                      <span>{course.lesson_count} lessons</span>
+                      <span>{course.lesson_count} {t('student_courses.lessons_label')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span>{course.student_count} students</span>
+                      <span>{course.student_count} {t('student_courses.students_label')}</span>
                     </div>
+                  </div>
+
+                  {/* Next lesson */}
+                  <div className={`flex items-center justify-between text-xs text-slate-600 ${compact ? 'mb-3' : 'mb-4'}`}>
+                    <span className="font-medium text-slate-700">{t('enrolled_courses.next_lesson')}</span>
+                    <span className="text-slate-500 line-clamp-1">
+                      {nextLessonMap[course.id]?.title || t('enrolled_courses.next_lesson_default')}
+                    </span>
                   </div>
 
                   {/* Rating */}
                   {course.user_rating ? (
                     <div className="flex items-center gap-1 mb-4">
-                      <span className="text-sm text-slate-600">Your rating:</span>
+                      <span className="text-sm text-slate-600">{t('enrolled_courses.rating_label')}</span>
                       {[1, 2, 3, 4, 5].map(star => (
                         <Star
                           key={star}
@@ -391,35 +484,36 @@ const StudentEnrolledCourses: React.FC = () => {
                   ) : (
                     <button
                       onClick={() => setShowRatingModal(course.id)}
-                      className="text-sm text-[#FFD700] hover:text-[#FFC107] mb-4 flex items-center gap-1 transition-colors"
+                      className={`${compact ? 'text-xs' : 'text-sm'} text-[#FFD700] hover:text-[#FFC107] mb-4 flex items-center gap-1 transition-colors`}
                     >
                       <Star className="h-4 w-4" />
-                      Rate this course
+                      {t('enrolled_courses.rate_course')}
                     </button>
                   )}
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t border-slate-200/50">
                     <Link
-                      to={`/student/courses/${course.id}`}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all duration-200 text-center text-sm font-semibold shadow-md hover:shadow-lg backdrop-blur-sm border border-[#27AE60]/30"
+                      to={nextLessonMap[course.id]?.id ? `/member/courses/${course.id}/lessons/${nextLessonMap[course.id].id}` : `/member/courses/${course.id}`}
+                      className={`flex-1 inline-flex items-center justify-center px-4 ${compact ? 'py-2 text-xs' : 'py-2.5 text-sm'} text-white rounded-lg transition-all duration-200 text-center font-semibold shadow-md hover:shadow-lg backdrop-blur-sm`}
+                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                     >
                       {course.progress_percentage > 0 ? (
                         <>
                           <PlayCircle className="h-4 w-4 mr-2" />
-                          Continue
+                          {t('student.course_grid.action_continue')}
                         </>
                       ) : (
                         <>
                           <PlayCircle className="h-4 w-4 mr-2" />
-                          Start Learning
+                          {t('student.course_grid.action_start')}
                         </>
                       )}
                     </Link>
                     <button
                       onClick={() => handleUnenroll(course.id, course.title)}
-                      className="p-2.5 border border-slate-300/50 text-slate-600 rounded-lg hover:bg-slate-50/50 transition-colors"
-                      title="Unenroll from course"
+                      className={`${compact ? 'p-2' : 'p-2.5'} border border-slate-300/50 text-slate-600 rounded-lg hover:bg-slate-50/50 transition-colors`}
+                      title={t('enrolled_courses.unenroll.title')}
                     >
                       <LogOut className="h-5 w-5" />
                     </button>
@@ -428,30 +522,41 @@ const StudentEnrolledCourses: React.FC = () => {
               </div>
             ))}
           </div>
+          
+          {/* Loading indicator for infinite scroll */}
+          {loading && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-8 w-8 animate-spin text-[#2f3f82]" />
+            </div>
+          )}
+          </>
         ) : (
-          <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 p-12 text-center shadow-sm">
-            <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-slate-700 mb-2">No courses found</h3>
-            <p className="text-slate-600 mb-6">
-              {courses.length === 0 
-                ? "You haven't enrolled in any courses yet. Browse the catalog to get started!"
-                : "No courses match your current filters. Try adjusting your search."
-              }
-            </p>
-            <Link
-              to="/student/browse-courses"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg backdrop-blur-sm border border-[#27AE60]/30"
-            >
-              Browse Course Catalog
-            </Link>
-          </div>
+          !loading && (
+            <div className="bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200/40 p-12 text-center shadow-sm">
+              <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-slate-700 mb-2">{t('enrolled_courses.empty_title')}</h3>
+              <p className="text-slate-600 mb-6">
+                {courses.length === 0 && !searchTerm && filterStatus === 'all'
+                  ? t('enrolled_courses.empty_no_enrollment')
+                  : t('enrolled_courses.empty_no_match')
+                }
+              </p>
+              <Link
+                to="/member/all-courses?tab=browse"
+                className="inline-flex items-center px-6 py-3 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg backdrop-blur-sm"
+                style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+              >
+                {t('enrolled_courses.browse_catalog')}
+              </Link>
+            </div>
+          )
         )}
 
         {/* Rating Modal - Light theme */}
         {showRatingModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white/95 backdrop-blur-md rounded-xl p-6 max-w-md w-full border border-slate-200/50 shadow-xl">
-              <h3 className="text-xl font-bold text-slate-700 mb-4">Rate this course</h3>
+              <h3 className="text-xl font-bold text-slate-700 mb-4">{t('enrolled_courses.rate_course')}</h3>
               
               <div className="flex justify-center gap-2 mb-4">
                 {[1, 2, 3, 4, 5].map(star => (
@@ -470,7 +575,7 @@ const StudentEnrolledCourses: React.FC = () => {
               <textarea
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
-                placeholder="Write a review (optional)"
+                placeholder={t('enrolled_courses.rating_placeholder')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg mb-4 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 focus:border-[#FFD700]/50 text-slate-700 bg-slate-50/50"
               />
 
@@ -483,14 +588,14 @@ const StudentEnrolledCourses: React.FC = () => {
                   }}
                   className="flex-1 px-4 py-2 border border-slate-300/50 rounded-lg hover:bg-slate-50/50 text-slate-700 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSubmitRating}
                   disabled={ratingValue === 0}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 transition-all duration-200 font-semibold shadow-sm hover:shadow-md backdrop-blur-sm border border-[#27AE60]/30"
                 >
-                  Submit Rating
+                  {t('enrolled_courses.rating_submit')}
                 </button>
               </div>
             </div>

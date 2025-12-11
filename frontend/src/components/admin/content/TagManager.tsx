@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { adminApi } from '@/services/api';
 import { chaptersApi } from '@/services/api/chapters';
 import type { ContentTag } from '@/types/admin';
+import { brandColors } from '@/theme/brand';
 import { 
   GripVertical, 
   Plus, 
@@ -29,13 +30,13 @@ const TagManager: React.FC = () => {
   const [newTag, setNewTag] = useState({
     name: '',
     category: '',
-    color: '#27AE60' // Default green color
+    color: brandColors.primaryHex // Default brand color
   });
   const [editingTag, setEditingTag] = useState<ContentTag | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
     category: '',
-    color: '#27AE60'
+    color: brandColors.primaryHex
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,6 +52,16 @@ const TagManager: React.FC = () => {
     fetchTags();
     fetchChapters();
   }, []);
+
+  // Auto-refresh every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && !showCreateForm && !editingTag && !draggedTag) {
+        fetchTags();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading, showCreateForm, editingTag, draggedTag]);
 
   useEffect(() => {
     filterTags();
@@ -268,7 +279,7 @@ const TagManager: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="w-8 h-8 border-t-2 border-[#27AE60] border-solid rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-t-2 border-solid rounded-full animate-spin" style={{ borderColor: brandColors.primaryHex }}></div>
       </div>
     );
   }
@@ -298,12 +309,13 @@ const TagManager: React.FC = () => {
                 ))}
               </select>
             </div>
-            <button
+                        <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white text-xs font-medium rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
+              style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
             >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Create Tag
+              {showCreateForm ? <X className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
+              {showCreateForm ? 'Cancel' : 'New Tag'}
             </button>
           </div>
         </div>
@@ -325,7 +337,8 @@ const TagManager: React.FC = () => {
                   placeholder="Search tags..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+                  style={{ '--tw-ring-color': `${brandColors.primaryHex}80` } as React.CSSProperties}
                 />
               </div>
             </div>
@@ -335,7 +348,8 @@ const TagManager: React.FC = () => {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white/90 backdrop-blur-sm"
+                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm"
+                style={{ '--tw-ring-color': `${brandColors.primaryHex}80` } as React.CSSProperties}
               >
             <option value="all">All Categories</option>
             <option value="uncategorized">Uncategorized</option>
@@ -348,11 +362,11 @@ const TagManager: React.FC = () => {
         </div>
 
       {showCreateForm && (
-        <form onSubmit={handleCreateTag} className="bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 p-6 rounded-xl mb-6 border border-[#27AE60]/25 backdrop-blur-sm">
-          <h3 className="text-lg font-semibold text-stone-800 mb-4 flex items-center">
-            <Plus className="h-5 w-5 mr-2 text-[#27AE60]" />
-            Create New Tag
-          </h3>
+        <form onSubmit={handleCreateTag} className="p-6 rounded-xl mb-6 border backdrop-blur-sm" style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}1A, ${brandColors.secondaryHex}1A)`, borderColor: `${brandColors.primaryHex}40` }}>
+          <div className="flex items-center mb-4">
+            <Plus className="h-5 w-5 mr-2" style={{ color: brandColors.primaryHex }} />
+            <h3 className="text-lg font-semibold text-gray-800">Create New Tag</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -364,7 +378,8 @@ const TagManager: React.FC = () => {
                 name="name"
                 value={newTag.name}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 required
                 placeholder="Enter tag name"
               />
@@ -379,7 +394,8 @@ const TagManager: React.FC = () => {
                 name="category"
                 value={newTag.category}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 placeholder="e.g., subject, difficulty"
               />
             </div>
@@ -389,7 +405,7 @@ const TagManager: React.FC = () => {
                 Color
               </label>
               <div className="flex space-x-2">
-                {['#27AE60', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
+                {[brandColors.primaryHex, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
                   <button
                     key={color}
                     type="button"
@@ -406,14 +422,16 @@ const TagManager: React.FC = () => {
                 name="color"
                 value={newTag.color}
                 onChange={handleInputChange}
-                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               />
             </div>
           </div>
           <div className="mt-4 flex space-x-3">
             <button
               type="submit"
-              className="flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219150] transition-colors"
+              className="flex items-center px-4 py-2 text-white rounded-md transition-colors hover:opacity-90"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <Save className="h-4 w-4 mr-2" />
               Create Tag

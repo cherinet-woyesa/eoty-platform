@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
 import type { FlaggedContent } from '@/types/admin';
+import { brandColors } from '@/theme/brand';
 import { AlertCircle, AlertTriangle, Clock, UserX, UserCheck, FileX, FileCheck, Edit, Shield } from 'lucide-react';
 import { AIModerationTools } from './AIModerationTools';
 
@@ -18,6 +19,16 @@ const ModerationTools: React.FC = () => {
   useEffect(() => {
     fetchFlaggedContent();
   }, [statusFilter]);
+
+  // Auto-refresh every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && viewMode === 'content') {
+        fetchFlaggedContent();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading, viewMode, statusFilter]);
 
   const fetchFlaggedContent = async () => {
     try {
@@ -104,10 +115,10 @@ const ModerationTools: React.FC = () => {
     }
   };
 
-  if (loading && viewMode === 'content') {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="w-8 h-8 border-t-2 border-[#27AE60] border-solid rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-t-2 border-solid rounded-full animate-spin" style={{ borderColor: brandColors.primaryHex }}></div>
       </div>
     );
   }
@@ -126,9 +137,10 @@ const ModerationTools: React.FC = () => {
             onClick={() => setViewMode('content')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-all ${
               viewMode === 'content'
-                ? 'bg-[#27AE60]/90 text-white shadow-sm'
+                ? 'text-white shadow-sm'
                 : 'text-stone-700 hover:bg-stone-100'
             }`}
+            style={viewMode === 'content' ? { backgroundColor: brandColors.primaryHex } : undefined}
           >
             User Content
           </button>
@@ -164,9 +176,10 @@ const ModerationTools: React.FC = () => {
                   onClick={() => setStatusFilter(status)}
                   className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                     statusFilter === status
-                      ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white shadow-md'
+                      ? 'text-white shadow-md'
                       : 'bg-white/90 text-stone-700 hover:bg-stone-50 border border-stone-200'
                   }`}
+                  style={statusFilter === status ? { background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` } : undefined}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                 </button>

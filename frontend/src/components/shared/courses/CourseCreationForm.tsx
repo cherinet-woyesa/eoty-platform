@@ -22,9 +22,17 @@ import {
   FileText,
   Calendar,
   Tag,
-  BarChart3
+  BarChart3,
+  Circle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+const brandColors = {
+  primary: '#1e1b4b',
+  accent: '#4338ca',
+  soft: 'rgba(67,56,202,0.08)',
+  success: '#16A085',
+};
 
 // Types
 interface CourseFormData {
@@ -64,6 +72,11 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [newTag, setNewTag] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [coverUploadStatus, setCoverUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CourseFormData>(() => {
     const defaultFormData: CourseFormData = {
@@ -81,6 +94,73 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     };
     return { ...defaultFormData, ...initialData };
   });
+
+  const draftKey = useMemo(
+    () => (editMode && courseId ? `edit-course-${courseId}-draft` : 'create-course-draft'),
+    [editMode, courseId]
+  );
+
+  const buildDraftPayload = useCallback(() => ({
+    title: formData.title,
+    description: formData.description,
+    category: formData.category,
+    level: formData.level,
+    isPublic: formData.isPublic,
+    estimatedDuration: formData.estimatedDuration,
+    learningObjectives: formData.learningObjectives,
+    prerequisites: formData.prerequisites,
+    tags: formData.tags,
+    language: formData.language,
+    certificationAvailable: formData.certificationAvailable,
+    welcomeMessage: formData.welcomeMessage,
+  }), [formData]);
+
+  const checklistItems = useMemo(() => {
+    const cleanedObjectives = formData.learningObjectives.filter(obj => obj.trim());
+    return [
+      {
+        id: 'title',
+        label: t('courses.creation.course_title'),
+        done: formData.title.trim().length >= 3
+      },
+      {
+        id: 'description',
+        label: t('courses.creation.course_description'),
+        done: formData.description.trim().length >= 5
+      },
+      {
+        id: 'category',
+        label: t('courses.creation.category'),
+        done: !!formData.category
+      },
+      {
+        id: 'level',
+        label: t('courses.creation.difficulty_level'),
+        done: !!formData.level
+      },
+      {
+        id: 'language',
+        label: t('courses.creation.language'),
+        done: !!formData.language
+      },
+      {
+        id: 'objectives',
+        label: t('courses.creation.learning_objectives'),
+        done: cleanedObjectives.length > 0
+      },
+      {
+        id: 'cover',
+        label: t('courses.creation.cover_image'),
+        done: !!coverImage,
+        optional: true
+      }
+    ];
+  }, [formData, coverImage, t]);
+
+  const checklistProgress = useMemo(() => {
+    const completed = checklistItems.filter(item => item.done).length;
+    return Math.round((completed / checklistItems.length) * 100);
+  }, [checklistItems]);
 
   // Categories with enhanced metadata
   const categories = useMemo(() => [
@@ -193,6 +273,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     }
 
     setIsSubmitting(true);
+    setCoverUploadStatus('idle');
+    setCoverUploadError(null);
     try {
       const courseData = {
         title: formData.title.trim(),
@@ -218,11 +300,19 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
       // Handle cover image upload if present
       if (coverImageFile && result.data?.id) {
+        setCoverUploadStatus('uploading');
         try {
           await coursesApi.uploadCourseImage(result.data.id, coverImageFile);
-        } catch (uploadError) {
+          setCoverUploadStatus('success');
+        } catch (uploadError: any) {
           console.warn('Failed to upload cover image:', uploadError);
-          // Continue without the image
+          setCoverUploadStatus('error');
+          setCoverUploadError(
+            uploadError?.response?.data?.message ||
+            uploadError?.message ||
+            t('courses.creation.cover_upload_failed')
+          );
+          // Continue without blocking main success
         }
       }
 
@@ -230,7 +320,10 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       dataCache.delete('teacher_dashboard');
       
       setSuccess(true);
-      setTimeout(() => navigate('/teacher/courses'), 2000);
+      
+      // Use returnPath if provided, otherwise default to teacher courses
+      const redirectPath = returnPath || '/teacher/courses';
+      setTimeout(() => navigate(redirectPath), 2000);
     } catch (error: any) {
       console.error('Failed to create course:', error);
 
@@ -295,11 +388,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     }
   }, [errors]);
 
-  const handleCoverChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type and size
+  const processCoverFile = useCallback((file: File) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const maxSize = 5 * 1024 * 1024; // 5MB
 
@@ -321,6 +410,21 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     };
     reader.readAsDataURL(file);
   }, [t]);
+
+  const handleCoverChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processCoverFile(file);
+  }, [processCoverFile]);
+
+  const handleCoverDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processCoverFile(file);
+    }
+  }, [processCoverFile]);
 
   const addLearningObjective = useCallback(() => {
     setFormData(prev => ({
@@ -370,9 +474,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
   // Autosave draft to localStorage
   useEffect(() => {
-    const key = editMode && courseId ? `edit-course-${courseId}-draft` : 'create-course-draft';
     try {
-      const saved = localStorage.getItem(key);
+      const saved = localStorage.getItem(draftKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         setFormData(prev => ({ ...prev, ...parsed }));
@@ -380,39 +483,36 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     } catch (error) {
       console.warn('Failed to load draft:', error);
     }
-  }, [editMode, courseId]);
+  }, [draftKey]);
 
   useEffect(() => {
-    const key = editMode && courseId ? `edit-course-${courseId}-draft` : 'create-course-draft';
-    const toSave = {
-      title: formData.title,
-      description: formData.description,
-      category: formData.category,
-      level: formData.level,
-      isPublic: formData.isPublic,
-      estimatedDuration: formData.estimatedDuration,
-      learningObjectives: formData.learningObjectives,
-      prerequisites: formData.prerequisites,
-      tags: formData.tags,
-      language: formData.language,
-      certificationAvailable: formData.certificationAvailable,
-      welcomeMessage: formData.welcomeMessage,
-    };
+    const toSave = buildDraftPayload();
     
     try {
-      localStorage.setItem(key, JSON.stringify(toSave));
+      localStorage.setItem(draftKey, JSON.stringify(toSave));
     } catch (error) {
       console.warn('Failed to save draft:', error);
     }
-  }, [formData, editMode, courseId]);
+  }, [formData, buildDraftPayload, draftKey]);
 
   // Clear draft on successful submission
   useEffect(() => {
     if (success) {
-      const key = editMode && courseId ? `edit-course-${courseId}-draft` : 'create-course-draft';
-      localStorage.removeItem(key);
+      localStorage.removeItem(draftKey);
     }
-  }, [success, editMode, courseId]);
+  }, [success, draftKey]);
+
+  const handleSaveDraft = useCallback(() => {
+    try {
+      const toSave = buildDraftPayload();
+      localStorage.setItem(draftKey, JSON.stringify(toSave));
+      setDraftSavedAt(new Date().toLocaleTimeString());
+      setDraftError(null);
+    } catch (error) {
+      console.warn('Failed to save draft:', error);
+      setDraftError(t('courses.creation.draft_save_error'));
+    }
+  }, [buildDraftPayload, draftKey, t]);
 
   if (success) {
     return (
@@ -474,20 +574,40 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
   return (
     <>
-      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-        {/* Error Alert */}
-        {errors.submit && (
-          <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <span className="text-red-700">{errors.submit}</span>
-            </div>
-          </div>
-        )}
+      <div className="max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-[2fr_1fr] gap-6 items-start">
+          <div className="bg-white rounded-2xl border border-indigo-50 shadow-lg overflow-hidden">
+            {/* Error Alert */}
+            {errors.submit && (
+              <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-red-700">{errors.submit}</span>
+                </div>
+              </div>
+            )}
+            {coverUploadStatus === 'uploading' && (
+              <div className="mx-6 mt-3 bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-center space-x-2 text-indigo-800">
+                <div className="w-4 h-4 border-t-2 border-indigo-600 border-solid rounded-full animate-spin"></div>
+                <span>{t('courses.creation.cover_uploading')}</span>
+              </div>
+            )}
+            {coverUploadStatus === 'error' && (
+              <div className="mx-6 mt-3 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2 text-red-700">
+                <AlertCircle className="h-5 w-5" />
+                <span>{coverUploadError || t('courses.creation.cover_upload_failed')}</span>
+              </div>
+            )}
+            {coverUploadStatus === 'success' && (
+              <div className="mx-6 mt-3 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2 text-green-700">
+                <CheckCircle className="h-5 w-5" />
+                <span>{t('courses.creation.cover_upload_success')}</span>
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Simplified Form - Clean and Focused */}
-          <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
+              {/* Simplified Form - Clean and Focused */}
+              <div className="space-y-6">
             {/* Course Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-2">
@@ -502,7 +622,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.title}
                 onChange={handleChange}
                 placeholder={t('courses.creation.title_placeholder')}
-                className="w-full px-4 py-3 border border-stone-300 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent transition-all duration-200 text-lg"
+                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent transition-all duration-200 text-lg"
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -524,7 +644,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.description}
                 onChange={handleChange}
                 placeholder={t('courses.creation.description_placeholder')}
-                className="w-full px-4 py-3 border border-stone-300 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent transition-all duration-200"
               />
               <div className="flex justify-between mt-1 text-xs text-stone-500">
                 <span>
@@ -562,12 +682,12 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         }))}
                         className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
                           formData.category === category.value
-                            ? `border-[#27AE60] bg-[#27AE60]/5`
-                            : 'border-stone-200 hover:border-stone-300'
+                            ? `border-[#4338ca] bg-[#4338ca]/5 shadow-sm`
+                            : 'border-stone-200 hover:border-indigo-200'
                         }`}
                       >
                         <div className="flex items-center space-x-2">
-                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#27AE60]' : 'text-stone-500'} flex-shrink-0`} />
+                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#4338ca]' : 'text-stone-500'} flex-shrink-0`} />
                           <div className="font-medium text-stone-900 text-sm">{category.label}</div>
                         </div>
                       </button>
@@ -596,8 +716,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
                         className={`p-2 border rounded-lg text-center transition-all ${
                           formData.level === level.value
-                            ? `border-[#27AE60] bg-[#27AE60]/5 text-[#27AE60]`
-                            : 'border-stone-200 hover:border-stone-300'
+                            ? `border-[#4338ca] bg-[#4338ca]/5 text-[#4338ca]`
+                            : 'border-stone-200 hover:border-indigo-200'
                         }`}
                       >
                         <div className="text-xs font-medium">{level.label}</div>
@@ -615,7 +735,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     name="language"
                     value={formData.language}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
                   >
                     {languages.map(lang => (
                       <option key={lang.value} value={lang.value}>
@@ -658,7 +778,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 <button
                   type="button"
                   onClick={addLearningObjective}
-                  className="text-[#27AE60] hover:text-[#16A085] font-medium text-sm flex items-center"
+                  className="text-[#4338ca] hover:text-[#312e81] font-medium text-sm flex items-center"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   {t('courses.creation.add_another_objective')}
@@ -716,13 +836,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={handleTagKeyPress}
                           placeholder={t('courses.creation.add_tag_placeholder')}
-                          className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
                         />
                         <button
                           type="button"
                           onClick={addTag}
                           disabled={!newTag.trim()}
-                          className="px-3 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#16A085] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 bg-[#4338ca] text-white rounded-lg hover:bg-[#312e81] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -731,13 +851,13 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         {formData.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center px-2 py-1 bg-[#27AE60]/10 text-[#27AE60] rounded-full text-xs"
+                            className="inline-flex items-center px-2 py-1 bg-[#4338ca]/10 text-[#4338ca] rounded-full text-xs"
                           >
                             {tag}
                             <button
                               type="button"
                               onClick={() => removeTag(tag)}
-                              className="ml-1 text-[#27AE60] hover:text-[#16A085]"
+                            className="ml-1 text-[#4338ca] hover:text-[#312e81]"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -752,36 +872,50 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     <label className="block text-sm font-medium text-stone-700 mb-2">
                       {t('courses.creation.cover_image')}
                     </label>
-                    <div className="flex items-center space-x-3">
-                      <label className="inline-flex items-center px-3 py-2 border border-stone-300 rounded-lg text-sm font-medium text-stone-700 bg-white hover:bg-stone-50 cursor-pointer transition-colors">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={handleCoverChange} 
-                        />
-                        <Upload className="h-4 w-4 mr-1" />
-                        {t('common.upload_image')}
-                      </label>
-                      {coverImage && (
-                        <div className="relative">
-                          <img 
-                            src={coverImage} 
-                            alt="Cover preview" 
-                            className="h-16 w-24 object-cover rounded-lg border" 
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleCoverDrop}
+                      className={`relative border-2 border-dashed rounded-xl p-4 transition-colors ${
+                        isDragging ? 'border-indigo-400 bg-indigo-50/60' : 'border-stone-200 hover:border-indigo-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <label className="inline-flex items-center px-3 py-2 border border-indigo-100 rounded-lg text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 cursor-pointer transition-colors">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleCoverChange} 
                           />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCoverImage(null);
-                              setCoverImageFile(null);
-                            }}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                          >
-                            <X className="h-2 w-2" />
-                          </button>
+                          <Upload className="h-4 w-4 mr-1" />
+                          {t('common.upload_image')}
+                        </label>
+                        <div className="text-xs text-stone-500 space-y-1">
+                          <p className="font-medium text-stone-600">{t('courses.creation.cover_drop_label')}</p>
+                          <p>{t('courses.creation.cover_image_guidelines')}</p>
                         </div>
-                      )}
+                        {coverImage && (
+                          <div className="relative">
+                            <img 
+                              src={coverImage} 
+                              alt="Cover preview" 
+                              className="h-16 w-24 object-cover rounded-lg border" 
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCoverImage(null);
+                                setCoverImageFile(null);
+                              }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                              aria-label={t('common.delete')}
+                            >
+                              <X className="h-2 w-2" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {errors.coverImage && (
                       <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -798,9 +932,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {formData.isPublic ? (
-                            <Globe className="h-5 w-5 text-[#27AE60]" />
+                            <Globe className="h-5 w-5 text-[#4338ca]" />
                           ) : (
-                            <Lock className="h-5 w-5 text-[#2980B9]" />
+                            <Lock className="h-5 w-5 text-stone-400" />
                           )}
                           <div>
                             <div className="font-medium text-stone-900 text-sm">
@@ -812,7 +946,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.isPublic ? 'bg-[#27AE60]' : 'bg-[#2980B9]'
+                            formData.isPublic ? 'bg-[#4338ca]' : 'bg-stone-300'
                           }`}
                         >
                           <span
@@ -828,7 +962,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     <div className="bg-stone-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-[#16A085]' : 'text-stone-400'}`} />
+                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-[#4338ca]' : 'text-stone-400'}`} />
                           <div>
                             <div className="font-medium text-stone-900 text-sm">
                               {t('courses.creation.certification_available')}
@@ -842,7 +976,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                             certificationAvailable: !prev.certificationAvailable 
                           }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.certificationAvailable ? 'bg-[#16A085]' : 'bg-stone-300'
+                            formData.certificationAvailable ? 'bg-[#4338ca]' : 'bg-stone-300'
                           }`}
                         >
                           <span
@@ -859,27 +993,102 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end pt-4 border-t border-stone-200">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
-                  {editMode ? t('common.updating') : t('common.creating')}...
-                </>
-              ) : (
-                <>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  {editMode ? t('common.update_course') : t('common.create_course')}
-                </>
-              )}
-            </button>
+              {/* Submit Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-stone-200">
+                <div className="flex items-center gap-2 text-xs text-stone-500">
+                  {draftSavedAt && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      {t('courses.creation.draft_saved', { time: draftSavedAt })}
+                    </span>
+                  )}
+                  {draftError && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-100">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {draftError}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSaveDraft}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-indigo-100 text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-all"
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    {t('courses.creation.save_draft')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#4338ca] to-[#6366f1] hover:from-[#4338ca]/90 hover:to-[#6366f1]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
+                        {editMode ? t('common.updating') : t('common.creating')}...
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        {editMode ? t('common.update_course') : t('common.create_course')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
+
+          {/* Checklist side panel */}
+          <aside className="space-y-4">
+            <div className="bg-white rounded-2xl border border-indigo-50 shadow-md p-4 sticky top-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-800">{t('courses.creation.checklist_heading')}</p>
+                  <p className="text-xs text-stone-500">{t('courses.creation.checklist_subtitle')}</p>
+                </div>
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {checklistProgress}%
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {checklistItems.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl border border-stone-100 hover:border-indigo-100"
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.done ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-stone-300" />
+                      )}
+                      <span className="text-sm text-stone-800">{item.label}</span>
+                      {item.optional && (
+                        <span className="text-[11px] text-stone-400">
+                          {t('common.optional')}
+                        </span>
+                      )}
+                    </div>
+                    {item.done ? (
+                      <span className="text-[11px] text-green-600">{t('common.done', { defaultValue: 'Done' })}</span>
+                    ) : (
+                      <span className="text-[11px] text-stone-400">{t('common.pending', { defaultValue: 'Pending' })}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+                <p className="text-xs font-semibold text-indigo-800 mb-1">{t('courses.creation.helper_tips')}</p>
+                <p className="text-xs text-indigo-700">{t('courses.creation.helper_validation')}</p>
+                <p className="text-xs text-indigo-700 mt-1">{t('courses.creation.helper_media')}</p>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </>
   );

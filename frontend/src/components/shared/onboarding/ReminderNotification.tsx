@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bell, X, ArrowRight } from 'lucide-react';
 import { onboardingApi } from '@/services/api/onboarding';
 import { useOnboarding } from '@/context/OnboardingContext';
@@ -18,6 +19,7 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
   onDismiss, 
   onResume 
 }) => {
+  const { t } = useTranslation();
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { hasOnboarding, restartOnboarding } = useOnboarding();
@@ -75,14 +77,14 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
           
           <div className="flex-1 min-w-0 relative z-10">
             <h4 className="font-bold text-gray-900 text-sm mb-1">
-              Continue Your Journey
+              {t('onboarding.reminder.title')}
             </h4>
             <p className="text-xs text-gray-600 mb-3 leading-relaxed">
               {reminder.reminder_type === 'skipped'
-                ? 'You have a few steps remaining to complete your profile setup.'
+                ? t('onboarding.reminder.skipped')
                 : reminder.reminder_type === 'aborted'
-                ? 'Don\'t miss out! Finish your onboarding to unlock all features.'
-                : 'Your spiritual journey awaits. Resume where you left off.'}
+                ? t('onboarding.reminder.aborted')
+                : t('onboarding.reminder.generic')}
             </p>
             
             <div className="flex items-center gap-2">
@@ -90,14 +92,14 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
                 onClick={handleResume}
                 className="inline-flex items-center px-3 py-1.5 bg-[#27AE60] hover:bg-[#219150] text-white text-xs font-semibold rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
               >
-                Resume Now
+                {t('onboarding.reminder.resume')}
                 <ArrowRight className="h-3 w-3 ml-1" />
               </button>
               <button
                 onClick={() => handleDismiss(reminder.id)}
                 className="inline-flex items-center px-3 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 text-xs font-medium rounded-lg transition-colors"
               >
-                Dismiss
+                {t('common.dismiss')}
               </button>
             </div>
           </div>

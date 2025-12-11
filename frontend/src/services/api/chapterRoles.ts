@@ -18,6 +18,8 @@ export interface ChapterRole {
   chapter_location: string;
   chapter_city: string;
   chapter_country: string;
+  user_name?: string;
+  user_email?: string;
 }
 
 export interface RegionalCoordinator extends ChapterRole {
@@ -102,6 +104,14 @@ class ChapterRolesApi {
   async getUserEffectivePermissions(userId: string, chapterId?: number): Promise<ApiResponse<{ permissions: string[] }>> {
     const params = chapterId ? { chapterId: chapterId.toString() } : {};
     const response = await apiClient.get(`/chapter-roles/permissions/${userId}`, { params });
+    return response.data;
+  }
+
+  /**
+   * Get all chapter role assignments
+   */
+  async getAllChapterRoles(): Promise<ApiResponse<{ roles: (ChapterRole & { first_name: string; last_name: string; email: string })[] }>> {
+    const response = await apiClient.get('/chapter-roles/all');
     return response.data;
   }
 }

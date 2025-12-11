@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BookOpen, Search, Users, Clock, Star, 
-  CheckCircle, Loader2, AlertCircle, Filter,
-  TrendingUp, Award, Sparkles, Mail
-} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { BookOpen, Search, Users, CheckCircle, Loader2, AlertCircle, Mail } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 import { studentsApi } from '@/services/api/students';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
@@ -27,34 +25,42 @@ interface CatalogCourse {
 }
 
 const CourseCatalog: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { confirm } = useConfirmDialog();
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterLevel, setFilterLevel] = useState('all');
+  const [sortBy, setSortBy] = useState<'title' | 'students'>('title');
+  const [visibleCount, setVisibleCount] = useState(12);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [enrolling, setEnrolling] = useState<number | null>(null);
   const [pendingInvitesCount, setPendingInvitesCount] = useState<number>(0);
 
   // Memoize categories and levels to prevent re-creation on each render
   const categories = useMemo(() => [
-    { value: 'all', label: 'All Categories' },
-    { value: 'faith', label: 'Faith & Doctrine' },
-    { value: 'history', label: 'Church History' },
-    { value: 'spiritual', label: 'Spiritual Development' },
-    { value: 'bible', label: 'Bible Study' },
-    { value: 'liturgical', label: 'Liturgical Studies' },
-    { value: 'youth', label: 'Youth Ministry' }
-  ], []);
+    { value: 'all', label: t('catalog.categories.all') },
+    { value: 'faith', label: t('catalog.categories.faith') },
+    { value: 'history', label: t('catalog.categories.history') },
+    { value: 'spiritual', label: t('catalog.categories.spiritual') },
+    { value: 'bible', label: t('catalog.categories.bible') },
+    { value: 'liturgical', label: t('catalog.categories.liturgical') },
+    { value: 'youth', label: t('catalog.categories.youth') }
+  ], [t]);
 
   const levels = useMemo(() => [
-    { value: 'all', label: 'All Levels' },
-    { value: 'beginner', label: 'Beginner' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'advanced', label: 'Advanced' }
-  ], []);
+    { value: 'all', label: t('catalog.levels.all') },
+    { value: 'beginner', label: t('catalog.levels.beginner') },
+    { value: 'intermediate', label: t('catalog.levels.intermediate') },
+    { value: 'advanced', label: t('catalog.levels.advanced') }
+  ], [t]);
+
+  // Controls UI (search, filters, sort)
+  // Note: actual UI rendering below should use these state values
 
   const loadCatalog = useCallback(async () => {
     try {
@@ -67,11 +73,11 @@ const CourseCatalog: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to load catalog:', err);
-      setError('Failed to load course catalog. Please try again.');
+      setError(t('catalog.error.load_failed'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const loadInvitations = useCallback(async () => {
     try {
@@ -100,59 +106,83 @@ const CourseCatalog: React.FC = () => {
     loadInvitations();
   }, [loadCatalog, loadInvitations]);
 
+  // Debounce search
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
+
   const handleEnroll = useCallback(async (courseId: number, title?: string) => {
     try {
       const ok = await confirm({
-        title: 'Enroll in course',
-        message: `Do you want to enroll in "${title || 'this course'}"? You can unenroll anytime and your progress will be saved.`,
-        confirmText: 'Enroll',
-        cancelText: 'Cancel'
+        title: t('student_courses.enroll_confirm_title'),
+        message: t('student_courses.enroll_confirm_message', { title: title || t('student_courses.default_course_title') }),
+        confirmText: t('student_courses.enroll_confirm_cta'),
+        cancelText: t('common.cancel')
       });
       if (!ok) return;
 
       setEnrolling(courseId);
-      const res = await apiClient.post(`/courses/${courseId}/enroll`);
-      
-      // Update local state
-      setCourses(courses.map(course => 
-        course.id === courseId 
-          ? { ...course, is_enrolled: true, student_count: course.student_count + 1 }
-          : course
-      ));
-      // Notify other parts of the app
-      window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+      await apiClient.post(`/courses/${courseId}/enroll`);
 
-      // Optional: use res?.data?.message with a notification if needed
+      setCourses(prev =>
+        prev.map(course =>
+          course.id === courseId
+            ? { ...course, is_enrolled: true, student_count: course.student_count + 1 }
+            : course
+        )
+      );
+      window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
     } catch (err: any) {
       console.error('Failed to enroll:', err);
       const msg = err?.response?.data?.message || '';
       if (msg.toLowerCase().includes('already enrolled')) {
-        // Treat as success: mark enrolled locally and emit event
-        setCourses(courses.map(course => 
-          course.id === courseId 
-            ? { ...course, is_enrolled: true }
-            : course
-        ));
+        setCourses(prev =>
+          prev.map(course =>
+            course.id === courseId
+              ? { ...course, is_enrolled: true }
+              : course
+          )
+        );
         window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
         return;
       }
-      alert('Failed to enroll in course. Please try again.');
+      alert(t('student_courses.enroll_error'));
     } finally {
       setEnrolling(null);
     }
-  }, [courses, confirm]);
+  }, [confirm, t]);
 
   // Memoize filtered courses to prevent unnecessary re-calculations
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [debouncedSearch, filterCategory, filterLevel, sortBy]);
+
   const filteredCourses = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
     return courses.filter(course => {
-      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const title = (course.title || '').toLowerCase();
+      const description = (course.description || '').toLowerCase();
+      const matchesSearch = !query || title.includes(query) || description.includes(query);
       const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
       const matchesLevel = filterLevel === 'all' || course.level === filterLevel;
       
       return matchesSearch && matchesCategory && matchesLevel && course.is_published;
     });
-  }, [courses, searchTerm, filterCategory, filterLevel]);
+  }, [courses, debouncedSearch, filterCategory, filterLevel]);
+
+  const sortedCourses = useMemo(() => {
+    const arr = [...filteredCourses];
+    if (sortBy === 'title') return arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    if (sortBy === 'students') return arr.sort((a, b) => (b.student_count || 0) - (a.student_count || 0));
+    return arr;
+  }, [filteredCourses, sortBy]);
+
+  const visibleCourses = useMemo(
+    () => sortedCourses.slice(0, visibleCount),
+    [sortedCourses, visibleCount]
+  );
+  const canLoadMore = visibleCount < sortedCourses.length;
 
   const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
@@ -168,7 +198,7 @@ const CourseCatalog: React.FC = () => {
 
   // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: CatalogCourse) => (
-    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:border-[#27AE60]/40">
+    <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:border-[color:#1e1b4b]">
       {/* Compact Course Header */}
       <div className={`relative h-32 ${!course.cover_image ? `bg-gradient-to-r ${getCategoryColor(course.category)}` : 'bg-stone-200'}`}>
         {course.cover_image && (
@@ -185,14 +215,14 @@ const CourseCatalog: React.FC = () => {
         <div className={`absolute inset-0 p-3 flex flex-col justify-end ${!course.cover_image ? 'text-white' : 'text-white'}`}>
           <h3 className="text-sm font-bold mb-0.5 line-clamp-2 drop-shadow-sm">{course.title}</h3>
           <p className="text-white/90 text-xs line-clamp-2 opacity-90 drop-shadow-sm">
-            {course.description || 'No description provided'}
+            {course.description || t('student_courses.no_description')}
           </p>
         </div>
 
         {course.is_enrolled && (
-          <div className="absolute top-1.5 right-1.5 bg-[#27AE60] text-white px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center shadow-md z-10">
+          <div className="absolute top-1.5 right-1.5 bg-[color:#1e1b4b] text-white px-1.5 py-0.5 rounded-full text-[10px] font-semibold flex items-center shadow-md z-10">
             <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
-            Enrolled
+            {t('student_courses.enrolled_badge')}
           </div>
         )}
       </div>
@@ -201,21 +231,21 @@ const CourseCatalog: React.FC = () => {
       <div className="p-3">
         <div className="flex items-center justify-between text-xs text-stone-600 mb-2">
           <div className="flex items-center space-x-1">
-            <Users className="h-3 w-3 text-[#27AE60]" />
-            <span>{course.student_count} students</span>
+            <Users className="h-3 w-3 text-[color:#1e1b4b]" />
+            <span>{course.student_count} {t('student_courses.students_label')}</span>
           </div>
           <div className="flex items-center space-x-1">
             <BookOpen className="h-3 w-3 text-[#2980B9]" />
-            <span>{course.lesson_count} lessons</span>
+            <span>{course.lesson_count} {t('student_courses.lessons_label')}</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="capitalize bg-stone-100 px-1.5 py-0.5 rounded text-[10px] font-medium text-stone-700">
-            {course.level || 'Beginner'}
+            {course.level || t('student_courses.beginner')}
           </span>
           <span className="text-stone-500 text-[10px]">
-            by {course.created_by_name}
+            {t('student.course_grid.by')} {course.created_by_name}
           </span>
         </div>
 
@@ -228,48 +258,51 @@ const CourseCatalog: React.FC = () => {
                 to={`/teacher/courses/${course.id}`}
                 className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
               >
-                Preview
+                {t('student_courses.preview_btn')}
               </Link>
               {/* Only show Manage if the current teacher is the course owner */}
               {String(course.created_by) === String(user?.id) && (
                 <Link
                   to={`/teacher/courses/${course.id}/edit`}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white"
+                  style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                 >
-                  Manage
+                  {t('student_courses.manage_btn')}
                 </Link>
               )}
             </>
           ) : (
             <>
               <Link
-                to={`/student/courses/${course.id}`}
+                to={`/member/courses/${course.id}`}
                 className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-stone-300 text-xs font-medium rounded text-stone-700 bg-white/90 backdrop-blur-sm hover:bg-stone-50 transition-colors"
               >
-                View
+                {t('student_courses.view_btn')}
               </Link>
 
               {!course.is_enrolled ? (
                 <button
                   onClick={() => handleEnroll(course.id, course.title)}
                   disabled={enrolling === course.id}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                  style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                 >
                   {enrolling === course.id ? (
                     <>
                       <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
-                      Enrolling...
+                      {t('student_courses.enrolling_btn')}
                     </>
                   ) : (
-                    'Enroll'
+                    t('student_courses.enroll_btn')
                   )}
                 </button>
               ) : (
                 <Link
-                  to={`/student/courses/${course.id}`}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-stone-900 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all shadow-sm hover:shadow-md"
+                  to={`/member/courses/${course.id}`}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white transition-all shadow-sm hover:shadow-md"
+                  style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                 >
-                  Continue
+                  {t('student_courses.continue_btn')}
                 </Link>
               )}
             </>
@@ -277,13 +310,32 @@ const CourseCatalog: React.FC = () => {
         </div>
       </div>
     </div>
-  ), [getCategoryColor, handleEnroll, enrolling]);
+  ), [getCategoryColor, handleEnroll, enrolling, t, user?.id, user?.role]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!canLoadMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setVisibleCount(v => v + 12);
+          }
+        });
+      },
+      { rootMargin: '200px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [canLoadMore]);
 
   if (loading) {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text="Loading course catalog..." variant="logo" />
+          <LoadingSpinner size="lg" text={t('student_courses.loading_catalog')} variant="logo" />
         </div>
       </div>
     );
@@ -300,7 +352,7 @@ const CourseCatalog: React.FC = () => {
               onClick={loadCatalog}
               className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
             >
-              Try Again
+              {t('common.try_again')}
             </button>
           </div>
         </div>
@@ -319,18 +371,18 @@ const CourseCatalog: React.FC = () => {
               </div>
               <div>
                 <p className="text-xs font-semibold text-emerald-900">
-                  {pendingInvitesCount} course invitation{pendingInvitesCount > 1 ? 's' : ''}.
+                  {t('student_courses.invites_count', { count: pendingInvitesCount })}
                 </p>
                 <p className="text-[10px] text-emerald-700/80">
-                  Accept invitations from your teachers.
+                  {t('student_courses.invites_message')}
                 </p>
               </div>
             </div>
             <Link
-              to="/student/invitations"
+              to="/member/invitations"
               className="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
             >
-              View
+              {t('student_courses.view_invites')}
             </Link>
           </div>
         )}
@@ -342,14 +394,14 @@ const CourseCatalog: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
             <input
               type="text"
-              placeholder="Search courses..."
+              placeholder={t('student_courses.search_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 text-sm bg-white"
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
@@ -369,21 +421,45 @@ const CourseCatalog: React.FC = () => {
                 <option key={level.value} value={level.value}>{level.label}</option>
               ))}
             </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60]/50 bg-white text-sm"
+            >
+              <option value="title">{t('student_courses.sort_title')}</option>
+              <option value="students">{t('student_courses.sort_popular')}</option>
+            </select>
           </div>
         </div>
       </div>
 
         {/* Course Grid */}
-        {filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredCourses.map(renderCourseCard)}
-          </div>
+        {sortedCourses.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {visibleCourses.map(renderCourseCard)}
+            </div>
+            {canLoadMore && <div ref={sentinelRef} className="h-1" />}
+            {canLoadMore && (
+              <div className="flex items-center justify-center mt-4">
+                <button
+                  className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:border-[#1e1b4b]/40 hover:text-[#1e1b4b] transition-colors"
+                  onClick={() => setVisibleCount(v => v + 12)}
+                >
+                  {t('student_courses.load_more')}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-6 text-center">
             <BookOpen className="h-10 w-10 text-stone-400 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-stone-800 mb-1">No courses found</h3>
+            <h3 className="text-sm font-semibold text-stone-800 mb-1">
+              {t('student_courses.no_courses_found')}
+            </h3>
             <p className="text-stone-600 text-xs">
-              Try adjusting your search or filter criteria.
+              {t('student_courses.adjust_filters_prompt')}
             </p>
           </div>
         )}

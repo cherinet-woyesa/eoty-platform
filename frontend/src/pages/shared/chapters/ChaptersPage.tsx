@@ -4,16 +4,21 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Users, MapPin, Search, Plus, Globe, Home, Settings, Award, Check, X, Calendar, Clock, Video, FileText, Megaphone, ClipboardList, Link as LinkIcon, Loader2, ArrowLeft } from 'lucide-react';
+import { MapPin, Search, Plus, Globe, Home, Settings, Award, Check, X, Calendar, Clock, Video, FileText, Megaphone, ClipboardList, Link as LinkIcon, Loader2, ArrowLeft } from 'lucide-react';
 import ChapterSelection from '@/components/shared/chapters/ChapterSelection';
 import { chaptersApi, type UserChapter } from '@/services/api/chapters';
 import { achievementsApi, type Badge } from '@/services/api/achievements';
 import { useNotification } from '@/context/NotificationContext';
+import { useTranslation } from 'react-i18next';
+import { brandColors } from '@/theme/brand';
 
 const ChaptersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'browse' | 'my-chapters' | 'manage'>('browse');
   const [members, setMembers] = useState<any[]>([]);
+  const [userChapters, setUserChapters] = useState<UserChapter[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
@@ -57,7 +62,7 @@ const ChaptersPage: React.FC = () => {
     title: '',
     description: '',
     event_date: '',
-    event_time: '',
+    duration_minutes: 60,
     location: '',
     is_online: false,
     meeting_link: ''
@@ -71,15 +76,17 @@ const ChaptersPage: React.FC = () => {
 
   const loadChapterDetails = async (chapterId: number) => {
     try {
-      const [eventsRes, resourcesRes, announcementsRes] = await Promise.all([
+      const [eventsRes, resourcesRes, announcementsRes, membersRes] = await Promise.all([
         chaptersApi.getEvents(chapterId),
         chaptersApi.getResources(chapterId),
-        chaptersApi.getAnnouncements(chapterId)
+        chaptersApi.getAnnouncements(chapterId),
+        chaptersApi.getMembers(chapterId)
       ]);
       
       setEvents(eventsRes.data.events);
       setResources(resourcesRes.data.resources);
       setAnnouncements(announcementsRes.data.announcements);
+      setMembers(membersRes.data.members || []);
     } catch (err) {
       console.error('Failed to load chapter details', err);
     }
@@ -98,11 +105,12 @@ const ChaptersPage: React.FC = () => {
       const chapter = userChaptersRes.data.chapters.find(
         (c: UserChapter) => ['admin', 'moderator', 'chapter_leader', 'teacher', 'chapter_admin'].includes(c.role)
       );
+      setUserChapters(userChaptersRes.data.chapters || []);
 
       if (chapter) {
         setManagedChapter(chapter);
         const membersRes = await chaptersApi.getMembers(chapter.chapter_id);
-        setMembers(membersRes.data.members);
+        setMembers(membersRes.data.members || []);
         
         const badgesRes = await achievementsApi.getAvailableBadges();
         setBadges(badgesRes.data.badges.filter((b: Badge) => b.is_manual));
@@ -215,8 +223,9 @@ const ChaptersPage: React.FC = () => {
     e.preventDefault();
     if (!managedChapter) return;
     
+    setIsSubmitting(true);
     try {
-      const eventDate = new Date(`${newEventData.event_date}T${newEventData.event_time}`);
+      const eventDate = new Date(newEventData.event_date);
       await chaptersApi.createEvent(managedChapter.chapter_id, {
         ...newEventData,
         event_date: eventDate.toISOString()
@@ -227,7 +236,15 @@ const ChaptersPage: React.FC = () => {
         message: 'Event created successfully!'
       });
       setShowCreateEventModal(false);
-      setNewEventData({ title: '', description: '', event_date: '', event_time: '', location: '', is_online: false, meeting_link: '' });
+      setNewEventData({
+        title: '',
+        description: '',
+        event_date: '',
+        duration_minutes: 60,
+        location: '',
+        is_online: false,
+        meeting_link: ''
+      });
       loadManageData(); // Refresh events
     } catch (err) {
       console.error(err);
@@ -236,6 +253,8 @@ const ChaptersPage: React.FC = () => {
         title: 'Error',
         message: 'Failed to create event'
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -325,6 +344,7 @@ const ChaptersPage: React.FC = () => {
     }
   };
 
+
   return (
     <div className="w-full min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
@@ -332,22 +352,23 @@ const ChaptersPage: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#27AE60]/10 rounded-lg flex items-center justify-center">
-                <Globe className="h-6 w-6 text-[#27AE60]" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                <Globe className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Chapters</h1>
-                <p className="text-xs text-slate-500">Connect with local communities</p>
+                <h1 className="text-xl font-bold text-slate-900">{t('chapters.header.title')}</h1>
+                <p className="text-xs text-slate-500">{t('chapters.header.subtitle')}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setShowStartChapterModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <Plus className="h-4 w-4" />
-                Start a Chapter
+                {t('chapters.actions.start')}
               </button>
             </div>
           </div>
@@ -356,49 +377,48 @@ const ChaptersPage: React.FC = () => {
           <div className="flex items-center gap-6 mt-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab('browse')}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'browse'
-                  ? 'border-[#27AE60] text-[#27AE60]'
+                  ? 'border-indigo-900 text-indigo-900'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <Search className="h-4 w-4" />
-              Browse Chapters
+              {t('chapters.tabs.browse')}
             </button>
             <button
               onClick={() => setActiveTab('my-chapters')}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'my-chapters'
-                  ? 'border-[#27AE60] text-[#27AE60]'
+                  ? 'border-indigo-900 text-indigo-900'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <Home className="h-4 w-4" />
-              My Memberships
+              {t('chapters.tabs.my')}
             </button>
             <button
               onClick={() => setActiveTab('manage')}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'manage'
-                  ? 'border-[#27AE60] text-[#27AE60]'
+                  ? 'border-indigo-900 text-indigo-900'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <Settings className="h-4 w-4" />
-              Manage Chapter
+              {t('chapters.tabs.manage')}
             </button>
           </div>
         </div>
       </div>
-
       {/* Content */}
       <div className="flex-1 w-full p-4 sm:p-6 lg:p-8">
         {activeTab === 'browse' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-900">Find a Chapter</h2>
-                <p className="text-slate-500 text-sm">Join a local community to participate in events and discussions.</p>
+                <h2 className="text-lg font-semibold text-slate-900">{t('chapters.browse.title')}</h2>
+                <p className="text-slate-500 text-sm">{t('chapters.browse.subtitle')}</p>
               </div>
               <ChapterSelection
                 onChapterSelected={(chapter) => {
@@ -408,6 +428,7 @@ const ChaptersPage: React.FC = () => {
               />
             </div>
           </div>
+          
         )}
 
         {activeTab === 'my-chapters' && (
@@ -419,7 +440,7 @@ const ChaptersPage: React.FC = () => {
                   className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to My Chapters
+                  {t('chapters.my.back')}
                 </button>
 
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
@@ -439,11 +460,11 @@ const ChaptersPage: React.FC = () => {
                         <div className="p-2 bg-orange-100 rounded-lg">
                           <Megaphone className="h-6 w-6 text-orange-600" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">Announcements</h3>
-                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900">{t('chapters.my.announcements')}</h3>
+                    </div>
                       <div className="space-y-4">
                         {announcements.length === 0 ? (
-                          <p className="text-slate-500 italic text-center py-4">No announcements yet.</p>
+                          <p className="text-slate-500 italic text-center py-4">{t('chapters.my.announcements_empty')}</p>
                         ) : (
                           announcements.map(announcement => (
                             <div key={announcement.id} className={`p-4 rounded-lg border ${announcement.is_pinned ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
@@ -459,17 +480,17 @@ const ChaptersPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-
+                 
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-[#27AE60]/10 rounded-lg">
-                          <Calendar className="h-6 w-6 text-[#27AE60]" />
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                          <Calendar className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">Upcoming Events</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">{t('chapters.my.events')}</h3>
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         {events.length === 0 ? (
-                          <p className="text-slate-500 italic text-center py-4 col-span-full">No upcoming events.</p>
+                          <p className="text-slate-500 italic text-center py-4 col-span-full">{t('chapters.my.events_empty')}</p>
                         ) : (
                           events.map(event => (
                             <div key={event.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -495,7 +516,8 @@ const ChaptersPage: React.FC = () => {
                                   href={event.meeting_link} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="mt-3 block w-full text-center py-2 bg-[#27AE60]/5 text-[#27AE60] rounded-lg text-sm font-medium hover:bg-[#27AE60]/10 transition-colors"
+                                  className="mt-3 block w-full text-center py-2 rounded-lg text-sm font-medium transition-colors"
+                                  style={{ color: brandColors.primaryHex, backgroundColor: `${brandColors.primaryHex}14` }}
                                 >
                                   Join Meeting
                                 </a>
@@ -506,13 +528,13 @@ const ChaptersPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
+                </div>
                   {/* Sidebar Column */}
                   <div className="space-y-6">
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-[#27AE60]/10 rounded-lg">
-                          <FileText className="h-6 w-6 text-[#27AE60]" />
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                          <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">Resources</h3>
                       </div>
@@ -528,7 +550,7 @@ const ChaptersPage: React.FC = () => {
                                 <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                               )}
                               <div className="flex-1 min-w-0">
-                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#27AE60] truncate block">
+                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#1e1b4b] truncate block">
                                   {resource.title}
                                 </a>
                                 {resource.description && (
@@ -542,14 +564,14 @@ const ChaptersPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              
             ) : (
               <>
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="mb-6 flex items-center justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">My Chapters</h2>
-                      <p className="text-slate-500 text-sm">Manage your memberships and primary chapter.</p>
+                      <h2 className="text-lg font-semibold text-slate-900">{t('chapters.my.title')}</h2>
+                      <p className="text-slate-500 text-sm">{t('chapters.my.subtitle')}</p>
                     </div>
                   </div>
                   <ChapterSelection
@@ -560,7 +582,7 @@ const ChaptersPage: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-br from-[#27AE60] to-[#16A085] rounded-xl p-6 text-white shadow-lg">
+                  <div className="rounded-xl p-6 text-white shadow-lg" style={{ backgroundColor: brandColors.primaryHex }}>
                     <Award className="h-8 w-8 mb-4 opacity-80" />
                     <h3 className="text-lg font-bold mb-2">Chapter Leaderboard</h3>
                     <p className="text-green-50 text-sm mb-4">See how your chapter compares to others in engagement and learning.</p>
@@ -571,20 +593,20 @@ const ChaptersPage: React.FC = () => {
                   
                   <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                     <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-[#27AE60]" />
+                      <MapPin className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
                       About Membership
                     </h3>
                     <ul className="space-y-3 text-sm text-slate-600">
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
                         <span>Join multiple chapters to connect across regions</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
                         <span>Set a <strong>Primary Chapter</strong> for personalized content</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
                         <span>Participate in local events and discussions</span>
                       </li>
                     </ul>
@@ -599,27 +621,66 @@ const ChaptersPage: React.FC = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             {manageLoading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60] mx-auto"></div>
-                <p className="mt-4 text-slate-500">Loading chapter details...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: brandColors.primaryHex }}></div>
+                <p className="mt-4 text-slate-500">{t('chapters.loading_manage', 'Loading chapter details...')}</p>
               </div>
             ) : !managedChapter ? (
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Settings className="h-8 w-8 text-slate-400" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">Chapter Management</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">{t('chapters.manage.title')}</h2>
                 <p className="text-slate-500 max-w-md mx-auto mb-8">
-                  You don't have administrative access to any chapters yet. Apply to become a chapter leader to manage events, members, and content.
+                  {t('chapters.manage.no_access')}
                 </p>
                 <button 
                   onClick={() => setShowApplyLeadershipModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                  className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
-                  Apply for Leadership
+                  {t('chapters.manage.apply')}
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.leadership_title')}</h2>
+                    <span className="text-xs text-slate-500">{t('chapters.manage.leadership_subtitle')}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {userChapters.length === 0 && (
+                      <p className="text-sm text-slate-500">{t('chapters.manage.leadership_empty')}</p>
+                    )}
+                    {userChapters.map((uc) => (
+                      <div key={uc.id} className="flex items-center justify-between border border-slate-100 rounded-lg px-3 py-2">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-900">{uc.chapter_name || uc.name}</span>
+                          <span className="text-xs text-slate-500">{uc.city ? `${uc.city}${uc.country ? ', ' + uc.country : ''}` : uc.country || ''}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 capitalize">
+                            {String(t(`chapters.role.${uc.role}`, uc.role))}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full border font-medium ${
+                            uc.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            uc.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                            'bg-red-50 text-red-700 border-red-200'
+                          }`}>
+                            {String(t(`chapters.status.${uc.status}`, uc.status))}
+                          </span>
+                          {uc.is_primary && (
+                            <span className="px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                              {t('chapters.primary')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Award Badge Card */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
@@ -694,11 +755,11 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <span className="text-slate-600">Chapter Name</span>
-                      <span className="font-bold text-slate-900">{managedChapter.chapter_name || 'Unknown'}</span>
+                      <span className="font-bold text-slate-900">{managedChapter?.chapter_name || 'Unknown'}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <span className="text-slate-600">Your Role</span>
-                      <span className="font-bold text-[#27AE60] capitalize">{managedChapter.role}</span>
+                      <span className="font-bold text-[#27AE60] capitalize">{managedChapter?.role}</span>
                     </div>
                   </div>
                 </div>
@@ -792,23 +853,24 @@ const ChaptersPage: React.FC = () => {
                         <Calendar className="h-6 w-6 text-[#27AE60]" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Chapter Events</h2>
-                        <p className="text-sm text-slate-500">Manage upcoming meetups and activities</p>
+                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.events_title')}</h2>
+                        <p className="text-sm text-slate-500">{t('chapters.manage.events_subtitle')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowCreateEventModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-sm transition-colors text-sm font-medium"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                     >
                       <Plus className="h-4 w-4" />
-                      Create Event
+                      {t('chapters.manage.create_event')}
                     </button>
                   </div>
 
                   {events.length === 0 ? (
                     <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-300">
                       <Calendar className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-500">No upcoming events scheduled.</p>
+                      <p className="text-slate-500">{t('chapters.manage.events_empty')}</p>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2">
@@ -837,7 +899,7 @@ const ChaptersPage: React.FC = () => {
                               className="text-xs text-[#27AE60] hover:text-[#1e8449] font-medium flex items-center gap-1"
                             >
                               <ClipboardList className="h-3 w-3" />
-                              Attendance
+                              {t('chapters.manage.attendance')}
                             </button>
                           </div>
                         </div>
@@ -850,17 +912,20 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#27AE60]/10 rounded-lg">
-                        <FileText className="h-6 w-6 text-[#27AE60]" />
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                        <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Resources</h2>
-                        <p className="text-sm text-slate-500">Study guides & materials</p>
+                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.my.resources')}</h2>
+                        <p className="text-sm text-slate-500">{t('chapters.my.resources_subtitle')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowCreateResourceModal(true)}
-                      className="p-2 text-[#27AE60] hover:bg-[#27AE60]/10 rounded-lg transition-colors"
+                      className="p-2"
+                      style={{ color: brandColors.primaryHex }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${brandColors.primaryHex}1A`)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <Plus className="h-5 w-5" />
                     </button>
@@ -868,7 +933,7 @@ const ChaptersPage: React.FC = () => {
 
                   <div className="space-y-3">
                     {resources.length === 0 ? (
-                      <p className="text-sm text-slate-500 italic text-center py-4">No resources shared yet.</p>
+                      <p className="text-sm text-slate-500 italic text-center py-4">{t('chapters.my.resources_empty')}</p>
                     ) : (
                       resources.map(resource => (
                         <div key={resource.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
@@ -878,7 +943,7 @@ const ChaptersPage: React.FC = () => {
                             <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#27AE60] truncate block">
+                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[color:#1e1b4b] truncate block">
                               {resource.title}
                             </a>
                             {resource.description && (
@@ -930,86 +995,78 @@ const ChaptersPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      )}
       </div>
-
-      {/* Start Chapter Modal */}
+        {/* Start Chapter Modal */}
       {showStartChapterModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Start a New Chapter</h2>
-              <button onClick={() => setShowStartChapterModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">
+                {t('chapters.start.title', 'Start a New Chapter')}
+              </h2>
+              <button
+                onClick={() => setShowStartChapterModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <X className="h-6 w-6" />
               </button>
             </div>
+
             <form onSubmit={handleStartChapter} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Chapter Name</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
-                  value={newChapterData.name}
-                  onChange={e => setNewChapterData({...newChapterData, name: e.target.value})}
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.name_label', 'Chapter Name')}
+                </label>
+                <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.name} onChange={(e) => setNewChapterData({ ...newChapterData, name: e.target.value })} />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
-                    value={newChapterData.country}
-                    onChange={e => setNewChapterData({...newChapterData, country: e.target.value})}
-                  />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t('chapters.start.country_label', 'Country')}
+                  </label>
+                  <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.country} onChange={(e) => setNewChapterData({ ...newChapterData, country: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
-                    value={newChapterData.city}
-                    onChange={e => setNewChapterData({...newChapterData, city: e.target.value})}
-                  />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t('chapters.start.city_label', 'City')}
+                  </label>
+                  <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.city} onChange={(e) => setNewChapterData({ ...newChapterData, city: e.target.value })} />
                 </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                <textarea
-                  required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] h-24"
-                  value={newChapterData.description}
-                  onChange={e => setNewChapterData({...newChapterData, description: e.target.value})}
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.description_label', 'Description')}
+                </label>
+                <textarea required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900 h-24" value={newChapterData.description} onChange={(e) => setNewChapterData({ ...newChapterData, description: e.target.value })} />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Topics (comma separated)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Technology, Arts, Science"
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
-                  value={newChapterData.topics}
-                  onChange={e => setNewChapterData({...newChapterData, topics: e.target.value})}
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.topics_label', 'Topics (comma separated)')}
+                </label>
+                <input type="text" placeholder={t('chapters.start.topics_placeholder', 'e.g. Technology, Arts, Science')} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.topics} onChange={(e) => setNewChapterData({ ...newChapterData, topics: e.target.value })} />
               </div>
+
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowStartChapterModal(false)}
                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
+                  className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
-                  Submit Application
+                  {t('chapters.start.submit', 'Submit Application')}
                 </button>
               </div>
             </form>
@@ -1087,8 +1144,8 @@ const ChaptersPage: React.FC = () => {
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   placeholder="e.g., Monthly Meetup"
-                  value={newEvent.title}
-                  onChange={e => setNewEvent({...newEvent, title: e.target.value})}
+                  value={newEventData.title}
+                  onChange={e => setNewEventData({...newEventData, title: e.target.value})}
                 />
               </div>
 
@@ -1099,8 +1156,8 @@ const ChaptersPage: React.FC = () => {
                   rows={3}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                   placeholder="What will happen at this event?"
-                  value={newEvent.description}
-                  onChange={e => setNewEvent({...newEvent, description: e.target.value})}
+                  value={newEventData.description}
+                  onChange={e => setNewEventData({...newEventData, description: e.target.value})}
                 />
               </div>
 
@@ -1111,8 +1168,8 @@ const ChaptersPage: React.FC = () => {
                     type="datetime-local"
                     required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
-                    value={newEvent.event_date}
-                    onChange={e => setNewEvent({...newEvent, event_date: e.target.value})}
+                  value={newEventData.event_date}
+                  onChange={e => setNewEventData({...newEventData, event_date: e.target.value})}
                   />
                 </div>
                 <div>
@@ -1122,8 +1179,8 @@ const ChaptersPage: React.FC = () => {
                     min="15"
                     step="15"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
-                    value={newEvent.duration_minutes}
-                    onChange={e => setNewEvent({...newEvent, duration_minutes: parseInt(e.target.value)})}
+                  value={newEventData.duration_minutes}
+                  onChange={e => setNewEventData({...newEventData, duration_minutes: parseInt(e.target.value)})}
                   />
                 </div>
               </div>
@@ -1133,13 +1190,13 @@ const ChaptersPage: React.FC = () => {
                   type="checkbox"
                   id="is_online"
                   className="rounded border-slate-300 text-[#27AE60] focus:ring-[#27AE60]"
-                  checked={newEvent.is_online}
-                  onChange={e => setNewEvent({...newEvent, is_online: e.target.checked})}
+                  checked={newEventData.is_online}
+                  onChange={e => setNewEventData({...newEventData, is_online: e.target.checked})}
                 />
                 <label htmlFor="is_online" className="text-sm font-medium text-slate-700">This is an online event</label>
               </div>
 
-              {newEvent.is_online ? (
+              {newEventData.is_online ? (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Link</label>
                   <div className="relative">
@@ -1148,8 +1205,8 @@ const ChaptersPage: React.FC = () => {
                       type="url"
                       className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                       placeholder="https://meet.google.com/..."
-                      value={newEvent.meeting_link}
-                      onChange={e => setNewEvent({...newEvent, meeting_link: e.target.value})}
+                      value={newEventData.meeting_link}
+                      onChange={e => setNewEventData({...newEventData, meeting_link: e.target.value})}
                     />
                   </div>
                 </div>
@@ -1162,8 +1219,8 @@ const ChaptersPage: React.FC = () => {
                       type="text"
                       className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
                       placeholder="Venue address"
-                      value={newEvent.location}
-                      onChange={e => setNewEvent({...newEvent, location: e.target.value})}
+                      value={newEventData.location}
+                      onChange={e => setNewEventData({...newEventData, location: e.target.value})}
                     />
                   </div>
                 </div>
@@ -1342,8 +1399,8 @@ const ChaptersPage: React.FC = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="bg-[#27AE60]/10 p-4 rounded-lg mb-4">
-                <p className="text-sm text-[#27AE60]">
+              <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                <p className="text-sm" style={{ color: brandColors.primaryHex }}>
                   Mark attendance for members who joined this event.
                 </p>
               </div>
@@ -1404,9 +1461,9 @@ const ChaptersPage: React.FC = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
 
 export default ChaptersPage;
-

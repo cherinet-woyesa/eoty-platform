@@ -26,7 +26,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   }, []);
 
   return (
-    <header className="bg-white/95 backdrop-blur-md border-b border-stone-200/70 shadow-sm sticky top-0 z-50">
+    <header className="bg-white backdrop-blur-md border-b border-slate-200 shadow-sm sticky top-0 z-50">
       <div className="px-3 sm:px-4 lg:px-6">
         <div className="flex justify-between items-center h-14 gap-3">
           {/* Left section - Mobile menu and breadcrumbs */}
@@ -34,13 +34,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             {/* Mobile menu button */}
             <button 
               onClick={onToggleSidebar || handleMobileMenuToggle}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-900/20"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
-                <X className="h-4 w-4 text-gray-600" />
+                <X className="h-4 w-4 text-indigo-900" />
               ) : (
-                <Menu className="h-4 w-4 text-gray-600" />
+                <Menu className="h-4 w-4 text-indigo-900" />
               )}
             </button>
             

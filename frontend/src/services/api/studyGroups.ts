@@ -21,6 +21,11 @@ export const studyGroupsApi = {
     return response.data;
   },
 
+  delete: async (groupId: number) => {
+    const response = await apiClient.delete(`/study-groups/${groupId}`);
+    return response.data;
+  },
+
   get: async (groupId: number) => {
     const response = await apiClient.get(`/study-groups/${groupId}`);
     return response.data;
@@ -31,8 +36,28 @@ export const studyGroupsApi = {
     return response.data;
   },
 
-  postMessage: async (groupId: number, content: string) => {
-    const response = await apiClient.post(`/study-groups/${groupId}/messages`, { content });
+  postMessage: async (groupId: number, content: string, parentMessageId?: number | string) => {
+    const response = await apiClient.post(`/study-groups/${groupId}/messages`, { content, parent_message_id: parentMessageId });
+    return response.data;
+  },
+
+  deleteMessage: async (groupId: number, messageId: number) => {
+    const response = await apiClient.delete(`/study-groups/${groupId}/messages/${messageId}`);
+    return response.data;
+  },
+
+  editMessage: async (groupId: number, messageId: number, content: string) => {
+    const response = await apiClient.put(`/study-groups/${groupId}/messages/${messageId}`, { content });
+    return response.data;
+  },
+
+  toggleMessageLike: async (groupId: number, messageId: number) => {
+    const response = await apiClient.post(`/study-groups/${groupId}/messages/${messageId}/like`);
+    return response.data;
+  },
+
+  reportMessage: async (groupId: number, messageId: number, reason?: string) => {
+    const response = await apiClient.post(`/study-groups/${groupId}/messages/${messageId}/report`, { reason });
     return response.data;
   },
 

@@ -5,6 +5,7 @@ import { chaptersApi } from '@/services/api/chapters';
 import { authApi } from '@/services/api';
 import { MapPin, ArrowRight, BookOpen, GraduationCap, Check, Compass, AlertTriangle, RefreshCw } from 'lucide-react';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 const CompleteProfile: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -15,9 +16,14 @@ const CompleteProfile: React.FC = () => {
   const [role, setRole] = useState<'user' | 'teacher'>(user?.role === 'teacher' ? 'teacher' : 'user');
   const [chapterId, setChapterId] = useState<number | ''>(user?.chapter || user?.chapter_id || '');
   const [useNearby, setUseNearby] = useState(false);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locError, setLocError] = useState<string | null>(null);
+  const { coords, isLoading: isLocating, error: locError, requestLocation, clearError } = useGeolocation({
+    timeoutMs: 8000,
+    maximumAgeMs: 60000,
+    highAccuracy: true
+  });
   const hasChapters = chapters.length > 0;
+  const [autoSelectedChapter, setAutoSelectedChapter] = useState<{ id: number; name: string; distance?: number | null } | null>(null);
+  const [userTouchedChapter, setUserTouchedChapter] = useState(false);
 
   const fetchChapters = async () => {
     setIsFetchingChapters(true);
@@ -62,6 +68,21 @@ const CompleteProfile: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useNearby, coords]);
+
+  // Auto-select nearest chapter when using nearby and we have distances
+  useEffect(() => {
+    if (!useNearby || !coords || !chapters.length || userTouchedChapter) return;
+    const withDistance = chapters.filter(ch => typeof ch.distance === 'number' && isFinite(ch.distance as number));
+    if (!withDistance.length) return;
+    const nearest = withDistance.reduce((best, ch) => {
+      if (!best) return ch;
+      return (ch.distance as number) < (best.distance as number) ? ch : best;
+    }, withDistance[0]);
+    if (nearest && (!chapterId || chapterId === '' || chapterId === autoSelectedChapter?.id)) {
+      setChapterId(nearest.id);
+      setAutoSelectedChapter(nearest);
+    }
+  }, [useNearby, coords, chapters, chapterId, autoSelectedChapter?.id, userTouchedChapter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,25 +177,11 @@ const CompleteProfile: React.FC = () => {
                     checked={useNearby}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        if (!navigator.geolocation) {
-                          setLocError('Geolocation not supported by this browser.');
-                          setUseNearby(false);
-                          return;
-                        }
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                            setUseNearby(true);
-                            setLocError(null);
-                          },
-                          () => {
-                            setLocError('Unable to get location. Please allow location access.');
-                            setUseNearby(false);
-                          },
-                          { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-                        );
+                        setUseNearby(true);
+                        requestLocation();
                       } else {
                         setUseNearby(false);
+                        clearError();
                       }
                     }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -196,7 +203,10 @@ const CompleteProfile: React.FC = () => {
                   name="chapter"
                   className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
                   value={chapterId}
-                  onChange={(e) => setChapterId(Number(e.target.value))}
+                  onChange={(e) => {
+                    setChapterId(Number(e.target.value));
+                    setUserTouchedChapter(true);
+                  }}
                   disabled={isFetchingChapters}
                 >
                   <option value="">Select your chapter</option>
@@ -208,8 +218,14 @@ const CompleteProfile: React.FC = () => {
                   ))}
                 </select>
               </div>
-              {isFetchingChapters && (
+              {(isFetchingChapters || isLocating) && (
                 <p className="text-sm text-gray-500 mt-2">Loading chapters...</p>
+              )}
+              {autoSelectedChapter && !userTouchedChapter && (
+                <p className="text-xs text-green-700 mt-1">
+                  We picked <strong>{autoSelectedChapter.name}</strong>
+                  {typeof autoSelectedChapter.distance === 'number' ? ` (~${autoSelectedChapter.distance.toFixed(1)} km)` : ''}. You can change it above.
+                </p>
               )}
               {!isFetchingChapters && !hasChapters && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

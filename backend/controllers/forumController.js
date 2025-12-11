@@ -14,11 +14,15 @@ const forumController = {
       const { title, description, category, isPublic = false, allowedChapterId = null } = req.body;
       const userId = req.user.userId;
 
+      console.log('Create Forum Check - User:', { role: req.user.role, permissions: req.user.permissions, id: userId });
+
       // Check if user has permission to create forums
       const hasPermission = req.user.permissions?.includes('discussion:create') ||
                            req.user.permissions?.includes('forum:create') ||
                            req.user.role === 'admin' ||
-                           req.user.role === 'teacher';
+                           req.user.role === 'teacher' ||
+                           (req.user.role && req.user.role.toLowerCase() === 'student') ||
+                           (req.user.role && req.user.role.toLowerCase() === 'user'); // Allow students/users to create forums for their chapters
 
       if (!hasPermission) {
         return res.status(403).json({

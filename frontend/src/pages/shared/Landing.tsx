@@ -45,8 +45,7 @@ const Landing: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to fetch landing content:', err);
-        // Don't block the UI on error, just log it and use defaults
-        // setError('Failed to load content');
+        setError('Failed to load content');
       } finally {
         setLoading(false);
       }
@@ -139,7 +138,7 @@ const Landing: React.FC = () => {
 
     const material = new THREE.PointsMaterial({
       size: 0.03,
-      color: 0x27AE60,
+      color: 0x4f46e5, // brighter indigo
       transparent: true,
       opacity: 0.6,
       blending: THREE.AdditiveBlending
@@ -149,9 +148,9 @@ const Landing: React.FC = () => {
     scene.add(particlesMesh);
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0x27AE60,
+      color: 0xC07A1A, // brighter warm amber/gold tone
       transparent: true,
-      opacity: 0.15
+      opacity: 0.18
     });
 
     const linesGeometry = new THREE.BufferGeometry();

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { chaptersApi, type Chapter } from '@/services/api/chapters';
-import { MapPin, Search, Globe, Mail, Clock, Navigation } from 'lucide-react';
+import { MapPin, Search, Globe, Mail, Clock, Navigation, Compass, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 // Simplified World Map SVG Path (Equirectangular Projection)
 const WORLD_MAP_PATH = "M840,480c0,0,0-10,0-10s10-10,10-10s10,0,10,0s10,10,10,10s0,10,0,10S840,480,840,480z M750,450c0,0,0-10,0-10s10-10,10-10s10,0,10,0s10,10,10,10s0,10,0,10S750,450,750,450z M650,350c0,0,0-20,0-20s20-20,20-20s20,0,20,0s20,20,20,20s0,20,0,20S650,350,650,350z M250,250c0,0,0-30,0-30s30-30,30-30s30,0,30,0s30,30,30,30s0,30,0,30S250,250,250,250z M450,250c0,0,0-20,0-20s20-20,20-20s20,0,20,0s20,20,20,20s0,20,0,20S450,250,450,250z";
@@ -16,14 +17,30 @@ const GlobalChapterMap: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [useNearby, setUseNearby] = useState(false);
+  const [distanceKm, setDistanceKm] = useState(100);
+  const { coords, isLoading: isLocating, error: locError, requestLocation, clearError } = useGeolocation({
+    timeoutMs: 8000,
+    maximumAgeMs: 60000,
+    highAccuracy: true
+  });
 
   useEffect(() => {
     const loadChapters = async () => {
       try {
         setLoading(true);
-        const response = await chaptersApi.getChapters();
+        let response;
+        if (useNearby && coords) {
+          response = await chaptersApi.getNearby({ lat: coords.lat, lng: coords.lng, radiusKm: distanceKm, limit: 100 });
+        } else {
+          response = await chaptersApi.getChapters();
+        }
         if (response.success && response.data?.chapters) {
-          setChapters(response.data.chapters);
+          const mapped = response.data.chapters.map((ch: any) => ({
+            ...ch,
+            distance: ch.distance_km ?? ch.distance ?? ch.distanceKm ?? null
+          }));
+          setChapters(mapped);
         }
       } catch (error) {
         console.error('Failed to load chapters', error);
@@ -33,7 +50,7 @@ const GlobalChapterMap: React.FC = () => {
     };
 
     void loadChapters();
-  }, []);
+  }, [useNearby, coords, distanceKm]);
 
   const filteredChapters = chapters.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,17 +81,61 @@ const GlobalChapterMap: React.FC = () => {
             </p>
           </div>
           
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by city, country, or name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-            />
+          <div className="flex flex-col gap-3 w-full md:w-auto md:flex-row md:items-center md:gap-4">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by city, country, or name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={useNearby}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setUseNearby(true);
+                      requestLocation();
+                    } else {
+                      setUseNearby(false);
+                      clearError();
+                    }
+                  }}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="inline-flex items-center gap-1">
+                  <Compass className="h-4 w-4 text-blue-600" />
+                  Near me
+                </span>
+              </label>
+              {useNearby && (
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <input
+                    type="range"
+                    min={10}
+                    max={200}
+                    step={10}
+                    value={distanceKm}
+                    onChange={(e) => setDistanceKm(Number(e.target.value))}
+                  />
+                  <span>{distanceKm} km</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {locError && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>{locError}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Map Visualization Area (Placeholder for now) */}
