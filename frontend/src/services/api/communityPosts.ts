@@ -66,11 +66,14 @@ export const communityPostsApi = {
   },
 
   // Comments functionality
-  addComment: async (postId: string, data: { content: string; parentCommentId?: string }) => {
-    const payload = {
-      content: data.content,
-      parent_comment_id: data.parentCommentId
+  addComment: async (postId: string, data: { content: string; parentCommentId?: string | number }) => {
+    const payload: any = {
+      content: data.content
     };
+    if (data.parentCommentId != null && data.parentCommentId !== '') {
+      // ensure we send a numeric id to backend
+      payload.parent_comment_id = Number(data.parentCommentId);
+    }
     const response = await apiClient.post(`/community/posts/${postId}/comments`, payload);
     return response.data;
   },

@@ -3,26 +3,35 @@
  * REQUIREMENT: Multi-city/chapter membership
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapPin, Search, Plus, Globe, Home, Settings, Award, Check, X, Calendar, Clock, Video, FileText, Megaphone, ClipboardList, Link as LinkIcon, Loader2, ArrowLeft } from 'lucide-react';
 import ChapterSelection from '@/components/shared/chapters/ChapterSelection';
 import { chaptersApi, type UserChapter } from '@/services/api/chapters';
 import { achievementsApi, type Badge } from '@/services/api/achievements';
 import { useNotification } from '@/context/NotificationContext';
 import { useTranslation } from 'react-i18next';
-import { brandColors } from '@/theme/brand';
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 const ChaptersPage: React.FC = () => {
   const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [activeTab, setActiveTab] = useState<'browse' | 'my-chapters' | 'manage'>('browse');
   const [members, setMembers] = useState<any[]>([]);
+  const [hasLoadedMembers, setHasLoadedMembers] = useState(false);
   const [userChapters, setUserChapters] = useState<UserChapter[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingChapter, setIsCreatingChapter] = useState(false);
+  const [isApplyingLeadership, setIsApplyingLeadership] = useState(false);
+  const [isCreatingResource, setIsCreatingResource] = useState(false);
+  const [isCreatingAnnouncement, setIsCreatingAnnouncement] = useState(false);
+  const [isAwardingBadge, setIsAwardingBadge] = useState(false);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [hasLoadedEvents, setHasLoadedEvents] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
+  const [hasLoadedResources, setHasLoadedResources] = useState(false);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [hasLoadedAnnouncements, setHasLoadedAnnouncements] = useState(false);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [selectedEventForAttendance, setSelectedEventForAttendance] = useState<number | null>(null);
 
@@ -74,7 +83,7 @@ const ChaptersPage: React.FC = () => {
     }
   }, [activeTab]);
 
-  const loadChapterDetails = async (chapterId: number) => {
+  const loadChapterDetails = useCallback(async (chapterId: number) => {
     try {
       const [eventsRes, resourcesRes, announcementsRes, membersRes] = await Promise.all([
         chaptersApi.getEvents(chapterId),
@@ -90,55 +99,104 @@ const ChaptersPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to load chapter details', err);
     }
-  };
+  }, []);
 
-  const handleViewChapter = async (chapter: any) => {
+  const handleViewChapter = useCallback(async (chapter: any) => {
     setViewingChapter(chapter);
     await loadChapterDetails(chapter.id || chapter.chapter_id);
-  };
+  }, [loadChapterDetails]);
 
-  const loadManageData = async () => {
+  const loadManageData = useCallback(async () => {
     setManageLoading(true);
     try {
       const userChaptersRes = await chaptersApi.getUserChapters();
       // Find a chapter where user is leader/admin
-      const chapter = userChaptersRes.data.chapters.find(
+      const chapter = useMemo(() => userChaptersRes.data.chapters.find(
         (c: UserChapter) => ['admin', 'moderator', 'chapter_leader', 'teacher', 'chapter_admin'].includes(c.role)
-      );
+      ), [userChaptersRes.data.chapters]);
       setUserChapters(userChaptersRes.data.chapters || []);
 
       if (chapter) {
         setManagedChapter(chapter);
-        const membersRes = await chaptersApi.getMembers(chapter.chapter_id);
-        setMembers(membersRes.data.members || []);
-        
+        // Set managed chapter and load only lightweight data by default.
+        // Large lists (members/events/resources/announcements) are loaded on demand.
+        setMembers([]);
+        setEvents([]);
+        setResources([]);
+        setAnnouncements([]);
+        setHasLoadedMembers(false);
+        setHasLoadedEvents(false);
+        setHasLoadedResources(false);
+        setHasLoadedAnnouncements(false);
+
         const badgesRes = await achievementsApi.getAvailableBadges();
         setBadges(badgesRes.data.badges.filter((b: Badge) => b.is_manual));
-
-        const eventsRes = await chaptersApi.getEvents(chapter.chapter_id);
-        setEvents(eventsRes.data.events);
-
-        const resourcesRes = await chaptersApi.getResources(chapter.chapter_id);
-        setResources(resourcesRes.data.resources);
-
-        const announcementsRes = await chaptersApi.getAnnouncements(chapter.chapter_id);
-        setAnnouncements(announcementsRes.data.announcements);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setManageLoading(false);
     }
-  };
+  }, [chaptersApi, achievementsApi, setUserChapters, setManagedChapter, setMembers, setEvents, setResources, setAnnouncements, setHasLoadedMembers, setHasLoadedEvents, setHasLoadedResources, setHasLoadedAnnouncements, setBadges, setManageLoading]);
 
-  const handleAwardBadge = async () => {
+  // Lazy-load helpers
+  const loadMembers = useCallback(async () => {
+    if (!managedChapter || hasLoadedMembers) return;
+    try {
+      const membersRes = await chaptersApi.getMembers(managedChapter.chapter_id);
+      setMembers(membersRes.data.members || []);
+      setHasLoadedMembers(true);
+    } catch (err) {
+      console.error('Failed to load members', err);
+      showNotification({ type: 'error', title: t('common.error'), message: t('chapters.manage.member_management.failed_to_load_members') });
+    }
+  }, [managedChapter, hasLoadedMembers, showNotification, t]);
+
+  const loadEvents = useCallback(async () => {
+    if (!managedChapter || hasLoadedEvents) return;
+    try {
+      const eventsRes = await chaptersApi.getEvents(managedChapter.chapter_id);
+      setEvents(eventsRes.data.events || []);
+      setHasLoadedEvents(true);
+    } catch (err) {
+      console.error('Failed to load events', err);
+      showNotification({ type: 'error', title: t('common.error'), message: t('chapters.manage.events_management.failed_to_load_events') });
+    }
+  }, [managedChapter, hasLoadedEvents, showNotification, t]);
+
+  const loadResources = useCallback(async () => {
+    if (!managedChapter || hasLoadedResources) return;
+    try {
+      const resourcesRes = await chaptersApi.getResources(managedChapter.chapter_id);
+      setResources(resourcesRes.data.resources || []);
+      setHasLoadedResources(true);
+    } catch (err) {
+      console.error('Failed to load resources', err);
+      showNotification({ type: 'error', title: t('common.error'), message: t('chapters.manage.resources_management.failed_to_load_resources') });
+    }
+  }, [managedChapter, hasLoadedResources, showNotification, t]);
+
+  const loadAnnouncements = useCallback(async () => {
+    if (!managedChapter || hasLoadedAnnouncements) return;
+    try {
+      const announcementsRes = await chaptersApi.getAnnouncements(managedChapter.chapter_id);
+      setAnnouncements(announcementsRes.data.announcements || []);
+      setHasLoadedAnnouncements(true);
+    } catch (err) {
+      console.error('Failed to load announcements', err);
+      showNotification({ type: 'error', title: t('common.error'), message: t('chapters.manage.announcements_management.failed_to_load_announcements') });
+    }
+  }, [managedChapter, hasLoadedAnnouncements, showNotification, t]);
+
+  const handleAwardBadge = useCallback(async () => {
     if (!selectedMember || !selectedBadge) return;
+    setIsAwardingBadge(true);
     try {
       await achievementsApi.awardBadge(selectedMember, selectedBadge);
       showNotification({
         type: 'success',
-        title: 'Badge Awarded',
-        message: 'Badge awarded successfully!'
+        title: t('chapters.manage.award_achievement.badge_awarded_success_title'),
+        message: t('chapters.manage.award_achievement.badge_awarded_success_message')
       });
       setSelectedMember(null);
       setSelectedBadge(null);
@@ -146,36 +204,38 @@ const ChaptersPage: React.FC = () => {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to award badge'
+        title: t('chapters.manage.award_achievement.badge_award_error_title'),
+        message: t('chapters.manage.award_achievement.badge_award_error_message')
       });
+    } finally {
+      setIsAwardingBadge(false);
     }
-  };
+  }, [selectedMember, selectedBadge, showNotification, t]);
 
-  const handleUpdateMemberStatus = async (userId: number, status: 'approved' | 'rejected') => {
+  const handleUpdateMemberStatus = useCallback(async (userId: number, status: 'approved' | 'rejected') => {
     if (!managedChapter) return;
     try {
       await chaptersApi.updateMemberStatus(managedChapter.chapter_id, userId, status);
       showNotification({
         type: 'success',
-        title: 'Success',
-        message: `Member ${status} successfully`
+        title: t('common.success'),
+        message: t('chapters.manage.member_management.member_status_success', { status })
       });
       // Refresh members
-      const membersRes = await chaptersApi.getMembers(managedChapter.chapter_id);
-      setMembers(membersRes.data.members);
+      await loadMembers();
     } catch (err) {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to update member status'
+        title: t('common.error'),
+        message: t('chapters.manage.member_management.failed_to_update_member_status')
       });
     }
-  };
+  }, [managedChapter, showNotification, loadMembers, t]);
 
-  const handleStartChapter = async (e: React.FormEvent) => {
+  const handleStartChapter = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsCreatingChapter(true);
     try {
       await chaptersApi.createChapter({
         ...newChapterData,
@@ -183,8 +243,8 @@ const ChaptersPage: React.FC = () => {
       });
       showNotification({
         type: 'success',
-        title: 'Application Submitted',
-        message: 'Chapter application submitted successfully!'
+        title: t('chapters.start.application_submitted_title'),
+        message: t('chapters.start.application_submitted_message')
       });
       setShowStartChapterModal(false);
       setNewChapterData({ name: '', location: '', description: '', country: '', city: '', region: '', topics: '' });
@@ -192,20 +252,23 @@ const ChaptersPage: React.FC = () => {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to submit application'
+        title: t('common.error'),
+        message: t('chapters.start.failed_to_submit_application')
       });
+    } finally {
+      setIsCreatingChapter(false);
     }
-  };
+  }, [newChapterData, showNotification, t]);
 
-  const handleApplyLeadership = async (e: React.FormEvent) => {
+  const handleApplyLeadership = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsApplyingLeadership(true);
     try {
       await chaptersApi.applyLeadership(leadershipData);
       showNotification({
         type: 'success',
-        title: 'Application Submitted',
-        message: 'Leadership application submitted successfully!'
+        title: t('chapters.manage.apply_leadership.application_submitted_title'),
+        message: t('chapters.manage.apply_leadership.application_submitted_message')
       });
       setShowApplyLeadershipModal(false);
       setLeadershipData({ reason: '', experience: '' });
@@ -213,13 +276,15 @@ const ChaptersPage: React.FC = () => {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to submit application'
+        title: t('common.error'),
+        message: t('chapters.manage.apply_leadership.failed_to_submit_application')
       });
+    } finally {
+      setIsApplyingLeadership(false);
     }
-  };
+  }, [leadershipData, showNotification, t]);
 
-  const handleCreateEvent = async (e: React.FormEvent) => {
+  const handleCreateEvent = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managedChapter) return;
     
@@ -232,8 +297,8 @@ const ChaptersPage: React.FC = () => {
       });
       showNotification({
         type: 'success',
-        title: 'Event Created',
-        message: 'Event created successfully!'
+        title: t('chapters.manage.events_management.event_created_title'),
+        message: t('chapters.manage.events_management.event_created_message')
       });
       setShowCreateEventModal(false);
       setNewEventData({
@@ -245,70 +310,80 @@ const ChaptersPage: React.FC = () => {
         is_online: false,
         meeting_link: ''
       });
-      loadManageData(); // Refresh events
+      await loadEvents(); // Refresh events
     } catch (err) {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to create event'
+        title: t('common.error'),
+        message: t('chapters.manage.events_management.failed_to_create_event')
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [managedChapter, newEventData, showNotification, loadEvents, t]);
 
-  const handleCreateResource = async (e: React.FormEvent) => {
+  const handleCreateResource = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managedChapter) return;
+    setIsCreatingResource(true);
     try {
       await chaptersApi.createResource(managedChapter.chapter_id, newResource);
       const res = await chaptersApi.getResources(managedChapter.chapter_id);
       setResources(res.data.resources);
+      setHasLoadedResources(true);
       setShowCreateResourceModal(false);
       setNewResource({ title: '', type: 'link', url: '', description: '' });
       showNotification({
         type: 'success',
-        title: 'Resource Added',
-        message: 'Resource added successfully!'
+        title: t('chapters.manage.resources_management.resource_added_title'),
+        message: t('chapters.manage.resources_management.resource_added_message')
       });
     } catch (err) {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to create resource'
+        title: t('common.error'),
+        message: t('chapters.manage.resources_management.failed_to_add_resource')
       });
+    } finally {
+      setIsCreatingResource(false);
     }
-  };
+  }, [managedChapter, newResource, showNotification, t]);
 
-  const handleCreateAnnouncement = async (e: React.FormEvent) => {
+  const handleCreateAnnouncement = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!managedChapter) return;
+    setIsCreatingAnnouncement(true);
     try {
       await chaptersApi.createAnnouncement(managedChapter.chapter_id, newAnnouncement);
       const res = await chaptersApi.getAnnouncements(managedChapter.chapter_id);
       setAnnouncements(res.data.announcements);
+      setHasLoadedAnnouncements(true);
       setShowCreateAnnouncementModal(false);
       setNewAnnouncement({ title: '', content: '', is_pinned: false });
       showNotification({
         type: 'success',
-        title: 'Announcement Posted',
-        message: 'Announcement posted successfully!'
+        title: t('chapters.manage.announcements_management.announcement_posted_title'),
+        message: t('chapters.manage.announcements_management.announcement_posted_message')
       });
     } catch (err) {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to create announcement'
+        title: t('common.error'),
+        message: t('chapters.manage.announcements_management.failed_to_post_announcement')
       });
+    } finally {
+      setIsCreatingAnnouncement(false);
     }
-  };
+  }, [managedChapter, newAnnouncement, showNotification, t]);
 
-  const handleViewAttendance = async (eventId: number) => {
+  const handleViewAttendance = useCallback(async (eventId: number) => {
     setSelectedEventForAttendance(eventId);
     try {
+      // Ensure member list is loaded when viewing attendance
+      await loadMembers();
       const res = await chaptersApi.getEventAttendance(eventId);
       setAttendance(res.data.attendance);
       setShowAttendanceModal(true);
@@ -316,13 +391,13 @@ const ChaptersPage: React.FC = () => {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to load attendance'
+        title: t('common.error'),
+        message: t('chapters.manage.attendance_modal.failed_to_load_attendance')
       });
     }
-  };
+  }, [loadMembers, showNotification, t]);
 
-  const handleMarkAttendance = async (userId: number, status: string) => {
+  const handleMarkAttendance = useCallback(async (userId: number, status: string) => {
     if (!selectedEventForAttendance) return;
     try {
       await chaptersApi.markAttendance(selectedEventForAttendance, userId, status);
@@ -331,18 +406,18 @@ const ChaptersPage: React.FC = () => {
       setAttendance(res.data.attendance);
       showNotification({
         type: 'success',
-        title: 'Attendance Marked',
-        message: 'Attendance updated successfully'
+        title: t('chapters.manage.attendance_modal.attendance_marked_title'),
+        message: t('chapters.manage.attendance_modal.attendance_marked_message')
       });
     } catch (err) {
       console.error(err);
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to mark attendance'
+        title: t('common.error'),
+        message: t('chapters.manage.attendance_modal.failed_to_mark_attendance')
       });
     }
-  };
+  }, [selectedEventForAttendance, showNotification, t]);
 
 
   return (
@@ -352,8 +427,8 @@ const ChaptersPage: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
-                <Globe className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-primary/10">
+                <Globe className="h-6 w-6 text-brand-primary" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-900">{t('chapters.header.title')}</h1>
@@ -364,8 +439,7 @@ const ChaptersPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setShowStartChapterModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
-                style={{ backgroundColor: brandColors.primaryHex }}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium bg-brand-primary"
               >
                 <Plus className="h-4 w-4" />
                 {t('chapters.actions.start')}
@@ -379,7 +453,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('browse')}
                 className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'browse'
-                  ? 'border-indigo-900 text-indigo-900'
+                  ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -390,7 +464,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('my-chapters')}
                 className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'my-chapters'
-                  ? 'border-indigo-900 text-indigo-900'
+                  ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -401,7 +475,7 @@ const ChaptersPage: React.FC = () => {
               onClick={() => setActiveTab('manage')}
                 className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'manage'
-                  ? 'border-indigo-900 text-indigo-900'
+                  ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
@@ -421,9 +495,7 @@ const ChaptersPage: React.FC = () => {
                 <p className="text-slate-500 text-sm">{t('chapters.browse.subtitle')}</p>
               </div>
               <ChapterSelection
-                onChapterSelected={(chapter) => {
-                  console.log('Chapter selected:', chapter);
-                }}
+                onChapterSelected={handleViewChapter}
                 showOnlyJoinable={true}
               />
             </div>
@@ -457,8 +529,8 @@ const ChaptersPage: React.FC = () => {
                   <div className="lg:col-span-2 space-y-6">
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-orange-100 rounded-lg">
-                          <Megaphone className="h-6 w-6 text-orange-600" />
+                        <div className="p-2 bg-brand-warning/10 rounded-lg">
+                          <Megaphone className="h-6 w-6 text-brand-warning" />
                         </div>
                       <h3 className="text-lg font-semibold text-slate-900">{t('chapters.my.announcements')}</h3>
                     </div>
@@ -467,7 +539,7 @@ const ChaptersPage: React.FC = () => {
                           <p className="text-slate-500 italic text-center py-4">{t('chapters.my.announcements_empty')}</p>
                         ) : (
                           announcements.map(announcement => (
-                            <div key={announcement.id} className={`p-4 rounded-lg border ${announcement.is_pinned ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
+                            <div key={announcement.id} className={`p-4 rounded-lg border ${announcement.is_pinned ? 'bg-brand-warning/5 border-brand-warning/20' : 'bg-white border-slate-200'}`}>
                               <div className="flex justify-between items-start mb-2">
                                 <h4 className="font-medium text-slate-900">{announcement.title}</h4>
                                 <span className="text-xs text-slate-500">
@@ -483,8 +555,8 @@ const ChaptersPage: React.FC = () => {
                  
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
-                          <Calendar className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
+                        <div className="p-2 rounded-lg bg-brand-primary/10">
+                          <Calendar className="h-6 w-6 text-brand-primary" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">{t('chapters.my.events')}</h3>
                       </div>
@@ -516,10 +588,9 @@ const ChaptersPage: React.FC = () => {
                                   href={event.meeting_link} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="mt-3 block w-full text-center py-2 rounded-lg text-sm font-medium transition-colors"
-                                  style={{ color: brandColors.primaryHex, backgroundColor: `${brandColors.primaryHex}14` }}
+                                  className="mt-3 block w-full text-center py-2 rounded-lg text-sm font-medium transition-colors bg-brand-primary text-white hover:bg-brand-primary-dark"
                                 >
-                                  Join Meeting
+                                  {t('chapters.my.join_meeting')}
                                 </a>
                               )}
                             </div>
@@ -533,8 +604,8 @@ const ChaptersPage: React.FC = () => {
                   <div className="space-y-6">
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
-                          <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
+                        <div className="p-2 rounded-lg bg-brand-primary/10">
+                          <FileText className="h-6 w-6 text-brand-primary" />
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">Resources</h3>
                       </div>
@@ -550,7 +621,7 @@ const ChaptersPage: React.FC = () => {
                                 <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                               )}
                               <div className="flex-1 min-w-0">
-                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[#1e1b4b] truncate block">
+                                <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-brand-primary truncate block">
                                   {resource.title}
                                 </a>
                                 {resource.description && (
@@ -582,32 +653,32 @@ const ChaptersPage: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="rounded-xl p-6 text-white shadow-lg" style={{ backgroundColor: brandColors.primaryHex }}>
+                  <div className="rounded-xl p-6 text-white shadow-lg bg-brand-primary">
                     <Award className="h-8 w-8 mb-4 opacity-80" />
-                    <h3 className="text-lg font-bold mb-2">Chapter Leaderboard</h3>
-                    <p className="text-green-50 text-sm mb-4">See how your chapter compares to others in engagement and learning.</p>
+                    <h3 className="text-lg font-bold mb-2">{t('chapters.my.leaderboard_title')}</h3>
+                    <p className="text-green-50 text-sm mb-4">{t('chapters.my.leaderboard_subtitle')}</p>
                     <button className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                      View Rankings
+                      {t('chapters.my.view_rankings')}
                     </button>
                   </div>
                   
                   <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                     <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <MapPin className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
-                      About Membership
+                      <MapPin className="h-4 w-4 text-brand-primary" />
+                      {t('chapters.my.about_membership_title')}
                     </h3>
                     <ul className="space-y-3 text-sm text-slate-600">
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
-                        <span>Join multiple chapters to connect across regions</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                        <span>{t('chapters.my.about_membership_1')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
-                        <span>Set a <strong>Primary Chapter</strong> for personalized content</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                        <span>{t('chapters.my.about_membership_2')}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColors.primaryHex }} />
-                        <span>Participate in local events and discussions</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                        <span>{t('chapters.my.about_membership_3')}</span>
                       </li>
                     </ul>
                   </div>
@@ -621,8 +692,7 @@ const ChaptersPage: React.FC = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             {manageLoading ? (
               <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: brandColors.primaryHex }}></div>
-                <p className="mt-4 text-slate-500">{t('chapters.loading_manage', 'Loading chapter details...')}</p>
+                <LoadingSpinner message={t('chapters.loading_manage')} />
               </div>
             ) : !managedChapter ? (
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
@@ -635,8 +705,7 @@ const ChaptersPage: React.FC = () => {
                 </p>
                 <button 
                   onClick={() => setShowApplyLeadershipModal(true)}
-                  className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all font-medium"
-                  style={{ backgroundColor: brandColors.primaryHex }}
+                  className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all font-medium bg-brand-primary"
                 >
                   {t('chapters.manage.apply')}
                 </button>
@@ -659,18 +728,18 @@ const ChaptersPage: React.FC = () => {
                           <span className="text-xs text-slate-500">{uc.city ? `${uc.city}${uc.country ? ', ' + uc.country : ''}` : uc.country || ''}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs">
-                          <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 capitalize">
+                          <span className="px-2 py-1 rounded-full bg-brand-accent/10 text-brand-accent border border-brand-accent/20 capitalize">
                             {String(t(`chapters.role.${uc.role}`, uc.role))}
                           </span>
                           <span className={`px-2 py-1 rounded-full border font-medium ${
-                            uc.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            uc.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            'bg-red-50 text-red-700 border-red-200'
+                            uc.status === 'approved' ? 'bg-brand-success/10 text-brand-success border-brand-success/20' :
+                            uc.status === 'pending' ? 'bg-brand-warning/10 text-brand-warning border-brand-warning/20' :
+                            'bg-brand-danger/10 text-brand-danger border-brand-danger/20'
                           }`}>
                             {String(t(`chapters.status.${uc.status}`, uc.status))}
                           </span>
                           {uc.is_primary && (
-                            <span className="px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                            <span className="px-2 py-1 rounded-full bg-brand-primary/10 text-brand-primary border-brand-primary/20">
                               {t('chapters.primary')}
                             </span>
                           )}
@@ -684,24 +753,24 @@ const ChaptersPage: React.FC = () => {
                 {/* Award Badge Card */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-yellow-100 rounded-lg">
-                      <Award className="h-6 w-6 text-yellow-600" />
+                    <div className="p-2 bg-brand-warning/10 rounded-lg">
+                      <Award className="h-6 w-6 text-brand-warning" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Award Achievement</h2>
-                      <p className="text-sm text-slate-500">Recognize student accomplishments</p>
+                      <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.award_achievement.title')}</h2>
+                      <p className="text-sm text-slate-500">{t('chapters.manage.award_achievement.subtitle')}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Select Student</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.award_achievement.select_student')}</label>
                       <select
-                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60]"
+                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success"
                         value={selectedMember || ''}
                         onChange={(e) => setSelectedMember(Number(e.target.value))}
                       >
-                        <option value="">Choose a student...</option>
+                        <option value="">{t('chapters.manage.award_achievement.choose_student_placeholder')}</option>
                         {members.map(member => (
                           <option key={member.id} value={member.id}>
                             {member.first_name} {member.last_name} ({member.email})
@@ -711,9 +780,9 @@ const ChaptersPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Select Badge</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.award_achievement.select_badge')}</label>
                       {badges.length === 0 ? (
-                        <p className="text-sm text-slate-500 italic">No manual badges available.</p>
+                        <p className="text-sm text-slate-500 italic">{t('chapters.manage.award_achievement.no_manual_badges')}</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {badges.map(badge => (
@@ -722,8 +791,8 @@ const ChaptersPage: React.FC = () => {
                               onClick={() => setSelectedBadge(badge.id)}
                               className={`p-3 rounded-lg border text-left transition-all ${
                                 selectedBadge === badge.id
-                                  ? 'border-[#27AE60] bg-[#27AE60]/5 ring-1 ring-[#27AE60]'
-                                  : 'border-slate-200 hover:border-[#27AE60]/50'
+                                  ? 'border-brand-success bg-brand-success/5 ring-1 ring-brand-success'
+                                  : 'border-slate-200 hover:border-brand-success/50'
                               }`}
                             >
                               <div className="font-medium text-slate-900 text-sm">{badge.name}</div>
@@ -735,113 +804,137 @@ const ChaptersPage: React.FC = () => {
                     </div>
 
                     <button
-                      onClick={handleAwardBadge}
-                      disabled={!selectedMember || !selectedBadge}
-                      className="w-full py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
-                    >
-                      <Check className="h-4 w-4" />
-                      Award Badge
-                    </button>
+                          onClick={handleAwardBadge}
+                          disabled={!selectedMember || !selectedBadge || isAwardingBadge}
+                          className="w-full py-2 bg-gradient-to-r from-brand-success to-brand-success-dark text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
+                        >
+                          {isAwardingBadge ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              {t('chapters.manage.award_achievement.awarding')}
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4" />
+                              {t('chapters.manage.award_achievement.award_badge_btn')}
+                            </>
+                          )}
+                        </button>
                   </div>
                 </div>
 
                 {/* Chapter Info Card */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Chapter Overview</h2>
+                  <h2 className="text-lg font-semibold text-slate-900 mb-4">{t('chapters.manage.chapter_overview.title')}</h2>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">Total Members</span>
+                      <span className="text-slate-600">{t('chapters.manage.chapter_overview.total_members')}</span>
                       <span className="font-bold text-slate-900">{members.length}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">Chapter Name</span>
+                      <span className="text-slate-600">{t('chapters.manage.chapter_overview.chapter_name')}</span>
                       <span className="font-bold text-slate-900">{managedChapter?.chapter_name || 'Unknown'}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-600">Your Role</span>
-                      <span className="font-bold text-[#27AE60] capitalize">{managedChapter?.role}</span>
+                      <span className="text-slate-600">{t('chapters.manage.chapter_overview.your_role')}</span>
+                      <span className="font-bold text-brand-success capitalize">{managedChapter?.role}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Member Management Card */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm lg:col-span-2">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Member Management</h2>
+                  <h2 className="text-lg font-semibold text-slate-900 mb-4">{t('chapters.manage.member_management.title')}</h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
-                        <tr>
-                          <th className="p-3">Member</th>
-                          <th className="p-3">Role</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3">Joined</th>
-                          <th className="p-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {members.map(member => (
-                          <tr key={member.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="p-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-medium text-slate-600">
-                                  {member.first_name?.[0]}{member.last_name?.[0]}
-                                </div>
-                                <div>
-                                  <p className="font-medium text-slate-900">{member.first_name} {member.last_name}</p>
-                                  <p className="text-xs text-slate-500">{member.email}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              <span className="capitalize px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">
-                                {member.role}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                member.status === 'pending' 
-                                  ? 'bg-yellow-100 text-yellow-700' 
-                                  : member.status === 'approved'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-red-100 text-red-700'
-                              }`}>
-                                {member.status || 'approved'}
-                              </span>
-                            </td>
-                            <td className="p-3 text-slate-500">
-                              {new Date(member.joined_at).toLocaleDateString()}
-                            </td>
-                            <td className="p-3 text-right">
-                              {member.status === 'pending' && (
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    onClick={() => handleUpdateMemberStatus(member.id, 'approved')}
-                                    className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                                    title="Approve"
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateMemberStatus(member.id, 'rejected')}
-                                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                                    title="Reject"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {members.length === 0 && (
+                    {hasLoadedMembers ? (
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
                           <tr>
-                            <td colSpan={5} className="p-8 text-center text-slate-500">
-                              No members found.
-                            </td>
+                            <th className="p-3">{t('chapters.manage.member_management.member')}</th>
+                            <th className="p-3">{t('chapters.manage.member_management.role')}</th>
+                            <th className="p-3">{t('chapters.manage.member_management.status')}</th>
+                            <th className="p-3">{t('chapters.manage.member_management.joined')}</th>
+                            <th className="p-3 text-right">{t('chapters.manage.member_management.actions')}</th>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {members.map(member => (
+                            <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-medium text-slate-600">
+                                    {member.first_name?.[0]}{member.last_name?.[0]}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-slate-900">{member.first_name} {member.last_name}</p>
+                                    <p className="text-xs text-slate-500">{member.email}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="capitalize px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">
+                                  {member.role}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  member.status === 'pending' 
+                                    ? 'bg-brand-warning/10 text-brand-warning' 
+                                    : member.status === 'approved'
+                                    ? 'bg-brand-success/10 text-brand-success'
+                                    : 'bg-brand-danger/10 text-brand-danger'
+                                }`}>
+                                  {member.status || 'approved'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-slate-500">
+                                {new Date(member.joined_at).toLocaleDateString()}
+                              </td>
+                              <td className="p-3 text-right">
+                                {member.status === 'pending' && (
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => handleUpdateMemberStatus(member.id, 'approved')}
+                                      className="p-1.5 bg-brand-success/10 text-brand-success rounded hover:bg-brand-success/20 transition-colors"
+                                      title={t('chapters.manage.member_management.approve')}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateMemberStatus(member.id, 'rejected')}
+                                      className="p-1.5 bg-brand-danger/10 text-brand-danger rounded hover:bg-brand-danger/20 transition-colors"
+                                      title={t('chapters.manage.member_management.reject')}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                          {members.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-slate-500">
+                                {t('chapters.manage.member_management.no_members_found')}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="text-center py-8">
+                        <LoadingSpinner message={t('chapters.manage.member_management.members_not_loaded')} />
+                        <div className="flex justify-center mt-4">
+                          <button
+                            onClick={loadMembers}
+                            className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                          >
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('chapters.manage.member_management.load_members')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -849,28 +942,40 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm lg:col-span-2">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#27AE60]/10 rounded-lg">
-                        <Calendar className="h-6 w-6 text-[#27AE60]" />
+                      <div className="p-2 bg-brand-success/10 rounded-lg">
+                        <Calendar className="h-6 w-6 text-brand-success" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.events_title')}</h2>
-                        <p className="text-sm text-slate-500">{t('chapters.manage.events_subtitle')}</p>
+                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.events_management.events_title')}</h2>
+                        <p className="text-sm text-slate-500">{t('chapters.manage.events_management.events_subtitle')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowCreateEventModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-sm transition-colors text-sm font-medium"
-                      style={{ backgroundColor: brandColors.primaryHex }}
+                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-sm transition-colors text-sm font-medium bg-brand-primary"
                     >
                       <Plus className="h-4 w-4" />
-                      {t('chapters.manage.create_event')}
+                      {t('chapters.manage.events_management.create_event')}
                     </button>
                   </div>
 
-                  {events.length === 0 ? (
+                  {!hasLoadedEvents ? (
+                    <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                      <LoadingSpinner message={t('chapters.manage.events_management.events_not_loaded')} />
+                      <div className="flex justify-center mt-4">
+                        <button
+                          onClick={loadEvents}
+                          className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t('chapters.manage.events_management.load_events')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : events.length === 0 ? (
                     <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-300">
                       <Calendar className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-500">{t('chapters.manage.events_empty')}</p>
+                      <p className="text-slate-500">{t('chapters.manage.events_management.events_empty')}</p>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2">
@@ -896,10 +1001,10 @@ const ChaptersPage: React.FC = () => {
                             </div>
                             <button
                               onClick={() => handleViewAttendance(event.id)}
-                              className="text-xs text-[#27AE60] hover:text-[#1e8449] font-medium flex items-center gap-1"
+                              className="text-xs text-brand-success hover:text-brand-success-dark font-medium flex items-center gap-1"
                             >
                               <ClipboardList className="h-3 w-3" />
-                              {t('chapters.manage.attendance')}
+                              {t('chapters.manage.events_management.attendance')}
                             </button>
                           </div>
                         </div>
@@ -912,28 +1017,38 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
-                        <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
+                      <div className="p-2 rounded-lg bg-brand-primary/10">
+                        <FileText className="h-6 w-6 text-brand-primary" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.my.resources')}</h2>
-                        <p className="text-sm text-slate-500">{t('chapters.my.resources_subtitle')}</p>
+                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.resources_management.title')}</h2>
+                        <p className="text-sm text-slate-500">{t('chapters.manage.resources_management.subtitle')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowCreateResourceModal(true)}
-                      className="p-2"
-                      style={{ color: brandColors.primaryHex }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${brandColors.primaryHex}1A`)}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      className="p-2 text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                     </button>
                   </div>
 
                   <div className="space-y-3">
-                    {resources.length === 0 ? (
-                      <p className="text-sm text-slate-500 italic text-center py-4">{t('chapters.my.resources_empty')}</p>
+                    {!hasLoadedResources ? (
+                      <div className="text-center py-8">
+                        <LoadingSpinner message={t('chapters.manage.resources_management.resources_not_loaded')} />
+                        <div className="flex justify-center mt-4">
+                          <button
+                            onClick={loadResources}
+                            className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                          >
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('chapters.manage.resources_management.load_resources')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : resources.length === 0 ? (
+                      <p className="text-sm text-slate-500 italic text-center py-4">{t('chapters.manage.resources_management.no_resources_shared')}</p>
                     ) : (
                       resources.map(resource => (
                         <div key={resource.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
@@ -943,7 +1058,7 @@ const ChaptersPage: React.FC = () => {
                             <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-[color:#1e1b4b] truncate block">
+                            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-900 hover:text-brand-primary truncate block">
                               {resource.title}
                             </a>
                             {resource.description && (
@@ -960,28 +1075,41 @@ const ChaptersPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-100 rounded-lg">
-                        <Megaphone className="h-6 w-6 text-orange-600" />
+                      <div className="p-2 bg-brand-warning/10 rounded-lg">
+                        <Megaphone className="h-6 w-6 text-brand-warning" />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Announcements</h2>
-                        <p className="text-sm text-slate-500">Updates & news</p>
+                        <h2 className="text-lg font-semibold text-slate-900">{t('chapters.manage.announcements_management.title')}</h2>
+                        <p className="text-sm text-slate-500">{t('chapters.manage.announcements_management.subtitle')}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowCreateAnnouncementModal(true)}
-                      className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                      className="p-2 text-brand-warning hover:bg-brand-warning/10 rounded-lg transition-colors"
                     >
                       <Plus className="h-5 w-5" />
                     </button>
                   </div>
 
                   <div className="space-y-4">
-                    {announcements.length === 0 ? (
-                      <p className="text-sm text-slate-500 italic text-center py-4">No announcements yet.</p>
+                    {!hasLoadedAnnouncements ? (
+                      <div className="text-center py-8">
+                        <LoadingSpinner message={t('chapters.manage.announcements_management.announcements_not_loaded')} />
+                        <div className="flex justify-center mt-4">
+                          <button
+                            onClick={loadAnnouncements}
+                            className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                          >
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('chapters.manage.announcements_management.load_announcements')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : announcements.length === 0 ? (
+                      <p className="text-sm text-slate-500 italic text-center py-4">{t('chapters.manage.announcements_management.no_announcements_yet')}</p>
                     ) : (
                       announcements.map(announcement => (
-                        <div key={announcement.id} className={`p-4 rounded-lg border ${announcement.is_pinned ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
+                        <div key={announcement.id} className={`p-4 rounded-lg border ${announcement.is_pinned ? 'bg-brand-warning/5 border-brand-warning/20' : 'bg-white border-slate-200'}`}>
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-medium text-slate-900">{announcement.title}</h3>
                             <span className="text-xs text-slate-500">
@@ -1006,7 +1134,7 @@ const ChaptersPage: React.FC = () => {
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-slate-900">
-                {t('chapters.start.title', 'Start a New Chapter')}
+                {t('chapters.start.title')}
               </h2>
               <button
                 onClick={() => setShowStartChapterModal(false)}
@@ -1016,57 +1144,98 @@ const ChaptersPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleStartChapter} className="space-y-4">
+            <form onSubmit={handleStartChapter} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {t('chapters.start.name_label', 'Chapter Name')}
+                <label htmlFor="new-chapter-name" className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.name_label')}
                 </label>
-                <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.name} onChange={(e) => setNewChapterData({ ...newChapterData, name: e.target.value })} />
+                <input 
+                  type="text" 
+                  id="new-chapter-name"
+                  required 
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all"
+                  value={newChapterData.name} 
+                  onChange={(e) => setNewChapterData({ ...newChapterData, name: e.target.value })}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    {t('chapters.start.country_label', 'Country')}
+                  <label htmlFor="new-chapter-country" className="block text-sm font-medium text-slate-700 mb-1">
+                    {t('chapters.start.country_label')}
                   </label>
-                  <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.country} onChange={(e) => setNewChapterData({ ...newChapterData, country: e.target.value })} />
+                  <input 
+                    type="text" 
+                    id="new-chapter-country"
+                    required 
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all"
+                    value={newChapterData.country} 
+                    onChange={(e) => setNewChapterData({ ...newChapterData, country: e.target.value })}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    {t('chapters.start.city_label', 'City')}
+                  <label htmlFor="new-chapter-city" className="block text-sm font-medium text-slate-700 mb-1">
+                    {t('chapters.start.city_label')}
                   </label>
-                  <input type="text" required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.city} onChange={(e) => setNewChapterData({ ...newChapterData, city: e.target.value })} />
+                  <input 
+                    type="text" 
+                    id="new-chapter-city"
+                    required 
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all"
+                    value={newChapterData.city} 
+                    onChange={(e) => setNewChapterData({ ...newChapterData, city: e.target.value })}
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {t('chapters.start.description_label', 'Description')}
+                <label htmlFor="new-chapter-description" className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.description_label')}
                 </label>
-                <textarea required className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900 h-24" value={newChapterData.description} onChange={(e) => setNewChapterData({ ...newChapterData, description: e.target.value })} />
+                <textarea 
+                  id="new-chapter-description"
+                  required 
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary h-24 transition-all"
+                  value={newChapterData.description} 
+                  onChange={(e) => setNewChapterData({ ...newChapterData, description: e.target.value })}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {t('chapters.start.topics_label', 'Topics (comma separated)')}
+                <label htmlFor="new-chapter-topics" className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('chapters.start.topics_label')}
                 </label>
-                <input type="text" placeholder={t('chapters.start.topics_placeholder', 'e.g. Technology, Arts, Science')} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-900" value={newChapterData.topics} onChange={(e) => setNewChapterData({ ...newChapterData, topics: e.target.value })} />
+                <input 
+                  type="text" 
+                  id="new-chapter-topics"
+                  placeholder={t('chapters.start.topics_placeholder')} 
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all"
+                  value={newChapterData.topics} 
+                  onChange={(e) => setNewChapterData({ ...newChapterData, topics: e.target.value })}
+                />
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setShowStartChapterModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all"
-                  style={{ backgroundColor: brandColors.primaryHex }}
+                  disabled={isCreatingChapter}
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
-                  {t('chapters.start.submit', 'Submit Application')}
+                  {isCreatingChapter ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('chapters.start.submitting')}
+                    </>
+                  ) : (
+                    t('chapters.start.submit')
+                  )}
                 </button>
               </div>
             </form>
@@ -1079,26 +1248,28 @@ const ChaptersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Apply for Leadership</h2>
-              <button onClick={() => setShowApplyLeadershipModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">{t('chapters.manage.apply_leadership.title')}</h2>
+              <button onClick={() => setShowApplyLeadershipModal(false)} className="text-slate-400 hover:text-slate-600" aria-label={t('common.close_modal')}>
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <form onSubmit={handleApplyLeadership} className="space-y-4">
+            <form onSubmit={handleApplyLeadership} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Why do you want to be a leader?</label>
+                <label htmlFor="leadership-reason" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.apply_leadership.reason_label')}</label>
                 <textarea
+                  id="leadership-reason"
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] h-32"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success h-32 transition-all"
                   value={leadershipData.reason}
                   onChange={e => setLeadershipData({...leadershipData, reason: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Relevant Experience</label>
+                <label htmlFor="leadership-experience" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.apply_leadership.experience_label')}</label>
                 <textarea
+                  id="leadership-experience"
                   required
-                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] h-32"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success h-32 transition-all"
                   value={leadershipData.experience}
                   onChange={e => setLeadershipData({...leadershipData, experience: e.target.value})}
                 />
@@ -1107,15 +1278,23 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowApplyLeadershipModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white rounded-lg hover:shadow-lg transition-all"
+                  disabled={isApplyingLeadership}
+                  className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
-                  Submit Application
+                  {isApplyingLeadership ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('chapters.manage.apply_leadership.submitting')}
+                    </>
+                  ) : (
+                    t('chapters.manage.apply_leadership.submit_btn')
+                  )}
                 </button>
               </div>
             </form>
@@ -1127,7 +1306,7 @@ const ChaptersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Create New Event</h2>
+              <h2 className="text-xl font-bold text-slate-900">{t('chapters.manage.events_management.create_new_event')}</h2>
               <button 
                 onClick={() => setShowCreateEventModal(false)}
                 className="text-slate-400 hover:text-slate-600"
@@ -1136,49 +1315,53 @@ const ChaptersPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateEvent} className="space-y-4">
+            <form onSubmit={handleCreateEvent} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Event Title</label>
+                <label htmlFor="event-title" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_title')}</label>
                 <input
                   type="text"
+                  id="event-title"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
-                  placeholder="e.g., Monthly Meetup"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
+                  placeholder={t('chapters.manage.events_management.event_title_placeholder')}
                   value={newEventData.title}
                   onChange={e => setNewEventData({...newEventData, title: e.target.value})}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <label htmlFor="event-description" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_description')}</label>
                 <textarea
+                  id="event-description"
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
-                  placeholder="What will happen at this event?"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success h-24 transition-all"
+                  placeholder={t('chapters.manage.events_management.event_description_placeholder')}
                   value={newEventData.description}
                   onChange={e => setNewEventData({...newEventData, description: e.target.value})}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date & Time</label>
+                  <label htmlFor="event-date" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_date_time')}</label>
                   <input
                     type="datetime-local"
+                    id="event-date"
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                   value={newEventData.event_date}
                   onChange={e => setNewEventData({...newEventData, event_date: e.target.value})}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Duration (mins)</label>
+                  <label htmlFor="event-duration" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_duration')}</label>
                   <input
                     type="number"
+                    id="event-duration"
                     min="15"
                     step="15"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                   value={newEventData.duration_minutes}
                   onChange={e => setNewEventData({...newEventData, duration_minutes: parseInt(e.target.value)})}
                   />
@@ -1189,21 +1372,22 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="checkbox"
                   id="is_online"
-                  className="rounded border-slate-300 text-[#27AE60] focus:ring-[#27AE60]"
+                  className="rounded border-slate-300 text-brand-success focus:ring-brand-success transition-all"
                   checked={newEventData.is_online}
                   onChange={e => setNewEventData({...newEventData, is_online: e.target.checked})}
                 />
-                <label htmlFor="is_online" className="text-sm font-medium text-slate-700">This is an online event</label>
+                <label htmlFor="is_online" className="text-sm font-medium text-slate-700">{t('chapters.manage.events_management.event_online')}</label>
               </div>
 
               {newEventData.is_online ? (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Link</label>
+                  <label htmlFor="meeting-link" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_meeting_link')}</label>
                   <div className="relative">
                     <Video className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                       type="url"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                      id="meeting-link"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                       placeholder="https://meet.google.com/..."
                       value={newEventData.meeting_link}
                       onChange={e => setNewEventData({...newEventData, meeting_link: e.target.value})}
@@ -1212,13 +1396,14 @@ const ChaptersPage: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+                  <label htmlFor="event-location" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.events_management.event_location')}</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
-                      placeholder="Venue address"
+                      id="event-location"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
+                      placeholder={t('chapters.manage.events_management.event_location_placeholder')}
                       value={newEventData.location}
                       onChange={e => setNewEventData({...newEventData, location: e.target.value})}
                     />
@@ -1230,22 +1415,22 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateEventModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50 flex items-center gap-2 justify-center font-medium"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating...
+                      {t('chapters.manage.events_management.creating_event')}
                     </>
                   ) : (
-                    'Create Event'
+                    t('chapters.manage.events_management.create_event_btn')
                   )}
                 </button>
               </div>
@@ -1259,49 +1444,53 @@ const ChaptersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Add Resource</h2>
-              <button onClick={() => setShowCreateResourceModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">{t('chapters.manage.resources_management.add_resource')}</h2>
+              <button onClick={() => setShowCreateResourceModal(false)} className="text-slate-400 hover:text-slate-600" aria-label={t('common.close_modal')}>
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <form onSubmit={handleCreateResource} className="space-y-4">
+            <form onSubmit={handleCreateResource} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <label htmlFor="resource-title" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.resources_management.resource_title')}</label>
                 <input
                   type="text"
+                  id="resource-title"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                   value={newResource.title}
                   onChange={e => setNewResource({...newResource, title: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <label htmlFor="resource-type" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.resources_management.resource_type')}</label>
                 <select
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                  id="resource-type"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                   value={newResource.type}
                   onChange={e => setNewResource({...newResource, type: e.target.value})}
                 >
-                  <option value="link">Link / URL</option>
-                  <option value="file">File (External URL)</option>
+                  <option value="link">{t('chapters.manage.resources_management.resource_link_type')}</option>
+                  <option value="file">{t('chapters.manage.resources_management.resource_file_type')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
+                <label htmlFor="resource-url" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.resources_management.resource_url')}</label>
                 <input
                   type="url"
+                  id="resource-url"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success transition-all"
                   placeholder="https://..."
                   value={newResource.url}
                   onChange={e => setNewResource({...newResource, url: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <label htmlFor="resource-description" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.resources_management.resource_description')}</label>
                 <textarea
+                  id="resource-description"
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-success focus:border-brand-success h-24 transition-all"
                   value={newResource.description}
                   onChange={e => setNewResource({...newResource, description: e.target.value})}
                 />
@@ -1310,15 +1499,23 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateResourceModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
+                  disabled={isCreatingResource}
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
-                  Add Resource
+                  {isCreatingResource ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('chapters.manage.resources_management.adding_resource')}
+                    </>
+                  ) : (
+                    t('chapters.manage.resources_management.add_resource_btn')
+                  )}
                 </button>
               </div>
             </form>
@@ -1331,28 +1528,30 @@ const ChaptersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Post Announcement</h2>
-              <button onClick={() => setShowCreateAnnouncementModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">{t('chapters.manage.announcements_management.post_announcement')}</h2>
+              <button onClick={() => setShowCreateAnnouncementModal(false)} className="text-slate-400 hover:text-slate-600" aria-label={t('common.close_modal')}>
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+            <form onSubmit={handleCreateAnnouncement} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <label htmlFor="announcement-title" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.announcements_management.announcement_title')}</label>
                 <input
                   type="text"
+                  id="announcement-title"
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-warning focus:border-brand-warning transition-all"
                   value={newAnnouncement.title}
                   onChange={e => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+                <label htmlFor="announcement-content" className="block text-sm font-medium text-slate-700 mb-1">{t('chapters.manage.announcements_management.announcement_content')}</label>
                 <textarea
+                  id="announcement-content"
                   required
                   rows={5}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-warning focus:border-brand-warning h-32 transition-all"
                   value={newAnnouncement.content}
                   onChange={e => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
                 />
@@ -1361,25 +1560,33 @@ const ChaptersPage: React.FC = () => {
                 <input
                   type="checkbox"
                   id="is_pinned"
-                  className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                  className="rounded border-slate-300 text-brand-warning focus:ring-brand-warning transition-all"
                   checked={newAnnouncement.is_pinned}
                   onChange={e => setNewAnnouncement({...newAnnouncement, is_pinned: e.target.checked})}
                 />
-                <label htmlFor="is_pinned" className="text-sm font-medium text-slate-700">Pin to top</label>
+                <label htmlFor="is_pinned" className="text-sm font-medium text-slate-700">{t('chapters.manage.announcements_management.announcement_pin_to_top')}</label>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreateAnnouncementModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  disabled={isCreatingAnnouncement}
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
-                  Post Announcement
+                  {isCreatingAnnouncement ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('chapters.manage.announcements_management.posting_announcement')}
+                    </>
+                  ) : (
+                    t('chapters.manage.announcements_management.post_announcement_btn')
+                  )}
                 </button>
               </div>
             </form>
@@ -1392,70 +1599,79 @@ const ChaptersPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900">Event Attendance</h2>
-              <button onClick={() => setShowAttendanceModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h2 className="text-xl font-bold text-slate-900">{t('chapters.manage.attendance_modal.title')}</h2>
+              <button onClick={() => setShowAttendanceModal(false)} className="text-slate-400 hover:text-slate-600" aria-label={t('common.close_modal')}>
                 <X className="h-6 w-6" />
               </button>
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
-                <p className="text-sm" style={{ color: brandColors.primaryHex }}>
-                  Mark attendance for members who joined this event.
+              <div className="p-4 rounded-lg mb-4 bg-brand-primary/10">
+                <p className="text-sm text-brand-primary">
+                  {t('chapters.manage.attendance_modal.message')}
                 </p>
               </div>
 
               <div className="divide-y divide-slate-100">
-                {members.map(member => {
-                  const record = attendance.find(a => a.user_id === member.id);
-                  const status = record ? record.status : 'absent'; // Default to absent if not marked? Or null?
-                  
-                  return (
-                    <div key={member.id} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-medium text-slate-600">
-                          {member.first_name[0]}{member.last_name[0]}
+                {members.length === 0 ? (
+                  <div className="text-center py-4 text-slate-500">
+                    {t('chapters.manage.member_management.no_members_found')}
+                  </div>
+                ) : (
+                  members.map(member => {
+                    const record = attendance.find(a => a.user_id === member.id);
+                    const status = record ? record.status : 'absent'; // Default to absent if not marked? Or null?
+                    
+                    return (
+                      <div key={member.id} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-medium text-slate-600">
+                            {member.first_name?.[0]}{member.last_name?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{member.first_name} {member.last_name}</p>
+                            <p className="text-xs text-slate-500">{member.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{member.first_name} {member.last_name}</p>
-                          <p className="text-xs text-slate-500">{member.email}</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleMarkAttendance(member.id, 'present')}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              status === 'present' 
+                                ? 'bg-brand-success/10 text-brand-success ring-1 ring-brand-success' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            aria-label={t('chapters.manage.attendance_modal.present')}
+                          >
+                            {t('chapters.manage.attendance_modal.present')}
+                          </button>
+                          <button
+                            onClick={() => handleMarkAttendance(member.id, 'absent')}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              status === 'absent' 
+                                ? 'bg-brand-danger/10 text-brand-danger ring-1 ring-brand-danger' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            aria-label={t('chapters.manage.attendance_modal.absent')}
+                          >
+                            {t('chapters.manage.attendance_modal.absent')}
+                          </button>
+                          <button
+                            onClick={() => handleMarkAttendance(member.id, 'excused')}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              status === 'excused' 
+                                ? 'bg-brand-warning/10 text-brand-warning ring-1 ring-brand-warning' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            aria-label={t('chapters.manage.attendance_modal.excused')}
+                          >
+                            {t('chapters.manage.attendance_modal.excused')}
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleMarkAttendance(member.id, 'present')}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            status === 'present' 
-                              ? 'bg-green-100 text-green-700 ring-1 ring-green-600' 
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          Present
-                        </button>
-                        <button
-                          onClick={() => handleMarkAttendance(member.id, 'absent')}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            status === 'absent' 
-                              ? 'bg-red-100 text-red-700 ring-1 ring-red-600' 
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          Absent
-                        </button>
-                        <button
-                          onClick={() => handleMarkAttendance(member.id, 'excused')}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                            status === 'excused' 
-                              ? 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-600' 
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          Excused
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

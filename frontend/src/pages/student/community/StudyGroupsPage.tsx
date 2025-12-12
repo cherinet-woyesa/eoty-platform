@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, Plus, Search, MessageCircle, Calendar, 
   BookOpen, User, Crown, Loader2, AlertCircle,
-  X, Settings, UserPlus, LogOut, Clock, Target
+  X, Settings, UserPlus, LogOut, Clock, Target, Trash2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/context/NotificationContext';
@@ -248,8 +248,8 @@ const StudyGroupsPage: React.FC = () => {
       <div className="min-h-screen bg-slate-50">
         <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-center min-h-96">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-[#1e1b4b]" />
+              <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin" style={{ color: brandColors.primaryHex }} />
               <p className="text-slate-600 text-lg">{t('community.groups.loading')}</p>
             </div>
           </div>
@@ -286,7 +286,7 @@ const StudyGroupsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#1e1b4b] mb-1">{t('community.groups.title')}</h1>
+          <h1 className="text-3xl font-bold mb-1" style={{ color: brandColors.primaryHex }}>{t('community.groups.title')}</h1>
           <p className="text-slate-600 text-sm">{t('community.groups.subtitle')}</p>
         </div>
         <button

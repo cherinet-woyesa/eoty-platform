@@ -338,7 +338,7 @@
     "no_courses_title": "You have no courses yet",
     "no_courses_message": "Start your learning journey by exploring our catalog.",
     "recommended_for_you": "Recommended for you",
-    "no_recommendations": "We’ll show recommendations once you start learning.",
+    "no_recommendations": "We'll show recommendations once you start learning.",
     "resume_now": "Resume now",
     "last_accessed": "Last accessed",
     "find_resources": "Find Resources",
@@ -921,6 +921,22 @@
     }
   },
   "chapters": {
+    "header": {
+      "title": "Chapters",
+      "subtitle": "Connect with communities worldwide or start your own."
+    },
+    "actions": {
+      "start": "Start a Chapter"
+    },
+    "tabs": {
+      "browse": "Browse Chapters",
+      "my": "My Chapters",
+      "manage": "Manage Chapter"
+    },
+    "browse": {
+      "title": "Explore Chapters",
+      "subtitle": "Find and join communities that resonate with you."
+    },
     "search_placeholder": "Search chapters by name, location, or topic...",
     "all_countries": "All Countries",
     "all_regions": "All Regions",
@@ -955,30 +971,15 @@
     "view": "View",
     "join": "Join Chapter",
     "leave": "Leave Chapter",
-    "cancel_request": "Cancel Request"
-  },
-  "community_hub": {
-    "title": "Community Hub",
-    "subtitle": "Connect, share, and learn with fellow members."
-  },
-  "chapters": {
-    "header": {
-      "title": "Chapters",
-      "subtitle": "Connect with local communities"
-    },
-    "actions": {
-      "start": "Start a Chapter"
-    },
-    "tabs": {
-      "browse": "Browse Chapters",
-      "my": "My Memberships",
-      "manage": "Manage Chapter"
-    },
-    "browse": {
-      "title": "Find a Chapter",
-      "subtitle": "Join a local community to participate in events and discussions."
-    },
+    "cancel_request": "Cancel Request",
     "my": {
+      "leaderboard_title": "Chapter Leaderboard",
+      "leaderboard_subtitle": "See how your chapter compares to others in engagement and learning.",
+      "view_rankings": "View Rankings",
+      "about_membership_title": "About Membership",
+      "about_membership_1": "Join multiple chapters to connect across regions",
+      "about_membership_2": "Set a **Primary Chapter** for personalized content",
+      "about_membership_3": "Participate in local events and discussions",
       "title": "My Chapters",
       "subtitle": "Manage your memberships and primary chapter.",
       "back": "Back to My Chapters",
@@ -986,16 +987,118 @@
       "announcements_empty": "No announcements yet.",
       "events": "Upcoming Events",
       "events_empty": "No upcoming events.",
+      "join_meeting": "Join Meeting",
       "resources": "Resources",
       "resources_subtitle": "Study guides & materials",
       "resources_empty": "No resources shared yet."
     },
     "manage": {
-      "events_title": "Chapter Events",
-      "events_subtitle": "Manage upcoming meetups and activities",
-      "create_event": "Create Event",
-      "events_empty": "No upcoming events scheduled.",
-      "attendance": "Attendance",
+      "award_achievement": {
+        "title": "Award Achievement",
+        "subtitle": "Recognize student accomplishments",
+        "select_student": "Select Student",
+        "choose_student_placeholder": "Choose a student...",
+        "select_badge": "Select Badge",
+        "no_manual_badges": "No manual badges available.",
+        "awarding": "Awarding...",
+        "award_badge_btn": "Award Badge",
+        "badge_awarded_success_title": "Badge Awarded",
+        "badge_awarded_success_message": "Badge awarded successfully!",
+        "badge_award_error_title": "Error",
+        "badge_award_error_message": "Failed to award badge"
+      },
+      "chapter_overview": {
+        "title": "Chapter Overview",
+        "total_members": "Total Members",
+        "chapter_name": "Chapter Name",
+        "your_role": "Your Role"
+      },
+      "member_management": {
+        "title": "Member Management",
+        "member": "Member",
+        "role": "Role",
+        "status": "Status",
+        "joined": "Joined",
+        "actions": "Actions",
+        "approve": "Approve",
+        "reject": "Reject",
+        "no_members_found": "No members found.",
+        "members_not_loaded": "Members list not loaded.",
+        "load_members": "Load Members",
+        "failed_to_load_members": "Failed to load members",
+        "member_status_success": "Member {{status}} successfully",
+        "failed_to_update_member_status": "Failed to update member status"
+      },
+      "events_management": {
+        "events_title": "Chapter Events",
+        "events_subtitle": "Manage upcoming meetups and activities",
+        "create_event": "Create Event",
+        "events_empty": "No upcoming events scheduled.",
+        "attendance": "Attendance",
+        "load_events": "Load Events",
+        "events_not_loaded": "Events list not loaded.",
+        "failed_to_load_events": "Failed to load events",
+        "event_created_title": "Event Created",
+        "event_created_message": "Event created successfully!",
+        "failed_to_create_event": "Failed to create event",
+        "event_title": "Event Title",
+        "event_description": "Description",
+        "event_date_time": "Date & Time",
+        "event_duration": "Duration (mins)",
+        "event_online": "This is an online event",
+        "event_meeting_link": "Meeting Link",
+        "event_location": "Location",
+        "create_event_btn": "Create Event",
+        "creating_event": "Creating..."
+      },
+      "resources_management": {
+        "title": "Resources",
+        "subtitle": "Study guides & materials",
+        "no_resources_shared": "No resources shared yet.",
+        "add_resource": "Add Resource",
+        "resources_not_loaded": "Resources list not loaded.",
+        "load_resources": "Load Resources",
+        "failed_to_load_resources": "Failed to load resources",
+        "resource_added_title": "Resource Added",
+        "resource_added_message": "Resource added successfully!",
+        "failed_to_add_resource": "Failed to create resource",
+        "resource_title": "Title",
+        "resource_type": "Type",
+        "resource_link_type": "Link / URL",
+        "resource_file_type": "File (External URL)",
+        "resource_url": "URL",
+        "resource_description": "Description",
+        "add_resource_btn": "Add Resource",
+        "adding_resource": "Adding..."
+      },
+      "announcements_management": {
+        "title": "Announcements",
+        "subtitle": "Updates & news",
+        "no_announcements_yet": "No announcements yet.",
+        "post_announcement": "Post Announcement",
+        "announcements_not_loaded": "Announcements not loaded.",
+        "load_announcements": "Load Announcements",
+        "failed_to_load_announcements": "Failed to load announcements",
+        "announcement_posted_title": "Announcement Posted",
+        "announcement_posted_message": "Announcement posted successfully!",
+        "failed_to_post_announcement": "Failed to create announcement",
+        "announcement_title": "Title",
+        "announcement_content": "Content",
+        "announcement_pin_to_top": "Pin to top",
+        "post_announcement_btn": "Post Announcement",
+        "posting_announcement": "Posting..."
+      },
+      "attendance_modal": {
+        "title": "Event Attendance",
+        "message": "Mark attendance for members who joined this event.",
+        "present": "Present",
+        "absent": "Absent",
+        "excused": "Excused",
+        "attendance_marked_title": "Attendance Marked",
+        "attendance_marked_message": "Attendance updated successfully",
+        "failed_to_mark_attendance": "Failed to mark attendance",
+        "failed_to_load_attendance": "Failed to load attendance"
+      },
       "title": "Chapter Management",
       "no_access": "You don't have administrative access to any chapters yet. Apply to become a chapter leader to manage events, members, and content.",
       "apply": "Apply for Leadership",
@@ -1014,6 +1117,10 @@
       "topics_placeholder": "e.g. Technology, Arts, Science",
       "submit": "Submit Application"
     }
+  },
+  "community_hub": {
+    "title": "Community Hub",
+    "subtitle": "Connect, share, and learn with fellow members."
   },
   "community": {
     "title": "Community",
@@ -1298,10 +1405,10 @@
     "stats_submitted": "Submitted",
     "stats_pending": "Pending",
     "empty_title": "No assignments yet",
-    "empty_desc": "When teachers publish assignments for your courses, they’ll show up here.",
+    "empty_desc": "When teachers publish assignments for your courses, they'll show up here.",
     "browse_courses": "Browse courses",
     "error_title": "Error loading assignments",
-    "error_desc": "We couldn’t load assignments. Please try again.",
+    "error_desc": "We couldn't load assignments. Please try again.",
     "retry": "Retry",
     "course_label": "Course",
     "due_label": "Due {{date}}",
@@ -1448,7 +1555,7 @@
     "quickstart_1": "How do I get started with learning?",
     "quickstart_2": "What courses are available?",
     "quickstart_3": "How does AI assistance work?",
-    "welcome_body_short": "Ask faith or platform questions; I’ll keep answers brief and aligned.",
+    "welcome_body_short": "Ask faith or platform questions; I'll keep answers brief and aligned.",
     "slowResponse": "Taking longer than usual...",
     "responseTime": "{{seconds}}s",
     "lowConfidence": "(Low confidence - please verify)",
@@ -1563,7 +1670,7 @@
     "delete_lesson_title": "Delete Lesson",
     "not_found": {
       "title": "Course Not Found",
-      "description": "The course you’re looking for doesn’t exist or may have been removed."
+      "description": "The course you're looking for doesn't exist or may have been removed."
     }
   },
   "spiritual_journeys": {

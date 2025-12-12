@@ -3,6 +3,7 @@ import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, Edit3 } fro
 import { communityPostsApi } from '../../../services/api/communityPosts';
 import { useAuth } from '../../../context/AuthContext';
 import { brandColors } from '@/theme/brand';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface Comment {
   id: string;
@@ -12,6 +13,7 @@ interface Comment {
   author_avatar?: string;
   content: string;
   parent_comment_id?: string;
+  root_parent_id?: string;
   likes: number;
   created_at: string;
   updated_at: string;
@@ -30,15 +32,19 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   onCommentCountChange
 }) => {
   const { user } = useAuth();
+  const { confirm } = useConfirmDialog();
+  const debugEnabled =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('debugComments');
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyDraftById, setReplyDraftById] = useState<Record<string, string>>({});
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState('');
+  const [editDraft, setEditDraft] = useState('');
   const normalizeId = (id: string | number | null | undefined) => (id != null ? String(id) : '');
 
   const loadComments = async () => {
@@ -46,7 +52,16 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       setLoading(true);
       const response = await communityPostsApi.fetchComments(postId);
       if (response.success) {
-        setComments(response.data.comments);
+        const attachRoot = (items: Comment[], rootId?: string): Comment[] =>
+          items.map((c) => {
+            const currentRoot = rootId ?? String(c.id);
+            return {
+              ...c,
+              root_parent_id: currentRoot,
+              replies: c.replies ? attachRoot(c.replies, currentRoot) : c.replies,
+            };
+          });
+        setComments(attachRoot(response.data.comments));
       }
     } catch (error) {
       console.error('Failed to load comments:', error);
@@ -82,22 +97,23 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }
   };
 
-  const handleAddReply = async (parentCommentId: string | number) => {
-    const parentId = normalizeId(parentCommentId);
-    if (!replyContent.trim() || !user) return;
+  const handleAddReply = async (parentCommentId: string | number, rootParentId?: string | number) => {
+    const parentId = normalizeId(rootParentId ?? parentCommentId);
+    const draft = (replyDraftById[parentId] ?? '').trim();
+    if (!draft || !user) return;
 
     try {
       setSubmitting(true);
       const response = await communityPostsApi.addComment(postId, {
-        content: replyContent.trim(),
-        parentCommentId: parentId // Ensure this matches the backend expectation
+        content: draft,
+        parentCommentId: Number(parentId)
       });
 
       if (response.success) {
-        setReplyContent('');
+        setReplyDraftById((prev) => ({ ...prev, [parentId]: '' }));
         setReplyingTo(null);
         await loadComments();
-        onCommentCountChange(commentCount + 1);
+        // Do not increment top-level comment count for replies
       }
     } catch (error) {
       console.error('Failed to add reply:', error);
@@ -107,19 +123,22 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   };
 
   const handleStartEdit = (commentId: string | number, content: string) => {
-    setEditingCommentId(normalizeId(commentId));
-    setEditContent(content);
+    const id = normalizeId(commentId);
+    setEditingCommentId(id);
+    setEditDraft(content ?? '');
   };
 
   const handleUpdateComment = async () => {
-    if (!editingCommentId || !editContent.trim() || !user) return;
+    if (!editingCommentId || !user) return;
+    const draft = editDraft.trim();
+    if (!draft) return;
     try {
       setSubmitting(true);
-      const response = await communityPostsApi.updateComment(editingCommentId, { content: editContent.trim() });
+      const response = await communityPostsApi.updateComment(editingCommentId, { content: draft });
       if (response.success) {
         await loadComments();
         setEditingCommentId(null);
-        setEditContent('');
+        setEditDraft('');
       }
     } catch (error) {
       console.error('Failed to update comment:', error);
@@ -130,6 +149,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
   const handleDeleteComment = async (commentId: string | number) => {
     if (!user) return;
+
+    const ok = await confirm({
+      title: 'Delete comment?',
+      message: 'This cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
 
     try {
       const response = await communityPostsApi.deleteComment(commentId);
@@ -156,9 +183,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
   const CommentItem: React.FC<{ comment: Comment; isReply?: boolean }> = ({ comment, isReply = false }) => {
     const commentId = normalizeId(comment.id);
+    const rootParentId = normalizeId(comment.root_parent_id ?? comment.id);
     const isMyComment = user && normalizeId(comment.author_id) === normalizeId(user.id);
     const isEditing = editingCommentId === commentId;
     const isReplying = replyingTo === commentId;
+    const replyDraft = replyDraftById[rootParentId] ?? '';
 
     return (
     <div className={`${isReply ? 'ml-8 mt-3' : 'mb-4'} flex space-x-3`}>
@@ -195,7 +224,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 <>
                   <button
                     type="button"
-                    onClick={() => handleStartEdit(comment.id, comment.content)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (debugEnabled) {
+                        console.log('[CommentSection] edit click', {
+                          commentId: comment.id,
+                          isReply,
+                        });
+                      }
+                      handleStartEdit(comment.id, comment.content);
+                    }}
                     className="text-gray-400 hover:text-[color:#1e1b4b] transition-colors"
                     aria-label="Edit comment"
                     title="Edit comment"
@@ -204,7 +243,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteComment(comment.id)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (debugEnabled) {
+                        console.log('[CommentSection] delete click', {
+                          commentId: comment.id,
+                          isReply,
+                        });
+                      }
+                      handleDeleteComment(comment.id);
+                    }}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                     aria-label="Delete comment"
                     title="Delete comment"
@@ -218,24 +268,42 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           {isEditing ? (
             <div className="space-y-2">
               <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                id={`comment-edit-${commentId}`}
+                name={`comment-edit-${commentId}`}
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                autoFocus
+                onFocus={(e) => {
+                  try {
+                    e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length);
+                  } catch {
+                    // ignore
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b]"
                 rows={2}
               />
               <div className="flex gap-2">
                 <button
-                  onClick={handleUpdateComment}
-                  disabled={!editContent.trim() || submitting}
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpdateComment();
+                  }}
+                  disabled={!editDraft.trim() || submitting}
                   className="px-3 py-1 text-white text-xs rounded-md disabled:opacity-50 transition-colors"
                   style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   Save
                 </button>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setEditingCommentId(null);
-                    setEditContent('');
+                    setEditDraft('');
                   }}
                   className="px-3 py-1 text-xs rounded-md border border-gray-200 text-gray-600"
                 >
@@ -250,18 +318,28 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           )}
         </div>
 
-        {!isReply && (
-          <div className="flex items-center space-x-4 mt-1 ml-3">
-            <button
-              type="button"
-              onClick={() => setReplyingTo(isReplying ? null : commentId)}
-              className="text-xs text-gray-500 hover:text-[color:#1e1b4b] transition-colors flex items-center space-x-1"
-            >
-              <Reply className="w-3 h-3" />
-              <span>Reply</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center space-x-4 mt-1 ml-3">
+          <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (debugEnabled) {
+                console.log('[CommentSection] reply toggle click', {
+                  commentId: comment.id,
+                  isReply,
+                  nextReplyingTo: isReplying ? null : commentId,
+                });
+              }
+              setReplyingTo(isReplying ? null : commentId);
+            }}
+            className="text-xs text-gray-500 hover:text-[color:#1e1b4b] transition-colors flex items-center space-x-1"
+          >
+            <Reply className="w-3 h-3" />
+            <span>Reply</span>
+          </button>
+        </div>
 
         {/* Reply form */}
         {isReplying && (
@@ -269,22 +347,39 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             <div className="flex space-x-2">
               <input
                 type="text"
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
+                id={`comment-reply-${commentId}`}
+                name={`comment-reply-${commentId}`}
+                value={replyDraft}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setReplyDraftById((prev) => ({ ...prev, [rootParentId]: value }));
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 placeholder={`Reply to ${comment.author_name}...`}
                 className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:bg-white transition-all"
                 autoFocus
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleAddReply(comment.id);
+                    handleAddReply(comment.id, rootParentId);
                   }
                 }}
               />
               <button
                 type="button"
-                onClick={() => handleAddReply(comment.id)}
-                disabled={!replyContent.trim() || submitting}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (debugEnabled) {
+                    console.log('[CommentSection] reply submit click', {
+                      parentCommentId: comment.id,
+                      replyContentLength: replyDraft.length,
+                    });
+                  }
+                  handleAddReply(comment.id, rootParentId);
+                }}
+                disabled={!replyDraft.trim() || submitting}
                 className="p-2 text-white rounded-full hover:bg-[color:#312e81] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 style={{ backgroundColor: brandColors.primaryHex }}
               >
@@ -345,6 +440,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           <div className="flex-1 relative">
             <input
               type="text"
+              id={`comment-new-${postId}`}
+              name={`comment-new-${postId}`}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."

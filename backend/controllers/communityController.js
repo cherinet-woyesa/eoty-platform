@@ -320,6 +320,12 @@ exports.addComment = async (req, res) => {
     const { content, parentCommentId, parent_comment_id } = req.body;
     const user = req.user;
 
+    const parsedParentId = parentCommentId
+      ? parseInt(parentCommentId)
+      : parent_comment_id
+      ? parseInt(parent_comment_id)
+      : null;
+
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Comment content is required' });
     }
@@ -340,19 +346,18 @@ exports.addComment = async (req, res) => {
       author_name: authorName,
       author_avatar: authorAvatar,
       content,
-      parent_comment_id: parentCommentId
-        ? parseInt(parentCommentId)
-        : parent_comment_id
-        ? parseInt(parent_comment_id)
-        : null,
+      parent_comment_id: parsedParentId,
       created_at: new Date(),
       updated_at: new Date()
     }).returning('*');
 
     // Update comment count on post
-    await db('community_posts')
-      .where({ id: postId })
-      .increment('comments', 1);
+    // Social-media behavior: post-level comment count tracks top-level comments only
+    if (!parsedParentId) {
+      await db('community_posts')
+        .where({ id: postId })
+        .increment('comments', 1);
+    }
 
     return res.json({ success: true, data: { comment } });
   } catch (error) {
@@ -393,14 +398,24 @@ exports.fetchComments = async (req, res) => {
       };
     });
 
-    const parentComments = withLiveAuthors.filter(c => !c.parent_comment_id);
-    const replies = withLiveAuthors.filter(c => c.parent_comment_id);
+    const byId = new Map();
+    withLiveAuthors.forEach((c) => {
+      byId.set(String(c.id), { ...c, replies: [] });
+    });
 
-    // Attach replies to parent comments
-    const commentsWithReplies = parentComments.map(parent => ({
-      ...parent,
-      replies: replies.filter(reply => reply.parent_comment_id === parent.id)
-    }));
+    const roots = [];
+    byId.forEach((node) => {
+      if (node.parent_comment_id) {
+        const parent = byId.get(String(node.parent_comment_id));
+        if (parent) {
+          parent.replies.push(node);
+          return;
+        }
+      }
+      roots.push(node);
+    });
+
+    const commentsWithReplies = roots;
 
     return res.json({ success: true, data: { comments: commentsWithReplies } });
   } catch (error) {

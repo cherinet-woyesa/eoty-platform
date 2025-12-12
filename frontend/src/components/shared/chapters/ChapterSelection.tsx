@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, MapPin, Users, X, Star, Compass, AlertCircle } from 'lucide-react';
 import { chaptersApi, type Chapter, type UserChapter } from '@/services/api/chapters';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { brandColors } from '@/theme/brand';
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 interface ChapterSelectionProps {
   onChapterSelected?: (chapter: Chapter) => void;
@@ -16,11 +16,8 @@ interface ChapterSelectionProps {
   showOnlyMembership?: boolean;
 }
 
-const ChapterSelection: React.FC<ChapterSelectionProps> = ({
-  onChapterSelected,
-  showOnlyJoinable = false,
-  showOnlyMembership = false
-}) => {
+const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
+  ({ onChapterSelected, showOnlyJoinable = false, showOnlyMembership = false }) => {
   const { t } = useTranslation();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [userChapters, setUserChapters] = useState<UserChapter[]>([]);
@@ -52,7 +49,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
     fetchChapters();
     fetchUserChapters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, onChapterSelected]);
 
   // Debounce search to reduce API chatter
   useEffect(() => {
@@ -334,7 +331,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
             className="pointer-events-auto px-5 py-3 rounded-xl shadow-2xl border text-white text-sm font-semibold"
             style={{
               background: toast.type === 'success'
-                ? `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`
+                ? 'linear-gradient(120deg, var(--brand-primary), var(--brand-primary-hover))'
                 : 'linear-gradient(120deg, #ef4444, #b91c1c)',
               borderColor: toast.type === 'success' ? 'rgba(49,46,129,0.25)' : 'rgba(239,68,68,0.35)'
             }}
@@ -456,14 +453,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
       {/* Chapters List */}
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="border border-gray-200 rounded-lg p-4 animate-pulse space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-2/3" />
-              <div className="h-3 bg-gray-200 rounded w-1/2" />
-              <div className="h-3 bg-gray-200 rounded w-full" />
-              <div className="h-3 bg-gray-200 rounded w-3/4" />
-            </div>
-          ))}
+          <LoadingSpinner message={t('common.loading')} />
         </div>
       ) : filteredChapters.length === 0 ? (
         <div className="text-center py-8 text-gray-600 space-y-3 bg-white border border-gray-200 rounded-lg">
@@ -581,7 +571,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                               onClick={() => handleSetPrimary(chapter.id)}
                               disabled={primaryId === chapter.id}
                               className="flex-1 px-2 py-2 text-xs sm:text-sm text-white rounded-lg transition-colors whitespace-nowrap font-medium disabled:opacity-60"
-                              style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                              style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
                             >
                               {primaryId === chapter.id ? t('common.updating') || 'Updating...' : t('chapters.set_primary')}
                             </button>
@@ -589,7 +579,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                           <button
                             onClick={() => onChapterSelected?.(chapter)}
                             className="flex-1 px-3 py-2 text-sm text-white rounded-lg transition-colors font-medium"
-                            style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                            style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
                           >
                             {t('chapters.view')}
                           </button>
@@ -616,7 +606,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
                       onClick={() => handleJoinChapter(chapter)}
                       disabled={joiningId === chapter.id}
                       className="flex-1 px-4 py-2 text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-60"
-                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                      style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
                     >
                       <Users className="h-4 w-4" />
                       {joiningId === chapter.id ? t('common.loading') || 'Loading...' : t('chapters.join')}
@@ -630,7 +620,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ChapterSelection;
 

@@ -141,6 +141,7 @@ const GroupDetailPage: React.FC = () => {
   const postMessageMutation = useMutation({
     mutationFn: async () => {
       const content = newMessage.trim();
+      console.debug('[GroupDetail] Sending postMessage', { groupId, content, replyingToId });
       return studyGroupsApi.postMessage(Number(groupId), content, replyingToId || undefined);
     },
     onSuccess: () => {
@@ -160,9 +161,18 @@ const GroupDetailPage: React.FC = () => {
     onError: () => showNotification('error', 'Error', 'Failed to delete message')
   });
 
+  // wrap delete to log before calling
+  const __deleteMessage = async (messageId: number) => {
+    console.debug('[GroupDetail] deleteMessage', { groupId, messageId });
+    return studyGroupsApi.deleteMessage(Number(groupId), messageId);
+  };
+
   const editMessageMutation = useMutation({
     mutationFn: async ({ messageId, content }: { messageId: number; content: string }) => 
-      studyGroupsApi.editMessage(Number(groupId), messageId, content),
+      ((): Promise<any> => {
+        console.debug('[GroupDetail] editMessage', { groupId, messageId, content });
+        return studyGroupsApi.editMessage(Number(groupId), messageId, content);
+      })(),
     onSuccess: () => {
       setEditingMessageId(null);
       setNewMessage('');
@@ -241,6 +251,10 @@ const GroupDetailPage: React.FC = () => {
     const handleLike = () => onLike(msg.id);
     const handleReply = () => onReply(msg);
     const handleEdit = () => onEdit(msg);
+    // We use a fixed overlay to detect outside clicks instead of document listeners. This avoids
+    // ordering issues between React synthetic events and native document listeners which could
+    // cause the menu to be closed before handling the click on the menu item.
+
     return (
       <div className={`${indent} space-y-1`}>
         <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -265,15 +279,6 @@ const GroupDetailPage: React.FC = () => {
                 <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 <button
                   type="button"
-                  onClick={handleLike}
-                  className={`flex items-center gap-1 ${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
-                >
-                  <span>👍</span>
-                  <span>{msg.likes_count || 0}</span>
-                  {msg.liked_by_user ? <span>(You)</span> : null}
-                </button>
-                <button
-                  type="button"
                   onClick={handleReply}
                   className={`${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
                 >
@@ -282,25 +287,50 @@ const GroupDetailPage: React.FC = () => {
                 <div className="ml-auto relative">
                   <button
                     type="button"
-                    onClick={() => setMenuOpen(!menuOpen)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newValue = !menuOpen;
+                      console.debug('[GroupDetail] toggling menu', { menuOpen, newValue });
+                      setMenuOpen(newValue);
+                    }}
                     className={`${isMine ? 'text-white' : 'text-slate-600'} hover:opacity-80`}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
                   {menuOpen && (
-                    <div className="absolute right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-10 w-36">
+                    <>
+                      {/* Overlay catches outside clicks */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setMenuOpen(false)}
+                        aria-hidden
+                      />
+                      <div className="absolute right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg z-50 w-36 text-slate-800">
                       {isMine ? (
                         <>
                           <button
                             type="button"
-                            onClick={() => { setMenuOpen(false); handleEdit(); }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.debug('[GroupDetail] menu edit clicked', { msgId: msg.id });
+                              setMenuOpen(false);
+                              handleEdit();
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
-                            onClick={() => { setMenuOpen(false); handleDelete(); }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.debug('[GroupDetail] menu delete clicked', { msgId: msg.id });
+                              setMenuOpen(false);
+                              handleDelete();
+                            }}
                             className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-100"
                           >
                             Delete
@@ -309,13 +339,20 @@ const GroupDetailPage: React.FC = () => {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => { setMenuOpen(false); handleReport(); }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-100"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.debug('[GroupDetail] menu report clicked', { msgId: msg.id });
+                            setMenuOpen(false);
+                            handleReport();
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
                         >
                           Report
                         </button>
                       )}
                     </div>
+                      </>
                   )}
                 </div>
               </div>
@@ -330,11 +367,11 @@ const GroupDetailPage: React.FC = () => {
                 msg={child}
                 depth={depth + 1}
                 currentUserId={currentUserId}
-                onReply={onReply}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onLike={onLike}
-                    onReport={onReport}
+                onReply={startReply}
+                onEdit={startEditing}
+                onDelete={handleDeleteMessage}
+                onLike={handleToggleLike}
+                onReport={handleReport}
               />
             ))}
           </div>
@@ -366,8 +403,8 @@ const GroupDetailPage: React.FC = () => {
     const confirmed = await confirm({
         title: 'Delete Message',
         message: 'Are you sure you want to delete this message? This action cannot be undone.',
-        confirmLabel: 'Delete',
-        variant: 'danger'
+        confirmText: 'Delete',
+        cancelText: 'Cancel'
     });
     if (confirmed) {
         deleteMessageMutation.mutate(messageId);

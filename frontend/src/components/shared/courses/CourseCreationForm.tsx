@@ -28,10 +28,12 @@ import {
 import { useTranslation } from 'react-i18next';
 
 const brandColors = {
-  primary: '#1e1b4b',
-  accent: '#4338ca',
-  soft: 'rgba(67,56,202,0.08)',
-  success: '#16A085',
+  primary: '#28536B',
+  accent: '#78A083',
+  soft: 'rgba(120, 160, 131, 0.1)',
+  success: '#4CAF50',
+  warning: '#FFC107',
+  danger: '#DC3545',
 };
 
 // Types
@@ -644,7 +646,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.description}
                 onChange={handleChange}
                 placeholder={t('courses.creation.description_placeholder')}
-                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
               />
               <div className="flex justify-between mt-1 text-xs text-stone-500">
                 <span>

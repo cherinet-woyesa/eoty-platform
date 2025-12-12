@@ -219,7 +219,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
           <div className="grid gap-3 sm:grid-cols-2 items-center p-4">
             {!embedded && (
               <div>
-                <p className="text-xs uppercase tracking-wide text-[#1e1b4b] font-semibold">{t('community.forums.badge')}</p>
+                <p className="text-xs uppercase tracking-wide font-semibold" style={{ color: brandColors.primaryHex }}>{t('community.forums.badge')}</p>
                 <h1 className="text-2xl font-bold text-slate-900">{t('community.forums.header_title')}</h1>
               </div>
             )}
@@ -243,7 +243,8 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
 
               <button
                 onClick={() => setShowCreateForum(true)}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold shadow-sm bg-white text-[#1e1b4b] border border-[#1e1b4b]/20 hover:bg-slate-50 transition-colors text-sm whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg font-semibold shadow-sm bg-white hover:bg-slate-50 transition-colors text-sm whitespace-nowrap"
+                style={{ color: brandColors.primaryHex, borderColor: `${brandColors.primaryHex}33` }}
               >
                 <Plus className="h-4 w-4" />
                 Create Forum
@@ -286,8 +287,8 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
             </div>
           </div>
           {activeTag && (
-            <div className="mt-2 text-xs text-[#1e1b4b] flex items-center gap-2">
-              <span className="px-2 py-1 bg-[#1e1b4b]/5 border border-[#1e1b4b]/10 rounded-full">{t('community.forums.filtering', { tag: activeTag })}</span>
+            <div className="mt-2 text-xs flex items-center gap-2">
+              <span className="px-2 py-1 rounded-full" style={{ backgroundColor: `${brandColors.primaryHex}1A`, border: `1px solid ${brandColors.primaryHex}1A`, color: brandColors.primaryHex }}>{t('community.forums.filtering', { tag: activeTag })}</span>
               <button onClick={() => setActiveTag(null)} className="text-slate-500 hover:text-slate-700">{t('community.forums.clear_filters')}</button>
             </div>
           )}
@@ -295,11 +296,11 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
 
         {!embedded && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="bg-[#1e1b4b] text-white rounded-xl p-4 shadow-sm">
+            <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: brandColors.primaryHex, color: '#fff' }}>
               <p className="text-sm opacity-80">{t('community.forums.stats.total')}</p>
               <p className="text-2xl font-bold mt-1">{discussions.length}</p>
             </div>
-            <div className="bg-[#1e1b4b]/5 text-[#1e1b4b] border border-[#1e1b4b]/10 rounded-xl p-4 shadow-sm">
+            <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex, border: `1px solid ${brandColors.primaryHex}1A` }}>
               <p className="text-sm opacity-80">{t('community.forums.stats.mine')}</p>
               <p className="text-2xl font-bold mt-1">{discussions.filter(d => d.visibility !== 'private').length}</p>
             </div>
@@ -323,8 +324,9 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
                       key={tag}
                       onClick={() => setActiveTag(tag)}
                       className={`px-3 py-1 rounded-full text-xs border ${
-                        activeTag === tag ? 'bg-[#1e1b4b]/5 border-[#1e1b4b]/20 text-[#1e1b4b]' : 'bg-slate-50 border-slate-200 text-slate-700'
+                        activeTag === tag ? 'bg-slate-50' : 'bg-slate-50 border-slate-200 text-slate-700'
                       }`}
+                      style={activeTag === tag ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}33`, color: brandColors.primaryHex } : undefined}
                     >
                       #{tag} ({count})
                     </button>

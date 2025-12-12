@@ -7,6 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Brand Colors
+        brand: {
+          primary: '#28536B',
+          accent: '#78A083',
+          soft: 'rgba(120, 160, 131, 0.1)',
+          success: '#4CAF50',
+          warning: '#FFC107',
+          danger: '#DC3545',
+        },
         // Light base colors
         beige: {
           50: '#fafaf9',
@@ -19,26 +28,6 @@ export default {
           100: '#e8e8e8',
           200: '#d3d3d3',
           300: '#c0c0c0',
-        },
-        // Neon colors for buttons and approvals
-        neon: {
-          cyan: '#00FFC6',
-          'cyan-dark': '#00E6B8',
-          green: '#39FF14',
-          yellow: '#FFF59D',
-          'light-blue': '#B2EBF2',
-        },
-        primary: {
-          50: '#f0fdfa', // Light cyan
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#00FFC6', // Neon cyan
-          600: '#00E6B8',
-          700: '#0d9488',
-          800: '#115e59',
-          900: '#134e4a',
         },
       },
       fontFamily: {
