@@ -1362,6 +1362,14 @@ const interactiveController = {
         data: { announcements }
       });
     } catch (error) {
+      // Graceful fallback if table not yet migrated
+      const msg = (error && error.message) || '';
+      const code = (error && error.code) || '';
+      const tableMissing = msg.includes('no such table') || msg.includes('relation "announcements" does not exist') || code === '42P01';
+      if (tableMissing) {
+        console.warn('Announcements table missing, returning empty list');
+        return res.json({ success: true, data: { announcements: [] }, message: 'Announcements unavailable' });
+      }
       console.error('Get global announcements error:', error);
       res.status(500).json({
         success: false,
@@ -1388,6 +1396,14 @@ const interactiveController = {
         data: { events }
       });
     } catch (error) {
+      // Graceful fallback if table not yet migrated
+      const msg = (error && error.message) || '';
+      const code = (error && error.code) || '';
+      const tableMissing = msg.includes('no such table') || msg.includes('relation "events" does not exist') || code === '42P01';
+      if (tableMissing) {
+        console.warn('Events table missing, returning empty list');
+        return res.json({ success: true, data: { events: [] }, message: 'Events unavailable' });
+      }
       console.error('Get global events error:', error);
       res.status(500).json({
         success: false,

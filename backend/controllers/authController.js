@@ -549,7 +549,7 @@ const authController = {
               });
             }
           } catch (rememberErr) {
-            console.warn('Remember device token invalid or expired:', rememberErr.message);
+            console.warn('Remember device token invalid or expired, ignoring cookie:', rememberErr.message);
           }
         }
       }
@@ -640,7 +640,7 @@ const authController = {
           httpOnly: true,
           sameSite: 'lax',
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 30 * 24 * 60 * 60 * 1000,
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
           path: '/'
         });
       }
