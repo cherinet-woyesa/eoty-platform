@@ -1111,9 +1111,14 @@ const interactiveController = {
       });
     } catch (error) {
       console.error('Get progress error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch progress'
+      // Fail soft: return empty progress so UI can continue
+      res.status(200).json({
+        success: true,
+        data: {
+          courses: [],
+          quizzes: []
+        },
+        message: 'Progress unavailable'
       });
     }
   },
@@ -1123,25 +1128,47 @@ const interactiveController = {
     try {
       const userId = req.user.userId;
 
-      // Get all course progress
-      const courseProgress = await db('courses as c')
-        .leftJoin('lessons as l', 'c.id', 'l.course_id')
-        .leftJoin('user_lesson_progress as ulp', function() {
-          this.on('l.id', '=', 'ulp.lesson_id')
-              .andOnVal('ulp.user_id', '=', userId);
-        })
-        .select(
-          'c.id as course_id',
-          'c.title as course_title',
-          'l.id as lesson_id',
-          'l.title as lesson_title',
-          'ulp.progress',
-          'ulp.is_completed',
-          'ulp.completed_at',
-          'ulp.last_accessed_at'
-        )
-        .orderBy('c.id')
-        .orderBy('l.order');
+      // Get all course progress (tolerate missing lessons.order column)
+      let courseProgress;
+      try {
+        courseProgress = await db('courses as c')
+          .leftJoin('lessons as l', 'c.id', 'l.course_id')
+          .leftJoin('user_lesson_progress as ulp', function() {
+            this.on('l.id', '=', 'ulp.lesson_id')
+                .andOnVal('ulp.user_id', '=', userId);
+          })
+          .select(
+            'c.id as course_id',
+            'c.title as course_title',
+            'l.id as lesson_id',
+            'l.title as lesson_title',
+            'ulp.progress',
+            'ulp.is_completed',
+            'ulp.completed_at',
+            'ulp.last_accessed_at'
+          )
+          .orderBy('c.id')
+          .orderBy('l.order');
+      } catch (orderErr) {
+        courseProgress = await db('courses as c')
+          .leftJoin('lessons as l', 'c.id', 'l.course_id')
+          .leftJoin('user_lesson_progress as ulp', function() {
+            this.on('l.id', '=', 'ulp.lesson_id')
+                .andOnVal('ulp.user_id', '=', userId);
+          })
+          .select(
+            'c.id as course_id',
+            'c.title as course_title',
+            'l.id as lesson_id',
+            'l.title as lesson_title',
+            'ulp.progress',
+            'ulp.is_completed',
+            'ulp.completed_at',
+            'ulp.last_accessed_at'
+          )
+          .orderBy('c.id')
+          .orderBy('l.id');
+      }
 
       // Group by course
       const courses = {};
