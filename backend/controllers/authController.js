@@ -6,6 +6,21 @@ const authConfig = require('../config/auth');
 const emailService = require('../services/emailService');
 const gcsService = require('../services/gcsService');
 
+// Shared cookie options for remember-device (tuned for cross-site frontend/API)
+const getRememberCookieOptions = () => {
+  const base = {
+    httpOnly: true,
+    sameSite: 'none', // allow cross-site requests from frontend to API
+    secure: process.env.NODE_ENV !== 'development', // required for SameSite=None
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/'
+  };
+  if (process.env.COOKIE_DOMAIN) {
+    base.domain = process.env.COOKIE_DOMAIN;
+  }
+  return base;
+};
+
 // NOTE: In production we might not have the newest lockout columns yet.
 // To keep login robust, we avoid hard dependencies on those columns.
 
@@ -636,13 +651,7 @@ const authController = {
           authConfig.jwtSecret,
           { expiresIn: '30d' }
         );
-        res.cookie('remember_device', rememberToken, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-          path: '/'
-        });
+        res.cookie('remember_device', rememberToken, getRememberCookieOptions());
       }
 
       res.json({
@@ -787,13 +796,7 @@ const authController = {
         authConfig.jwtSecret,
         { expiresIn: '30d' }
       );
-      res.cookie('remember_device', rememberToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: '/'
-      });
+      res.cookie('remember_device', rememberToken, getRememberCookieOptions());
 
       res.json({
         success: true,
