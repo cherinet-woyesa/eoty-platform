@@ -14,7 +14,10 @@ function init(server) {
           process.env.FRONTEND_URL,
           'http://localhost:3000',
           'http://localhost:5173',
-          'https://eoty-platform.vercel.app'
+          'https://eoty-platform.vercel.app',
+          'https://www.eotcommunity.org',
+          'https://eotcommunity.org',
+          'https://frontend-jcokg87hs-cherinet-woyesa-projects.vercel.app'
         ];
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);

@@ -59,6 +59,27 @@
     "online": "ኦንላይን"
   },
 
+  "ai_labeling": {
+    "title": "አአ ምልክት መስጠት",
+    "subtitle": "የአአ ምላሾችን ለትግበራና ደህንነት ይገምጹ",
+    "tab_pending": "በመጠባበቅ ላይ",
+    "tab_recent": "የቅርብ ታሪክ",
+    "page_size": "በገጽ ያሉ እቃዎች",
+    "language_all": "ሁሉም ቋንቋዎች",
+    "refresh": "አድስ",
+    "days_7": "ያለፉ 7 ቀናት",
+    "days_14": "ያለፉ 14 ቀናት",
+    "days_30": "ያለፉ 30 ቀናት",
+    "toast_item_action": "እቃ {{action}}",
+    "error_load": "እቃዎችን መጫን አልተቻለም",
+    "retry": "ድጋሚ ሞክር",
+    "loading": "የምልክት ዝርዝር በመጫን ላይ...",
+    "empty_title": "ምንም ለማጣመም የለም",
+    "empty_body": "ጥሩ ዜና — በአሁኑ ጊዜ ለምልክት ያስፈልጉ አአ ነገሮች የሉም።",
+    "check_again": "እንደገና በኋላ ይመልከቱ",
+    "page_of": "ገጽ {{page}} ከ {{total}}"
+  },
+
   "common": {
     "upload_image": "ምስል ይስቀሉ",
     "public_course": "የህዝብ ኮርስ",

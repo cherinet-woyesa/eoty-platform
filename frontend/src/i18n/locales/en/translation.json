@@ -39,6 +39,26 @@
     "assignments": "Assignments",
     "calendar": "Calendar"
   },
+  "ai_labeling": {
+    "title": "AI Labeling",
+    "subtitle": "Review and label AI responses for alignment and safety",
+    "tab_pending": "Pending",
+    "tab_recent": "Assistant History",
+    "page_size": "Items per page",
+    "language_all": "All languages",
+    "refresh": "Refresh",
+    "days_7": "Last 7 days",
+    "days_14": "Last 14 days",
+    "days_30": "Last 30 days",
+    "toast_item_action": "Item {{action}}",
+    "error_load": "Failed to load items",
+    "retry": "Retry",
+    "loading": "Loading labeling queue...",
+    "empty_title": "Nothing to review",
+    "empty_body": "Great news—no AI items need labeling right now.",
+    "check_again": "Check again later",
+    "page_of": "Page {{page}} of {{total}}"
+  },
   "teacher_content": {
     "title": "Content Studio",
     "subtitle_create": "Create & Manage Content",

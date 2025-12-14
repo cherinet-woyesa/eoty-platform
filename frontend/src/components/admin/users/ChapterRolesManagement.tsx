@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { UserCog, MapPin, Crown, Users, Search, Loader2 } from 'lucide-react';
+import { UserCog, MapPin, Crown, Users, Search, Loader2, RefreshCw } from 'lucide-react';
 import { useNotification } from '@/context/NotificationContext';
 import chapterRolesApi, { ChapterRole, RegionalCoordinator } from '@/services/api/chapterRoles';
 import { chaptersApi } from '@/services/api/chapters';
@@ -67,8 +67,10 @@ const ChapterRolesManagement: React.FC = () => {
       try {
         const data = await chaptersApi.getLocations();
         if (data.success) {
-          setCountryOptions(data.data.countries.map((c: string) => c.toLowerCase()));
-          setRegionOptions(data.data.regions.map((r: string) => r.toLowerCase()));
+          const countries = Array.from(new Set((data.data.countries || []).map((c: string) => c.toLowerCase())));
+          const regions = Array.from(new Set((data.data.regions || []).map((r: string) => r.toLowerCase())));
+          setCountryOptions(countries);
+          setRegionOptions(regions);
         }
       } catch (err) {
         console.warn('Country/region fetch failed', err);
@@ -339,8 +341,8 @@ const ChapterRolesManagement: React.FC = () => {
             style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <option value="">All Regions</option>
-            {regionOptions.map((r) => (
-              <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+            {regionOptions.map((r, idx) => (
+              <option key={`${r}-${idx}`} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
             ))}
           </select>
           <select
@@ -350,8 +352,8 @@ const ChapterRolesManagement: React.FC = () => {
             style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             <option value="">All Countries</option>
-            {countryOptions.map((c) => (
-              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+            {countryOptions.map((c, idx) => (
+              <option key={`${c}-${idx}`} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
             ))}
           </select>
           <button
