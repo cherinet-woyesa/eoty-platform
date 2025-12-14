@@ -57,12 +57,14 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [timeFilter, setTimeFilter] = useState(searchParams.get('time') || 'all');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'name');
+  const [chapterFilter, setChapterFilter] = useState<string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   // Sync state with URL params
@@ -80,7 +82,19 @@ const UserManagement: React.FC = () => {
   const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [pagination, setPagination] = useState<{ total: number; totalPages: number; page: number; limit: number }>({
+    total: 0,
+    totalPages: 1,
+    page: 1,
+    limit: 20,
+  });
+  const [counts, setCounts] = useState<{ total: number; active: number; inactive: number }>({
+    total: 0,
+    active: 0,
+    inactive: 0,
+  });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -99,34 +113,51 @@ const UserManagement: React.FC = () => {
   });
 
   // Fetch users
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (pageOverride?: number) => {
+    const pageToLoad = pageOverride ?? currentPage;
     try {
       setLoading(users.length === 0);
+      setIsInitialLoading(users.length === 0);
       setIsRefreshing(users.length > 0);
       setError(null);
-      const response = await adminApi.getUsers();
-      if (response.success && response.data?.users) {
-        setUsers(response.data.users);
+      const payload = await adminApi.getUsers({
+        page: pageToLoad,
+        limit: itemsPerPage,
+        search: searchTerm.trim() || undefined,
+        role: roleFilter,
+        status: statusFilter,
+        chapter: chapterFilter !== 'all' ? chapterFilter : undefined,
+        sortBy,
+        sortOrder,
+      });
+      if (payload?.success && payload.data?.users) {
+        setUsers(payload.data.users);
+        const paginationData = payload.data.pagination || { total: payload.data.users.length, totalPages: 1, page: pageToLoad, limit: itemsPerPage };
+        setPagination(paginationData);
+        // Set immediate counts from current payload as fallback
+        const activeLocal = payload.data.users.filter((u: any) => u.isActive).length;
+        const inactiveLocal = payload.data.users.filter((u: any) => !u.isActive).length;
+        const totalLocal = paginationData.total ?? payload.data.users.length ?? 0;
+        setCounts({
+          total: totalLocal,
+          active: activeLocal,
+          inactive: inactiveLocal,
+        });
+        // Refresh aggregated counts from server (may include full dataset)
+        fetchCounts();
         setLastUpdated(new Date().toISOString());
       } else {
         throw new Error('Invalid response format');
       }
     } catch (err: any) {
       console.error('Failed to fetch users:', err);
-      setError(err.response?.data?.message || 'Failed to load users. Please try again.');
+      setError(err?.response?.data?.message || 'Failed to load users. Please try again.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
+      setIsInitialLoading(false);
     }
-  }, []);
-
-  // Debounce search to avoid excessive filtering renders
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setCurrentPage(1);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [searchTerm, roleFilter, statusFilter]);
+  }, [currentPage, itemsPerPage, roleFilter, searchTerm, sortBy, statusFilter, users.length]);
 
   // Fetch chapters
   const fetchChapters = useCallback(async () => {
@@ -148,78 +179,79 @@ const UserManagement: React.FC = () => {
     }
   }, [newUser.chapter]);
 
+  const fetchCounts = useCallback(async () => {
+    try {
+      const unpack = (res: any) => {
+        const base = res?.data ?? res;
+        const data = base?.data ?? base;
+        return {
+          pagination: data?.pagination,
+          users: data?.users || [],
+        };
+      };
+
+      const baseParams = {
+        limit: 1,
+        page: 1,
+        search: searchTerm.trim() || undefined,
+        role: roleFilter,
+        chapter: chapterFilter !== 'all' ? chapterFilter : undefined,
+        sortBy,
+        sortOrder,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      };
+
+      const [totalRes, activeRes, inactiveRes] = await Promise.all([
+        adminApi.getUsers(baseParams),
+        adminApi.getUsers({ ...baseParams, status: 'active' }),
+        adminApi.getUsers({ ...baseParams, status: 'inactive' }),
+      ]);
+
+      const totalPayload = unpack(totalRes);
+      const activePayload = unpack(activeRes);
+      const inactivePayload = unpack(inactiveRes);
+
+      setCounts({
+        total: totalPayload.pagination?.total ?? totalPayload.users.length ?? 0,
+        active: activePayload.pagination?.total ?? activePayload.users.length ?? 0,
+        inactive: inactivePayload.pagination?.total ?? inactivePayload.users.length ?? 0,
+      });
+    } catch (err) {
+      console.error('Failed to fetch counts', err);
+    }
+  }, [roleFilter, searchTerm, statusFilter, chapterFilter, sortBy, sortOrder]);
+
+  // Debounce search/filters before firing fetch
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1);
+      fetchCounts();
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchTerm, roleFilter, statusFilter, timeFilter, sortBy, sortOrder, chapterFilter, itemsPerPage, fetchUsers, fetchCounts]);
+
   useEffect(() => {
     fetchUsers();
     fetchChapters();
-  }, [fetchUsers, fetchChapters]);
+    fetchCounts();
+  }, [fetchUsers, fetchChapters, fetchCounts]);
 
-  // Filtered users
-  const filteredUsers = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const filtered = users.filter(user => {
-      const matchesSearch = !term || 
-        user.firstName?.toLowerCase().includes(term) ||
-        user.lastName?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term);
-      
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-      const matchesStatus = statusFilter === 'all' || 
-        (statusFilter === 'active' && user.isActive) ||
-        (statusFilter === 'inactive' && !user.isActive);
-      
-      let matchesTime = true;
-      if (timeFilter === 'week') {
-        const created = new Date(user.createdAt);
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        matchesTime = created > weekAgo;
-      } else if (timeFilter === 'month') {
-        const created = new Date(user.createdAt);
-        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        matchesTime = created > monthAgo;
-      }
-      
-      return matchesSearch && matchesRole && matchesStatus && matchesTime;
-    });
+  // Server-paginated users
+  const paginatedUsers = useMemo(() => users, [users]);
+  const totalPages = pagination.totalPages || 1;
+  const startIndex = users.length === 0 ? 0 : (pagination.page - 1) * pagination.limit;
+  const endIndex = startIndex + paginatedUsers.length;
 
-    if (sortBy === 'newest') {
-      return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-
-    return filtered;
-  }, [users, searchTerm, roleFilter, statusFilter, timeFilter, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-  // Stats
-  const stats = useMemo(() => {
-    const activeToday = users.filter(u => {
-      if (!u.lastLogin) return false;
-      const lastLogin = new Date(u.lastLogin);
-      const today = new Date();
-      return lastLogin.toDateString() === today.toDateString();
-    }).length;
-
-    const newThisWeek = users.filter(u => {
-      const created = new Date(u.createdAt);
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return created > weekAgo;
-    }).length;
-
-    const admins = users.filter(u => u.role === 'admin').length;
-
-    return {
-      total: users.length,
-      activeToday,
-      newThisWeek,
-      admins,
-      active: users.filter(u => u.isActive).length,
-      inactive: users.filter(u => !u.isActive).length
-    };
-  }, [users]);
+  // Stats (server-backed counts)
+  const stats = useMemo(() => ({
+    total: counts.total,
+    active: counts.active,
+    inactive: counts.inactive,
+    activeToday: null,
+    newThisWeek: null,
+    admins: null,
+  }), [counts]);
 
   // Handlers
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -367,6 +399,47 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const exportCsv = async () => {
+    try {
+      setActionLoading('export');
+      const payload = await adminApi.getUsers({
+        page: 1,
+        limit: 1000,
+        search: searchTerm.trim() || undefined,
+        role: roleFilter,
+        status: statusFilter,
+        chapter: chapterFilter !== 'all' ? chapterFilter : undefined,
+        sortBy,
+        sortOrder,
+      });
+      const data = payload?.data?.users || [];
+      const header = ['First Name', 'Last Name', 'Email', 'Role', 'Chapter', 'Active', 'Created At', 'Last Login'];
+      const rows = data.map((u: any) => [
+        u.firstName || '',
+        u.lastName || '',
+        u.email || '',
+        u.role || '',
+        u.chapter || '',
+        u.isActive ? 'Active' : 'Inactive',
+        u.createdAt || '',
+        u.lastLogin || '',
+      ]);
+      const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'users.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+      setActionLoading(null);
+    } catch (err) {
+      console.error('Failed to export CSV', err);
+      setError('Failed to export CSV. Please try again.');
+      setActionLoading(null);
+    }
+  };
+
   const handleSelectAll = () => {
     if (selectedUsers.length === paginatedUsers.length) {
       setSelectedUsers([]);
@@ -504,10 +577,7 @@ const UserManagement: React.FC = () => {
             { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
             { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
             { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
-            { name: 'Active Today', value: stats.activeToday, icon: TrendingUp, textColor: 'text-[#2563EB]', bgColor: 'bg-[#2563EB]/10', borderColor: 'border-[#2563EB]/25', glowColor: 'bg-[#2563EB]/15' },
-            { name: 'New This Week', value: stats.newThisWeek, icon: UserPlus, textColor: 'text-[#F59E0B]', bgColor: 'bg-[#F59E0B]/10', borderColor: 'border-[#F59E0B]/25', glowColor: 'bg-[#F59E0B]/15' },
-            { name: 'Admins', value: stats.admins, icon: Shield, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
-          ].map((stat, index) => (
+          ].filter(stat => stat.value !== null && stat.value !== undefined).map((stat, index) => (
             <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
               <div className="flex items-center justify-between mb-2">
                 <div className={`relative ${stat.textColor}`} style={stat.name === 'Total' || stat.name === 'Admins' ? { color: brandColors.primaryHex } : undefined}>
@@ -525,78 +595,128 @@ const UserManagement: React.FC = () => {
 
         {/* Search and Filters */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-                style={{ 
-                  '--tw-ring-color': brandColors.primaryHex,
-                  borderColor: searchTerm ? brandColors.primaryHex : undefined
-                } as React.CSSProperties}
-            />
-          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                  style={{ 
+                    '--tw-ring-color': brandColors.primaryHex,
+                    borderColor: searchTerm ? brandColors.primaryHex : undefined
+                  } as React.CSSProperties}
+                />
+              </div>
 
-          {/* Filters */}
-          <div className="flex gap-2">
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-            >
-              <option value="all">All Roles</option>
-              <option value="student">Students</option>
-              <option value="teacher">Teachers</option>
-              <option value="chapter_admin">Chapter Admins</option>
-              <option value="regional_coordinator">Regional Coordinators</option>
-              <option value="admin">Platform Admins</option>
-            </select>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students</option>
+                  <option value="teacher">Teachers</option>
+                  <option value="chapter_admin">Chapter Admins</option>
+                  <option value="regional_coordinator">Regional Coordinators</option>
+                  <option value="admin">Platform Admins</option>
+                </select>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
 
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-2 ${viewMode === 'table' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
-                style={viewMode === 'table' ? { backgroundColor: brandColors.primaryHex } : undefined}
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
-                style={viewMode === 'grid' ? { backgroundColor: brandColors.primaryHex } : undefined}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
+                <select
+                  value={chapterFilter}
+                  onChange={(e) => {
+                    setChapterFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                >
+                  <option value="all">All Chapters</option>
+                  {chapters.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name || c.location || `Chapter ${c.id}`}</option>
+                  ))}
+                </select>
+
+                <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-2 ${viewMode === 'table' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                    style={viewMode === 'table' ? { backgroundColor: brandColors.primaryHex } : undefined}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                    style={viewMode === 'grid' ? { backgroundColor: brandColors.primaryHex } : undefined}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions row */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={fetchUsers}
+                  disabled={loading || isRefreshing}
+                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
+                  style={{ 
+                    borderColor: `${brandColors.primaryHex}40`,
+                    '--tw-ring-color': brandColors.primaryHex 
+                  } as React.CSSProperties}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button
+                  onClick={exportCsv}
+                  className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                  style={{ 
+                    backgroundColor: brandColors.primaryHex,
+                    '--tw-ring-color': brandColors.primaryHex 
+                  } as React.CSSProperties}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  New User
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Error Display */}
       {error && (
@@ -792,7 +912,21 @@ const UserManagement: React.FC = () => {
       )}
 
       {/* Users Display */}
-      {filteredUsers.length > 0 ? (
+      {isInitialLoading ? (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="animate-pulse grid grid-cols-6 gap-3 text-left text-xs text-gray-500">
+                <div className="col-span-2 h-4 bg-gray-200 rounded" />
+                <div className="col-span-1 h-4 bg-gray-200 rounded" />
+                <div className="col-span-1 h-4 bg-gray-200 rounded" />
+                <div className="col-span-1 h-4 bg-gray-200 rounded" />
+                <div className="col-span-1 h-4 bg-gray-200 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : paginatedUsers.length > 0 ? (
         <>
           {viewMode === 'table' ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -947,7 +1081,7 @@ const UserManagement: React.FC = () => {
               {totalPages > 1 && (
                 <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200">
                   <div className="text-sm text-gray-700">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+                    Showing {paginatedUsers.length === 0 ? 0 : startIndex + 1} to {endIndex} of {pagination.total} users
                   </div>
                   <div className="flex items-center space-x-2">
                     <button

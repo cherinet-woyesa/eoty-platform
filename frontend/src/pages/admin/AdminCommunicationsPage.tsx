@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, MapPin, Video, Trash2, Clock, Globe, Users, Megaphone, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, MapPin, Video, Trash2, Clock, Megaphone, AlertCircle, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
 import CreateAnnouncementModal from '@/components/admin/dashboard/modals/CreateAnnouncementModal';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { brandColors } from '@/theme/brand';
 
 interface Event {
   id: number;
@@ -46,6 +47,7 @@ const AdminCommunicationsPage: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isAnnouncementsLoading, setIsAnnouncementsLoading] = useState(true);
   const [isCreateAnnouncementModalOpen, setIsCreateAnnouncementModalOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'events') {
@@ -85,6 +87,19 @@ const AdminCommunicationsPage: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (activeTab === 'events') {
+        await fetchEvents();
+      } else {
+        await fetchAnnouncements();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleDeleteEvent = async (id: number) => {
     if (!window.confirm(t('communications.events.delete_confirm'))) return;
     
@@ -117,18 +132,30 @@ const AdminCommunicationsPage: React.FC = () => {
 
   return (
     <div className="w-full h-full p-6 space-y-6 bg-gray-50/50 overflow-y-auto">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-indigo-900">{t('communications.title')}</h1>
+          <h1 className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{t('communications.title')}</h1>
           <p className="text-gray-500">{t('nav.communications_desc')}</p>
         </div>
-        <button
-          onClick={() => activeTab === 'events' ? setIsCreateEventModalOpen(true) : setIsCreateAnnouncementModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-indigo-900 text-white rounded-lg hover:bg-indigo-800 transition-colors shadow-sm"
-        >
-          <Plus className="h-5 w-5" />
-          <span>{activeTab === 'events' ? t('communications.events.create_new') : t('communications.announcements.create_new')}</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || isEventsLoading || isAnnouncementsLoading}
+            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg border shadow-sm transition-colors disabled:opacity-50"
+            style={{ borderColor: `${brandColors.primaryHex}40`, color: brandColors.primaryHex }}
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+          <button
+            onClick={() => activeTab === 'events' ? setIsCreateEventModalOpen(true) : setIsCreateAnnouncementModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm"
+            style={{ backgroundColor: brandColors.primaryHex }}
+          >
+            <Plus className="h-5 w-5" />
+            <span>{activeTab === 'events' ? t('communications.events.create_new') : t('communications.announcements.create_new')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -138,9 +165,10 @@ const AdminCommunicationsPage: React.FC = () => {
             onClick={() => setActiveTab('events')}
             className={`${
               activeTab === 'events'
-                ? 'border-indigo-500 text-indigo-600'
+                ? 'border-[color:var(--brand)] text-[color:var(--brand)]'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+            style={activeTab === 'events' ? ({ ['--brand' as any]: brandColors.primaryHex }) : undefined}
           >
             <Calendar className="h-4 w-4" />
             <span>{t('communications.tabs.events')}</span>
@@ -149,9 +177,10 @@ const AdminCommunicationsPage: React.FC = () => {
             onClick={() => setActiveTab('announcements')}
             className={`${
               activeTab === 'announcements'
-                ? 'border-indigo-500 text-indigo-600'
+                ? 'border-[color:var(--brand)] text-[color:var(--brand)]'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+            style={activeTab === 'announcements' ? ({ ['--brand' as any]: brandColors.primaryHex }) : undefined}
           >
             <Megaphone className="h-4 w-4" />
             <span>{t('communications.tabs.announcements')}</span>

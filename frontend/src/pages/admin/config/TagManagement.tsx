@@ -9,6 +9,7 @@ import { UsageAnalytics } from '@/components/admin/analytics/UsageAnalytics';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { ContentTag, TagFormData } from '@/types/systemConfig';
+import { brandColors } from '@/theme/brand';
 
 export const TagManagement = () => {
   const queryClient = useQueryClient();
@@ -360,14 +361,16 @@ export const TagManagement = () => {
         <div className="flex justify-end gap-3">
           <button
             onClick={() => setShowMergeDialog(true)}
-            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
+            className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Shuffle className="h-5 w-5" />
             Merge Tags
           </button>
           <button
             onClick={openCreateForm}
-            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
+            className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Plus className="h-5 w-5" />
             New Tag
@@ -408,7 +411,10 @@ export const TagManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
+                <div
+                  className="px-6 py-4 text-white"
+                  style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -510,7 +516,8 @@ export const TagManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>
@@ -536,7 +543,10 @@ export const TagManagement = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl w-full">
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
+              <div
+                className="px-6 py-4 text-white"
+                style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">

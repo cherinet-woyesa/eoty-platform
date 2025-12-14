@@ -83,7 +83,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
         // Check for Mux asset limit error
         if (errorStr.includes('Free plan is limited to 10 assets') || 
             errorStr.includes('exceeding this limit')) {
-          message = 'Mux free tier limit reached: You have reached the 10 asset limit. Please delete old videos or upgrade your Mux plan to upload more videos.';
+          message = 'Upload limit reached: You have reached the limit for video uploads. Please delete old videos to upload more.';
         } else if (errorStr.includes('invalid_parameters')) {
           // Try to extract the actual error message from Mux
           try {
@@ -91,7 +91,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
               ? JSON.parse(error.response.data.error) 
               : error.response.data.error;
             if (errorObj?.error?.messages?.[0]) {
-              message = `Mux error: ${errorObj.error.messages[0]}`;
+              message = `Upload error: ${errorObj.error.messages[0]}`;
             }
           } catch {
             message = errorStr;
@@ -135,7 +135,6 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
     // The `onSuccess` event from MuxUploader confirms the file has been uploaded.
     // It does not provide the assetId or playbackId directly.
     // These details are sent to the backend via webhooks from Mux.
-    console.log('Mux upload successful: File transfer complete. Waiting for Mux to process the video.');
     setUploadStatus('success');
     setUploadProgress(100);
     onUploadComplete(lessonId);
@@ -168,10 +167,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
 
   // Simple blob validation
   const validateBlob = useCallback((blob: Blob): void => {
-    console.log('Validating video blob:', {
-      size: blob.size,
-      type: blob.type
-    });
+    // Validation info removed from console for cleaner UX
 
     // Check blob size
     if (blob.size < 1024) {
@@ -182,7 +178,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       throw new Error('Video file is too large (over 2GB). Please record a shorter video.');
     }
 
-    console.log('Blob validation passed');
+    // Validation passed
   }, []);
 
   // Upload blob directly to Mux with validation
@@ -192,9 +188,8 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       setUploadProgress(0);
 
       // Simple validation
-      console.log('Validating video blob before upload...');
       validateBlob(blob);
-      console.log('Blob validated, size:', blob.size);
+      // Blob validated
 
       const xhr = new XMLHttpRequest();
 
@@ -208,7 +203,6 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
 
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          console.log('Upload completed successfully, status:', xhr.status);
           setUploadStatus('success');
           setUploadProgress(100);
           // Mux will send webhook when asset is ready
@@ -230,12 +224,9 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       // Force a conservative content type to satisfy Mux/GCS upload requirements
       const contentType = 'application/octet-stream';
       xhr.setRequestHeader('Content-Type', contentType);
-      console.log('Upload Content-Type:', contentType);
+      // Content-Type set
       
-      console.log('Starting upload to Mux...', {
-        blobSize: blob.size,
-        blobType: blob.type
-      });
+      // Starting upload
       
       xhr.send(blob);
     } catch (error: any) {
@@ -309,7 +300,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       )}
 
       {/* Upload Progress */}
-      {uploadStatus === 'uploading' && (
+      {uploadStatus === 'uploading' && uploadProgress <= 5 && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">

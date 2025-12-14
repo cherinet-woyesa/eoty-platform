@@ -18,11 +18,13 @@ import {
   Check,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw
 } from 'lucide-react';
 import { adminApi } from '@/services/api/admin';
 import { landingApi } from '@/services/api/landing';
 import { coursesApi } from '@/services/api';
+import { brandColors } from '@/theme/brand';
 
 interface LandingSection {
   id: string;
@@ -37,6 +39,9 @@ const LandingPageEditor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const sections: LandingSection[] = [
     { id: 'hero', label: 'Hero Section', icon: <FileText className="h-4 w-4" />, description: 'Main landing banner with title, description, and video' },
@@ -113,9 +118,13 @@ const LandingPageEditor: React.FC = () => {
     }
   }, [activeTab]);
 
-  const fetchCoursesData = async () => {
+  const fetchCoursesData = async (silent?: boolean) => {
     try {
-      setLoading(true);
+      if (silent) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const [coursesRes, featuredRes] = await Promise.all([
         coursesApi.getCourses(),
         landingApi.getFeaturedCourses()
@@ -132,7 +141,11 @@ const LandingPageEditor: React.FC = () => {
       console.error('Failed to fetch courses:', err);
       setError('Failed to load courses');
     } finally {
-      setLoading(false);
+      if (silent) {
+        setIsRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -147,18 +160,45 @@ const LandingPageEditor: React.FC = () => {
     }
   };
 
-  const fetchLandingContent = async () => {
+  const handleRefresh = async () => {
     try {
-      setLoading(true);
+      setIsRefreshing(true);
+      await Promise.all([
+        fetchLandingContent({ silent: true }),
+        fetchTestimonials(),
+        activeTab === 'featured-courses' ? fetchCoursesData(true) : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error('Failed to refresh landing data', err);
+      setError('Failed to refresh content. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const fetchLandingContent = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent;
+    try {
+      if (silent) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const response = await landingApi.getContent();
       if (response.success) {
         setLandingContent(response.data);
+        setLastUpdated(new Date().toISOString());
       }
     } catch (err: any) {
       console.error('Failed to fetch landing content:', err);
       setError('Failed to load landing page content');
     } finally {
-      setLoading(false);
+      if (silent) {
+        setIsRefreshing(false);
+      } else {
+        setLoading(false);
+        setIsInitialLoad(false);
+      }
     }
   };
 
@@ -205,7 +245,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       hero: { ...prev.hero, badge: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="e.g., For Ethiopian Orthodox Youths"
                   />
                 </div>
@@ -218,7 +258,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       hero: { ...prev.hero, title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Main title"
                   />
                 </div>
@@ -231,7 +271,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       hero: { ...prev.hero, titleGradient: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Gradient text"
                   />
                 </div>
@@ -244,7 +284,7 @@ const LandingPageEditor: React.FC = () => {
                       hero: { ...prev.hero, description: e.target.value }
                     }))}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Hero description"
                   />
                 </div>
@@ -260,7 +300,7 @@ const LandingPageEditor: React.FC = () => {
                           ...prev,
                           hero: { ...prev.hero, showVideo: e.target.checked }
                         }))}
-                        className="rounded border-gray-300 text-[#27AE60] focus:ring-[#27AE60]"
+                        className="rounded border-gray-300 text-[#1e1b4b] focus:ring-[#1e1b4b]"
                       />
                       <span className="text-sm text-gray-700">Show Video</span>
                     </label>
@@ -277,7 +317,7 @@ const LandingPageEditor: React.FC = () => {
                             ...prev,
                             hero: { ...prev.hero, videoUrl: e.target.value }
                           }))}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                           placeholder="https://www.youtube.com/watch?v=..."
                         />
                       </div>
@@ -289,7 +329,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('hero', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save Hero Section'}
@@ -314,7 +354,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       about: { ...prev.about, badge: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="e.g., Our Mission"
                   />
                 </div>
@@ -327,7 +367,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       about: { ...prev.about, title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Section title"
                   />
                 </div>
@@ -340,7 +380,7 @@ const LandingPageEditor: React.FC = () => {
                       about: { ...prev.about, description: e.target.value }
                     }))}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Section description"
                   />
                 </div>
@@ -357,7 +397,7 @@ const LandingPageEditor: React.FC = () => {
                           about: { ...prev.about, features: newFeatures }
                         }));
                       }}
-                      className="text-sm text-[#27AE60] hover:text-[#219150] font-medium flex items-center gap-1"
+                      className="text-sm text-[#1e1b4b] hover:text-[#312e81] font-medium flex items-center gap-1"
                     >
                       <Plus className="h-3 w-3" /> Add Feature
                     </button>
@@ -442,7 +482,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('about', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save About Section'}
@@ -468,7 +508,7 @@ const LandingPageEditor: React.FC = () => {
                         ...prev,
                         howItWorks: { ...prev.howItWorks, badge: e.target.value }
                       }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -480,7 +520,7 @@ const LandingPageEditor: React.FC = () => {
                         ...prev,
                         howItWorks: { ...prev.howItWorks, title: e.target.value }
                       }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -493,7 +533,7 @@ const LandingPageEditor: React.FC = () => {
                       howItWorks: { ...prev.howItWorks, description: e.target.value }
                     }))}
                     rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                   />
                 </div>
 
@@ -582,7 +622,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('howItWorks', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save How It Works'}
@@ -600,7 +640,7 @@ const LandingPageEditor: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900">Testimonials</h3>
                 <button
                   onClick={() => setEditingTestimonial({})}
-                  className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-2"
+                  className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   Add Testimonial
@@ -619,7 +659,7 @@ const LandingPageEditor: React.FC = () => {
                         type="text"
                         value={editingTestimonial.name || ''}
                         onChange={(e) => setEditingTestimonial({ ...editingTestimonial, name: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -628,7 +668,7 @@ const LandingPageEditor: React.FC = () => {
                         type="text"
                         value={editingTestimonial.role || ''}
                         onChange={(e) => setEditingTestimonial({ ...editingTestimonial, role: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                         placeholder="e.g. Student, Parent"
                       />
                     </div>
@@ -639,7 +679,7 @@ const LandingPageEditor: React.FC = () => {
                       value={editingTestimonial.content || ''}
                       onChange={(e) => setEditingTestimonial({ ...editingTestimonial, content: e.target.value })}
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -651,7 +691,7 @@ const LandingPageEditor: React.FC = () => {
                         max="5"
                         value={editingTestimonial.rating || 5}
                         onChange={(e) => setEditingTestimonial({ ...editingTestimonial, rating: parseInt(e.target.value) })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -679,7 +719,7 @@ const LandingPageEditor: React.FC = () => {
                         }
                       }}
                       disabled={saving}
-                      className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors disabled:opacity-50"
+                      className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors disabled:opacity-50"
                     >
                       {saving ? 'Saving...' : 'Save Testimonial'}
                     </button>
@@ -753,7 +793,7 @@ const LandingPageEditor: React.FC = () => {
                       key={course.id} 
                       className={`border rounded-lg p-4 cursor-pointer transition-all ${
                         isSelected 
-                          ? 'border-[#27AE60] bg-[#27AE60]/5 ring-1 ring-[#27AE60]' 
+                          ? 'border-[#1e1b4b] bg-[#1e1b4b]/5 ring-1 ring-[#1e1b4b]' 
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => {
@@ -769,7 +809,7 @@ const LandingPageEditor: React.FC = () => {
                       <div className="flex items-start gap-3">
                         <div className={`mt-1 h-5 w-5 rounded border flex items-center justify-center flex-shrink-0 ${
                           isSelected
-                            ? 'bg-[#27AE60] border-[#27AE60]'
+                            ? 'bg-[#1e1b4b] border-[#1e1b4b]'
                             : 'border-gray-300 bg-white'
                         }`}>
                           {isSelected && <Check className="h-3 w-3 text-white" />}
@@ -808,7 +848,7 @@ const LandingPageEditor: React.FC = () => {
                     }
                   }}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save Featured Courses'}
@@ -833,7 +873,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       resources: { ...prev.resources, badge: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="e.g., Resources"
                   />
                 </div>
@@ -846,7 +886,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       resources: { ...prev.resources, title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Section title"
                   />
                 </div>
@@ -859,7 +899,7 @@ const LandingPageEditor: React.FC = () => {
                       resources: { ...prev.resources, description: e.target.value }
                     }))}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                     placeholder="Section description"
                   />
                 </div>
@@ -868,7 +908,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('resources', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save Resources Section'}
@@ -893,7 +933,7 @@ const LandingPageEditor: React.FC = () => {
                     setLandingContent(prev => ({ ...prev, videos: newVideos }));
                     setExpandedVideo(newVideos.length);
                   }}
-                  className="bg-[#27AE60] text-white px-4 py-2 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-2"
+                  className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   Add Video
@@ -957,7 +997,7 @@ const LandingPageEditor: React.FC = () => {
                                 newVideos[index] = { ...video, title: e.target.value };
                                 setLandingContent(prev => ({ ...prev, videos: newVideos }));
                               }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                               placeholder="Video Title"
                             />
                           </div>
@@ -968,7 +1008,7 @@ const LandingPageEditor: React.FC = () => {
                                 onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'youtube' }))}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                                   (videoSourceTypes[index] || 'youtube') === 'youtube'
-                                    ? 'bg-[#27AE60] text-white'
+                                    ? 'bg-[#1e1b4b] text-white'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                               >
@@ -978,7 +1018,7 @@ const LandingPageEditor: React.FC = () => {
                                 onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'upload' }))}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                                   videoSourceTypes[index] === 'upload'
-                                    ? 'bg-[#27AE60] text-white'
+                                    ? 'bg-[#1e1b4b] text-white'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                               >
@@ -997,7 +1037,7 @@ const LandingPageEditor: React.FC = () => {
                                     newVideos[index] = { ...video, videoUrl: e.target.value };
                                     setLandingContent(prev => ({ ...prev, videos: newVideos }));
                                   }}
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                                   placeholder="https://youtube.com/..."
                                 />
                               </>
@@ -1010,11 +1050,11 @@ const LandingPageEditor: React.FC = () => {
                                     accept="video/*"
                                     onChange={(e) => handleVideoUpload(e, index)}
                                     disabled={uploadingVideoIndex === index}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#27AE60]/10 file:text-[#27AE60] hover:file:bg-[#27AE60]/20 disabled:opacity-50"
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#1e1b4b]/10 file:text-[#1e1b4b] hover:file:bg-[#1e1b4b]/20 disabled:opacity-50"
                                   />
                                   {uploadingVideoIndex === index && (
-                                    <div className="flex items-center text-sm text-[#27AE60]">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#27AE60] mr-2"></div>
+                                    <div className="flex items-center text-sm text-[#1e1b4b]">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#1e1b4b] mr-2"></div>
                                       Uploading...
                                     </div>
                                   )}
@@ -1035,7 +1075,7 @@ const LandingPageEditor: React.FC = () => {
                                 setLandingContent(prev => ({ ...prev, videos: newVideos }));
                               }}
                               rows={2}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                               placeholder="Brief description of the video content"
                             />
                           </div>
@@ -1050,7 +1090,7 @@ const LandingPageEditor: React.FC = () => {
                                   newVideos[index] = { ...video, thumbnail: e.target.value };
                                   setLandingContent(prev => ({ ...prev, videos: newVideos }));
                                 }}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                                 placeholder="https://source.unsplash.com/..."
                               />
                             </div>
@@ -1067,7 +1107,7 @@ const LandingPageEditor: React.FC = () => {
                                   newVideos[index] = { ...video, duration: e.target.value };
                                   setLandingContent(prev => ({ ...prev, videos: newVideos }));
                                 }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                                 placeholder="e.g. 10:00"
                               />
                             </div>
@@ -1081,7 +1121,7 @@ const LandingPageEditor: React.FC = () => {
                                   newVideos[index] = { ...video, category: e.target.value };
                                   setLandingContent(prev => ({ ...prev, videos: newVideos }));
                                 }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                                 placeholder="e.g. Teaching"
                               />
                             </div>
@@ -1095,7 +1135,7 @@ const LandingPageEditor: React.FC = () => {
                                   newVideos[index] = { ...video, author: e.target.value };
                                   setLandingContent(prev => ({ ...prev, videos: newVideos }));
                                 }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                                 placeholder="e.g. Deacon Yared"
                               />
                             </div>
@@ -1119,7 +1159,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('videos', currentContent)}
                   disabled={saving || uploadingVideoIndex !== null}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : (uploadingVideoIndex !== null ? 'Uploading Video...' : 'Save Video Section')}
@@ -1144,7 +1184,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       blogs: { ...prev.blogs, badge: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1156,7 +1196,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       blogs: { ...prev.blogs, title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1168,7 +1208,7 @@ const LandingPageEditor: React.FC = () => {
                       blogs: { ...prev.blogs, description: e.target.value }
                     }))}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1182,7 +1222,7 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       blogs: { ...prev.blogs, count: parseInt(e.target.value) }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -1190,7 +1230,7 @@ const LandingPageEditor: React.FC = () => {
                 <button
                   onClick={() => handleSaveSection('blogs', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-6 py-2 rounded-lg hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save Blogs Section'}
@@ -1220,13 +1260,13 @@ const LandingPageEditor: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading && isInitialLoad) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#27AE60] mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1e1b4b] mx-auto mb-4"></div>
               <p className="text-gray-600 text-lg">Loading landing page editor...</p>
             </div>
           </div>
@@ -1237,6 +1277,29 @@ const LandingPageEditor: React.FC = () => {
 
   return (
     <div className="w-full h-full p-3 sm:p-4 lg:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Landing Page Editor</h1>
+          <p className="text-sm text-gray-600">Manage hero, sections, and homepage highlights.</p>
+          {lastUpdated && (
+            <p className="text-xs text-gray-500 mt-1">
+              Last updated {new Date(lastUpdated).toLocaleString()}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border shadow-sm transition-colors disabled:opacity-50"
+            style={{ color: brandColors.primaryHex, borderColor: brandColors.primaryHex, backgroundColor: '#fff' }}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
       <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden flex h-[calc(100vh-8rem)]">
         {/* Sidebar Navigation */}
         <div className="w-64 border-r border-gray-200 flex-shrink-0 bg-gray-50/50 overflow-y-auto">
@@ -1251,11 +1314,11 @@ const LandingPageEditor: React.FC = () => {
                   onClick={() => setActiveTab(section.id as any)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
                     activeTab === section.id
-                      ? 'bg-[#27AE60]/10 text-[#27AE60]'
+                      ? 'bg-[#1e1b4b]/10 text-[#1e1b4b]'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
-                  <span className={`${activeTab === section.id ? 'text-[#27AE60]' : 'text-gray-400'}`}>
+                  <span className={`${activeTab === section.id ? 'text-[#1e1b4b]' : 'text-gray-400'}`}>
                     {section.icon}
                   </span>
                   <div className="text-left">
@@ -1286,9 +1349,18 @@ const LandingPageEditor: React.FC = () => {
                   <X className="h-5 w-5 text-red-600 mr-3" />
                   <span className="text-red-800">{error}</span>
                 </div>
-                <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
-                  ×
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRefresh}
+                    className="text-sm font-medium px-3 py-1.5 rounded-lg border"
+                    style={{ color: brandColors.primaryHex, borderColor: brandColors.primaryHex }}
+                  >
+                    Retry
+                  </button>
+                  <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
+                    ×
+                  </button>
+                </div>
               </div>
             )}
 

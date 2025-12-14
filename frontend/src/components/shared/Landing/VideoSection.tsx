@@ -2,12 +2,15 @@ import { Play, Clock, ArrowRight, X, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { forwardRef, useMemo, useState } from 'react';
 import MuxPlayer from '@mux/mux-player-react';
+import { brandColors } from '@/theme/brand';
+import { useTranslation } from 'react-i18next';
 
 interface VideoSectionProps {
   landingContent: any;
 }
 
 const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingContent }, ref) => {
+  const { t } = useTranslation();
   const videos = landingContent.videos || [];
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -17,23 +20,26 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-[#27AE60]/10 rounded-full text-[#27AE60] text-sm font-medium mb-4">
-              <Play className="w-4 h-4 fill-current" />
-              <span>Featured Content</span>
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium mb-4"
+              style={{ backgroundColor: `${brandColors.primaryHex}14`, color: brandColors.primaryHex }}>
+              <Play className="w-4 h-4" />
+              <span>{t('landing.videos.badge')}</span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Latest from Our <span className="text-[#27AE60]">Library</span>
+              {t('landing.videos.title')}{' '}
+              <span style={{ color: brandColors.primaryHex }}>{t('landing.videos.title_accent')}</span>
             </h2>
             <p className="text-xl text-gray-600">
-              Explore our collection of spiritual teachings, hymns, and educational videos designed to strengthen your faith.
+              {t('landing.videos.subtitle')}
             </p>
           </div>
           
           <Link 
             to="/resources?type=video" 
-            className="group inline-flex items-center font-semibold text-[#27AE60] hover:text-[#219150] transition-colors"
+            className="group inline-flex items-center font-semibold transition-colors"
+            style={{ color: brandColors.primaryHex }}
           >
-            View All Videos
+            {t('landing.videos.view_all')}
             <ArrowRight className="ml-2 w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -122,6 +128,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                     onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
                   >
                     <img 
+                      loading="lazy"
                       src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
                       alt={video.title}
                       className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
@@ -131,7 +138,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
                       <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transform scale-50 group-hover:scale-100 transition-all duration-300 border border-white/40">
                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                          <Play className="w-5 h-5 text-[#27AE60] fill-current ml-1" />
+                          <Play className="w-5 h-5" style={{ color: brandColors.primaryHex }} />
                         </div>
                       </div>
                     </div>
@@ -156,10 +163,11 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                     </span>
                   )}
                   {video.category && <span className="text-gray-400 text-xs">•</span>}
-                  <span className="text-gray-500 text-xs">{video.date || 'Recently Added'}</span>
+                    <span className="text-gray-500 text-xs">{video.date || 'Recently Added'}</span>
                 </div>
                 
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#27AE60] transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 transition-colors"
+                    style={{ color: brandColors.primaryHex }}>
                   {video.title || 'Untitled Video'}
                 </h3>
                 
@@ -177,7 +185,8 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                   
                   <button 
                     onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
-                    className="text-[#27AE60] font-medium text-sm hover:underline"
+                    className="font-medium text-sm hover:underline"
+                    style={{ color: brandColors.primaryHex }}
                   >
                     {playingVideoIndex === index ? 'Playing...' : 'Watch Now'}
                   </button>
@@ -185,6 +194,17 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
               </div>
             </div>
           ))}
+          {videos.length === 0 && (
+            <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed"
+              style={{ borderColor: `${brandColors.primaryHex}33` }}>
+              <p className="text-gray-700 font-semibold mb-2">{t('landing.videos.empty_title')}</p>
+              <p className="text-gray-500 text-sm">{t('landing.videos.empty_subtitle')}</p>
+              <Link to="/resources?type=video" className="inline-flex items-center justify-center mt-4 px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: brandColors.primaryHex, color: brandColors.textOnPrimary }}>
+                {t('landing.videos.empty_cta')}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </section>

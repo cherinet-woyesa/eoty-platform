@@ -1376,23 +1376,30 @@ const adminController = {
         });
       }
 
-      // Generate or get latest analytics
-      let snapshot = await db('analytics_snapshots')
-        .where({ snapshot_type: 'daily' })
-        .orderBy('snapshot_date', 'desc')
-        .first();
-
-      if (!snapshot || isSnapshotStale(snapshot.snapshot_date)) {
-        snapshot = await Analytics.generateDailySnapshot();
+      // Try to use analytics snapshot if table exists; otherwise fallback to lightweight metrics
+      const hasSnapshots = await db.schema.hasTable('analytics_snapshots');
+      let snapshot = null;
+      if (hasSnapshots) {
+        snapshot = await db('analytics_snapshots')
+          .where({ snapshot_type: 'daily' })
+          .orderBy('snapshot_date', 'desc')
+          .first();
+        if (!snapshot || isSnapshotStale(snapshot.snapshot_date)) {
+          try {
+            snapshot = await Analytics.generateDailySnapshot();
+          } catch (e) {
+            console.warn('generateDailySnapshot failed; continuing with fallback metrics');
+          }
+        }
       }
 
-      const metrics = typeof snapshot.metrics === 'string' 
-        ? JSON.parse(snapshot.metrics) 
-        : snapshot.metrics;
+      let metrics = snapshot && snapshot.metrics
+        ? (typeof snapshot.metrics === 'string' ? JSON.parse(snapshot.metrics) : snapshot.metrics)
+        : { users: {} };
       
       // Calculate real-time active users (users who logged in within last 30 days)
       const activeUsersCount = await db('users')
-        .where('last_login', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .where('last_login_at', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
         .count('id as count')
         .first();
       
@@ -1408,13 +1415,13 @@ const adminController = {
         metrics.users.new_this_week = parseInt(newUsersCount.count);
       }
 
-      const chapterComparison = typeof snapshot.chapter_comparison === 'string'
-        ? JSON.parse(snapshot.chapter_comparison)
-        : snapshot.chapter_comparison;
-      
-      const trends = typeof snapshot.trends === 'string'
-        ? JSON.parse(snapshot.trends)
-        : snapshot.trends;
+      const chapterComparison = snapshot && snapshot.chapter_comparison
+        ? (typeof snapshot.chapter_comparison === 'string' ? JSON.parse(snapshot.chapter_comparison) : snapshot.chapter_comparison)
+        : { top_chapters: [], growth: [] };
+
+      const trends = snapshot && snapshot.trends
+        ? (typeof snapshot.trends === 'string' ? JSON.parse(snapshot.trends) : snapshot.trends)
+        : { signups: [], activity: [] };
 
       // Get real-time alerts
       const alerts = await getSystemAlerts();
@@ -1426,7 +1433,7 @@ const adminController = {
           chapter_comparison: chapterComparison,
           trends,
           alerts,
-          snapshot_date: snapshot.snapshot_date
+          snapshot_date: snapshot?.snapshot_date || new Date().toISOString()
         }
       });
     } catch (error) {

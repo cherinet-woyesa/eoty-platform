@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Loader2 } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 export interface LoadingButtonProps {
   children: React.ReactNode;
@@ -26,17 +27,23 @@ const LoadingButton: React.FC<LoadingButtonProps> = memo(({
   onClick,
   className = '',
 }) => {
-  // Determine variant styles
+  const brandVars = {
+    ['--brand' as any]: brandColors.primaryHex,
+    ['--brand-hover' as any]: brandColors.primaryHoverHex,
+    ['--brand-accent' as any]: brandColors.accentHex,
+  };
+
+  // Determine variant styles using brand palette
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
         return `
           text-white 
-          bg-[#27AE60]
-          hover:bg-[#219150]
-          active:bg-[#1e8449]
-          focus:ring-4 focus:ring-[#27AE60]/30
-          shadow-lg hover:shadow-xl hover:shadow-[#27AE60]/20
+          bg-[color:var(--brand)]
+          hover:bg-[color:var(--brand-hover)]
+          active:bg-[color:var(--brand-hover)]
+          focus:ring-4 focus:ring-[color:var(--brand)]/30
+          shadow-lg hover:shadow-xl hover:shadow-[rgba(30,27,75,0.35)]
           transform hover:-translate-y-0.5 active:translate-y-0
           font-bold
           relative overflow-hidden
@@ -44,23 +51,22 @@ const LoadingButton: React.FC<LoadingButtonProps> = memo(({
         `;
       case 'secondary':
         return `
-          text-slate-700 
-          bg-white/90 
+          text-[color:var(--brand)]
+          bg-white/95
           backdrop-blur-sm
           hover:bg-white 
           active:bg-slate-50
-          focus:ring-2 focus:ring-slate-500/50
-          border-2 border-slate-300/50 hover:border-slate-400/50
+          focus:ring-2 focus:ring-[color:var(--brand)]/20
+          border-2 border-[color:var(--brand)]/30 hover:border-[color:var(--brand-hover)]/40
         `;
       case 'outline':
         return `
-          text-[#00FFC6] 
-          bg-white/90 
-          backdrop-blur-sm
-          border-2 border-[#00FFC6] 
-          hover:bg-[#00FFC6]/10 
-          active:bg-[#00FFC6]/20
-          focus:ring-2 focus:ring-[#00FFC6]/50
+          text-[color:var(--brand)]
+          bg-transparent
+          border-2 border-[color:var(--brand)]
+          hover:bg-[color:var(--brand)]/5 
+          active:bg-[color:var(--brand)]/10
+          focus:ring-2 focus:ring-[color:var(--brand)]/20
         `;
       default:
         return '';
@@ -109,6 +115,7 @@ const LoadingButton: React.FC<LoadingButtonProps> = memo(({
         ${getSizeStyles()}
         ${className}
       `}
+      style={brandVars}
       aria-busy={isLoading}
       aria-disabled={isDisabled}
       aria-live="polite"

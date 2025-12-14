@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, BookOpen, RefreshCw, Search } from 'lucide-react';
 import { systemConfigApi } from '@/services/api/systemConfig';
@@ -70,6 +71,11 @@ export const ChapterManagement = () => {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [geoPreview, setGeoPreview] = useState<{ latitude?: number; longitude?: number; location?: string } | null>(null);
   const [geoPreviewError, setGeoPreviewError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy] = useState<'name' | 'status' | 'courses'>('name');
+  const [sortDir] = useState<'asc' | 'desc'>('asc');
+  const [pageSize] = useState(10);
+  const [page, setPage] = useState(1);
   const { requestLocation, error: geoError, isLoading: geoLoading } = useGeolocation({ timeoutMs: 8000, maximumAgeMs: 60000, highAccuracy: true });
 
   // Fetch chapters
@@ -91,6 +97,12 @@ export const ChapterManagement = () => {
       setRegionOptions(locations.data.regions);
     }
   }, [locations]);
+
+  // Debounce search to reduce unnecessary filtering work
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim().toLowerCase()), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   // Dynamic country/region load with fallback (kept for form creation if needed, or removed if we strictly use backend)
   // User requested "real data from backend", so we prioritize that.
@@ -323,7 +335,7 @@ export const ChapterManagement = () => {
   };
 
   const filteredChapters = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = debouncedSearch;
     return chapters.filter((ch) => {
       const matchesTerm =
         !term ||
@@ -340,7 +352,16 @@ export const ChapterManagement = () => {
 
       return matchesTerm && matchesStatus && matchesRegion && matchesCountry;
     });
-  }, [chapters, searchTerm, statusFilter, regionFilter, countryFilter]);
+  }, [chapters, debouncedSearch, statusFilter, regionFilter, countryFilter]);
+
+  const sortedChapters = filteredChapters; // no sorting controls requested
+
+  const totalPages = Math.max(1, Math.ceil(sortedChapters.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedChapters = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedChapters.slice(start, start + pageSize);
+  }, [sortedChapters, currentPage, pageSize]);
 
   const runGeoPreview = async () => {
     setGeoPreviewError(null);
@@ -378,6 +399,35 @@ export const ChapterManagement = () => {
       (c as any).storage_used_gb === 0
     );
   }, [chapters, isLoading]);
+
+  const stats = useMemo(() => {
+    const total = chapters.length;
+    const active = chapters.filter((c) => c.is_active).length;
+    const inactive = total - active;
+    const totalCourses = chapters.reduce((sum, c) => sum + (c.course_count || 0), 0);
+    return { total, active, inactive, totalCourses };
+  }, [chapters]);
+
+  const exportCsv = () => {
+    const header = ['Name', 'Description', 'City', 'Country', 'Region', 'Courses', 'Status'];
+    const rows = filteredChapters.map((c) => [
+      c.name || '',
+      c.description || '',
+      (c as any).city || '',
+      (c as any).country || '',
+      (c as any).region || '',
+      c.course_count ?? 0,
+      c.is_active ? 'Active' : 'Inactive',
+    ]);
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'chapters.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Table columns
   const columns: ConfigTableColumn[] = [
@@ -447,38 +497,54 @@ export const ChapterManagement = () => {
   return (
     <div className="w-full h-full">
       <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
-        {/* Action Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-stone-600">
-            {lastUpdated && (
-              <span className="px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
-                Last updated {new Date(lastUpdated).toLocaleTimeString()}
-              </span>
-            )}
+        {/* Action Button & Stats */}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-stone-600">
+              {lastUpdated && (
+                <span className="px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
+                  Last updated {new Date(lastUpdated).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['chapters'] })}
+                className="inline-flex items-center px-3 py-2 bg-white border text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ 
+                  borderColor: `${brandColors.primaryHex}4D`, // 30% opacity
+                  '--tw-ring-color': brandColors.primaryHex 
+                } as React.CSSProperties}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" style={{ color: brandColors.primaryHex }} />
+                Refresh
+              </button>
+              <button
+                onClick={openCreateForm}
+                className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{ 
+                  backgroundColor: brandColors.primaryHex,
+                  '--tw-ring-color': brandColors.primaryHex 
+                } as React.CSSProperties}
+              >
+                <Plus className="h-5 w-5" />
+                New Chapter
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['chapters'] })}
-              className="inline-flex items-center px-3 py-2 bg-white border text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-opacity-40"
-              style={{ 
-                borderColor: `${brandColors.primaryHex}4D`, // 30% opacity
-                '--tw-ring-color': brandColors.primaryHex 
-              } as React.CSSProperties}
-            >
-              <RefreshCw className="h-4 w-4 mr-1" style={{ color: brandColors.primaryHex }} />
-              Refresh
-            </button>
-          <button
-            onClick={openCreateForm}
-              className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-opacity-40"
-              style={{ 
-                backgroundColor: brandColors.primaryHex,
-                '--tw-ring-color': brandColors.primaryHex 
-              } as React.CSSProperties}
-          >
-            <Plus className="h-5 w-5" />
-            New Chapter
-          </button>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Total', value: stats.total },
+              { label: 'Active', value: stats.active },
+              { label: 'Inactive', value: stats.inactive },
+              { label: 'Total Courses', value: stats.totalCourses },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <p className="text-sm text-stone-600">{stat.label}</p>
+                <p className="text-2xl font-semibold text-stone-900">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -544,6 +610,12 @@ export const ChapterManagement = () => {
                   <option key={c} value={c.toLowerCase()}>{c}</option>
                 ))}
               </select>
+              <button
+                onClick={() => exportCsv()}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+              >
+                Export CSV
+              </button>
             </div>
           </div>
         </div>
@@ -551,7 +623,7 @@ export const ChapterManagement = () => {
         {/* Table */}
         <ConfigTable
           columns={columns}
-          data={filteredChapters}
+          data={paginatedChapters}
           isLoading={isLoading}
           onEdit={openEditForm}
           onDelete={handleDelete}
@@ -563,6 +635,31 @@ export const ChapterManagement = () => {
           searchable={false}
           emptyMessage="No chapters found. Create your first chapter to get started."
         />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Create/Edit Modal */}
         {(isCreating || editingChapter) && (

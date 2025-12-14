@@ -18,6 +18,10 @@ interface LoginFormData {
 
 const LoginForm: React.FC = () => {
   const { t } = useTranslation();
+  const brandStyle = {
+    ['--brand' as any]: brandColors.primaryHex,
+    ['--brand-strong' as any]: brandColors.primaryHoverHex,
+  };
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -283,7 +287,7 @@ const LoginForm: React.FC = () => {
 
   if (requires2FA) {
     return (
-      <div className="relative">
+      <div className="relative" style={brandStyle}>
         {toast && (
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div
@@ -377,7 +381,7 @@ const LoginForm: React.FC = () => {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" style={brandStyle}>
       {toast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div
@@ -481,7 +485,7 @@ const LoginForm: React.FC = () => {
             name="remember-me"
             type="checkbox"
             disabled={isLoading}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 text-[color:var(--brand)] focus:ring-[color:var(--brand-strong)] border-gray-300 rounded transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             aria-describedby="remember-me-description"
           />
           <label 
@@ -498,7 +502,7 @@ const LoginForm: React.FC = () => {
         <div className="text-xs sm:text-sm min-h-[44px] flex items-center">
           <Link 
             to="/forgot-password" 
-            className="text-indigo-700 hover:text-indigo-900 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded px-2 py-2"
+            className="text-[color:var(--brand)] hover:text-[color:var(--brand-strong)] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--brand)]/20 focus:ring-offset-2 rounded px-2 py-2"
             aria-label="Reset your password"
           >
             {t('auth.login.forgot_password')}
@@ -545,7 +549,7 @@ const LoginForm: React.FC = () => {
           {t('auth.login.no_account')}{' '}
           <Link 
             to="/register" 
-            className="text-indigo-700 hover:text-indigo-900 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded px-1 py-1"
+            className="text-[color:var(--brand)] hover:text-[color:var(--brand-strong)] font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--brand)]/20 focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Create a new account"
           >
             {t('auth.login.register_link')}

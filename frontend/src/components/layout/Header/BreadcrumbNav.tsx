@@ -105,22 +105,22 @@ const BreadcrumbNav: React.FC = () => {
   }
 
   return (
-    <nav className="flex items-center space-x-1 text-sm text-indigo-50" aria-label="Breadcrumb">
+    <nav className="flex items-center space-x-1 text-sm text-slate-600" aria-label="Breadcrumb">
       {breadcrumbItems.map((item, index) => (
         <div key={`${item.href}-${index}`} className="flex items-center space-x-1">
           {index > 0 && (
-            <ChevronRight className="h-3 w-3 text-indigo-200 flex-shrink-0" aria-hidden="true" />
+            <ChevronRight className="h-3 w-3 text-slate-400 flex-shrink-0" aria-hidden="true" />
           )}
           
           {item.isCurrent ? (
             <div className="flex items-center space-x-1 max-w-32 sm:max-w-none">
               {item.icon && (
-                <span className="text-indigo-100 flex-shrink-0">
+                <span className="text-slate-500 flex-shrink-0">
                   {item.icon}
                 </span>
               )}
               <span 
-                className="text-white font-medium truncate"
+                className="text-slate-900 font-medium truncate"
                 title={item.label}
                 aria-current="page"
               >
@@ -130,15 +130,15 @@ const BreadcrumbNav: React.FC = () => {
           ) : (
             <Link
               to={item.href}
-              className="flex items-center space-x-1 text-indigo-100 hover:text-white transition-colors duration-150 group max-w-32 sm:max-w-none"
+              className="flex items-center space-x-1 text-slate-600 hover:text-slate-900 transition-colors duration-150 group max-w-32 sm:max-w-none"
             >
               {item.icon && (
-                <span className="flex-shrink-0 group-hover:text-white">
+                <span className="flex-shrink-0 text-slate-500 group-hover:text-slate-700">
                   {item.icon}
                 </span>
               )}
               <span 
-                className="truncate group-hover:text-white"
+                className="truncate text-slate-600 group-hover:text-slate-900"
                 title={item.label}
               >
                 {item.label}

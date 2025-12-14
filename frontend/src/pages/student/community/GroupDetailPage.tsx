@@ -93,7 +93,9 @@ const GroupDetailPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [replyingToId, setReplyingToId] = useState<string | number | null>(null);
+  const [replyingToName, setReplyingToName] = useState<string>('');
   const [showNewAssignmentModal, setShowNewAssignmentModal] = useState(false);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [searchMember, setSearchMember] = useState('');
   const [gradeInputs, setGradeInputs] = useState<Record<string, { grade?: number; feedback?: string }>>({});
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
@@ -205,6 +207,7 @@ const GroupDetailPage: React.FC = () => {
 
   const startReply = (msg: any) => {
     setReplyingToId(msg.id);
+    setReplyingToName(msg.user_name || 'User');
     setNewMessage('');
     setEditingMessageId(null);
     if (messageBoxRef.current) {
@@ -388,15 +391,31 @@ const GroupDetailPage: React.FC = () => {
   }, [newMessage]);
 
   const startEditing = (msg: any) => {
-    setEditingMessageId(msg.id);
-    setNewMessage(msg.content);
+    setEditingMessageId(Number(msg.id));
+    setNewMessage(msg.content || '');
     setReplyingToId(null);
+    setReplyingToName('');
+    if (messageBoxRef.current) {
+      messageBoxRef.current.focus();
+      // Set cursor to end of text
+      setTimeout(() => {
+        if (messageBoxRef.current) {
+          messageBoxRef.current.selectionStart = messageBoxRef.current.value.length;
+          messageBoxRef.current.selectionEnd = messageBoxRef.current.value.length;
+        }
+      }, 0);
+    }
   };
 
   const cancelEditing = () => {
     setEditingMessageId(null);
     setNewMessage('');
     setReplyingToId(null);
+    setReplyingToName('');
+  };
+
+  const handleStudyGroupSubmit = async (assignmentId: number, content: string) => {
+    return submitMutation.mutateAsync({ assignmentId, content });
   };
 
   const handleDeleteMessage = async (messageId: number) => {

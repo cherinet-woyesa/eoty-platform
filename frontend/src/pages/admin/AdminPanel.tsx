@@ -11,7 +11,9 @@ import {
   LogOut
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AdminSidebar from '@/components/layout/Sidebar/AdminSidebar';
+import { brandColors } from '@/theme/brand';
 
 // Memoized stat cards
 const StatCard = React.memo(({ icon: Icon, title, value, color }: { icon: React.ElementType, title: string, value: string | number, color: string }) => (
@@ -140,12 +142,12 @@ const AdminPanel: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 md:ml-64">
         {/* Mobile header */}
-        <div className="md:hidden bg-white shadow-sm">
+        <div className="md:hidden shadow-sm" style={{ backgroundColor: brandColors.primaryHex }}>
           <div className="flex items-center justify-between p-4">
-            <h1 className="text-lg font-semibold text-gray-900">Admin Panel</h1>
+            <h1 className="text-lg font-semibold text-white">Admin Panel</h1>
             <button
               onClick={() => handleNavigate('/')}
-              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="p-2 rounded-md text-white hover:bg-white/20"
             >
               <Home className="h-6 w-6" />
             </button>
@@ -153,26 +155,26 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {/* Desktop header */}
-        <div className="hidden md:block bg-white shadow-sm">
+        <div className="hidden md:block shadow-sm" style={{ backgroundColor: brandColors.primaryHex }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{getCurrentPageTitle()}</h1>
-                <p className="mt-1 text-sm text-gray-500">
+                <h1 className="text-2xl font-bold text-white">{getCurrentPageTitle()}</h1>
+                <p className="mt-1 text-sm text-white/80">
                   Manage platform content, users, and settings
                 </p>
               </div>
               <div className="flex space-x-3">
                 <button
                   onClick={() => handleNavigate('/')}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-white/30 rounded-md shadow-sm text-sm font-medium text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
                 >
                   <Home className="h-4 w-4 mr-2" />
                   Home
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-white/30 rounded-md shadow-sm text-sm font-medium text-white bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout

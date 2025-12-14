@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useLocation } from 'react-router-dom';
 import { landingApi } from '@/services/api/landing';
 import Header from '@/components/shared/Landing/Header';
 import Hero from '@/components/shared/Landing/Hero';
@@ -8,6 +9,7 @@ import HowItWorks from '@/components/shared/Landing/HowItWorks';
 import FeaturedCourses from '@/components/shared/Landing/FeaturedCourses';
 import VideoSection from '@/components/shared/Landing/VideoSection';
 import Testimonials from '@/components/shared/Landing/Testimonials';
+import DonationSection from '@/components/shared/Landing/DonationSection';
 import Footer from '@/components/shared/Landing/Footer';
 
 const Landing: React.FC = () => {
@@ -22,6 +24,7 @@ const Landing: React.FC = () => {
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heroRef = useRef<HTMLElement>(null);
+  const location = useLocation();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId) || document.querySelector(`[data-section-id="${sectionId}"]`);
@@ -52,6 +55,15 @@ const Landing: React.FC = () => {
     };
     fetchContent();
   }, []);
+
+  // Scroll to hash section when arriving with #donation-section, etc.
+  useEffect(() => {
+    if (!location.hash) return;
+    const targetId = location.hash.replace('#', '');
+    // slight delay to ensure sections are mounted
+    const timer = setTimeout(() => scrollToSection(targetId), 150);
+    return () => clearTimeout(timer);
+  }, [location.hash]);
 
   // Fetch featured courses
   useEffect(() => {
@@ -113,9 +125,17 @@ const Landing: React.FC = () => {
     return () => observer.disconnect();
   }, [featuredCourses, testimonials, landingContent]); // Re-run when content loads
 
-  // Three.js Particle Network Effect
+  // Three.js Particle Network Effect (reduced on low-power)
   useEffect(() => {
     if (!canvasRef.current) return;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowCore = typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+    if (isMobile || reducedMotion || lowCore) {
+      // Skip heavy effect on low-power/mobile/reduced motion
+      canvasRef.current.style.display = 'none';
+      return;
+    }
 
     const canvas = canvasRef.current;
     const scene = new THREE.Scene();
@@ -123,36 +143,33 @@ const Landing: React.FC = () => {
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-    // Create particles
+    const particleCount = 120;
+    const particleOpacity = 0.5;
+
     const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 150;
-    const posArray = new Float32Array(particlesCount * 3);
-
-    for (let i = 0; i < particlesCount * 3; i++) {
+    const posArray = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount * 3; i++) {
       posArray[i] = (Math.random() - 0.5) * 15;
     }
-
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
     const material = new THREE.PointsMaterial({
       size: 0.03,
-      color: 0x4f46e5, // brighter indigo
+      color: 0x4f46e5,
       transparent: true,
-      opacity: 0.6,
+      opacity: particleOpacity,
       blending: THREE.AdditiveBlending
     });
-
     const particlesMesh = new THREE.Points(particlesGeometry, material);
     scene.add(particlesMesh);
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0xC07A1A, // brighter warm amber/gold tone
+      color: 0xC07A1A,
       transparent: true,
-      opacity: 0.18
+      opacity: 0.15
     });
-
     const linesGeometry = new THREE.BufferGeometry();
     const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
     scene.add(linesMesh);
@@ -161,25 +178,35 @@ const Landing: React.FC = () => {
 
     let mouseX = 0;
     let mouseY = 0;
-    let animationFrameId: number;
+    let lastMove = 0;
+    let animationFrameId: number | null = null;
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-
-      particlesMesh.rotation.y += 0.0005;
-      particlesMesh.rotation.x += 0.0002;
-      linesMesh.rotation.y += 0.0005;
-      linesMesh.rotation.x += 0.0002;
-
-      particlesMesh.rotation.y += mouseX * 0.0005;
-      particlesMesh.rotation.x += mouseY * 0.0005;
-      linesMesh.rotation.y += mouseX * 0.0005;
-      linesMesh.rotation.x += mouseY * 0.0005;
-      
+      particlesMesh.rotation.y += 0.0004;
+      particlesMesh.rotation.x += 0.00015;
+      linesMesh.rotation.y += 0.0004;
+      linesMesh.rotation.x += 0.00015;
+      particlesMesh.rotation.y += mouseX * 0.0004;
+      particlesMesh.rotation.x += mouseY * 0.0004;
+      linesMesh.rotation.y += mouseX * 0.0004;
+      linesMesh.rotation.x += mouseY * 0.0004;
       renderer.render(scene, camera);
     };
 
-    animate();
+    const start = () => {
+      if (animationFrameId === null) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+    const stop = () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    };
+
+    start();
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -188,19 +215,30 @@ const Landing: React.FC = () => {
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      const now = performance.now();
+      if (now - lastMove < 50) return; // throttle
+      lastMove = now;
       mouseX = event.clientX - window.innerWidth / 2;
       mouseY = event.clientY - window.innerHeight / 2;
     };
 
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        stop();
+      } else {
+        start();
+      }
+    };
+
     window.addEventListener('resize', handleResize);
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
-      
-      // Dispose resources
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stop();
       particlesGeometry.dispose();
       material.dispose();
       linesGeometry.dispose();
@@ -251,7 +289,12 @@ const Landing: React.FC = () => {
       {/* Content */}
       <div className="relative z-10">
         <Header activeSection={activeSection} onScrollToSection={scrollToSection} />
-        <Hero ref={heroRef} landingContent={landingContent} />
+        <Hero 
+          ref={heroRef} 
+          landingContent={landingContent} 
+          onDonate={() => scrollToSection('donation-section')} 
+          onExplore={() => scrollToSection('featured-courses')}
+        />
         
         <div className="relative bg-white/80 backdrop-blur-lg shadow-xl rounded-t-[3rem] -mt-20 pt-0 pb-10 border-t border-white/50 overflow-hidden">
           <VideoSection 
@@ -281,6 +324,10 @@ const Landing: React.FC = () => {
             ref={(el) => (sectionRefs.current['testimonials'] = el)}
             testimonials={testimonials}
             visibleSections={visibleSections}
+          />
+          
+          <DonationSection 
+            ref={(el: HTMLDivElement | null) => (sectionRefs.current['donation-section'] = el)}
           />
           
           <Footer />

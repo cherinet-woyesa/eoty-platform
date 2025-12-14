@@ -32,6 +32,10 @@ interface PasswordCriteria {
 
 const RegisterForm: React.FC = () => {
   const { t } = useTranslation();
+  const brandStyle = {
+    ['--brand' as any]: brandColors.primaryHex,
+    ['--brand-strong' as any]: brandColors.primaryHoverHex,
+  };
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -398,7 +402,7 @@ const RegisterForm: React.FC = () => {
 
   if (requires2FA) {
     return (
-      <div className="relative">
+      <div className="relative" style={brandStyle}>
         {toast && (
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
             <div
@@ -462,7 +466,6 @@ const RegisterForm: React.FC = () => {
           type="submit"
           isLoading={isLoading}
           loadingText={t('auth.register.twofa_verify_loading')}
-          className="w-full text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
         >
           {t('auth.register.twofa_verify')}
         </LoadingButton>
@@ -482,7 +485,7 @@ const RegisterForm: React.FC = () => {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" style={brandStyle}>
       {toast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div
@@ -632,7 +635,7 @@ const RegisterForm: React.FC = () => {
               }}
               className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 formData.role === 'user'
-                  ? 'border-indigo-600 bg-indigo-50 shadow-lg scale-[1.02]'
+                  ? 'border-[color:var(--brand)] bg-[color:rgba(30,27,75,0.06)] shadow-lg scale-[1.02]'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               disabled={isLoading}
@@ -640,12 +643,12 @@ const RegisterForm: React.FC = () => {
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg ${
                   formData.role === 'user' 
-                    ? 'bg-indigo-100' 
+                    ? 'bg-[color:rgba(30,27,75,0.08)]' 
                     : 'bg-slate-100'
                 }`}>
                   <BookOpen className={`h-5 w-5 ${
                     formData.role === 'user' 
-                      ? 'text-indigo-700' 
+                      ? 'text-[color:var(--brand)]' 
                       : 'text-slate-600'
                   }`} />
                 </div>
@@ -653,7 +656,7 @@ const RegisterForm: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-sm text-slate-700">{t('auth.register.role_member')}</h3>
                     {formData.role === 'user' && (
-                      <Check className="h-5 w-5 text-indigo-700" />
+                      <Check className="h-5 w-5 text-[color:var(--brand)]" />
                     )}
                   </div>
                 </div>
@@ -669,7 +672,7 @@ const RegisterForm: React.FC = () => {
               }}
               className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 formData.role === 'teacher'
-                  ? 'border-indigo-600 bg-indigo-50 shadow-lg scale-[1.02]'
+                  ? 'border-[color:var(--brand)] bg-[color:rgba(30,27,75,0.06)] shadow-lg scale-[1.02]'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               disabled={isLoading}
@@ -677,12 +680,12 @@ const RegisterForm: React.FC = () => {
               <div className="flex items-start space-x-3">
                 <div className={`p-2 rounded-lg ${
                   formData.role === 'teacher' 
-                    ? 'bg-indigo-100' 
+                    ? 'bg-[color:rgba(30,27,75,0.08)]' 
                     : 'bg-slate-100'
                 }`}>
                   <GraduationCap className={`h-5 w-5 ${
                     formData.role === 'teacher' 
-                      ? 'text-indigo-700' 
+                      ? 'text-[color:var(--brand)]' 
                       : 'text-slate-600'
                   }`} />
                 </div>
@@ -690,7 +693,7 @@ const RegisterForm: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-sm text-slate-700">{t('auth.register.role_teacher')}</h3>
                     {formData.role === 'teacher' && (
-                      <Check className="h-5 w-5 text-indigo-700" />
+                      <Check className="h-5 w-5 text-[color:var(--brand)]" />
                     )}
                   </div>
                 </div>
@@ -713,7 +716,7 @@ const RegisterForm: React.FC = () => {
             <MapPin className={`h-4 w-4 transition-colors duration-200 ${
               validationErrors.chapter && touched.chapter 
                 ? 'text-red-400' 
-                : 'text-gray-400 group-focus-within:text-indigo-600'
+                : 'text-gray-400 group-focus-within:text-[color:var(--brand-strong)]'
             }`} />
           </div>
           <select
@@ -735,7 +738,7 @@ const RegisterForm: React.FC = () => {
             className={`
               block w-full pl-10 pr-10 py-2 sm:py-3
               border-2 rounded-lg 
-              focus:outline-none focus:ring-2 focus:ring-indigo-100 
+              focus:outline-none focus:ring-2 focus:ring-[color:var(--brand)]/15 
               transition-all duration-200 
               bg-gray-50/50 focus:bg-white 
               text-gray-900
@@ -744,7 +747,7 @@ const RegisterForm: React.FC = () => {
               appearance-none
               ${validationErrors.chapter && touched.chapter 
                 ? 'border-red-300 focus:border-red-500' 
-                : 'border-gray-200 focus:border-indigo-600'}
+                : 'border-gray-200 focus:border-[color:var(--brand)]'}
               ${(isLoading || loadingChapters) ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''}
             `}
             aria-invalid={!!(validationErrors.chapter && touched.chapter)}
@@ -792,10 +795,10 @@ const RegisterForm: React.FC = () => {
                 clearError();
                 }
               }}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="rounded border-gray-300 text-[color:var(--brand)] focus:ring-[color:var(--brand-strong)]"
             />
             <span className="inline-flex items-center gap-1">
-              <Compass className="h-4 w-4 text-indigo-600" />
+              <Compass className="h-4 w-4 text-[color:var(--brand)]" />
               {t('auth.register.use_nearest')}
             </span>
           </label>
@@ -944,7 +947,7 @@ const RegisterForm: React.FC = () => {
           {t('auth.register.have_account')}{' '}
           <Link 
             to="/login" 
-            className="text-indigo-700 hover:text-indigo-900 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded px-1 py-1"
+            className="text-[color:var(--brand)] hover:text-[color:var(--brand-strong)] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[color:var(--brand)]/20 focus:ring-offset-2 rounded px-1 py-1"
             aria-label="Sign in to your existing account"
           >
             {t('auth.register.login_link')}

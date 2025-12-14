@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Search, Bookmark, GraduationCap, TrendingUp, Clock } from 'lucide-react';
@@ -14,6 +14,7 @@ const CoursesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as CoursesTab) || 'enrolled';
   const [activeTab, setActiveTab] = useState<CoursesTab>(initialTab);
+  const [tabLoading, setTabLoading] = useState(false);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab') as CoursesTab | null;
@@ -24,11 +25,24 @@ const CoursesPage: React.FC = () => {
 
   const handleTabChange = (tab: CoursesTab) => {
     if (tab === activeTab) return;
+    setTabLoading(true);
     setActiveTab(tab);
     const next = new URLSearchParams(searchParams);
     next.set('tab', tab);
     setSearchParams(next, { replace: true });
+    setTimeout(() => setTabLoading(false), 220);
   };
+
+  const tabSkeleton = useMemo(() => (
+    <div className="p-4 space-y-4">
+      <div className="h-8 bg-stone-200 rounded-md animate-pulse w-40" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-36 bg-stone-200 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    </div>
+  ), []);
 
   return (
     <div className="w-full h-full">
@@ -97,17 +111,17 @@ const CoursesPage: React.FC = () => {
 
           {/* Tab Content */}
           <div className="bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex-1 overflow-y-auto">
-            {activeTab === 'enrolled' && (
+            {tabLoading ? (
+              tabSkeleton
+            ) : activeTab === 'enrolled' ? (
               <div className="animate-in fade-in duration-300">
                 <StudentEnrolledCourses />
               </div>
-            )}
-            {activeTab === 'browse' && (
+            ) : activeTab === 'browse' ? (
               <div className="animate-in fade-in duration-300">
                 <CourseCatalog />
               </div>
-            )}
-            {activeTab === 'bookmarks' && (
+            ) : (
               <div className="animate-in fade-in duration-300">
                 <BookmarksPage />
               </div>

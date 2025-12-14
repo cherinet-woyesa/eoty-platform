@@ -153,7 +153,25 @@ const requirePermission = (permission) => {
         console.log(`[RBAC] Permission ${permission} GRANTED by fallback for student/user ${req.user.email}`);
         return next();
       }
-      
+
+      // Special-case: teachers can manage their profile (fallback for development/testing)
+      if ((permission === 'teacher:profile:view' || permission === 'teacher:profile:update' || permission === 'teacher:dashboard:view') && userRole === 'teacher') {
+        console.log(`[RBAC] Permission ${permission} GRANTED by fallback for teacher ${req.user.email}`);
+        return next();
+      }
+
+      // Special-case: teachers can manage their documents (fallback for development/testing)
+      if ((permission === 'teacher:document:view' || permission === 'teacher:document:create' || permission === 'teacher:document:delete') && userRole === 'teacher') {
+        console.log(`[RBAC] Permission ${permission} GRANTED by fallback for teacher ${req.user.email}`);
+        return next();
+      }
+
+      // Special-case: teachers can manage their payout details (fallback for development/testing)
+      if ((permission === 'teacher:payout:view' || permission === 'teacher:payout:update') && userRole === 'teacher') {
+        console.log(`[RBAC] Permission ${permission} GRANTED by fallback for teacher ${req.user.email}`);
+        return next();
+      }
+
       // Check if user has the required permission or system admin
       if (userPermissionKeys.includes(permission) || userPermissionKeys.includes('system:admin')) {
         console.log(`[RBAC] Permission ${permission} GRANTED for user ${req.user.email}`);

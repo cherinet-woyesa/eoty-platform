@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getMetrics } from '@/services/api/systemConfig';
 import { adminNavItems, adminNavSections } from '@/config/navigation';
 import { filterNavItems } from '@/utils/navigationFilter';
+import { brandColors } from '@/theme/brand';
 
 interface AdminSidebarProps {
   isCollapsed?: boolean;
@@ -96,11 +97,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-gradient-to-br from-slate-50 via-amber-50/40 to-orange-50/30 border-r border-gray-200/60 shadow-lg transition-all duration-300 ${
+    <div className={`flex flex-col h-full bg-white border-r border-slate-200 shadow-lg transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Header - Compact */}
-      <div className="flex items-center justify-between h-12 px-3 border-b border-orange-200/50 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] shadow-md">
+      <div className="flex items-center justify-between h-12 px-3 border-b border-slate-200 shadow-md" style={{ backgroundColor: brandColors.primaryHex }}>
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
@@ -111,7 +112,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         )}
         <button
           onClick={onToggleCollapse}
-          className="p-1 rounded-md hover:bg-white/20 transition-colors duration-200"
+          className="p-1 rounded-md transition-colors duration-200"
+          style={{ backgroundColor: 'transparent' }}
         >
           {isCollapsed ? (
             <ChevronRight className="h-3 w-3 text-white" />
@@ -124,7 +126,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       
 
       {/* Navigation - Fills available space */}
-      <div className="flex-1 overflow-y-auto py-4 min-h-0 bg-gradient-to-b from-white/40 to-transparent">
+      <div className="flex-1 overflow-y-auto py-4 min-h-0 bg-white">
         {/* Primary (high-frequency) items */}
         <nav className="space-y-2 px-2">
           {sectionedItems.primary.map((item) => {
@@ -137,15 +139,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 to={item.href}
                 className={`group flex items-center px-3 py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-gradient-to-r from-[#E74C3C]/10 to-[#F39C12]/10 text-[#E74C3C] shadow-sm border border-[#E74C3C]/30 backdrop-blur-sm'
-                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
+                    ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
                 }`}
                 title={isCollapsed ? item.description : undefined}
               >
                 <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
-                  active ? 'bg-gradient-to-br from-[#E74C3C]/20 to-[#F39C12]/20' : 'bg-white/80 group-hover:bg-white'
+                  active ? 'bg-brand-primary/15' : 'bg-white'
                 } transition-all duration-200 shadow-sm`}>
-                  <IconComponent className={`h-5 w-5 ${active ? 'text-[#E74C3C]' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                  <IconComponent className={`h-5 w-5 ${active ? 'text-brand-primary' : 'text-slate-500 group-hover:text-slate-700'}`} />
                 </div>
                 
                 {!isCollapsed && (
@@ -153,7 +155,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="truncate font-medium">{t(item.name)}</span>
                       {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
                           {item.badge}
                         </span>
                       )}
@@ -196,15 +198,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       to={item.href}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                         active
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                       title={isCollapsed ? item.description : undefined}
                     >
                       <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                        active ? 'bg-blue-100' : 'bg-gray-100 group-hover:bg-gray-200'
+                        active ? 'bg-brand-primary/15' : 'bg-slate-100 group-hover:bg-slate-200'
                       } transition-colors duration-200`}>
-                        <IconComponent className={`h-4 w-4 ${active ? 'text-blue-700' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                        <IconComponent className={`h-4 w-4 ${active ? 'text-brand-primary' : 'text-slate-500 group-hover:text-slate-700'}`} />
                       </div>
                       
                       {!isCollapsed && (
@@ -212,7 +214,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                           <div className="flex items-center justify-between">
                             <span className="truncate">{item.name}</span>
                             {item.badge && (
-                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
                                 {item.badge}
                               </span>
                             )}
@@ -233,16 +235,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
               className={`group w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                 location.pathname.startsWith('/admin/config')
-                  ? 'bg-gradient-to-r from-[#E74C3C]/10 to-[#F39C12]/10 text-[#E74C3C] shadow-sm border border-[#E74C3C]/30 backdrop-blur-sm'
-                  : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
+                  ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
               }`}
               title={isCollapsed ? systemConfigItem.description : undefined}
             >
               <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                location.pathname.startsWith('/admin/config') ? 'bg-gradient-to-br from-[#E74C3C]/20 to-[#F39C12]/20' : 'bg-white/80 group-hover:bg-white'
+                location.pathname.startsWith('/admin/config') ? 'bg-brand-primary/15' : 'bg-white'
               } transition-all duration-200 shadow-sm`}>
                 {React.createElement(systemConfigItem.icon as React.ElementType, {
-                  className: `h-4 w-4 ${location.pathname.startsWith('/admin/config') ? 'text-[#E74C3C]' : 'text-gray-500 group-hover:text-gray-700'}`
+                  className: `h-4 w-4 ${location.pathname.startsWith('/admin/config') ? 'text-brand-primary' : 'text-slate-500 group-hover:text-slate-700'}`
                 })}
               </div>
               
@@ -252,7 +254,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="truncate">{t(systemConfigItem.name)}</span>
                       {totalInactive > 0 && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
                           {totalInactive}
                         </span>
                       )}
@@ -293,21 +295,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       to={subItem.href}
                       className={`group flex items-center px-2 py-2 text-sm rounded-lg transition-all duration-200 ${
                         active
-                          ? 'bg-gradient-to-r from-[#E74C3C]/10 to-[#F39C12]/10 text-[#E74C3C]'
-                          : 'text-gray-700 hover:bg-white/60 hover:text-gray-900'
+                          ? 'bg-brand-primary/10 text-brand-primary'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
                       <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                        active ? 'bg-gradient-to-br from-[#E74C3C]/20 to-[#F39C12]/20' : 'bg-white/80 group-hover:bg-white'
+                        active ? 'bg-brand-primary/15' : 'bg-white'
                       } transition-all duration-200 shadow-sm`}>
-                        <SubIconComponent className={`h-4 w-4 ${active ? 'text-[#E74C3C]' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                        <SubIconComponent className={`h-4 w-4 ${active ? 'text-brand-primary' : 'text-slate-500 group-hover:text-slate-700'}`} />
                       </div>
                       
                       <div className="ml-2 flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="truncate font-medium text-sm">{t(subItem.name)}</span>
                           {inactiveCount > 0 && (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-warning/10 text-brand-warning">
                               {inactiveCount}
                             </span>
                           )}
@@ -353,15 +355,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     to={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
-                        ? 'bg-slate-100 text-slate-800 border border-slate-200'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                     title={isCollapsed ? item.description : undefined}
                   >
                     <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                      active ? 'bg-slate-200' : 'bg-gray-100 group-hover:bg-gray-200'
+                      active ? 'bg-brand-primary/15' : 'bg-slate-100 group-hover:bg-slate-200'
                     } transition-colors duration-200`}>
-                      <IconComponent className={`h-4 w-4 ${active ? 'text-slate-800' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                      <IconComponent className={`h-4 w-4 ${active ? 'text-brand-primary' : 'text-slate-500 group-hover:text-slate-700'}`} />
                     </div>
 
                     {!isCollapsed && (
@@ -369,7 +371,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                         <div className="flex items-center justify-between">
                           <span className="truncate">{t(item.name)}</span>
                           {item.badge && (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
                               {item.badge}
                             </span>
                           )}
@@ -413,15 +415,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     to={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
-                        ? 'bg-gray-50 text-gray-800 border border-gray-200'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-slate-50 text-slate-800 border border-slate-200'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                     title={isCollapsed ? item.description : undefined}
                   >
                     <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
-                      active ? 'bg-gray-200' : 'bg-gray-100 group-hover:bg-gray-200'
+                      active ? 'bg-slate-200' : 'bg-slate-100 group-hover:bg-slate-200'
                     } transition-colors duration-200`}>
-                      <IconComponent className={`h-4 w-4 ${active ? 'text-gray-800' : 'text-gray-500 group-hover:text-gray-700'}`} />
+                      <IconComponent className={`h-4 w-4 ${active ? 'text-slate-800' : 'text-slate-500 group-hover:text-slate-700'}`} />
                     </div>
 
                     {!isCollapsed && (
@@ -447,15 +449,15 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Footer - Compact Stats with Role Indicator */}
       {!isCollapsed && (
-        <div className="px-3 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/50">
+        <div className="px-3 py-3 border-t border-slate-200 bg-white">
           <div className="space-y-2">
             {/* Role Indicator - Prominent */}
-            <div className="flex items-center justify-between p-2 bg-blue-100 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between p-2 bg-brand-primary/10 rounded-lg border border-brand-primary/20">
               <div className="flex items-center space-x-2">
-                <Crown className="h-4 w-4 text-blue-700" />
-                <span className="text-xs font-medium text-blue-700">Role</span>
+                <Crown className="h-4 w-4 text-brand-primary" />
+                <span className="text-xs font-medium text-brand-primary">Role</span>
               </div>
-              <span className="text-xs font-bold text-blue-900 capitalize">
+              <span className="text-xs font-bold text-brand-primary-dark capitalize">
                 {user?.role?.replace('_', ' ')}
               </span>
             </div>

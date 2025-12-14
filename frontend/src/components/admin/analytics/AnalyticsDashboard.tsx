@@ -3,25 +3,20 @@ import { adminApi } from '@/services/api';
 import type { AdminDashboard } from '@/types/admin';
 import MetricsCard from './MetricsCard';
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
-import { 
-  Users, 
-  BookOpen, 
-  BarChart2, 
-  Clock, 
-  TrendingUp, 
-  Server, 
+import { brandColors } from '@/theme/brand';
+import {
+  Users,
+  BookOpen,
+  BarChart2,
+  Clock,
+  Server,
   Download,
   Filter,
   RefreshCw,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Activity,
-  Target,
-  Zap,
   Cpu,
-  Video,
-  Star,
   Plus
 } from 'lucide-react';
 
@@ -37,7 +32,9 @@ const AnalyticsDashboard: React.FC = () => {
   const [isVerifyingAccuracy, setIsVerifyingAccuracy] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'chapters' | 'alerts'>('overview');
+  const brandPrimary = brandColors.primaryHex;
+  const brandAccent = brandColors.accentHex;
+  const brandPrimaryHover = brandColors.primaryHoverHex;
 
   useEffect(() => {
     fetchAnalytics();
@@ -46,18 +43,32 @@ const AnalyticsDashboard: React.FC = () => {
 
   const fetchAnalytics = async () => {
     try {
-      setLoading(true);
-      const response = await adminApi.getAnalytics(timeframe);
-      setAnalytics(response.data);
       setError(null);
+      if (!analytics) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+      const response = await adminApi.getAnalytics(timeframe);
+      const payload = (response as any)?.data ?? response;
+      if (payload?.success === false) {
+        throw new Error(payload?.message || payload?.userMessage || 'Request failed');
+      }
+      const data = payload?.data ?? payload;
+      if (!data?.metrics) {
+        throw new Error('Invalid analytics response');
+      }
+      setAnalytics(data);
       
       // FR5: Extract accuracy score if available
-      if (response.data.metrics.accuracy_score) {
-        setAccuracyScore(response.data.metrics.accuracy_score);
+      if (data.metrics?.accuracy_score) {
+        setAccuracyScore(data.metrics.accuracy_score);
       }
     } catch (err: any) {
       console.error('Failed to fetch analytics:', err);
-      setError('Failed to load analytics data. Please try again.');
+      const apiMessage = err?.response?.data?.message || err?.message;
+      const userMessage = err?.response?.data?.userMessage;
+      setError(userMessage || apiMessage || 'Failed to load analytics data. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,8 +79,9 @@ const AnalyticsDashboard: React.FC = () => {
   const fetchRetentionMetrics = async () => {
     try {
       const response = await adminApi.getRetentionMetrics(timeframe);
-      if (response.success) {
-        setRetentionMetrics(response.data.metrics);
+      const payload = (response as any)?.data ?? response;
+      if (payload?.success && payload?.data?.metrics) {
+        setRetentionMetrics(payload.data.metrics);
       }
     } catch (err: any) {
       console.error('Failed to fetch retention metrics:', err);
@@ -83,9 +95,11 @@ const AnalyticsDashboard: React.FC = () => {
       // Use current snapshot or create a new one
       const snapshotId = analytics?.snapshot_date ? Date.now() : Date.now();
       const response = await adminApi.verifyDashboardAccuracy(snapshotId);
-      if (response.success) {
-        setAccuracyScore(response.data.accuracy);
-        alert(`Dashboard accuracy: ${(response.data.accuracy * 100).toFixed(2)}% (Requirement: 99%)\nMeets requirement: ${response.data.meetsRequirement ? 'Yes' : 'No'}`);
+      const payload = (response as any)?.data ?? response;
+      if (payload?.success) {
+        const accuracy = payload?.data?.accuracy ?? payload?.accuracy;
+        setAccuracyScore(accuracy);
+        alert(`Dashboard accuracy: ${(accuracy * 100).toFixed(2)}% (Requirement: 99%)\nMeets requirement: ${payload?.data?.meetsRequirement ? 'Yes' : 'No'}`);
       }
     } catch (err: any) {
       console.error('Failed to verify accuracy:', err);
@@ -141,7 +155,7 @@ const AnalyticsDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#27AE60]/20 border-t-[#27AE60] rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[color:rgb(30,27,75,0.15)] border-t-[#1e1b4b] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-stone-700 font-semibold">Loading Analytics Dashboard...</p>
           <p className="text-sm text-stone-600 mt-1">Gathering platform insights</p>
         </div>
@@ -160,7 +174,10 @@ const AnalyticsDashboard: React.FC = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchAnalytics}
-            className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            className="px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            style={{ backgroundColor: brandPrimary, border: `1px solid ${brandPrimary}`, boxShadow: '0 10px 25px -12px rgba(30,27,75,0.55)' }}
+            onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = brandPrimaryHover)}
+            onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = brandPrimary)}
           >
             Try Again
           </button>
@@ -180,7 +197,10 @@ const AnalyticsDashboard: React.FC = () => {
           <p className="text-stone-600 mb-4">Analytics data will appear here once available</p>
           <button
             onClick={fetchAnalytics}
-            className="px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-800 font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            className="px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            style={{ backgroundColor: brandPrimary, border: `1px solid ${brandPrimary}`, boxShadow: '0 10px 25px -12px rgba(30,27,75,0.55)' }}
+            onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = brandPrimaryHover)}
+            onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = brandPrimary)}
           >
             Check Again
           </button>
@@ -203,7 +223,8 @@ const AnalyticsDashboard: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={() => setIsCreateEventModalOpen(true)}
-            className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md"
+            className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md"
+            style={{ backgroundColor: brandPrimary, borderColor: brandPrimary }}
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Create Event
@@ -232,17 +253,18 @@ const AnalyticsDashboard: React.FC = () => {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+            style={{ borderColor: `${brandPrimary}40` }}
           >
             {isExporting ? (
               <>
-                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-[#27AE60] mr-1.5"></div>
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 mr-1.5" style={{ borderColor: `${brandPrimary}30`, borderBottomColor: brandPrimary }}></div>
                 <span className="hidden sm:inline">Exporting...</span>
                 <span className="sm:hidden">Export</span>
               </>
             ) : (
               <>
-                <Download className="h-3.5 w-3.5 mr-1.5 text-[#27AE60]" />
+                <Download className="h-3.5 w-3.5 mr-1.5" style={{ color: brandPrimary }} />
                 Export
               </>
             )}
@@ -250,9 +272,10 @@ const AnalyticsDashboard: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border border-[#27AE60]/25 shadow-sm hover:shadow-md hover:border-[#27AE60]/40 disabled:opacity-50"
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+            style={{ borderColor: `${brandPrimary}40` }}
           >
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 text-[#27AE60] ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: brandPrimary }} />
             Refresh
           </button>
         </div>
@@ -272,9 +295,14 @@ const AnalyticsDashboard: React.FC = () => {
                 onClick={() => setTimeframe(option.value)}
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   timeframe === option.value
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                    ? 'text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent hover:border-gray-300'
                 }`}
+                style={
+                  timeframe === option.value
+                    ? { background: `linear-gradient(to right, ${brandPrimary}, ${brandAccent})` }
+                    : undefined
+                }
               >
                 <div className="font-semibold">{option.label}</div>
                 <div className="text-xs opacity-75">{option.description}</div>
@@ -284,412 +312,61 @@ const AnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs for heavy sections */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
-            activeTab === 'overview'
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('chapters')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
-            activeTab === 'chapters'
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          Chapter Performance
-        </button>
-        <button
-          onClick={() => setActiveTab('alerts')}
-          className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
-            activeTab === 'alerts'
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          System Alerts
-        </button>
+      {/* Key Metrics (simplified) */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <MetricsCard
+          title="Total Courses"
+          value={metrics.content.total}
+          icon={<BookOpen className="h-6 w-6" />}
+          color="blue"
+          trend="up"
+          description="Courses created"
+        />
+        <MetricsCard
+          title="Active Users (30d)"
+          value={metrics.users.active}
+          icon={<Users className="h-6 w-6" />}
+          color="green"
+          trend="up"
+          description="Logged in last 30 days"
+        />
+        <MetricsCard
+          title="New Users (7d)"
+          value={metrics.users.new_this_week}
+          icon={<Users className="h-6 w-6" />}
+          color="blue"
+          trend="up"
+          description="Joined this week"
+        />
+        <MetricsCard
+          title="Platform Uptime"
+          value={metrics.technical.uptime}
+          icon={<Server className="h-6 w-6" />}
+          color="teal"
+          trend="up"
+          format="number"
+          description="Availability"
+        />
+        <MetricsCard
+          title="Uploads Today"
+          value={metrics.content.uploads_today}
+          icon={<Activity className="h-6 w-6" />}
+          color="purple"
+          trend="up"
+          description="New content"
+        />
+        <MetricsCard
+          title="Approval Rate"
+          value={Math.round((metrics.content.approval_rate || 0) * 100)}
+          icon={<CheckCircle className="h-6 w-6" />}
+          color="indigo"
+          trend="up"
+          format="percent"
+          description="Moderation pass rate"
+        />
       </div>
 
-      {/* OVERVIEW TAB */}
-      {activeTab === 'overview' && (
-        <>
-          {/* Key Metrics Grid */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricsCard 
-              title="Total Courses" 
-            value={analytics.metrics.content.total} 
-              change={12}
-              icon={<BookOpen className="h-6 w-6" />}
-              color="blue"
-              trend="up"
-              description="Total courses created"
-            />
-            <MetricsCard 
-              title="Active Students" 
-            value={analytics.metrics.users.active} 
-              change={8}
-              icon={<Users className="h-6 w-6" />}
-              color="green"
-              trend="up"
-              description="Currently enrolled students"
-            />
-            <MetricsCard 
-              title="New Students" 
-              value={analytics.metrics.users.new_this_week} 
-              change={10}
-              icon={<Users className="h-6 w-6" />}
-              color="blue"
-              trend="up"
-              description="Joined this week"
-            />
-            <MetricsCard 
-              title="Recorded Videos"  
-            value={metrics.video_count ?? metrics.content.total} 
-              change={8}
-              icon={<Video className="h-6 w-6" />}
-              color="purple"
-              trend="up"
-              description="Total video lessons"
-            />
-            <MetricsCard 
-              title="Hours Taught" 
-            value={metrics.hours_taught ?? Math.round((metrics.engagement.avg_session_minutes || 0) / 60)} 
-              change={15}
-              icon={<Clock className="h-6 w-6" />}
-              color="orange"
-              trend="up"
-              description="Total teaching hours"
-            />
-            <MetricsCard 
-              title="Rating" 
-            value={metrics.average_course_rating ?? 0} 
-              change={5}
-              icon={<Star className="h-6 w-6" />}
-              color="indigo"
-              trend="up"
-              format="number"
-              description="Average course rating"
-            />
-            <MetricsCard 
-              title="Completion Rate" 
-              value={Math.round(analytics.metrics.engagement.completion_rate * 100)} 
-              change={3}
-              icon={<Target className="h-6 w-6" />}
-              color="teal"
-              trend="up"
-              format="percent"
-              description="Overall course completion"
-            />
-            <MetricsCard 
-              title="Engagement Score" 
-            value={
-              metrics.engagement_score != null
-                ? Math.round(metrics.engagement_score * 100)
-                : Math.round(analytics.metrics.engagement.completion_rate * 100)
-            } 
-              change={3}
-              icon={<Zap className="h-6 w-6" />}
-              color="red"
-              trend="up"
-              format="percent"
-              description="User engagement index"
-            />
-          </div>
-
-          {/* Performance & Content Stats */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* System Performance */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Cpu className="h-5 w-5 mr-2 text-blue-600" />
-                  System Performance
-                </h3>
-                <div className={`flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  metrics.technical.uptime > 99.5 
-                    ? 'bg-green-100 text-green-800' 
-                    : metrics.technical.uptime > 98 
-                      ? 'bg-yellow-100 text-yellow-800' 
-                      : 'bg-red-100 text-red-800'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full mr-2 ${
-                    metrics.technical.uptime > 99.5 
-                      ? 'bg-green-500' 
-                      : metrics.technical.uptime > 98 
-                        ? 'bg-yellow-500' 
-                        : 'bg-red-500'
-                  }`} />
-                  {metrics.technical.uptime > 99.5 ? 'Optimal' : metrics.technical.uptime > 98 ? 'Stable' : 'Degraded'}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                  <div className="flex items-center space-x-3">
-                    <Server className="h-8 w-8 text-blue-600" />
-                    <div>
-                      <div className="font-medium text-gray-900">Uptime</div>
-                      <div className="text-sm text-gray-600">Platform availability</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600">{metrics.technical.uptime}%</div>
-                    <div className="text-sm text-green-600 font-medium">✓ Stable</div>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                  <div className="flex items-center space-x-3">
-                    <Zap className="h-8 w-8 text-green-600" />
-                    <div>
-                      <div className="font-medium text-gray-900">Response Time</div>
-                      <div className="text-sm text-gray-600">API performance</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">{metrics.technical.response_time}ms</div>
-                    <div className="text-sm text-green-600 font-medium">✓ Fast</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Content Statistics */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Activity className="h-5 w-5 mr-2 text-purple-600" />
-                  Content Analytics
-                </h3>
-                <div className="text-sm text-gray-500">
-                  Real-time updates
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl text-center">
-                    <div className="text-2xl font-bold text-purple-600">{metrics.content.uploads_today}</div>
-                    <div className="text-sm text-gray-600 mt-1">Uploads Today</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl text-center">
-                    <div className="text-2xl font-bold text-green-600">{(metrics.content.approval_rate * 100).toFixed(1)}%</div>
-                    <div className="text-sm text-gray-600 mt-1">Approval Rate</div>
-                  </div>
-                </div>
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">Pending Reviews</div>
-                      <div className="text-sm text-gray-600">Awaiting moderation</div>
-                    </div>
-                    <div className="text-2xl font-bold text-amber-600">
-                      {metrics.pending_reviews ?? 0}
-                    </div>
-                  </div>
-                </div>
-                {/* FR5: Retention metrics (REQUIREMENT: Retention metrics) */}
-                {retentionMetrics && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium text-gray-900">User Retention</div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        retentionMetrics.retention_rate >= 0.8 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {timeframe}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{retentionMetrics.new_users || 0}</div>
-                        <div className="text-xs text-gray-600">New Users</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">{retentionMetrics.retained_users || 0}</div>
-                        <div className="text-xs text-gray-600">Retained</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-purple-600">
-                          {((retentionMetrics.retention_rate || 0) * 100).toFixed(1)}%
-                        </div>
-                        <div className="text-xs text-gray-600">Rate</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* FR5: Accuracy indicator (REQUIREMENT: 99% dashboard accuracy) */}
-                {accuracyScore !== null && (
-                  <div className={`p-4 rounded-xl border ${
-                    accuracyScore >= 0.99 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-yellow-50 border-yellow-200'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-gray-900">Dashboard Accuracy</div>
-                        <div className="text-sm text-gray-600">Requirement: 99%</div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          accuracyScore >= 0.99 ? 'text-green-600' : 'text-yellow-600'
-                        }`}>
-                          {(accuracyScore * 100).toFixed(2)}%
-                        </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          {accuracyScore >= 0.99 ? '✓ Meets requirement' : '⚠ Below requirement'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* CHAPTERS TAB */}
-      {activeTab === 'chapters' && (
-        <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-              Chapter Performance Comparison
-            </h3>
-            <p className="text-gray-600 text-sm mt-1">Performance metrics across all chapters</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Chapter</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Users</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Users</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Posts</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Engagement</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {Object.entries(analytics.chapter_comparison).map(([chapterId, data]: any) => (
-                  <tr key={chapterId} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 rounded-full mr-3 ${
-                          data.engagement_score > 0.8 ? 'bg-green-500' : 
-                          data.engagement_score > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`} />
-                        <div>
-                          <div className="font-medium text-gray-900">{chapterId}</div>
-                          <div className="text-sm text-gray-500">{data.total_users} members</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {data.total_users.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{data.active_users}</div>
-                      <div className="text-xs text-gray-500">
-                        {data.total_users > 0
-                          ? `${((data.active_users / data.total_users) * 100).toFixed(1)}% active`
-                          : '0% active'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {data.recent_posts}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                          <div 
-                            className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${data.engagement_score * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900">
-                          {(data.engagement_score * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        data.engagement_score > 0.8 
-                          ? 'bg-green-100 text-green-800' 
-                          : data.engagement_score > 0.6 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {data.engagement_score > 0.8 ? 'High' : data.engagement_score > 0.6 ? 'Medium' : 'Low'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ALERTS TAB */}
-      {activeTab === 'alerts' && analytics.alerts && analytics.alerts.length > 0 && (
-        <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <AlertTriangle className="h-5 w-5 mr-2 text-amber-600" />
-              System Alerts
-              <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                {analytics.alerts.length}
-              </span>
-            </h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {analytics.alerts.map((alert: any, index: number) => (
-              <div 
-                key={index} 
-                className="p-6 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <div className={`w-3 h-3 rounded-full mr-3 ${
-                        alert.severity === 'critical' ? 'bg-red-500' : 
-                        alert.severity === 'high' ? 'bg-orange-500' : 
-                        alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`} />
-                      <span className="font-medium text-gray-900">{alert.message}</span>
-                    </div>
-                    {alert.chapter_id && (
-                      <div className="text-sm text-gray-600 ml-6">
-                        Chapter: <span className="font-medium">{alert.chapter_id}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      alert.severity === 'critical' ? 'bg-red-100 text-red-800' : 
-                      alert.severity === 'high' ? 'bg-orange-100 text-orange-800' : 
-                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {alert.severity.toUpperCase()}
-                    </span>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                      <CheckCircle className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Chapters/Alerts sections omitted for simplified view */}
 
       <CreateEventModal
         isOpen={isCreateEventModalOpen}

@@ -381,6 +381,105 @@ router.post(
 );
 
 /**
+ * GET /api/resources/lesson/:lessonId
+ * Get all resources associated with a specific lesson
+ * Accessible by: students (enrolled), teachers (course owner), admins
+ */
+router.get(
+  '/lesson/:lessonId',
+  requirePermission('lesson:view'),
+  async (req, res) => {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user.userId;
+      
+      const resources = await require('../models/Resource').findByLesson(lessonId, userId);
+      
+      res.json({
+        success: true,
+        data: { resources }
+      });
+    } catch (error) {
+      console.error('Get lesson resources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve lesson resources'
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/resources/attach-to-lesson
+ * Attach an existing resource to a lesson
+ * Accessible by: teachers (course owner), admins
+ */
+router.post(
+  '/attach-to-lesson',
+  requirePermission('content:manage'),
+  async (req, res) => {
+    try {
+      const { resourceId, lessonId } = req.body;
+      
+      if (!resourceId || !lessonId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resource ID and Lesson ID are required'
+        });
+      }
+      
+      const updated = await require('../models/Resource').attachToLesson(resourceId, lessonId);
+      
+      res.json({
+        success: true,
+        data: { resource: updated }
+      });
+    } catch (error) {
+      console.error('Attach resource to lesson error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to attach resource to lesson'
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/resources/detach-from-lesson
+ * Detach a resource from a lesson
+ * Accessible by: teachers (course owner), admins
+ */
+router.post(
+  '/detach-from-lesson',
+  requirePermission('content:manage'),
+  async (req, res) => {
+    try {
+      const { resourceId } = req.body;
+      
+      if (!resourceId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resource ID is required'
+        });
+      }
+      
+      const updated = await require('../models/Resource').detachFromLesson(resourceId);
+      
+      res.json({
+        success: true,
+        data: { resource: updated }
+      });
+    } catch (error) {
+      console.error('Detach resource from lesson error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to detach resource from lesson'
+      });
+    }
+  }
+);
+
+/**
  * GET /api/courses/lessons/:lessonId/resources
  * Get all resources for a lesson
  * Accessible by: students (enrolled), teachers (course owner), admins

@@ -43,8 +43,28 @@ export const adminApi = {
   },
 
   // Get all users (filtered by chapter for chapter admins)
-  getUsers: async () => {
-    const response = await apiClient.get('/admin/users');
+  getUsers: async (params?: { 
+    page?: number; 
+    limit?: number; 
+    search?: string; 
+    role?: string; 
+    status?: string; 
+    chapter?: string | number;
+    sortBy?: string; 
+    sortOrder?: 'asc' | 'desc';
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', String(params.page));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.role) searchParams.append('role', params.role);
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.chapter) searchParams.append('chapter', String(params.chapter));
+    if (params?.sortBy) searchParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) searchParams.append('sortOrder', params.sortOrder);
+
+    const query = searchParams.toString();
+    const response = await apiClient.get(`/admin/users${query ? `?${query}` : ''}`);
     return response.data;
   },
 

@@ -161,7 +161,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
   };
 
   const heroContent = useMemo(() => {
-    const firstName = user?.first_name || user?.name?.split(' ')?.[0] || '';
+    const firstName = user?.firstName || user?.email?.split('@')?.[0] || '';
 
     switch (variant) {
       case 'teacher':
@@ -186,7 +186,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
           ctaDescription: t('community.hero.cta_hint_default')
         };
     }
-  }, [variant, user?.first_name, user?.name, t]);
+  }, [variant, user?.firstName, user?.email, t]);
 
   const quickActions = useMemo<QuickAction[]>(() => {
     const base: QuickAction[] = [

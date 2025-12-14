@@ -93,6 +93,7 @@ const StudentDashboard: React.FC = () => {
     isError,
     error,
     refetch,
+    isFetching,
   } = useQuery({
     queryKey: ['student-dashboard'],
     queryFn: async () => {
@@ -329,6 +330,8 @@ const StudentDashboard: React.FC = () => {
 
   const primaryHex = brandColors.primaryHex;
   const accentHex = brandColors.accentHex;
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
 
   // Enhanced stats with real-time updates and memoization
   const formatTime = useCallback((date: Date) => {
@@ -351,6 +354,22 @@ const StudentDashboard: React.FC = () => {
   const handleRetry = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const handleManualRefresh = useCallback(async () => {
+    setManualRefreshing(true);
+    try {
+      await refetch();
+      setLastUpdated(new Date());
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [refetch]);
+
+  useEffect(() => {
+    if (studentData) {
+      setLastUpdated(new Date());
+    }
+  }, [studentData]);
 
   const handleCourseAction = useCallback(async (courseId: string, action: string) => {
     switch (action) {
@@ -384,7 +403,7 @@ const StudentDashboard: React.FC = () => {
   }
 
   // Show error if data failed to load
-  if (error) {
+  if (error && !studentData) {
     return (
       <div className="w-full space-y-6 p-6">
         <div className="flex items-center justify-center min-h-96">
@@ -397,7 +416,8 @@ const StudentDashboard: React.FC = () => {
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={handleRetry}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+                className="inline-flex items-center px-4 py-2 text-white font-semibold rounded-lg transition-all disabled:opacity-60"
+                style={{ backgroundColor: primaryHex }}
                 aria-label={t('dashboard.teacher.try_again')}
               >
                 <Loader2 className="h-4 w-4 mr-2" />
@@ -416,6 +436,20 @@ const StudentDashboard: React.FC = () => {
       <ErrorBoundary>
         <ProfileCompletionModal isOpen={true} onClose={() => setProfileModalOpen(false)} />
       </ErrorBoundary>
+    );
+  }
+
+  if (!studentData) {
+    return (
+      <div className="w-full space-y-4 p-6">
+        <Alert
+          variant="warning"
+          title={t('student.no_data')}
+          description={t('student.no_data_desc')}
+          actionLabel={t('student.refresh')}
+          onAction={handleRetry}
+        />
+      </div>
     );
   }
 
@@ -462,6 +496,20 @@ const StudentDashboard: React.FC = () => {
                 </h1>
                 <div className="flex flex-wrap gap-2 items-center text-sm sm:text-base text-[#2f3f82]/80 mt-2">
                   <span>{formatDate(currentTime)} • {formatTime(currentTime)}</span>
+                  {lastUpdated && (
+                    <span className="text-xs text-stone-500">
+                      {t('student.last_updated', { time: lastUpdated.toLocaleString(i18n.language) })}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={manualRefreshing || isFetching}
+                    className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border"
+                    style={{ borderColor: `${primaryHex}33`, color: primaryHex }}
+                  >
+                    <Loader2 className={`h-3.5 w-3.5 ${manualRefreshing || isFetching ? 'animate-spin' : ''}`} />
+                    {manualRefreshing || isFetching ? t('student.refreshing') : t('student.refresh')}
+                  </button>
                 </div>
                 {chapters.length > 1 && (
                   <div className="mt-3">
@@ -553,7 +601,7 @@ const StudentDashboard: React.FC = () => {
                           </div>
                         </div>
                         <Link 
-                          to={`/member/courses/${activity.course_id}/lessons/${activity.lesson_id}`}
+                          to={`/member/courses/${activity.course_id}?lesson=${activity.lesson_id}`}
                           className="text-xs font-medium text-[#2f3f82] hover:underline px-3 py-1.5 rounded-lg bg-[#eef2ff] hover:bg-[#e0e7ff] transition-colors"
                         >
                           {t('student.resume')}
@@ -577,7 +625,7 @@ const StudentDashboard: React.FC = () => {
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {studentData.recommendations.map((course: any) => (
+                        {studentData.recommendations.map((course: any) => (
                       <Link 
                         key={course.id} 
                         to={`/member/courses/${course.id}`}
@@ -585,7 +633,13 @@ const StudentDashboard: React.FC = () => {
                       >
                         <div className="aspect-video rounded-lg bg-stone-200 mb-3 overflow-hidden">
                           {course.cover_image ? (
-                            <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img 
+                              src={course.cover_image} 
+                              alt={course.title} 
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-stone-400">
                               <BookOpen className="h-8 w-8" />

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { FolderOpen, HelpCircle, BookOpen, Globe, Users } from 'lucide-react';
+import { HelpCircle, BookOpen, Globe, Users } from 'lucide-react';
 import UnifiedResourceView from '@/components/student/UnifiedResourceView';
 import HelpPage from './HelpPage';
+import { brandColors } from '@/theme/brand';
+import { useTranslation } from 'react-i18next';
 
 const ResourcesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'platform' | 'chapter' | 'help'>('platform');
+  const { t } = useTranslation();
 
   return (
     <div className="w-full h-full">
@@ -12,10 +15,10 @@ const ResourcesPage: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <BookOpen className="h-8 w-8 text-[#27AE60]" />
-            Educational Resources
+            <BookOpen className="h-8 w-8" style={{ color: brandColors.primaryHex }} />
+            {t('resources_page.title')}
           </h1>
-          <p className="text-gray-600">Access faith-based learning materials across different contexts</p>
+          <p className="text-gray-600">{t('resources_page.subtitle')}</p>
         </div>
 
         {/* Tabs */}
@@ -25,34 +28,34 @@ const ResourcesPage: React.FC = () => {
               onClick={() => setActiveTab('platform')}
               className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'platform'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               <Globe className="h-5 w-5" />
-              <span>Platform Library</span>
+              <span>{t('resources_page.tabs.platform')}</span>
             </button>
             <button
               onClick={() => setActiveTab('chapter')}
               className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'chapter'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               <Users className="h-5 w-5" />
-              <span>Chapter Resources</span>
+              <span>{t('resources_page.tabs.chapter')}</span>
             </button>
             <button
               onClick={() => setActiveTab('help')}
               className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'help'
-                  ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               <HelpCircle className="h-5 w-5" />
-              <span>Help Center</span>
+              <span>{t('resources_page.tabs.help')}</span>
             </button>
           </nav>
 

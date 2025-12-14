@@ -181,11 +181,30 @@ const BookmarksPage: React.FC = () => {
     }
   }, [navigate]);
 
+  const inlineError = error ? (
+    <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-lg flex items-start gap-2 mb-4">
+      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+      <div className="flex-1 text-xs sm:text-sm">
+        <p className="font-semibold">{t('bookmarks_page.error_loading')}</p>
+        <p className="text-rose-600/80">{error}</p>
+      </div>
+      <button
+        onClick={loadBookmarks}
+        className="text-[11px] font-semibold text-[color:#1e1b4b] hover:underline"
+      >
+        {t('common.try_again')}
+      </button>
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <div className="p-4">
-        <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text={t('bookmarks_page.loading_text')} variant="logo" />
+      <div className="p-4 space-y-3">
+        <div className="h-6 bg-stone-200 rounded-md animate-pulse w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-44 bg-stone-200 rounded-xl animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -225,6 +244,8 @@ const BookmarksPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {inlineError}
 
       {/* Filters, Sort & Search */}
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -351,6 +372,8 @@ const BookmarksPage: React.FC = () => {
                   <img 
                     src={item.entity.cover_image || item.entity.thumbnail} 
                     alt={item.entity.title || 'Content thumbnail'} 
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (

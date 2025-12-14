@@ -9,8 +9,9 @@ export default {
       colors: {
         // Brand Colors
         brand: {
-          primary: '#28536B',
-          accent: '#78A083',
+          primary: '#1e1b4b',
+          'primary-dark': '#312e81',
+          accent: '#cfa15a',
           soft: 'rgba(120, 160, 131, 0.1)',
           success: '#4CAF50',
           warning: '#FFC107',

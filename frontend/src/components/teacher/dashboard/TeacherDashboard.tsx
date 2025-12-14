@@ -1,21 +1,21 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, Users, Plus,
-  AlertCircle, RefreshCw
+  AlertCircle, RefreshCw, Megaphone, Calendar,
+  TrendingUp, Video, AlertTriangle
 } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 import { useAuth } from '@/context/AuthContext';
 import TeacherMetrics from './TeacherMetrics';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { apiClient } from '@/services/api/apiClient';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSkeleton from './DashboardSkeleton';
 import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 import CreateAnnouncementModal from '@/components/admin/dashboard/modals/CreateAnnouncementModal';
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
-import { Megaphone, Calendar } from 'lucide-react';
 
 // Types
 interface TeacherStats {
@@ -30,7 +30,7 @@ interface TeacherStats {
 }
 
 const TeacherDashboard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -48,6 +48,7 @@ const TeacherDashboard: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
   // Load dashboard data directly from API (same approach as courses page)
   const loadDashboardData = useCallback(async () => {
@@ -64,8 +65,6 @@ const TeacherDashboard: React.FC = () => {
       
       if (response.data.success) {
         const data = response.data.data;
-        console.log('✅ Dashboard data loaded:', data);
-        
         setTeacherData({
           totalCourses: data.totalCourses || 0,
           totalStudentsEnrolled: data.totalStudentsEnrolled || 0,
@@ -76,11 +75,11 @@ const TeacherDashboard: React.FC = () => {
           studentPerformance: [],
           upcomingTasks: []
         });
+        setLastUpdated(Date.now());
       } else {
         throw new Error(response.data.message || 'Failed to load dashboard data');
       }
     } catch (err: any) {
-      console.error('❌ Failed to load dashboard data:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
     } finally {
       setIsLoading(false);
@@ -123,22 +122,12 @@ const TeacherDashboard: React.FC = () => {
     reconnectInterval: 5000,
     heartbeatInterval: 30000,
     disableReconnect: !user?.id || import.meta.env.VITE_ENABLE_WS === 'false',
-    onOpen: () => {
-      console.log('✅ Dashboard WebSocket connected');
-    },
     onError: (error) => {
-      // Silently handle WebSocket errors - they're not critical for dashboard functionality
-      console.warn('⚠️ Dashboard WebSocket error (non-critical):', error);
-    },
-    onMessage: (message) => {
-      console.log('📨 Dashboard WebSocket message received:', message);
+      if (import.meta.env.DEV) {
+        console.warn('Dashboard WebSocket error:', error);
+      }
     }
   });
-  
-  // Log WebSocket connection status
-  useEffect(() => {
-    console.log('🔌 Dashboard WebSocket status:', { isConnected, url: dashboardWsUrl });
-  }, [isConnected, dashboardWsUrl]);
 
   // Optimistic update function for real-time updates
   const optimisticUpdate = useCallback((updater: (currentData: TeacherStats) => TeacherStats) => {
@@ -160,8 +149,6 @@ const TeacherDashboard: React.FC = () => {
         const update = typeof lastMessage.data === 'string' 
           ? JSON.parse(lastMessage.data) 
           : lastMessage.data;
-        
-        console.log('Real-time dashboard update:', update);
         
         // Handle dashboard metric updates
         if (update.type === 'metrics_update' && update.data) {
@@ -218,49 +205,57 @@ const TeacherDashboard: React.FC = () => {
             break;
             
           default:
-            console.log('Unhandled update type:', update.type);
+            if (import.meta.env.DEV) {
+              console.debug('Unhandled dashboard update type:', update.type);
+            }
         }
       } catch (parseError) {
-        console.error('Failed to parse WebSocket message:', parseError);
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse dashboard update message:', parseError);
+        }
       }
     }
   }, [lastMessage, loadDashboardData, optimisticUpdate]);
 
   const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString(i18n.language, { 
       hour: '2-digit', 
       minute: '2-digit',
       hour12: true 
     });
-  }, []);
+  }, [i18n.language]);
 
   const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString(i18n.language, { 
       weekday: 'long',
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
-  }, []);
+  }, [i18n.language]);
 
   const handleRetry = useCallback(() => {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  const lastUpdatedLabel = useMemo(() => {
+    if (!lastUpdated) return t('admin.dashboard.time.never');
+    const diff = Date.now() - lastUpdated;
+    if (diff < 45_000) return t('admin.dashboard.time.just_now');
+    if (diff < 3_600_000) return t('admin.dashboard.time.minutes_ago', { count: Math.round(diff / 60000) });
+    return new Date(lastUpdated).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  }, [lastUpdated, t, i18n.language]);
+
   if (!user || user.role !== 'teacher') {
     return (
-      <div className="flex items-center justify-center min-h-64 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-stone-200 shadow-sm">
-          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-stone-800 mb-2">
-            {t('dashboard.teacher.access_denied_title')}
-          </h3>
-          <p className="text-stone-600 text-xs mb-3">
-            {t('dashboard.teacher.access_denied_message')}
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">{t('dashboard.teacher.access_denied_title')}</h3>
+          <p className="text-stone-600 mb-4">{t('dashboard.teacher.access_denied_message')}</p>
           <Link
             to="/login"
-            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
+            className="px-6 py-3 bg-indigo-900 text-white font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg"
           >
             {t('dashboard.teacher.go_to_login')}
           </Link>
@@ -275,24 +270,17 @@ const TeacherDashboard: React.FC = () => {
 
   if (error && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="w-full space-y-3 p-3 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center max-w-sm bg-white/90 backdrop-blur-md rounded-lg p-6 border border-red-200 shadow-sm">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-stone-800 mb-2">
-              {t('dashboard.teacher.unable_to_load_title')}
-            </h3>
-            <p className="text-stone-600 text-xs mb-3">
-              {error || t('dashboard.teacher.unable_to_load_message')}
-            </p>
-            <button
-              onClick={handleRetry}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg hover:shadow-md transition-all font-medium text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1.5" />
-              {t('dashboard.teacher.try_again')}
-            </button>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-stone-800 mb-2">{t('dashboard.teacher.unable_to_load_title')}</h3>
+          <p className="text-stone-600 mb-4">{error || t('dashboard.teacher.unable_to_load_message')}</p>
+          <button 
+            onClick={handleRetry}
+            className="px-6 py-3 bg-indigo-900 text-white font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg"
+          >
+            {t('dashboard.teacher.try_again')}
+          </button>
         </div>
       </div>
     );
@@ -309,160 +297,186 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Compact Welcome Section */}
-        <div className="bg-gradient-to-r from-indigo-900/5 via-blue-900/5 to-slate-900/5 rounded-lg p-4 border border-indigo-900/10 shadow-sm">
+      <div className="w-full space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-r from-indigo-900/5 via-blue-900/5 to-slate-900/5 rounded-lg p-4 border border-indigo-900/10 shadow-lg backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1.5">
-                <h1 className="text-xl font-semibold text-stone-800">
-                  {t('dashboard.teacher.welcome_back', { name: user?.firstName })}
-                </h1>
+              <div className="flex items-center space-x-2 mb-1">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-indigo-900/20 rounded-lg blur-md"></div>
+                  <div className="relative p-1.5 bg-gradient-to-br from-indigo-900/10 to-blue-900/10 rounded-lg border border-indigo-900/20">
+                    <BookOpen className="h-5 w-5 text-indigo-900" />
+                  </div>
+                </div>
+                <h1 className="text-2xl font-bold text-stone-800">{t('dashboard.teacher.title', 'Teacher Dashboard')}</h1>
                 {isConnected && (
-                  <div className="flex items-center space-x-1.5 bg-emerald-600/10 px-2 py-0.5 rounded-full border border-emerald-600/20">
-                    <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] font-medium text-emerald-700">{t('dashboard.teacher.live')}</span>
+                  <div className="flex items-center space-x-2 text-emerald-600">
+                    <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">Live</span>
                   </div>
                 )}
               </div>
-              <p className="text-stone-600 font-medium text-sm">
-                {formatDate(currentTime)} • {formatTime(currentTime)}
+              <p className="text-stone-700 text-sm mt-1">
+                {t('dashboard.teacher.welcome_back', { name: user?.firstName || t('dashboard.teacher.default_teacher_name') })}! {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
-              <p className="text-stone-700 text-xs mt-1">
-                <span className="font-semibold text-indigo-700">{teacherData.totalStudentsEnrolled}</span> {t('dashboard.teacher.students_enrolled_in_courses', { courses: teacherData.totalCourses })}
+              <p className="text-stone-600 text-xs">
+                {t('dashboard.teacher.overview_summary', { students: teacherData.totalStudentsEnrolled, courses: teacherData.totalCourses })}
               </p>
+              <div className="flex items-center gap-2 text-xs text-stone-600 mt-2">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full border ${isLoading ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white/70 text-stone-700'}`}>
+                  <span className={`h-2 w-2 rounded-full ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`} />
+                  {isLoading ? t('admin.dashboard.updating') : t('admin.dashboard.synced')}
+                </div>
+                <span className="text-stone-500">Last updated {lastUpdatedLabel}</span>
+              </div>
+            </div>
+            <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
+              <Link
+                to="/teacher/courses"
+                className="inline-flex items-center px-4 py-2 bg-indigo-900 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-indigo-800 transition-all"
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                {t('dashboard.teacher.manage_courses')}
+              </Link>
+              <Link
+                to="/teacher/all-students"
+                className="inline-flex items-center px-4 py-2 bg-white text-indigo-900 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:bg-indigo-50 transition-all"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                {t('dashboard.teacher.view_students')}
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Create First Course Prompt */}
+        <TeacherMetrics stats={teacherData} />
+
         {teacherData.totalCourses === 0 && !isLoading && (
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg p-6 text-center shadow-sm">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="h-8 w-8 text-indigo-600" />
+          <section className="rounded-xl border border-dashed border-indigo-200 bg-white/50 p-8 text-center shadow-sm backdrop-blur-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 border border-indigo-100">
+              <BookOpen className="h-8 w-8 text-indigo-900" />
             </div>
-            <h2 className="text-lg font-semibold text-stone-800 mb-2">
+            <h2 className="mt-4 text-xl font-semibold text-stone-800">
               {t('dashboard.teacher.start_teaching_title', 'Start Your Teaching Journey')}
             </h2>
-            <p className="text-stone-600 mb-6 max-w-md mx-auto text-sm">
+            <p className="mt-2 text-stone-600 max-w-md mx-auto">
               {t('dashboard.teacher.start_teaching_desc', 'Create your first course to start sharing your knowledge with students.')}
             </p>
             <Link
               to="/teacher/courses"
-              className="inline-flex items-center px-5 py-2.5 bg-indigo-900 hover:bg-indigo-800 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+              className="mt-6 inline-flex items-center rounded-lg bg-indigo-900 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-800 hover:shadow-lg"
             >
-              <Plus className="h-5 w-5 mr-2" />
+              <Plus className="mr-2 h-5 w-5" />
               {t('dashboard.teacher.create_first_course_btn', 'Create Course')}
             </Link>
-          </div>
+          </section>
         )}
 
-        {/* Compact Teacher profile completion helper */}
         {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (
-          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-4 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-semibold text-stone-800">
-                  {t('dashboard.teacher.complete_profile_title')}
-                </h3>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  {t('dashboard.teacher.complete_profile_message', { percentage: user.profileCompletion.percentage })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-24 sm:w-32">
-                  <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="h-1.5 bg-indigo-600 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(user.profileCompletion.percentage || 0, 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <Link
-                  to="/teacher/profile"
-                  className="inline-flex items-center px-3 py-1 bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 text-xs font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  {t('dashboard.teacher.update_profile')}
-                </Link>
-              </div>
+          <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between backdrop-blur-sm">
+            <div>
+              <h3 className="text-sm font-semibold text-amber-900">
+                {t('dashboard.teacher.complete_profile_title')}
+              </h3>
+              <p className="mt-1 text-sm text-amber-800">
+                {t('dashboard.teacher.complete_profile_message', { percentage: user.profileCompletion.percentage })}
+              </p>
             </div>
-          </div>
+            <div className="flex flex-1 items-center gap-4 sm:justify-end">
+              <div className="h-2 flex-1 rounded-full bg-amber-200 max-w-[200px]">
+                <div
+                  className="h-2 rounded-full bg-amber-600 transition-all"
+                  style={{ width: `${Math.min(user.profileCompletion.percentage || 0, 100)}%` }}
+                />
+              </div>
+              <Link
+                to="/teacher/profile"
+                className="inline-flex items-center rounded-lg border border-amber-600 px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+              >
+                {t('dashboard.teacher.update_profile')}
+              </Link>
+            </div>
+          </section>
         )}
 
-        {/* Simplified Teacher Metrics */}
-        <TeacherMetrics stats={teacherData} />
-
-        {/* Compact Quick Actions */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-stone-200 p-4">
-          <h3 className="text-sm font-semibold text-stone-800 mb-3 flex items-center gap-2">
-            <span className="w-1 h-4 bg-indigo-900 rounded-full"></span>
-            {t('dashboard.teacher.quick_actions')}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Link
-              to="/teacher/courses"
-              className="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 hover:border-indigo-300 transition-all group"
+        <section className="rounded-xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-lg font-semibold text-stone-800">
+              {t('dashboard.teacher.quick_actions')}
+            </h3>
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-800 bg-white"
             >
-              <div className="p-2 bg-indigo-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
-                <BookOpen className="h-5 w-5 text-indigo-700" />
+              <RefreshCw className="mr-2 h-3.5 w-3.5" />
+              {t('dashboard.teacher.refresh_data')}
+            </button>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Link
+              to="/teacher/all-courses"
+              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
+            >
+              <div>
+                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.manage_courses')}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.manage_courses_desc')}</p>
               </div>
-              <span className="font-medium text-stone-800 text-sm">{t('dashboard.teacher.manage_courses')}</span>
+              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                <BookOpen className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              </div>
             </Link>
             <Link
-              to="/teacher/students"
-              className="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all group"
+              to="/teacher/all-students"
+              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
             >
-              <div className="p-2 bg-blue-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
-                <Users className="h-5 w-5 text-blue-700" />
+              <div>
+                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.view_students')}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.view_students_desc')}</p>
               </div>
-              <span className="font-medium text-stone-800 text-sm">{t('dashboard.teacher.view_students')}</span>
+              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                <Users className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              </div>
             </Link>
             <button
               onClick={() => setShowAnnouncementModal(true)}
-              className="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 hover:border-indigo-300 transition-all group"
+              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 text-left transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
             >
-              <div className="p-2 bg-indigo-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
-                <Megaphone className="h-5 w-5 text-indigo-700" />
+              <div>
+                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.announcements')}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.announcements_desc')}</p>
               </div>
-              <span className="font-medium text-stone-800 text-sm">Announcement</span>
+              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                <Megaphone className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              </div>
             </button>
             <button
               onClick={() => setShowEventModal(true)}
-              className="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 hover:border-indigo-300 transition-all group"
+              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 text-left transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
             >
-              <div className="p-2 bg-indigo-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
-                <Calendar className="h-5 w-5 text-indigo-700" />
+              <div>
+                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.events')}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.events_desc')}</p>
               </div>
-              <span className="font-medium text-stone-800 text-sm">Event</span>
-            </button>
-            <button
-              onClick={handleRetry}
-              className="flex flex-col items-center justify-center p-4 bg-stone-50 hover:bg-stone-100 rounded-lg border border-stone-200 hover:border-stone-300 transition-all group"
-            >
-              <div className="p-2 bg-stone-100 rounded-lg mb-2 group-hover:scale-110 transition-transform">
-                <RefreshCw className="h-5 w-5 text-stone-600" />
+              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                <Calendar className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
               </div>
-              <span className="font-medium text-stone-700 text-sm">{t('dashboard.teacher.refresh_data')}</span>
             </button>
           </div>
-        </div>
+        </section>
       </div>
       
-      <CreateAnnouncementModal 
-        isOpen={showAnnouncementModal} 
-        onClose={() => setShowAnnouncementModal(false)} 
-        onSuccess={() => {
-          // Ideally refetch or show success toast
-        }}
+      <CreateAnnouncementModal
+        isOpen={showAnnouncementModal}
+        onClose={() => setShowAnnouncementModal(false)}
+        onSuccess={() => {}}
         type="teacher"
       />
       
-      <CreateEventModal 
-        isOpen={showEventModal} 
-        onClose={() => setShowEventModal(false)} 
-        onSuccess={() => {
-          // Ideally refetch or show success toast
-        }}
+      <CreateEventModal
+        isOpen={showEventModal}
+        onClose={() => setShowEventModal(false)}
+        onSuccess={() => {}}
         type="teacher"
       />
     </ErrorBoundary>

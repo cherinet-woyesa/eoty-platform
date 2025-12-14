@@ -42,6 +42,7 @@ const ChapterRolesManagement: React.FC = () => {
   const [countryFilter, setCountryFilter] = useState<string>('');
   const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [regionOptions, setRegionOptions] = useState<string[]>([]);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Assignment form state
   const [showAssignForm, setShowAssignForm] = useState(false);
@@ -53,6 +54,12 @@ const ChapterRolesManagement: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Debounce search to smooth filtering
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.toLowerCase()), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
 
   // Load dynamic country/region lists from backend
   useEffect(() => {
@@ -74,22 +81,26 @@ const ChapterRolesManagement: React.FC = () => {
     try {
       setLoading(true);
 
+      const unwrap = (res: any) => {
+        const base = res?.data ?? res;
+        return base?.data ?? base;
+      };
+
       // Load chapters
       const chaptersResponse = await chaptersApi.getChapters();
-      if (chaptersResponse.success) {
-        setChapters(chaptersResponse.data.chapters);
-      }
+      const chaptersPayload = unwrap(chaptersResponse);
+      if (chaptersPayload?.chapters) setChapters(chaptersPayload.chapters);
 
       // Load users
-      const usersResponse = await adminApi.getUsers();
-      if (usersResponse.success) {
-        setUsers(usersResponse.data.users);
-      }
+      const usersResponse = await adminApi.getUsers({ page: 1, limit: 500 });
+      const usersPayload = unwrap(usersResponse);
+      if (usersPayload?.users) setUsers(usersPayload.users);
 
       // Load all chapter roles
       const rolesResponse = await chapterRolesApi.getAllChapterRoles();
-      if (rolesResponse.success) {
-        const mappedRoles = rolesResponse.data.roles.map((role: any) => ({
+      const rolesPayload = unwrap(rolesResponse);
+      if (rolesPayload?.roles) {
+        const mappedRoles = rolesPayload.roles.map((role: any) => ({
           ...role,
           user_name: `${role.first_name} ${role.last_name}`,
           user_email: role.email
@@ -99,8 +110,9 @@ const ChapterRolesManagement: React.FC = () => {
 
       // Load regional coordinators
       const coordinatorsResponse = await chapterRolesApi.getRegionalCoordinators();
-      if (coordinatorsResponse.success) {
-        setRegionalCoordinators(coordinatorsResponse.data.coordinators);
+      const coordinatorsPayload = unwrap(coordinatorsResponse);
+      if (coordinatorsPayload?.coordinators) {
+        setRegionalCoordinators(coordinatorsPayload.coordinators);
       }
 
     } catch (error) {
@@ -237,7 +249,7 @@ const ChapterRolesManagement: React.FC = () => {
   };
 
   const filteredChapterRoles = useMemo(() => {
-    const term = searchTerm.toLowerCase();
+    const term = debouncedSearch;
     let list = chapterRoles.filter(cr =>
       (!term ||
         cr.chapter_name?.toLowerCase().includes(term) ||
@@ -256,7 +268,7 @@ const ChapterRolesManagement: React.FC = () => {
     });
 
     return list;
-  }, [chapterRoles, searchTerm, roleFilter, sortBy, regionFilter, countryFilter]);
+  }, [chapterRoles, debouncedSearch, roleFilter, sortBy, regionFilter, countryFilter]);
 
   if (loading) {
     return (
@@ -348,6 +360,15 @@ const ChapterRolesManagement: React.FC = () => {
             style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             Sort by {sortBy === 'chapter' ? 'Chapter' : 'User'}
+          </button>
+          <button
+            type="button"
+            onClick={loadData}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
           </button>
           <button
             onClick={() => setShowAssignForm(true)}

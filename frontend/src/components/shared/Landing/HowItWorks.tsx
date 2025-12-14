@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { User, BookOpen, PlayCircle, Award, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface HowItWorksProps {
   landingContent: any;
@@ -7,6 +8,7 @@ interface HowItWorksProps {
 }
 
 const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(({ landingContent, visibleSections }, ref) => {
+  const { t } = useTranslation();
   const renderHowItWorksStep = (item: any, index: number) => {
     const iconMap: any = { User, BookOpen, PlayCircle, Award };
     const IconComponent = iconMap[item.icon] || User;
@@ -100,17 +102,17 @@ const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(({ landingContent, v
               visibleSections.has('how-it-works') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}>
               <PlayCircle className="h-5 w-5 text-[#1c2753] animate-pulse" />
-              <span className="text-sm font-semibold text-[#1c2753]">How It Works</span>
+              <span className="text-sm font-semibold text-[#1c2753]">{t('landing.how.badge')}</span>
             </div>
             <h2 className={`text-4xl md:text-5xl font-bold text-gray-900 mb-6 transition-all duration-700 delay-300 ${
               visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
-              Your Learning Journey in 4 Steps
+              {t('landing.how.title')}
             </h2>
             <p className={`text-xl text-gray-700 max-w-3xl mx-auto transition-all duration-700 delay-400 ${
               visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
-              Simple, intuitive steps to begin your faith-centered learning experience
+              {t('landing.how.subtitle')}
             </p>
           </div>
 
@@ -121,10 +123,10 @@ const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(({ landingContent, v
             {landingContent['how-it-works']?.steps?.map((step: any, index: number) =>
               renderHowItWorksStep(step, index)
             ) || [
-              { step: '01', title: 'Sign Up', description: 'Create your account and join our community', icon: 'User', features: ['Free registration', 'Profile setup', 'Community access'] },
-              { step: '02', title: 'Choose Course', description: 'Browse and select from our curated courses', icon: 'BookOpen', features: ['Diverse topics', 'Expert instructors', 'Flexible learning'] },
-              { step: '03', title: 'Start Learning', description: 'Begin your journey with interactive content', icon: 'PlayCircle', features: ['Video lessons', 'Interactive quizzes', 'Progress tracking'] },
-              { step: '04', title: 'Get Certified', description: 'Complete courses and earn certificates', icon: 'Award', features: ['Official certificates', 'Achievement badges', 'Recognition'] }
+              { step: '01', title: t('landing.how.defaults.0.title'), description: t('landing.how.defaults.0.desc'), icon: 'User', features: [t('landing.how.defaults.0.f1'), t('landing.how.defaults.0.f2'), t('landing.how.defaults.0.f3')] },
+              { step: '02', title: t('landing.how.defaults.1.title'), description: t('landing.how.defaults.1.desc'), icon: 'BookOpen', features: [t('landing.how.defaults.1.f1'), t('landing.how.defaults.1.f2'), t('landing.how.defaults.1.f3')] },
+              { step: '03', title: t('landing.how.defaults.2.title'), description: t('landing.how.defaults.2.desc'), icon: 'PlayCircle', features: [t('landing.how.defaults.2.f1'), t('landing.how.defaults.2.f2'), t('landing.how.defaults.2.f3')] },
+              { step: '04', title: t('landing.how.defaults.3.title'), description: t('landing.how.defaults.3.desc'), icon: 'Award', features: [t('landing.how.defaults.3.f1'), t('landing.how.defaults.3.f2'), t('landing.how.defaults.3.f3')] }
             ].map((step, index) => renderHowItWorksStep(step, index))}
           </div>
         </div>

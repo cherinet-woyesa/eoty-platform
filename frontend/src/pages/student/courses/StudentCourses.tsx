@@ -348,14 +348,20 @@ const StudentCourses: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
           <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            {data?.enrolledCourses.length === 0 ? 'No courses enrolled yet' : 'No courses found'}
+            {data?.enrolledCourses.length === 0 ? t('student_courses.no_enrolled') : t('student_courses.no_courses_found')}
           </h3>
           <p className="text-gray-600 text-sm mb-4">
             {data?.enrolledCourses.length === 0 
-              ? 'Start your learning journey by enrolling in a course.'
-              : 'Try adjusting your search or filter criteria.'
+              ? t('student_courses.start_journey_desc')
+              : t('student_courses.adjust_filters_prompt')
             }
           </p>
+          <Link
+            to="/member/all-courses?tab=browse"
+            className="inline-flex items-center px-4 py-2 bg-[#1e1b4b] text-white rounded-lg hover:bg-[#312e81] transition-colors"
+          >
+            {t('student_courses.browse_courses_btn')}
+          </Link>
         </div>
       )}
     </div>

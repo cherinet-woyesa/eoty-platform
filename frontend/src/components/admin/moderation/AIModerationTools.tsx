@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/services/api';
-import { AlertTriangle, CheckCircle, XCircle, ArrowUpCircle, BarChart3 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, ArrowUpCircle, BarChart3, RefreshCw } from 'lucide-react';
 import MetricsCard from '../analytics/MetricsCard';
+import { brandColors } from '@/theme/brand';
 
 interface ModerationItem {
   id: number;
@@ -31,6 +33,7 @@ interface RecentActivity {
 }
 
 export const AIModerationTools: React.FC = () => {
+  const { t } = useTranslation();
   const [pendingItems, setPendingItems] = useState<ModerationItem[]>([]);
   const [stats, setStats] = useState<ModerationStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -38,6 +41,7 @@ export const AIModerationTools: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ModerationItem | null>(null);
   const [actionNotes, setActionNotes] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadModerationData();
@@ -46,6 +50,7 @@ export const AIModerationTools: React.FC = () => {
   const loadModerationData = async () => {
     try {
       setLoading(true);
+      setIsRefreshing(true);
       const [itemsResponse, statsResponse] = await Promise.all([
         adminApi.getPendingAIModeration(),
         adminApi.getModerationStats()
@@ -64,6 +69,7 @@ export const AIModerationTools: React.FC = () => {
       console.error('Error loading moderation data:', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -89,50 +95,73 @@ export const AIModerationTools: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <XCircle className="h-5 w-5 text-red-400 mr-2" />
-          <p className="text-red-800">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-red-800">
+            <XCircle className="h-5 w-5" />
+            <span className="text-sm">{error}</span>
+          </div>
+          <button
+            onClick={loadModerationData}
+            className="px-3 py-1.5 text-sm bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-100"
+          >
+            {t('common.retry', 'Retry')}
+          </button>
+        </div>
+      )}
+      <div className="flex justify-end">
+        <button
+          onClick={loadModerationData}
+          disabled={isRefreshing}
+          className="inline-flex items-center px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+        >
+          <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+          {t('common.refresh', 'Refresh')}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="border border-slate-200 rounded-lg p-4 space-y-3">
+              <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-2/3 bg-gray-200 rounded animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {/* Stats Overview */}
-      {stats && (
+      {!loading && stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricsCard
-            title="Pending Review"
+            title={t('ai_moderation.pending_review', 'Pending Review')}
             value={stats.pending}
             icon={<AlertTriangle className="h-6 w-6 text-yellow-500" />}
             change={0}
           />
           <MetricsCard
-            title="Approved"
+            title={t('ai_moderation.approved', 'Approved')}
             value={stats.approved}
             icon={<CheckCircle className="h-6 w-6 text-green-500" />}
             change={0}
           />
           <MetricsCard
-            title="Rejected"
+            title={t('ai_moderation.rejected', 'Rejected')}
             value={stats.rejected}
             icon={<XCircle className="h-6 w-6 text-red-500" />}
             change={0}
           />
           <MetricsCard
-            title="Escalated"
+            title={t('ai_moderation.escalated', 'Escalated')}
             value={stats.escalated}
             icon={<ArrowUpCircle className="h-6 w-6 text-blue-500" />}
             change={0}
@@ -146,12 +175,12 @@ export const AIModerationTools: React.FC = () => {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center">
               <BarChart3 className="h-5 w-5 text-blue-500 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">Faith Alignment</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('ai_moderation.faith_alignment', 'Faith Alignment')}</h3>
             </div>
             <div className="mt-4 space-y-4">
               <div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>High Alignment</span>
+                  <span>{t('ai_moderation.high_alignment', 'High Alignment')}</span>
                   <span>{stats.high_faith_alignment}</span>
                 </div>
                 <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
@@ -163,7 +192,7 @@ export const AIModerationTools: React.FC = () => {
               </div>
               <div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Low Alignment</span>
+                  <span>{t('ai_moderation.low_alignment', 'Low Alignment')}</span>
                   <span>{stats.low_faith_alignment}</span>
                 </div>
                 <div className="mt-1 w-full bg-gray-200 rounded-full h-2">

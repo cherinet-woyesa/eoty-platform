@@ -1,5 +1,6 @@
 import React, { useState, forwardRef, memo } from 'react';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 export interface FormInputProps {
   id: string;
@@ -52,6 +53,11 @@ const FormInput = memo(forwardRef<HTMLInputElement, FormInputProps>(({
   const hasSuccess = !!(value && !error && successIndicator && touched);
   const inputType = type === 'password' && showPassword ? 'text' : type;
 
+  const brandStyle = {
+    ['--brand' as any]: brandColors.primaryHex,
+    ['--brand-strong' as any]: brandColors.primaryHoverHex,
+  };
+
   // Size-based classes
   const sizeClasses = {
     sm: {
@@ -83,18 +89,18 @@ const FormInput = memo(forwardRef<HTMLInputElement, FormInputProps>(({
   const getIconColor = () => {
     if (hasError) return 'text-red-400';
     if (hasSuccess) return 'text-green-500';
-    return 'text-gray-400 group-focus-within:text-blue-500';
+    return 'text-gray-400 group-focus-within:text-[color:var(--brand-strong)]';
   };
 
   // Determine border color based on state
   const getBorderColor = () => {
     if (hasError) return 'border-red-300 focus:border-red-500';
     if (hasSuccess) return 'border-green-300 focus:border-green-500';
-    return 'border-gray-200 focus:border-blue-500';
+    return 'border-gray-200 focus:border-[color:var(--brand)]';
   };
 
   return (
-    <div className={currentSize.container}>
+    <div className={currentSize.container} style={brandStyle}>
       {/* Label */}
       <label
         htmlFor={id}
@@ -138,7 +144,7 @@ const FormInput = memo(forwardRef<HTMLInputElement, FormInputProps>(({
             ${currentSize.input}
             border-2 rounded-lg
             placeholder-gray-400
-            focus:outline-none focus:ring-2 focus:ring-blue-500/20
+            focus:outline-none focus:ring-2 focus:ring-[color:var(--brand)]/20
             transition-all duration-200
             bg-gray-50/50 focus:bg-white
             text-gray-900

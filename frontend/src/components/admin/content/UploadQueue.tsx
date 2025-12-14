@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	Check,
 	X,
@@ -26,6 +27,7 @@ import {
 import type { ContentUpload } from '@/types/admin';
 import { adminApi } from '@/services/api';
 import TagDragDrop from './TagDragDrop';
+import { brandColors } from '@/theme/brand';
 
 interface UploadQueueProps {
 	uploads: ContentUpload[];
@@ -35,13 +37,18 @@ interface UploadQueueProps {
 		reason?: string
 	) => Promise<boolean>;
 	loading?: boolean;
+	error?: string | null;
+	onRefresh?: () => void;
 }
 
 const UploadQueue: React.FC<UploadQueueProps> = ({
 	uploads,
 	onApprove,
 	loading,
+	error,
+	onRefresh,
 }) => {
+	const { t } = useTranslation();
 	const [rejectingId, setRejectingId] = useState<number | null>(null);
 	const [rejectionReason, setRejectionReason] = useState('');
 	const [previewId, setPreviewId] = useState<number | null>(null);
@@ -249,13 +256,38 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 		}
 	};
 
+	const exportCsv = () => {
+		if (!uploads || uploads.length === 0) return;
+		const header = ['ID', 'Title', 'Description', 'Type', 'Status', 'Size', 'Chapter', 'Uploaded At'];
+		const rows = uploads.map((u) => [
+			u.id,
+			u.title || '',
+			u.description || '',
+			u.media_type || (u as any).type || '',
+			u.status || '',
+			(u as any).size || '',
+			(u as any).chapter || '',
+			u.created_at || '',
+		]);
+		const csv = [header, ...rows]
+			.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+			.join('\n');
+		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = 'upload-queue.csv';
+		link.click();
+		URL.revokeObjectURL(url);
+	};
+
 	if (loading && uploads.length === 0) {
 		return (
 			<div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
 				<div className="flex items-center justify-center min-h-96">
 					<div className="text-center">
 						<RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-						<p className="text-gray-600 text-lg">Loading upload queue...</p>
+						<p className="text-gray-600 text-lg">{t('upload_queue.loading', 'Loading upload queue...')}</p>
 					</div>
 				</div>
 			</div>
@@ -264,40 +296,67 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 
 	return (
 		<div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+			{error && (
+				<div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<AlertCircle className="h-4 w-4" />
+						<span className="text-sm">{error}</span>
+					</div>
+					{onRefresh && (
+						<button
+							onClick={onRefresh}
+							className="px-3 py-1.5 text-sm bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-100"
+						>
+							{t('common.retry', 'Retry')}
+						</button>
+					)}
+				</div>
+			)}
 			{/* Header Section - Compact */}
-			<div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl p-3 sm:p-4 text-white shadow-lg">
+			<div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200 text-stone-800 shadow-sm">
 				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
 					<div className="flex-1">
 						<div className="flex items-center space-x-2 mb-1">
-							<h1 className="text-lg sm:text-xl font-bold">Upload Queue</h1>
-							<div className="hidden sm:flex items-center space-x-1 text-blue-100">
+							<h1 className="text-lg sm:text-xl font-bold text-stone-900">{t('upload_queue.title', 'Upload Queue')}</h1>
+							<div className="hidden sm:flex items-center space-x-1 text-stone-500">
 								<Clock className="h-3 w-3" />
-								<span className="text-xs">Updated {getTimeAgo(new Date())}</span>
+								<span className="text-xs">{t('upload_queue.updated', 'Updated {{time}}', { time: getTimeAgo(new Date()) })}</span>
 							</div>
 						</div>
-						<p className="text-blue-100 text-xs sm:text-sm">
-							Monitor and manage file upload progress
+						<p className="text-stone-600 text-xs sm:text-sm">
+							{t('upload_queue.subtitle', 'Monitor and manage file upload progress')}
 						</p>
-						<p className="text-blue-200 text-xs mt-1">
-							{uploads.length} total uploads •{' '}
-							{uploads.filter((u) => u.status === 'pending').length} pending
-							review
+						<p className="text-stone-500 text-xs mt-1">
+							{t('upload_queue.counts', '{{total}} total uploads • {{pending}} pending review', {
+								total: uploads.length,
+								pending: uploads.filter((u) => u.status === 'pending').length,
+							})}
 						</p>
 					</div>
 					<div className="mt-3 lg:mt-0 lg:ml-4">
 						<div className="flex flex-col sm:flex-row gap-1.5">
 							<button
 								disabled={loading}
-								className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm disabled:opacity-50"
+								onClick={onRefresh}
+								className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors duration-200 disabled:opacity-50"
+								style={{ backgroundColor: brandColors.primaryHex }}
 							>
 								<RefreshCw
 									className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`}
 								/>
-								Refresh
+								{t('common.refresh', 'Refresh')}
 							</button>
-							<button className="inline-flex items-center px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors duration-200 backdrop-blur-sm">
-								<CheckCircle className="h-3 w-3 mr-1.5" />
-								Clear Completed
+							<button
+								onClick={exportCsv}
+								className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-lg border hover:bg-slate-50 transition-colors duration-200"
+								style={{ borderColor: '#e2e8f0' }}
+							>
+								<Download className="h-3 w-3 mr-1.5 text-brand-primary" />
+								{t('common.export_csv', 'Export CSV')}
+							</button>
+							<button className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-lg border hover:bg-slate-50 transition-colors duration-200" style={{ borderColor: '#e2e8f0' }}>
+								<CheckCircle className="h-3 w-3 mr-1.5 text-brand-primary" />
+								{t('upload_queue.clear_completed', 'Clear Completed')}
 							</button>
 						</div>
 					</div>
@@ -364,32 +423,30 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 				].map((stat, index) => (
 					<div
 						key={index}
-						className={`bg-gradient-to-br ${stat.bgColor} rounded-lg p-2.5 sm:p-3 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200`}
+						className={`bg-white rounded-lg p-2.5 sm:p-3 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200`}
 					>
 						<div className="flex items-center justify-between mb-1.5">
-							<div
-								className={`p-1.5 rounded-md bg-gradient-to-r ${stat.color} shadow-sm`}
-							>
-								<stat.icon className="h-3 w-3 text-white" />
+							<div className="p-1.5 rounded-md bg-brand-primary text-white shadow-sm">
+								<stat.icon className="h-3 w-3" />
 							</div>
 							<div className="text-right">
 								<div className="flex items-center space-x-1">
 									<TrendingUp
 										className={`h-2.5 w-2.5 ${
 											stat.changeType === 'positive'
-												? 'text-green-600'
+												? 'text-brand-primary'
 												: stat.changeType === 'negative'
-												? 'text-red-600'
-												: 'text-gray-600'
+												? 'text-brand-accent'
+												: 'text-slate-600'
 										}`}
 									/>
 									<span
 										className={`text-xs font-medium ${
 											stat.changeType === 'positive'
-												? 'text-green-700'
+												? 'text-brand-primary'
 												: stat.changeType === 'negative'
-												? 'text-red-700'
-												: 'text-gray-700'
+												? 'text-brand-accent'
+												: 'text-slate-700'
 										}`}
 									>
 										{stat.change}
@@ -417,19 +474,12 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 						>
 							{/* Upload Header with Status Color */}
 							<div
-								className={`bg-gradient-to-r ${
-									upload.status === 'approved'
-										? 'from-green-500 to-green-600'
-										: upload.status === 'rejected'
-										? 'from-red-500 to-red-600'
-										: upload.status === 'processing'
-										? 'from-blue-500 to-blue-600'
-										: 'from-amber-500 to-amber-600'
-								} p-4 text-white`}
+								className={`p-4 text-white`}
+								style={{ backgroundColor: upload.status === 'rejected' ? brandColors.accentHex : brandColors.primaryHex }}
 							>
 								<div className="flex items-start justify-between">
 									<div className="flex items-center flex-1">
-										<div className="h-12 w-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white mr-3">
+										<div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center text-white mr-3">
 											{getFileIcon(upload.file_type)}
 										</div>
 										<div className="flex-1 min-w-0">
@@ -443,7 +493,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 										</div>
 									</div>
 									<span
-										className={`px-2 py-1 rounded-md text-xs font-medium bg-white/20 backdrop-blur-sm`}
+										className={`px-2 py-1 rounded-md text-xs font-medium bg-white/20`}
 									>
 										{upload.status}
 									</span>
@@ -519,7 +569,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 											{upload.tags.map((tag) => (
 												<span
 													key={tag}
-													className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md"
+													className="inline-block bg-brand-primary/10 text-brand-primary text-xs px-2 py-1 rounded-md"
 												>
 													{tag}
 												</span>
@@ -530,7 +580,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 										onClick={() => {
 											setTaggingUploadId(taggingUploadId === upload.id ? null : upload.id);
 										}}
-										className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+										className="inline-flex items-center px-2 py-1 text-xs font-medium text-brand-primary bg-white border border-brand-primary/40 rounded hover:bg-brand-primary/5 transition-colors"
 									>
 										<Tag className="h-3 w-3 mr-1" />
 										{taggingUploadId === upload.id ? 'Hide Tags' : 'Manage Tags'}
@@ -599,7 +649,8 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 										<button
 											onClick={() => handleRetry(upload.id)}
 											disabled={retryingId === upload.id}
-											className="w-full inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+											className="w-full inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white disabled:opacity-50 transition-colors"
+											style={{ backgroundColor: brandColors.primaryHex }}
 										>
 											{retryingId === upload.id ? (
 												<>
@@ -630,14 +681,15 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 														<button
 															onClick={() => handleReject(upload.id)}
 															disabled={!rejectionReason.trim()}
-															className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+															className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white disabled:opacity-50 transition-colors"
+															style={{ backgroundColor: brandColors.accentHex }}
 														>
 															<X className="mr-1 h-3 w-3" />
 															Confirm Reject
 														</button>
 														<button
 															onClick={() => setRejectingId(null)}
-															className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+															className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-slate-300 text-xs font-medium rounded-lg text-stone-700 bg-white hover:bg-slate-50 transition-colors"
 														>
 															Cancel
 														</button>
@@ -647,7 +699,8 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 												<div className="flex space-x-2">
 													<button
 														onClick={() => handleApprove(upload.id)}
-														className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors"
+														className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white transition-colors"
+														style={{ backgroundColor: brandColors.primaryHex }}
 													>
 														<Check className="mr-1 h-3 w-3" />
 														Approve
@@ -655,7 +708,8 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 
 													<button
 														onClick={() => setRejectingId(upload.id)}
-														className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors"
+														className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white transition-colors"
+														style={{ backgroundColor: brandColors.accentHex }}
 													>
 														<X className="mr-1 h-3 w-3" />
 														Reject
@@ -669,7 +723,8 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 										<button
 											onClick={() => togglePreview(upload.id)}
 											disabled={loadingPreview === upload.id}
-											className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-blue-300 text-xs font-medium rounded-lg text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-50 transition-colors"
+											className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border text-xs font-medium rounded-lg bg-white disabled:opacity-50 transition-colors"
+											style={{ borderColor: `${brandColors.primaryHex}66`, color: brandColors.primaryHex }}
 										>
 											{loadingPreview === upload.id ? (
 												<>
@@ -686,7 +741,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 											)}
 										</button>
 
-										<button className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+										<button className="inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded-lg text-stone-700 bg-white hover:bg-slate-50 transition-colors" style={{ borderColor: '#e2e8f0' }}>
 											<Download className="h-3 w-3" />
 										</button>
 									</div>
@@ -696,7 +751,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 					))}
 				</div>
 			) : (
-				<div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-6 sm:p-8 text-center shadow-sm">
+				<div className="bg-white rounded-lg border border-slate-200 p-6 sm:p-8 text-center shadow-sm">
 					<Upload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
 					<h3 className="text-lg font-bold text-gray-900 mb-2">
 						No uploads in queue

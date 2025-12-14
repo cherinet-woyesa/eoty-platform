@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { coursesApi } from '@/services/api';
 import { apiClient } from '@/services/api/apiClient';
 import { brandColors } from '@/theme/brand';
@@ -21,7 +22,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import type { Course } from '@/types/courses';
@@ -32,6 +34,7 @@ interface CourseWithCreator extends Course {
 }
 
 const AllCourses: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -44,30 +47,57 @@ const AllCourses: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [pagination, setPagination] = useState<{ total: number; totalPages: number; page: number; limit: number }>({
+    total: 0,
+    totalPages: 1,
+    page: 1,
+    limit: 20,
+  });
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'created_at' | 'title' | 'student_count' | 'lesson_count'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch all courses (admin sees all)
-  const fetchCourses = useCallback(async () => {
+  const fetchCourses = useCallback(async (pageOverride?: number) => {
     try {
       setLoading(true);
       setError(null);
+      const pageToLoad = pageOverride ?? currentPage;
       
-      const response = await coursesApi.getCourses();
-      
-      if (response.success && response.data?.courses) {
-        // For admin, we might want to enrich with creator info
-        const coursesData = response.data.courses.map((course: Course) => ({
-          ...course,
-          // Creator info would come from backend if available
-        }));
-        setCourses(coursesData);
-      } else {
-        throw new Error('Invalid response format');
-      }
+      const response = await coursesApi.getCourses({
+        page: pageToLoad,
+        perPage: itemsPerPage,
+        q: searchTerm || undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        sortBy,
+        sortOrder,
+      } as any);
+
+      const payload = response?.data ?? response;
+      const data = payload?.data ?? payload;
+      const coursesData: CourseWithCreator[] = data?.courses || data || [];
+      setCourses(coursesData);
+
+      const paginationData = data?.pagination || {};
+      setPagination({
+        total: paginationData.total ?? coursesData.length ?? 0,
+        totalPages:
+          paginationData.totalPages ??
+          paginationData.total_pages ??
+          Math.max(
+            1,
+            Math.ceil(
+              ((paginationData.total ?? coursesData.length) || 1) /
+                (paginationData.limit ?? itemsPerPage)
+            )
+          ),
+        page: paginationData.page ?? pageToLoad,
+        limit: paginationData.limit ?? itemsPerPage,
+      });
     } catch (err: any) {
       console.error('Failed to fetch courses:', err);
       setError(err.response?.data?.message || 'Failed to load courses. Please try again.');
@@ -84,11 +114,11 @@ const AllCourses: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (!loading && !actionLoading) {
-        fetchCourses();
+        fetchCourses(pagination.page);
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [loading, actionLoading, fetchCourses]);
+  }, [loading, actionLoading, fetchCourses, pagination.page]);
 
   // Filtered and sorted courses
   const filteredAndSortedCourses = useMemo(() => {
@@ -137,14 +167,14 @@ const AllCourses: React.FC = () => {
   // Stats
   const stats = useMemo(() => {
     return {
-      total: courses.length,
+      total: pagination.total || courses.length,
       published: courses.filter(c => c.is_published).length,
       draft: courses.filter(c => !c.is_published).length,
       totalStudents: courses.reduce((sum, c) => sum + (c.student_count || 0), 0),
       totalLessons: courses.reduce((sum, c) => sum + (c.lesson_count || 0), 0),
       totalDuration: Math.round(courses.reduce((sum, c) => sum + (c.total_duration || 0), 0) / 60)
     };
-  }, [courses]);
+  }, [courses, pagination.total]);
 
   // Handlers
   const handleBulkPublish = async (publish: boolean) => {
@@ -267,10 +297,68 @@ const AllCourses: React.FC = () => {
     return labels[category] || category;
   };
 
+  const exportCsv = async () => {
+    try {
+      setIsExporting(true);
+      const response = await coursesApi.getCourses({
+        page: 1,
+        perPage: pagination.total || 1000,
+        q: searchTerm || undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        sortBy,
+        sortOrder,
+      } as any);
+      const payload = response?.data ?? response;
+      const data = payload?.data ?? payload;
+      const coursesData: CourseWithCreator[] = data?.courses || data || [];
+      const header = ['ID', 'Title', 'Description', 'Category', 'Status', 'Students', 'Lessons', 'Created'];
+      const rows = coursesData.map((c) => [
+        c.id,
+        c.title || '',
+        c.description || '',
+        c.category || '',
+        c.is_published ? 'published' : 'draft',
+        c.student_count || 0,
+        c.lesson_count || 0,
+        c.created_at || ''
+      ]);
+      const csv = [header, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'courses.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV export failed', err);
+      setError('Failed to export CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading && courses.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <LoadingSpinner size="lg" text="Loading courses..." />
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+          <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white">
+              <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />
+              <div className="h-3 w-2/3 bg-gray-200 animate-pulse rounded" />
+              <div className="h-3 w-1/2 bg-gray-200 animate-pulse rounded" />
+              <div className="flex gap-2">
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -281,7 +369,11 @@ const AllCourses: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-600">
-              {stats.total} total courses • {stats.published} published • {stats.draft} drafts
+              {t('courses.counts', '{{total}} total courses • {{published}} published • {{draft}} drafts', {
+                total: stats.total,
+                published: stats.published,
+                draft: stats.draft
+              })}
             </span>
           </div>
           <div className="flex gap-2">
@@ -292,7 +384,16 @@ const AllCourses: React.FC = () => {
               style={{ borderColor: `${brandColors.primaryHex}40` }}
             >
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-              Refresh
+              {t('common.refresh', 'Refresh')}
+            </button>
+            <button
+              onClick={exportCsv}
+              disabled={isExporting}
+              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+              style={{ borderColor: `${brandColors.primaryHex}40` }}
+            >
+              <Download className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+              {isExporting ? t('common.exporting', 'Exporting...') : t('common.export_csv', 'Export CSV')}
             </button>
             <button
               onClick={() => navigate('/admin/courses/create')}
@@ -300,7 +401,7 @@ const AllCourses: React.FC = () => {
               style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
-              New Course
+              {t('courses.new_course', 'New Course')}
             </button>
           </div>
         </div>
@@ -502,7 +603,7 @@ const AllCourses: React.FC = () => {
       )}
 
       {/* Courses Display */}
-      {filteredAndSortedCourses.length > 0 ? (
+      {courses.length > 0 ? (
         <>
           {viewMode === 'table' ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -632,11 +733,15 @@ const AllCourses: React.FC = () => {
                       <ChevronLeft className="h-4 w-4" />
                     </button>
                     <span className="text-sm text-gray-700">
-                      Page {currentPage} of {totalPages}
+                      Page {pagination.page} of {pagination.totalPages}
                     </span>
                     <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
+                      onClick={() => {
+                        const next = Math.min(pagination.totalPages, (pagination.page || 1) + 1);
+                        setCurrentPage(next);
+                        fetchCourses(next);
+                      }}
+                      disabled={pagination.page >= pagination.totalPages}
                       className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChevronRight className="h-4 w-4" />

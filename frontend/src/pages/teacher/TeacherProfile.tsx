@@ -1,809 +1,1123 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
-import { useAuth } from '@/context/AuthContext';
-import { authApi, teacherApi } from '@/services/api';
+import teacherApi from '@/services/api/teacherApi';
+import type { TeacherProfile as TeacherProfileType } from '@/services/api/teacherApi';
 import { useTranslation } from 'react-i18next';
 import { 
-  User, Mail, Phone, MapPin, Calendar, 
-  Save, Camera, Edit3, CheckCircle, 
-  AlertCircle, Loader2, X, Shield, FileText, ListChecks, Globe, CreditCard
+  Shield, CreditCard, FileText,
+  ChevronDown, ChevronUp, HelpCircle,
+  Phone, Mail, Search, ArrowRight, Banknote,
+  Globe, Upload, Clock, Check, LayoutDashboard, BookOpen, ArrowLeft
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { brandColors } from '@/theme/brand';
+import { useNavigate } from 'react-router-dom';
 
-interface ProfileData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  bio?: string;
-  phone?: string;
-  location?: string;
-  profilePicture?: string;
-  specialties?: string[];
-  teachingExperience?: number;
-  education?: string;
+// --- Types ---
+
+type TeacherProfileData = TeacherProfileType;
+
+interface FAQItem {
+  question: string;
+  answer: string;
 }
 
-type DocStatus = 'ACTION_REQUIRED' | 'PENDING' | 'VERIFIED';
+interface ResourceItem {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  link: string;
+}
 
-const docBadge = (status: DocStatus, label: string) => {
-  const color =
-    status === 'VERIFIED'
-      ? 'text-green-700 bg-green-50 border-green-200'
-      : status === 'PENDING'
-        ? 'text-amber-700 bg-amber-50 border-amber-200'
-        : 'text-red-700 bg-red-50 border-red-200';
-  return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${color}`}>
-      {label}
-    </span>
-  );
-};
+// --- Components ---
 
-const TeacherProfile: React.FC = () => {
-  const { t } = useTranslation();
-  const { user, refreshUser } = useUser();
-  const { refreshUser: refreshAuthUser } = useAuth();
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    bio: '',
-    phone: '',
-    location: '',
-    profilePicture: '',
-    specialties: [],
-    teachingExperience: 0,
-    education: ''
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [newSpecialty, setNewSpecialty] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isUpdatingProfilePictureRef = useRef(false);
-  const [teacherProfile, setTeacherProfile] = useState<any>({});
-  const [loadingProfileExtras, setLoadingProfileExtras] = useState<boolean>(true);
+import { useRef } from 'react';
+import { useNotification } from '@/context/NotificationContext';
 
-  // Load user profile data
-  useEffect(() => {
-    if (user && !isUpdatingProfilePictureRef.current) {
-      setProfileData(prev => ({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        bio: user.bio || '',
-        phone: user.phone || '',
-        location: user.location || '',
-        // Use user's profilePicture if available, otherwise keep existing
-        profilePicture: user.profilePicture || prev.profilePicture || '',
-        specialties: user.specialties || [],
-        teachingExperience: user.teachingExperience || 0,
-        education: user.education || ''
-      }));
-      setLoading(false);
-    }
-  }, [user]);
+const DashboardView: React.FC<{
+  user: any;
+  profile: TeacherProfileData;
+  onNavigate: (view: 'dashboard' | 'payout' | 'verification') => void;
+  onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
+}> = ({ user, profile, onNavigate, onUpdate }) => {
+    // Social Links State
+    const [socialLinks, setSocialLinks] = useState({
+      website_url: profile.website_url || '',
+      twitter_url: profile.twitter_url || '',
+      linkedin_url: profile.linkedin_url || '',
+      facebook_url: profile.facebook_url || '',
+      instagram_url: profile.instagram_url || ''
+    });
+    const [bioDraft, setBioDraft] = useState(profile.bio || '');
+    const [savingBio, setSavingBio] = useState(false);
+    const { showNotification } = useNotification();
 
-  useEffect(() => {
-    const loadExtras = async () => {
+    // Certifications State
+    const [certifications, setCertifications] = useState<any[]>(profile.certifications || []);
+    const [certFile, setCertFile] = useState<File | null>(null);
+    const [certTitle, setCertTitle] = useState('');
+    const [certInstitution, setCertInstitution] = useState('');
+    const [certYear, setCertYear] = useState('');
+    const [certDesc, setCertDesc] = useState('');
+    const [uploadingCert, setUploadingCert] = useState(false);
+    const certInputRef = useRef<HTMLInputElement>(null);
+
+    // Save Social Links
+    const handleSaveLinks = async () => {
+      setSavingLinks(true);
       try {
-        const res = await teacherApi.getProfile();
-        if (res?.success) {
-          setTeacherProfile(res.data.teacherProfile || {});
-        }
-      } catch (err) {
-        console.warn('Failed to load teacher profile extras', err);
+        // Use onUpdate to save and update parent state
+        await onUpdate(socialLinks);
+        showNotification('Social links updated', 'success');
+      } catch (e) {
+        showNotification('Failed to update social links', 'error');
       } finally {
-        setLoadingProfileExtras(false);
+        setSavingLinks(false);
       }
     };
-    loadExtras();
-  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleAddSpecialty = () => {
-    if (newSpecialty.trim() && !profileData.specialties?.includes(newSpecialty.trim())) {
-      setProfileData(prev => ({
-        ...prev,
-        specialties: [...(prev.specialties || []), newSpecialty.trim()]
-      }));
-      setNewSpecialty('');
-    }
-  };
-
-  const handleRemoveSpecialty = (specialty: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      specialties: (prev.specialties || []).filter(s => s !== specialty)
-    }));
-  };
-
-  const handleProfilePictureClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setError(t('teacher_profile.errors.invalid_file_type'));
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError(t('teacher_profile.errors.file_too_large'));
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-    isUpdatingProfilePictureRef.current = true;
-
-    try {
-      // Upload profile image to backend
-      const response = await authApi.uploadProfileImage(file);
-      
-      if (response.success && response.data?.profilePicture) {
-        const newProfilePictureUrl = response.data.profilePicture;
-        
-        // Update profile picture in state immediately with the URL from backend
-        setProfileData(prev => ({
-          ...prev,
-          profilePicture: newProfilePictureUrl
-        }));
-        
-        // Refresh user data in both contexts to get updated profile picture
-        await Promise.all([refreshUser(), refreshAuthUser()]);
-        
-        // Small delay to ensure contexts are updated
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Ensure the profile picture is set after refresh
-        setProfileData(prev => ({
-          ...prev,
-          profilePicture: newProfilePictureUrl
-        }));
-        
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-      } else {
-        throw new Error(response.message || 'Upload failed');
+    // Upload Certification
+    const handleUploadCert = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!certFile || !certTitle) {
+        showNotification('Title and file required', 'warning');
+        return;
       }
-    } catch (err: any) {
-      console.error('Failed to upload profile picture:', err);
-      setError(err.response?.data?.message || err.message || t('teacher_profile.errors.upload_failed'));
-    } finally {
-      setIsUploading(false);
-      isUpdatingProfilePictureRef.current = false;
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handleRemoveProfilePicture = async () => {
-    try {
-      // Update profile with empty profilePicture
-      const updatedProfileData = {
-        ...profileData,
-        profilePicture: ''
-      };
-      
-      // Update the user profile via API
-      const response = await authApi.updateUserProfile(updatedProfileData);
-      
-      if (response.success) {
-        // Update local state
-        setProfileData(prev => ({
-          ...prev,
-          profilePicture: ''
-        }));
-        
-        // Refresh user data in both contexts
-        await Promise.all([refreshUser(), refreshAuthUser()]);
-        
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-      } else {
-        throw new Error(response.message || 'Failed to remove profile picture');
-      }
-    } catch (err: any) {
-      console.error('Failed to remove profile picture:', err);
-      setError(err.response?.data?.message || err.message || t('teacher_profile.errors.remove_failed'));
-    }
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      // Prepare profile data for submission
-      const profileToUpdate = {
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        bio: profileData.bio,
-        phone: profileData.phone,
-        location: profileData.location,
-        profilePicture: profileData.profilePicture,
-        specialties: profileData.specialties,
-        teachingExperience: profileData.teachingExperience,
-        education: profileData.education
-      };
-
-      // Update user profile via API
-      const response = await authApi.updateUserProfile(profileToUpdate);
-      
-      if (response.success && response.data?.user) {
-        // Update local state directly from response to avoid session issues
-        const updatedUser = response.data.user;
-        setProfileData(prev => ({
-          ...prev,
-          firstName: updatedUser.firstName || prev.firstName,
-          lastName: updatedUser.lastName || prev.lastName,
-          bio: updatedUser.bio || prev.bio,
-          phone: updatedUser.phone || prev.phone,
-          location: updatedUser.location || prev.location,
-          profilePicture: updatedUser.profilePicture || prev.profilePicture,
-          specialties: updatedUser.specialties || prev.specialties,
-          teachingExperience: updatedUser.teachingExperience || prev.teachingExperience,
-          education: updatedUser.education || prev.education
-        }));
-        
-        // Refresh user contexts in background (non-blocking)
-        // Use try-catch to prevent errors from affecting the UI
-        Promise.all([
-          refreshUser().catch(err => console.warn('Failed to refresh UserContext:', err)),
-          refreshAuthUser().catch(err => console.warn('Failed to refresh AuthContext:', err))
-        ]).catch(() => {
-          // Silently handle any errors - user data is already updated locally
+      setUploadingCert(true);
+      try {
+        const formData = new FormData();
+        formData.append('title', certTitle);
+        formData.append('institution', certInstitution);
+        formData.append('year', certYear);
+        formData.append('description', certDesc);
+        formData.append('file', certFile);
+        const res = await fetch('/api/teacher/certifications', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
         });
-        
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-      } else {
-        throw new Error(response.message || 'Failed to update profile');
+        const data = await res.json();
+        if (data.success) {
+          const newCerts = data.data.certifications;
+          setCertifications(newCerts);
+          // Update parent state
+          onUpdate({ certifications: newCerts });
+          
+          showNotification('Certification uploaded', 'success');
+          setCertFile(null);
+          setCertTitle('');
+          setCertInstitution('');
+          setCertYear('');
+          setCertDesc('');
+          if (certInputRef.current) certInputRef.current.value = '';
+        } else {
+          showNotification(data.message || 'Failed to upload certification', 'error');
+        }
+      } catch (e) {
+        showNotification('Failed to upload certification', 'error');
+      } finally {
+        setUploadingCert(false);
       }
-    } catch (err: any) {
-      console.error('Failed to save profile:', err);
-      setError(t('teacher_profile.errors.save_failed'));
-    } finally {
-      setSaving(false);
-    }
-  };
+    };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-96 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <LoadingSpinner size="lg" text={t('teacher_profile.loading')} variant="logo" />
-      </div>
-    );
-  }
+    // Delete Certification
+    const handleDeleteCert = async (id: number) => {
+      if (!window.confirm('Delete this certification?')) return;
+      try {
+        const res = await fetch(`/api/teacher/certifications/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const newCerts = data.data.certifications;
+          setCertifications(newCerts);
+          // Update parent state
+          onUpdate({ certifications: newCerts });
+          
+          showNotification('Certification deleted', 'success');
+        } else {
+          showNotification(data.message || 'Failed to delete certification', 'error');
+        }
+      } catch (e) {
+        showNotification('Failed to delete certification', 'error');
+      }
+    };
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const checklistItems = [
+    { 
+      id: 'identity', 
+      label: t('teacher_dashboard.checklist_complete_profile'), 
+      isComplete: !!(user?.firstName && user?.lastName && user?.bio),
+      action: () => {
+        // Scroll to top to focus on bio/avatar
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Optionally focus the bio field
+        const bioField = document.querySelector('textarea');
+        if (bioField) bioField.focus();
+      }
+    },
+    { 
+      id: 'verification', 
+      label: t('teacher_dashboard.checklist_submit_documents'), 
+      isComplete: Object.values(profile.verification_docs || {}).some(s => s === 'VERIFIED'),
+      action: () => onNavigate('verification')
+    },
+    { 
+      id: 'payout', 
+      label: t('teacher_dashboard.checklist_setup_payout'), 
+      isComplete: !!profile.payout_method,
+      action: () => onNavigate('payout')
+    }
+  ];
+
+  const resources: ResourceItem[] = [
+    {
+      title: t('teacher_dashboard.resource_guidelines_title'),
+      description: t('teacher_dashboard.resource_guidelines_description'),
+      icon: <BookOpen className="h-6 w-6 text-white" />,
+      link: '/resources/guidelines'
+    },
+    {
+      title: t('teacher_dashboard.resource_video_standards_title'),
+      description: t('teacher_dashboard.resource_video_standards_description'),
+      icon: <FileText className="h-6 w-6 text-white" />,
+      link: '/resources/video-standards'
+    },
+    {
+      title: t('teacher_dashboard.resource_community_rules_title'),
+      description: t('teacher_dashboard.resource_community_rules_description'),
+      icon: <Shield className="h-6 w-6 text-white" />,
+      link: '/resources/community-rules'
+    }
+  ];
+
+  const faqs: FAQItem[] = [
+    {
+      question: t('teacher_dashboard.faq_q1'),
+      answer: t('teacher_dashboard.faq_a1')
+    },
+    {
+      question: t('teacher_dashboard.faq_q2'),
+      answer: t('teacher_dashboard.faq_a2')
+    },
+    {
+      question: t('teacher_dashboard.faq_q3'),
+      answer: t('teacher_dashboard.faq_a3')
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-[#fdfbf7] p-4 sm:p-6 lg:p-8 font-serif">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="bg-white rounded-xl p-8 border border-[#d4af37]/30 shadow-sm relative overflow-hidden">
-          {/* EOTC Decorative Elements */}
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#d4af37] via-[#8b0000] to-[#d4af37]"></div>
-          <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#d4af37]/5 rounded-full blur-3xl"></div>
-          
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-[#d4af37]/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300"></div>
-              <div className="relative p-4 bg-white rounded-full border-2 border-[#d4af37]/40 shadow-sm">
-                <User className="h-8 w-8 text-[#8b0000]" />
-              </div>
-            </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Welcome Header */}
+      <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm">
+        <h1 className="text-3xl font-bold text-slate-900">
+          {t('teacher_dashboard.welcome_header', { name: user?.firstName ? user.firstName : t('teacher_dashboard.default_teacher_name')})}
+        </h1>
+        <p className="text-slate-600 mt-2 text-lg">
+          {t('teacher_dashboard.welcome_subtitle')}
+        </p>
+        {/* Avatar + Bio editor */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex items-start gap-4">
+            <img
+              src={profile.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.firstName || 'Teacher')}`}
+              alt="Avatar"
+              className="h-20 w-20 rounded-full object-cover border border-slate-200"
+            />
             <div>
-              <h1 className="text-3xl font-bold text-[#2c1810] tracking-tight font-serif">{t('teacher_profile.title')}</h1>
-              <p className="text-[#5d4037] mt-2 text-lg">{t('teacher_profile.subtitle')}</p>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Profile Picture</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  // Immediate preview
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    if (ev.target?.result) {
+                      // Update local state immediately for preview
+                      // We need to update the profile state in the parent component or force a re-render
+                      // Since we can't easily access setProfile here without prop drilling or context, 
+                      // we'll rely on the API update to trigger a refresh if possible, 
+                      // OR we can manipulate the DOM directly for immediate feedback (less React-y but works)
+                      const img = document.querySelector('img[alt="Avatar"]') as HTMLImageElement;
+                      if (img) img.src = ev.target.result as string;
+                    }
+                  };
+                  reader.readAsDataURL(file);
+
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  try {
+                    const res = await fetch('/api/files/avatar', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                      body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success && data.url) {
+                      await onUpdate({ profile_picture: data.url });
+                    }
+                  } catch (err) {
+                    console.error('Avatar upload failed', err);
+                  }
+                }}
+                className="text-sm"
+              />
             </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-slate-700 mb-1 block">Bio</label>
+            <textarea
+              defaultValue={profile.bio || ''}
+              onBlur={async (e) => {
+                const bio = e.target.value;
+                await onUpdate({ bio });
+              }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              rows={3}
+              placeholder="Tell students about your background, teaching style, and interests."
+            />
+            <p className="text-xs text-slate-500 mt-1">Changes are saved automatically when you click outside.</p>
           </div>
         </div>
+        
+        {/* Primary Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+          <button
+            onClick={() => onNavigate('verification')}
+            className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg text-white font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+            style={{ backgroundColor: brandColors.primaryHex }}
+          >
+            <Shield className="h-5 w-5" />
+            {t('teacher_dashboard.start_verification_btn')}
+          </button>
+          <button
+            onClick={() => navigate('/resources')}
+            className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 transition-all"
+          >
+            <BookOpen className="h-5 w-5" />
+            {t('teacher_dashboard.access_resources_btn')}
+          </button>
+          <button
+            onClick={() => onNavigate('payout')}
+          className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 transition-all"
+        >
+          <CreditCard className="h-5 w-5" />
+          {t('teacher_dashboard.setup_payouts_btn')}
+        </button>
 
-        {/* Onboarding + Verification + Payout */}
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200/80 p-6 space-y-6">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-[color:#1e1b4b]" />
-              <div>
-                <p className="text-xs uppercase tracking-wide text-stone-500">{t('teacher_profile.welcome_label')}</p>
-                <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.welcome_title', { name: user?.firstName || '' })}</h2>
-                <p className="text-sm text-stone-600">{t('teacher_profile.welcome_subtitle')}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
-                <div className="flex items-center gap-2 mb-2">
-                  <ListChecks className="h-5 w-5 text-[color:#1e1b4b]" />
-                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.checklist.title')}</p>
-                </div>
-                <ul className="space-y-2 text-sm text-stone-700">
-                  {(teacherProfile.onboarding_status?.steps || [
-                    { key: 'identity', label: t('teacher_profile.checklist.identity'), done: false },
-                    { key: 'docs', label: t('teacher_profile.checklist.docs'), done: false },
-                    { key: 'payout', label: t('teacher_profile.checklist.payout'), done: false }
-                  ]).map((step: any) => (
-                    <li key={step.key} className="flex items-center gap-2">
-                      <div className={`h-2.5 w-2.5 rounded-full ${step.done ? 'bg-green-500' : 'bg-amber-400'}`} />
-                      <span className={step.done ? 'text-stone-500 line-through' : ''}>{step.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="h-5 w-5 text-[color:#1e1b4b]" />
-                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.verification.title')}</p>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { key: 'national_id', label: t('teacher_profile.verification.national_id'), status: teacherProfile.verification_docs?.national_id || 'ACTION_REQUIRED' },
-                    { key: 'ordination', label: t('teacher_profile.verification.ordination'), status: teacherProfile.verification_docs?.ordination || 'PENDING' },
-                    { key: 'teaching_license', label: t('teacher_profile.verification.license'), status: teacherProfile.verification_docs?.teaching_license || 'VERIFIED' },
-                  ].map(item => (
-                    <div key={item.key} className="flex items-center justify-between text-sm">
-                      <span className="text-stone-700">{item.label}</span>
-                      {docBadge(item.status, t(`teacher_profile.verification.status.${item.status.toLowerCase()}`))}
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className="mt-3 inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-white rounded-lg"
-                  style={{ backgroundColor: brandColors.primaryHex }}
-                  onClick={() => document.getElementById('verification-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  {t('teacher_profile.verification.cta')}
-                </button>
-              </div>
-              <div className="p-4 border border-stone-200 rounded-lg bg-stone-50/60">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="h-5 w-5 text-[color:#1e1b4b]" />
-                  <p className="text-sm font-semibold text-stone-900">{t('teacher_profile.payout.title')}</p>
-                </div>
-                <p className="text-sm text-stone-700 mb-2">{t('teacher_profile.payout.subtitle')}</p>
-                <div className="flex items-center gap-2 text-sm text-stone-700">
-                  <Globe className="h-4 w-4 text-stone-500" />
-                  <span>{teacherProfile.payout_region || t('teacher_profile.payout.region_placeholder')}</span>
-                </div>
-                <button
-                  type="button"
-                  className="mt-3 inline-flex items-center justify-center px-3 py-2 text-sm font-semibold text-white rounded-lg"
-                  style={{ backgroundColor: brandColors.primaryHex }}
-                  onClick={() => document.getElementById('payout-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  {t('teacher_profile.payout.cta')}
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-[#e0e0e0]">
-          {error && (
-            <div className="mx-8 mt-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
-            <div className="flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <span className="text-red-800 font-medium">{error}</span>
-            </div>
-          </div>
-        )}
+        {/* End Welcome Card */}
+      </div>
 
-        {success && (
-          <div className="mx-8 mt-8 bg-green-50 border-l-4 border-[#2e7d32] p-4 rounded-r-md">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-[#2e7d32]" />
-              <span className="text-[#1b5e20] font-medium">{t('teacher_profile.success_update')}</span>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSaveProfile} className="p-8 space-y-8">
-          {/* Verification & Documents */}
-          <div id="verification-section" className="bg-[#f8fafc] rounded-lg p-6 border border-stone-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="h-5 w-5 text-[color:#1e1b4b]" />
-              <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.verification.section_title')}</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { key: 'national_id', label: t('teacher_profile.verification.national_id') },
-                { key: 'ordination', label: t('teacher_profile.verification.ordination') },
-                { key: 'teaching_license', label: t('teacher_profile.verification.license') },
-              ].map(item => {
-                const status = teacherProfile.verification_docs?.[item.key] || 'ACTION_REQUIRED';
-                return (
-                  <div key={item.key} className="p-4 bg-white rounded-lg border border-stone-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-stone-800">{item.label}</p>
-                      {docBadge(status, t(`teacher_profile.verification.status.${status.toLowerCase()}`))}
-                    </div>
-                    <button
-                      type="button"
-                      className="text-sm font-semibold text-white rounded-lg px-3 py-2"
-                      style={{ backgroundColor: brandColors.primaryHex }}
-                      onClick={async () => {
-                        const nextStatus: DocStatus = status === 'ACTION_REQUIRED' ? 'PENDING' : status === 'PENDING' ? 'VERIFIED' : 'VERIFIED';
-                        const next = {
-                          ...teacherProfile.verification_docs,
-                          [item.key]: nextStatus
-                        };
-                        setTeacherProfile((prev: any) => ({ ...prev, verification_docs: next }));
-                        await teacherApi.updateProfile({ verificationDocs: next });
-                      }}
-                    >
-                      {status === 'VERIFIED' ? t('teacher_profile.verification.reupload') : t('teacher_profile.verification.upload')}
-                    </button>
-                    <p className="text-xs text-stone-500">{t('teacher_profile.verification.hint')}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Payout Setup */}
-          <div id="payout-section" className="bg-white rounded-lg p-6 border border-stone-200 space-y-4">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-[color:#1e1b4b]" />
-              <h2 className="text-xl font-semibold text-stone-900">{t('teacher_profile.payout.section_title')}</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.region')}</label>
-                <select
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
-                  value={teacherProfile.payout_region || ''}
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    setTeacherProfile((prev: any) => ({ ...prev, payout_region: val }));
-                    await teacherApi.updateProfile({ payoutRegion: val });
-                  }}
-                >
-                  <option value="">{t('teacher_profile.payout.region_placeholder')}</option>
-                  <option value="US">United States</option>
-                  <option value="UK">United Kingdom</option>
-                  <option value="ET">Ethiopia</option>
-                  <option value="CA">Canada</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.method')}</label>
-                <select
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
-                  value={teacherProfile.payout_method || ''}
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    setTeacherProfile((prev: any) => ({ ...prev, payout_method: val }));
-                    await teacherApi.updateProfile({ payoutMethod: val });
-                  }}
-                >
-                  <option value="">{t('teacher_profile.payout.method_placeholder')}</option>
-                  <option value="bank">{t('teacher_profile.payout.bank_transfer')}</option>
-                  <option value="stripe">Stripe Connect</option>
-                  <option value="paypal">PayPal</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-stone-700">{t('teacher_profile.payout.status')}</label>
-                <div className="px-3 py-2 rounded-lg border border-stone-200 text-sm text-stone-700 bg-stone-50/60">
-                  {teacherProfile.payout_method ? t('teacher_profile.payout.in_progress') : t('teacher_profile.payout.not_started')}
+      {/* Onboarding Checklist */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <LayoutDashboard className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
+            {t('teacher_dashboard.onboarding_checklist_title')}
+          </h2>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {checklistItems.map((item) => (
+            <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${item.isComplete ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                  {item.isComplete ? <Check className="h-5 w-5" /> : <div className="h-3 w-3 rounded-full bg-current" />}
                 </div>
+                <span className={`font-medium ${item.isComplete ? 'text-slate-900' : 'text-slate-600'}`}>
+                  {item.label}
+                </span>
               </div>
+              <button
+                onClick={item.action}
+                className="text-sm font-medium hover:underline flex items-center gap-1"
+                style={{ color: brandColors.primaryHex }}
+              >
+                {item.isComplete ? t('teacher_dashboard.view_details_btn') : t('teacher_dashboard.start_now_btn')} <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Profile Picture Section */}
-          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-4 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.profile_picture.title')}</h2>
-            <div className="flex items-center space-x-8">
-              <div className="relative group">
-                {profileData.profilePicture ? (
-                  <>
-                    <div className="relative">
-                      <img 
-                        key={profileData.profilePicture}
-                        src={profileData.profilePicture} 
-                        alt="Profile" 
-                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md ring-2 ring-[#d4af37]/30"
-                        onError={(e) => {
-                          console.error('Failed to load profile picture:', profileData.profilePicture);
-                          // Fallback to initials if image fails to load
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+      {/* Resource Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {resources.map((resource, idx) => (
+          <div key={idx} className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+            <div className="h-12 w-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: brandColors.primaryHex }}>
+              {resource.icon}
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">{resource.title}</h3>
+            <p className="text-slate-600 text-sm mb-4">{resource.description}</p>
+            <a href={resource.link} className="text-sm font-semibold hover:underline flex items-center gap-1" style={{ color: brandColors.primaryHex }}>
+              {t('teacher_dashboard.learn_more_btn')} <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {/* Social Links & Certifications */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Social Links */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h3 className="text-lg font-bold mb-4 text-slate-900 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-600" /> Social Links
+          </h3>
+          <div className="space-y-3">
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Website URL" value={socialLinks.website_url} onChange={e => setSocialLinks(l => ({...l, website_url: e.target.value}))} />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Twitter URL" value={socialLinks.twitter_url} onChange={e => setSocialLinks(l => ({...l, twitter_url: e.target.value}))} />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="LinkedIn URL" value={socialLinks.linkedin_url} onChange={e => setSocialLinks(l => ({...l, linkedin_url: e.target.value}))} />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Facebook URL" value={socialLinks.facebook_url} onChange={e => setSocialLinks(l => ({...l, facebook_url: e.target.value}))} />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Instagram URL" value={socialLinks.instagram_url} onChange={e => setSocialLinks(l => ({...l, instagram_url: e.target.value}))} />
+          </div>
+          <button onClick={handleSaveLinks} disabled={savingLinks} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{savingLinks ? 'Saving...' : 'Save Social Links'}</button>
+        </div>
+        {/* Certifications */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h3 className="text-lg font-bold mb-4 text-slate-900 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-600" /> Certifications
+          </h3>
+          <form onSubmit={handleUploadCert} className="space-y-3">
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Title" value={certTitle} onChange={e => setCertTitle(e.target.value)} required />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Institution" value={certInstitution} onChange={e => setCertInstitution(e.target.value)} />
+            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Year" value={certYear} onChange={e => setCertYear(e.target.value)} />
+            <textarea className="w-full px-3 py-2 border rounded-lg" placeholder="Description" value={certDesc} onChange={e => setCertDesc(e.target.value)} />
+            <input type="file" ref={certInputRef} className="w-full" accept="application/pdf,image/*" onChange={e => setCertFile(e.target.files?.[0] || null)} required />
+            <button type="submit" disabled={uploadingCert} className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{uploadingCert ? 'Uploading...' : 'Upload Certification'}</button>
+          </form>
+          <div className="mt-6">
+            <h4 className="font-semibold mb-2">Your Certifications</h4>
+            {certifications.length === 0 ? (
+              <div className="text-gray-500 text-sm">No certifications uploaded yet.</div>
+            ) : (
+              <ul className="space-y-2">
+                {certifications.map(cert => (
+                  <li key={cert.id} className="flex items-center justify-between bg-slate-50 rounded p-3">
+                    <div>
+                      <div className="font-medium text-slate-900">{cert.title}</div>
+                      <div className="text-xs text-slate-500">{cert.institution} {cert.year && `(${cert.year})`}</div>
+                      {cert.description && <div className="text-xs text-slate-400 mt-1">{cert.description}</div>}
+                      {cert.documentUrl && <a href={cert.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs underline">View Document</a>}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveProfilePicture}
-                      className="absolute -top-2 -right-2 bg-[#8b0000] rounded-full p-1.5 shadow-md hover:bg-[#a00000] transition-colors z-10"
-                      aria-label="Remove profile picture"
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </button>
-                  </>
+                    <button onClick={() => handleDeleteCert(cert.id)} className="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs">Delete</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Subjects & Availability */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Subjects */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h3 className="text-lg font-bold mb-4 text-slate-900">Teaching Subjects</h3>
+          <p className="text-sm text-slate-600 mb-3">Add up to 5 subjects you teach.</p>
+          <SubjectEditor initial={profile.subjects || []} onSave={async (subjects) => {
+            await onUpdate({ subjects });
+            showNotification('Subjects saved', 'success');
+          }} />
+        </div>
+        {/* Availability */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <h3 className="text-lg font-bold mb-4 text-slate-900">Weekly Availability</h3>
+          <AvailabilityEditor initial={profile.availability || {}} onSave={async (availability) => {
+            await onUpdate({ availability });
+            showNotification('Availability saved', 'success');
+          }} />
+        </div>
+      </div>
+
+      {/* FAQ Accordion */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-8">
+        <div className="p-6 border-b border-slate-100">
+          <h2 className="text-xl font-bold text-slate-900">{t('teacher_dashboard.faq_title')}</h2>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="bg-white">
+              <button
+                onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors focus:outline-none"
+              >
+                <span className="font-medium text-slate-900">{faq.question}</span>
+                {expandedFaq === idx ? (
+                  <ChevronUp className="h-5 w-5 text-slate-400" />
                 ) : (
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#d4af37] to-[#8b0000] flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-md ring-2 ring-[#d4af37]/30">
-                    {profileData.firstName?.charAt(0)}{profileData.lastName?.charAt(0)}
-                  </div>
+                  <ChevronDown className="h-5 w-5 text-slate-400" />
                 )}
-                <button
-                  type="button"
-                  onClick={handleProfilePictureClick}
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-2.5 shadow-md hover:bg-[#fdfbf7] transition-colors border border-[#d4af37]/30"
-                  aria-label="Change profile picture"
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-5 w-5 text-[#d4af37] animate-spin" />
-                  ) : (
-                    <Camera className="h-5 w-5 text-[#5d4037]" />
-                  )}
-                </button>
-              </div>
-              <div>
-                <p className="text-sm text-[#5d4037] mb-3">{t('teacher_profile.profile_picture.description')}</p>
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={handleProfilePictureClick}
-                    className="px-5 py-2.5 bg-white border border-[#d4af37]/50 rounded-lg text-sm font-medium text-[#5d4037] hover:bg-[#fdfbf7] hover:border-[#d4af37] transition-all shadow-sm disabled:opacity-50"
-                    disabled={isUploading}
-                  >
-                    {isUploading ? t('teacher_profile.profile_picture.uploading') : t('teacher_profile.profile_picture.upload_btn')}
-                  </button>
-                  {profileData.profilePicture && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveProfilePicture}
-                      className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors shadow-sm"
-                    >
-                      {t('teacher_profile.profile_picture.remove_btn')}
-                    </button>
-                  )}
+              </button>
+              {expandedFaq === idx && (
+                <div className="px-6 pb-4 text-slate-600 text-sm animate-in slide-in-from-top-2 duration-200">
+                  {faq.answer}
                 </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleProfilePictureChange}
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Basic Information */}
-          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.basic_info.title')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.basic_info.first_name')}
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={profileData.firstName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.basic_info.last_name')}
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={profileData.lastName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="email" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.basic_info.email')}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={profileData.email}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-[#d4af37]/20 rounded-lg text-gray-500 cursor-not-allowed"
-                    required
-                    disabled
-                  />
-                </div>
-                <p className="text-xs text-[#8b0000]/70 mt-1 italic">{t('teacher_profile.basic_info.email_note')}</p>
-              </div>
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.basic_info.phone')}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.basic_info.location')}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={profileData.location}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Professional Information */}
-          <div className="bg-[#fdfbf7] rounded-lg p-6 border border-[#d4af37]/20">
-            <h2 className="text-xl font-semibold text-[#2c1810] mb-6 font-serif border-b border-[#d4af37]/20 pb-2">{t('teacher_profile.professional_info.title')}</h2>
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.professional_info.bio')}
-                </label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  rows={4}
-                  value={profileData.bio}
-                  onChange={handleInputChange}
-                  placeholder={t('teacher_profile.professional_info.bio_placeholder')}
-                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                />
-              </div>
-              <div>
-                <label htmlFor="education" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.professional_info.education')}
-                </label>
-                <input
-                  type="text"
-                  id="education"
-                  name="education"
-                  value={profileData.education}
-                  onChange={handleInputChange}
-                  placeholder={t('teacher_profile.professional_info.education_placeholder')}
-                  className="w-full px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                />
-              </div>
-              <div>
-                <label htmlFor="teachingExperience" className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.professional_info.experience')}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="number"
-                    id="teachingExperience"
-                    name="teachingExperience"
-                    value={profileData.teachingExperience}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#5d4037] mb-2">
-                  {t('teacher_profile.professional_info.service_areas')}
-                </label>
-                <div className="flex space-x-2 mb-3">
-                  <input
-                    type="text"
-                    value={newSpecialty}
-                    onChange={(e) => setNewSpecialty(e.target.value)}
-                    placeholder={t('teacher_profile.professional_info.service_areas_placeholder')}
-                    className="flex-1 px-4 py-2.5 bg-white border border-[#d4af37]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]/50 focus:border-transparent transition-shadow"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpecialty())}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSpecialty}
-                    className="px-5 py-2.5 bg-[#d4af37] text-white rounded-lg hover:bg-[#c5a028] transition-colors shadow-sm font-medium"
-                  >
-                    {t('teacher_profile.professional_info.add_btn')}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {profileData.specialties?.map((specialty, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1.5 bg-[#fdfbf7] text-[#5d4037] border border-[#d4af37]/30 rounded-full text-sm shadow-sm"
-                    >
-                      {specialty}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSpecialty(specialty)}
-                        className="ml-2 text-[#8b0000] hover:text-red-700 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end pt-6 border-t border-[#d4af37]/20">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-[#d4af37] to-[#b8860b] hover:from-[#c5a028] hover:to-[#a67c00] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#d4af37]/20"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t('teacher_profile.saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-5 w-5" />
-                  {t('teacher_profile.save_btn')}
-                </>
               )}
-            </button>
-          </div>
-        </form>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 };
 
+const PayoutView: React.FC<{
+  profile: TeacherProfileData;
+  onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
+  onCancel: () => void;
+}> = ({ profile, onUpdate, onCancel }) => {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    payout_method: profile.payout_method || 'bank',
+    payout_region: profile.payout_region || 'US',
+    account_holder: profile.payout_details?.account_holder || '',
+    account_number: profile.payout_details?.account_number || '',
+    routing_number: profile.payout_details?.routing_number || '',
+    address: profile.payout_details?.address || '',
+    dob: profile.payout_details?.dob || '',
+    tax_id: profile.payout_details?.tax_id || '',
+    tax_agreed: false
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await onUpdate({
+        payout_method: formData.payout_method,
+        payout_region: formData.payout_region,
+        payout_details: {
+          account_holder: formData.account_holder,
+          account_number: formData.account_number,
+          routing_number: formData.routing_number,
+          address: formData.address,
+          dob: formData.dob,
+          tax_id: formData.tax_id
+        },
+        tax_status: formData.tax_agreed ? 'AGREED' : undefined
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+      {/* Main Form */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="flex items-center gap-4 mb-2">
+          <button 
+            onClick={onCancel}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900">{t('teacher_profile.payout_setup.main_title')}</h2>
+            <p className="text-slate-600 text-lg">{t('teacher_profile.payout_setup.subtitle')}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900">{t('teacher_profile.payout_setup.payout_details_title')}</h3>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+            {/* Selected Country */}
+            <section>
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t('teacher_profile.payout_setup.selected_country_title')}</h3>
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Globe className="h-5 w-5 text-slate-500" />
+                  <div>
+                    <select
+                      value={formData.payout_region}
+                      onChange={e => setFormData({...formData, payout_region: e.target.value})}
+                      className="font-medium text-slate-900 bg-transparent border-none focus:outline-none"
+                    >
+                      <option value="ET">{t('teacher_profile.payout_setup.country_ethiopia')}</option>
+                      <option value="US">{t('teacher_profile.payout_setup.country_united_states')}</option>
+                      <option value="UK">{t('teacher_profile.payout_setup.country_united_kingdom')}</option>
+                      <option value="CA">{t('teacher_profile.payout_setup.country_canada')}</option>
+                    </select>
+                    <div className="text-xs text-slate-500">
+                      {formData.payout_region === 'ET' ? t('teacher_profile.payout_setup.currency_etb') : t('teacher_profile.payout_setup.currency_usd')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Method Selector */}
+            <section>
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t('teacher_profile.payout_setup.choose_method_title')}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className={`relative flex flex-col p-4 border rounded-xl cursor-pointer transition-all ${formData.payout_method === 'mobile_money' ? 'border-[#1e1b4b] bg-[#1e1b4b]/5 ring-1 ring-[#1e1b4b]' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <input 
+                    type="radio" 
+                    name="method" 
+                    value="mobile_money" 
+                    checked={formData.payout_method === 'mobile_money'} 
+                    onChange={() => setFormData({...formData, payout_method: 'mobile_money'})}
+                    className="sr-only" 
+                  />
+                  <Phone className={`h-6 w-6 mb-3 ${formData.payout_method === 'mobile_money' ? 'text-[#1e1b4b]' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-900">{t('teacher_profile.payout_setup.mobile_money_method')}</span>
+                  <span className="text-xs text-slate-500 mt-1">{t('teacher_profile.payout_setup.mobile_money_description')}</span>
+                </label>
+
+                <label className={`relative flex flex-col p-4 border rounded-xl cursor-pointer transition-all ${formData.payout_method === 'bank' ? 'border-[#1e1b4b] bg-[#1e1b4b]/5 ring-1 ring-[#1e1b4b]' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <input 
+                    type="radio" 
+                    name="method" 
+                    value="bank" 
+                    checked={formData.payout_method === 'bank'} 
+                    onChange={() => setFormData({...formData, payout_method: 'bank'})}
+                    className="sr-only" 
+                  />
+                  <Banknote className={`h-6 w-6 mb-3 ${formData.payout_method === 'bank' ? 'text-[#1e1b4b]' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-900">{t('teacher_profile.payout_setup.bank_transfer_method')}</span>
+                  <span className="text-xs text-slate-500 mt-1">{t('teacher_profile.payout_setup.bank_transfer_description')}</span>
+                </label>
+              </div>
+            </section>
+
+            {/* Account Details */}
+            <section>
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t('teacher_profile.payout_setup.account_details_title')}</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.account_holder_name_label')}</label>
+                  <input 
+                    type="text" 
+                    value={formData.account_holder}
+                    onChange={e => setFormData({...formData, account_holder: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    placeholder={t('teacher_profile.payout_setup.account_holder_name_placeholder')}
+                  />
+                </div>
+                
+                {formData.payout_method === 'mobile_money' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.mobile_money_account_number_label')}</label>
+                    <input 
+                      type="text" 
+                      value={formData.account_number}
+                      onChange={e => setFormData({...formData, account_number: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                      placeholder={t('teacher_profile.payout_setup.mobile_money_account_number_placeholder')}
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.routing_number_label')}</label>
+                      <input 
+                        type="text" 
+                        value={formData.routing_number}
+                        onChange={e => setFormData({...formData, routing_number: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                        placeholder={t('teacher_profile.payout_setup.routing_number_placeholder')}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.account_number_label')}</label>
+                      <input 
+                        type="text" 
+                        value={formData.account_number}
+                        onChange={e => setFormData({...formData, account_number: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                        placeholder={t('teacher_profile.payout_setup.account_number_placeholder')}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.date_of_birth_label')}</label>
+                  <input 
+                    type="date" 
+                    value={formData.dob}
+                    onChange={e => setFormData({...formData, dob: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.tax_id_label')}</label>
+                  <input 
+                    type="text" 
+                    value={formData.tax_id}
+                    onChange={e => setFormData({...formData, tax_id: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    placeholder={t('teacher_profile.payout_setup.tax_id_placeholder')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('teacher_profile.payout_setup.billing_address_label')}</label>
+                  <input 
+                    type="text" 
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    placeholder={t('teacher_profile.payout_setup.billing_address_placeholder')}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Tax Information */}
+            <section>
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t('teacher_profile.payout_setup.tax_information_title')}</h3>
+              <div className="flex items-start gap-3 pt-2">
+                <input 
+                  type="checkbox" 
+                  id="tax_agree"
+                  checked={formData.tax_agreed}
+                  onChange={e => setFormData({...formData, tax_agreed: e.target.checked})}
+                  className="mt-1 h-4 w-4 text-[#1e1b4b] border-slate-300 rounded focus:ring-[#1e1b4b]"
+                />
+                <label htmlFor="tax_agree" className="text-sm text-slate-600">
+                  <span dangerouslySetInnerHTML={{ __html: t('teacher_profile.payout_setup.tax_agree_label') }} />
+                </label>
+              </div>
+            </section>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-6 py-2 text-slate-600 font-medium hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                {t('teacher_profile.payout_setup.cancel_btn')}
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !formData.tax_agreed}
+                className="px-6 py-2 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: brandColors.primaryHex }}
+              >
+                {loading ? t('teacher_profile.payout_setup.saving_btn') : t('teacher_profile.payout_setup.confirm_details_btn')}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Summary Panel */}
+      <div className="space-y-6">
+        <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+          <h3 className="font-bold text-slate-900 mb-4">{t('teacher_profile.payout_setup.payout_summary_title')}</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">{t('teacher_profile.payout_setup.method_label')}</span>
+              <span className="font-medium text-slate-900 capitalize">
+                {formData.payout_method === 'bank' ? t('teacher_profile.payout_setup.bank_transfer_method') : t('teacher_profile.payout_setup.mobile_money_method')}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">{t('teacher_profile.payout_setup.region_label')}</span>
+              <span className="font-medium text-slate-900">
+                {formData.payout_region === 'ET' ? t('teacher_profile.payout_setup.country_ethiopia') : formData.payout_region === 'US' ? t('teacher_profile.payout_setup.country_united_states') : formData.payout_region === 'UK' ? t('teacher_profile.payout_setup.country_united_kingdom') : t('teacher_profile.payout_setup.country_canada')}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">{t('teacher_profile.payout_setup.currency_label')}</span>
+              <span className="font-medium text-slate-900">
+                {formData.payout_region === 'ET' ? t('teacher_profile.payout_setup.currency_etb') : t('teacher_profile.payout_setup.currency_usd')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <h4 className="font-semibold text-slate-900 mb-2">{t('teacher_profile.payout_setup.transactional_terms_title')}</h4>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              {t('teacher_profile.payout_setup.transactional_terms_description')}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <h3 className="font-bold text-slate-900 mb-2">{t('teacher_profile.payout_setup.next_steps_title')}</h3>
+          <p className="text-sm text-slate-600 mb-4">
+            {t('teacher_profile.payout_setup.next_steps_description')}
+          </p>
+          <button 
+            onClick={onCancel}
+            className="w-full py-2 text-sm font-medium text-white rounded-lg transition-colors"
+            style={{ backgroundColor: brandColors.primaryHex }}
+          >
+            {t('teacher_profile.payout_setup.proceed_to_documents_btn')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VerificationView: React.FC<{
+  profile: TeacherProfileData;
+  onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
+  onBack: () => void;
+}> = ({ profile, onUpdate, onBack }) => {
+  const [uploading, setUploading] = useState<string | null>(null);
+  const { t } = useTranslation();
+
+  const handleUpload = async (key: string) => {
+    setUploading(key);
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const currentDocs = profile.verification_docs || {};
+    await onUpdate({
+      verification_docs: {
+        ...currentDocs,
+        [key]: 'PENDING'
+      }
+    });
+    setUploading(null);
+  };
+
+  const docs = [
+    { key: 'national_id', title: t('teacher_profile.verification_docs.national_id_title'), description: t('teacher_profile.verification_docs.national_id_description') },
+    { key: 'tax_photo', title: t('teacher_profile.verification_docs.tax_photo_title'), description: t('teacher_profile.verification_docs.tax_photo_description') },
+    { key: 'ordination', title: t('teacher_profile.verification_docs.ordination_title'), description: t('teacher_profile.verification_docs.ordination_description') },
+    { key: 'proof_of_address', title: t('teacher_profile.verification_docs.proof_of_address_title'), description: t('teacher_profile.verification_docs.proof_of_address_description') }
+  ];
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'VERIFIED': return 'bg-green-500';
+      case 'PENDING': return 'bg-amber-500';
+      default: return 'bg-slate-200';
+    }
+  };
+
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case 'VERIFIED': return 'Verified';
+      case 'PENDING': return 'Processing';
+      default: return 'Not Submitted';
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+      {/* Main Content Area */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="flex items-center gap-4 mb-4">
+          <button 
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">{t('teacher_profile.verification_docs.main_title')}</h1>
+            <p className="text-slate-600 text-lg">{t('teacher_profile.verification_docs.checklist_title')}</p>
+            <p className="text-sm text-slate-500 mt-2">
+              {t('teacher_profile.verification_docs.checklist_description')}
+            </p>
+          </div>
+        </div>
+
+        {/* Two-column layout for documents */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Required Documents Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900">{t('teacher_profile.verification_docs.required_docs_title')}</h3>
+            <p className="text-sm text-slate-600">{t('teacher_profile.verification_docs.required_docs_subtitle')}</p>
+            {docs.map((doc) => {
+              const status = profile.verification_docs?.[doc.key];
+              return (
+                <div key={doc.key} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-slate-500" />
+                    <h4 className="font-semibold text-slate-900">{doc.title}</h4>
+                  </div>
+                  <p className="text-sm text-slate-500">{doc.description}</p>
+
+                  {/* Progress Bar for Proof of Address */}
+                  {doc.key === 'proof_of_address' && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-slate-700">{getStatusText(status)}</span>
+                        {status === 'PENDING' && <span className="text-slate-500">Reviewing...</span>}
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${getStatusColor(status)}`}
+                          style={{ width: status === 'VERIFIED' ? '100%' : status === 'PENDING' ? '60%' : '0%' }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{t('teacher_profile.verification_docs.estimated_completion')}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleUpload(doc.key)}
+                    disabled={!!uploading || status === 'VERIFIED' || status === 'PENDING'}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {uploading === doc.key ? (
+                      <>
+                        <Clock className="h-4 w-4 animate-spin" />
+                        {t('common.uploading')}
+                      </>
+                    ) : status === 'VERIFIED' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        {t('common.complete')}
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        {t('teacher_profile.verification_docs.upload_document_btn')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Optional Documents Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900">{t('teacher_profile.verification_docs.optional_docs_title')}</h3>
+            <p className="text-sm text-slate-600">{t('teacher_profile.verification_docs.optional_docs_subtitle')}</p>
+
+            {[ 
+              { key: 'academic_transcript', title: t('teacher_profile.verification_docs.academic_transcript_title'), description: t('teacher_profile.verification_docs.academic_transcript_description') },
+              { key: 'tracking_history', title: t('teacher_profile.verification_docs.tracking_history_title'), description: t('teacher_profile.verification_docs.tracking_history_description') },
+            ].map((doc) => {
+              const status = profile.verification_docs?.[doc.key];
+              return (
+                <div key={doc.key} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-slate-500" />
+                    <h4 className="font-semibold text-slate-900">{doc.title}</h4>
+                  </div>
+                  <p className="text-sm text-slate-500">{doc.description}</p>
+                  <button
+                    onClick={() => handleUpload(doc.key)}
+                    disabled={!!uploading || status === 'VERIFIED' || status === 'PENDING'}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {doc.key === 'tracking_history' ? (
+                      <>
+                        <LayoutDashboard className="h-4 w-4" />
+                        {t('teacher_profile.verification_docs.view_history_btn')}
+                      </>
+                    ) : uploading === doc.key ? (
+                      <>
+                        <Clock className="h-4 w-4 animate-spin" />
+                        {t('common.uploading')}
+                      </>
+                    ) : status === 'VERIFIED' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        {t('common.complete')}
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        {t('teacher_profile.verification_docs.upload_now_btn')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Help Sidebar */}
+      <div className="space-y-6">
+        <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-4">
+            <HelpCircle className="h-5 w-5 text-slate-600" />
+            {t('teacher_profile.verification_docs.need_help_title')}
+          </h3>
+          <div className="space-y-3">
+            <a href="#" className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+              <Search className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">{t('teacher_profile.verification_docs.search_knowledge_base')}</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+              <Mail className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">{t('teacher_profile.verification_docs.email_support')}</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+              <Phone className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">{t('teacher_profile.verification_docs.call_us')}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Main Container ---
+
+const TeacherProfile: React.FC = () => {
+  const { t } = useTranslation();
+  const { user, refreshUser } = useUser();
+  const [activeView, setActiveView] = useState<'dashboard' | 'payout' | 'verification'>('dashboard');
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<TeacherProfileType>({} as TeacherProfileType);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const res = await teacherApi.getProfile();
+        if (res?.success) {
+          setProfile(res.data.teacherProfile || {});
+        }
+      } catch (err) {
+        console.error('Failed to load profile', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const handleUpdateProfile = async (data: Partial<TeacherProfileType>) => {
+    try {
+      const res = await teacherApi.updateProfile(data);
+      if (res?.success) {
+        // Merge response data if available, otherwise use optimistic update
+        const updatedData = res.data || data;
+        setProfile((prev: TeacherProfileType) => ({ ...prev, ...updatedData }));
+        // Refresh user context to ensure completion status is updated
+        await refreshUser();
+      }
+    } catch (err) {
+      console.error('Failed to update profile', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <LoadingSpinner size="lg" text={t('common.loading_dashboard')} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* View Content */}
+        <div className="min-h-[500px]">
+          {activeView === 'dashboard' && (
+            <DashboardView 
+              user={user} 
+              profile={profile} 
+              onNavigate={setActiveView} 
+              onUpdate={handleUpdateProfile}
+            />
+          )}
+          {activeView === 'payout' && (
+            <PayoutView 
+              profile={profile} 
+              onUpdate={handleUpdateProfile} 
+              onCancel={() => setActiveView('dashboard')} 
+            />
+          )}
+          {activeView === 'verification' && (
+            <VerificationView 
+              profile={profile} 
+              onUpdate={handleUpdateProfile} 
+              onBack={() => setActiveView('dashboard')}
+            />
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export default TeacherProfile;
-export { TeacherProfile };
+export type { TeacherProfile };
+
+// Inline simple editors to avoid placeholders
+const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) => void }> = ({ initial, onSave }) => {
+  const [items, setItems] = useState<string[]>(initial);
+  const [newItem, setNewItem] = useState('');
+  useEffect(() => setItems(initial), [initial]);
+  const { t } = useTranslation();
+  return (
+    <div>
+      <div className="flex gap-2 mb-3">
+        <input className="flex-1 px-3 py-2 border rounded-lg" value={newItem} onChange={e=>setNewItem(e.target.value)} placeholder={t('teacher_profile.subjects.placeholder')} />
+        <button className="px-3 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50" disabled={!newItem || items.length>=5} onClick={() => { const updated=[...items,newItem.trim()].filter(Boolean); setItems(updated); setNewItem(''); onSave(updated); }}>Add</button>
+      </div>
+      <ul className="space-y-2">
+        {items.map((s, idx) => (
+          <li key={idx} className="flex items-center justify-between bg-slate-50 rounded p-2">
+            <span className="text-slate-800 text-sm">{s}</span>
+            <button className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded" onClick={() => { const updated=items.filter((_,i)=>i!==idx); setItems(updated); onSave(updated); }}>Remove</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: (availability: Record<string, string[]>) => void }> = ({ initial, onSave }) => {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const [slots, setSlots] = useState<Record<string, string[]>>(initial || {});
+  useEffect(()=>setSlots(initial || {}),[initial]);
+  const addSlot = (day: string) => {
+    const time = prompt(`Add time slot for ${day} (HH:MM-HH:MM)`);
+    if (!time) return;
+    const updated = { ...slots, [day]: [...(slots[day]||[]), time] };
+    setSlots(updated);
+    onSave(updated);
+  };
+  const removeSlot = (day: string, idx: number) => {
+    const updated = { ...slots, [day]: (slots[day]||[]).filter((_,i)=>i!==idx) };
+    setSlots(updated);
+    onSave(updated);
+  };
+  return (
+    <div className="space-y-3">
+      {days.map(day => (
+        <div key={day} className="bg-slate-50 rounded p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium text-slate-800">{day}</span>
+            <button className="text-xs px-2 py-1 bg-blue-600 text-white rounded" onClick={()=>addSlot(day)}>Add Slot</button>
+          </div>
+          <ul className="space-y-1">
+            {(slots[day]||[]).length===0 && <li className="text-xs text-slate-500">No slots</li>}
+            {(slots[day]||[]).map((s, idx) => (
+              <li key={idx} className="flex items-center justify-between">
+                <span className="text-sm text-slate-700">{s}</span>
+                <button className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded" onClick={()=>removeSlot(day, idx)}>Remove</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+};

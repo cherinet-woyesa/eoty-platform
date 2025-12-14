@@ -21,6 +21,8 @@ interface CourseStats {
   publishedCourses: number;
   averageRating: number;
   completionRate: number;
+  draftCourses: number;
+  archivedCourses: number;
 }
 
 const MyCourses: React.FC = () => {
@@ -328,19 +330,19 @@ const MyCourses: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 p-2 sm:p-4">
+    <div className="w-full space-y-4 p-2 sm:p-4" style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}10, #fff 80%)` }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">{t('teacher_courses.title')}</h1>
-          <p className="text-sm text-stone-600 mt-1">{t('teacher_courses.description')}</p>
+          <h1 className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.title')}</h1>
+          <p className="text-sm mt-1" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.description')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/teacher/courses/new" className="px-4 py-2 bg-[color:#1e1b4b] text-white rounded-md hover:bg-[color:#312e81] flex items-center font-semibold text-sm">
+          <Link to="/teacher/courses/new" className="px-4 py-2 rounded-md flex items-center font-semibold text-sm transition-colors shadow-sm hover:shadow-md" style={{ background: brandColors.primaryHex, color: '#fff' }}>
             <Plus className="h-4 w-4 mr-1" />
             {t('teacher_courses.new_course_btn')}
           </Link>
-          <button onClick={() => setShowTemplates(true)} className="px-4 py-2 bg-white border border-stone-300 text-stone-700 rounded-md hover:bg-stone-50 flex items-center font-semibold text-sm">
+          <button onClick={() => setShowTemplates(true)} className="px-4 py-2 rounded-md flex items-center font-semibold text-sm border transition-colors" style={{ background: '#fff', color: brandColors.primaryHex, borderColor: brandColors.primaryHex + '40' }}>
             <Sparkles className="h-4 w-4 mr-1 text-amber-500" />
             {t('teacher_courses.use_template_btn')}
           </button>
@@ -350,21 +352,21 @@ const MyCourses: React.FC = () => {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_total_courses')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.totalCourses}</p>
+          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_total_courses')}</p>
+            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.totalCourses}</p>
           </div>
-          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_published_courses')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.publishedCourses}</p>
+          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_published_courses')}</p>
+            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.publishedCourses}</p>
           </div>
-          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_draft_courses')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.draftCourses || 0}</p>
+          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_draft_courses')}</p>
+            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.draftCourses || 0}</p>
           </div>
-          <div className="bg-gradient-to-br from-white via-indigo-50 to-white p-4 rounded-lg border border-indigo-100 shadow-sm">
-            <p className="text-xs text-stone-500 uppercase tracking-wide">{t('teacher_courses.stats_archived_courses')}</p>
-            <p className="font-bold text-2xl text-stone-800 mt-1">{stats.archivedCourses || 0}</p>
+          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_archived_courses')}</p>
+            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.archivedCourses || 0}</p>
           </div>
         </div>
       )}
@@ -403,7 +405,7 @@ const MyCourses: React.FC = () => {
             <button onClick={() => setActiveTab('drafts')} className={`px-3 py-1 border-l rounded-r-md ${activeTab === 'drafts' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.drafts_tab')}</button>
           </div>
           <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
-            {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label} ({cat.count})</option>)}
+            {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
           </select>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
             {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}

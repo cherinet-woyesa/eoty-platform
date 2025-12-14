@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  BookOpen, Users, Video, Target
-} from 'lucide-react';
+import { BookOpen, Users, Video, Target, TrendingUp, TrendingDown } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 // Types
 interface TeacherStats {
@@ -27,29 +26,39 @@ interface TeacherMetricsProps {
 
 interface MetricItem {
   title: string;
-  value: number | string;
+  value: string | number;
   icon: React.ReactNode;
   color: string;
-  borderColor: string;
-  bgColor: string;
+  trend?: number;
+  trendDirection?: 'up' | 'down';
 }
 
-// Compact Metrics Card Component
-const MetricsCard: React.FC<{ metric: MetricItem }> = ({ metric }) => {
+const MetricsCard: React.FC<MetricItem> = ({ title, value, icon, color, trend, trendDirection = 'up' }) => {
+  const isPositive = trendDirection === 'up';
+  
   return (
-    <div className={`bg-white/90 backdrop-blur-md rounded-lg p-4 border ${metric.borderColor} shadow-sm hover:shadow-md transition-all group relative overflow-hidden`}>
-      <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${metric.color} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+    <div className="bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all duration-200 p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="relative">
-          <div className={`absolute inset-0 ${metric.bgColor} rounded-full blur-md group-hover:blur-lg transition-all opacity-50`}></div>
-          <div className={`relative p-2 ${metric.bgColor} rounded-lg group-hover:scale-110 transition-transform`}>
-            {metric.icon}
+        <div className={`p-2.5 rounded-lg bg-gradient-to-br ${color} shadow-sm`}>
+          <div className="text-white">
+            {icon}
           </div>
         </div>
+        {trend !== undefined && (
+          <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+            {isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            <span>{trend}%</span>
+          </div>
+        )}
       </div>
+      
       <div>
-        <p className="text-xl font-bold text-stone-800 mb-0.5">{metric.value}</p>
-        <p className="text-stone-600 text-xs font-medium">{metric.title}</p>
+        <p className="text-2xl font-bold text-stone-800 tracking-tight">{value}</p>
+        <p className="text-sm font-medium text-stone-500 mt-1">{title}</p>
       </div>
     </div>
   );
@@ -59,54 +68,53 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
   stats
 }) => {
   const { t } = useTranslation();
-  
-  // Debug logging
-  console.log('📈 TeacherMetrics received stats:', stats);
-  
-  // Compact metrics - only the essential ones with real data
+  const formatCount = (value?: number) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return '0';
+    }
+    return value.toLocaleString();
+  };
+
   const metrics = useMemo((): MetricItem[] => [
     {
       title: t('dashboard.teacher.total_courses'),
-      value: stats?.totalCourses || 0,
-      icon: <BookOpen className="h-5 w-5 text-[#27AE60]" />,
-      color: 'from-[#27AE60] to-[#16A085]',
-      borderColor: 'border-[#27AE60]/20 hover:border-[#27AE60]/50',
-      bgColor: 'bg-[#27AE60]/10'
+      value: formatCount(stats?.totalCourses),
+      icon: <BookOpen className="h-5 w-5" />,
+      color: 'from-indigo-500 to-indigo-600',
+      trend: 12, // Mock trend for now
+      trendDirection: 'up'
     },
     {
       title: t('dashboard.teacher.active_students'),
-      value: stats?.totalStudentsEnrolled || 0,
-      icon: <Users className="h-5 w-5 text-[#16A085]" />,
-      color: 'from-[#16A085] to-[#2980B9]',
-      borderColor: 'border-[#16A085]/20 hover:border-[#16A085]/50',
-      bgColor: 'bg-[#16A085]/10'
+      value: formatCount(stats?.totalStudentsEnrolled),
+      icon: <Users className="h-5 w-5" />,
+      color: 'from-blue-500 to-blue-600',
+      trend: 8,
+      trendDirection: 'up'
     },
     {
       title: t('dashboard.teacher.total_lessons'),
-      value: stats?.totalLessons || 0,
-      icon: <Video className="h-5 w-5 text-[#2980B9]" />,
-      color: 'from-[#2980B9] to-[#27AE60]',
-      borderColor: 'border-[#2980B9]/20 hover:border-[#2980B9]/50',
-      bgColor: 'bg-[#2980B9]/10'
+      value: formatCount(stats?.totalLessons),
+      icon: <Video className="h-5 w-5" />,
+      color: 'from-violet-500 to-violet-600',
+      trend: 5,
+      trendDirection: 'up'
     },
     {
       title: t('dashboard.teacher.completion_rate'),
-      value: `${stats?.averageCompletionRate || 0}%`,
-      icon: <Target className="h-5 w-5 text-[#27AE60]" />,
-      color: 'from-[#27AE60] to-[#16A085]',
-      borderColor: 'border-[#27AE60]/20 hover:border-[#27AE60]/50',
-      bgColor: 'bg-[#27AE60]/10'
+      value: `${Math.round(stats?.averageCompletionRate || 0)}%`,
+      icon: <Target className="h-5 w-5" />,
+      color: 'from-emerald-500 to-emerald-600',
+      trend: 2,
+      trendDirection: 'up'
     }
   ], [stats, t]);
 
   return (
-    <div className="space-y-3">
-      {/* Compact Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {metrics.map((metric, index) => (
-          <MetricsCard key={index} metric={metric} />
-        ))}
-      </div>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {metrics.map((metric) => (
+        <MetricsCard key={metric.title} {...metric} />
+      ))}
     </div>
   );
 };

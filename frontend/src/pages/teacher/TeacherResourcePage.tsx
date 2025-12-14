@@ -5,6 +5,7 @@ import {
   FileText, Image as ImageIcon, Video, Music, MoreVertical, Download, X,
   LayoutGrid, List as ListIcon, Clock, HardDrive
 } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 import { resourcesApi } from '@/services/api/resources';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -184,38 +185,40 @@ const TeacherResourcePage: React.FC = () => {
 
   // Mock stats
   const stats = [
-    { label: t('teacher_resources.stats.total'), value: filteredResources.length, icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: t('teacher_resources.stats.storage'), value: '2.4 GB', icon: HardDrive, color: 'text-purple-600', bg: 'bg-purple-100' },
-    { label: t('teacher_resources.stats.this_month'), value: '+12', icon: Clock, color: 'text-green-600', bg: 'bg-green-100' },
+    { label: t('teacher_resources.stats.total'), value: filteredResources.length, icon: FolderOpen },
+    { label: t('teacher_resources.stats.storage'), value: '2.4 GB', icon: HardDrive },
+    { label: t('teacher_resources.stats.this_month'), value: '+12', icon: Clock },
   ];
 
   const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return <FileText className="h-6 w-6 text-red-500" />;
-    if (type.includes('image')) return <ImageIcon className="h-6 w-6 text-blue-500" />;
-    if (type.includes('video')) return <Video className="h-6 w-6 text-purple-500" />;
-    if (type.includes('audio')) return <Music className="h-6 w-6 text-amber-500" />;
-    return <FileText className="h-6 w-6 text-gray-500" />;
+    if (type.includes('pdf')) return <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />;
+    if (type.includes('image')) return <ImageIcon className="h-6 w-6" style={{ color: brandColors.accentHex }} />;
+    if (type.includes('video')) return <Video className="h-6 w-6" style={{ color: brandColors.primaryHoverHex }} />;
+    if (type.includes('audio')) return <Music className="h-6 w-6" style={{ color: brandColors.primaryText }} />;
+    return <FileText className="h-6 w-6" style={{ color: brandColors.primaryText + '99' }} />;
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div style={{ minHeight: '100vh', background: `${brandColors.primaryHex}08` }}>
       <div className="max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('teacher_resources.title')}</h1>
-            <p className="text-slate-500 mt-1">{t('teacher_resources.subtitle')}</p>
+            <h1 className="text-3xl font-bold" style={{ color: brandColors.primaryHex }}>{t('teacher_resources.title')}</h1>
+            <p className="mt-1" style={{ color: brandColors.primaryText }}>{t('teacher_resources.subtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             <Link
               to="/teacher/dashboard"
-              className="px-4 py-2 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all text-sm font-medium shadow-sm"
+              className="px-4 py-2 rounded-lg border transition-all text-sm font-medium shadow-sm"
+              style={{ background: '#fff', color: brandColors.primaryText, borderColor: brandColors.primaryHex + '40' }}
             >
               {t('teacher_resources.back_dashboard')}
             </Link>
             <button 
               onClick={() => setActiveTab('upload')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-sm flex items-center gap-2"
+              className="px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm flex items-center gap-2"
+              style={{ background: brandColors.primaryHex, color: '#fff' }}
             >
               <Plus className="h-4 w-4" />
               {t('teacher_resources.new_resource')}
@@ -226,47 +229,41 @@ const TeacherResourcePage: React.FC = () => {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className={`p-3 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`h-6 w-6 ${stat.color}`} />
+            <div key={index} className="p-4 rounded-xl border shadow-sm flex items-center gap-4" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
+              <div className="p-3 rounded-lg" style={{ background: brandColors.primaryHex + '10' }}>
+                <stat.icon className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
               </div>
               <div>
-                <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                <p className="text-sm font-medium" style={{ color: brandColors.primaryText }}>{stat.label}</p>
+                <p className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{stat.value}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[600px]">
+        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden min-h-[600px]" style={{ borderColor: brandColors.primaryHex + '20' }}>
           {/* Tabs Navigation */}
-          <div className="border-b border-slate-200 px-6 pt-6">
+          <div className="border-b px-6 pt-6" style={{ borderColor: brandColors.primaryHex + '20' }}>
             <div className="flex gap-8">
               <button
                 onClick={() => setActiveTab('upload')}
-                className={`pb-4 text-sm font-medium transition-all relative ${
-                  activeTab === 'upload' 
-                    ? 'text-blue-600' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'upload' ? '' : ''}`}
+                style={{ color: activeTab === 'upload' ? brandColors.primaryHex : brandColors.primaryText + '99' }}
               >
                 {t('teacher_resources.tabs.upload')}
                 {activeTab === 'upload' && (
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 rounded-t-full" style={{ background: brandColors.primaryHex }} />
                 )}
               </button>
               <button
                 onClick={() => setActiveTab('manage')}
-                className={`pb-4 text-sm font-medium transition-all relative ${
-                  activeTab === 'manage' 
-                    ? 'text-blue-600' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
+                className={`pb-4 text-sm font-medium transition-all relative ${activeTab === 'manage' ? '' : ''}`}
+                style={{ color: activeTab === 'manage' ? brandColors.primaryHex : brandColors.primaryText + '99' }}
               >
                 {t('teacher_resources.tabs.browse')}
                 {activeTab === 'manage' && (
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 rounded-t-full" style={{ background: brandColors.primaryHex }} />
                 )}
               </button>
             </div>

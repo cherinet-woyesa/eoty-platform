@@ -7,7 +7,6 @@
     "next": "Next",
     "page": "Page {{count}}",
     "sort_by": "Sort by",
-    "dashboard_desc": "Platform overview and metrics",
     "courses": "Videos",
     "courses_desc": "My Courses, Create & Browse",
     "learning": "Learning",
@@ -40,6 +39,20 @@
     "assignments": "Assignments",
     "calendar": "Calendar"
   },
+  "teacher_content": {
+    "title": "Content Studio",
+    "subtitle_create": "Create & Manage Content",
+    "subtitle_edit": "Editing Lesson Content",
+    "go_back": "Go Back",
+    "context": {
+      "editing_lesson": "Editing Lesson",
+      "course_mode": "Course Mode"
+    },
+    "tabs": {
+      "video_studio": "Video Studio",
+      "resources": "Resources"
+    }
+  },
   "common": {
     "welcome": "Welcome",
     "dashboard": "Dashboard",
@@ -60,6 +73,7 @@
     "email": "Email",
     "password": "Password",
     "confirm_password": "Confirm Password",
+    "upload_image": "Upload Image",
     "first_name": "First Name",
     "last_name": "Last Name",
     "chapter": "Chapter",
@@ -79,7 +93,6 @@
     "try_again": "Try again",
     "live_updates": "Live Updates",
     "inspiring_students": "Inspiring {{members}} members across {{courses}} courses",
-    "try_again": "Try Again",
     "engagement": "Engagement",
     "manage_students": "Manage Members",
     "discussions": "Discussions",
@@ -130,7 +143,6 @@
     "optional": "Optional",
     "done": "Done",
     "pending": "Pending",
-    "upload_image": "Upload Image",
     "select_duration": "Select duration",
     "hide_preview": "Hide Preview",
     "show_preview": "Show Preview",
@@ -173,7 +185,6 @@
     "upward": "Upward",
     "downward": "Downward",
     "all_tasks": "All Tasks",
-    "pending": "Pending",
     "completed": "Completed",
     "overdue": "Overdue",
     "today": "Today",
@@ -225,7 +236,6 @@
     "status": "Status",
     "actions": "Actions",
     "avg_completion": "Avg. Completion",
-    "settings": "Settings",
     "security": "Security",
     "security_hint": "Manage 2FA and account safety from your profile page.",
     "linked_accounts": "Linked accounts",
@@ -278,6 +288,8 @@
       "try_again": "Try Again",
       "my_courses": "My Courses",
       "quick_actions": "Quick Actions",
+      "announcement": "Share updates with enrolled members instantly.",
+      "event": "Schedule sessions and keep everyone aligned.",
       "record_new_video": "Record New Video",
       "create_course": "Create Course",
       "view_analytics": "View Analytics",
@@ -335,6 +347,11 @@
     "error_loading": "Unable to load dashboard",
     "error_loading_message": "Please check your connection and try again.",
     "retry": "Retry",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "last_updated": "Last updated {{time}}",
+    "no_data": "No dashboard data available.",
+    "no_data_desc": "Try refreshing or check back soon.",
     "no_courses_title": "You have no courses yet",
     "no_courses_message": "Start your learning journey by exploring our catalog.",
     "recommended_for_you": "Recommended for you",
@@ -584,6 +601,10 @@
     "adjust_search": "Try adjusting your search or filter criteria",
     "manage_organize": "Manage and organize your teaching content",
     "creation": {
+      "create_course_title": "Create a New Course",
+      "edit_course_title": "Edit Course",
+      "form_description": "Fill out the form below to get started with a new course",
+      "additional_options": "Additional Options",
       "create_new_course": "Create New Course",
       "edit_course": "Edit Course",
       "header_description": "Share your knowledge and inspire members with a well-structured course.",
@@ -992,6 +1013,10 @@
       "resources_subtitle": "Study guides & materials",
       "resources_empty": "No resources shared yet."
     },
+
+
+
+
     "manage": {
       "award_achievement": {
         "title": "Award Achievement",
@@ -1490,6 +1515,7 @@
     "refreshing": "Refreshing...",
     "stat_badges": "Badges earned",
     "stat_points": "Total points",
+    
     "stat_avg_points": "Avg points/badge",
     "stat_categories": "Categories",
     "search_placeholder": "Search badges...",
@@ -1900,18 +1926,7 @@
       "view_events": "View Events"
     }
   },
-  "teacher_content": {
-    "go_back": "Go Back",
-    "tabs": {
-      "video_studio": "Video Studio",
-      "resources": "Resources"
-    },
-    "context": {
-      "editing_lesson": "Editing Lesson",
-      "course_mode": "Course Mode"
-    },
-    "loading_studio": "Loading Studio..."
-  },
+  
   "teacher_courses_page": {
     "title": "Course Management",
     "subtitle": "Create, manage, and discover courses",
@@ -1926,55 +1941,52 @@
   },
   "teacher_profile": {
     "title": "Teacher Profile",
-    "subtitle": "Manage your personal information and teaching credentials",
+    "subtitle": "Manage your personal information and spiritual service credentials.",
     "welcome_label": "Welcome",
-    "welcome_title": "Welcome, Dr. {{name}}!",
-    "welcome_subtitle": "Complete these steps to activate your teaching tools.",
+    "welcome_title": "Welcome, {{name}}!",
+    "welcome_subtitle": "Complete your setup to start teaching and serving.",
     "checklist": {
-      "title": "Onboarding checklist",
-      "identity": "Verify identity",
-      "docs": "Upload required documents",
-      "payout": "Set up payouts"
+      "title": "Onboarding Checklist",
+      "identity": "Verify Identity",
+      "docs": "Submit Documents",
+      "payout": "Setup Payout"
+    },
+    "onboarding": {
+      "complete_profile": "Complete Profile",
+      "start_now": "Start Now",
+      "submit_documents": "Submit Documents",
+      "setup_payout": "Setup Payout"
     },
     "verification": {
       "title": "Verification",
-      "section_title": "Verification & documents",
+      "section_title": "Verification & Documents",
       "national_id": "National ID",
       "ordination": "Ordination Certificate",
       "license": "Teaching License",
       "status": {
-        "action_required": "Action required",
+        "action_required": "Action Required",
         "pending": "Pending",
         "verified": "Verified"
       },
-      "cta": "Start verification",
-      "upload": "Upload / update",
-      "reupload": "Replace document",
+      "cta": "Start Verification",
+      "upload": "Upload / Update",
+      "reupload": "Replace Document",
       "hint": "Accepted formats: PDF, JPG, PNG. Max 10MB."
     },
     "payout": {
-      "title": "Localized payout setup",
-      "subtitle": "Connect your preferred payout method based on region.",
-      "cta": "Open payout setup",
-      "section_title": "Payout setup",
+      "title": "Payout Setup",
+      "subtitle": "Set up your payout method to receive earnings.",
+      "cta": "Setup Payouts",
+      "section_title": "Payout Setup",
       "region": "Region",
       "region_placeholder": "Select your region",
-      "method": "Payout method",
+      "method": "Payout Method",
       "method_placeholder": "Choose a method",
-      "bank_transfer": "Bank transfer",
+      "bank_transfer": "Bank Transfer",
       "status": "Status",
       "in_progress": "Setup in progress",
       "not_started": "Not started"
     },
-    "errors": {
-      "invalid_file_type": "Please upload a JPG, PNG, WebP, or GIF image",
-      "file_too_large": "Image size must be less than 5MB",
-      "upload_failed": "Failed to upload profile picture. Please try again.",
-      "remove_failed": "Failed to remove profile picture. Please try again.",
-      "save_failed": "Failed to save profile. Please try again."
-    },
-    "loading": "Loading profile...",
-    "success_update": "Profile updated successfully!",
     "profile_picture": {
       "title": "Profile Picture",
       "description": "Upload a photo to personalize your teaching profile.",
@@ -1982,28 +1994,170 @@
       "uploading": "Uploading...",
       "remove_btn": "Remove"
     },
-    "basic_info": {
-      "title": "Basic Information",
-      "first_name": "First Name",
-      "last_name": "Last Name",
-      "email": "Email Address",
-      "email_note": "Email cannot be changed",
-      "phone": "Phone Number",
-      "location": "Location"
+    "bio": {
+      "title": "Bio",
+      "placeholder": "Tell students about your background, teaching style, and interests.",
+      "auto_save": "Changes are saved automatically when you click outside."
     },
-    "professional_info": {
-      "title": "Professional Information",
-      "bio": "Bio",
-      "bio_placeholder": "Tell us about yourself, your teaching experience, and what you're passionate about...",
-      "education": "Theological Education / Seminary",
-      "education_placeholder": "e.g., St. Paul's Theological College, Sunday School Certificate",
-      "experience": "Service Years (Teaching)",
-      "service_areas": "Church Service Areas",
-      "service_areas_placeholder": "e.g., Bible Study, Ge'ez Language, Hymns (Zema)",
-      "add_btn": "Add"
+    "actions": {
+      "start_verification": "Start Verification",
+      "access_resources": "Access Resources",
+      "setup_payouts": "Setup Payouts"
     },
+    "guidelines": {
+      "title": "Teacher Guidelines",
+      "description": "Best practices for teaching on our platform.",
+      "learn_more": "Learn More"
+    },
+    "video_standards": {
+      "title": "Video Standards",
+      "description": "Technical requirements for video content.",
+      "learn_more": "Learn More"
+    },
+    "community_rules": {
+      "title": "Community Rules",
+      "description": "Guidelines for interacting with students.",
+      "learn_more": "Learn More"
+    },
+    "social_links": {
+      "title": "Social Links",
+      "website": "Website URL",
+      "twitter": "Twitter URL",
+      "linkedin": "LinkedIn URL",
+      "facebook": "Facebook URL",
+      "instagram": "Instagram URL",
+      "save": "Save Social Links"
+    },
+    "certifications": {
+      "title": "Certifications",
+      "add": "Upload Certification",
+      "your_certifications": "Your Certifications",
+      "none": "No certifications uploaded yet.",
+      "fields": {
+        "title": "Title",
+        "institution": "Institution",
+        "year": "Year",
+        "description": "Description",
+        "file": "No file chosen"
+      }
+    },
+    "subjects": {
+      "title": "Teaching Subjects",
+      "add": "Add",
+      "placeholder": "e.g., Theology, Bible Study",
+      "help": "Add up to 5 subjects you teach."
+    },
+    "availability": {
+      "title": "Weekly Availability",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "add_slot": "Add Slot",
+      "no_slots": "No slots"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "verification": "How long does verification take?",
+      "payout": "When do I get paid?",
+      "documents": "Can I update my documents later?"
+    },
+    "errors": {
+      "invalid_file_type": "Please upload a JPG, PNG, WebP, or GIF image.",
+      "file_too_large": "Image size must be less than 5MB.",
+      "upload_failed": "Failed to upload profile picture. Please try again.",
+      "remove_failed": "Failed to remove profile picture. Please try again.",
+      "save_failed": "Failed to save profile. Please try again."
+    },
+    "loading": "Loading profile...",
+    "success_update": "Profile updated successfully!",
     "save_btn": "Save Profile",
     "saving": "Saving..."
+  },
+  "teacher_profile.verification_docs": {
+    "main_title": "Verification & Documents",
+    "checklist_title": "Your Document Checklist",
+    "checklist_description": "To ensure the quality and safety of our platform, we require all teachers to verify their identity and credentials. Please review our regulatory requirements. Once all the documents are in place, our team will review them to ensure that your profile is fully verified. You can upload various documents here to prove your identity and qualifications as a teacher on our platform. Required documents are necessary for full platform access, while optional documents can enhance your profile. Please ensure all documents are clear, valid, and show the requested information. Illegible or incomplete documents will be rejected and may delay your verification process. For any questions, refer to the help section on the right.",
+    "required_docs_title": "Required Documents",
+    "required_docs_subtitle": "These documents are mandatory for full platform access.",
+    "national_id_title": "Ethiopian National ID",
+    "national_id_description": "A valid government-issued photo ID.",
+    "tax_photo_title": "Ethiopian Tax Photo",
+    "tax_photo_description": "Your official tax identification document.",
+    "ordination_title": "Ordination Certificate",
+    "ordination_description": "Proof of your ordination or service authorization.",
+    "proof_of_address_title": "Proof of Address",
+    "proof_of_address_description": "A recent utility bill or bank statement (issued within the last 3 months).",
+    "upload_document_btn": "Upload Document",
+    "estimated_completion": "Estimated completion: 2-3 business days",
+    "optional_docs_title": "Optional Documents",
+    "optional_docs_subtitle": "Enhance your profile and credibility with additional documents.",
+    "academic_transcript_title": "Academic Transcript",
+    "academic_transcript_description": "Your academic record from a recognized institution.",
+    "tracking_history_title": "Tracking History",
+    "tracking_history_description": "View your document submission and verification history.",
+    "upload_now_btn": "Upload Now",
+    "view_history_btn": "View History",
+    "need_help_title": "Need Help?",
+    "search_knowledge_base": "Search Knowledge Base",
+    "email_support": "Email Support",
+    "call_us": "Call Us",
+    "status": {
+      "verified": "Verified",
+      "pending": "Processing",
+      "not_submitted": "Not Submitted"
+    }
+  },
+  "teacher_profile.payout_setup": {
+    "main_title": "Payout Setup",
+    "subtitle": "Set up your payout method to receive earnings.",
+    "payout_details_title": "Payout Details",
+    "selected_country_title": "Selected Country",
+    "country_ethiopia": "Ethiopia",
+    "country_united_states": "United States",
+    "country_united_kingdom": "United Kingdom",
+    "country_canada": "Canada",
+    "currency_etb": "ETB - Ethiopian Birr",
+    "currency_usd": "USD",
+    "choose_method_title": "Choose Payout Method",
+    "mobile_money_method": "Mobile Money",
+    "mobile_money_description": "Receive funds directly to your mobile money account.",
+    "bank_transfer_method": "Bank Transfer",
+    "bank_transfer_description": "Receive funds directly to your bank account.",
+    "account_details_title": "Account Details",
+    "account_holder_name_label": "Account Holder Name",
+    "account_holder_name_placeholder": "e.g. John Doe",
+    "mobile_money_account_number_label": "Mobile Money Account Number",
+    "mobile_money_account_number_placeholder": "e.g. 0912345678",
+    "routing_number_label": "Routing Number",
+    "routing_number_placeholder": "9 digits",
+    "account_number_label": "Account Number",
+    "account_number_placeholder": "Account Number",
+    "date_of_birth_label": "Date of Birth",
+    "date_of_birth_placeholder": "mm/dd/yyyy",
+    "tax_id_label": "Tax ID / SSN",
+    "tax_id_placeholder": "000-00-0000",
+    "billing_address_label": "Billing Address",
+    "billing_address_placeholder": "123 Main St, City, State, Zip",
+    "tax_information_title": "Tax Information",
+    "tax_agree_label": "I agree to the tax terms and conditions.",
+    "cancel_btn": "Cancel",
+    "confirm_details_btn": "Confirm Details",
+    "saving_btn": "Saving...",
+    "payout_summary_title": "Payout Summary",
+    "method_label": "Method",
+    "region_label": "Region",
+    "currency_label": "Currency",
+    "transactional_terms_title": "Transactional Terms",
+    "transactional_terms_description": "By confirming, you agree to the transactional terms.",
+    "next_steps_title": "Next Steps",
+    "next_steps_description": "Your payout setup is being processed.",
+    "proceed_to_documents_btn": "Proceed to Documents"
   },
   "member_profile": {
     "title": "Member Profile",
@@ -2323,6 +2477,267 @@
         "published": "Published",
         "actions": "Actions"
       }
+    }
+  },
+  "teacher_students": {
+    "member_management": "Member Management",
+    "manage_members_desc": "Manage your class members, invite new students, and oversee participation.",
+    "my_members": "My Members",
+    "assignments": "Assignments",
+    "analytics": "Analytics"
+  },
+  "teacher_dashboard": {
+    "welcome_header": "Welcome, {{name}}",
+    "default_teacher_name": "Teacher",
+    "welcome_subtitle": "Complete your setup to start teaching and earning.",
+    "start_verification_btn": "Start Verification",
+    "access_resources_btn": "Access Resources",
+    "setup_payouts_btn": "Setup Payouts",
+    "onboarding_checklist_title": "Onboarding Checklist",
+    "view_details_btn": "View Details",
+    "start_now_btn": "Start Now",
+    "learn_more_btn": "Learn More",
+    "faq_title": "Frequently Asked Questions",
+    "faq_q1": "How long does verification take?",
+    "faq_a1": "Verification typically takes 1-3 business days once all required documents are submitted.",
+    "faq_q2": "When do I get paid?",
+    "faq_a2": "Payouts are processed monthly for the previous month's earnings, typically by the 15th.",
+    "faq_q3": "Can I update my documents later?",
+    "faq_a3": "Yes, you can upload new documents at any time from the Verification tab if your information changes.",
+    "checklist_complete_profile": "Complete Profile",
+    "checklist_submit_documents": "Submit Documents",
+    "checklist_setup_payout": "Setup Payout",
+    "resource_guidelines_title": "Teacher Guidelines",
+    "resource_guidelines_description": "Best practices for teaching on our platform.",
+    "resource_video_standards_title": "Video Standards",
+    "resource_video_standards_description": "Technical requirements for video content.",
+    "resource_community_rules_title": "Community Rules",
+    "resource_community_rules_description": "Guidelines for interacting with students."
+  },
+  "dashboard": {
+    "teacher": {
+      "access_denied_title": "Teacher access only",
+      "access_denied_message": "You need a teacher account to view this dashboard.",
+      "go_to_login": "Go to Login",
+      "unable_to_load_title": "Unable to load dashboard",
+      "unable_to_load_message": "Please retry or contact support if this keeps happening.",
+      "try_again": "Try again",
+      "title": "Teacher Dashboard",
+      "welcome_back": "Welcome back, {{name}}",
+      "default_teacher_name": "Teacher",
+      "overview_summary": "You have {{courses}} courses and {{students}} enrolled students.",
+      "quick_actions": "Quick Actions",
+      "quick_access_tools": "Shortcuts to keep teaching flowing.",
+      "refresh_data": "Refresh data",
+      "manage_courses": "Manage Courses",
+      "manage_courses_desc": "View and edit your courses",
+      "view_students": "View Students",
+      "view_students_desc": "Track student progress",
+      "start_teaching_title": "Start Your Teaching Journey",
+      "start_teaching_desc": "Create your first course to start sharing your knowledge.",
+      "create_first_course_btn": "Create Course",
+      "complete_profile_title": "Complete your profile",
+      "complete_profile_message": "Finish your profile to unlock all features ({{percentage}}%).",
+      "update_profile": "Update Profile",
+      "announcements": "Announcements",
+      "announcements_desc": "Post updates to students",
+      "events": "Events",
+      "events_desc": "Schedule live sessions",
+      "total_courses": "Total Courses",
+      "active_students": "Active Students",
+      "total_lessons": "Total Lessons",
+      "completion_rate": "Completion Rate"
+    }
+  },
+  "donation": {
+    "header": {
+      "subtitle": "AI Expansion Fund"
+    },
+    "hero": {
+      "badge": "AI Mission",
+      "title_line1": "Faith Meets Future",
+      "title_line2": "The AI Expansion",
+      "subtitle": "Your donation powers AI, video hosting, and content creation for Orthodox youth worldwide.",
+      "raised": "Raised So Far",
+      "goal": "Goal: {{amount}}",
+      "percent_funded": "{{percent}}% Funded"
+    },
+    "errors": {
+      "payments_unavailable": "Payments are temporarily unavailable.",
+      "payment_loading": "Payment system is not configured or still loading. Please try again shortly.",
+      "unavailable_title": "Donations temporarily unavailable",
+      "unavailable_body": "Payment system is not configured. Please contact support or try again later.",
+      "contact_support": "Need help? support@eotyplatform.com"
+    },
+    "form": {
+      "frequency_label": "Choose Frequency",
+      "frequency": {
+        "one_time": "One-Time",
+        "monthly": "Monthly"
+      },
+      "amount_label": "Select Amount",
+      "custom_placeholder": "Custom Amount",
+      "method_label": "Payment Method",
+      "method_card": "Credit Card",
+      "coming_soon": "Coming soon",
+      "bank_soon": "Bank Transfer (coming soon)",
+      "planned": "Planned",
+      "cardholder_label": "Cardholder Name",
+      "cardholder_placeholder": "Full Name on Card",
+      "card_details": "Card Details"
+    },
+    "validation": {
+      "cardholder_required": "Please enter the cardholder's name.",
+      "min_amount": "Minimum donation is ${{amount}}. Please adjust the amount."
+    },
+    "impact": {
+      "title": "Your Impact",
+      "tier_100": "Funds 1000+ AI-assisted Q&A interactions",
+      "tier_50": "Sponsors 1 month of high-quality video hosting",
+      "tier_25": "Supports new faith-based content creation",
+      "tier_default": "Builds the future of Orthodox faith learning"
+    },
+    "summary": {
+      "title": "Donation Summary",
+      "amount": "Amount",
+      "frequency": "Frequency",
+      "secure": "Secure & Verified Charity",
+      "stats_error": "Unable to load live donation stats right now.",
+      "submit": "Complete Donation",
+      "processing": "Processing...",
+      "terms": "By donating, you agree to our Terms of Service and Privacy Policy. All donations are tax-deductible."
+    },
+    "modal": {
+      "title": "Thank You!",
+      "body": "Your generosity helps us make a difference.",
+      "transaction_id": "Transaction ID: #DON-{{id}}",
+      "receipt_note": "A receipt has been sent to your email.",
+      "receipt_email": "Receipt will be emailed",
+      "close": "Close"
+    }
+  },
+  "landing": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "videos": "Videos",
+      "courses": "Courses",
+      "how": "How It Works",
+      "testimonials": "Testimonials",
+      "donate": "Support Us"
+    },
+    "header": {
+      "sign_in": "Sign In",
+      "sign_up": "Sign Up",
+      "dashboard": "Dashboard"
+    },
+    "hero": {
+      "badge": "For Orthodox Faith Members",
+      "title1": "Transform Your",
+      "title2": "Spiritual Journey",
+      "description": "A reverent, tranquil space to grow in faith and learning—focused on Orthodox tradition and spiritual depth.",
+      "donate": "Donate Now",
+      "explore": "Explore Courses",
+      "dashboard": "Go to Dashboard"
+    },
+    "about": {
+      "badge": "Our Mission",
+      "title": "Empowering Faith-Centered Learning",
+      "subtitle": "Nurturing spiritual growth and academic excellence through our comprehensive Orthodox education platform.",
+      "feature_mission": {
+        "title": "Our Mission",
+        "desc": "Empowering Orthodox youths through faith-centered education that nurtures spiritual growth and academic excellence."
+      },
+      "feature_community": {
+        "title": "Our Community",
+        "desc": "Building a supportive community of faith-centered learners united in their spiritual journey."
+      },
+      "feature_excellence": {
+        "title": "Our Excellence",
+        "desc": "Delivering quality education that honors Orthodox traditions while meeting global standards."
+      }
+    },
+    "how": {
+      "badge": "How It Works",
+      "title": "Your Learning Journey in 4 Steps",
+      "subtitle": "Simple, intuitive steps to begin your faith-centered learning experience",
+      "defaults": [
+        {
+          "title": "Sign Up",
+          "desc": "Create your account and join our community",
+          "f1": "Free registration",
+          "f2": "Profile setup",
+          "f3": "Community access"
+        },
+        {
+          "title": "Choose Course",
+          "desc": "Browse and select from our curated courses",
+          "f1": "Diverse topics",
+          "f2": "Expert instructors",
+          "f3": "Flexible learning"
+        },
+        {
+          "title": "Start Learning",
+          "desc": "Begin your journey with interactive content",
+          "f1": "Video lessons",
+          "f2": "Interactive quizzes",
+          "f3": "Progress tracking"
+        },
+        {
+          "title": "Get Certified",
+          "desc": "Complete courses and earn certificates",
+          "f1": "Official certificates",
+          "f2": "Achievement badges",
+          "f3": "Recognition"
+        }
+      ]
+    },
+    "courses": {
+      "badge": "Featured Courses",
+      "title": "Popular Learning Paths",
+      "subtitle": "Explore our most sought-after courses designed for spiritual and academic growth",
+      "empty_title": "Courses Coming Soon",
+      "empty_subtitle": "We're developing comprehensive courses for your learning journey."
+    },
+    "videos": {
+      "badge": "Featured Content",
+      "title": "Latest from Our",
+      "title_accent": "Library",
+      "subtitle": "Explore our collection of spiritual teachings, hymns, and educational videos designed to strengthen your faith.",
+      "view_all": "View All Videos",
+      "empty_title": "Videos coming soon",
+      "empty_subtitle": "Check back shortly or explore our resources.",
+      "empty_cta": "Browse Resources"
+    },
+    "testimonials": {
+      "badge": "Student Reviews",
+      "title": "What Our Students Say",
+      "subtitle": "Hear from our community about their transformative learning experiences",
+      "empty_title": "Reviews Coming Soon",
+      "empty_subtitle": "Students are sharing their experiences - check back soon!",
+      "empty_cta": "Join the community"
+    },
+    "footer": {
+      "quick_links": "Quick Links",
+      "contact": "Contact",
+      "community": "Community",
+      "join": "Join Us",
+      "sign_in": "Sign In",
+      "resources": "Resources",
+      "support": "Support",
+      "newsletter": "Stay Updated",
+      "newsletter_copy": "Subscribe to our newsletter for the latest updates and courses.",
+      "email_placeholder": "Enter your email",
+      "coming_soon": "Coming Soon"
+    }
+  },
+  "resources_page": {
+    "title": "Educational Resources",
+    "subtitle": "Access faith-based learning materials across different contexts",
+    "tabs": {
+      "platform": "Platform Library",
+      "chapter": "Chapter Resources",
+      "help": "Help Center"
     }
   }
 }

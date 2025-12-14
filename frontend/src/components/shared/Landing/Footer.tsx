@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Mail, Phone } from 'lucide-react';
+import { Heart, Mail } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
+import { useTranslation } from 'react-i18next';
 
 const Footer: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <footer className="relative bg-gradient-to-br from-[#0f172a] via-[#2f3f82] to-[#0f172a] text-white overflow-hidden">
       {/* Background Pattern */}
@@ -27,64 +30,67 @@ const Footer: React.FC = () => {
                 Empowering Ethiopian Orthodox youths through faith-centered education.
                 Join our community and grow in your spiritual journey with quality learning resources.
               </p>
-              <div className="flex space-x-4">
-                <div className="flex items-center space-x-2 text-gray-300">
-                  <Mail className="h-4 w-4" />
-                  <span className="text-sm">contact@eotyplatform.com</span>
-                </div>
+            <div className="flex space-x-4">
+              <div className="flex items-center space-x-2 text-gray-300">
+                <Mail className="h-4 w-4" />
+                <span className="text-sm">contact@eotyplatform.com</span>
               </div>
+            </div>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Quick Links</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.quick_links')}</h3>
               <div className="space-y-3">
-                <Link to="/" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Home
-                </Link>
-                <Link to="/courses" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Courses
-                </Link>
-                <Link to="/about" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  About
-                </Link>
+                <a href="#hero" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                  {t('landing.nav.home')}
+                </a>
+                <a href="#featured-courses" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                  {t('landing.nav.courses')}
+                </a>
+                <a href="#about" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                  {t('landing.nav.about')}
+                </a>
                 <Link to="/contact" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Contact
+                  {t('landing.footer.contact')}
                 </Link>
               </div>
             </div>
 
             {/* Community */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Community</h3>
+              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.community')}</h3>
               <div className="space-y-3">
                 <Link to="/register" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Join Us
+                  {t('landing.footer.join')}
                 </Link>
                 <Link to="/login" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Sign In
+                  {t('landing.footer.sign_in')}
                 </Link>
                 <Link to="/resources" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Resources
+                  {t('landing.footer.resources')}
                 </Link>
                 <Link to="/support" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
-                  Support
+                  {t('landing.footer.support')}
                 </Link>
               </div>
             </div>
 
             {/* Newsletter */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">Stay Updated</h3>
-              <p className="text-gray-400 text-sm mb-4">Subscribe to our newsletter for the latest updates and courses.</p>
+              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.newsletter')}</h3>
+              <p className="text-gray-400 text-sm mb-4">{t('landing.footer.newsletter_copy')}</p>
               <div className="flex flex-col space-y-3">
                 <input
                   type="email"
-                  placeholder="Enter your email"
-                  className="px-4 py-2 bg-[#111827] border border-[#2f3f82] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#cfa15a] transition-colors"
+                  placeholder={t('landing.footer.email_placeholder')}
+                  className="px-4 py-2 bg-[#111827] border rounded-lg text-white placeholder-gray-500 focus:outline-none transition-colors"
+                  style={{ borderColor: brandColors.primaryHex }}
+                  disabled
                 />
-                <button className="px-4 py-2 bg-[#2f3f82] hover:bg-[#3a4c94] text-white font-medium rounded-lg transition-colors">
-                  Subscribe
+                <button className="px-4 py-2 text-white font-medium rounded-lg transition-colors opacity-70 cursor-not-allowed"
+                  style={{ backgroundColor: brandColors.primaryHex }}>
+                  {t('landing.footer.coming_soon')}
                 </button>
               </div>
             </div>

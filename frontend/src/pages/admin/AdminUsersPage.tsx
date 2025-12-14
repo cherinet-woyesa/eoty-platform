@@ -5,7 +5,7 @@ import UserManagement from '@/components/admin/users/UserManagement';
 import ChapterManagement from './config/ChapterManagement';
 import RolesPermissionsManagement from './config/RolesPermissionsManagement';
 import ChapterRolesManagement from '@/components/admin/users/ChapterRolesManagement';
-import { brandColors } from '@/theme/brand';
+// brandColors no longer needed after switching to Tailwind brand tokens
 
 const AdminUsersPage: React.FC = () => {
   const { t } = useTranslation();
@@ -23,7 +23,7 @@ const AdminUsersPage: React.FC = () => {
       <div className="w-full h-full space-y-4 p-3 sm:p-4 lg:p-6">
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-6rem)] max-w-full">
-          <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto scrollbar-hide">
+          <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto scrollbar-hide bg-white">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -32,16 +32,12 @@ const AdminUsersPage: React.FC = () => {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-semibold transition-all border-b-2 whitespace-nowrap min-w-[120px] ${
                     isActive
-                      ? 'bg-indigo-50/50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      ? 'bg-brand-primary text-white border-brand-primary'
+                      : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                   }`}
-                  style={{
-                    borderColor: isActive ? brandColors.accentHex : 'transparent',
-                    color: isActive ? brandColors.primaryHex : undefined
-                  }}
                 >
-                  <tab.icon className={`h-4 w-4 ${isActive ? '' : 'text-gray-400'}`} style={{ color: isActive ? brandColors.primaryHex : undefined }} />
-                  <span className="text-sm">{tab.label}</span>
+                  <tab.icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span className={`text-sm ${isActive ? 'text-white' : ''}`}>{tab.label}</span>
                 </button>
               );
             })}

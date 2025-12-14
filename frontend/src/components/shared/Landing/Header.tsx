@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from './Navigation';
 import LanguageSelector from '@/components/common/LanguageSelector';
+import { brandColors } from '@/theme/brand';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   activeSection?: string;
@@ -14,6 +16,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
           <div className="flex justify-between items-center px-4 lg:px-6">
             <Link to="/" className="flex items-center space-x-3 group cursor-pointer">
               <div className="relative">
-                <div className={`absolute inset-0 rounded-lg blur-md transition-all ${showTransparent ? 'bg-white/10' : 'bg-[#00FFC6]/20'}`} />
+                <div className={`absolute inset-0 rounded-lg blur-md transition-all ${showTransparent ? 'bg-white/10' : 'bg-[color:var(--brand)]/12'}`} style={{ ['--brand' as any]: brandColors.primaryHex }} />
                 <img src="/eoc.jpg" alt="EOTY Logo" className="relative h-10 w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
               </div>
               <span className={`text-2xl font-bold transition-colors ${showTransparent ? 'text-white' : 'text-gray-800'}`}>
@@ -54,21 +57,31 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
                     to="/login"
                     className={`font-medium transition-colors duration-200 ${showTransparent ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
                   >
-                    Sign In
+                    {t('landing.header.sign_in')}
                   </Link>
                   <Link
                     to="/register"
-                    className="px-6 py-2.5 rounded-full bg-[#27AE60] text-white hover:bg-[#219150] font-semibold transition-all duration-200 shadow-lg shadow-[#27AE60]/30 hover:shadow-[#27AE60]/50 hover:-translate-y-0.5"
+                    className="px-6 py-2.5 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    style={{
+                      backgroundColor: brandColors.primaryHex,
+                      color: brandColors.textOnPrimary,
+                      boxShadow: `0 10px 30px ${brandColors.primaryHex}33`
+                    }}
                   >
-                    Sign Up
+                    {t('landing.header.sign_up')}
                   </Link>
                 </>
               ) : (
                 <Link
                   to={getRoleDashboard()}
-                  className="px-6 py-2.5 rounded-full bg-[#27AE60] text-white hover:bg-[#219150] font-semibold transition-all duration-200 shadow-lg shadow-[#27AE60]/30 hover:shadow-[#27AE60]/50 hover:-translate-y-0.5"
+                  className="px-6 py-2.5 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                  style={{
+                    backgroundColor: brandColors.primaryHex,
+                    color: brandColors.textOnPrimary,
+                    boxShadow: `0 10px 30px ${brandColors.primaryHex}33`
+                  }}
                 >
-                  Dashboard
+                  {t('landing.header.dashboard')}
                 </Link>
               )}
             </div>

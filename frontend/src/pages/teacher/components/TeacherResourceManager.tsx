@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, BookOpen, Search, Filter, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Search, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon, Trash2, Edit2, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Video as VideoIcon, Music } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
-import { coursesApi } from '@/services/api';
+// coursesApi not used; using direct fetch for lesson details
 import { useAuth } from '@/context/AuthContext';
 import type { Resource } from '@/types/resources';
 import UploadResource from '../UploadResource';
@@ -9,10 +9,9 @@ import EditResourceModal from './EditResourceModal';
 
 interface TeacherResourceManagerProps {
   lessonId?: string;
-  courseId?: string;
 }
 
-const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonId, courseId }) => {
+const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonId }) => {
   const { user } = useAuth();
   const [view, setView] = useState<'list' | 'upload'>('list');
   const [resources, setResources] = useState<Resource[]>([]);
@@ -49,10 +48,10 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
         limit: LIMIT
       };
 
-      if (selectedScope === 'platform_wide' || !user?.chapter_id) {
+      if (selectedScope === 'platform_wide' || !user?.chapter) {
         response = await resourcesApi.getPlatformResources(filters);
       } else {
-        response = await resourcesApi.getChapterResources(user.chapter_id.toString(), filters);
+        response = await resourcesApi.getChapterResources(String(user.chapter), filters);
       }
 
       if (response.success) {
@@ -71,9 +70,14 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const loadAttachedResources = async () => {
     if (!lessonId) return;
     try {
-      const response = await coursesApi.getLesson(parseInt(lessonId));
-      if (response.success && response.data.lesson.resources) {
-        setAttachedResources(response.data.lesson.resources);
+      const res = await fetch(`/api/lessons/${lessonId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.lesson?.resources) {
+          setAttachedResources(data.lesson.resources);
+        }
       }
     } catch (error) {
       console.error('Failed to load attached resources:', error);
@@ -91,7 +95,11 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     if (!lessonId) return;
     setAttaching(resourceId);
     try {
-      await coursesApi.addResourceToLesson(parseInt(lessonId), resourceId);
+      await fetch('/api/resources/attach-to-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ resourceId, lessonId: parseInt(lessonId) })
+      });
       await loadAttachedResources();
     } catch (error) {
       console.error('Failed to attach resource:', error);
@@ -103,7 +111,11 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const handleDetachResource = async (resourceId: number) => {
     if (!lessonId) return;
     try {
-      await coursesApi.removeResourceFromLesson(parseInt(lessonId), resourceId);
+      await fetch('/api/resources/detach-from-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ resourceId })
+      });
       await loadAttachedResources();
     } catch (error) {
       console.error('Failed to detach resource:', error);
@@ -127,14 +139,25 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     return attachedResources.some(r => r.id === resourceId);
   };
 
+  const getFileIcon = (fileType: string = '') => {
+    if (fileType.includes('pdf')) return <FileText className="h-5 w-5 text-red-500" />;
+    if (fileType.includes('image')) return <ImageIcon className="h-5 w-5 text-blue-500" />;
+    if (fileType.includes('video')) return <VideoIcon className="h-5 w-5 text-purple-500" />;
+    if (fileType.includes('audio')) return <Music className="h-5 w-5 text-amber-500" />;
+    return <FileText className="h-5 w-5 text-stone-500" />;
+  };
+
   if (view === 'upload') {
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-stone-800">Upload New Resource</h2>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white rounded-2xl border border-stone-200 shadow-sm p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-stone-900">Upload New Resource</h2>
+            <p className="text-sm text-stone-500 mt-1">Add files to your library or attach directly to this lesson</p>
+          </div>
           <button 
             onClick={() => setView('list')}
-            className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors border border-stone-200"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Library
@@ -158,19 +181,21 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[#27AE60]" />
+          <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <BookOpen className="h-5 w-5 text-emerald-600" />
+            </div>
             Resource Library
           </h2>
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-stone-500 mt-1 ml-11">
             {lessonId ? 'Manage resources for this lesson' : 'Manage your educational materials'}
           </p>
         </div>
         <button
           onClick={() => setView('upload')}
-          className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-900 text-white rounded-xl hover:bg-indigo-800 transition-all shadow-sm hover:shadow-md font-medium"
         >
           <Plus className="h-4 w-4" />
           Upload New
@@ -179,26 +204,32 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
 
       {/* Attached Resources (Only if lessonId is present) */}
       {lessonId && (
-        <div className="bg-emerald-50/50 rounded-xl border border-emerald-100 p-4">
-          <h3 className="text-sm font-semibold text-emerald-900 mb-3 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-6">
+          <h3 className="text-sm font-bold text-emerald-900 mb-4 flex items-center gap-2 uppercase tracking-wider">
             <LinkIcon className="h-4 w-4" />
             Attached to Current Lesson
           </h3>
           {attachedResources.length === 0 ? (
-            <p className="text-sm text-emerald-600/70 italic">No resources attached to this lesson yet.</p>
+            <div className="text-center py-8 border-2 border-dashed border-emerald-200/50 rounded-xl bg-white/50">
+              <p className="text-sm text-emerald-600/70 italic">No resources attached to this lesson yet.</p>
+              <p className="text-xs text-emerald-500 mt-1">Select resources from the library below to attach them.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {attachedResources.map(resource => (
-                <div key={resource.id} className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm flex items-center justify-between group">
+                <div key={resource.id} className="bg-white p-3 rounded-xl border border-emerald-200 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {resource.file_type?.includes('pdf') ? '📄' : '📝'}
+                    <div className="w-10 h-10 bg-stone-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-stone-100">
+                      {getFileIcon(resource.file_type)}
                     </div>
-                    <span className="text-sm font-medium text-stone-700 truncate">{resource.title}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-stone-800 truncate">{resource.title}</p>
+                      <p className="text-xs text-stone-500 truncate">{resource.file_type?.split('/')[1] || 'file'}</p>
+                    </div>
                   </div>
                   <button 
                     onClick={() => handleDetachResource(resource.id)}
-                    className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                     title="Remove from lesson"
                   >
                     <X className="h-4 w-4" />
@@ -211,23 +242,23 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       )}
 
       {/* Library Browser */}
-      <div className="flex-1 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
         <div className="p-4 border-b border-stone-200 bg-stone-50/50">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
+            <div className="flex items-center gap-3 w-full md:w-auto flex-1">
+              <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
                 <input
                   type="text"
                   placeholder="Search library..."
-                  className="w-full pl-9 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-shadow"
                   value={searchTerm}
                   onChange={handleSearch}
                 />
               </div>
               <select
-                className="px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] text-sm bg-white"
+                className="px-4 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white cursor-pointer hover:border-stone-400 transition-colors"
                 value={selectedScope}
                 onChange={(e) => setSelectedScope(e.target.value as 'chapter_wide' | 'platform_wide')}
               >
@@ -235,54 +266,60 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                 {isAdmin && <option value="platform_wide">Platform Library</option>}
               </select>
             </div>
-            <div className="text-xs text-stone-500 font-medium">
-              {resources.length} items shown
+            <div className="text-xs font-medium px-3 py-1 bg-stone-100 rounded-full text-stone-600 border border-stone-200">
+              {resources.length} items
             </div>
           </div>
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-6 bg-stone-50/30">
           {loading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
           ) : resources.length === 0 ? (
-            <div className="text-center py-12">
-              <FolderOpen className="h-12 w-12 text-stone-300 mx-auto mb-3" />
-              <h3 className="text-stone-900 font-medium">Library is empty</h3>
-              <p className="text-stone-500 text-sm mt-1">Upload resources to see them here</p>
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FolderOpen className="h-10 w-10 text-stone-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-stone-900">Library is empty</h3>
+              <p className="text-stone-500 text-sm mt-2 max-w-xs mx-auto">Upload resources to build your library and share materials with students.</p>
+              <button
+                onClick={() => setView('upload')}
+                className="mt-6 inline-flex items-center px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50 shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Upload First Resource
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {resources.map((resource) => {
                 const attached = isAttached(resource.id);
                 return (
                   <div
                     key={resource.id}
-                    className={`group relative bg-white rounded-xl border transition-all duration-200 ${
+                    className={`group relative bg-white rounded-xl border transition-all duration-200 flex flex-col ${
                       attached 
-                        ? 'border-emerald-200 bg-emerald-50/30' 
-                        : 'border-stone-200 hover:border-[#27AE60]/50 hover:shadow-md'
+                        ? 'border-emerald-200 ring-1 ring-emerald-100 shadow-sm' 
+                        : 'border-stone-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5'
                     }`}
                   >
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center text-xl">
-                          {resource.file_type?.includes('pdf') ? '📄' :
-                           resource.file_type?.includes('image') ? '🖼️' :
-                           resource.file_type?.includes('video') ? '🎬' :
-                           resource.file_type?.includes('audio') ? '🎵' : '📝'}
+                    <div className="p-5 flex-1">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center border border-stone-100 shadow-sm">
+                          {getFileIcon(resource.file_type)}
                         </div>
                         <div className="flex items-center gap-2">
                           {lessonId && (
                             <button
                               onClick={() => attached ? handleDetachResource(resource.id) : handleAttachResource(resource.id)}
                               disabled={attaching === resource.id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                                 attached
-                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700'
-                                  : 'bg-stone-100 text-stone-600 hover:bg-[#27AE60] hover:text-white'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-red-50 hover:text-red-700 hover:border-red-100'
+                                  : 'bg-stone-50 text-stone-600 border border-stone-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
                               }`}
                             >
                               {attaching === resource.id ? (
@@ -302,17 +339,17 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                           )}
                           
                           {/* Edit/Delete Actions */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={() => setEditingResource(resource)}
-                              className="p-1.5 text-stone-400 hover:text-[#27AE60] hover:bg-stone-100 rounded-md transition-colors"
+                              className="p-1.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                               title="Edit"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
                             <button 
                               onClick={() => handleDeleteResource(resource.id)}
-                              className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                              className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Delete"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -321,13 +358,13 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                         </div>
                       </div>
                       
-                      <h3 className="font-semibold text-stone-900 truncate mb-1" title={resource.title}>
+                      <h3 className="font-bold text-stone-900 truncate mb-1 text-base" title={resource.title}>
                         {resource.title}
                       </h3>
                       
                       <div className="flex items-center gap-2 mb-3">
                         {resource.category && (
-                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-[10px] uppercase tracking-wider font-medium">
+                          <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] uppercase tracking-wider font-bold border border-stone-200">
                             {resource.category}
                           </span>
                         )}
@@ -338,30 +375,30 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                       </div>
 
                       {resource.description && (
-                        <p className="text-sm text-stone-600 line-clamp-2 mb-4 h-10">
+                        <p className="text-sm text-stone-600 line-clamp-2 mb-4 h-10 leading-relaxed">
                           {resource.description}
                         </p>
                       )}
+                    </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-stone-200 flex items-center justify-center text-[10px] font-bold text-stone-600">
-                            {resource.author?.charAt(0) || 'U'}
-                          </div>
-                          <span className="text-xs text-stone-500 truncate max-w-[80px]">
-                            {resource.author}
-                          </span>
+                    <div className="px-5 py-3 border-t border-stone-100 bg-stone-50/50 rounded-b-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700 border border-indigo-200">
+                          {resource.author?.charAt(0) || 'U'}
                         </div>
-                        <a 
-                          href={resource.file_path} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs font-medium text-[#27AE60] hover:text-[#219150] flex items-center gap-1"
-                        >
-                          View File
-                          <ArrowLeft className="h-3 w-3 rotate-180" />
-                        </a>
+                        <span className="text-xs font-medium text-stone-500 truncate max-w-[80px]">
+                          {resource.author}
+                        </span>
                       </div>
+                      <a 
+                        href={resource.file_path} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group/link"
+                      >
+                        View File
+                        <ArrowLeft className="h-3 w-3 rotate-180 transition-transform group-hover/link:translate-x-0.5" />
+                      </a>
                     </div>
                   </div>
                 );
@@ -372,21 +409,21 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
+          <div className="p-4 border-t border-stone-200 bg-white flex items-center justify-between">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-stone-200 transition-all"
             >
               <ChevronLeft className="h-5 w-5 text-stone-600" />
             </button>
-            <span className="text-sm font-medium text-stone-600">
+            <span className="text-sm font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-stone-200 transition-all"
             >
               <ChevronRight className="h-5 w-5 text-stone-600" />
             </button>

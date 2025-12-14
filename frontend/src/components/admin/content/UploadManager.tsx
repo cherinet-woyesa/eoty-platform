@@ -3,6 +3,7 @@ import { Upload, Filter, RefreshCw, Plus } from 'lucide-react';
 import UploadQueue from './UploadQueue';
 import UnifiedUploadForm from './UnifiedUploadForm';
 import { useUploadQueue } from '@/hooks/useAdmin';
+import { brandColors } from '@/theme/brand';
 import { chaptersApi } from '@/services/api/chapters';
 import { adminApi } from '@/services/api';
 
@@ -13,7 +14,7 @@ const UploadManager: React.FC = () => {
   const [chapters, setChapters] = useState<any[]>([]);
   const [selectedChapter, setSelectedChapter] = useState('');
   
-  const { uploads, loading, error, approveUpload, refetch } = useUploadQueue(statusFilter, chapterFilter);
+  const { uploads, loading, error, approveUpload, fetchUploads } = useUploadQueue(statusFilter, chapterFilter);
 
   useEffect(() => {
     const fetchChapters = async () => {
@@ -89,15 +90,12 @@ const UploadManager: React.FC = () => {
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg backdrop-blur-sm">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#27AE60]/25 rounded-lg blur-md"></div>
-                  <div className="relative p-2 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/25">
-                    <Upload className="h-6 w-6 text-[#27AE60]" />
-                  </div>
+                <div className="p-2 rounded-lg border border-brand-primary/30 bg-brand-primary/10">
+                  <Upload className="h-6 w-6 text-brand-primary" />
                 </div>
                 <h1 className="text-3xl font-bold text-stone-800">Upload Manager</h1>
               </div>
@@ -107,7 +105,8 @@ const UploadManager: React.FC = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowUploadForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-all shadow-sm hover:shadow-md"
+                className="flex items-center space-x-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm"
+                style={{ backgroundColor: brandColors.primaryHex, '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
                 <Plus className="h-4 w-4" />
                 <span>Upload Content</span>
@@ -115,9 +114,10 @@ const UploadManager: React.FC = () => {
               <button
                 onClick={refetch}
                 disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 rounded-lg border border-[#27AE60]/25 transition-all shadow-sm hover:shadow-md hover:border-[#27AE60]/50 disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-white text-stone-800 rounded-lg border transition-colors shadow-sm disabled:opacity-50"
+                style={{ borderColor: `${brandColors.primaryHex}4D` } as React.CSSProperties}
               >
-                <RefreshCw className={`h-4 w-4 text-[#27AE60] ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
                 <span>Refresh</span>
               </button>
             </div>
@@ -172,10 +172,10 @@ const UploadManager: React.FC = () => {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { label: 'Pending Review', value: uploads.filter(u => u.status === 'pending').length, color: 'text-[#2980B9]', bg: 'bg-[#2980B9]/10', border: 'border-[#2980B9]/25' },
-            { label: 'Approved', value: uploads.filter(u => u.status === 'approved').length, color: 'text-[#27AE60]', bg: 'bg-[#27AE60]/10', border: 'border-[#27AE60]/25' },
-            { label: 'Rejected', value: uploads.filter(u => u.status === 'rejected').length, color: 'text-red-600', bg: 'bg-red-500/10', border: 'border-red-500/25' },
-            { label: 'Processing', value: uploads.filter(u => u.status === 'processing').length, color: 'text-[#F39C12]', bg: 'bg-[#F39C12]/10', border: 'border-[#F39C12]/25' },
+            { label: 'Pending Review', value: uploads.filter(u => u.status === 'pending').length, color: 'text-brand-primary', bg: 'bg-brand-primary/10', border: 'border-brand-primary/25' },
+            { label: 'Approved', value: uploads.filter(u => u.status === 'approved').length, color: 'text-brand-primary', bg: 'bg-brand-primary/10', border: 'border-brand-primary/25' },
+            { label: 'Rejected', value: uploads.filter(u => u.status === 'rejected').length, color: 'text-brand-accent', bg: 'bg-brand-accent/10', border: 'border-brand-accent/25' },
+            { label: 'Processing', value: uploads.filter(u => u.status === 'processing').length, color: 'text-brand-primary-dark', bg: 'bg-brand-primary-dark/10', border: 'border-brand-primary-dark/25' },
           ].map((stat, index) => (
             <div key={index} className={`bg-white/90 backdrop-blur-md rounded-xl p-4 border ${stat.border} text-center shadow-sm`}>
               <div className={`text-2xl font-bold ${stat.color}`}>
@@ -198,7 +198,7 @@ const UploadManager: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 shadow-sm">
           <div className="p-6 border-b border-stone-200">
             <h2 className="text-lg font-semibold text-stone-800 flex items-center">
-              <Upload className="h-5 w-5 text-[#27AE60] mr-2" />
+              <Upload className="h-5 w-5 text-brand-primary mr-2" />
               Content Upload Queue
             </h2>
           </div>
@@ -208,6 +208,8 @@ const UploadManager: React.FC = () => {
               uploads={uploads}
               onApprove={handleApprove}
               loading={loading}
+              error={error || undefined}
+              onRefresh={() => fetchUploads(1)}
             />
           </div>
         </div>

@@ -40,6 +40,7 @@ const relatedVideosRoutes = require('./routes/relatedVideos');
 const recordingPresetsRoutes = require('./routes/recordingPresets');
 const knowledgeBaseRoutes = require('./routes/knowledgeBase');
 const learningPathsRoutes = require('./routes/learningPaths');
+const videoProgressRoutes = require('./routes/videoProgress');
 
 // Import middleware
 const { authenticateToken } = require('./middleware/auth');
@@ -349,6 +350,7 @@ app.use('/api', videoChaptersRoutes); // Video chapters routes (authentication h
 app.use('/api', thumbnailRoutes); // Thumbnail routes (authentication handled in route file)
 app.use('/api', relatedVideosRoutes); // Related videos routes (authentication handled in route file)
 app.use('/api/recording-presets', recordingPresetsRoutes); // Recording presets routes (authentication handled in route file)
+app.use('/api/video-progress', videoProgressRoutes); // Video progress tracking routes (authentication handled in route file)
 
 // Enhanced error handling middleware
 app.use((err, req, res, next) => {

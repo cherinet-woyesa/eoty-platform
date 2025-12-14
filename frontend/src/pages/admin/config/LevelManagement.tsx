@@ -12,6 +12,7 @@ import { UsageAnalytics } from '@/components/admin/analytics/UsageAnalytics';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { CourseLevel, LevelFormData } from '@/types/systemConfig';
+import { brandColors } from '@/theme/brand';
 
 export const LevelManagement = () => {
   const queryClient = useQueryClient();
@@ -359,7 +360,8 @@ export const LevelManagement = () => {
         <div className="flex justify-end">
           <button
             onClick={openCreateForm}
-            className="bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white px-4 py-2 rounded-lg font-medium hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-colors flex items-center gap-2"
+            className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Plus className="h-5 w-5" />
             New Level
@@ -411,7 +413,10 @@ export const LevelManagement = () => {
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#27AE60] to-[#16A085] px-6 py-4 text-white">
+                <div
+                  className="px-6 py-4 text-white"
+                  style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
@@ -488,7 +493,8 @@ export const LevelManagement = () => {
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-6 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
                     </button>

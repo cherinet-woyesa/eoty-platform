@@ -23,13 +23,13 @@ const AdminSystemPage: React.FC = () => {
       <div className="w-full space-y-4 p-3 sm:p-4 lg:p-6">
         {/* Tabs */}
         <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
-          <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto">
+          <nav className="flex space-x-2 p-2 bg-white border-b border-slate-200">
             <button
               onClick={() => setActiveTab('landing')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'landing'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               <FileEdit className="h-4 w-4" />
@@ -39,8 +39,8 @@ const AdminSystemPage: React.FC = () => {
               onClick={() => setActiveTab('knowledge')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'knowledge'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               <Book className="h-4 w-4" />
@@ -50,8 +50,8 @@ const AdminSystemPage: React.FC = () => {
               onClick={() => setActiveTab('config')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'config'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               <Settings className="h-4 w-4" />
@@ -61,8 +61,8 @@ const AdminSystemPage: React.FC = () => {
               onClick={() => setActiveTab('logs')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'logs'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               <ShieldIcon className="h-4 w-4" />
@@ -72,8 +72,8 @@ const AdminSystemPage: React.FC = () => {
               onClick={() => setActiveTab('analytics')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'analytics'
-                  ? 'border-[#E74C3C] text-[#E74C3C] bg-[#E74C3C]/5'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               <BarChart2 className="h-4 w-4" />

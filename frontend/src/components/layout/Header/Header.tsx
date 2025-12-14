@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import LanguageSelector from '@/components/common/LanguageSelector';
 import BreadcrumbNav from './BreadcrumbNav';
 import QuickActions from './QuickActions';
+import { brandColors } from '@/theme/brand';
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -34,13 +35,13 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             {/* Mobile menu button */}
             <button 
               onClick={onToggleSidebar || handleMobileMenuToggle}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-900/20"
+              className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
-                <X className="h-4 w-4 text-indigo-900" />
+                <X className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               ) : (
-                <Menu className="h-4 w-4 text-indigo-900" />
+                <Menu className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               )}
             </button>
             

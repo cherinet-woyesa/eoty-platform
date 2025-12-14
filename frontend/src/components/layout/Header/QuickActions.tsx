@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Video, BookOpen, Users, BarChart, Zap, Settings, FileText } from 'lucide-react';
+import { Video, BookOpen, Users, BarChart, Zap, Settings, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useHotkeys } from '@/hooks/useHotkeys';
 
@@ -18,9 +18,6 @@ const QuickActions: React.FC = () => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'chapter_admin' || user?.role === 'admin';
-  const isAdmin = user?.role === 'admin' || user?.role === 'chapter_admin';
-
   const quickActions: QuickAction[] = [
     {
       id: 'new-course',
@@ -30,7 +27,7 @@ const QuickActions: React.FC = () => {
       action: () => console.log('Create new course'),
       shortcut: ['ctrl', 'shift', 'c'],
       roles: ['teacher', 'chapter_admin', 'admin'],
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-brand-primary to-brand-primary/80'
     },
     {
       id: 'record-video',
@@ -40,7 +37,7 @@ const QuickActions: React.FC = () => {
       action: () => console.log('Record video'),
       shortcut: ['ctrl', 'shift', 'r'],
       roles: ['teacher', 'chapter_admin', 'admin'],
-      color: 'from-green-500 to-green-600'
+      color: 'from-brand-primary to-brand-primary/80'
     },
     {
       id: 'new-user',
@@ -50,7 +47,7 @@ const QuickActions: React.FC = () => {
       action: () => console.log('Add user'),
       shortcut: ['ctrl', 'shift', 'u'],
       roles: ['chapter_admin', 'admin'],
-      color: 'from-purple-500 to-purple-600'
+      color: 'from-brand-primary to-brand-primary/80'
     },
     {
       id: 'analytics',
@@ -60,7 +57,7 @@ const QuickActions: React.FC = () => {
       action: () => console.log('View analytics'),
       shortcut: ['ctrl', 'shift', 'a'],
       roles: ['chapter_admin', 'admin'],
-      color: 'from-orange-500 to-orange-600'
+      color: 'from-brand-primary to-brand-primary/80'
     },
     {
       id: 'new-content',
@@ -69,7 +66,7 @@ const QuickActions: React.FC = () => {
       description: 'Upload learning materials',
       action: () => console.log('Upload content'),
       roles: ['teacher', 'chapter_admin', 'admin'],
-      color: 'from-indigo-500 to-indigo-600'
+      color: 'from-brand-primary to-brand-primary/80'
     },
     {
       id: 'settings',
@@ -79,7 +76,7 @@ const QuickActions: React.FC = () => {
       action: () => console.log('Open settings'),
       shortcut: ['ctrl', ','],
       roles: ['admin'],
-      color: 'from-gray-500 to-gray-600'
+      color: 'from-brand-primary to-brand-primary/80'
     }
   ];
 

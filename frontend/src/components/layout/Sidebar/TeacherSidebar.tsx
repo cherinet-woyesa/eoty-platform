@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { teacherNavItems } from '@/config/navigation';
 import { filterNavItems } from '@/utils/navigationFilter';
+import { brandColors } from '@/theme/brand';
 
 interface TeacherSidebarProps {
   isCollapsed?: boolean;
@@ -92,7 +93,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Header - Compact */}
-      <div className="flex items-center justify-between h-12 px-3 border-b border-purple-200/50 bg-gradient-to-r from-[#2980B9] to-[#8E44AD] shadow-md">
+      <div className="flex items-center justify-between h-12 px-3 border-b border-slate-200 shadow-md" style={{ backgroundColor: brandColors.primaryHex }}>
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
@@ -142,15 +143,15 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 to={item.href}
                 className={`group flex items-center px-3 py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
-                    ? 'bg-gradient-to-r from-[#2980B9]/10 to-[#8E44AD]/10 text-[#2980B9] shadow-sm border border-[#2980B9]/30 backdrop-blur-sm'
-                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:shadow-sm'
+                    ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
                 }`}
                 title={isCollapsed ? item.description : undefined}
               >
                 <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
-                  active ? 'bg-gradient-to-br from-[#2980B9]/20 to-[#8E44AD]/20' : 'bg-white/80 group-hover:bg-white'
+                  active ? 'bg-brand-primary/20' : 'bg-white/80 group-hover:bg-white'
                 } transition-all duration-200 shadow-sm`}>
-                  <IconComponent className={`h-5 w-5 ${active ? item.color : 'text-gray-500 group-hover:text-gray-700'}`} />
+                  <IconComponent className={`h-5 w-5 ${active ? 'text-brand-primary' : 'text-gray-500 group-hover:text-gray-700'}`} />
                 </div>
                 
                 {!isCollapsed && (
@@ -158,7 +159,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="truncate font-semibold">{t(item.name)}</span>
                       {item.badge && (
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
                           {item.badge}
                         </span>
                       )}

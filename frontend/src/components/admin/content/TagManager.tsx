@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/services/api';
 import { chaptersApi } from '@/services/api/chapters';
 import type { ContentTag } from '@/types/admin';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 const TagManager: React.FC = () => {
+  const { t } = useTranslation();
   const [tags, setTags] = useState<ContentTag[]>([]);
   const [filteredTags, setFilteredTags] = useState<ContentTag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,8 +280,24 @@ const TagManager: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="w-8 h-8 border-t-2 border-solid rounded-full animate-spin" style={{ borderColor: brandColors.primaryHex }}></div>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+          <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="border border-stone-200 rounded-lg p-4 space-y-3 bg-white">
+              <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded" />
+              <div className="h-3 w-2/3 bg-gray-200 animate-pulse rounded" />
+              <div className="h-3 w-1/2 bg-gray-200 animate-pulse rounded" />
+              <div className="flex gap-2">
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -290,7 +308,7 @@ const TagManager: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-600">
-              Manage and organize content with tags
+              {t('tags.manage_prompt', 'Manage and organize content with tags')}
             </span>
           </div>
           <div className="flex gap-2">
@@ -301,7 +319,7 @@ const TagManager: React.FC = () => {
                 onChange={(e) => setSelectedChapter(e.target.value)}
                 className="bg-transparent text-xs text-stone-700 border-none outline-none"
               >
-                <option value="">All Chapters</option>
+                <option value="">{t('tags.all_chapters', 'All Chapters')}</option>
                 {chapters.map(chapter => (
                   <option key={chapter.id} value={chapter.id}>
                     {chapter.name}
@@ -309,20 +327,26 @@ const TagManager: React.FC = () => {
                 ))}
               </select>
             </div>
-                        <button
+            <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
               style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
             >
               {showCreateForm ? <X className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
-              {showCreateForm ? 'Cancel' : 'New Tag'}
+              {showCreateForm ? t('common.cancel', 'Cancel') : t('tags.new_tag', 'New Tag')}
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
+          <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={fetchTags}
+              className="px-3 py-1.5 text-sm bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-100"
+            >
+              {t('common.retry', 'Retry')}
+            </button>
           </div>
         )}
 

@@ -494,7 +494,7 @@ const StudentEnrolledCourses: React.FC = () => {
                   {/* Actions */}
                   <div className="flex gap-2 pt-4 border-t border-slate-200/50">
                     <Link
-                      to={nextLessonMap[course.id]?.id ? `/member/courses/${course.id}/lessons/${nextLessonMap[course.id].id}` : `/member/courses/${course.id}`}
+                      to={nextLessonMap[course.id]?.id ? `/member/courses/${course.id}?lesson=${nextLessonMap[course.id].id}` : `/member/courses/${course.id}`}
                       className={`flex-1 inline-flex items-center justify-center px-4 ${compact ? 'py-2 text-xs' : 'py-2.5 text-sm'} text-white rounded-lg transition-all duration-200 text-center font-semibold shadow-md hover:shadow-lg backdrop-blur-sm`}
                       style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                     >

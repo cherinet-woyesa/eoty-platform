@@ -439,7 +439,7 @@ const ChaptersPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setShowStartChapterModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium bg-brand-primary"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium bg-gradient-to-r from-brand-primary to-brand-primary-dark"
               >
                 <Plus className="h-4 w-4" />
                 {t('chapters.actions.start')}
@@ -580,7 +580,7 @@ const ChaptersPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   {event.is_online ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-                                  {event.is_online ? 'Online' : event.location}
+                                  {event.is_online ? t('common.online') : event.location}
                                 </div>
                               </div>
                               {event.is_online && event.meeting_link && (
@@ -588,7 +588,7 @@ const ChaptersPage: React.FC = () => {
                                   href={event.meeting_link} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="mt-3 block w-full text-center py-2 rounded-lg text-sm font-medium transition-colors bg-brand-primary text-white hover:bg-brand-primary-dark"
+                                  className="mt-3 block w-full text-center py-2 rounded-lg text-sm font-medium transition-colors bg-gradient-to-r from-brand-primary to-brand-primary-dark text-white hover:shadow-md"
                                 >
                                   {t('chapters.my.join_meeting')}
                                 </a>
@@ -607,11 +607,11 @@ const ChaptersPage: React.FC = () => {
                         <div className="p-2 rounded-lg bg-brand-primary/10">
                           <FileText className="h-6 w-6 text-brand-primary" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">Resources</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">{t('chapters.my.resources')}</h3>
                       </div>
                       <div className="space-y-3">
                         {resources.length === 0 ? (
-                          <p className="text-sm text-slate-500 italic text-center py-4">No resources shared yet.</p>
+                          <p className="text-sm text-slate-500 italic text-center py-4">{t('chapters.my.resources_empty')}</p>
                         ) : (
                           resources.map(resource => (
                             <div key={resource.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
@@ -705,7 +705,7 @@ const ChaptersPage: React.FC = () => {
                 </p>
                 <button 
                   onClick={() => setShowApplyLeadershipModal(true)}
-                  className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all font-medium bg-brand-primary"
+                  className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all font-medium bg-gradient-to-r from-brand-primary to-brand-primary-dark"
                 >
                   {t('chapters.manage.apply')}
                 </button>
@@ -833,7 +833,7 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <span className="text-slate-600">{t('chapters.manage.chapter_overview.chapter_name')}</span>
-                      <span className="font-bold text-slate-900">{managedChapter?.chapter_name || 'Unknown'}</span>
+                      <span className="font-bold text-slate-900">{managedChapter?.chapter_name || t('chapters.manage.chapter_overview.unknown')}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <span className="text-slate-600">{t('chapters.manage.chapter_overview.your_role')}</span>
@@ -952,7 +952,7 @@ const ChaptersPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setShowCreateEventModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-sm transition-colors text-sm font-medium bg-brand-primary"
+                      className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:shadow-sm transition-colors text-sm font-medium bg-gradient-to-r from-brand-primary to-brand-primary-dark"
                     >
                       <Plus className="h-4 w-4" />
                       {t('chapters.manage.events_management.create_event')}
@@ -965,7 +965,7 @@ const ChaptersPage: React.FC = () => {
                       <div className="flex justify-center mt-4">
                         <button
                           onClick={loadEvents}
-                          className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-gradient-to-r from-brand-success to-brand-success-dark text-white rounded-lg hover:shadow-sm transition-colors flex items-center gap-2"
                         >
                           <Loader2 className="h-4 w-4 animate-spin" />
                           {t('chapters.manage.events_management.load_events')}
@@ -996,7 +996,7 @@ const ChaptersPage: React.FC = () => {
                               </div>
                               <div className="flex items-center gap-1">
                                 {event.is_online ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-                                {event.is_online ? 'Online' : event.location}
+                                {event.is_online ? t('common.online') : event.location}
                               </div>
                             </div>
                             <button
@@ -1040,7 +1040,7 @@ const ChaptersPage: React.FC = () => {
                         <div className="flex justify-center mt-4">
                           <button
                             onClick={loadResources}
-                            className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-gradient-to-r from-brand-success to-brand-success-dark text-white rounded-lg hover:shadow-sm transition-colors flex items-center gap-2"
                           >
                             <Loader2 className="h-4 w-4 animate-spin" />
                             {t('chapters.manage.resources_management.load_resources')}
@@ -1098,7 +1098,7 @@ const ChaptersPage: React.FC = () => {
                         <div className="flex justify-center mt-4">
                           <button
                             onClick={loadAnnouncements}
-                            className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-gradient-to-r from-brand-success to-brand-success-dark text-white rounded-lg hover:shadow-sm transition-colors flex items-center gap-2"
                           >
                             <Loader2 className="h-4 w-4 animate-spin" />
                             {t('chapters.manage.announcements_management.load_announcements')}
@@ -1226,7 +1226,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isCreatingChapter}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-primary to-brand-primary-dark text-white rounded-lg hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
                   {isCreatingChapter ? (
                     <>
@@ -1285,7 +1285,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isApplyingLeadership}
-                  className="px-4 py-2 bg-brand-success text-white rounded-lg hover:bg-brand-success-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-success to-brand-success-dark text-white rounded-lg hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
                   {isApplyingLeadership ? (
                     <>
@@ -1422,7 +1422,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50 flex items-center gap-2 justify-center font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-primary to-brand-primary-dark text-white rounded-lg hover:shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2 justify-center font-medium"
                 >
                   {isSubmitting ? (
                     <>
@@ -1506,7 +1506,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isCreatingResource}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-primary to-brand-primary-dark text-white rounded-lg hover:shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
                   {isCreatingResource ? (
                     <>
@@ -1577,7 +1577,7 @@ const ChaptersPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isCreatingAnnouncement}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
+                  className="px-4 py-2 bg-gradient-to-r from-brand-primary to-brand-primary-dark text-white rounded-lg hover:shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center font-medium"
                 >
                   {isCreatingAnnouncement ? (
                     <>

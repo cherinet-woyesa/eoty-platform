@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowLeft, Video, BookOpen, Users, TrendingUp, FileVideo
+  ArrowLeft, Video, BookOpen, Users, TrendingUp, FileVideo, Loader2, Plus, CheckCircle, ChevronDown
 } from 'lucide-react';
 import EnhancedVideoRecorder from '@/components/shared/courses/EnhancedVideoRecorder';
 import { teacherApi } from '@/services/api/teacher';
+import { coursesApi } from '@/services/api';
 
 interface RecordVideoProps {
   courseId?: string;
@@ -28,7 +29,12 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
 
   // Use props if provided, otherwise fall back to URL params
   const lessonId = propLessonId || urlLessonId;
-  const courseId = propCourseId || urlCourseId;
+  const initialCourseId = propCourseId || urlCourseId;
+
+  const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(initialCourseId);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [showCourseSelector, setShowCourseSelector] = useState(false);
 
   const [stats, setStats] = useState({
     totalVideos: 0,
@@ -57,6 +63,27 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
     void loadStats();
   }, []);
 
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setIsLoadingCourses(true);
+        const response = await coursesApi.getCourses();
+        setCourses(response.data.courses || []);
+      } catch (error) {
+        console.error('Failed to fetch courses', error);
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  useEffect(() => {
+    if (initialCourseId) {
+      setSelectedCourseId(initialCourseId);
+    }
+  }, [initialCourseId]);
+
   // Determine the mode and title
   const isNewLesson = !lessonId;
   const pageTitle = isNewLesson ? t('record_video.create_new_lesson') : t('record_video.record_video_for_lesson');
@@ -70,6 +97,21 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
   const containerClasses = variant === 'full' 
     ? "w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen"
     : "w-full min-h-full relative";
+
+  const handleCourseSelect = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    setShowCourseSelector(false);
+  };
+
+  const selectedCourse = courses.find(c => String(c.id) === String(selectedCourseId));
+
+  if (isLoadingCourses && variant === 'full') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-stone-50">
+        <Loader2 className="h-8 w-8 animate-spin text-stone-400" />
+      </div>
+    );
+  }
 
   return (
     <div className={containerClasses}>
@@ -96,13 +138,84 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
               </div>
             </div>
 
-            {/* Mode indicator */}
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-              isNewLesson
-                ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
-                : 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
-            }`}>
-              {isNewLesson ? `📝 ${t('record_video.new_lesson_mode')}` : `🎬 ${t('record_video.recording_mode')}`}
+            {/* Mode indicator & Course Selector */}
+            <div className="flex items-center gap-3">
+              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                isNewLesson
+                  ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
+                  : 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
+              }`}>
+                {isNewLesson ? `📝 ${t('record_video.new_lesson_mode')}` : `🎬 ${t('record_video.recording_mode')}`}
+              </div>
+
+              {/* Course Selector Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowCourseSelector(!showCourseSelector)}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                    selectedCourseId 
+                      ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700' 
+                      : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
+                  }`}
+                >
+                  <BookOpen className="h-3 w-3" />
+                  <span className="max-w-[150px] truncate">
+                    {selectedCourse ? selectedCourse.title : 'Select Course (Optional)'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 opacity-70" />
+                </button>
+
+                {showCourseSelector && (
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-3 border-b border-stone-100 bg-stone-50/50">
+                      <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Select Target Course</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+                      <button
+                        onClick={() => handleCourseSelect('')}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                          !selectedCourseId ? 'bg-stone-100 text-stone-900 font-medium' : 'text-stone-600 hover:bg-stone-50'
+                        }`}
+                      >
+                        <div className="w-2 h-2 rounded-full border border-stone-300 bg-white"></div>
+                        No Course Selected
+                      </button>
+                      {courses.map(course => (
+                        <button
+                          key={course.id}
+                          onClick={() => handleCourseSelect(String(course.id))}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                            String(selectedCourseId) === String(course.id) 
+                              ? 'bg-[#2980B9]/10 text-[#2980B9] font-medium' 
+                              : 'text-stone-600 hover:bg-stone-50'
+                          }`}
+                        >
+                          {course.thumbnail ? (
+                            <img src={course.thumbnail} alt="" className="w-5 h-5 rounded object-cover" />
+                          ) : (
+                            <div className="w-5 h-5 rounded bg-stone-200 flex items-center justify-center text-[10px]">
+                              {course.title.charAt(0)}
+                            </div>
+                          )}
+                          <span className="truncate">{course.title}</span>
+                          {String(selectedCourseId) === String(course.id) && (
+                            <CheckCircle className="h-3 w-3 ml-auto" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-2 border-t border-stone-100 bg-stone-50/50">
+                      <Link 
+                        to="/teacher/courses/new"
+                        className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[#27AE60] hover:border-[#27AE60]/30 transition-all"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Create New Course
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -163,7 +276,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
         {/* Main Recording Area */}
         <div className={`${variant === 'full' ? 'xl:col-span-3 space-y-6' : 'h-full'}`}>
           <EnhancedVideoRecorder 
-            courseId={courseId} 
+            courseId={selectedCourseId} 
             lessonId={lessonId} 
             variant={variant === 'embedded' ? 'embedded' : 'default'}
             onToggleTips={() => setShowTips(!showTips)}
@@ -174,8 +287,8 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
               }
 
               // Redirect to course details page after successful upload
-              if (courseId) {
-                navigate(`/teacher/courses/${courseId}`);
+              if (selectedCourseId) {
+                navigate(`/teacher/courses/${selectedCourseId}`);
               } else {
                 // If no course ID (e.g. standalone lesson), go to courses list
                 navigate('/teacher/courses');

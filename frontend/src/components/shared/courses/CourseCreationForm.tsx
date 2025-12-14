@@ -5,36 +5,21 @@ import { dataCache } from '@/hooks/useRealTimeData';
 import { 
   BookOpen, 
   Upload, 
-  CheckCircle, 
+  CheckCircle,
   Sparkles, 
-  Target,
   Users,
   Lock,
   Globe,
-  Zap,
   Award,
   Clock,
   X,
   Plus,
   Trash2,
   AlertCircle,
-  Eye,
-  FileText,
-  Calendar,
-  Tag,
-  BarChart3,
-  Circle
+  Eye
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-
-const brandColors = {
-  primary: '#28536B',
-  accent: '#78A083',
-  soft: 'rgba(120, 160, 131, 0.1)',
-  success: '#4CAF50',
-  warning: '#FFC107',
-  danger: '#DC3545',
-};
+import { brandColors } from '@/theme/brand';
 
 // Types
 interface CourseFormData {
@@ -57,13 +42,19 @@ interface CourseCreationFormProps {
   courseId?: string;
   initialData?: Partial<CourseFormData>;
   returnPath?: string;
+  headerTitle?: string;
+  headerDescription?: string;
+  showHeader?: boolean;
 }
 
 const CourseCreationForm: React.FC<CourseCreationFormProps> = ({ 
   editMode = false,
   courseId,
   initialData,
-  returnPath
+  returnPath,
+  headerTitle,
+  headerDescription,
+  showHeader = true
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -73,7 +64,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [newTag, setNewTag] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -116,53 +106,6 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     certificationAvailable: formData.certificationAvailable,
     welcomeMessage: formData.welcomeMessage,
   }), [formData]);
-
-  const checklistItems = useMemo(() => {
-    const cleanedObjectives = formData.learningObjectives.filter(obj => obj.trim());
-    return [
-      {
-        id: 'title',
-        label: t('courses.creation.course_title'),
-        done: formData.title.trim().length >= 3
-      },
-      {
-        id: 'description',
-        label: t('courses.creation.course_description'),
-        done: formData.description.trim().length >= 5
-      },
-      {
-        id: 'category',
-        label: t('courses.creation.category'),
-        done: !!formData.category
-      },
-      {
-        id: 'level',
-        label: t('courses.creation.difficulty_level'),
-        done: !!formData.level
-      },
-      {
-        id: 'language',
-        label: t('courses.creation.language'),
-        done: !!formData.language
-      },
-      {
-        id: 'objectives',
-        label: t('courses.creation.learning_objectives'),
-        done: cleanedObjectives.length > 0
-      },
-      {
-        id: 'cover',
-        label: t('courses.creation.cover_image'),
-        done: !!coverImage,
-        optional: true
-      }
-    ];
-  }, [formData, coverImage, t]);
-
-  const checklistProgress = useMemo(() => {
-    const completed = checklistItems.filter(item => item.done).length;
-    return Math.round((completed / checklistItems.length) * 100);
-  }, [checklistItems]);
 
   // Categories with enhanced metadata
   const categories = useMemo(() => [
@@ -575,44 +518,61 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
   }
 
   return (
-    <>
-      <div className="max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-[2fr_1fr] gap-6 items-start">
-          <div className="bg-white rounded-2xl border border-indigo-50 shadow-lg overflow-hidden">
-            {/* Error Alert */}
-            {errors.submit && (
-              <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <span className="text-red-700">{errors.submit}</span>
+    <div className="min-h-screen bg-gray-50/80" style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}05 0%, #f8fafc 50%, #f1f5f9 100%)` }}>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100/80 overflow-hidden" style={{ borderColor: brandColors.primaryHex + '15' }}>
+          {/* Error Alert */}
+          {errors.submit && (
+            <div className="mx-6 mt-6 bg-red-50/80 border border-red-200/60 rounded-xl p-4 backdrop-blur-sm">
+              <div className="flex items-center space-x-3">
+                <div className="p-1.5 bg-red-100/60 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
                 </div>
+                <span className="text-red-800 font-medium">{errors.submit}</span>
               </div>
-            )}
-            {coverUploadStatus === 'uploading' && (
-              <div className="mx-6 mt-3 bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-center space-x-2 text-indigo-800">
-                <div className="w-4 h-4 border-t-2 border-indigo-600 border-solid rounded-full animate-spin"></div>
-                <span>{t('courses.creation.cover_uploading')}</span>
-              </div>
-            )}
-            {coverUploadStatus === 'error' && (
-              <div className="mx-6 mt-3 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2 text-red-700">
-                <AlertCircle className="h-5 w-5" />
-                <span>{coverUploadError || t('courses.creation.cover_upload_failed')}</span>
-              </div>
-            )}
-            {coverUploadStatus === 'success' && (
-              <div className="mx-6 mt-3 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2 text-green-700">
-                <CheckCircle className="h-5 w-5" />
-                <span>{t('courses.creation.cover_upload_success')}</span>
+            </div>
+          )}
+          {coverUploadStatus === 'uploading' && (
+            <div className="mx-6 mt-3 bg-blue-50/80 border border-blue-200/60 rounded-xl p-4 flex items-center space-x-3 text-blue-800 backdrop-blur-sm">
+              <div className="w-4 h-4 border-t-2 border-blue-600 border-solid rounded-full animate-spin"></div>
+              <span className="font-medium">{t('courses.creation.cover_uploading')}</span>
+            </div>
+          )}
+          {coverUploadStatus === 'error' && (
+            <div className="mx-6 mt-3 bg-red-50/80 border border-red-200/60 rounded-xl p-4 flex items-center space-x-3 text-red-800 backdrop-blur-sm">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">{coverUploadError || t('courses.creation.cover_upload_failed')}</span>
+            </div>
+          )}
+          {coverUploadStatus === 'success' && (
+            <div className="mx-6 mt-3 bg-green-50/80 border border-green-200/60 rounded-xl p-4 flex items-center space-x-3 text-green-800 backdrop-blur-sm">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-medium">{t('courses.creation.cover_upload_success')}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+            {/* Form Header */}
+            {showHeader && (
+              <div className="text-center pb-6 border-b border-gray-100/80" style={{ borderColor: brandColors.primaryHex + '15' }}>
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}15, ${brandColors.primaryHex}08)` }}>
+                  <BookOpen className="h-8 w-8" style={{ color: brandColors.primaryHex }} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                  {headerTitle || (editMode ? t('courses.creation.edit_course_title') : t('courses.creation.create_course_title'))}
+                </h2>
+                <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
+                  {headerDescription || t('courses.creation.form_description')}
+                </p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
-              {/* Simplified Form - Clean and Focused */}
-              <div className="space-y-6">
+            {/* Simplified Form - Clean and Focused */}
+            <div className="space-y-6">
             {/* Course Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-2">
+            <div className="space-y-2">
+              <label htmlFor="title" className="block text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: brandColors.primaryHex + '40' }}></div>
                 {t('courses.creation.course_title')} *
               </label>
               <input
@@ -624,19 +584,21 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.title}
                 onChange={handleChange}
                 placeholder={t('courses.creation.title_placeholder')}
-                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent transition-all duration-200 text-lg"
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca]/50 transition-all duration-200 text-lg font-medium bg-white/80 backdrop-blur-sm shadow-sm"
+                style={{ borderColor: brandColors.primaryHex + '20' }}
               />
               {errors.title && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.title}
                 </p>
               )}
             </div>
 
             {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-2">
+            <div className="space-y-2">
+              <label htmlFor="description" className="block text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: brandColors.primaryHex + '40' }}></div>
                 {t('courses.creation.course_description')} *
               </label>
               <textarea
@@ -646,20 +608,21 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.description}
                 onChange={handleChange}
                 placeholder={t('courses.creation.description_placeholder')}
-                className="w-full px-4 py-3 border border-stone-200 rounded-xl placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca]/50 transition-all duration-200 resize-none bg-white/80 backdrop-blur-sm shadow-sm"
+                style={{ borderColor: brandColors.primaryHex + '20' }}
               />
-              <div className="flex justify-between mt-1 text-xs text-stone-500">
+              <div className="flex justify-between mt-2 text-xs text-gray-500">
                 <span>
                   {formData.description.length < 5 
                     ? t('courses.creation.description_too_short_warning') 
                     : ''
                   }
                 </span>
-                <span>{formData.description.length}/2000</span>
+                <span className="font-medium">{formData.description.length}/2000</span>
               </div>
               {errors.description && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.description}
                 </p>
               )}
@@ -667,8 +630,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-3">
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full" style={{ backgroundColor: brandColors.primaryHex + '40' }}></div>
                   {t('courses.creation.category')} *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -684,21 +648,21 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         }))}
                         className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
                           formData.category === category.value
-                            ? `border-[#4338ca] bg-[#4338ca]/5 shadow-sm`
-                            : 'border-stone-200 hover:border-indigo-200'
+                            ? 'border-[#4338ca]/60 bg-[#4338ca]/8 shadow-md'
+                            : 'border-gray-100/80 hover:border-[#4338ca]/30 bg-white/60'
                         }`}
                       >
                         <div className="flex items-center space-x-2">
-                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#4338ca]' : 'text-stone-500'} flex-shrink-0`} />
-                          <div className="font-medium text-stone-900 text-sm">{category.label}</div>
+                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#4338ca]' : 'text-gray-500'} flex-shrink-0`} />
+                          <div className="font-medium text-gray-900 text-sm">{category.label}</div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
                 {errors.category && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-2 font-medium">
+                    <AlertCircle className="h-4 w-4" />
                     {errors.category}
                   </p>
                 )}
@@ -799,7 +763,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer list-none">
                   <div className="flex items-center text-sm font-medium text-stone-700">
-                    <span>Additional Options</span>
+                    <span>{t('courses.creation.additional_options')}</span>
                   </div>
                   <div className="text-stone-400 group-open:rotate-180 transition-transform">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1023,16 +987,20 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#4338ca] to-[#6366f1] hover:from-[#4338ca]/90 hover:to-[#6366f1]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="inline-flex items-center justify-center px-8 py-3.5 border-2 text-base font-semibold rounded-xl text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHex}dd)`,
+                      borderColor: brandColors.primaryHex + '40'
+                    }}
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
+                        <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-3"></div>
                         {editMode ? t('common.updating') : t('common.creating')}...
                       </>
                     ) : (
                       <>
-                        <BookOpen className="mr-2 h-4 w-4" />
+                        <BookOpen className="mr-3 h-5 w-5" />
                         {editMode ? t('common.update_course') : t('common.create_course')}
                       </>
                     )}
@@ -1041,58 +1009,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
               </div>
             </form>
           </div>
-
-          {/* Checklist side panel */}
-          <aside className="space-y-4">
-            <div className="bg-white rounded-2xl border border-indigo-50 shadow-md p-4 sticky top-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-stone-800">{t('courses.creation.checklist_heading')}</p>
-                  <p className="text-xs text-stone-500">{t('courses.creation.checklist_subtitle')}</p>
-                </div>
-                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  {checklistProgress}%
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {checklistItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl border border-stone-100 hover:border-indigo-100"
-                  >
-                    <div className="flex items-center gap-2">
-                      {item.done ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-stone-300" />
-                      )}
-                      <span className="text-sm text-stone-800">{item.label}</span>
-                      {item.optional && (
-                        <span className="text-[11px] text-stone-400">
-                          {t('common.optional')}
-                        </span>
-                      )}
-                    </div>
-                    {item.done ? (
-                      <span className="text-[11px] text-green-600">{t('common.done', { defaultValue: 'Done' })}</span>
-                    ) : (
-                      <span className="text-[11px] text-stone-400">{t('common.pending', { defaultValue: 'Pending' })}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 p-3">
-                <p className="text-xs font-semibold text-indigo-800 mb-1">{t('courses.creation.helper_tips')}</p>
-                <p className="text-xs text-indigo-700">{t('courses.creation.helper_validation')}</p>
-                <p className="text-xs text-indigo-700 mt-1">{t('courses.creation.helper_media')}</p>
-              </div>
-            </div>
-          </aside>
         </div>
       </div>
-    </>
   );
 };
 

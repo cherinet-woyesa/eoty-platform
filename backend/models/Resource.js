@@ -10,6 +10,37 @@ class Resource {
     return await db('resources').where({ id }).first();
   }
 
+  static async findByLesson(lessonId, userId = null) {
+    let query = db('resources')
+      .where({ lesson_id: lessonId })
+      .where('published_at', '<=', new Date())
+      .orderBy('created_at', 'desc');
+    
+    return await query;
+  }
+
+  static async attachToLesson(resourceId, lessonId) {
+    await db('resources')
+      .where({ id: resourceId })
+      .update({
+        lesson_id: lessonId,
+        updated_at: new Date()
+      });
+    
+    return await this.findById(resourceId);
+  }
+
+  static async detachFromLesson(resourceId) {
+    await db('resources')
+      .where({ id: resourceId })
+      .update({
+        lesson_id: null,
+        updated_at: new Date()
+      });
+    
+    return await this.findById(resourceId);
+  }
+
   static async findByChapter(chapterId, filters = {}) {
     let query = db('resources')
       .where({ chapter_id: chapterId })

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/services/api';
 import type { FlaggedContent } from '@/types/admin';
 import { brandColors } from '@/theme/brand';
-import { AlertCircle, AlertTriangle, Clock, UserX, UserCheck, FileX, FileCheck, Edit, Shield } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, UserX, UserCheck, FileX, FileCheck, Edit, Shield, RefreshCw } from 'lucide-react';
 import { AIModerationTools } from './AIModerationTools';
 
 const ModerationTools: React.FC = () => {
+  const { t } = useTranslation();
   const [flaggedContent, setFlaggedContent] = useState<FlaggedContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,8 +119,24 @@ const ModerationTools: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-t-2 border-solid rounded-full animate-spin" style={{ borderColor: brandColors.primaryHex }}></div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+          <div className="h-8 w-20 bg-gray-200 animate-pulse rounded" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="border border-slate-200 rounded-lg p-4 space-y-3">
+              <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-2/3 bg-gray-200 rounded animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -129,7 +147,7 @@ const ModerationTools: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-stone-600">
-            Guard both community content and AI‑generated answers
+            {t('moderation.guard_both', 'Guard both community content and AI‑generated answers')}
           </span>
         </div>
         <div className="inline-flex items-center bg-white/80 rounded-full border border-stone-200/70 p-1">
@@ -142,7 +160,7 @@ const ModerationTools: React.FC = () => {
             }`}
             style={viewMode === 'content' ? { backgroundColor: brandColors.primaryHex } : undefined}
           >
-            User Content
+            {t('moderation.user_content', 'User Content')}
           </button>
           <button
             onClick={() => setViewMode('ai')}
@@ -152,7 +170,7 @@ const ModerationTools: React.FC = () => {
                 : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
-            AI (Faith) Moderation
+            {t('moderation.ai_faith', 'AI (Faith) Moderation')}
           </button>
         </div>
       </div>
@@ -162,8 +180,14 @@ const ModerationTools: React.FC = () => {
       ) : (
         <>
           {error && (
-            <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
+            <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={fetchFlaggedContent}
+                className="px-3 py-1.5 text-sm bg-white border border-red-200 rounded-md text-red-700 hover:bg-red-100"
+              >
+                {t('common.retry', 'Retry')}
+              </button>
             </div>
           )}
 
@@ -181,7 +205,13 @@ const ModerationTools: React.FC = () => {
                   }`}
                   style={statusFilter === status ? { background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` } : undefined}
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                  {status === 'pending'
+                    ? t('moderation.pending', 'Pending')
+                    : status === 'reviewed'
+                      ? t('moderation.reviewed', 'Reviewed')
+                      : status === 'action_taken'
+                        ? t('moderation.action_taken', 'Action taken')
+                        : t('moderation.dismissed', 'Dismissed')}
                 </button>
               ))}
             </div>
@@ -192,11 +222,11 @@ const ModerationTools: React.FC = () => {
               <table className="min-w-full divide-y divide-stone-200">
                 <thead className="bg-gradient-to-r from-stone-50 to-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Content</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Flagged By</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Reason</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">{t('moderation.content', 'Content')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">{t('moderation.flagged_by', 'Flagged By')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">{t('moderation.reason', 'Reason')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">{t('moderation.status', 'Status')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-stone-700 uppercase tracking-wider">{t('moderation.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">

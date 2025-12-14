@@ -85,7 +85,6 @@ import AdminSystemPage from '@/pages/admin/AdminSystemPage';
 import AdminCommunicationsPage from '@/pages/admin/AdminCommunicationsPage';
 import Invitations from '@/pages/student/Invitations';
 import StudentAssignments from '@/pages/student/Assignments';
-import DonationPage from '@/pages/shared/DonationPage';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { queryClient } from '@/lib/queryClient';
 import '@/i18n/config';
@@ -190,7 +189,7 @@ function AppContent() {
       <div className="App w-full h-full">
         <Routes>
         {/* Public routes */}
-        <Route path="/donate" element={<DonationPage />} />
+        <Route path="/donate" element={<Navigate to="/#donation-section" replace />} />
         <Route 
           path="/login" 
           element={

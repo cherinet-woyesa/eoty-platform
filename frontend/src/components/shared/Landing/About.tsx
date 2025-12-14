@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { Target, Users, Award, BookOpen } from 'lucide-react';
 import { brandColors } from '@/theme/brand';
+import { useTranslation } from 'react-i18next';
 
 interface AboutProps {
   landingContent: any;
@@ -8,30 +9,25 @@ interface AboutProps {
 }
 
 const About = forwardRef<HTMLElement, AboutProps>(({ landingContent, visibleSections }, ref) => {
+  const { t } = useTranslation();
   const isVisible = visibleSections.has('about');
   const content = landingContent?.about || {};
   
-  console.log('About Component Render:', { 
-    landingContent, 
-    aboutContent: content, 
-    title: content.title 
-  });
-
   const features = content.features || [
     {
       icon: 'Target',
-      title: 'Our Mission',
-      description: 'Empowering Ethiopian Orthodox youths through faith-centered education that nurtures spiritual growth alongside academic excellence.'
+      title: t('landing.about.feature_mission.title'),
+      description: t('landing.about.feature_mission.desc')
     },
     {
       icon: 'Users',
-      title: 'Our Community',
-      description: 'Building a supportive community of faith-centered learners united in their spiritual journey and academic pursuits.'
+      title: t('landing.about.feature_community.title'),
+      description: t('landing.about.feature_community.desc')
     },
     {
       icon: 'Award',
-      title: 'Our Excellence',
-      description: 'Delivering high-quality education that meets international standards while honoring our Orthodox traditions.'
+      title: t('landing.about.feature_excellence.title'),
+      description: t('landing.about.feature_excellence.desc')
     }
   ];
 
@@ -65,17 +61,17 @@ const About = forwardRef<HTMLElement, AboutProps>(({ landingContent, visibleSect
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white rounded-full border border-[#2f3f82]/25 shadow-sm mb-6">
             <Target className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
             <span className="text-sm font-bold text-[#2f3f82] uppercase tracking-wider">
-              {content.badge || 'Our Mission'}
+              {content.badge || t('landing.about.badge')}
             </span>
           </div>
           
           <h2 className="text-4xl md:text-5xl font-extrabold text-[#1c2753] mb-6 tracking-tight">
             {/* Debug: Display raw title if available, otherwise default */}
-            {content.title ? content.title : 'Empowering Faith-Centered Learning'}
+            {content.title ? content.title : t('landing.about.title')}
           </h2>
           
           <p className="text-xl text-slate-700 max-w-3xl mx-auto font-light leading-relaxed">
-            {content.description || 'Nurturing spiritual growth and academic excellence through our comprehensive Orthodox education platform.'}
+            {content.description || t('landing.about.subtitle')}
           </p>
         </div>
 

@@ -2,13 +2,29 @@ import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface HeroProps {
   landingContent: any;
+  onDonate?: () => void;
+  onExplore?: () => void;
 }
 
-const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
+const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onDonate, onExplore }, ref) => {
   const { isAuthenticated, getRoleDashboard } = useAuth();
+  const { t } = useTranslation();
+  const handleDonateClick = (e: React.MouseEvent) => {
+    if (onDonate) {
+      e.preventDefault();
+      onDonate();
+    }
+  };
+  const handleExploreClick = (e: React.MouseEvent) => {
+    if (onExplore) {
+      e.preventDefault();
+      onExplore();
+    }
+  };
 
   return (
     <section ref={ref} id="hero" data-section-id="hero" className="relative min-h-screen flex items-center justify-center pt-20 z-10 overflow-hidden">
@@ -17,6 +33,9 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
         <img
           src="/eoc.jpg"
           alt="Background"
+          loading="lazy"
+          width={1920}
+          height={1080}
           className="w-full h-full object-cover"
           style={{ filter: 'sepia(0.45) saturate(1.15) brightness(0.95)' }}
         />
@@ -32,23 +51,23 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-100"></span>
             </span>
             <span className="text-sm font-medium text-white tracking-wide">
-              {landingContent.hero?.badge || 'For Orthodox Faith Members'}
+                  {landingContent.hero?.badge || t('landing.hero.badge')}
             </span>
           </div>
 
           {/* Main Title */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight tracking-tight text-white drop-shadow-xl">
             <span className="block mb-2 text-white/95">
-              {landingContent.hero?.title || 'Transform Your'}
+              {landingContent.hero?.title || t('landing.hero.title1')}
             </span>
             <span className="block text-white/90">
-              {landingContent.hero?.titleGradient || 'Spiritual Journey'}
+              {landingContent.hero?.titleGradient || t('landing.hero.title2')}
             </span>
           </h1>
 
           {/* Description */}
           <p className="text-xl md:text-2xl text-slate-100 leading-relaxed max-w-3xl mx-auto font-light drop-shadow-md">
-            {landingContent.hero?.description || 'A reverent, tranquil space to grow in faith and learning—focused on Orthodox tradition and spiritual depth.'}
+            {landingContent.hero?.description || t('landing.hero.description')}
           </p>
 
           {/* CTA Buttons */}
@@ -57,16 +76,18 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
               <>
                 <Link
                   to="/donate"
+                  onClick={handleDonateClick}
                   className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-rose-600 text-white border border-rose-500 hover:bg-rose-700 transition-all duration-200"
                 >
-                  Donate Now
+                  {t('landing.hero.donate')}
                   <Heart className="ml-2 h-5 w-5 fill-current" />
                 </Link>
                 <Link
-                  to="/login"
+                  to="/courses"
+                  onClick={handleExploreClick}
                   className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-all duration-200"
                 >
-                  Explore Courses
+                  {t('landing.hero.explore')}
                 </Link>
               </>
             ) : (
@@ -74,7 +95,7 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent }, ref) => {
                 to={getRoleDashboard()}
                 className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
               >
-                Go to Dashboard
+                {t('landing.hero.dashboard')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             )}

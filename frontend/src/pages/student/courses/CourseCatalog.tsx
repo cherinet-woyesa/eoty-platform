@@ -206,6 +206,8 @@ const CourseCatalog: React.FC = () => {
             <img 
               src={course.cover_image} 
               alt={course.title} 
+              loading="lazy"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -331,37 +333,38 @@ const CourseCatalog: React.FC = () => {
     return () => observer.disconnect();
   }, [canLoadMore]);
 
+  const inlineError = error ? (
+    <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-lg flex items-start gap-2">
+      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+      <div className="flex-1 text-xs sm:text-sm">
+        <p className="font-semibold">{t('student_courses.catalog_error_title')}</p>
+        <p className="text-rose-600/80">{error}</p>
+      </div>
+      <button
+        onClick={loadCatalog}
+        className="text-[11px] font-semibold text-[color:#1e1b4b] hover:underline"
+      >
+        {t('common.try_again')}
+      </button>
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <div className="w-full space-y-2 p-2">
-        <div className="flex items-center justify-center min-h-64">
-          <LoadingSpinner size="lg" text={t('student_courses.loading_catalog')} variant="logo" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full space-y-2 p-2">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <p className="text-red-600 text-sm mb-3">{error}</p>
-            <button
-              onClick={loadCatalog}
-              className="px-3 py-1.5 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-medium text-xs shadow-sm"
-            >
-              {t('common.try_again')}
-            </button>
-          </div>
+      <div className="w-full space-y-3 p-3">
+        <div className="h-10 bg-stone-200 rounded-lg animate-pulse w-1/3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-44 bg-stone-200 rounded-xl animate-pulse" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-2 p-2">
+    <div className="w-full space-y-3 p-2">
+      {inlineError}
         {/* Compact Invitations Alert */}
         {pendingInvitesCount > 0 && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-white/80 border border-emerald-200 px-3 py-2">

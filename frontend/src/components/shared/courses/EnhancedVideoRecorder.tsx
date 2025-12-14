@@ -1,5 +1,5 @@
-
-import { useState, useRef, useEffect, useCallback } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { FC } from 'react';
 import { useVideoRecorder } from '@/hooks/useVideoRecorder';
@@ -31,6 +31,7 @@ import VideoTimelineEditor from './VideoTimelineEditor';
 import SimpleTrimEditor from './SimpleTrimEditor';
 import SlideManager from './SlideManager';
 import VideoProcessingStatus from './VideoProcessingStatus';
+import SuccessNotificationModal from './SuccessNotificationModal';
 import LayoutSelector from './LayoutSelector';
 import CompositorPreview from './CompositorPreview';
 import SourceControlIndicators from './SourceControlIndicators';
@@ -176,7 +177,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [isCreatingCourseLoading, setIsCreatingCourseLoading] = useState(false);
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonDescription, setLessonDescription] = useState('');
-  const [showLessonForm, setShowLessonForm] = useState(false);
+  // Always show lesson form by default for better UX
+  const [showLessonForm, setShowLessonForm] = useState(true);
   
   // Error/Success State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -227,6 +229,23 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Notification system (Task 7.3)
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
+  // Success/Progress Modal Notification State
+  const [modalNotification, setModalNotification] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'info' | 'loading';
+    title: string;
+    message: string;
+    progress?: number;
+    autoCloseDelay?: number;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+    autoCloseDelay: 5000
+  });
+
+
   // NEW: Integrated Features State
   const [showTimelineEditor, setShowTimelineEditor] = useState(false);
   const [showSlideManager, setShowSlideManager] = useState(false);
@@ -252,7 +271,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       try {
         return await recordingPresetsApi.getDefaultPreset();
       } catch (error) {
-        console.error('Failed to load default preset:', error);
+        // Silently fail and use default settings
         return null;
       }
     },
@@ -299,7 +318,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // Enhanced cleanup - ONLY runs on actual component unmount
   useEffect(() => {
     return () => {
-      console.log('VideoRecorder unmounting - cleaning up');
+      // Component unmounting, cleaning up
       closeCamera();
       
       if (countdownIntervalRef.current) {
@@ -346,7 +365,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Only update if stream changed to avoid unnecessary re-initialization
       if (videoRef.current.srcObject !== recordingSources.camera) {
         videoRef.current.srcObject = recordingSources.camera;
-        console.log('Camera video srcObject updated');
+        // Camera video stream updated
       }
     }
     
@@ -357,7 +376,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       
       // Only update if stream changed to avoid clearing during restart
       if (screenVideo.srcObject !== screenStream) {
-        console.log('Setting screen video srcObject');
+        // Setting screen video stream
         screenVideo.srcObject = screenStream;
       }
       
@@ -369,7 +388,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           const activeTracks = videoTracks.filter(t => t.readyState === 'live' && t.enabled);
           
           if (activeTracks.length === 0) {
-            console.warn('No active video tracks in screen stream');
+            // No active video tracks in screen stream
             return;
           }
           
@@ -381,20 +400,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           // Play if paused
           if (screenVideo.paused) {
             await screenVideo.play();
-            console.log('Screen video started playing');
+            // Screen video started playing
           }
           
-          console.log('Screen stream is active:', {
-            activeTracks: activeTracks.length,
-            totalTracks: videoTracks.length,
-            trackLabels: activeTracks.map(t => t.label),
-            videoWidth: screenVideo.videoWidth,
-            videoHeight: screenVideo.videoHeight,
-            readyState: screenVideo.readyState,
-            paused: screenVideo.paused
-          });
         } catch (error) {
-          console.error('Failed to play screen video:', error);
+          // Failed to play screen video
           // Retry after a delay
           setTimeout(async () => {
             try {
@@ -402,7 +412,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 await screenVideoRef.current.play();
               }
             } catch (retryError) {
-              console.error('Retry failed:', retryError);
+              // Retry failed
               setErrorMessage('Screen sharing video failed to start. Please try again.');
             }
           }, 500);
@@ -415,7 +425,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       } else {
         // Remove old handler to avoid duplicates
         screenVideo.onloadedmetadata = () => {
-          console.log('Screen video metadata loaded');
+          // Screen video metadata loaded
           ensurePlaying();
         };
         
@@ -429,7 +439,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Check if recording is active - if so, might be restarting
       if (!isRecording) {
         screenVideoRef.current.srcObject = null;
-        console.log('Screen video srcObject cleared');
+        // Screen video stream cleared
       }
     }
     
@@ -456,14 +466,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         const micInterval = setInterval(updateMicLevel, 100);
         return () => clearInterval(micInterval);
       } catch (error) {
-        console.warn('Audio context not supported:', error);
+        // Audio context not supported
       }
     }
     
     return () => {
       audioAnalyserRef.current = null;
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(console.error);
+        audioContextRef.current.close().catch(() => {});
         audioContextRef.current = null;
       }
     };
@@ -496,18 +506,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   }, [isRecording, isPaused]);
 
   // Show preview when video blob becomes available after recording stops
-  // Show preview when video blob becomes available after recording stops
   useEffect(() => {
     // When recording stops and video blob becomes available, show preview
     if (!isRecording && (videoBlob || recordedVideo) && !showPreview && !showLessonForm && !uploading) {
-      console.log('Video blob ready, showing preview', { 
-        hasBlob: !!videoBlob, 
-        hasUrl: !!recordedVideo, 
-        blobSize: videoBlob?.size
-      });
-      
-      setShowPreview(true);
-      setShowLessonForm(false);
+      // Direct to lesson form instead of preview step
+      setShowLessonForm(true);
+      setShowPreview(false);
       setRecordingStatus('idle');
       
       // Do NOT acknowledge preview here — wait until the preview video element has loaded metadata
@@ -532,7 +536,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         }),
         (savedId) => {
           setLastAutoSaveTime(Date.now());
-          console.log('💾 Auto-saved draft:', savedId);
+          // Auto-saved draft
         }
       );
       setAutoSaveDraftId(draftId);
@@ -554,7 +558,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         const drafts = await videoDraftStorage.getAllDrafts();
         setSavedDrafts(drafts);
       } catch (error) {
-        console.error('Failed to load drafts:', error);
+        // Failed to load drafts
       }
     };
     loadDrafts();
@@ -565,13 +569,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Slide management functions
   const handleSlidesChange = (newSlides: any[]) => {
     setCurrentSlides(newSlides);
-    console.log('Slides updated:', newSlides);
+    // Slides updated
   };
 
   const handleSlideAdvance = (slideIndex: number) => {
     setCurrentSlideIndex(slideIndex);
     recordSlideChange(slideIndex);
-    console.log(`Advanced to slide ${slideIndex + 1}`);
+    // Advanced to slide
   };
 
   // NEW: Enhanced video editing functions
@@ -598,7 +602,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         recordedVideoRef.current.src = newVideoUrl;
       }
     } catch (error) {
-      console.error('Video editing failed:', error);
+      // Video editing failed
       setErrorMessage('Failed to apply edits. Please try again.');
       setRecordingStatus('idle');
     }
@@ -789,7 +793,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         }, autoStopTimer * 60 * 1000);
       }
     } catch (error: any) {
-      console.error('Error during countdown or recording start:', error);
+      // Error during countdown or recording start
       setErrorMessage(formatErrorForDisplay(error) || 'Failed to start recording.');
       setRecordingStatus('idle');
       resetRecording();
@@ -832,13 +836,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           }
         }
       } catch (error: any) {
-        console.error('Failed to load courses:', error);
+        // Failed to load courses
         if (isMounted) {
           // Don't show error for 401 - let the auth system handle it
           // Only show error for other types of failures
           if (error?.response?.status === 401) {
             // Authentication issue - don't set error message, let auth system handle redirect
-            console.warn('Authentication required to load courses');
+            // Authentication required to load courses
             return;
           }
           setErrorMessage('Failed to load courses. You can still record videos without selecting a course.');
@@ -888,7 +892,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               }
             } catch (err) {
               // Continue searching
-              console.warn(`Failed to load lessons for course ${course.id}:`, err);
+              // Failed to load lessons for course
             }
           }
         } else {
@@ -904,7 +908,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           }
         }
       } catch (error: any) {
-        console.error('Failed to load lesson:', error);
+        // Failed to load lesson
         if (isMounted) {
           setErrorMessage('Failed to load lesson data. You can still record a new video.');
         }
@@ -944,7 +948,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         setErrorMessage('Course was created but no course data was returned.');
       }
     } catch (error: any) {
-      console.error('Failed to create course inline:', error);
+      // Failed to create course inline
       setErrorMessage(
         error?.response?.data?.message ||
         'Failed to create course. Please try again or create it from My Courses.'
@@ -993,14 +997,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     const hasExistingStreams = recordingSources.camera || recordingSources.screen;
     if (!hasExistingStreams) {
       // No existing streams - initialize camera
-      console.log('No existing streams - initializing camera');
+      // No existing streams - initializing camera
       await initializeCamera();
     } else {
       // We have existing streams - reuse them
-      console.log('Reusing existing streams for recording', {
-        hasCamera: !!recordingSources.camera,
-        hasScreen: !!recordingSources.screen
-      });
+      // Reusing existing streams for recording
+      // No action needed; existing sources will be used by startRecording()
     }
     
       // Don't clear processing completion success message
@@ -1023,7 +1025,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         await startCountdownAndRecording();
       }
     } catch (error: any) {
-      console.error('Error starting recording:', error);
+      // Error starting recording
       setErrorMessage(formatErrorForDisplay(error) || 'Failed to start recording.');
       setRecordingStatus('idle');
       resetRecording();
@@ -1033,12 +1035,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const handleStopRecording = async () => {
     // Prevent multiple simultaneous stop calls
     if (isStoppingRef.current) {
-      console.log('Stop already in progress, ignoring duplicate call');
+      // Stop already in progress, ignoring duplicate call
       return;
     }
     
     if (!isRecording) {
-      console.log('Not recording, ignoring stop call');
+      // Not recording, ignoring stop call
       return;
     }
     
@@ -1060,7 +1062,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       
       // IMPORTANT: Capture the recording time BEFORE stopping (as stopRecording may reset it)
       const capturedDuration = recordingTime;
-      console.log('Stopping recording with duration:', capturedDuration);
+      // Stopping recording
       
       setRecordingStatus('processing');
       
@@ -1081,17 +1083,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Don't close camera immediately - let the useEffect handle it when blob is ready
       // This ensures the blob is created before cleanup happens
       // The useEffect that watches for videoBlob will call closeCamera() when ready
-      console.log('Waiting for blob to be created before closing camera...');
+      // Waiting for blob to be created before closing camera
       
       // Fallback: if preview acknowledgement hasn't happened, close camera after a short delay
       setTimeout(() => {
         try {
           if (!isRecording && !previewAcknowledgedRef.current) {
-            console.log('Fallback closing camera after stop (no preview acknowledgement yet)');
+            // Fallback closing camera after stop
             closeCamera();
           }
         } catch (e) {
-          console.warn('Fallback closeCamera error:', e);
+          // Fallback closeCamera error
         }
       }, 3000);
       
@@ -1102,7 +1104,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }, 2000);
       
     } catch (error) {
-      console.error('Error stopping recording:', error);
+      // Error stopping recording
       setErrorMessage('Failed to stop recording.');
       setRecordingStatus('idle');
       isStoppingRef.current = false;
@@ -1141,7 +1143,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // Enhanced reset function
   const handleReset = useCallback(() => {
-  console.log('Resetting recorder state - cleaning up streams');
+  // Resetting recorder state - cleaning up streams
   acknowledgePreview();
     
     if (autoStopTimerRef.current) {
@@ -1152,7 +1154,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     resetRecording();
   setRecordingTimeState(0);
   setRecordingDuration(0);
-  setShowLessonForm(false);
+  setShowLessonForm(true); // Keep form visible after reset
   setShowPreview(false);
   setLessonTitle('');
   setLessonDescription('');
@@ -1199,7 +1201,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       if (isPlaying) {
         recordedVideoRef.current.pause();
       } else {
-        recordedVideoRef.current.play().catch(console.error);
+        recordedVideoRef.current.play().catch(() => {
+          setErrorMessage('Unable to play the preview video.');
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -1275,7 +1279,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setShowLessonForm(false);
       return;
     } catch (error: any) {
-      console.error(`Failed to ${lessonId ? 'update' : 'create'} lesson:`, error);
+      // Failed to create/update lesson
       setErrorMessage(error.response?.data?.message || error.message || `Failed to ${lessonId ? 'update' : 'create'} lesson. Please try again.`);
       setUploading(false);
       setShowLessonForm(false);
@@ -1304,7 +1308,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     
     // If we have a transcoded video URL, notify parent components
     if (processingLessonId) {
-      console.log('Processing complete. Lesson ID:', processingLessonId);
+      // Processing complete
       // The video player will read from the database, which should have the updated URL
       // But we can notify parent components if needed
       // Pass empty string if URL is not provided, as parent might only need the ID
@@ -1317,7 +1321,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Handle Mux upload completion
   const handleMuxUploadComplete = useCallback((lessonId: string) => {
-    console.log('Mux upload complete for lesson:', lessonId);
+    // Mux upload complete
     setUploadSuccess(true);
     setSuccessMessage('Video uploaded to Mux successfully! Processing will begin shortly.');
     
@@ -1339,7 +1343,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Handle Mux upload error
   const handleMuxUploadError = useCallback((error: Error) => {
-    console.error('Mux upload error:', error);
+    // Mux upload error
     setErrorMessage(error.message || 'Failed to upload video to Mux');
     setShowMuxUploader(false);
     setMuxUploadLessonId(null);
@@ -1359,20 +1363,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       
       // If we're recording and have a camera source, we want to add screen share to existing recording
       if (isRecording && recordingSources.camera) {
-        setSuccessMessage('Adding screen to recording... This will briefly pause and restart.');
         await addScreenShare(); // Use addScreenShare for dynamic addition during recording
         // Automatically switch to picture-in-picture to show both
         if (currentLayout === 'camera-only') {
           changeLayout('picture-in-picture');
         }
-        // Success message will be set after restart completes
-        setTimeout(() => {
-          setSuccessMessage('Screen sharing added to recording! Both camera and screen are now being recorded.');
-          // Don't clear processing completion message
-          if (!persistentSuccessMessageRef.current) {
-            setTimeout(() => setSuccessMessage(null), 5000);
-          }
-        }, 2000);
+        // Success modal removed per UX request
       } else {
         await startScreenShare(); // Use startScreenShare for initial screen sharing
         // When screen sharing starts without camera, switch to screen-only layout
@@ -1382,16 +1378,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           changeLayout('picture-in-picture');
         }
         
-        setSuccessMessage('Screen sharing started! Your screen is now being shared.');
-        setTimeout(() => setSuccessMessage(null), 5000);
+        // Success modal removed per UX request
       }
     } catch (error) {
-      console.error('Failed to start screen share:', error);
-      setErrorMessage('Failed to start screen sharing. Please try again.');
-      // Don't clear processing completion success message
-      if (!persistentSuccessMessageRef.current) {
-        setSuccessMessage(null);
-      }
+      // Show error modal
+      setModalNotification({
+        isOpen: true,
+        type: 'error',
+        title: '❌ Screen Sharing Failed',
+        message: 'Failed to start screen sharing. Please check your permissions and try again.',
+        autoCloseDelay: 5000
+      });
     }
   };
 
@@ -1404,11 +1401,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
     
     if (isRecording) {
-      setSuccessMessage('Switched back to camera! Recording continues seamlessly.');
+      setModalNotification({
+        isOpen: true,
+        type: 'info',
+        title: '📹 Camera Only',
+        message: 'Switched back to camera-only mode. Recording continues.',
+        autoCloseDelay: 3000
+      });
     } else {
-      setSuccessMessage('Screen sharing stopped. You are no longer sharing your screen.');
+      setModalNotification({
+        isOpen: true,
+        type: 'info',
+        title: '⏹️ Screen Sharing Stopped',
+        message: 'You are no longer sharing your screen.',
+        autoCloseDelay: 3000
+      });
     }
-    setErrorMessage(null);
   };
 
   const handleDeleteRecording = () => {
@@ -1427,7 +1435,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setSuccessMessage('Recording downloaded successfully');
+      setModalNotification({
+        isOpen: true,
+        type: 'success',
+        title: '✅ Download Complete',
+        message: 'Your recording has been downloaded successfully.',
+        autoCloseDelay: 3000
+      });
     }
   };
 
@@ -1479,7 +1493,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Attach stream if element exists
     if (el && recordingSources.camera) {
       el.srcObject = recordingSources.camera;
-      el.play().catch(e => console.warn("Error playing camera video:", e));
+      el.play().catch(() => {
+        setErrorMessage('Camera preview failed to start.');
+      });
     }
   }, [recordingSources.camera]);
 
@@ -1490,24 +1506,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Attach stream if element exists
     if (el && recordingSources.screen) {
       el.srcObject = recordingSources.screen;
-      el.play().catch(e => console.warn("Error playing screen video:", e));
-      // DEBUG: log metadata/playing
-      el.onloadedmetadata = () => {
-        console.debug('[Preview Debug] Screen metadata', {
-          vw: el.videoWidth,
-          vh: el.videoHeight,
-          readyState: el.readyState,
-          clientW: el.clientWidth,
-          clientH: el.clientHeight
-        });
-      };
-      el.onplaying = () => {
-        console.debug('[Preview Debug] Screen playing', {
-          vw: el.videoWidth,
-          vh: el.videoHeight,
-          readyState: el.readyState
-        });
-      };
+      el.play().catch(() => {
+        setErrorMessage('Screen preview failed to start.');
+      });
     }
   }, [recordingSources.screen]);
 
@@ -1530,14 +1531,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
               onLoadedMetadata={(e) => {
-                console.log('Preview video metadata loaded', { 
-                  duration: e.currentTarget.duration, 
-                  src: src,
-                  videoWidth: e.currentTarget.videoWidth,
-                  videoHeight: e.currentTarget.videoHeight,
-                  clientWidth: e.currentTarget.clientWidth,
-                  clientHeight: e.currentTarget.clientHeight
-                });
                 const video = e.currentTarget;
                 // Update duration state if needed, but avoid unnecessary re-renders
                 if (video.duration && video.duration > 0 && Math.floor(video.duration) !== recordingDuration) {
@@ -1550,13 +1543,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   try {
                     acknowledgePreview();
                   } catch (err) {
-                    console.warn('Failed to acknowledge preview:', err);
+                    setErrorMessage('Unable to finalize preview state.');
                   }
                   
                   // Close camera after a short delay to ensure preview is stable
                   // This fixes the issue where camera remains active after recording stops
                   setTimeout(() => {
-                    try { closeCamera(); } catch (e) { console.warn('closeCamera error:', e); }
+                    try { closeCamera(); } catch (e) { setErrorMessage('Camera cleanup encountered an issue.'); }
                   }, 1000);
                 }
               }}
@@ -1715,14 +1708,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 ref={handleCameraRef}
                 autoPlay muted playsInline 
                 className="w-full h-full object-cover"
-                onLoadedMetadata={(e) => {
-                    console.log('Preview camera metadata (Camera Only):', {
-                        videoWidth: e.currentTarget.videoWidth,
-                        videoHeight: e.currentTarget.videoHeight,
-                        clientWidth: e.currentTarget.clientWidth,
-                        clientHeight: e.currentTarget.clientHeight
-                    });
-                }}
             />
             {renderRecordingStats()}
         </div>
@@ -2476,10 +2461,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       )}
 
       {/* Lesson Form - Light theme */}
-      {showLessonForm && (recordedVideo || selectedFile) && (
+      {showLessonForm && (
         <div className="p-6 border-t border-slate-200/50 bg-white/85 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2 mb-2">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-2">
               <h3 className="text-lg font-semibold flex items-center space-x-2 text-slate-700">
                 <Star className="h-5 w-5 text-[#FFD700]" />
                 <span>
@@ -2495,52 +2480,67 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 {lessonId ? '🎬 Recording Mode' : '📝 New Lesson Mode'}
               </div>
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 hidden sm:block">
               {lessonId
                 ? 'This will replace the video for your existing lesson'
                 : 'Create a new lesson with your recorded/uploaded video'
               }
             </p>
-            {activeTab === 'record' && recordedVideo && (
-              <div className="flex items-center space-x-2">
+          </div>
+
+          {/* Video Actions (Preview/Edit) - Only if video exists */}
+          {(recordedVideo || selectedFile) && (
+            <div className="flex items-center gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  Video Ready
+                </h4>
+                <p className="text-xs text-slate-500">
+                  {recordingDuration > 0 ? `Duration: ${Math.floor(recordingDuration)}s` : 'Ready to upload'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    setShowPreview(true);
-                    setShowLessonForm(false);
+                    setShowEnhancedPreview(true);
+                    // Don't hide form, just show preview modal
                   }}
-                  className="px-3 py-2 border border-slate-300/50 rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 transition-all duration-200 flex items-center space-x-2 text-sm shadow-sm text-slate-700"
+                  className="px-3 py-2 border border-slate-300/50 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 flex items-center space-x-2 text-sm shadow-sm text-slate-700"
                 >
                   <Play className="h-4 w-4" />
-                  <span>Preview Video</span>
+                  <span>Preview</span>
                 </button>
-                <div className="relative group">
-                  <button
-                    onClick={() => {
-                      setShowTimelineEditor(true);
-                      setShowLessonForm(false);
-                    }}
-                    className="px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 flex items-center space-x-2 text-sm shadow-md"
-                  >
-                    <Scissors className="h-4 w-4" />
-                    <span>Edit Video</span>
-                  </button>
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                    Trim your video to remove unwanted parts
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                {activeTab === 'record' && (
+                  <div className="relative group">
+                    <button
+                      onClick={() => {
+                        setShowTimelineEditor(true);
+                        // Don't hide form
+                      }}
+                      className="px-3 py-2 bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-all duration-200 flex items-center space-x-2 text-sm"
+                    >
+                      <Scissors className="h-4 w-4" />
+                      <span>Edit Video</span>
+                    </button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                      Trim your video to remove unwanted parts
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                    </div>
                   </div>
-                </div>
-
+                )}
               </div>
-           )}
-          </div>
-          <div className="space-y-4">
+            </div>
+          )}
+
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Select Course *</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Select Course *</label>
               <div className="flex flex-col gap-2">
                 <select 
                   value={selectedCourse} 
                   onChange={(e) => setSelectedCourse(e.target.value)} 
-                  className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent"
+                  className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm"
                   disabled={uploading || isCreatingCourseLoading}
                 >
                   <option value="">Choose a course...</option>
@@ -2616,39 +2616,42 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Lesson Title *</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Lesson Title *</label>
               <input 
                 type="text" 
                 value={lessonTitle} 
                 onChange={(e) => setLessonTitle(e.target.value)} 
                 placeholder="Enter lesson title..." 
-                className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent" 
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm" 
                 disabled={uploading} 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-slate-700">Description (Optional)</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">Description (Optional)</label>
               <textarea 
                 value={lessonDescription} 
                 onChange={(e) => setLessonDescription(e.target.value)} 
                 placeholder="Brief description..." 
                 rows={3} 
-                className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent" 
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm" 
                 disabled={uploading} 
               />
             </div>
-            <div className="flex space-x-3">
-              <button 
-                onClick={handleReset} 
-                disabled={uploading}
-                className="flex-1 px-4 py-3 border border-slate-300/50 rounded-xl bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 disabled:opacity-50 transition-all duration-200 flex items-center justify-center space-x-2 text-slate-700"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span>{activeTab === 'record' ? 'Record Again' : 'Upload New'}</span>
-              </button>
+            <div className="flex space-x-3 pt-2">
+              {(recordedVideo || selectedFile) && (
+                <button 
+                  onClick={handleReset} 
+                  disabled={uploading}
+                  className="px-4 py-3 border border-slate-300/50 rounded-xl bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 disabled:opacity-50 transition-all duration-200 flex items-center justify-center space-x-2 text-slate-700"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>{activeTab === 'record' ? 'Record Again' : 'Upload New'}</span>
+                </button>
+              )}
+              
               <button 
                 onClick={handleUpload} 
-                disabled={uploading || uploadSuccess || !selectedCourse || !lessonTitle.trim()}
+                disabled={uploading || uploadSuccess || !selectedCourse || !lessonTitle.trim() || (!recordedVideo && !selectedFile)}
                 className="flex-1 px-4 py-3 border border-transparent rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-md backdrop-blur-sm border border-emerald-500/40"
               >
                 {uploading ? (
@@ -2669,6 +2672,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 )}
               </button>
             </div>
+            
+            {/* Warning if no video */}
+            {(!recordedVideo && !selectedFile) && (
+              <p className="text-xs text-center text-amber-600 mt-2 flex items-center justify-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Please record or upload a video to create the lesson
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -2716,6 +2727,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           isOpen={showPresetsManager}
         />
       )}
+
+      {/* Success/Progress Modal Notification */}
+      <SuccessNotificationModal
+        isOpen={modalNotification.isOpen}
+        type={modalNotification.type}
+        title={modalNotification.title}
+        message={modalNotification.message}
+        progress={modalNotification.progress}
+        autoCloseDelay={modalNotification.autoCloseDelay}
+        onClose={() => setModalNotification(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
     </>
   );

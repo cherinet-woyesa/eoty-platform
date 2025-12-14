@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { BookOpen, Users, Globe, GraduationCap, Search, Filter, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Users, Globe, GraduationCap, Search, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 import type { Resource } from '@/types/resources';
 import { useAuth } from '@/context/AuthContext';
 import { chaptersApi } from '@/services/api/chapters';
+import { brandColors } from '@/theme/brand';
 
 interface UnifiedResourceViewProps {
   courseId?: string;
@@ -140,8 +141,8 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
         if (response.data.pagination) {
           setTotalPages(Math.ceil(response.data.pagination.total / ITEMS_PER_PAGE));
         }
-      } else if (response?.message) {
-        setError(response.message);
+      } else {
+        setError('Failed to load resources');
       }
     } catch (err: any) {
       console.error('Failed to load resources:', err);
@@ -173,9 +174,9 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
     <div className="w-full space-y-6">
       {/* Header - Only show in full variant */}
       {variant === 'full' && (
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
+        <div className="bg-gradient-to-r from-brand-primary/15 via-brand-primary/10 to-brand-primary/5 rounded-xl p-6 border border-brand-primary/25 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
-            <BookOpen className="h-8 w-8 text-[#27AE60]" />
+            <BookOpen className="h-8 w-8" style={{ color: brandColors.primaryHex }} />
             <h1 className="text-3xl font-bold text-stone-800">Educational Resources</h1>
           </div>
           <p className="text-stone-600">
@@ -233,7 +234,7 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all border-b-2 ${
                   activeTab === tab.id
-                    ? 'border-[#27AE60] text-[#27AE60] bg-[#27AE60]/5'
+                    ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                     : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                 }`}
               >
@@ -263,7 +264,7 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27AE60]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderBottomColor: brandColors.primaryHex }}></div>
           </div>
         ) : resources.length === 0 ? (
           <div className="text-center py-12">
@@ -299,7 +300,7 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
                         {resource.title}
                       </h3>
                       {resource.category && (
-                        <span className="inline-block px-2 py-1 text-xs bg-[#27AE60]/10 text-[#27AE60] rounded-full mb-2">
+                        <span className="inline-block px-2 py-1 text-xs bg-brand-primary/10 text-brand-primary rounded-full mb-2">
                           {resource.category}
                         </span>
                       )}
@@ -321,7 +322,7 @@ const UnifiedResourceView: React.FC<UnifiedResourceViewProps> = ({
                           const url = resource.file_url || resource.file_path;
                           if (url) window.open(url, '_blank');
                       }}
-                      className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-[#27AE60] hover:bg-[#27AE60]/10 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                       title="Download / View Direct"
                     >
                       <Download className="h-4 w-4" />
