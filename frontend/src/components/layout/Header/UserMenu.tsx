@@ -42,7 +42,7 @@ const UserMenu: React.FC = () => {
       navigate('/teacher/profile');
     } else {
       // Base members (user/legacy student) share the student profile area
-      navigate('/student/profile');
+      navigate('/member/profile');
     }
     handleCloseProfile();
   };

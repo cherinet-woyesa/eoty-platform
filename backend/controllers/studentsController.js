@@ -74,6 +74,24 @@ const studentsController = {
       const { page = 1, limit = 12, search = '', status = 'all', sort = 'last_accessed' } = req.query;
       const offset = (page - 1) * limit;
 
+      // Detect available progress column to avoid missing-column errors in prod
+      const hasProgress = await db.schema.hasColumn('user_course_enrollments', 'progress');
+      const hasProgressPct = await db.schema.hasColumn('user_course_enrollments', 'progress_percentage');
+      const progressCol = hasProgress ? 'uce.progress' : hasProgressPct ? 'uce.progress_percentage' : null;
+      const statsProgressCol = hasProgress ? 'progress' : hasProgressPct ? 'progress_percentage' : null;
+      const progressSelect = hasProgress
+        ? db.raw('COALESCE("uce"."progress", 0) as progress_percentage')
+        : hasProgressPct
+          ? db.raw('COALESCE("uce"."progress_percentage", 0) as progress_percentage')
+          : db.raw('0 as progress_percentage');
+      // Some deployments lack last_accessed_at; fall back to enrolled_at to avoid missing-column errors.
+      const lastAccessCol = 'uce.enrolled_at';
+      const lastAccessSelect = db.raw('"uce"."enrolled_at" as last_accessed_at');
+      const hasCompletedAt = await db.schema.hasColumn('user_course_enrollments', 'completed_at');
+      const completedSelect = hasCompletedAt
+        ? db.raw('"uce"."completed_at" as completed_at')
+        : db.raw('NULL as completed_at');
+
       let query = db('user_course_enrollments as uce')
         .join('courses as c', 'uce.course_id', 'c.id')
         .leftJoin('users as instructor', 'c.created_by', 'instructor.id')
@@ -96,9 +114,9 @@ const studentsController = {
       }
 
       if (status === 'in-progress') {
-        query = query.where('uce.progress', '<', 100);
+        if (progressCol) query = query.where(progressCol, '<', 100);
       } else if (status === 'completed') {
-        query = query.where('uce.progress', '>=', 100);
+        if (progressCol) query = query.where(progressCol, '>=', 100);
       } else if (status === 'favorites') {
         query = query.whereNotNull('cf.id');
       }
@@ -106,11 +124,11 @@ const studentsController = {
       // Sorting
       if (sort === 'title') {
         query = query.orderBy('c.title', 'asc');
-      } else if (sort === 'progress') {
-        query = query.orderBy('uce.progress', 'desc');
+      } else if (sort === 'progress' && progressCol) {
+        query = query.orderBy(progressCol, 'desc');
       } else {
         // Default: last_accessed
-        query = query.orderBy('uce.last_accessed_at', 'desc');
+        query = query.orderBy(lastAccessCol, 'desc');
       }
 
       // Get total count for pagination (remove ordering to avoid PG group-by errors)
@@ -131,11 +149,11 @@ const studentsController = {
           'c.cover_image',
           'c.category',
           'c.level',
-          'uce.progress as progress_percentage',
+          progressSelect,
           'uce.enrollment_status',
           'uce.enrolled_at',
-          'uce.last_accessed_at',
-          'uce.completed_at',
+          lastAccessSelect,
+          completedSelect,
           db.raw('CASE WHEN cf.user_id IS NOT NULL THEN true ELSE false END as is_favorite'),
           db.raw('CASE WHEN bm.id IS NOT NULL THEN true ELSE false END as is_bookmarked'),
           db.raw("(SELECT COUNT(*) FROM lessons WHERE course_id = c.id) as lesson_count"),
@@ -175,16 +193,25 @@ const studentsController = {
       };
 
       try {
-        const statsResult = await db('user_course_enrollments')
+        const statsQuery = db('user_course_enrollments')
           .where('user_id', studentId)
-          .whereNot('enrollment_status', 'dropped')
-          .select(
-            db.raw('COUNT(*) as total'),
-            db.raw('COUNT(CASE WHEN progress < 100 THEN 1 END) as in_progress'),
-            db.raw('COUNT(CASE WHEN progress >= 100 THEN 1 END) as completed'),
-            db.raw('AVG(progress) as avg_progress')
-          )
-          .first();
+          .whereNot('enrollment_status', 'dropped');
+
+        let statsResult;
+        if (statsProgressCol) {
+          statsResult = await statsQuery
+            .select(
+              db.raw('COUNT(*) as total'),
+              db.raw('COUNT(CASE WHEN ?? < 100 THEN 1 END) as in_progress', [statsProgressCol]),
+              db.raw('COUNT(CASE WHEN ?? >= 100 THEN 1 END) as completed', [statsProgressCol]),
+              db.raw('AVG(??) as avg_progress', [statsProgressCol])
+            )
+            .first();
+        } else {
+          statsResult = await statsQuery
+            .select(db.raw('COUNT(*) as total'))
+            .first();
+        }
 
         const favoritesResult = await db('course_favorites as cf')
           .join('user_course_enrollments as uce', 'cf.course_id', 'uce.course_id')
@@ -194,10 +221,10 @@ const studentsController = {
           .first();
 
         stats.total = parseInt(statsResult?.total, 10) || 0;
-        stats.inProgress = parseInt(statsResult?.in_progress, 10) || 0;
-        stats.completed = parseInt(statsResult?.completed, 10) || 0;
+        stats.inProgress = statsProgressCol ? (parseInt(statsResult?.in_progress, 10) || 0) : 0;
+        stats.completed = statsProgressCol ? (parseInt(statsResult?.completed, 10) || 0) : 0;
         stats.favorites = parseInt(favoritesResult?.count, 10) || 0;
-        stats.avgProgress = Math.round(parseFloat(statsResult?.avg_progress) || 0);
+        stats.avgProgress = statsProgressCol ? Math.round(parseFloat(statsResult?.avg_progress) || 0) : 0;
       } catch (err) {
         console.warn('Error fetching course stats:', err);
       }
@@ -473,7 +500,8 @@ const studentsController = {
             .where(function() {
               this.whereNull('ulp.is_completed').orWhere('ulp.is_completed', false);
             })
-            .orderBy('l.order_index', 'asc')
+            // lessons table uses "order"; fall back to id to avoid missing column
+            .orderBy('l.order', 'asc')
             .first('l.id', 'l.title');
           
           if (nextLesson) {
