@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   Users, MessageCircle, FileText, Upload, Calendar, 
   Crown, Settings, UserPlus, ArrowLeft, Send, Paperclip,
-  CheckCircle, Clock, AlertCircle, File, Download, Eye,
-  Trash2, MoreVertical, Search, Filter, X, Loader2, Edit2
+  AlertCircle, Download, Eye,
+  MoreVertical, Search, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,30 +39,7 @@ interface ChatMessage {
   replies?: ChatMessage[];
 }
 
-interface Assignment {
-  id: string;
-  title: string;
-  description: string;
-  due_date: string;
-  total_points: number;
-  created_by: string;
-  created_by_name: string;
-  status: 'pending' | 'submitted' | 'graded';
-  created_at: string;
-}
 
-interface Submission {
-  id: string;
-  assignment_id: string;
-  assignment_title: string;
-  student_id: string;
-  student_name: string;
-  submitted_at: string;
-  file_url?: string;
-  notes?: string;
-  grade?: number;
-  feedback?: string;
-}
 
 interface StudyGroup {
   id: string;
@@ -93,7 +70,6 @@ const GroupDetailPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [replyingToId, setReplyingToId] = useState<string | number | null>(null);
-  const [replyingToName, setReplyingToName] = useState<string>('');
   const [showNewAssignmentModal, setShowNewAssignmentModal] = useState(false);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [searchMember, setSearchMember] = useState('');
@@ -151,23 +127,17 @@ const GroupDetailPage: React.FC = () => {
       setReplyingToId(null);
       queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
     },
-    onError: () => showNotification('error', 'Error', 'Failed to send message')
+    onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to send message' })
   });
 
   const deleteMessageMutation = useMutation({
     mutationFn: async (messageId: number) => studyGroupsApi.deleteMessage(Number(groupId), messageId),
     onSuccess: () => {
-      showNotification('success', 'Deleted', 'Message deleted');
+      showNotification({ type: 'success', title: 'Deleted', message: 'Message deleted' });
       queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
     },
-    onError: () => showNotification('error', 'Error', 'Failed to delete message')
+    onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to delete message' })
   });
-
-  // wrap delete to log before calling
-  const __deleteMessage = async (messageId: number) => {
-    console.debug('[GroupDetail] deleteMessage', { groupId, messageId });
-    return studyGroupsApi.deleteMessage(Number(groupId), messageId);
-  };
 
   const editMessageMutation = useMutation({
     mutationFn: async ({ messageId, content }: { messageId: number; content: string }) => 
@@ -181,7 +151,7 @@ const GroupDetailPage: React.FC = () => {
       setReplyingToId(null);
       queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] });
     },
-    onError: () => showNotification('error', 'Error', 'Failed to edit message')
+    onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to edit message' })
   });
 
   const handleSendMessage = () => {
@@ -196,18 +166,17 @@ const GroupDetailPage: React.FC = () => {
   const handleToggleLike = (messageId: number | string) => {
     studyGroupsApi.toggleMessageLike(Number(groupId), Number(messageId))
       .then(() => queryClient.invalidateQueries({ queryKey: ['study-group-messages', groupId] }))
-      .catch(() => showNotification('error', 'Error', 'Failed to like message'));
+      .catch(() => showNotification({ type: 'error', title: 'Error', message: 'Failed to like message' }));
   };
 
   const handleReport = (messageId: number | string) => {
     studyGroupsApi.reportMessage(Number(groupId), Number(messageId))
-      .then(() => showNotification('success', 'Reported', 'Thanks for letting us know'))
-      .catch(() => showNotification('error', 'Error', 'Failed to report message'));
+      .then(() => showNotification({ type: 'success', title: 'Reported', message: 'Thanks for letting us know' }))
+      .catch(() => showNotification({ type: 'error', title: 'Error', message: 'Failed to report message' }));
   };
 
   const startReply = (msg: any) => {
     setReplyingToId(msg.id);
-    setReplyingToName(msg.user_name || 'User');
     setNewMessage('');
     setEditingMessageId(null);
     if (messageBoxRef.current) {
@@ -394,7 +363,6 @@ const GroupDetailPage: React.FC = () => {
     setEditingMessageId(Number(msg.id));
     setNewMessage(msg.content || '');
     setReplyingToId(null);
-    setReplyingToName('');
     if (messageBoxRef.current) {
       messageBoxRef.current.focus();
       // Set cursor to end of text
@@ -407,23 +375,17 @@ const GroupDetailPage: React.FC = () => {
     }
   };
 
-  const cancelEditing = () => {
-    setEditingMessageId(null);
-    setNewMessage('');
-    setReplyingToId(null);
-    setReplyingToName('');
-  };
-
-  const handleStudyGroupSubmit = async (assignmentId: number, content: string) => {
-    return submitMutation.mutateAsync({ assignmentId, content });
+  const handleStudyGroupSubmit = async (id: number, payload: { content?: string; file?: File }) => {
+    return submitMutation.mutateAsync({ assignmentId: id, content: payload.content });
   };
 
   const handleDeleteMessage = async (messageId: number) => {
     const confirmed = await confirm({
         title: 'Delete Message',
         message: 'Are you sure you want to delete this message? This action cannot be undone.',
-        confirmText: 'Delete',
-        cancelText: 'Cancel'
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        variant: 'danger'
     });
     if (confirmed) {
         deleteMessageMutation.mutate(messageId);
@@ -438,17 +400,6 @@ const GroupDetailPage: React.FC = () => {
       return res?.data?.assignments || [];
     },
     enabled: !!groupId
-  });
-
-  const createAssignmentMutation = useMutation({
-    mutationFn: async (payload: { title: string; description?: string; due_date?: string; total_points?: number }) =>
-      studyGroupsApi.createAssignment(Number(groupId), payload),
-    onSuccess: () => {
-      showNotification('success', 'Assignment created', 'Group assignment posted');
-      queryClient.invalidateQueries({ queryKey: ['study-group-assignments', groupId] });
-      setShowNewAssignmentModal(false);
-    },
-    onError: () => showNotification('error', 'Error', 'Failed to create assignment')
   });
 
   const assignments = useMemo(() => assignmentsQuery.data || [], [assignmentsQuery.data]);
@@ -479,10 +430,10 @@ const GroupDetailPage: React.FC = () => {
       return studyGroupsApi.submitAssignment(assignmentId, { content: content || 'Submitted via app' });
     },
     onSuccess: () => {
-      showNotification('success', 'Submitted', 'Your submission is saved');
+      showNotification({ type: 'success', title: 'Submitted', message: 'Your submission is saved' });
       queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] });
     },
-    onError: () => showNotification('error', 'Error', 'Failed to submit assignment')
+    onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to submit assignment' })
   });
 
   const gradeMutation = useMutation({
@@ -490,10 +441,10 @@ const GroupDetailPage: React.FC = () => {
       return studyGroupsApi.gradeSubmission(assignmentId, submissionId, { grade, feedback });
     },
     onSuccess: () => {
-      showNotification('success', 'Graded', 'Submission graded');
+      showNotification({ type: 'success', title: 'Graded', message: 'Submission graded' });
       queryClient.invalidateQueries({ queryKey: ['study-group-submissions', groupId] });
     },
-    onError: () => showNotification('error', 'Error', 'Failed to grade submission')
+    onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to grade submission' })
   });
 
 
@@ -685,8 +636,8 @@ const GroupDetailPage: React.FC = () => {
                 </div>
                 
                 {/* Message Input */}
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 relative">
+                <div className="space-y-2">
+                  <div className="relative">
                     {replyingToId && (
                       <div className="absolute -top-6 left-1 text-xs text-slate-600 flex items-center gap-2">
                         <span>Replying…</span>
@@ -719,12 +670,12 @@ const GroupDetailPage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || postMessageMutation.isLoading}
-                    className="px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!newMessage.trim() || postMessageMutation.isPending}
+                    className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                   >
                     <Send className="h-5 w-5" />
-                  {postMessageMutation.isLoading ? 'Sending...' : 'Send'}
+                    {postMessageMutation.isPending ? 'Sending...' : 'Send'}
                   </button>
                 </div>
               </div>
@@ -835,11 +786,11 @@ const GroupDetailPage: React.FC = () => {
                                   setSelectedAssignment(assignment);
                                   setShowSubmissionModal(true);
                                 }}
-                                disabled={submitMutation.isLoading}
+                                disabled={submitMutation.isPending}
                                 className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                                 style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                               >
-                                {submitMutation.isLoading ? 'Submitting...' : 'Submit'}
+                                {submitMutation.isPending ? 'Submitting...' : 'Submit'}
                               </button>
                             )}
                             {isAdmin && (
@@ -947,11 +898,11 @@ const GroupDetailPage: React.FC = () => {
                                   feedback: gradeState.feedback
                                 });
                               }}
-                              disabled={gradeMutation.isLoading}
+                              disabled={gradeMutation.isPending}
                               className="px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
                               style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
                             >
-                              {gradeMutation.isLoading ? 'Saving...' : 'Save Grade'}
+                              {gradeMutation.isPending ? 'Saving...' : 'Save Grade'}
                             </button>
                           </div>
                         )}

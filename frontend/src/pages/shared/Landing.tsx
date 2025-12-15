@@ -1,16 +1,69 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as THREE from 'three';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { landingApi } from '@/services/api/landing';
 import Header from '@/components/shared/Landing/Header';
 import Hero from '@/components/shared/Landing/Hero';
-import About from '@/components/shared/Landing/About';
-import HowItWorks from '@/components/shared/Landing/HowItWorks';
-import FeaturedCourses from '@/components/shared/Landing/FeaturedCourses';
-import VideoSection from '@/components/shared/Landing/VideoSection';
-import Testimonials from '@/components/shared/Landing/Testimonials';
-import DonationSection from '@/components/shared/Landing/DonationSection';
 import Footer from '@/components/shared/Landing/Footer';
+
+// Defer heavy, below-the-fold sections
+const VideoSection = lazy(() => import('@/components/shared/Landing/VideoSection'));
+const About = lazy(() => import('@/components/shared/Landing/About'));
+const FeaturedCourses = lazy(() => import('@/components/shared/Landing/FeaturedCourses'));
+const HowItWorks = lazy(() => import('@/components/shared/Landing/HowItWorks'));
+const Testimonials = lazy(() => import('@/components/shared/Landing/Testimonials'));
+const DonationSection = lazy(() => import('@/components/shared/Landing/DonationSection'));
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+type CacheEnvelope<T> = { timestamp: number; data: T };
+
+const readCache = <T,>(key: string): T | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed: CacheEnvelope<T> = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > CACHE_TTL) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = <T,>(key: string, data: T) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const envelope: CacheEnvelope<T> = { timestamp: Date.now(), data };
+    sessionStorage.setItem(key, JSON.stringify(envelope));
+  } catch {
+    // Ignore cache write failures
+  }
+};
+
+const SectionSkeleton: React.FC<{ cards?: number }> = ({ cards = 3 }) => (
+  <section className="py-16 sm:py-20 bg-white/70">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="space-y-4 mb-10">
+        <div className="h-4 w-28 rounded-full bg-gray-200 animate-pulse" />
+        <div className="h-8 w-64 rounded-full bg-gray-200 animate-pulse" />
+        <div className="h-4 w-80 max-w-full rounded-full bg-gray-200 animate-pulse" />
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: cards }).map((_, idx) => (
+          <div
+            key={idx}
+            className="rounded-2xl border border-gray-100 bg-white/80 p-5 shadow-sm"
+          >
+            <div className="h-40 rounded-xl bg-gray-100 animate-pulse mb-4" />
+            <div className="h-5 w-3/4 rounded-full bg-gray-100 animate-pulse mb-3" />
+            <div className="h-4 w-full rounded-full bg-gray-100 animate-pulse mb-2" />
+            <div className="h-4 w-2/3 rounded-full bg-gray-100 animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
 
 const Landing: React.FC = () => {
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
@@ -34,26 +87,61 @@ const Landing: React.FC = () => {
     }
   };
 
-  // Fetch landing page content
+  // Fetch landing content + featured data in parallel with cache
   useEffect(() => {
-    const fetchContent = async () => {
+    let isCancelled = false;
+    const cachedContent = readCache<any>('landing_content');
+    const cachedCourses = readCache<any[]>('landing_courses');
+    const cachedTestimonials = readCache<any[]>('landing_testimonials');
+
+    if (cachedContent) setLandingContent(cachedContent);
+    if (cachedCourses) setFeaturedCourses(cachedCourses);
+    if (cachedTestimonials) setTestimonials(cachedTestimonials);
+
+    const hasCache = Boolean(cachedContent || cachedCourses || cachedTestimonials);
+    if (hasCache) setLoading(false);
+
+    const fetchAll = async () => {
       try {
-        const response = await landingApi.getContent();
-        console.log('Landing Page Content Response:', response);
-        if (response.success && response.data) {
-          console.log('Updating landing content state:', response.data);
-          setLandingContent(response.data);
-        } else {
-          console.warn('Landing content response missing success or data:', response);
+        const [contentRes, coursesRes, testimonialsRes] = await Promise.allSettled([
+          landingApi.getContent(),
+          landingApi.getFeaturedCourses(),
+          landingApi.getTestimonials()
+        ]);
+
+        if (!isCancelled && contentRes.status === 'fulfilled' && contentRes.value.success && contentRes.value.data) {
+          setLandingContent(contentRes.value.data);
+          writeCache('landing_content', contentRes.value.data);
+        } else if (!isCancelled && !cachedContent) {
+          setError('Content unavailable, showing defaults.');
         }
-      } catch (err) {
-        console.error('Failed to fetch landing content:', err);
-        setError('Failed to load content');
+
+        if (!isCancelled && coursesRes.status === 'fulfilled' && coursesRes.value.success && coursesRes.value.data) {
+          const courses = coursesRes.value.data.courses || [];
+          setFeaturedCourses(courses);
+          writeCache('landing_courses', courses);
+        }
+
+        if (!isCancelled && testimonialsRes.status === 'fulfilled' && testimonialsRes.value.success && testimonialsRes.value.data) {
+          const testimonialsData = testimonialsRes.value.data.testimonials || [];
+          setTestimonials(testimonialsData);
+          writeCache('landing_testimonials', testimonialsData);
+        }
+      } catch {
+        if (!isCancelled && !cachedContent) {
+          setError('Failed to load content, showing defaults.');
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
-    fetchContent();
+
+    fetchAll();
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // Scroll to hash section when arriving with #donation-section, etc.
@@ -65,35 +153,7 @@ const Landing: React.FC = () => {
     return () => clearTimeout(timer);
   }, [location.hash]);
 
-  // Fetch featured courses
-  useEffect(() => {
-    const fetchFeaturedCourses = async () => {
-      try {
-        const response = await landingApi.getFeaturedCourses();
-        if (response.success && response.data) {
-          setFeaturedCourses(response.data.courses || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch featured courses:', error);
-      }
-    };
-    fetchFeaturedCourses();
-  }, []);
-
-  // Fetch testimonials
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const response = await landingApi.getTestimonials();
-        if (response.success && response.data) {
-          setTestimonials(response.data.testimonials || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch testimonials:', error);
-      }
-    };
-    fetchTestimonials();
-  }, []);
+  // (featured courses & testimonials now fetched in parallel above)
 
   // Intersection Observer for animations and active section
   useEffect(() => {
@@ -125,161 +185,175 @@ const Landing: React.FC = () => {
     return () => observer.disconnect();
   }, [featuredCourses, testimonials, landingContent]); // Re-run when content loads
 
-  // Three.js Particle Network Effect (reduced on low-power)
+  // Three.js Particle Network Effect (deferred, desktop-only)
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const reducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (loading) return;
+    if (!canvasRef.current || typeof window === 'undefined') return;
+    const isMobile = window.innerWidth < 1024;
+    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lowCore = typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
     if (isMobile || reducedMotion || lowCore) {
-      // Skip heavy effect on low-power/mobile/reduced motion
       canvasRef.current.style.display = 'none';
       return;
     }
 
-    const canvas = canvasRef.current;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    let cleanup: (() => void) | null = null;
+    let cancelled = false;
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
-    const particleCount = 120;
-    const particleOpacity = 0.5;
-
-    const particlesGeometry = new THREE.BufferGeometry();
-    const posArray = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 15;
-    }
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: 0.03,
-      color: 0x4f46e5,
-      transparent: true,
-      opacity: particleOpacity,
-      blending: THREE.AdditiveBlending
-    });
-    const particlesMesh = new THREE.Points(particlesGeometry, material);
-    scene.add(particlesMesh);
-
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0xC07A1A,
-      transparent: true,
-      opacity: 0.15
-    });
-    const linesGeometry = new THREE.BufferGeometry();
-    const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
-    scene.add(linesMesh);
-
-    camera.position.z = 4;
-
-    let mouseX = 0;
-    let mouseY = 0;
-    let lastMove = 0;
-    let animationFrameId: number | null = null;
-
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      particlesMesh.rotation.y += 0.0004;
-      particlesMesh.rotation.x += 0.00015;
-      linesMesh.rotation.y += 0.0004;
-      linesMesh.rotation.x += 0.00015;
-      particlesMesh.rotation.y += mouseX * 0.0004;
-      particlesMesh.rotation.x += mouseY * 0.0004;
-      linesMesh.rotation.y += mouseX * 0.0004;
-      linesMesh.rotation.x += mouseY * 0.0004;
-      renderer.render(scene, camera);
-    };
-
-    const start = () => {
-      if (animationFrameId === null) {
-        animationFrameId = requestAnimationFrame(animate);
+    const schedule = (cb: () => void) => {
+      const idle = (window as any).requestIdleCallback;
+      if (idle) {
+        return idle(cb, { timeout: 800 });
       }
+      return window.setTimeout(cb, 300);
     };
-    const stop = () => {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-    };
-
-    start();
-
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const now = performance.now();
-      if (now - lastMove < 50) return; // throttle
-      lastMove = now;
-      mouseX = event.clientX - window.innerWidth / 2;
-      mouseY = event.clientY - window.innerHeight / 2;
-    };
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        stop();
+    const cancelSchedule = (id: any) => {
+      const cancelIdle = (window as any).cancelIdleCallback;
+      if (cancelIdle) {
+        cancelIdle(id);
       } else {
-        start();
+        clearTimeout(id);
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('visibilitychange', handleVisibility);
+    const jobId = schedule(async () => {
+      if (cancelled || !canvasRef.current) return;
+      const THREE = await import('three');
+      if (!canvasRef.current || cancelled) return;
+
+      const canvas = canvasRef.current;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+      const particleCount = 80;
+      const particleOpacity = 0.4;
+
+      const particlesGeometry = new THREE.BufferGeometry();
+      const posArray = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 15;
+      }
+      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.03,
+        color: 0x4f46e5,
+        transparent: true,
+        opacity: particleOpacity,
+        blending: THREE.AdditiveBlending
+      });
+      const particlesMesh = new THREE.Points(particlesGeometry, material);
+      scene.add(particlesMesh);
+
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0xC07A1A,
+        transparent: true,
+        opacity: 0.12
+      });
+      const linesGeometry = new THREE.BufferGeometry();
+      const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
+      scene.add(linesMesh);
+
+      camera.position.z = 4;
+
+      let mouseX = 0;
+      let mouseY = 0;
+      let lastMove = 0;
+      let animationFrameId: number | null = null;
+
+      const animate = () => {
+        animationFrameId = requestAnimationFrame(animate);
+        particlesMesh.rotation.y += 0.00035;
+        particlesMesh.rotation.x += 0.00012;
+        linesMesh.rotation.y += 0.00035;
+        linesMesh.rotation.x += 0.00012;
+        particlesMesh.rotation.y += mouseX * 0.0003;
+        particlesMesh.rotation.x += mouseY * 0.0003;
+        linesMesh.rotation.y += mouseX * 0.0003;
+        linesMesh.rotation.x += mouseY * 0.0003;
+        renderer.render(scene, camera);
+      };
+
+      const start = () => {
+        if (animationFrameId === null) {
+          animationFrameId = requestAnimationFrame(animate);
+        }
+      };
+      const stop = () => {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      };
+
+      start();
+
+      const handleResize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      };
+
+      const handleMouseMove = (event: MouseEvent) => {
+        const now = performance.now();
+        if (now - lastMove < 50) return; // throttle
+        lastMove = now;
+        mouseX = event.clientX - window.innerWidth / 2;
+        mouseY = event.clientY - window.innerHeight / 2;
+      };
+
+      const handleVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          stop();
+        } else {
+          start();
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      cleanup = () => {
+        window.removeEventListener('resize', handleResize);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        stop();
+        particlesGeometry.dispose();
+        material.dispose();
+        linesGeometry.dispose();
+        lineMaterial.dispose();
+        renderer.dispose();
+      };
+    });
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      stop();
-      particlesGeometry.dispose();
-      material.dispose();
-      linesGeometry.dispose();
-      lineMaterial.dispose();
-      renderer.dispose();
+      cancelled = true;
+      cancelSchedule(jobId);
+      if (cleanup) cleanup();
     };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="relative min-h-screen bg-gray-50 overflow-x-hidden font-sans">
-        <Header />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#27AE60]"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="relative min-h-screen bg-gray-50 overflow-x-hidden font-sans">
-        <Header />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">Please try refreshing the page</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }, [loading]);
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-x-hidden font-sans">
+      {/* Lightweight top progress indicator while data loads */}
+      {loading && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className="h-1 bg-indigo-100">
+            <div className="h-1 w-1/3 bg-[#27AE60] animate-pulse"></div>
+          </div>
+        </div>
+      )}
+      {/* Non-blocking error notice */}
+      {error && (
+        <div className="relative z-20 bg-amber-50 text-amber-800 text-sm px-4 py-3 border-b border-amber-100">
+          {error} We’ll continue with default content; refresh to retry.
+        </div>
+      )}
       {/* 3D Background Canvas */}
       <canvas
         ref={canvasRef}
@@ -292,43 +366,78 @@ const Landing: React.FC = () => {
         <Hero 
           ref={heroRef} 
           landingContent={landingContent} 
-          onDonate={() => scrollToSection('donation-section')} 
           onExplore={() => scrollToSection('featured-courses')}
         />
         
         <div className="relative bg-white/80 backdrop-blur-lg shadow-xl rounded-t-[3rem] -mt-20 pt-0 pb-10 border-t border-white/50 overflow-hidden">
-          <VideoSection 
-            ref={(el) => (sectionRefs.current['video-section'] = el)}
-            landingContent={landingContent} 
-          />
+          <Suspense fallback={<SectionSkeleton cards={3} />}>
+            {loading ? (
+              <SectionSkeleton cards={3} />
+            ) : (
+              <VideoSection 
+                ref={(el) => (sectionRefs.current['video-section'] = el)}
+                landingContent={landingContent} 
+              />
+            )}
+          </Suspense>
 
-          <About 
-            ref={(el) => (sectionRefs.current['about'] = el)}
-            landingContent={landingContent}
-            visibleSections={visibleSections}
-          />
+          <Suspense fallback={<SectionSkeleton cards={3} />}>
+            {loading ? (
+              <SectionSkeleton cards={3} />
+            ) : (
+              <About 
+                ref={(el) => (sectionRefs.current['about'] = el)}
+                landingContent={landingContent}
+                visibleSections={visibleSections}
+              />
+            )}
+          </Suspense>
           
-          <FeaturedCourses 
-            ref={(el) => (sectionRefs.current['featured-courses'] = el)}
-            featuredCourses={featuredCourses}
-            visibleSections={visibleSections}
-          />
+          <Suspense fallback={<SectionSkeleton cards={3} />}>
+            {loading ? (
+              <SectionSkeleton cards={3} />
+            ) : (
+              <FeaturedCourses 
+                ref={(el) => (sectionRefs.current['featured-courses'] = el)}
+                featuredCourses={featuredCourses}
+                visibleSections={visibleSections}
+              />
+            )}
+          </Suspense>
           
-          <HowItWorks 
-            ref={(el) => (sectionRefs.current['how-it-works'] = el)}
-            landingContent={landingContent}
-            visibleSections={visibleSections}
-          />
+          <Suspense fallback={<SectionSkeleton cards={4} />}>
+            {loading ? (
+              <SectionSkeleton cards={4} />
+            ) : (
+              <HowItWorks 
+                ref={(el) => (sectionRefs.current['how-it-works'] = el)}
+                landingContent={landingContent}
+                visibleSections={visibleSections}
+              />
+            )}
+          </Suspense>
           
-          <Testimonials 
-            ref={(el) => (sectionRefs.current['testimonials'] = el)}
-            testimonials={testimonials}
-            visibleSections={visibleSections}
-          />
+          <Suspense fallback={<SectionSkeleton cards={3} />}>
+            {loading ? (
+              <SectionSkeleton cards={3} />
+            ) : (
+              <Testimonials 
+                ref={(el) => (sectionRefs.current['testimonials'] = el)}
+                testimonials={testimonials}
+                visibleSections={visibleSections}
+              />
+            )}
+          </Suspense>
           
-          <DonationSection 
-            ref={(el: HTMLDivElement | null) => (sectionRefs.current['donation-section'] = el)}
-          />
+          <Suspense fallback={<SectionSkeleton cards={2} />}>
+            {loading ? (
+              <SectionSkeleton cards={2} />
+            ) : (
+              <DonationSection 
+                ref={(el: HTMLDivElement | null) => (sectionRefs.current['donation-section'] = el)}
+              />
+            )}
+          </Suspense>
           
           <Footer />
         </div>

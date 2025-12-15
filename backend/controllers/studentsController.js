@@ -177,21 +177,27 @@ const studentsController = {
       try {
         const statsResult = await db('user_course_enrollments')
           .where('user_id', studentId)
-          .whereNot('status', 'dropped')
+          .whereNot('enrollment_status', 'dropped')
           .select(
             db.raw('COUNT(*) as total'),
             db.raw('COUNT(CASE WHEN progress < 100 THEN 1 END) as in_progress'),
             db.raw('COUNT(CASE WHEN progress >= 100 THEN 1 END) as completed'),
-            db.raw('COUNT(CASE WHEN is_favorite = true THEN 1 END) as favorites'),
             db.raw('AVG(progress) as avg_progress')
           )
           .first();
-        
-        stats.total = parseInt(statsResult.total, 10) || 0;
-        stats.inProgress = parseInt(statsResult.in_progress, 10) || 0;
-        stats.completed = parseInt(statsResult.completed, 10) || 0;
-        stats.favorites = parseInt(statsResult.favorites, 10) || 0;
-        stats.avgProgress = Math.round(parseFloat(statsResult.avg_progress) || 0);
+
+        const favoritesResult = await db('course_favorites as cf')
+          .join('user_course_enrollments as uce', 'cf.course_id', 'uce.course_id')
+          .where('cf.user_id', studentId)
+          .whereNot('uce.enrollment_status', 'dropped')
+          .count('* as count')
+          .first();
+
+        stats.total = parseInt(statsResult?.total, 10) || 0;
+        stats.inProgress = parseInt(statsResult?.in_progress, 10) || 0;
+        stats.completed = parseInt(statsResult?.completed, 10) || 0;
+        stats.favorites = parseInt(favoritesResult?.count, 10) || 0;
+        stats.avgProgress = Math.round(parseFloat(statsResult?.avg_progress) || 0);
       } catch (err) {
         console.warn('Error fetching course stats:', err);
       }

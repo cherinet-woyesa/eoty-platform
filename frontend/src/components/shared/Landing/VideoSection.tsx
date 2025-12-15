@@ -129,6 +129,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                   >
                     <img 
                       loading="lazy"
+                      decoding="async"
                       src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
                       alt={video.title}
                       className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
@@ -178,7 +179,12 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${index}`} alt="Author" />
+                      <img
+                        loading="lazy"
+                        decoding="async"
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${index}`}
+                        alt="Author"
+                      />
                     </div>
                     <span className="text-sm font-medium text-gray-700">{video.author || 'EOTY Team'}</span>
                   </div>

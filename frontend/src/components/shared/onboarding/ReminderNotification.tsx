@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Bell, X, ArrowRight } from 'lucide-react';
 import { onboardingApi } from '@/services/api/onboarding';
 import { useOnboarding } from '@/context/OnboardingContext';
+import { brandColors } from '@/theme/brand';
 
 interface ReminderNotificationProps {
   onDismiss?: (reminderId: number) => void;
@@ -67,12 +68,16 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
       {reminders.map((reminder) => (
         <div
           key={reminder.id}
-          className="bg-white border-l-4 border-[#27AE60] rounded-r-xl shadow-xl p-4 animate-in slide-in-from-right duration-500 flex items-start gap-3 relative overflow-hidden group"
+          className="bg-white border-l-4 rounded-r-xl shadow-xl p-4 animate-in slide-in-from-right duration-500 flex items-start gap-3 relative overflow-hidden group"
+          style={{ borderColor: brandColors.primaryHex }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#27AE60]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}0D, transparent)` }}
+          />
           
-          <div className="bg-[#27AE60]/10 p-2 rounded-full flex-shrink-0">
-            <Bell className="h-5 w-5 text-[#27AE60] animate-pulse" />
+          <div className="p-2 rounded-full flex-shrink-0" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+            <Bell className="h-5 w-5 animate-pulse" style={{ color: brandColors.primaryHex }} />
           </div>
           
           <div className="flex-1 min-w-0 relative z-10">
@@ -90,7 +95,8 @@ const ReminderNotification: React.FC<ReminderNotificationProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleResume}
-                className="inline-flex items-center px-3 py-1.5 bg-[#27AE60] hover:bg-[#219150] text-white text-xs font-semibold rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
+                className="inline-flex items-center px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
+                style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
               >
                 {t('onboarding.reminder.resume')}
                 <ArrowRight className="h-3 w-3 ml-1" />

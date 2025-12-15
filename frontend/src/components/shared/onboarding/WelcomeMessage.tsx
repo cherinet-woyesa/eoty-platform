@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Sparkles, Gift, Trophy } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 interface WelcomeMessageProps {
   userName: string;
@@ -20,7 +21,10 @@ const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
 
   return (
     <div className="fixed bottom-24 right-6 z-40 animate-fade-in-up">
-      <div className="bg-gradient-to-br from-[#27AE60] via-[#16A085] to-[#2ECC71] text-white rounded-xl shadow-2xl p-6 max-w-sm border border-white/20 relative overflow-hidden">
+      <div
+        className="text-white rounded-xl shadow-2xl p-6 max-w-sm border border-white/20 relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+      >
         {/* Background decoration */}
         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-yellow-300 opacity-10 rounded-full blur-xl"></div>
@@ -79,7 +83,7 @@ const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
                 setIsVisible(false);
                 onStartOnboarding();
               }}
-              className="flex-1 bg-white text-[#27AE60] hover:bg-gray-50 font-bold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
+              className="flex-1 bg-white text-[#1e1b4b] hover:bg-gray-50 font-bold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
             >
               <span className="mr-2">🚀</span> {t('onboarding.welcome.cta_start')}
             </button>
@@ -88,7 +92,7 @@ const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
                 setIsVisible(false);
                 onDismiss();
               }}
-              className="px-4 py-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
+              className="px-4 py-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-sm font-medium"
             >
               {t('onboarding.welcome.cta_later')}
             </button>

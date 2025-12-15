@@ -1,22 +1,22 @@
 import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Heart } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 interface HeroProps {
   landingContent: any;
-  onDonate?: () => void;
+  onStart?: () => void;
   onExplore?: () => void;
 }
 
-const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onDonate, onExplore }, ref) => {
+const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onExplore }, ref) => {
   const { isAuthenticated, getRoleDashboard } = useAuth();
   const { t } = useTranslation();
-  const handleDonateClick = (e: React.MouseEvent) => {
-    if (onDonate) {
+  const handleStartClick = (e: React.MouseEvent) => {
+    if (onStart) {
       e.preventDefault();
-      onDonate();
+      onStart();
     }
   };
   const handleExploreClick = (e: React.MouseEvent) => {
@@ -34,6 +34,9 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onDonate, onE
           src="/eoc.jpg"
           alt="Background"
           loading="lazy"
+          decoding="async"
+          fetchpriority="high"
+          sizes="100vw"
           width={1920}
           height={1080}
           className="w-full h-full object-cover"
@@ -75,12 +78,12 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onDonate, onE
             {!isAuthenticated ? (
               <>
                 <Link
-                  to="/donate"
-                  onClick={handleDonateClick}
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-rose-600 text-white border border-rose-500 hover:bg-rose-700 transition-all duration-200"
+                  to="/register"
+                  onClick={handleStartClick}
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
                 >
-                  {t('landing.hero.donate')}
-                  <Heart className="ml-2 h-5 w-5 fill-current" />
+                  {t('landing.hero.start_journey')}
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/courses"

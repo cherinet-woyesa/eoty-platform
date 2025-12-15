@@ -51,9 +51,9 @@ const Footer: React.FC = () => {
                 <a href="#about" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.nav.about')}
                 </a>
-                <Link to="/contact" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                <a href="mailto:contact@eotyplatform.com" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.footer.contact')}
-                </Link>
+                </a>
               </div>
             </div>
 
@@ -67,12 +67,12 @@ const Footer: React.FC = () => {
                 <Link to="/login" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.footer.sign_in')}
                 </Link>
-                <Link to="/resources" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                <Link to="/member/all-resources" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.footer.resources')}
                 </Link>
-                <Link to="/support" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
+                <a href="/#donation-section" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.footer.support')}
-                </Link>
+                </a>
               </div>
             </div>
 
