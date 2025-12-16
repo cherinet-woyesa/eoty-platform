@@ -6,6 +6,8 @@ import {
   ChevronDown, Eye, UserCheck, BookOpen, Zap
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api/apiClient';
 
 // Types
 interface Student {
@@ -35,6 +37,8 @@ interface StudentPerformanceProps {
   compact?: boolean;
   showFilters?: boolean;
   courseId?: string;
+  enableFetch?: boolean;
+  pageSize?: number;
 }
 
 type PerformanceLevel = Student['performance'];
@@ -45,7 +49,9 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
   data, 
   compact = false,
   showFilters = true,
-  courseId 
+  courseId,
+  enableFetch = true,
+  pageSize = 20
 }) => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,17 +62,33 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
 
+  const { data: fetchedStudents = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['teacher-student-performance', courseId || 'all', pageSize],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const res = await apiClient.get(`/analytics/courses/${courseId}/students`, {
+        params: { pageSize }
+      });
+      return res?.data?.data?.students || [];
+    },
+    enabled: enableFetch && !!courseId,
+    staleTime: 2 * 60 * 1000,
+    retry: 1
+  });
+
+  const sourceData = enableFetch ? fetchedStudents : data;
+
   const performanceStats = useMemo(() => {
-    const total = data.length;
-    const excellent = data.filter(s => s.performance === 'excellent').length;
-    const good = data.filter(s => s.performance === 'good').length;
-    const average = data.filter(s => s.performance === 'average').length;
-    const needsImprovement = data.filter(s => s.performance === 'needs_improvement').length;
+    const total = sourceData.length || 1;
+    const excellent = sourceData.filter(s => s.performance === 'excellent').length;
+    const good = sourceData.filter(s => s.performance === 'good').length;
+    const average = sourceData.filter(s => s.performance === 'average').length;
+    const needsImprovement = sourceData.filter(s => s.performance === 'needs_improvement').length;
     
-    const avgProgress = data.reduce((sum, student) => sum + student.progress, 0) / total;
-    const avgScore = data.reduce((sum, student) => sum + student.score, 0) / total;
-    const avgEngagement = data.reduce((sum, student) => sum + student.engagement, 0) / total;
-    const totalTimeSpent = data.reduce((sum, student) => sum + student.timeSpent, 0);
+    const avgProgress = sourceData.reduce((sum, student) => sum + student.progress, 0) / total;
+    const avgScore = sourceData.reduce((sum, student) => sum + student.score, 0) / total;
+    const avgEngagement = sourceData.reduce((sum, student) => sum + student.engagement, 0) / total;
+    const totalTimeSpent = sourceData.reduce((sum, student) => sum + student.timeSpent, 0);
 
     return {
       total,
@@ -82,7 +104,7 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
   }, [data]);
 
   const filteredAndSortedStudents = useMemo(() => {
-    let filtered = data.filter(student => {
+    let filtered = sourceData.filter(student => {
       const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.course.toLowerCase().includes(searchTerm.toLowerCase());
@@ -131,7 +153,7 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
     });
 
     return filtered;
-  }, [data, searchTerm, performanceFilter, sortBy, sortDirection]);
+  }, [sourceData, searchTerm, performanceFilter, sortBy, sortDirection]);
 
   const getPerformanceColor = (performance: PerformanceLevel) => {
     switch (performance) {
@@ -223,6 +245,26 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
     });
   }, []);
 
+  if (isError) {
+    return (
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>{t('dashboard.teacher.unable_to_load_title')}</span>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg hover:bg-indigo-50"
+          >
+            <RefreshCw className="h-4 w-4 inline mr-1" />
+            {t('common.retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleSelectAll = useCallback(() => {
     if (selectedStudents.size === filteredAndSortedStudents.length) {
       setSelectedStudents(new Set());
@@ -270,6 +312,8 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
           {t('dashboard.teacher.student_performance')}
         </h3>
         
+        {isLoading && <div className="h-20 bg-gray-100 rounded-lg animate-pulse mb-3" />}
+
         <div className="space-y-4">
           {filteredAndSortedStudents.slice(0, 5).map((student) => (
             <StudentCard
@@ -305,6 +349,7 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
         <div className="flex items-center space-x-3 mt-4 lg:mt-0">
           <div className="text-sm text-gray-500">
             {filteredAndSortedStudents.length} {t('common.students')}
+            {isLoading && <span className="ml-2 text-xs text-gray-400">{t('common.loading')}</span>}
           </div>
           <button
             onClick={handleExport}
@@ -323,28 +368,28 @@ const StudentPerformance: React.FC<StudentPerformanceProps> = ({
           <div className="text-2xl font-bold text-green-600">{performanceStats.excellent.toFixed(0)}%</div>
           <div className="text-sm text-green-700">{t('common.excellent')}</div>
           <div className="text-xs text-green-600 mt-1">
-            {t('common.students_count', { count: Math.round(performanceStats.excellent * data.length / 100) })}
+            {t('common.students_count', { count: Math.round(performanceStats.excellent * sourceData.length / 100) })}
           </div>
         </div>
         <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-2xl font-bold text-blue-600">{performanceStats.good.toFixed(0)}%</div>
           <div className="text-sm text-blue-700">{t('common.good')}</div>
           <div className="text-xs text-blue-600 mt-1">
-            {t('common.students_count', { count: Math.round(performanceStats.good * data.length / 100) })}
+            {t('common.students_count', { count: Math.round(performanceStats.good * sourceData.length / 100) })}
           </div>
         </div>
         <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
           <div className="text-2xl font-bold text-yellow-600">{performanceStats.average.toFixed(0)}%</div>
           <div className="text-sm text-yellow-700">{t('common.average')}</div>
           <div className="text-xs text-yellow-600 mt-1">
-            {t('common.students_count', { count: Math.round(performanceStats.average * data.length / 100) })}
+            {t('common.students_count', { count: Math.round(performanceStats.average * sourceData.length / 100) })}
           </div>
         </div>
         <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
           <div className="text-2xl font-bold text-red-600">{performanceStats.needsImprovement.toFixed(0)}%</div>
           <div className="text-sm text-red-700">{t('common.needs_improvement')}</div>
           <div className="text-xs text-red-600 mt-1">
-            {t('common.students_count', { count: Math.round(performanceStats.needsImprovement * data.length / 100) })}
+            {t('common.students_count', { count: Math.round(performanceStats.needsImprovement * sourceData.length / 100) })}
           </div>
         </div>
       </div>

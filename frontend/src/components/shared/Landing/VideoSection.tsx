@@ -16,27 +16,27 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   return (
-    <section ref={ref} id="video-section" data-section-id="video-section" className="py-20 relative overflow-hidden bg-[#fdfbf7]">
+    <section ref={ref} id="video-section" data-section-id="video-section" className="py-16 md:py-20 relative overflow-hidden bg-[#fdfbf7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 md:mb-12 gap-6">
           <div className="max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium mb-4"
               style={{ backgroundColor: `${brandColors.primaryHex}14`, color: brandColors.primaryHex }}>
               <Play className="w-4 h-4" />
               <span>{t('landing.videos.badge')}</span>
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
               {t('landing.videos.title')}{' '}
               <span style={{ color: brandColors.primaryHex }}>{t('landing.videos.title_accent')}</span>
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-base sm:text-xl text-gray-600">
               {t('landing.videos.subtitle')}
             </p>
           </div>
           
           <Link 
             to="/resources?type=video" 
-            className="group inline-flex items-center font-semibold transition-colors"
+            className="group inline-flex items-center font-semibold transition-colors text-sm sm:text-base"
             style={{ color: brandColors.primaryHex }}
           >
             {t('landing.videos.view_all')}
@@ -44,7 +44,7 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {videos.map((video: any, index: number) => (
             <div 
               key={index} 

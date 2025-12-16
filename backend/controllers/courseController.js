@@ -286,7 +286,21 @@ const courseController = {
   async createCourse(req, res) {
     try {
       const teacherId = req.user.userId;
-      const { title, description, category, level, cover_image } = req.body;
+      const {
+        title,
+        description,
+        category,
+        level,
+        cover_image,
+        estimatedDuration,
+        learningObjectives,
+        prerequisites,
+        tags,
+        language,
+        certificationAvailable,
+        welcomeMessage,
+        isPublic
+      } = req.body;
 
       // Title validation is handled by middleware, but double-check
       if (!title) {
@@ -304,6 +318,30 @@ const courseController = {
       if (cover_image) {
         metadata.coverImage = cover_image;
       }
+      if (estimatedDuration) {
+        metadata.estimatedDuration = estimatedDuration;
+      }
+      if (learningObjectives && learningObjectives.length > 0) {
+        metadata.learningObjectives = learningObjectives;
+      }
+      if (prerequisites) {
+        metadata.prerequisites = prerequisites;
+      }
+      if (tags && tags.length > 0) {
+        metadata.tags = tags;
+      }
+      if (language) {
+        metadata.language = language;
+      }
+      if (certificationAvailable !== undefined) {
+        metadata.certificationAvailable = certificationAvailable;
+      }
+      if (welcomeMessage) {
+        metadata.welcomeMessage = welcomeMessage;
+      }
+      if (isPublic !== undefined) {
+        metadata.isPublic = isPublic;
+      }
 
       // Insert course using only columns that actually exist on the courses table
       const courseIdResult = await db('courses')
@@ -312,6 +350,7 @@ const courseController = {
           description,
           category,
           cover_image: cover_image || null,
+          is_public: isPublic !== undefined ? isPublic : true,
           created_by: teacherId,
           metadata: Object.keys(metadata).length > 0 ? metadata : null,
           created_at: new Date(),
@@ -618,6 +657,7 @@ const courseController = {
       if (title !== undefined) updateData.title = title;
       if (description !== undefined) updateData.description = description;
       if (category !== undefined) updateData.category = category;
+      if (is_public !== undefined) updateData.is_public = is_public;
 
       // Handle metadata-based fields (level, cover_image, and other editor settings)
       let metadata = {};
@@ -654,9 +694,6 @@ const courseController = {
       }
       if (language !== undefined) {
         metadata.language = language;
-      }
-      if (is_public !== undefined) {
-        metadata.isPublic = is_public;
       }
       if (certification_available !== undefined) {
         metadata.certificationAvailable = certification_available;

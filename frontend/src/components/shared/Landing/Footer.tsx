@@ -15,18 +15,18 @@ const Footer: React.FC = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#d8b26d] rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 px-4 lg:px-6 py-16">
+      <div className="relative z-10 px-4 lg:px-6 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-10 sm:mb-12">
             {/* Brand Section */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="h-12 w-12 rounded-lg overflow-hidden">
-                  <img src="/eoc.jpg" alt="Logo" className="h-full w-full object-cover" />
+                  <img src="/eoc.jpg" alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                 </div>
-                <span className="text-2xl font-bold">EOTY Platform</span>
+                <span className="text-xl sm:text-2xl font-bold">EOTY Platform</span>
               </div>
-              <p className="text-gray-300 leading-relaxed mb-6 max-w-md">
+              <p className="text-gray-300 leading-relaxed mb-4 sm:mb-6 max-w-md text-sm sm:text-base">
                 Empowering Ethiopian Orthodox youths through faith-centered education.
                 Join our community and grow in your spiritual journey with quality learning resources.
               </p>
@@ -40,7 +40,7 @@ const Footer: React.FC = () => {
 
             {/* Quick Links */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.quick_links')}</h3>
+              <h3 className="text-lg font-semibold mb-4 sm:mb-6 text-white">{t('landing.footer.quick_links')}</h3>
               <div className="space-y-3">
                 <a href="#hero" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.nav.home')}
@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
 
             {/* Community */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.community')}</h3>
+              <h3 className="text-lg font-semibold mb-4 sm:mb-6 text-white">{t('landing.footer.community')}</h3>
               <div className="space-y-3">
                 <Link to="/register" className="block text-gray-300 hover:text-[#cfa15a] transition-colors">
                   {t('landing.footer.join')}
@@ -78,8 +78,8 @@ const Footer: React.FC = () => {
 
             {/* Newsletter */}
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-white">{t('landing.footer.newsletter')}</h3>
-              <p className="text-gray-400 text-sm mb-4">{t('landing.footer.newsletter_copy')}</p>
+              <h3 className="text-lg font-semibold mb-4 sm:mb-6 text-white">{t('landing.footer.newsletter')}</h3>
+              <p className="text-gray-400 text-sm mb-3 sm:mb-4">{t('landing.footer.newsletter_copy')}</p>
               <div className="flex flex-col space-y-3">
                 <input
                   type="email"

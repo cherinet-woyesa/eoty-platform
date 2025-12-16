@@ -12,9 +12,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   Star,
-  Bookmark,
-  Calendar,
-  Compass
+  Bookmark
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { communityPostsApi } from '@/services/api/communityPosts';
@@ -23,7 +21,6 @@ import ShareModal from '@/components/shared/social/ShareModal';
 import CreatePost from './components/CreatePost';
 import CommunityFeed from './components/CommunityFeed';
 import { useCommunityFeed } from '@/hooks/useCommunity';
-import { brandColors } from '@/theme/brand';
 
 interface CommunityMetrics {
   totalPosts: number;
@@ -51,6 +48,8 @@ interface CommunityHubProps {
   embedded?: boolean;
   variant?: CommunityVariant;
   feedState?: CommunityFeedState;
+  showTabs?: boolean;
+  disableLayoutPadding?: boolean;
 }
 
 interface QuickAction {
@@ -69,7 +68,8 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
   viewMode: initialViewMode = 'feed',
   embedded = false,
   variant = 'default',
-  feedState
+  feedState,
+  disableLayoutPadding = false
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -81,7 +81,15 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
   const loading = feedState?.loading ?? internalFeed.loading;
   const error = feedState?.error ?? internalFeed.error;
   const refresh = feedState?.refresh ?? internalFeed.refresh;
-  const metrics = feedState?.metrics ?? internalFeed.metrics;
+  const metrics = feedState?.metrics ?? internalFeed.metrics ?? {
+    totalPosts: 0,
+    weeklyPosts: 0,
+    todayPosts: 0,
+    activeContributors: 0,
+    totalReactions: 0,
+    bookmarkedPosts: 0,
+    latestPostAt: null
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode] = useState(initialViewMode);
@@ -92,6 +100,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
   const createPostRef = useRef<HTMLDivElement | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'most_liked' | 'most_commented'>('newest');
   const [typeFilter, setTypeFilter] = useState<'all' | 'text' | 'image' | 'video' | 'audio' | 'article'>('all');
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   const filteredPosts = useMemo(() => {
     let currentPosts = posts;
@@ -200,7 +209,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
         label: t('community.actions.browse_forums'),
         description: t('community.actions.browse_forums_desc'),
         icon: MessageSquare,
-        onClick: () => navigate('/forums/1')
+        onClick: () => navigate('/forums')
       },
       {
         label: t('community.actions.refresh'),
@@ -224,36 +233,44 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
       });
     } else if (variant === 'student') {
       base.push({
-        label: t('community.actions.join_group'),
-        description: t('community.actions.join_group_desc'),
-        icon: Compass,
-        onClick: () => navigate('/member/community-hub')
+        label: t('community.actions.explore_trending'),
+        description: t('community.actions.explore_trending_desc'),
+        icon: TrendingUp,
+        onClick: () => {
+          setSortBy('most_liked');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       });
     } else {
       base.push({
-        label: t('community.actions.view_calendar'),
-        description: t('community.actions.view_calendar_desc'),
-        icon: Calendar,
-        onClick: () => navigate('/calendar')
+        label: t('community.actions.view_achievements'),
+        description: t('community.actions.view_achievements_desc'),
+        icon: Activity,
+        onClick: () => navigate('/achievements')
       });
     }
 
     return base;
-  }, [heroContent, navigate, refresh, variant]);
+  }, [heroContent, navigate, refresh, variant, setSortBy]);
 
   const handlePostCreated = (newPost: Post) => {
     setPosts(prev => [newPost, ...prev]);
   };
 
   const handleLike = async (postId: string) => {
+    if (actionLoading[`like-${postId}`]) return;
+
+    setActionLoading(prev => ({ ...prev, [`like-${postId}`]: true }));
+
+    // Optimistic update
     setPosts(prev =>
       prev.map(p =>
         p.id === postId
           ? {
-              ...p,
-              likes: p.liked_by_user ? p.likes - 1 : p.likes + 1,
-              liked_by_user: !p.liked_by_user
-            }
+            ...p,
+            likes: p.liked_by_user ? p.likes - 1 : p.likes + 1,
+            liked_by_user: !p.liked_by_user
+          }
           : p
       )
     );
@@ -262,21 +279,29 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
       await communityPostsApi.toggleLike(postId);
     } catch (error) {
       console.error('Failed to toggle like:', error);
+      // Revert optimistic update on error
       const result = refresh();
       if (result instanceof Promise) {
         await result;
       }
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`like-${postId}`]: false }));
     }
   };
 
   const handleBookmark = async (postId: string) => {
+    if (actionLoading[`bookmark-${postId}`]) return;
+
+    setActionLoading(prev => ({ ...prev, [`bookmark-${postId}`]: true }));
+
+    // Optimistic update
     setPosts(prev =>
       prev.map(p =>
         p.id === postId
           ? {
-              ...p,
-              is_bookmarked: !p.is_bookmarked
-            }
+            ...p,
+            is_bookmarked: !p.is_bookmarked
+          }
           : p
       )
     );
@@ -285,10 +310,13 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
       await communityPostsApi.toggleBookmark(postId);
     } catch (error) {
       console.error('Failed to toggle bookmark:', error);
+      // Revert optimistic update on error
       const result = refresh();
       if (result instanceof Promise) {
         await result;
       }
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`bookmark-${postId}`]: false }));
     }
   };
 
@@ -331,7 +359,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
 
   const handleSaveEdit = async (postId: string) => {
     if (!editContent.trim()) return;
-    
+
     try {
       await communityPostsApi.updatePost(postId, { content: editContent });
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, content: editContent } : p));
@@ -397,100 +425,102 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
 
   if (embedded) {
     return (
-      <div className="space-y-4">
-        {renderSearchBar(true)}
+      <div className="flex justify-center">
+        <div className="w-full max-w-3xl space-y-4">
+          {renderSearchBar()}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-700">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p>{error}</p>
-            <button
-              onClick={() => {
-                const result = refresh();
-                if (result instanceof Promise) {
-                  result.catch(() => null);
-                }
-              }}
-              className="ml-auto text-sm font-medium hover:underline"
-            >
-              {t('common.try_again')}
-            </button>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-700">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p>{error}</p>
+              <button
+                onClick={() => {
+                  const result = refresh();
+                  if (result instanceof Promise) {
+                    result.catch(() => null);
+                  }
+                }}
+                className="ml-auto text-sm font-medium hover:underline"
+              >
+                {t('common.try_again')}
+              </button>
+            </div>
+          )}
+
+          <div ref={createPostRef} id="community-create-post">
+            <CreatePost onPostCreated={handlePostCreated} />
           </div>
-        )}
 
-        <div ref={createPostRef} id="community-create-post">
-          <CreatePost onPostCreated={handlePostCreated} />
-        </div>
-
-        <CommunityFeed
-          posts={filteredPosts}
-          isLoading={loading}
-          currentUserId={user?.id}
-          onLike={handleLike}
-          onDelete={handleDelete}
-          onEdit={handleStartEdit}
-          onShare={handleShare}
-          onBookmark={handleBookmark}
-          onCommentCountChange={handleCommentCountChange}
-          onStartPost={scrollToComposer}
-          editingPostId={editingPostId}
-          editContent={editContent}
-          onEditContentChange={setEditContent}
-          onSaveEdit={handleSaveEdit}
-          onCancelEdit={handleCancelEdit}
-        />
-
-        {showShareModal && sharingPost && (
-          <ShareModal
-            isOpen={showShareModal}
-            onClose={() => setShowShareModal(false)}
-            postId={sharingPost.id}
-            postContent={sharingPost.content}
-            onShareSuccess={handleShareSuccess}
+          <CommunityFeed
+            posts={filteredPosts}
+            isLoading={loading}
+            currentUserId={user?.id}
+            onLike={handleLike}
+            onDelete={handleDelete}
+            onEdit={handleStartEdit}
+            onShare={handleShare}
+            onBookmark={handleBookmark}
+            onCommentCountChange={handleCommentCountChange}
+            onStartPost={scrollToComposer}
+            editingPostId={editingPostId}
+            editContent={editContent}
+            onEditContentChange={setEditContent}
+            onSaveEdit={handleSaveEdit}
+            onCancelEdit={handleCancelEdit}
           />
-        )}
 
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl">
-              <div className="p-6">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-                  Delete Post
-                </h3>
-                <p className="text-sm text-gray-600 text-center mb-6">
-                  Are you sure you want to delete this post? This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={cancelDelete}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
-                  >
-                    Delete
-                  </button>
+          {showShareModal && sharingPost && (
+            <ShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              postId={sharingPost.id}
+              postContent={sharingPost.content}
+              onShareSuccess={handleShareSuccess}
+            />
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl">
+                <div className="p-6">
+                  <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                    Delete Post
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center mb-6">
+                    Are you sure you want to delete this post? This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={cancelDelete}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className={`w-full ${disableLayoutPadding ? '' : 'px-4 sm:px-6 lg:px-8 py-6'}`}>
+      <div className={`mx-auto ${disableLayoutPadding ? '' : 'max-w-7xl space-y-8'}`}>
         <section className="rounded-3xl bg-gradient-to-br from-[#1e1b4b]/10 via-white to-[#1e1b4b]/5 border border-[#1e1b4b]/20 shadow-xl p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="max-w-2xl space-y-3">
@@ -538,7 +568,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
                   key={card.label}
                   className="bg-white/90 border border-white/80 rounded-2xl px-4 py-5 shadow-sm flex flex-col gap-3"
                 >
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-white`}> 
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-white`}>
                     <card.icon className="w-5 h-5" />
                   </div>
                   <span className="text-2xl font-bold text-[#1e1b4b]">{card.value}</span>
@@ -549,8 +579,8 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-6">
+        <div className="flex flex-col xl:flex-row gap-8 items-start">
+          <div className="w-full max-w-3xl space-y-6 flex-1">
             {renderSearchBar()}
 
             {/* Filters */}
@@ -617,6 +647,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
               onShare={handleShare}
               onBookmark={handleBookmark}
               onCommentCountChange={handleCommentCountChange}
+              onStartPost={scrollToComposer}
               editingPostId={editingPostId}
               editContent={editContent}
               onEditContentChange={setEditContent}
@@ -625,87 +656,84 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
             />
           </div>
 
-          <aside className="lg:col-span-4 space-y-4">
-            <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.quick_actions')}</h2>
-                <ArrowUpRight className="w-4 h-4 text-slate-400" />
-              </div>
-              <div className="space-y-3">
-                {quickActions.map(action => (
-                  <button
-                    key={action.label}
-                    onClick={action.onClick}
-                    className="w-full flex items-start gap-3 text-left px-3 py-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/40 hover:bg-[#1e1b4b]/5 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-white transition-colors">
-                      <action.icon className="w-5 h-5 text-[#1e1b4b]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e1b4b] transition-colors">{action.label}</p>
-                      <p className="text-xs text-slate-500">{action.description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.trending_now')}</h2>
-                <TrendingUp className="w-4 h-4 text-[#cfa15a]" />
-              </div>
-              <div className="space-y-3">
-                {trendingPosts.length > 0 ? trendingPosts.map(post => (
-                  <div key={post.id} className="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer group">
-                    <p className="text-sm text-slate-700 mb-2 line-clamp-2 group-hover:text-[#1e1b4b] transition-colors">{truncateText(post.content)}</p>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="font-medium">{post.author_name}</span>
-                      <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full">
-                        <Sparkles className="w-3 h-3 text-[#cfa15a]" />
-                        {post.likes + post.comments + post.shares}
-                      </span>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-sm text-slate-500">{t('community.sidebar.trending_empty')}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.top_contributors')}</h2>
-                <Star className="w-4 h-4 text-[#cfa15a]" />
-              </div>
-              <div className="space-y-3">
-                {topContributors.length > 0 ? topContributors.map(contributor => (
-                  <div key={contributor.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/20 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#1e1b4b]/5 flex items-center justify-center text-xs font-bold text-[#1e1b4b]">
-                        {contributor.name.charAt(0)}
+          {/* Desktop Sidebar (Sticky) */}
+          <aside className="hidden xl:block w-80 pt-4 sticky top-6">
+            <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent pr-2 pb-4">
+              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.quick_actions')}</h2>
+                  <ArrowUpRight className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="space-y-3">
+                  {quickActions.map(action => (
+                    <button
+                      key={action.label}
+                      onClick={action.onClick}
+                      className="w-full flex items-start gap-3 text-left px-3 py-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/40 hover:bg-[#1e1b4b]/5 transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-white transition-colors">
+                        <action.icon className="w-5 h-5 text-[#1e1b4b]" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">{contributor.name}</p>
-                        <p className="text-xs text-slate-500">{contributor.posts} posts • {contributor.reactions} reactions</p>
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e1b4b] transition-colors">{action.label}</p>
+                        <p className="text-xs text-slate-500">{action.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.trending_now')}</h2>
+                  <TrendingUp className="w-4 h-4 text-[#cfa15a]" />
+                </div>
+                <div className="space-y-3">
+                  {trendingPosts.length > 0 ? trendingPosts.map(post => (
+                    <div key={post.id} className="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer group">
+                      <p className="text-sm text-slate-700 mb-2 line-clamp-2 group-hover:text-[#1e1b4b] transition-colors">{truncateText(post.content)}</p>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="font-medium">{post.author_name}</span>
+                        <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full">
+                          <Sparkles className="w-3 h-3 text-[#cfa15a]" />
+                          {post.likes + post.comments + post.shares}
+                        </span>
                       </div>
                     </div>
-                    <div className="p-1.5 rounded-lg bg-[#cfa15a]/10">
-                      <Bookmark className="w-4 h-4 text-[#cfa15a]" />
+                  )) : (
+                    <p className="text-sm text-slate-500">{t('community.sidebar.trending_empty')}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Top Contributors */}
+              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.top_contributors')}</h2>
+                  <Star className="w-4 h-4 text-[#cfa15a]" />
+                </div>
+                <div className="space-y-3">
+                  {topContributors.length > 0 ? topContributors.map(contributor => (
+                    <div key={contributor.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/20 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#1e1b4b]/5 flex items-center justify-center text-xs font-bold text-[#1e1b4b]">
+                          {contributor.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{contributor.name}</p>
+                          <p className="text-xs text-slate-500">{contributor.posts} posts • {contributor.reactions} reactions</p>
+                        </div>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-[#cfa15a]/10">
+                        <Bookmark className="w-4 h-4 text-[#cfa15a]" />
+                      </div>
                     </div>
-                  </div>
-                )) : (
-                  <p className="text-sm text-slate-500">{t('community.sidebar.contributors_empty')}</p>
-                )}
+                  )) : (
+                    <p className="text-sm text-slate-500">{t('community.sidebar.contributors_empty')}</p>
+                  )}
+                </div>
               </div>
             </div>
-
-            {metrics.latestPostAt && (
-              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
-                <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-2">{t('community.sidebar.latest_activity')}</h2>
-                <p className="text-sm text-slate-600">{t('community.sidebar.last_post_published', { date: new Date(metrics.latestPostAt).toLocaleString() })}</p>
-              </div>
-            )}
           </aside>
         </div>
       </div>

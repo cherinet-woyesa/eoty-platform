@@ -59,6 +59,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onStartEditing
 }) => {
   const [showPostMenu, setShowPostMenu] = useState<boolean>(false);
+  const [showComments, setShowComments] = useState<boolean>(false);
 
   const avatarUrl = useMemo(
     () =>
@@ -89,189 +90,205 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [post.created_at]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-100 mb-6 shadow-sm hover:shadow-md transition-shadow">
       {/* Post Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between p-3">
+        <div className="flex items-start gap-2.5">
           {avatarUrl ? (
-            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border border-gray-100 shadow-sm">
+            <div className="w-10 h-10 rounded-full cursor-pointer ring-1 ring-black/5 hover:ring-black/10 transition-all overflow-hidden bg-gray-50">
               <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm"
               style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
             >
               {displayName.charAt(0).toUpperCase()}
             </div>
           )}
-          <div>
-            <h3 className="font-semibold text-gray-900 text-sm">{displayName}</h3>
-            <p className="text-xs text-gray-500">{formattedDate}</p>
+          <div className="flex flex-col -mt-0.5">
+            <span className="font-bold text-[15px] text-gray-900 leading-snug cursor-pointer hover:underline decoration-slate-400 underlines-offset-2">
+              {displayName}
+            </span>
+            <span className="text-[12px] text-gray-500 font-normal hover:underline cursor-pointer">
+              {formattedDate}
+            </span>
           </div>
         </div>
         {showActions && post.author_id === currentUserId && (
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
             <button
-              onClick={() => setShowPostMenu(!showPostMenu)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => onBookmark?.(post.id)}
+              className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-500 hover:text-gray-900"
             >
-              <MoreVertical className="h-5 w-5 text-gray-600" />
+              <Bookmark className={`h-5 w-5 ${post.is_bookmarked ? 'fill-black text-black' : ''}`} />
             </button>
-            {showPostMenu && (
-            <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[150px]">
-                <button
-                  onClick={() => {
-                    onStartEditing?.(post);
-                    setShowPostMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit Post
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete?.(post.id);
-                    setShowPostMenu(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Post
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              <button
+                onClick={() => setShowPostMenu(!showPostMenu)}
+                className="p-1 hover:bg-gray-50 rounded-full transition-colors"
+              >
+                <MoreVertical className="h-5 w-5 text-gray-600" />
+              </button>
+              {showPostMenu && (
+                <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-xl z-20 min-w-[160px] py-1">
+                  <button
+                    onClick={() => {
+                      onStartEditing?.(post);
+                      setShowPostMenu(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit Post
+                  </button>
+                  <div className="h-px bg-gray-100 my-1" />
+                  <button
+                    onClick={() => {
+                      onDelete?.(post.id);
+                      setShowPostMenu(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Post
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Post Content */}
-      {editingPost === post.id ? (
-        <div className="mb-4">
+      {/* Post Content (Text only posts) */}
+      {!post.media_url && post.content && !editingPost && (
+        <div className="px-4 pb-3">
+          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+        </div>
+      )}
+
+      {/* Editing Mode */}
+      {editingPost === post.id && (
+        <div className="px-4 pb-3">
           <textarea
             value={editContent}
             onChange={(e) => onEditContentChange?.(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none text-sm bg-gray-50"
             rows={3}
-            placeholder="Edit your post..."
+            placeholder="Edit your caption..."
           />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => onSaveEdit?.(post.id)}
-              disabled={!editContent.trim()}
-              className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              Save
-            </button>
+          <div className="flex gap-2 mt-2 justify-end">
             <button
               onClick={onCancelEdit}
-              className="px-4 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm"
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
               Cancel
             </button>
+            <button
+              onClick={() => onSaveEdit?.(post.id)}
+              disabled={!editContent.trim()}
+              className="px-4 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 text-xs font-medium transition-colors"
+            >
+              Save
+            </button>
           </div>
         </div>
-      ) : (
-        post.media_type !== 'article' && <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
       )}
 
-      {/* Media */}
-      {post.media_url && post.media_type === 'image' && (
-        <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 relative min-h-[200px]">
+      {/* Media Content - Edge to Edge */}
+      <div className="bg-black/5 relative active:scale-[0.99] transition-transform duration-200 ease-out overflow-hidden">
+        {post.media_url && post.media_type === 'image' && (
           <img
             src={post.media_url}
-            alt="Post media"
-            className="w-full max-h-96 object-cover"
+            alt="Post content"
+            className="w-full h-auto max-h-[600px] object-cover block"
             loading="lazy"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><span>Image failed to load</span></div>';
-            }}
           />
-        </div>
-      )}
-      {post.media_url && post.media_type === 'video' && (
-        <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 relative">
+        )}
+        {post.media_url && post.media_type === 'video' && (
           <video
             src={post.media_url}
             controls
-            className="w-full max-h-96"
+            className="w-full h-auto max-h-[600px] block bg-black"
             preload="metadata"
-            onError={(e) => {
-              const target = e.target as HTMLVideoElement;
-              target.style.display = 'none';
-              target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><span>Video failed to load</span></div>';
-            }}
-          >
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      )}
-      {post.media_url && post.media_type === 'audio' && (
-        <div className="mb-4">
-          <audio
-            src={post.media_url}
-            controls
-            className="w-full"
-            onError={(e) => {
-              const target = e.target as HTMLAudioElement;
-              target.style.display = 'none';
-              target.parentElement!.innerHTML = '<div class="flex items-center justify-center h-16 bg-gray-200 text-gray-500 rounded"><span>Audio failed to load</span></div>';
-            }}
           />
-        </div>
-      )}
-      {post.media_type === 'article' && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <FileText className="h-6 w-6 text-blue-600 mb-2" />
-          <div className="text-gray-800 whitespace-pre-wrap">{post.content || 'Article content would appear here'}</div>
-        </div>
-      )}
-
-      {/* Post Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-        <button
-          onClick={() => onLike?.(post.id)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            post.liked_by_user 
-              ? 'text-red-600 bg-red-50 hover:bg-red-100' 
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Heart className={`h-5 w-5 ${post.liked_by_user ? 'fill-current' : ''}`} />
-          <span className="font-medium">{post.likes}</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-          <MessageCircle className="h-5 w-5" />
-          <span className="font-medium">{post.comments}</span>
-        </button>
-        <button
-          onClick={() => onShare?.(post)}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Share2 className="h-5 w-5" />
-          <span className="font-medium">{post.shares}</span>
-        </button>
-        <button
-          onClick={() => onBookmark?.(post.id)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            post.is_bookmarked 
-              ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Bookmark className={`h-5 w-5 ${post.is_bookmarked ? 'fill-current' : ''}`} />
-        </button>
+        )}
+        {post.media_url && post.media_type === 'audio' && (
+          <div className="p-4 bg-slate-50 flex items-center justify-center">
+            <audio src={post.media_url} controls className="w-full" />
+          </div>
+        )}
+        {post.media_type === 'article' && (
+          <div className="p-6 bg-slate-50 border-y border-gray-100">
+            <FileText className="h-8 w-8 text-slate-400 mb-3" />
+            <p className="text-sm text-gray-800 whitespace-pre-wrap font-serif leading-relaxed line-clamp-6">
+              {post.content}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Comments Section */}
-      <CommentSection
-        postId={post.id}
-        commentCount={post.comments}
-        onCommentCountChange={(newCount) => onCommentCountChange?.(post.id, newCount)}
-      />
+      <div className="p-3">
+        {/* Action Bar */}
+        {/* Facebook-style Action Bar */}
+        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 mt-3">
+          <button
+            onClick={() => onLike?.(post.id)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${post.liked_by_user
+              ? 'text-red-500 hover:bg-red-50'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <Heart
+              className={`h-5 w-5 ${post.liked_by_user ? 'fill-current' : ''}`}
+              strokeWidth={2}
+            />
+            <span className="font-medium text-sm">Like</span>
+          </button>
+
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <MessageCircle className="h-5 w-5" strokeWidth={2} />
+            <span className="font-medium text-sm">Comment</span>
+          </button>
+
+          <button
+            onClick={() => onShare?.(post)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <Share2 className="h-5 w-5" strokeWidth={2} />
+            <span className="font-medium text-sm">Share</span>
+          </button>
+        </div>
+
+        {/* Likes Count */}
+        <div className="font-semibold text-sm text-gray-900 mb-2">
+          {post.likes === 0 ? 'Be the first to like this' : `${post.likes.toLocaleString()} likes`}
+        </div>
+
+        {/* Caption */}
+        {post.media_url && post.content && !editingPost && (
+          <div className="mb-2">
+            <span className="font-semibold text-sm text-gray-900 mr-2">{displayName}</span>
+            <span className="text-sm text-gray-800 whitespace-pre-wrap">{post.content}</span>
+          </div>
+        )}
+
+        {/* Comment Preview section could act as 'View all comments' if we had that logic, 
+            for now just render the comment section but simpler */}
+        <CommentSection
+          postId={post.id}
+          commentCount={post.comments}
+          onCommentCountChange={(newCount) => onCommentCountChange?.(post.id, newCount)}
+          isFullWidth={true}
+          isOpen={showComments}
+          onToggle={() => setShowComments(!showComments)}
+        />
+
+        {/* Timestamp moved to header or strictly bottom if preferred, already in header */}
+      </div>
     </div>
   );
 };

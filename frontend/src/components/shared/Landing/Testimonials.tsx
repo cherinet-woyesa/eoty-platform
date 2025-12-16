@@ -16,7 +16,7 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
       ref={ref}
       id="testimonials"
       data-section-id="testimonials"
-      className={`relative py-32 overflow-hidden z-10 transition-all duration-1000 ${
+      className={`relative py-20 sm:py-24 lg:py-32 overflow-hidden z-10 transition-all duration-1000 ${
         visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
       style={{
@@ -31,19 +31,19 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
       </div>
       <div className="w-full px-4 lg:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <div className={`inline-flex items-center space-x-3 px-6 py-3 rounded-full border backdrop-blur-xl shadow-lg mb-8 transition-all duration-700 delay-200 ${
+          <div className="text-center mb-14 sm:mb-18 lg:mb-20">
+            <div className={`inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border backdrop-blur-xl shadow-lg mb-6 sm:mb-8 transition-all duration-700 delay-200 ${
               visibleSections.has('testimonials') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`} style={{ borderColor: `${brandColors.primaryHex}33` }}>
-              <Star className="h-5 w-5 animate-pulse" style={{ color: brandColors.primaryHex }} />
-              <span className="text-sm font-semibold text-gray-700">{t('landing.testimonials.badge')}</span>
+              <Star className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse" style={{ color: brandColors.primaryHex }} />
+              <span className="text-xs sm:text-sm font-semibold text-gray-700">{t('landing.testimonials.badge')}</span>
             </div>
-            <h2 className={`text-4xl md:text-5xl font-bold text-gray-900 mb-6 transition-all duration-700 delay-300 ${
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 transition-all duration-700 delay-300 ${
               visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
               {t('landing.testimonials.title')}
             </h2>
-            <p className={`text-xl text-gray-700 max-w-3xl mx-auto transition-all duration-700 delay-400 ${
+            <p className={`text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto px-2 sm:px-0 transition-all duration-700 delay-400 ${
               visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
               {t('landing.testimonials.subtitle')}
@@ -66,11 +66,11 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
               </Link>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {testimonials.slice(0, 6).map((testimonial, index) => (
                 <div
                   key={testimonial.id || index}
-                  className={`group bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-2xl rounded-3xl p-8 shadow-xl hover:shadow-3xl hover:shadow-[#27AE60]/20 transition-all duration-500 border border-gray-200/50 transform hover:-translate-y-3 hover:scale-[1.03] relative overflow-hidden ${
+                  className={`group bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-3xl hover:shadow-[#27AE60]/20 transition-all duration-500 border border-gray-200/50 transform hover:-translate-y-3 hover:scale-[1.03] relative overflow-hidden ${
                     visibleSections.has('testimonials')
                       ? 'opacity-100 translate-y-0'
                       : 'opacity-0 translate-y-10'
@@ -80,8 +80,8 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
                   {/* Animated background gradient on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"
                     style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}0d, ${brandColors.accentHex}14)` }} />
-                  <div className="relative z-10 flex items-center mb-6">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mr-5 shadow-lg"
+                    <div className="relative z-10 flex items-center mb-5 sm:mb-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mr-4 sm:mr-5 shadow-lg"
                       style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}>
                       <span className="text-white font-bold text-lg">
                         {(testimonial.name || 'Student')[0].toUpperCase()}
@@ -101,8 +101,8 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
                   </div>
 
                   <div className="relative mb-6">
-                    <Quote className="h-10 w-10 mb-4 absolute -top-2 -left-2" style={{ color: `${brandColors.primaryHex}66` }} />
-                    <p className="text-gray-700 leading-relaxed text-base italic pl-8">
+                    <Quote className="h-8 w-8 sm:h-10 sm:w-10 mb-3 sm:mb-4 absolute -top-2 -left-2" style={{ color: `${brandColors.primaryHex}66` }} />
+                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base italic pl-6 sm:pl-8">
                       "{testimonial.content || testimonial.message || 'This platform has transformed my learning experience with its faith-centered approach and excellent content.'}"
                     </p>
                   </div>
@@ -111,9 +111,9 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: brandColors.primaryHex }}></div>
-                        <span className="text-gray-600 font-medium">{testimonial.role || 'Student'}</span>
+                        <span className="text-gray-600 font-medium text-sm">{testimonial.role || 'Student'}</span>
                       </div>
-                      <span className="text-gray-500 text-sm">
+                      <span className="text-gray-500 text-xs sm:text-sm">
                         {testimonial.created_at ? new Date(testimonial.created_at).toLocaleDateString() : 'Recent'}
                       </span>
                     </div>

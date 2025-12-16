@@ -38,30 +38,32 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
         }`}
       >
         <div className="w-full">
-          <div className="flex justify-between items-center px-4 lg:px-6">
-            <Link to="/" className="flex items-center space-x-3 group cursor-pointer">
-              <div className="relative">
+          <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-2">
+            <Link to="/" className="flex items-center space-x-3 group cursor-pointer min-w-0">
+              <div className="relative flex-shrink-0">
                 <div className={`absolute inset-0 rounded-lg blur-md transition-all ${showTransparent ? 'bg-white/10' : 'bg-[color:var(--brand)]/12'}`} style={{ ['--brand' as any]: brandColors.primaryHex }} />
-                <img src="/eoc.jpg" alt="EOTY Logo" className="relative h-10 w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
+                <img src="/eoc.jpg" alt="EOTY Logo" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
               </div>
-              <span className={`text-2xl font-bold transition-colors ${showTransparent ? 'text-white' : 'text-gray-800'}`}>
+              <span className={`text-xl sm:text-2xl font-bold truncate transition-colors ${showTransparent ? 'text-white' : 'text-gray-800'}`}>
                 EOTY Platform
               </span>
             </Link>
 
-            <div className="flex items-center space-x-4">
-              <LanguageSelector textColor={showTransparent ? 'text-white' : 'text-gray-700'} />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="hidden xs:block">
+                <LanguageSelector textColor={showTransparent ? 'text-white' : 'text-gray-700'} />
+              </div>
               {!isAuthenticated ? (
                 <>
                   <Link
                     to="/login"
-                    className={`font-medium transition-colors duration-200 ${showTransparent ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                    className={`text-sm sm:text-base font-medium transition-colors duration-200 ${showTransparent ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
                   >
                     {t('landing.header.sign_in')}
                   </Link>
                   <Link
                     to="/register"
-                    className="px-6 py-2.5 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm sm:text-base font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                     style={{
                       backgroundColor: brandColors.primaryHex,
                       color: brandColors.textOnPrimary,
@@ -74,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
               ) : (
                 <Link
                   to={getRoleDashboard()}
-                  className="px-6 py-2.5 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm sm:text-base font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                   style={{
                     backgroundColor: brandColors.primaryHex,
                     color: brandColors.textOnPrimary,

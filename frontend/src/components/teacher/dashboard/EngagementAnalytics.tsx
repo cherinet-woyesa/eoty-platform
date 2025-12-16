@@ -5,6 +5,8 @@ import {
   AlertCircle, RefreshCw, Sparkles, Target, Zap
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api/apiClient';
 
 // Types
 interface EngagementData {
@@ -40,20 +42,32 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // Mock data - in real app, this would come from API
+  const { data: engagementResponse, isLoading, isError, refetch } = useQuery({
+    queryKey: ['teacher-engagement', courseId || 'all', timeframe],
+    queryFn: async () => {
+      const res = await apiClient.get('/teacher/analytics/engagement', {
+        params: { courseId, timeframe }
+      });
+      return res?.data?.data as { series?: EngagementData[] } | undefined;
+    },
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Use backend data when available; fall back to generated data to keep UI usable.
   const engagementData: EngagementData[] = useMemo(() => {
+    if (engagementResponse?.series && engagementResponse.series.length > 0) {
+      return engagementResponse.series;
+    }
+
     const data: EngagementData[] = [];
     const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
-    
     const baseDate = new Date();
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(baseDate);
       date.setDate(date.getDate() - i);
-      
-      // More realistic data with trends
       const baseEngagement = 60 + Math.sin(i * 0.3) * 15;
-      const trendFactor = 1 + (i / days) * 0.2; // Gradual improvement
-      
+      const trendFactor = 1 + (i / days) * 0.2;
       data.push({
         date: date.toISOString().split('T')[0],
         activeStudents: Math.floor((Math.random() * 30 + 20) * trendFactor),
@@ -67,9 +81,8 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
         assignmentSubmissions: Math.floor((Math.random() * 8 + 5) * trendFactor)
       });
     }
-    
     return data;
-  }, [timeframe]);
+  }, [engagementResponse?.series, timeframe]);
 
   const metrics = useMemo(() => [
     {
@@ -180,10 +193,9 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refetch();
     setIsRefreshing(false);
-  }, []);
+  }, [refetch]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -269,6 +281,26 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
     };
   }, [engagementData, t]);
 
+  if (isError) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2 text-sm text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            <span>{t('analytics.unable_to_load')}</span>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {t('common.retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
       {/* Header */}
@@ -302,7 +334,7 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
           {/* Refresh Button */}
           <button
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || isLoading}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             title={t('common.refresh_data')}
           >
@@ -322,6 +354,14 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
           )}
         </div>
       </div>
+
+      {isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-gray-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

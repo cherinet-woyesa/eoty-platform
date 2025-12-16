@@ -93,6 +93,11 @@ export const communityPostsApi = {
     return response.data;
   },
 
+  toggleCommentLike: async (commentId: string) => {
+    const response = await apiClient.post(`/community/comments/${commentId}/like`);
+    return response.data;
+  },
+
   // Post sharing functionality
   sharePost: async (postId: string, data: {
     sharedWith?: string;

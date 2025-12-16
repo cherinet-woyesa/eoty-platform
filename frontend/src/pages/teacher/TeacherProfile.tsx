@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/context/UserContext';
+import { useAuth } from '@/context/AuthContext';
 import teacherApi from '@/services/api/teacherApi';
 import type { TeacherProfile as TeacherProfileType } from '@/services/api/teacherApi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   Shield, CreditCard, FileText,
   ChevronDown, ChevronUp, HelpCircle,
   Phone, Mail, Search, ArrowRight, Banknote,
-  Globe, Upload, Clock, Check, LayoutDashboard, BookOpen, ArrowLeft
+  Globe, Upload, Clock, Check, LayoutDashboard, BookOpen, ArrowLeft,
+  BarChart3, TrendingUp, TrendingDown, Users, Play, Award,
+  Calendar, DollarSign, Target, Activity, Star, Lock, Trash2,
+  AlertCircle, Settings, Bell, User
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { brandColors } from '@/theme/brand';
@@ -40,112 +45,202 @@ const DashboardView: React.FC<{
   onNavigate: (view: 'dashboard' | 'payout' | 'verification') => void;
   onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
 }> = ({ user, profile, onNavigate, onUpdate }) => {
-    // Social Links State
-    const [socialLinks, setSocialLinks] = useState({
+    const queryClient = useQueryClient();
+    const { showNotification } = useNotification();
+
+    // Social Links State - initialize from profile
+    const [socialLinks, setSocialLinks] = useState(() => ({
       website_url: profile.website_url || '',
       twitter_url: profile.twitter_url || '',
       linkedin_url: profile.linkedin_url || '',
       facebook_url: profile.facebook_url || '',
       instagram_url: profile.instagram_url || ''
-    });
-    const [bioDraft, setBioDraft] = useState(profile.bio || '');
-    const [savingBio, setSavingBio] = useState(false);
-    const { showNotification } = useNotification();
+    }));
 
-    // Certifications State
-    const [certifications, setCertifications] = useState<any[]>(profile.certifications || []);
+    // Update social links when profile changes
+    useEffect(() => {
+      setSocialLinks({
+        website_url: profile.website_url || '',
+        twitter_url: profile.twitter_url || '',
+        linkedin_url: profile.linkedin_url || '',
+        facebook_url: profile.facebook_url || '',
+        instagram_url: profile.instagram_url || ''
+      });
+    }, [profile]);
+
+    // Certifications query
+    const {
+      data: certifications = [],
+      isLoading: certsLoading
+    } = useQuery({
+      queryKey: ['teacher-certifications'],
+      queryFn: async () => {
+        const res = await fetch('/api/teacher/certifications', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        return data.success ? data.data.certifications : [];
+      },
+      staleTime: 5 * 60 * 1000
+    });
+
+    // Certification mutations
+    const addCertMutation = useMutation({
+      mutationFn: async (formData: FormData) => {
+        const res = await fetch('/api/teacher/certifications', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Failed to upload certification');
+        }
+        return data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['teacher-certifications'] });
+        showNotification(t('teacher_profile.certification_uploaded', 'Certification uploaded successfully'), 'success');
+      },
+      onError: (error) => {
+        console.error('Failed to upload certification:', error);
+        showNotification(error.message || t('teacher_profile.certification_upload_failed', 'Failed to upload certification. Please try again.'), 'error');
+      }
+    });
+
+    const deleteCertMutation = useMutation({
+      mutationFn: async (id: number) => {
+        const res = await fetch(`/api/teacher/certifications/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Failed to delete certification');
+        }
+        return data;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['teacher-certifications'] });
+        showNotification(t('teacher_profile.certification_deleted', 'Certification deleted successfully'), 'success');
+      },
+      onError: (error) => {
+        console.error('Failed to delete certification:', error);
+        showNotification(error.message || t('teacher_profile.certification_delete_failed', 'Failed to delete certification. Please try again.'), 'error');
+      }
+    });
+
+    // Certification form state
     const [certFile, setCertFile] = useState<File | null>(null);
     const [certTitle, setCertTitle] = useState('');
     const [certInstitution, setCertInstitution] = useState('');
     const [certYear, setCertYear] = useState('');
     const [certDesc, setCertDesc] = useState('');
-    const [uploadingCert, setUploadingCert] = useState(false);
     const certInputRef = useRef<HTMLInputElement>(null);
 
-    // Save Social Links
-    const handleSaveLinks = async () => {
-      setSavingLinks(true);
-      try {
-        // Use onUpdate to save and update parent state
-        await onUpdate(socialLinks);
-        showNotification('Social links updated', 'success');
-      } catch (e) {
-        showNotification('Failed to update social links', 'error');
-      } finally {
-        setSavingLinks(false);
+    // Save Social Links Mutation
+    const saveLinksMutation = useMutation({
+      mutationFn: onUpdate,
+      onSuccess: () => {
+        showNotification(t('teacher_profile.social_links_updated', 'Social links updated successfully'), 'success');
+      },
+      onError: (error) => {
+        console.error('Failed to update social links:', error);
+        showNotification(t('teacher_profile.social_links_update_failed', 'Failed to update social links. Please try again.'), 'error');
       }
+    });
+
+    // URL validation helper
+    const isValidUrl = (url: string): boolean => {
+      if (!url.trim()) return true; // Empty URLs are allowed
+      try {
+        const urlObj = new URL(url);
+        return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    };
+
+    const handleSaveLinks = () => {
+      // Validate URLs
+      const invalidUrls = Object.entries(socialLinks)
+        .filter(([key, value]) => value && !isValidUrl(value))
+        .map(([key]) => key);
+
+      if (invalidUrls.length > 0) {
+        showNotification(
+          t('teacher_profile.invalid_social_urls', `Invalid URL format for: ${invalidUrls.join(', ')}`),
+          'warning'
+        );
+        return;
+      }
+
+      saveLinksMutation.mutate(socialLinks);
     };
 
     // Upload Certification
     const handleUploadCert = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!certFile || !certTitle) {
-        showNotification('Title and file required', 'warning');
+
+      // Validation
+      if (!certTitle.trim()) {
+        showNotification(t('teacher_profile.certification_title_required', 'Certification title is required'), 'warning');
         return;
       }
-      setUploadingCert(true);
-      try {
-        const formData = new FormData();
-        formData.append('title', certTitle);
-        formData.append('institution', certInstitution);
-        formData.append('year', certYear);
-        formData.append('description', certDesc);
-        formData.append('file', certFile);
-        const res = await fetch('/api/teacher/certifications', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-          const newCerts = data.data.certifications;
-          setCertifications(newCerts);
-          // Update parent state
-          onUpdate({ certifications: newCerts });
-          
-          showNotification('Certification uploaded', 'success');
+
+      if (!certFile) {
+        showNotification(t('teacher_profile.certification_file_required', 'Please select a file to upload'), 'warning');
+        return;
+      }
+
+      // File type validation
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(certFile.type)) {
+        showNotification(t('teacher_profile.certification_invalid_file_type', 'Please upload a PDF or image file'), 'warning');
+        return;
+      }
+
+      // File size validation (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (certFile.size > maxSize) {
+        showNotification(t('teacher_profile.certification_file_too_large', 'File size must be less than 5MB'), 'warning');
+        return;
+      }
+
+      // Year validation
+      if (certYear && (isNaN(Number(certYear)) || Number(certYear) < 1950 || Number(certYear) > new Date().getFullYear() + 1)) {
+        showNotification(t('teacher_profile.certification_invalid_year', 'Please enter a valid year'), 'warning');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('title', certTitle.trim());
+      formData.append('institution', certInstitution.trim());
+      formData.append('year', certYear);
+      formData.append('description', certDesc.trim());
+      formData.append('certificate', certFile);
+
+      addCertMutation.mutate(formData, {
+        onSuccess: () => {
           setCertFile(null);
           setCertTitle('');
           setCertInstitution('');
           setCertYear('');
           setCertDesc('');
           if (certInputRef.current) certInputRef.current.value = '';
-        } else {
-          showNotification(data.message || 'Failed to upload certification', 'error');
         }
-      } catch (e) {
-        showNotification('Failed to upload certification', 'error');
-      } finally {
-        setUploadingCert(false);
-      }
+      });
     };
 
     // Delete Certification
-    const handleDeleteCert = async (id: number) => {
-      if (!window.confirm('Delete this certification?')) return;
-      try {
-        const res = await fetch(`/api/teacher/certifications/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        const data = await res.json();
-        if (data.success) {
-          const newCerts = data.data.certifications;
-          setCertifications(newCerts);
-          // Update parent state
-          onUpdate({ certifications: newCerts });
-          
-          showNotification('Certification deleted', 'success');
-        } else {
-          showNotification(data.message || 'Failed to delete certification', 'error');
-        }
-      } catch (e) {
-        showNotification('Failed to delete certification', 'error');
-      }
+    const handleDeleteCert = (id: number) => {
+      const cert = certifications.find(c => c.id === id);
+      const confirmMessage = cert
+        ? `Are you sure you want to delete "${cert.title}"? This action cannot be undone.`
+        : 'Are you sure you want to delete this certification? This action cannot be undone.';
+
+      if (!window.confirm(confirmMessage)) return;
+      deleteCertMutation.mutate(id);
     };
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -259,14 +354,14 @@ const DashboardView: React.FC<{
                   const formData = new FormData();
                   formData.append('file', file);
                   try {
-                    const res = await fetch('/api/files/avatar', {
+                    const res = await fetch('/api/auth/upload-profile-image', {
                       method: 'POST',
                       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                       body: formData
                     });
                     const data = await res.json();
-                    if (data.success && data.url) {
-                      await onUpdate({ profile_picture: data.url });
+                    if (data.success && data.data?.profilePicture) {
+                      await onUpdate({ profile_picture: data.data.profilePicture });
                     }
                   } catch (err) {
                     console.error('Avatar upload failed', err);
@@ -278,45 +373,77 @@ const DashboardView: React.FC<{
           </div>
           <div className="md:col-span-2">
             <label className="text-sm font-medium text-slate-700 mb-1 block">Bio</label>
-            <textarea
-              defaultValue={profile.bio || ''}
-              onBlur={async (e) => {
-                const bio = e.target.value;
-                await onUpdate({ bio });
-              }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              rows={3}
-              placeholder="Tell students about your background, teaching style, and interests."
-            />
-            <p className="text-xs text-slate-500 mt-1">Changes are saved automatically when you click outside.</p>
+            <div className="relative">
+              <textarea
+                defaultValue={profile.bio || ''}
+                onBlur={async (e) => {
+                  const bio = e.target.value.trim();
+                  if (bio.length > 1000) {
+                    showNotification(t('teacher_profile.bio_too_long', 'Bio must be less than 1000 characters'), 'warning');
+                    return;
+                  }
+                  if (bio !== (profile.bio || '')) {
+                    await onUpdate({ bio });
+                  }
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                rows={3}
+                maxLength={1000}
+                placeholder={t('teacher_profile.bio_placeholder', 'Tell students about your background, teaching style, and interests.')}
+              />
+              <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                {profile.bio?.length || 0}/1000
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Check className="h-3 w-3 text-green-600" />
+              <p className="text-xs text-slate-500">Changes are saved automatically when you click outside.</p>
+            </div>
           </div>
         </div>
         
         {/* Primary Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
           <button
             onClick={() => onNavigate('verification')}
-            className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg text-white font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-            style={{ backgroundColor: brandColors.primaryHex }}
+            className="group flex items-center justify-center gap-3 px-6 py-4 rounded-lg text-white font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 bg-gradient-to-r from-blue-600 to-blue-700"
           >
-            <Shield className="h-5 w-5" />
-            {t('teacher_dashboard.start_verification_btn')}
+            <Shield className="h-5 w-5 group-hover:scale-110 transition-transform" />
+            <span>{t('teacher_dashboard.start_verification_btn')}</span>
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </button>
           <button
-            onClick={() => navigate('/resources')}
-            className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 transition-all"
+            onClick={() => onNavigate('statistics')}
+            className="group flex items-center justify-center gap-3 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
-            <BookOpen className="h-5 w-5" />
-            {t('teacher_dashboard.access_resources_btn')}
+            <BarChart3 className="h-5 w-5 text-slate-600 group-hover:text-purple-600 transition-colors" />
+            <span>View Statistics</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
           </button>
           <button
             onClick={() => onNavigate('payout')}
-          className="flex items-center justify-center gap-2 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 transition-all"
-        >
-          <CreditCard className="h-5 w-5" />
-          {t('teacher_dashboard.setup_payouts_btn')}
-        </button>
-
+            className="group flex items-center justify-center gap-3 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+          >
+            <CreditCard className="h-5 w-5 text-slate-600 group-hover:text-green-600 transition-colors" />
+            <span>{t('teacher_dashboard.setup_payouts_btn')}</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+          </button>
+          <button
+            onClick={() => onNavigate('security')}
+            className="group flex items-center justify-center gap-3 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+          >
+            <Lock className="h-5 w-5 text-slate-600 group-hover:text-red-600 transition-colors" />
+            <span>Account Security</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-red-600 group-hover:translate-x-1 transition-all" />
+          </button>
+          <button
+            onClick={() => onNavigate('notifications')}
+            className="group flex items-center justify-center gap-3 px-6 py-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+          >
+            <Bell className="h-5 w-5 text-slate-600 group-hover:text-orange-600 transition-colors" />
+            <span>Notifications</span>
+            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
+          </button>
         </div>
 
         {/* End Welcome Card */}
@@ -372,47 +499,184 @@ const DashboardView: React.FC<{
       {/* Social Links & Certifications */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Social Links */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-bold mb-4 text-slate-900 flex items-center gap-2">
-            <Globe className="h-5 w-5 text-blue-600" /> Social Links
+            <Globe className="h-5 w-5 text-blue-600" />
+            Social Links
           </h3>
           <div className="space-y-3">
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Website URL" value={socialLinks.website_url} onChange={e => setSocialLinks(l => ({...l, website_url: e.target.value}))} />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Twitter URL" value={socialLinks.twitter_url} onChange={e => setSocialLinks(l => ({...l, twitter_url: e.target.value}))} />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="LinkedIn URL" value={socialLinks.linkedin_url} onChange={e => setSocialLinks(l => ({...l, linkedin_url: e.target.value}))} />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Facebook URL" value={socialLinks.facebook_url} onChange={e => setSocialLinks(l => ({...l, facebook_url: e.target.value}))} />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Instagram URL" value={socialLinks.instagram_url} onChange={e => setSocialLinks(l => ({...l, instagram_url: e.target.value}))} />
+            {[
+              { key: 'website_url', label: 'Website', placeholder: 'https://yourwebsite.com' },
+              { key: 'twitter_url', label: 'Twitter', placeholder: 'https://twitter.com/username' },
+              { key: 'linkedin_url', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/username' },
+              { key: 'facebook_url', label: 'Facebook', placeholder: 'https://facebook.com/username' },
+              { key: 'instagram_url', label: 'Instagram', placeholder: 'https://instagram.com/username' }
+            ].map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+                <input
+                  type="url"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder={placeholder}
+                  value={socialLinks[key as keyof typeof socialLinks]}
+                  onChange={e => setSocialLinks(l => ({...l, [key]: e.target.value}))}
+                />
+              </div>
+            ))}
           </div>
-          <button onClick={handleSaveLinks} disabled={savingLinks} className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{savingLinks ? 'Saving...' : 'Save Social Links'}</button>
+          <button
+            onClick={handleSaveLinks}
+            disabled={saveLinksMutation.isPending}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center gap-2"
+          >
+            {saveLinksMutation.isPending ? (
+              <>
+                <Clock className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Save Social Links
+              </>
+            )}
+          </button>
         </div>
         {/* Certifications */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-bold mb-4 text-slate-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-600" /> Certifications
+            <FileText className="h-5 w-5 text-blue-600" />
+            Certifications
           </h3>
-          <form onSubmit={handleUploadCert} className="space-y-3">
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Title" value={certTitle} onChange={e => setCertTitle(e.target.value)} required />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Institution" value={certInstitution} onChange={e => setCertInstitution(e.target.value)} />
-            <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Year" value={certYear} onChange={e => setCertYear(e.target.value)} />
-            <textarea className="w-full px-3 py-2 border rounded-lg" placeholder="Description" value={certDesc} onChange={e => setCertDesc(e.target.value)} />
-            <input type="file" ref={certInputRef} className="w-full" accept="application/pdf,image/*" onChange={e => setCertFile(e.target.files?.[0] || null)} required />
-            <button type="submit" disabled={uploadingCert} className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{uploadingCert ? 'Uploading...' : 'Upload Certification'}</button>
+          <form onSubmit={handleUploadCert} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="e.g., Master of Divinity"
+                  value={certTitle}
+                  onChange={e => setCertTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Institution</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="e.g., Theological College"
+                  value={certInstitution}
+                  onChange={e => setCertInstitution(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Year</label>
+                <input
+                  type="number"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="e.g., 2020"
+                  value={certYear}
+                  onChange={e => setCertYear(e.target.value)}
+                  min="1950"
+                  max={new Date().getFullYear() + 1}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Certificate File *</label>
+                <input
+                  type="file"
+                  ref={certInputRef}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 file:text-sm"
+                  accept="application/pdf,image/*"
+                  onChange={e => setCertFile(e.target.files?.[0] || null)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+              <textarea
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Brief description of this certification..."
+                value={certDesc}
+                onChange={e => setCertDesc(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={addCertMutation.isPending}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2 font-medium"
+            >
+              {addCertMutation.isPending ? (
+                <>
+                  <Clock className="h-4 w-4 animate-spin" />
+                  Uploading Certification...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Upload Certification
+                </>
+              )}
+            </button>
           </form>
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Your Certifications</h4>
-            {certifications.length === 0 ? (
-              <div className="text-gray-500 text-sm">No certifications uploaded yet.</div>
+            {certsLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map(i => (
+                  <div key={i} className="bg-slate-50 rounded p-3 animate-pulse">
+                    <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-slate-200 rounded w-1/2 mb-1"></div>
+                    <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : certifications.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No certifications uploaded yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Upload your credentials to build trust with students.</p>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {certifications.map(cert => (
-                  <li key={cert.id} className="flex items-center justify-between bg-slate-50 rounded p-3">
-                    <div>
+                  <li key={cert.id} className="flex items-center justify-between bg-slate-50 rounded p-3 hover:bg-slate-100 transition-colors">
+                    <div className="flex-1">
                       <div className="font-medium text-slate-900">{cert.title}</div>
                       <div className="text-xs text-slate-500">{cert.institution} {cert.year && `(${cert.year})`}</div>
                       {cert.description && <div className="text-xs text-slate-400 mt-1">{cert.description}</div>}
-                      {cert.documentUrl && <a href={cert.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs underline">View Document</a>}
+                      {cert.documentUrl && (
+                        <a
+                          href={cert.documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-xs underline hover:text-blue-800 transition-colors inline-flex items-center gap-1 mt-1"
+                        >
+                          <FileText className="h-3 w-3" />
+                          View Document
+                        </a>
+                      )}
                     </div>
-                    <button onClick={() => handleDeleteCert(cert.id)} className="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs">Delete</button>
+                    <button
+                      onClick={() => handleDeleteCert(cert.id)}
+                      disabled={deleteCertMutation.isPending}
+                      className="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs disabled:opacity-50 transition-colors"
+                    >
+                      {deleteCertMutation.isPending ? (
+                        <>
+                          <Clock className="h-3 w-3 inline mr-1 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -470,6 +734,23 @@ const DashboardView: React.FC<{
           ))}
         </div>
       </div>
+
+      {/* Save Profile Button */}
+      <div className="flex justify-end pt-4">
+        <button
+          onClick={() => {
+            // Force save all pending changes
+            const bioTextarea = document.querySelector('textarea[placeholder*="background"]') as HTMLTextAreaElement;
+            if (bioTextarea) {
+              bioTextarea.blur(); // Trigger onBlur save
+            }
+            showNotification('Profile information saved successfully', 'success');
+          }}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
+          Save Profile
+        </button>
+      </div>
     </div>
   );
 };
@@ -480,7 +761,7 @@ const PayoutView: React.FC<{
   onCancel: () => void;
 }> = ({ profile, onUpdate, onCancel }) => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     payout_method: profile.payout_method || 'bank',
     payout_region: profile.payout_region || 'US',
@@ -493,26 +774,79 @@ const PayoutView: React.FC<{
     tax_agreed: false
   });
 
+  // Payout update mutation
+  const updatePayoutMutation = useMutation({
+    mutationFn: onUpdate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      showNotification(t('teacher_profile.payout_updated', 'Payout settings updated successfully'), 'success');
+    },
+    onError: (error) => {
+      console.error('Failed to update payout settings:', error);
+      showNotification(t('teacher_profile.payout_update_failed', 'Failed to update payout settings. Please try again.'), 'error');
+    }
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await onUpdate({
-        payout_method: formData.payout_method,
-        payout_region: formData.payout_region,
-        payout_details: {
-          account_holder: formData.account_holder,
-          account_number: formData.account_number,
-          routing_number: formData.routing_number,
-          address: formData.address,
-          dob: formData.dob,
-          tax_id: formData.tax_id
-        },
-        tax_status: formData.tax_agreed ? 'AGREED' : undefined
-      });
-    } finally {
-      setLoading(false);
+
+    // Validation
+    if (!formData.account_holder.trim()) {
+      showNotification(t('teacher_profile.payout_account_holder_required', 'Account holder name is required'), 'warning');
+      return;
     }
+
+    if (!formData.account_number.trim()) {
+      showNotification(t('teacher_profile.payout_account_number_required', 'Account number is required'), 'warning');
+      return;
+    }
+
+    if (formData.payout_method === 'bank' && !formData.routing_number.trim()) {
+      showNotification(t('teacher_profile.payout_routing_required', 'Routing number is required for bank transfers'), 'warning');
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      showNotification(t('teacher_profile.payout_address_required', 'Billing address is required'), 'warning');
+      return;
+    }
+
+    if (!formData.dob) {
+      showNotification(t('teacher_profile.payout_dob_required', 'Date of birth is required'), 'warning');
+      return;
+    }
+
+    if (!formData.tax_id.trim()) {
+      showNotification(t('teacher_profile.payout_tax_id_required', 'Tax ID is required'), 'warning');
+      return;
+    }
+
+    if (!formData.tax_agreed) {
+      showNotification(t('teacher_profile.payout_tax_agreement_required', 'Please agree to the tax information terms'), 'warning');
+      return;
+    }
+
+    // Age validation (must be 18+)
+    const dob = new Date(formData.dob);
+    const age = new Date().getFullYear() - dob.getFullYear();
+    if (age < 18) {
+      showNotification(t('teacher_profile.payout_age_requirement', 'You must be at least 18 years old'), 'warning');
+      return;
+    }
+
+    await updatePayoutMutation.mutateAsync({
+      payout_method: formData.payout_method,
+      payout_region: formData.payout_region,
+      payout_details: {
+        account_holder: formData.account_holder.trim(),
+        account_number: formData.account_number.trim(),
+        routing_number: formData.routing_number.trim(),
+        address: formData.address.trim(),
+        dob: formData.dob,
+        tax_id: formData.tax_id.trim()
+      },
+      tax_status: formData.tax_agreed ? 'AGREED' : undefined
+    });
   };
 
   return (
@@ -708,11 +1042,11 @@ const PayoutView: React.FC<{
               </button>
               <button
                 type="submit"
-                disabled={loading || !formData.tax_agreed}
+                disabled={updatePayoutMutation.isPending || !formData.tax_agreed}
                 className="px-6 py-2 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: brandColors.primaryHex }}
               >
-                {loading ? t('teacher_profile.payout_setup.saving_btn') : t('teacher_profile.payout_setup.confirm_details_btn')}
+                {updatePayoutMutation.isPending ? t('teacher_profile.payout_setup.saving_btn') : t('teacher_profile.payout_setup.confirm_details_btn')}
               </button>
             </div>
           </form>
@@ -774,22 +1108,32 @@ const VerificationView: React.FC<{
   onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
   onBack: () => void;
 }> = ({ profile, onUpdate, onBack }) => {
-  const [uploading, setUploading] = useState<string | null>(null);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
-  const handleUpload = async (key: string) => {
-    setUploading(key);
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const currentDocs = profile.verification_docs || {};
-    await onUpdate({
-      verification_docs: {
-        ...currentDocs,
-        [key]: 'PENDING'
-      }
-    });
-    setUploading(null);
+  // Document upload mutation
+  const uploadDocMutation = useMutation({
+    mutationFn: async (key: string) => {
+      const currentDocs = profile.verification_docs || {};
+      return await onUpdate({
+        verification_docs: {
+          ...currentDocs,
+          [key]: 'PENDING'
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      showNotification(t('teacher_profile.document_upload_started', 'Document upload started. Please wait for verification.'), 'success');
+    },
+    onError: (error) => {
+      console.error('Failed to upload document:', error);
+      showNotification(t('teacher_profile.document_upload_failed', 'Failed to start document upload. Please try again.'), 'error');
+    }
+  });
+
+  const handleUpload = (key: string) => {
+    uploadDocMutation.mutate(key);
   };
 
   const docs = [
@@ -870,10 +1214,10 @@ const VerificationView: React.FC<{
 
                   <button
                     onClick={() => handleUpload(doc.key)}
-                    disabled={!!uploading || status === 'VERIFIED' || status === 'PENDING'}
+                    disabled={uploadDocMutation.isPending || status === 'VERIFIED' || status === 'PENDING'}
                     className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   >
-                    {uploading === doc.key ? (
+                    {uploadDocMutation.isPending ? (
                       <>
                         <Clock className="h-4 w-4 animate-spin" />
                         {t('common.uploading')}
@@ -914,7 +1258,7 @@ const VerificationView: React.FC<{
                   <p className="text-sm text-slate-500">{doc.description}</p>
                   <button
                     onClick={() => handleUpload(doc.key)}
-                    disabled={!!uploading || status === 'VERIFIED' || status === 'PENDING'}
+                    disabled={uploadDocMutation.isPending || status === 'VERIFIED' || status === 'PENDING'}
                     className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                   >
                     {doc.key === 'tracking_history' ? (
@@ -922,7 +1266,7 @@ const VerificationView: React.FC<{
                         <LayoutDashboard className="h-4 w-4" />
                         {t('teacher_profile.verification_docs.view_history_btn')}
                       </>
-                    ) : uploading === doc.key ? (
+                    ) : uploadDocMutation.isPending ? (
                       <>
                         <Clock className="h-4 w-4 animate-spin" />
                         {t('common.uploading')}
@@ -973,50 +1317,1161 @@ const VerificationView: React.FC<{
   );
 };
 
+const StatisticsView: React.FC<{
+  profile: TeacherProfileData;
+  onBack: () => void;
+}> = ({ profile, onBack }) => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  // Fetch teacher statistics
+  const { data: stats, isLoading, error, refetch } = useQuery({
+    queryKey: ['teacher-statistics'],
+    queryFn: async () => {
+      const res = await teacherApi.getTeacherStats();
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-4 mb-4">
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
+              <p className="text-slate-600 text-lg">Loading your teaching analytics...</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse">
+                <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-slate-200 rounded w-1/2 mb-4"></div>
+                <div className="h-3 bg-slate-200 rounded w-full"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-4 mb-4">
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
+              <p className="text-slate-600 text-lg">View your teaching performance and student engagement</p>
+            </div>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <div className="text-red-600 mb-4">
+              <BarChart3 className="mx-auto h-12 w-12" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Failed to Load Statistics</h3>
+            <p className="text-red-700 mb-4">Unable to fetch your teaching analytics at this time.</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="lg:col-span-3">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
+            <p className="text-slate-600 text-lg">Comprehensive view of your teaching impact and student engagement</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Overview Metrics */}
+      <div className="lg:col-span-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BookOpen className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className={`flex items-center text-sm font-medium ${
+                stats.overview.enrollmentGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {stats.overview.enrollmentGrowth >= 0 ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
+                {Math.abs(stats.overview.enrollmentGrowth)}%
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {formatNumber(stats.overview.totalStudents)}
+            </div>
+            <div className="text-sm text-slate-600">Total Students</div>
+            <div className="text-xs text-slate-500 mt-2">
+              {stats.overview.recentEnrollments} new this month
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Users className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex items-center text-sm font-medium text-green-600">
+                <Activity className="h-4 w-4 mr-1" />
+                Active
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {formatNumber(stats.engagement.activeStudents)}
+            </div>
+            <div className="text-sm text-slate-600">Active Students</div>
+            <div className="text-xs text-slate-500 mt-2">
+              {stats.engagement.weeklyEngagement} engaged this week
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Target className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className={`flex items-center text-sm font-medium ${
+                stats.overview.completionGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {stats.overview.completionGrowth >= 0 ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
+                {Math.abs(stats.overview.completionGrowth)}%
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {stats.overview.averageCompletionRate}%
+            </div>
+            <div className="text-sm text-slate-600">Avg. Completion</div>
+            <div className="text-xs text-slate-500 mt-2">
+              {stats.overview.totalEnrollments} completed courses
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Star className="h-5 w-5 text-yellow-600" />
+              </div>
+              {stats.overview.averageRating && (
+                <div className="flex items-center text-sm font-medium text-yellow-600">
+                  <Star className="h-4 w-4 mr-1 fill-current" />
+                  {stats.overview.averageRating}
+                </div>
+              )}
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {stats.overview.averageRating || 'N/A'}
+            </div>
+            <div className="text-sm text-slate-600">Average Rating</div>
+            <div className="text-xs text-slate-500 mt-2">
+              {stats.overview.totalRatings} total reviews
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Analytics */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Top Performing Courses */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Award className="h-5 w-5 text-blue-600" />
+              Top Performing Courses
+            </h3>
+          </div>
+          <div className="p-6">
+            {stats.trends.topCourses.length > 0 ? (
+              <div className="space-y-4">
+                {stats.trends.topCourses.map((course, index) => (
+                  <div key={course.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900">{course.title}</h4>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <span>{course.studentCount} students</span>
+                          <span>{course.avgCompletion}% completion</span>
+                          {course.avgRating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                              <span>{course.avgRating}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <BookOpen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                <p>No courses yet. Create your first course to see performance metrics!</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-green-600" />
+              Recent Activity (30 days)
+            </h3>
+          </div>
+          <div className="p-6">
+            {stats.recentActivity.length > 0 ? (
+              <div className="space-y-3">
+                {stats.recentActivity.slice(0, 8).map((activity, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      activity.type === 'enrollment' ? 'bg-blue-100' : 'bg-green-100'
+                    }`}>
+                      {activity.type === 'enrollment' ? (
+                        <Users className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Check className="h-4 w-4 text-green-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900">
+                        {activity.description} {activity.type === 'enrollment' ? 'enrolled in' : 'completed'} {activity.courseTitle}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {new Date(activity.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Activity className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                <p>No recent activity. Student enrollments and completions will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar Stats */}
+      <div className="space-y-6">
+        {/* Engagement Metrics */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <Play className="h-4 w-4 text-purple-600" />
+              Engagement
+            </h3>
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">Watch Time</span>
+                <span className="font-semibold text-slate-900">{formatTime(stats.engagement.totalWatchTime)}</span>
+              </div>
+              <div className="text-xs text-slate-500">Total time students spent watching</div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">Lesson Completion</span>
+                <span className="font-semibold text-slate-900">{stats.engagement.averageLessonCompletion}%</span>
+              </div>
+              <div className="text-xs text-slate-500">Average progress per lesson</div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">Completed Lessons</span>
+                <span className="font-semibold text-slate-900">{formatNumber(stats.engagement.completedLessons)}</span>
+              </div>
+              <div className="text-xs text-slate-500">Total lessons finished</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Earnings */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-green-600" />
+              Earnings
+            </h3>
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">Total Earnings</span>
+                <span className="font-semibold text-slate-900">${stats.earnings.totalEarnings.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-slate-500">All-time earnings</div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">This Month</span>
+                <span className="font-semibold text-slate-900">${stats.earnings.monthlyEarnings.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-slate-500">Current month earnings</div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">Pending</span>
+                <span className="font-semibold text-slate-900">${stats.earnings.pendingPayments.toFixed(2)}</span>
+              </div>
+              <div className="text-xs text-slate-500">Awaiting payout</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Monthly Trends */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              Monthly Trends
+            </h3>
+          </div>
+          <div className="p-4">
+            {stats.trends.monthlyActivity.length > 0 ? (
+              <div className="space-y-3">
+                {stats.trends.monthlyActivity.slice(0, 3).map((month, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">
+                      {new Date(month.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-slate-900">{month.enrollments} enrollments</div>
+                      <div className="text-xs text-green-600">{month.completions} completed</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-slate-500 text-sm">
+                No enrollment data yet
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SecurityView: React.FC<{
+  profile: TeacherProfileData;
+  onBack: () => void;
+}> = ({ profile, onBack }) => {
+  const { t } = useTranslation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const queryClient = useQueryClient();
+  const { logout } = useAuth();
+
+  // Password change form state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: typeof passwordForm) => {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      showNotification(t('teacher_security.password_changed', 'Password changed successfully'), 'success');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    },
+    onError: (error) => {
+      showNotification(error.message || t('teacher_security.password_change_failed', 'Failed to change password'), 'error');
+    }
+  });
+
+  // Account deletion mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: () => {
+      showNotification(t('teacher_security.account_deleted', 'Account deleted successfully'), 'success');
+      logout();
+    },
+    onError: (error) => {
+      showNotification(error.message || t('teacher_security.account_deletion_failed', 'Failed to delete account'), 'error');
+    }
+  });
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation
+    if (!passwordForm.currentPassword) {
+      showNotification(t('teacher_security.current_password_required', 'Current password is required'), 'warning');
+      return;
+    }
+
+    if (!passwordForm.newPassword || passwordForm.newPassword.length < 8) {
+      showNotification(t('teacher_security.password_too_short', 'New password must be at least 8 characters'), 'warning');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showNotification(t('teacher_security.passwords_dont_match', 'Passwords do not match'), 'warning');
+      return;
+    }
+
+    changePasswordMutation.mutate(passwordForm);
+  };
+
+  const handleDeleteAccount = () => {
+    if (deleteConfirmation !== 'DELETE') {
+      showNotification(t('teacher_security.confirmation_required', 'Please type DELETE to confirm'), 'warning');
+      return;
+    }
+
+    deleteAccountMutation.mutate();
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="lg:col-span-3">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Account Security</h1>
+            <p className="text-slate-600 text-lg">Manage your password and account security settings</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Change Password */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              Change Password
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Regularly update your password to keep your account secure
+            </p>
+          </div>
+          <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Current Password *
+              </label>
+              <input
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Enter your current password"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  New Password *
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter new password"
+                  minLength={8}
+                  required
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Must be at least 8 characters long
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirm New Password *
+                </label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Confirm new password"
+                  minLength={8}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center gap-2"
+              >
+                {changePasswordMutation.isPending ? (
+                  <>
+                    <Clock className="h-4 w-4 animate-spin" />
+                    Changing Password...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Change Password
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Security Settings */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-gray-600" />
+              Security Settings
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Additional security options for your account
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-slate-900">Two-Factor Authentication</h4>
+                <p className="text-sm text-slate-600">Add an extra layer of security to your account</p>
+              </div>
+              <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                Coming Soon
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-slate-900">Login Notifications</h4>
+                <p className="text-sm text-slate-600">Get notified of new logins to your account</p>
+              </div>
+              <div className="flex items-center">
+                <div className="w-10 h-5 bg-slate-300 rounded-full relative">
+                  <div className="w-4 h-4 bg-white rounded-full absolute left-0.5 top-0.5 transition-transform"></div>
+                </div>
+                <span className="ml-2 text-sm text-slate-600">Coming Soon</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-slate-900">Session Management</h4>
+                <p className="text-sm text-slate-600">View and manage your active sessions</p>
+              </div>
+              <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                View Sessions
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar - Account Deletion */}
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl shadow-sm">
+          <div className="p-6 border-b border-red-100">
+            <h3 className="text-lg font-semibold text-red-900 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Danger Zone
+            </h3>
+            <p className="text-sm text-red-700 mt-1">
+              Irreversible and destructive actions
+            </p>
+          </div>
+
+          <div className="p-6">
+            {!showDeleteConfirm ? (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-red-900">Delete Account</h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                >
+                  Delete Account
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-red-100 rounded-lg">
+                  <h4 className="font-medium text-red-900 mb-2">Confirm Account Deletion</h4>
+                  <p className="text-sm text-red-800 mb-3">
+                    This will permanently delete your account, all your courses, lessons, and data.
+                    Type <strong>DELETE</strong> to confirm.
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Type DELETE to confirm"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDeleteConfirmation('');
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteAccountMutation.isPending || deleteConfirmation !== 'DELETE'}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400 transition-colors text-sm flex items-center justify-center gap-2"
+                  >
+                    {deleteAccountMutation.isPending ? (
+                      <>
+                        <Clock className="h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Confirm Delete'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Account Information */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <User className="h-4 w-4 text-blue-600" />
+              Account Information
+            </h3>
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Account Created</span>
+              <span className="font-medium text-slate-900">
+                {new Date().toLocaleDateString()} {/* Placeholder - should come from user data */}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Last Login</span>
+              <span className="font-medium text-slate-900">
+                Today {/* Placeholder */}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Account Status</span>
+              <span className="font-medium text-green-600">Active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NotificationsView: React.FC<{
+  profile: TeacherProfileData;
+  onBack: () => void;
+}> = ({ profile, onBack }) => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  // Notification preferences state
+  const [preferences, setPreferences] = useState({
+    // Email notifications
+    email_course_updates: true,
+    email_student_messages: true,
+    email_forum_replies: true,
+    email_weekly_digest: true,
+    email_marketing: false,
+
+    // Push notifications
+    push_course_activity: true,
+    push_student_engagement: true,
+    push_forum_activity: false,
+    push_system_updates: true,
+
+    // Communication preferences
+    allow_student_messages: true,
+    allow_course_invitations: true,
+    public_profile_visible: true,
+    show_online_status: true,
+    allow_analytics_tracking: true
+  });
+
+  // Fetch current preferences
+  const { data: currentPreferences, isLoading } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: async () => {
+      const res = await teacherApi.getNotificationPreferences();
+      return res.data || preferences;
+    },
+    onSuccess: (data) => {
+      if (data) setPreferences(prev => ({ ...prev, ...data }));
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Update preferences mutation
+  const updatePreferencesMutation = useMutation({
+    mutationFn: teacherApi.updateNotificationPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+      showNotification(t('notifications.preferences_updated', 'Notification preferences updated successfully'), 'success');
+    },
+    onError: (error) => {
+      showNotification(error.message || t('notifications.preferences_update_failed', 'Failed to update preferences'), 'error');
+    }
+  });
+
+  const handlePreferenceChange = (key: string, value: boolean) => {
+    const newPreferences = { ...preferences, [key]: value };
+    setPreferences(newPreferences);
+    updatePreferencesMutation.mutate(newPreferences);
+  };
+
+  const handleSaveAll = () => {
+    updatePreferencesMutation.mutate(preferences);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-4 mb-4">
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Notification Preferences</h1>
+              <p className="text-slate-600 text-lg">Loading your preferences...</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse">
+                <div className="h-4 bg-slate-200 rounded w-3/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-3 bg-slate-200 rounded w-full"></div>
+                  <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="lg:col-span-3">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Notification Preferences</h1>
+            <p className="text-slate-600 text-lg">Customize how and when you receive notifications</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Email Notifications */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Mail className="h-5 w-5 text-blue-600" />
+              Email Notifications
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Choose which emails you'd like to receive
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            {[
+              {
+                key: 'email_course_updates',
+                label: 'Course Updates',
+                description: 'Notifications about your course performance and student activity'
+              },
+              {
+                key: 'email_student_messages',
+                label: 'Student Messages',
+                description: 'Direct messages from students enrolled in your courses'
+              },
+              {
+                key: 'email_forum_replies',
+                label: 'Forum Replies',
+                description: 'Replies to your forum posts and discussions'
+              },
+              {
+                key: 'email_weekly_digest',
+                label: 'Weekly Digest',
+                description: 'Weekly summary of your teaching activity and platform updates'
+              },
+              {
+                key: 'email_marketing',
+                label: 'Marketing & Promotions',
+                description: 'Special offers, platform updates, and promotional content'
+              }
+            ].map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-medium text-slate-900">{label}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{description}</p>
+                </div>
+                <div className="ml-4">
+                  <button
+                    onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      preferences[key as keyof typeof preferences] ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        preferences[key as keyof typeof preferences] ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Push Notifications */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Bell className="h-5 w-5 text-green-600" />
+              Push Notifications
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Browser notifications for important updates
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            {[
+              {
+                key: 'push_course_activity',
+                label: 'Course Activity',
+                description: 'New enrollments and student progress updates'
+              },
+              {
+                key: 'push_student_engagement',
+                label: 'Student Engagement',
+                description: 'Comments, questions, and interactions from students'
+              },
+              {
+                key: 'push_forum_activity',
+                label: 'Forum Activity',
+                description: 'New replies and mentions in forum discussions'
+              },
+              {
+                key: 'push_system_updates',
+                label: 'System Updates',
+                description: 'Platform maintenance, new features, and important announcements'
+              }
+            ].map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-medium text-slate-900">{label}</h4>
+                  <p className="text-sm text-slate-600 mt-1">{description}</p>
+                </div>
+                <div className="ml-4">
+                  <button
+                    onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      preferences[key as keyof typeof preferences] ? 'bg-green-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        preferences[key as keyof typeof preferences] ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar - Communication Preferences */}
+      <div className="space-y-6">
+        {/* Communication Preferences */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-600" />
+              Communication
+            </h3>
+          </div>
+          <div className="p-4 space-y-4">
+            {[
+              {
+                key: 'allow_student_messages',
+                label: 'Student Messages',
+                description: 'Allow students to send you direct messages'
+              },
+              {
+                key: 'allow_course_invitations',
+                label: 'Course Invitations',
+                description: 'Receive invitations to join other courses'
+              },
+              {
+                key: 'public_profile_visible',
+                label: 'Public Profile',
+                description: 'Make your profile visible to other teachers'
+              },
+              {
+                key: 'show_online_status',
+                label: 'Online Status',
+                description: 'Show when you are online to students'
+              },
+              {
+                key: 'allow_analytics_tracking',
+                label: 'Analytics Tracking',
+                description: 'Help improve the platform with usage analytics'
+              }
+            ].map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-slate-900">{label}</h4>
+                  <p className="text-xs text-slate-600 mt-1">{description}</p>
+                </div>
+                <button
+                  onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-3 ${
+                    preferences[key as keyof typeof preferences] ? 'bg-purple-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      preferences[key as keyof typeof preferences] ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Notification Summary */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">Notification Summary</h3>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p>• Email notifications: {Object.entries(preferences).filter(([k, v]) => k.startsWith('email_') && v).length} enabled</p>
+            <p>• Push notifications: {Object.entries(preferences).filter(([k, v]) => k.startsWith('push_') && v).length} enabled</p>
+            <p>• Communication: {Object.entries(preferences).filter(([k, v]) => !k.startsWith('email_') && !k.startsWith('push_') && v).length} features enabled</p>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <button
+          onClick={handleSaveAll}
+          disabled={updatePreferencesMutation.isPending}
+          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2 font-medium"
+        >
+          {updatePreferencesMutation.isPending ? (
+            <>
+              <Clock className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              Save All Preferences
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Container ---
 
 const TeacherProfile: React.FC = () => {
   const { t } = useTranslation();
   const { user, refreshUser } = useUser();
-  const [activeView, setActiveView] = useState<'dashboard' | 'payout' | 'verification'>('dashboard');
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<TeacherProfileType>({} as TeacherProfileType);
+  const [activeView, setActiveView] = useState<'dashboard' | 'payout' | 'verification' | 'statistics' | 'security' | 'notifications'>('dashboard');
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const res = await teacherApi.getProfile();
-        if (res?.success) {
-          setProfile(res.data.teacherProfile || {});
-        }
-      } catch (err) {
-        console.error('Failed to load profile', err);
-      } finally {
-        setLoading(false);
+  // Fetch profile data
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError
+  } = useQuery({
+    queryKey: ['teacher-profile'],
+    queryFn: async () => {
+      const res = await teacherApi.getProfile();
+      return res?.data?.teacherProfile || {};
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1
+  });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: teacherApi.updateProfile,
+    onSuccess: (res) => {
+      if (res?.success) {
+        // Invalidate and refetch profile data
+        queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+        // Refresh user context
+        refreshUser();
+        showNotification(t('teacher_profile.profile_updated', 'Profile updated successfully'), 'success');
       }
-    };
-    loadData();
-  }, []);
+    },
+    onError: (error) => {
+      console.error('Failed to update profile:', error);
+      showNotification(t('teacher_profile.profile_update_failed', 'Failed to update profile. Please try again.'), 'error');
+    }
+  });
+
+  const profile = profileData || ({} as TeacherProfileType);
+  const loading = profileLoading;
+  const error = profileError;
 
   const handleUpdateProfile = async (data: Partial<TeacherProfileType>) => {
-    try {
-      const res = await teacherApi.updateProfile(data);
-      if (res?.success) {
-        // Merge response data if available, otherwise use optimistic update
-        const updatedData = res.data || data;
-        setProfile((prev: TeacherProfileType) => ({ ...prev, ...updatedData }));
-        // Refresh user context to ensure completion status is updated
-        await refreshUser();
-      }
-    } catch (err) {
-      console.error('Failed to update profile', err);
-    }
+    await updateProfileMutation.mutateAsync(data);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text={t('common.loading_dashboard')} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {t('common.error_loading_data', 'Failed to load profile')}
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {t('common.try_again_description', 'Please try again or contact support if the problem persists.')}
+          </p>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-profile'] })}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {t('common.try_again', 'Try Again')}
+          </button>
+        </div>
       </div>
     );
   }
@@ -1043,9 +2498,27 @@ const TeacherProfile: React.FC = () => {
             />
           )}
           {activeView === 'verification' && (
-            <VerificationView 
-              profile={profile} 
-              onUpdate={handleUpdateProfile} 
+            <VerificationView
+              profile={profile}
+              onUpdate={handleUpdateProfile}
+              onBack={() => setActiveView('dashboard')}
+            />
+          )}
+          {activeView === 'statistics' && (
+            <StatisticsView
+              profile={profile}
+              onBack={() => setActiveView('dashboard')}
+            />
+          )}
+          {activeView === 'security' && (
+            <SecurityView
+              profile={profile}
+              onBack={() => setActiveView('dashboard')}
+            />
+          )}
+          {activeView === 'notifications' && (
+            <NotificationsView
+              profile={profile}
               onBack={() => setActiveView('dashboard')}
             />
           )}
@@ -1069,7 +2542,7 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
     <div>
       <div className="flex gap-2 mb-3">
         <input className="flex-1 px-3 py-2 border rounded-lg" value={newItem} onChange={e=>setNewItem(e.target.value)} placeholder={t('teacher_profile.subjects.placeholder')} />
-        <button className="px-3 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50" disabled={!newItem || items.length>=5} onClick={() => { const updated=[...items,newItem.trim()].filter(Boolean); setItems(updated); setNewItem(''); onSave(updated); }}>Add</button>
+        <button className="px-3 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50" disabled={!newItem.trim() || items.length>=5 || newItem.trim().length > 50} onClick={() => { const updated=[...items,newItem.trim()].filter(Boolean); setItems(updated); setNewItem(''); onSave(updated); }}>Add</button>
       </div>
       <ul className="space-y-2">
         {items.map((s, idx) => (
@@ -1090,6 +2563,20 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
   const addSlot = (day: string) => {
     const time = prompt(`Add time slot for ${day} (HH:MM-HH:MM)`);
     if (!time) return;
+
+    // Validate time format (HH:MM-HH:MM)
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(time)) {
+      alert(t('teacher_profile.invalid_time_format', 'Please use format HH:MM-HH:MM (e.g., 09:00-17:00)'));
+      return;
+    }
+
+    // Check for duplicates
+    if ((slots[day]||[]).includes(time)) {
+      alert(t('teacher_profile.time_slot_exists', 'This time slot already exists'));
+      return;
+    }
+
     const updated = { ...slots, [day]: [...(slots[day]||[]), time] };
     setSlots(updated);
     onSave(updated);

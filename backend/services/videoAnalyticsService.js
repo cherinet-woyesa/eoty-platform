@@ -649,6 +649,51 @@ class VideoAnalyticsService {
       throw error;
     }
   }
+
+  /**
+   * Get watch heatmap data for a lesson
+   * Returns segments of timestamp (seconds) and watchCount
+   */
+  async getLessonHeatmap(lessonId, options = {}) {
+    const { segments = 100 } = options;
+
+    // If video_analytics doesn't exist, return empty
+    const hasVideoAnalyticsTable = await db.schema.hasTable('video_analytics');
+    if (!hasVideoAnalyticsTable) {
+      return { segments: [], total: 0 };
+    }
+
+    // Get lesson duration
+    const lesson = await db('lessons').where({ id: lessonId }).first('duration');
+    const duration = lesson?.duration ? parseInt(lesson.duration, 10) : 0;
+    if (!duration || duration <= 0) {
+      return { segments: [], total: 0, duration: 0 };
+    }
+
+    const segmentDuration = duration / segments;
+    const segmentsArray = Array(segments).fill(0).map((_, i) => ({
+      startTime: i * segmentDuration,
+      endTime: (i + 1) * segmentDuration,
+      watchCount: 0
+    }));
+
+    const rows = await db('video_analytics')
+      .where({ lesson_id: lessonId })
+      .select('watch_time_seconds', 'playback_progress');
+
+    rows.forEach(r => {
+      const progress = parseFloat(r.playback_progress || 0);
+      const time = Math.min(duration, Math.max(0, (progress / 100) * duration));
+      const idx = Math.floor(time / segmentDuration);
+      if (idx >= 0 && idx < segmentsArray.length) {
+        segmentsArray[idx].watchCount += 1;
+      }
+    });
+
+    const total = rows.length;
+
+    return { segments: segmentsArray, total, duration };
+  }
 }
 
 module.exports = new VideoAnalyticsService();

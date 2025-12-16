@@ -1402,6 +1402,281 @@ const authController = {
     }
   },
 
+  // Change password
+  async changePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.userId;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password and new password are required'
+        });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password must be at least 8 characters long'
+        });
+      }
+
+      // Get user with password
+      const user = await db('users')
+        .where({ id: userId })
+        .select('password_hash')
+        .first();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Verify current password
+      const bcrypt = require('bcrypt');
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+
+      if (!isValidPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is incorrect'
+        });
+      }
+
+      // Hash new password
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update password
+      await db('users')
+        .where({ id: userId })
+        .update({
+          password_hash: hashedPassword,
+          updated_at: new Date()
+        });
+
+      // Log password change for security
+      await db('user_activity_logs').insert({
+        user_id: userId,
+        action: 'password_changed',
+        details: { timestamp: new Date().toISOString() },
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent')
+      });
+
+      res.json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to change password'
+      });
+    }
+  },
+
+  // Delete account
+  async deleteAccount(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      // Start transaction for safe account deletion
+      const trx = await db.transaction();
+
+      try {
+        // Get user info for logging
+        const user = await trx('users')
+          .where({ id: userId })
+          .select('email', 'first_name', 'last_name', 'role')
+          .first();
+
+        if (!user) {
+          await trx.rollback();
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+
+        // Log account deletion before deleting data
+        await trx('user_activity_logs').insert({
+          user_id: userId,
+          action: 'account_deleted',
+          details: {
+            user_info: {
+              email: user.email,
+              name: `${user.first_name} ${user.last_name}`,
+              role: user.role
+            },
+            deleted_at: new Date().toISOString(),
+            deleted_by: 'user_self'
+          },
+          ip_address: req.ip,
+          user_agent: req.get('User-Agent')
+        });
+
+        // Delete user data in correct order (respecting foreign keys)
+
+        // Delete user badges
+        await trx('user_badges').where('user_id', userId).del();
+
+        // Delete user courses and related data
+        const userCourses = await trx('courses').where('created_by', userId).select('id');
+        const courseIds = userCourses.map(c => c.id);
+
+        if (courseIds.length > 0) {
+          // Delete enrollments, progress, ratings for user's courses
+          await trx('user_course_enrollments').whereIn('course_id', courseIds).del();
+          await trx('user_lesson_progress').whereIn('lesson_id',
+            trx('lessons').whereIn('course_id', courseIds).select('id')
+          ).del();
+          await trx('course_ratings').whereIn('course_id', courseIds).del();
+
+          // Delete lessons and course content
+          await trx('lessons').whereIn('course_id', courseIds).del();
+          await trx('courses').whereIn('id', courseIds).del();
+        }
+
+        // Delete user enrollments in other courses
+        await trx('user_course_enrollments').where('user_id', userId).del();
+        await trx('user_lesson_progress').where('user_id', userId).del();
+
+        // Delete user forum activity
+        await trx('forum_posts').where('author_id', userId).del();
+        await trx('forum_post_likes').where('user_id', userId).del();
+
+        // Delete user discussions
+        await trx('lesson_discussions').where('user_id', userId).del();
+
+        // Delete user bookmarks
+        await trx('bookmarks').where('user_id', userId).del();
+
+        // Delete user notifications
+        await trx('notifications').where('user_id', userId).del();
+
+        // Finally delete the user
+        await trx('users').where('id', userId).del();
+
+        await trx.commit();
+
+        res.json({
+          success: true,
+          message: 'Account deleted successfully'
+        });
+      } catch (error) {
+        await trx.rollback();
+        throw error;
+      }
+    } catch (error) {
+      console.error('Delete account error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete account'
+      });
+    }
+  },
+
+  // Get notification preferences
+  async getNotificationPreferences(req, res) {
+    try {
+      const userId = req.user.userId;
+
+      // Get user with notification preferences (assuming they're stored in user record)
+      const user = await db('users')
+        .where({ id: userId })
+        .select('notification_preferences')
+        .first();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Parse preferences or return defaults
+      let preferences = {
+        email_course_updates: true,
+        email_student_messages: true,
+        email_forum_replies: true,
+        email_weekly_digest: true,
+        email_marketing: false,
+        push_course_activity: true,
+        push_student_engagement: true,
+        push_forum_activity: false,
+        push_system_updates: true,
+        allow_student_messages: true,
+        allow_course_invitations: true,
+        public_profile_visible: true,
+        show_online_status: true,
+        allow_analytics_tracking: true
+      };
+
+      if (user.notification_preferences) {
+        try {
+          const savedPrefs = typeof user.notification_preferences === 'string'
+            ? JSON.parse(user.notification_preferences)
+            : user.notification_preferences;
+          preferences = { ...preferences, ...savedPrefs };
+        } catch (error) {
+          console.warn('Failed to parse notification preferences:', error);
+        }
+      }
+
+      res.json({
+        success: true,
+        data: preferences
+      });
+    } catch (error) {
+      console.error('Get notification preferences error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch notification preferences'
+      });
+    }
+  },
+
+  // Update notification preferences
+  async updateNotificationPreferences(req, res) {
+    try {
+      const userId = req.user.userId;
+      const preferences = req.body;
+
+      // Validate preferences object
+      if (!preferences || typeof preferences !== 'object') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid preferences data'
+        });
+      }
+
+      // Update user notification preferences
+      await db('users')
+        .where({ id: userId })
+        .update({
+          notification_preferences: JSON.stringify(preferences),
+          updated_at: new Date()
+        });
+
+      res.json({
+        success: true,
+        message: 'Notification preferences updated successfully',
+        data: preferences
+      });
+    } catch (error) {
+      console.error('Update notification preferences error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update notification preferences'
+      });
+    }
+  },
+
   // Update user profile
   async updateUserProfile(req, res) {
     try {

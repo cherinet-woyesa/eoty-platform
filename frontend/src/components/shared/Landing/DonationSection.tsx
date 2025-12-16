@@ -118,12 +118,12 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
 
   return (
     <div id="donation-section" data-section-id="donation-section" className="bg-beige-50 font-sans text-indigo-900">
-      <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
         
         {/* Hero Section - Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center mb-12 sm:mb-16">
             {/* Left: Image */}
-            <div className="relative h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl order-2 lg:order-1">
+            <div className="relative h-[260px] sm:h-[360px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl order-2 lg:order-1">
                  <img 
                     src="/eoc.jpg" 
                     alt="EOTY Mission" 
@@ -137,21 +137,21 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
             </div>
 
             {/* Right: Content */}
-            <div className="space-y-8 order-1 lg:order-2">
+            <div className="space-y-6 sm:space-y-8 order-1 lg:order-2">
                  <div className="inline-flex items-center space-x-2 px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100">
                     <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                     </span>
-                    <span className="text-xs font-bold text-indigo-900 tracking-wide uppercase">{t('donation.hero.badge')}</span>
+                    <span className="text-xs sm:text-sm font-bold text-indigo-900 tracking-wide uppercase">{t('donation.hero.badge')}</span>
                  </div>
 
-                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-indigo-900 leading-tight">
+                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-indigo-900 leading-tight">
                     {t('donation.hero.title_line1')}: <br/>
                     <span className="text-rose-600">{t('donation.hero.title_line2')}</span>
                  </h2>
                  
-                 <p className="text-lg text-stone-600 leading-relaxed font-light">
+                 <p className="text-base sm:text-lg text-stone-600 leading-relaxed font-light">
                     {t('donation.hero.subtitle')}
                  </p>
                  

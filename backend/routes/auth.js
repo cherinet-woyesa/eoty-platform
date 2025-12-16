@@ -60,6 +60,14 @@ router.get('/me', authenticateToken, authController.getCurrentUser);
 router.get('/permissions', authenticateToken, authController.getUserPermissions);
 router.put('/profile', authenticateToken, authController.updateUserProfile);
 router.post('/upload-profile-image', authenticateToken, upload.single('profileImage'), authController.uploadProfileImage);
+
+// Security routes
+router.post('/change-password', authenticateToken, authController.changePassword);
+router.delete('/delete-account', authenticateToken, authController.deleteAccount);
+
+// Notification preferences
+router.get('/notification-preferences', authenticateToken, authController.getNotificationPreferences);
+router.put('/notification-preferences', authenticateToken, authController.updateNotificationPreferences);
 router.post('/logout', authenticateToken, authController.logout);
 router.get('/activity-logs', authenticateToken, authController.getActivityLogs);
 router.get('/abnormal-activity-alerts', authenticateToken, authController.getAbnormalActivityAlerts);

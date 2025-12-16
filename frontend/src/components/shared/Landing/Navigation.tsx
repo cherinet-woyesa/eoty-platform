@@ -21,10 +21,10 @@ const Navigation: React.FC<NavigationProps> = ({ activeNavTab, onScrollToSection
   ];
 
   return (
-    <div className="fixed top-24 left-0 right-0 z-40 flex justify-center pointer-events-none">
+    <div className="fixed top-20 sm:top-24 left-0 right-0 z-40 flex justify-center pointer-events-none">
       <nav
-        className="bg-white/90 backdrop-blur-md rounded-full shadow-lg border p-1.5 flex items-center space-x-1 pointer-events-auto animate-fade-in-down"
-        style={{ borderColor: `${brandColors.primaryHex}26` }}
+        className="bg-white/90 backdrop-blur-md rounded-full shadow-lg border p-1.5 flex items-center space-x-1 pointer-events-auto animate-fade-in-down overflow-x-auto max-w-[calc(100%-1rem)] sm:max-w-fit"
+        style={{ borderColor: `${brandColors.primaryHex}26`, scrollbarWidth: 'none' }}
       >
         {navSections.map((section) => {
           const IconComponent = section.icon;
@@ -34,7 +34,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeNavTab, onScrollToSection
             <button
               key={section.id}
               onClick={() => onScrollToSection(section.id)}
-              className={`relative flex items-center space-x-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 whitespace-nowrap group ${
+              className={`relative flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-full font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap group ${
                 isActive
                   ? 'text-white shadow-md'
                   : 'text-gray-700 hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10'

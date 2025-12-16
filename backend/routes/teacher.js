@@ -37,6 +37,12 @@ router.get('/analytics/stats', authenticateToken, requirePermission('teacher:das
 router.get('/analytics/earnings', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.getEarningsAnalytics);
 router.get('/analytics/students', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.getStudentAnalytics);
 
+// Dashboard supporting data
+router.get('/activity', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.getRecentActivity);
+router.get('/tasks', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.getUpcomingTasks);
+router.get('/activity/export', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.exportActivity);
+router.get('/tasks/export', authenticateToken, requirePermission('teacher:dashboard:view'), teacherController.exportTasks);
+
 // Social Links & Certifications Routes
 router.put('/social-links', authenticateToken, requirePermission('teacher:profile:update'), teacherController.updateSocialLinks);
 router.post('/certifications', authenticateToken, requirePermission('teacher:profile:update'), upload.single('certificate'), teacherController.addCertification);

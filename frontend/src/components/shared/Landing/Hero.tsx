@@ -27,7 +27,7 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
   };
 
   return (
-    <section ref={ref} id="hero" data-section-id="hero" className="relative min-h-screen flex items-center justify-center pt-20 z-10 overflow-hidden">
+    <section ref={ref} id="hero" data-section-id="hero" className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center pt-24 pb-14 sm:pt-24 sm:pb-16 z-10 overflow-hidden">
       {/* Background Image with Warm Sepia Overlay */}
       <div className="absolute inset-0 z-0">
         <img
@@ -46,20 +46,20 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
       </div>
 
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-6 sm:space-y-8 animate-fade-in">
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg mx-auto">
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg mx-auto">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-300 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-100"></span>
             </span>
-            <span className="text-sm font-medium text-white tracking-wide">
+            <span className="text-xs sm:text-sm font-medium text-white tracking-wide">
                   {landingContent.hero?.badge || t('landing.hero.badge')}
             </span>
           </div>
 
           {/* Main Title */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight tracking-tight text-white drop-shadow-xl">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight text-white drop-shadow-xl">
             <span className="block mb-2 text-white/95">
               {landingContent.hero?.title || t('landing.hero.title1')}
             </span>
@@ -69,18 +69,18 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
           </h1>
 
           {/* Description */}
-          <p className="text-xl md:text-2xl text-slate-100 leading-relaxed max-w-3xl mx-auto font-light drop-shadow-md">
+          <p className="text-lg sm:text-xl md:text-2xl text-slate-100 leading-relaxed max-w-3xl mx-auto font-light drop-shadow-md px-2">
             {landingContent.hero?.description || t('landing.hero.description')}
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-6 sm:pt-8">
             {!isAuthenticated ? (
               <>
                 <Link
                   to="/register"
                   onClick={handleStartClick}
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
                 >
                   {t('landing.hero.start_journey')}
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -88,7 +88,7 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
                 <Link
                   to="/courses"
                   onClick={handleExploreClick}
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-all duration-200"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg bg-white text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-all duration-200"
                 >
                   {t('landing.hero.explore')}
                 </Link>
@@ -96,7 +96,7 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
             ) : (
               <Link
                 to={getRoleDashboard()}
-                className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
+                className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg shadow-lg bg-indigo-900 text-white border border-indigo-800 hover:bg-indigo-800 transition-all duration-200"
               >
                 {t('landing.hero.dashboard')}
                 <ArrowRight className="ml-2 h-5 w-5" />

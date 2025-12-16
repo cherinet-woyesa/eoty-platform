@@ -461,9 +461,12 @@ exports.deleteComment = async (req, res) => {
     }
 
     // Update comment count on post
-    await db('community_posts')
-      .where({ id: comment.post_id })
-      .decrement('comments', totalCommentsToDelete);
+    // Only decrement by 1 if this is a top-level comment (matching increment logic)
+    if (!comment.parent_comment_id) {
+      await db('community_posts')
+        .where({ id: comment.post_id })
+        .decrement('comments', 1);
+    }
 
     return res.json({ success: true, message: 'Comment deleted successfully' });
   } catch (error) {

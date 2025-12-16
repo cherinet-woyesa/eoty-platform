@@ -16,7 +16,7 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
       ref={ref}
       id="featured-courses"
       data-section-id="featured-courses"
-      className={`relative py-32 overflow-hidden z-10 transition-all duration-1000 ${
+      className={`relative py-20 sm:py-24 lg:py-32 overflow-hidden z-10 transition-all duration-1000 ${
         visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
       style={{
@@ -31,19 +31,19 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
       </div>
       <div className="w-full px-4 lg:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <div className={`inline-flex items-center space-x-3 px-6 py-3 bg-white rounded-full border backdrop-blur-xl shadow-lg mb-8 transition-all duration-700 delay-200 ${
+          <div className="text-center mb-14 sm:mb-18 lg:mb-20">
+            <div className={`inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-6 py-2 sm:py-3 bg-white rounded-full border backdrop-blur-xl shadow-lg mb-6 sm:mb-8 transition-all duration-700 delay-200 ${
               visibleSections.has('featured-courses') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`} style={{ borderColor: `${brandColors.primaryHex}33` }}>
-              <BookOpen className="h-5 w-5 animate-pulse" style={{ color: brandColors.primaryHex }} />
-              <span className="text-sm font-semibold" style={{ color: brandColors.primaryHex }}>{t('landing.courses.badge')}</span>
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse" style={{ color: brandColors.primaryHex }} />
+              <span className="text-xs sm:text-sm font-semibold" style={{ color: brandColors.primaryHex }}>{t('landing.courses.badge')}</span>
             </div>
-            <h2 className={`text-4xl md:text-5xl font-bold text-gray-900 mb-6 transition-all duration-700 delay-300 ${
+            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 transition-all duration-700 delay-300 ${
               visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
               {t('landing.courses.title')}
             </h2>
-            <p className={`text-xl text-gray-700 max-w-3xl mx-auto transition-all duration-700 delay-400 ${
+            <p className={`text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto px-2 sm:px-0 transition-all duration-700 delay-400 ${
               visibleSections.has('featured-courses') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
             }`}>
               {t('landing.courses.subtitle')}
@@ -59,12 +59,12 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
               <p className="text-gray-600">{t('landing.courses.empty_subtitle')}</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {featuredCourses.slice(0, 6).map((course, index) => (
                 <Link
                   key={course.id}
                   to={`/courses/${course.id}`}
-                  className={`group bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-xl hover:shadow-3xl transition-all duration-500 border transform hover:-translate-y-4 hover:scale-[1.03] cursor-pointer relative overflow-hidden ${
+                  className={`group bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-xl hover:shadow-3xl transition-all duration-500 border transform hover:-translate-y-4 hover:scale-[1.03] cursor-pointer relative ${
                     visibleSections.has('featured-courses')
                       ? 'opacity-100 translate-y-0'
                       : 'opacity-0 translate-y-10'
@@ -74,7 +74,7 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
                   {/* Animated background gradient on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"
                     style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}0D, ${brandColors.accentHex}14)` }} />
-                  <div className="relative h-56 bg-gradient-to-br from-[#1c2753]/18 to-[#243065]/12 overflow-hidden group-hover:h-48 transition-all duration-500">
+                  <div className="relative h-48 sm:h-56 bg-gradient-to-br from-[#1c2753]/18 to-[#243065]/12 overflow-hidden group-hover:h-48 transition-all duration-500">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-20 h-20 bg-white/25 backdrop-blur-xl rounded-full flex items-center justify-center shadow-2xl shadow-white/10 transform group-hover:scale-110 transition-transform duration-300">
@@ -94,15 +94,15 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
                     </div>
                   </div>
 
-                    <div className="relative z-10 p-8">
-                    <h3 className="text-2xl font-bold mb-4 line-clamp-2 leading-tight transition-colors" style={{ color: brandColors.primaryHex }}>
+                    <div className="relative z-10 p-6 lg:p-8">
+                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 line-clamp-2 leading-tight transition-colors" style={{ color: brandColors.primaryHex }}>
                       {course.title}
                     </h3>
-                    <p className="text-slate-700 leading-relaxed mb-6 line-clamp-3">
+                    <p className="text-slate-700 leading-relaxed mb-4 sm:mb-6 line-clamp-3 text-sm sm:text-base">
                       {course.description || 'Comprehensive course covering essential topics for spiritual and academic growth.'}
                     </p>
 
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-6">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
                           <Clock className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
@@ -116,8 +116,8 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap gap-3">
-                        <span className="px-4 py-2 text-sm rounded-xl font-semibold border"
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
                           style={{
                             background: `${brandColors.primaryHex}0d`,
                             color: brandColors.primaryHex,
@@ -125,7 +125,7 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
                           }}>
                           {course.level || 'Beginner'}
                         </span>
-                        <span className="px-4 py-2 text-sm rounded-xl font-semibold border"
+                        <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
                           style={{
                             background: `${brandColors.accentHex}14`,
                             color: brandColors.accentHex,

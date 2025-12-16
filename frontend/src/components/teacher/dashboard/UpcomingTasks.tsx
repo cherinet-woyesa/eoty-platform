@@ -6,6 +6,8 @@ import {
   ChevronDown, ChevronUp, X, RefreshCw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api/apiClient';
 
 // Types
 interface Task {
@@ -33,6 +35,9 @@ interface UpcomingTasksProps {
   showFilters?: boolean;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
   onTaskCreate?: () => void;
+  enableFetch?: boolean;
+  limit?: number;
+  page?: number;
 }
 
 type TaskType = Task['type'];
@@ -44,9 +49,13 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
   compact = false,
   showFilters = true,
   onTaskUpdate,
-  onTaskCreate
+  onTaskCreate,
+  enableFetch = true,
+  limit = 20,
+  page = 1
 }) => {
   const { t } = useTranslation();
+  const [currentPage, setCurrentPage] = useState(page);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<TaskFilter>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -65,9 +74,23 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
     { type: 'quiz', label: t('tasks.types.quiz'), icon: Target, color: 'pink' }
   ], [t]);
 
+  const { data: fetchedTasks = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['teacher-upcoming-tasks', limit, currentPage],
+    queryFn: async () => {
+      const res = await apiClient.get('/teacher/tasks', { params: { limit, page: currentPage } });
+      return res?.data?.data || {};
+    },
+    enabled: enableFetch,
+    staleTime: 60 * 1000,
+    retry: 1
+  });
+
+  const sourceTasks = enableFetch ? (fetchedTasks.tasks || []) : tasks;
+  const pagination = enableFetch ? fetchedTasks.pagination : null;
+
   const filteredAndSortedTasks = useMemo(() => {
     const now = new Date();
-    let filtered = tasks.filter(task => {
+    let filtered = sourceTasks.filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            task.course.toLowerCase().includes(searchTerm.toLowerCase());
@@ -316,6 +339,28 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
           </div>
         )}
       </div>
+
+      {pagination && (
+        <div className="flex items-center justify-between mt-6 text-sm text-gray-600">
+          <button
+            disabled={currentPage <= 1 || isLoading}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            {t('common.previous')}
+          </button>
+          <span>
+            {t('common.page_of', { page: pagination.page, pages: pagination.pages || 1 })}
+          </span>
+          <button
+            disabled={pagination.page >= (pagination.pages || 1) || isLoading}
+            onClick={() => setCurrentPage((p) => p + 1)}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            {t('common.next')}
+          </button>
+        </div>
+      )}
     );
   }
 
@@ -335,6 +380,28 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
             <Plus className="h-4 w-4 mr-2" />
             {t('tasks.new_task')}
           </button>
+          {pagination && (
+            <button
+              onClick={() => {
+                const total = pagination.total || limit;
+                window.location.href = `/teacher/tasks/export?limit=${total}&format=csv`;
+              }}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+            >
+              {t('common.export_csv')}
+            </button>
+          )}
+          {pagination && (
+            <button
+              onClick={() => {
+                const total = pagination.total || limit;
+                window.location.href = `/teacher/tasks/export?limit=${total}&format=pdf`;
+              }}
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+            >
+              {t('common.export_pdf')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -473,6 +540,28 @@ const UpcomingTasks: React.FC<UpcomingTasksProps> = ({
           />
         ))}
       </div>
+
+      {pagination && (
+        <div className="flex items-center justify-between mt-6 text-sm text-gray-600">
+          <button
+            disabled={currentPage <= 1 || isLoading}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            {t('common.previous')}
+          </button>
+          <span>
+            {t('common.page_of', { page: pagination.page, pages: pagination.pages || 1 })}
+          </span>
+          <button
+            disabled={pagination.page >= (pagination.pages || 1) || isLoading}
+            onClick={() => setCurrentPage((p) => p + 1)}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            {t('common.next')}
+          </button>
+        </div>
+      )}
 
       {/* Empty State */}
       {filteredAndSortedTasks.length === 0 && (

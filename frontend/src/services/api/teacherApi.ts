@@ -54,6 +54,26 @@ const teacherApi = {
       },
     });
   },
+
+  getTeacherStats: (): Promise<ApiResponse<any>> => {
+    return api.get('/teacher/analytics/stats');
+  },
+
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }): Promise<ApiResponse<any>> => {
+    return api.put('/auth/change-password', data);
+  },
+
+  deleteAccount: (): Promise<ApiResponse<any>> => {
+    return api.delete('/auth/delete-account');
+  },
+
+  getNotificationPreferences: (): Promise<ApiResponse<any>> => {
+    return api.get('/auth/notification-preferences');
+  },
+
+  updateNotificationPreferences: (preferences: any): Promise<ApiResponse<any>> => {
+    return api.put('/auth/notification-preferences', preferences);
+  },
 };
 
 export default teacherApi;

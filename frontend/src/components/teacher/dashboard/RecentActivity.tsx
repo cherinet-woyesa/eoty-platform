@@ -5,6 +5,9 @@ import {
   FileText, Star, ThumbsUp, TrendingUp,
   Eye, Download, Upload
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api/apiClient';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -32,21 +35,50 @@ interface Activity {
 }
 
 interface RecentActivityProps {
-  activities: Activity[];
+  activities?: Activity[];
   compact?: boolean;
   maxItems?: number;
+  enableFetch?: boolean;
+  limit?: number;
+  page?: number;
 }
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ 
-  activities, 
+  activities = [], 
   compact = false,
-  maxItems = 5 
+  maxItems = 5,
+  enableFetch = true,
+  limit = 20,
+  page = 1
 }) => {
+  const [currentPage, setCurrentPage] = React.useState(page);
+
+  const { data: fetched = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['teacher-recent-activity', limit, currentPage],
+    queryFn: async () => {
+      const res = await apiClient.get('/teacher/activity', { params: { limit, page: currentPage } });
+      return {
+        activities: res?.data?.data?.activities || [],
+        pagination: res?.data?.data?.pagination || null
+      };
+    },
+    enabled: enableFetch,
+    staleTime: 60 * 1000,
+    retry: 1
+  });
+
+  const sourceActivities = enableFetch ? fetched.activities || [] : activities;
+  const pagination = enableFetch ? fetched.pagination : null;
+
   const sortedActivities = useMemo(() => {
-    return [...activities]
+    return [...sourceActivities]
+      .map(a => ({
+        ...a,
+        timestamp: new Date(a.timestamp)
+      }))
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, maxItems);
-  }, [activities, maxItems]);
+  }, [sourceActivities, maxItems]);
 
   const getActivityIcon = (type: Activity['type']) => {
     switch (type) {
@@ -143,6 +175,26 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
     return base;
   };
 
+  if (isError) {
+    return (
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>Unable to load activity</span>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg hover:bg-indigo-50"
+          >
+            <RefreshCw className="h-4 w-4 inline mr-1" />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (compact) {
     return (
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -151,6 +203,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
           Recent Activity
         </h3>
         
+        {isLoading && <div className="h-20 bg-gray-100 rounded-lg animate-pulse mb-3" />}
+
         <div className="space-y-3">
           {sortedActivities.map((activity) => (
             <div
@@ -198,10 +252,39 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
           <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
           <p className="text-gray-600 mt-1">Latest updates from your teaching activities</p>
         </div>
-        <div className="text-sm text-gray-500">
-          {sortedActivities.length} activities
+        <div className="text-sm text-gray-500 flex items-center space-x-2">
+          <span>{sortedActivities.length} activities</span>
+          {isLoading && <span className="text-xs text-gray-400">Loading…</span>}
+          {pagination && (
+            <button
+              onClick={() => {
+                window.location.href = `/teacher/activity/export?limit=${pagination.total || limit}&format=csv`;
+              }}
+              className="ml-3 inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+            >
+              {t('common.export_csv')}
+            </button>
+          )}
+          {pagination && (
+            <button
+              onClick={() => {
+                window.location.href = `/teacher/activity/export?limit=${pagination.total || limit}&format=pdf`;
+              }}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+            >
+              {t('common.export_pdf')}
+            </button>
+          )}
         </div>
       </div>
+
+      {isLoading && (
+        <div className="space-y-3 mb-4">
+          {[1,2,3].map((i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      )}
 
       <div className="space-y-4">
         {sortedActivities.map((activity) => (
@@ -297,6 +380,28 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
           </div>
         ))}
       </div>
+
+      {pagination && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <button
+            disabled={currentPage <= 1 || isLoading}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            Prev
+          </button>
+          <span>
+            Page {pagination.page} / {pagination.pages || 1}
+          </span>
+          <button
+            disabled={pagination.page >= (pagination.pages || 1) || isLoading}
+            onClick={() => setCurrentPage((p) => p + 1)}
+            className="px-3 py-1.5 rounded border border-gray-200 disabled:opacity-50 hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {sortedActivities.length === 0 && (
         <div className="text-center py-8">

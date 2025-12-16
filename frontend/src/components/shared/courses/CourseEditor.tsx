@@ -585,6 +585,30 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     publishMutation.mutate();
   };
 
+  // Unpublish course
+  const unpublishMutation = useMutation({
+    mutationFn: () => coursesApi.unpublishCourse(courseId),
+    onSuccess: (response) => {
+      // Update local cache with the unpublished course
+      if (response?.data?.course) {
+        queryClient.setQueryData(['course', courseId], response);
+      }
+      queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['course-stats', courseId] });
+
+      showNotification({
+        type: 'success',
+        title: t('common.unpublished'),
+        message: t('courses.editor.course_unpublished'),
+        duration: 5000,
+      });
+    },
+  });
+
+  const handleUnpublish = () => {
+    unpublishMutation.mutate();
+  };
+
   // Warn about unsaved changes
   useUnsavedChanges({
     hasUnsavedChanges: isDirty,
@@ -774,6 +798,17 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   >
                     <Globe className="mr-1.5 h-3.5 w-3.5" />
                     {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
+                  </button>
+                )}
+
+                {course?.status === 'published' && (
+                  <button
+                    onClick={handleUnpublish}
+                    disabled={unpublishMutation.isPending}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                  >
+                    <Globe className="mr-1.5 h-3.5 w-3.5" />
+                    {unpublishMutation.isPending ? t('common.unpublishing') : t('common.unpublish')}
                   </button>
                 )}
 
@@ -1336,23 +1371,69 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#27AE60] mb-1">0</div>
+                    <div className="text-2xl font-bold text-[#27AE60] mb-1">
+                      {statsData?.data?.analytics?.lessonStats?.reduce((sum: number, lesson: any) => sum + (lesson.views || 0), 0) || 0}
+                    </div>
                     <div className="text-sm text-stone-600">Total Views</div>
                   </div>
                   <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#16A085] mb-1">0</div>
+                    <div className="text-2xl font-bold text-[#16A085] mb-1">
+                      {statsData?.data?.analytics?.lessonStats?.length > 0
+                        ? Math.round(
+                            (statsData.data.analytics.lessonStats.reduce((sum: number, lesson: any) => sum + (lesson.completions || 0), 0) /
+                             statsData.data.analytics.lessonStats.reduce((sum: number, lesson: any) => sum + (lesson.views || 0), 0)) * 100
+                          ) || 0
+                        : 0}%
+                    </div>
                     <div className="text-sm text-stone-600">Avg. Completion</div>
                   </div>
                   <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#2980B9] mb-1">0</div>
-                    <div className="text-sm text-stone-600">Engagement Rate</div>
+                    <div className="text-2xl font-bold text-[#2980B9] mb-1">
+                      {statsData?.data?.analytics?.averageProgress ? Math.round(statsData.data.analytics.averageProgress) : 0}%
+                    </div>
+                    <div className="text-sm text-stone-600">Avg. Progress</div>
                   </div>
                 </div>
 
-                <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
-                  <p className="text-sm text-stone-600">
-                    Detailed lesson analytics will be available once students begin taking this course.
-                  </p>
+                {/* Lesson-by-lesson breakdown */}
+                <div className="mt-6">
+                  <h4 className="text-md font-semibold text-stone-800 mb-3">Lesson Breakdown</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-stone-200">
+                      <thead className="bg-stone-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Lesson</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Views</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Completions</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Completion Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-stone-200">
+                        {statsData?.data?.analytics?.lessonStats?.map((lesson: any) => (
+                          <tr key={lesson.lessonId}>
+                            <td className="px-4 py-3 text-sm text-stone-900 truncate max-w-xs">
+                              {lesson.title}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-stone-500">
+                              {lesson.views || 0}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-stone-500">
+                              {lesson.completions || 0}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-stone-500">
+                              {lesson.completionRate || 0}%
+                            </td>
+                          </tr>
+                        )) || (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-stone-500">
+                              No lesson data available yet
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             ) : (

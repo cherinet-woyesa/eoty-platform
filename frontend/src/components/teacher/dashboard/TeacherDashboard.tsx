@@ -16,6 +16,7 @@ import DashboardSkeleton from './DashboardSkeleton';
 import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 import CreateAnnouncementModal from '@/components/admin/dashboard/modals/CreateAnnouncementModal';
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
+import { useQuery } from '@tanstack/react-query';
 
 // Types
 interface TeacherStats {
@@ -50,46 +51,38 @@ const TeacherDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
-  // Load dashboard data directly from API (same approach as courses page)
-  const loadDashboardData = useCallback(async () => {
-    if (!user || user.role !== 'teacher') {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      
+  const { data: dashboardResp, isLoading: queryLoading, isError: queryError, refetch } = useQuery({
+    queryKey: ['teacher-dashboard'],
+    enabled: !!user && user.role === 'teacher',
+    queryFn: async () => {
       const response = await apiClient.get('/teacher/dashboard');
-      
       if (response.data.success) {
-        const data = response.data.data;
-        setTeacherData({
-          totalCourses: data.totalCourses || 0,
-          totalStudentsEnrolled: data.totalStudentsEnrolled || 0,
-          totalLessons: data.totalLessons || 0,
-          averageCompletionRate: data.averageCompletionRate || 0,
-          courses: [],
-          recentActivity: [],
-          studentPerformance: [],
-          upcomingTasks: []
-        });
-        setLastUpdated(Date.now());
-      } else {
-        throw new Error(response.data.message || 'Failed to load dashboard data');
+        return response.data.data || {};
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to load dashboard data');
-    } finally {
+      throw new Error(response.data.message || 'Failed to load dashboard data');
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    onSuccess: (data) => {
+      setTeacherData({
+        totalCourses: data.totalCourses ?? 0,
+        totalStudentsEnrolled: data.totalStudentsEnrolled ?? 0,
+        totalLessons: data.totalLessons ?? 0,
+        averageCompletionRate: data.averageCompletionRate ?? 0,
+        courses: data.courses ?? [],
+        recentActivity: data.recentActivity ?? [],
+        studentPerformance: data.studentPerformance ?? [],
+        upcomingTasks: data.upcomingTasks ?? []
+      });
+      setLastUpdated(Date.now());
+      setError(null);
+      setIsLoading(false);
+    },
+    onError: (err: any) => {
+      setError(err?.message || 'Failed to load dashboard data');
       setIsLoading(false);
     }
-  }, [user]);
-
-  // Initial load
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+  });
 
   useEffect(() => {
     const flag = localStorage.getItem('show_profile_completion');
@@ -98,30 +91,21 @@ const TeacherDashboard: React.FC = () => {
       setProfileModalOpen(true);
       return;
     }
-    if (user && !user.chapter) {
+    // Only show profile modal for completely new teachers (no chapter AND no profile completion status)
+    if (user && !user.chapter && (!user.profileCompletion || !user.profileCompletion.isComplete)) {
       setProfileModalOpen(true);
     }
   }, [user]);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!user || user.role !== 'teacher') return;
-    
-    const interval = setInterval(() => {
-      loadDashboardData();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [user, loadDashboardData]);
-
-  // WebSocket for live dashboard updates
-  // Only connect if WebSocket is enabled and user is available
-  const dashboardWsUrl = user?.id ? `?type=dashboard&userId=${user.id}` : '';
+  // WebSocket for live dashboard updates (gated)
+  const wsBase = import.meta.env.VITE_WS_BASE;
+  const enableWs = import.meta.env.VITE_ENABLE_WS !== 'false' && !!wsBase && !!user?.id;
+  const dashboardWsUrl = enableWs && user?.id ? `${wsBase}?type=dashboard&userId=${user.id}` : '';
   const { lastMessage, isConnected } = useWebSocket(dashboardWsUrl, {
     reconnectAttempts: 3,
     reconnectInterval: 5000,
     heartbeatInterval: 30000,
-    disableReconnect: !user?.id || import.meta.env.VITE_ENABLE_WS === 'false',
+    disableReconnect: !enableWs,
     onError: (error) => {
       if (import.meta.env.DEV) {
         console.warn('Dashboard WebSocket error:', error);
@@ -162,7 +146,7 @@ const TeacherDashboard: React.FC = () => {
           }));
           
           // Refetch after a short delay to ensure data consistency
-          setTimeout(() => loadDashboardData(), 1000);
+          setTimeout(() => refetch(), 1000);
           return;
         }
         
@@ -173,7 +157,7 @@ const TeacherDashboard: React.FC = () => {
               ...currentData,
               totalCourses: (currentData.totalCourses || 0) + 1
             }));
-            setTimeout(() => loadDashboardData(), 500);
+            setTimeout(() => refetch(), 500);
             break;
             
           case 'lesson_created':
@@ -181,7 +165,7 @@ const TeacherDashboard: React.FC = () => {
               ...currentData,
               totalLessons: (currentData.totalLessons || 0) + 1
             }));
-            setTimeout(() => loadDashboardData(), 500);
+            setTimeout(() => refetch(), 500);
             break;
             
           case 'new_enrollment':
@@ -190,18 +174,18 @@ const TeacherDashboard: React.FC = () => {
               ...currentData,
               totalStudentsEnrolled: (currentData.totalStudentsEnrolled || 0) + 1
             }));
-            setTimeout(() => loadDashboardData(), 500);
+            setTimeout(() => refetch(), 500);
             break;
             
           case 'lesson_completed':
           case 'course_completed':
             // Completion rate might change, refetch to get accurate calculation
-            setTimeout(() => loadDashboardData(), 1000);
+            setTimeout(() => refetch(), 1000);
             break;
             
           case 'dashboard_update':
             // Generic dashboard update - refetch all metrics
-            setTimeout(() => loadDashboardData(), 500);
+            setTimeout(() => refetch(), 500);
             break;
             
           default:
@@ -215,7 +199,7 @@ const TeacherDashboard: React.FC = () => {
         }
       }
     }
-  }, [lastMessage, loadDashboardData, optimisticUpdate]);
+  }, [lastMessage, refetch, optimisticUpdate]);
 
   const formatTime = useCallback((date: Date) => {
     return date.toLocaleTimeString(i18n.language, { 
@@ -235,8 +219,8 @@ const TeacherDashboard: React.FC = () => {
   }, [i18n.language]);
 
   const handleRetry = useCallback(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    refetch();
+  }, [refetch]);
 
   const lastUpdatedLabel = useMemo(() => {
     if (!lastUpdated) return t('admin.dashboard.time.never');
@@ -264,11 +248,11 @@ const TeacherDashboard: React.FC = () => {
     );
   }
 
-  if (isLoading && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
+  if (queryLoading) {
     return <DashboardSkeleton />;
   }
 
-  if (error && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
+  if (queryError && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">

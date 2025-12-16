@@ -34,6 +34,29 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      if (file.size > maxSize) {
+        setError(`File size too large. Maximum size is 50MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      // Validate file type
+      const validTypes: Record<string, string[]> = {
+        image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+        video: ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'],
+        audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm']
+      };
+
+      const mediaType = selectedMediaType || 'image';
+      if (mediaType !== 'article' && validTypes[mediaType] && !validTypes[mediaType].includes(file.type)) {
+        setError(`Invalid file type for ${mediaType}. Supported types: ${validTypes[mediaType].join(', ')}`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      setError(null);
       setMediaFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -59,10 +82,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       let mediaUrl = '';
 
       if (mediaFile) {
-        const uploadResult = await communityPostsApi.uploadMedia(mediaFile, (progress) => {
-          setUploadProgress(progress);
-        });
-        mediaUrl = uploadResult.data.url;
+        try {
+          const uploadResult = await communityPostsApi.uploadMedia(mediaFile, (progress) => {
+            setUploadProgress(progress);
+          });
+
+          if (!uploadResult?.data?.url) {
+            throw new Error('Media upload failed - no URL returned');
+          }
+
+          mediaUrl = uploadResult.data.url;
+        } catch (uploadError: any) {
+          console.error('Media upload failed:', uploadError);
+          setError(uploadError?.response?.data?.message || uploadError.message || 'Failed to upload media. Please try again.');
+          setIsSubmitting(false);
+          setUploadProgress(null);
+          return; // Don't proceed with post creation
+        }
       }
 
       const payload = {
@@ -72,8 +108,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       };
 
       const response = await communityPostsApi.createPost(payload);
+
+      if (!response?.data?.post) {
+        throw new Error('Failed to create post - no post data returned');
+      }
+
       onPostCreated(response.data.post);
-      
+
       // Reset form
       setContent('');
       clearMedia();
@@ -81,7 +122,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       setUploadProgress(null);
     } catch (err: any) {
       console.error('Failed to create post', err);
-      setError(err?.response?.data?.message || err.message || 'Failed to create post');
+      setError(err?.response?.data?.message || err.message || 'Failed to create post. Please try again.');
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);
@@ -93,10 +134,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       <div className="flex gap-4">
         <div className="flex-shrink-0">
           {user?.profilePicture ? (
-            <img 
-              src={user.profilePicture} 
-              alt={user.firstName} 
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-100" 
+            <img
+              src={user.profilePicture}
+              alt={user.firstName}
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-100"
             />
           ) : (
             <div
@@ -107,9 +148,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             </div>
           )}
         </div>
-        
+
         <div className="flex-1">
-          <div 
+          <div
             className={`relative transition-all duration-200 ${isExpanded ? 'min-h-[120px]' : 'min-h-[48px]'}`}
           >
             <textarea
@@ -154,27 +195,27 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
                 accept="image/*,video/*,audio/*"
                 onChange={handleFileChange}
               />
-              <MediaTypeButton 
-                icon={<Image className="w-5 h-5" />} 
-                label="Photo" 
+              <MediaTypeButton
+                icon={<Image className="w-5 h-5" />}
+                label="Photo"
                 onClick={() => handleMediaSelect('image')}
                 active={selectedMediaType === 'image'}
               />
-              <MediaTypeButton 
-                icon={<Video className="w-5 h-5" />} 
-                label="Video" 
+              <MediaTypeButton
+                icon={<Video className="w-5 h-5" />}
+                label="Video"
                 onClick={() => handleMediaSelect('video')}
                 active={selectedMediaType === 'video'}
               />
-              <MediaTypeButton 
-                icon={<Mic className="w-5 h-5" />} 
-                label="Audio" 
+              <MediaTypeButton
+                icon={<Mic className="w-5 h-5" />}
+                label="Audio"
                 onClick={() => handleMediaSelect('audio')}
                 active={selectedMediaType === 'audio'}
               />
-              <MediaTypeButton 
-                icon={<FileText className="w-5 h-5" />} 
-                label="Article" 
+              <MediaTypeButton
+                icon={<FileText className="w-5 h-5" />}
+                label="Article"
                 onClick={() => handleMediaSelect('article')}
                 active={selectedMediaType === 'article'}
               />
@@ -201,19 +242,18 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   );
 };
 
-const MediaTypeButton: React.FC<{ 
-  icon: React.ReactNode; 
-  label: string; 
+const MediaTypeButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
   onClick: () => void;
   active?: boolean;
 }> = ({ icon, label, onClick, active }) => (
   <button
     onClick={onClick}
-    className={`p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-2 transition-colors ${
-      active 
-        ? 'bg-[color:#1e1b4b]/10 text-[color:#1e1b4b]' 
-        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-    }`}
+    className={`p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-2 transition-colors ${active
+      ? 'bg-[color:#1e1b4b]/10 text-[color:#1e1b4b]'
+      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+      }`}
     title={label}
   >
     {icon}

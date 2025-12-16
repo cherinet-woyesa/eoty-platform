@@ -8,6 +8,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/rbac');
 const videoAnalyticsService = require('../services/videoAnalyticsService');
+const videoAnalyticsController = require('../controllers/videoAnalyticsController');
 const db = require('../config/database');
 
 // All routes require authentication
@@ -118,6 +119,16 @@ router.get('/courses/:courseId', async (req, res) => {
     });
   }
 });
+
+/**
+ * GET /api/video-analytics/lessons/:lessonId/heatmap
+ * Watch heatmap for a lesson (timestamp vs watch count)
+ */
+router.get(
+  '/lessons/:lessonId/heatmap',
+  requirePermission('course:view'),
+  videoAnalyticsController.getLessonHeatmap
+);
 
 /**
  * GET /api/video-analytics/teacher/dashboard

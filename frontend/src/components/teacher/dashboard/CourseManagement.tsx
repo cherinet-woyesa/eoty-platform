@@ -6,6 +6,9 @@ import {
   Search, Grid, List, ChevronDown, AlertCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api/apiClient';
+import { BulkActions } from '@/components/shared/courses/BulkActions';
 
 // Types
 interface Course {
@@ -31,6 +34,9 @@ interface CourseManagementProps {
   compact?: boolean;
   onCourseSelect?: (courseId: string) => void;
   showFilters?: boolean;
+  enableFetch?: boolean;
+  limit?: number;
+  page?: number;
 }
 
 type SortOption = 'title' | 'students' | 'rating' | 'recent' | 'progress';
@@ -40,7 +46,10 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
   courses, 
   compact = false,
   onCourseSelect,
-  showFilters = false
+  showFilters = false,
+  enableFetch = true,
+  limit = 30,
+  page = 1
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -49,10 +58,50 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
+
+  const { data: fetchedCourses = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['teacher-courses', limit, page, searchTerm, statusFilter, sortBy],
+    queryFn: async () => {
+      const params: any = { limit };
+      if (page) params.page = page;
+      if (searchTerm) params.search = searchTerm;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (sortBy && sortBy !== 'recent') params.sort = sortBy;
+      const res = await apiClient.get('/courses/teacher', { params });
+      return res?.data?.data?.courses || [];
+    },
+    enabled: enableFetch,
+    staleTime: 2 * 60 * 1000,
+    retry: 1
+  });
+
+  const sourceCourses = enableFetch ? fetchedCourses : courses;
 
   const handleCourseClick = useCallback((courseId: string) => {
     onCourseSelect?.(courseId);
   }, [onCourseSelect]);
+
+  const handleCourseSelect = useCallback((courseId: number, isSelected: boolean) => {
+    setSelectedCourses(prev =>
+      isSelected
+        ? [...prev, courseId]
+        : prev.filter(id => id !== courseId)
+    );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedCourses(prev =>
+      prev.length === filteredAndSortedCourses.length
+        ? []
+        : filteredAndSortedCourses.map(course => course.id)
+    );
+  }, [filteredAndSortedCourses]);
+
+  const handleBulkActionComplete = useCallback(() => {
+    refetch();
+    setSelectedCourses([]);
+  }, [refetch]);
 
   const handleEditCourse = useCallback((courseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -118,7 +167,7 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
 
   // Filter and sort courses
   const filteredAndSortedCourses = useMemo(() => {
-    let filtered = courses.filter(course => {
+    let filtered = sourceCourses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            course.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
@@ -143,7 +192,7 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
     });
 
     return filtered;
-  }, [courses, searchTerm, statusFilter, sortBy, t]);
+  }, [sourceCourses, searchTerm, statusFilter, sortBy, t]);
 
   const statusOptions = [
     { value: 'all', label: t('common.all_statuses') },
@@ -161,12 +210,12 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
   ];
 
   const courseStats = useMemo(() => {
-    const total = courses.length;
-    const published = courses.filter(c => c.status === 'published').length;
-    const draft = courses.filter(c => c.status === 'draft').length;
-    const archived = courses.filter(c => c.status === 'archived').length;
-    const totalStudents = courses.reduce((sum, course) => sum + course.studentCount, 0);
-    const totalLessons = courses.reduce((sum, course) => sum + course.lessonCount, 0);
+    const total = sourceCourses.length;
+    const published = sourceCourses.filter(c => c.status === 'published').length;
+    const draft = sourceCourses.filter(c => c.status === 'draft').length;
+    const archived = sourceCourses.filter(c => c.status === 'archived').length;
+    const totalStudents = sourceCourses.reduce((sum, course) => sum + course.studentCount, 0);
+    const totalLessons = sourceCourses.reduce((sum, course) => sum + course.lessonCount, 0);
 
     return {
       total,
@@ -176,7 +225,26 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
       totalStudents,
       totalLessons
     };
-  }, [courses]);
+  }, [sourceCourses]);
+
+  if (isError) {
+    return (
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>{t('dashboard.teacher.unable_to_load_title')}</span>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg hover:bg-indigo-50"
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (compact) {
     return (
@@ -194,6 +262,8 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
           </Link>
         </div>
         
+        {isLoading && <div className="h-24 bg-gray-100 rounded-lg animate-pulse mb-3" />}
+
         <div className="space-y-3">
           {filteredAndSortedCourses.slice(0, 4).map((course) => (
             <div
@@ -287,6 +357,22 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
           </p>
         </div>
         <div className="flex items-center space-x-3 mt-4 lg:mt-0">
+          {filteredAndSortedCourses.length > 0 && (
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedCourses.length === filteredAndSortedCourses.length && filteredAndSortedCourses.length > 0}
+                onChange={handleSelectAll}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">
+                {selectedCourses.length === filteredAndSortedCourses.length
+                  ? t('common.deselect_all')
+                  : t('common.select_all')
+                }
+              </span>
+            </label>
+          )}
           <Link
             to="/courses/new"
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
@@ -296,6 +382,14 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
           </Link>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -386,6 +480,18 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
         </div>
       )}
 
+      {/* Bulk Actions */}
+      {selectedCourses.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <BulkActions
+            selectedCourses={selectedCourses}
+            courses={filteredAndSortedCourses}
+            onActionComplete={handleBulkActionComplete}
+            onClearSelection={() => setSelectedCourses([])}
+          />
+        </div>
+      )}
+
       {/* Courses Grid/List */}
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -396,6 +502,8 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
               onCourseClick={handleCourseClick}
               onEditCourse={handleEditCourse}
               onViewAnalytics={handleViewAnalytics}
+              onSelect={handleCourseSelect}
+              isSelected={selectedCourses.includes(course.id)}
               formatDuration={formatDuration}
               formatDate={formatDate}
               getStatusColor={getStatusColor}
@@ -412,6 +520,8 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
               onCourseClick={handleCourseClick}
               onEditCourse={handleEditCourse}
               onViewAnalytics={handleViewAnalytics}
+              onSelect={handleCourseSelect}
+              isSelected={selectedCourses.includes(course.id)}
               formatDuration={formatDuration}
               formatDate={formatDate}
               getStatusColor={getStatusColor}
@@ -453,6 +563,8 @@ interface CourseCardProps {
   onCourseClick: (courseId: string) => void;
   onEditCourse: (courseId: string, e: React.MouseEvent) => void;
   onViewAnalytics: (courseId: string, e: React.MouseEvent) => void;
+  onSelect?: (courseId: number, isSelected: boolean) => void;
+  isSelected?: boolean;
   formatDuration: (minutes: number) => string;
   formatDate: (dateString: string) => string;
   getStatusColor: (status: string) => string;
