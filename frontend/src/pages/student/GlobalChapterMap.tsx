@@ -52,7 +52,7 @@ const GlobalChapterMap: React.FC = () => {
     void loadChapters();
   }, [useNearby, coords, distanceKm]);
 
-  const filteredChapters = chapters.filter(c => 
+  const filteredChapters = chapters.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.country?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,7 +80,7 @@ const GlobalChapterMap: React.FC = () => {
               Find an EOTY community near you. Connect, learn, and grow together.
             </p>
           </div>
-          
+
           <div className="flex flex-col gap-3 w-full md:w-auto md:flex-row md:items-center md:gap-4">
             <div className="relative w-full md:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -142,16 +142,16 @@ const GlobalChapterMap: React.FC = () => {
           <div className="lg:col-span-2 bg-slate-900 rounded-2xl overflow-hidden shadow-lg relative min-h-[500px] flex items-center justify-center group">
             {/* Background Map Image Placeholder */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')] bg-cover bg-center" />
-            
+
             {/* Interactive Dots (Simulated) */}
             <div className="relative w-full h-full">
-               {/* We would map chapters to x/y coordinates here if we had a proper projection function */}
-               {/* For now, we'll just show a central message */}
-               <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                 <Globe className="h-16 w-16 mb-4 opacity-50" />
-                 <p>Interactive Map Visualization</p>
-                 <p className="text-sm opacity-70">(Requires GeoJSON integration)</p>
-               </div>
+              {/* We would map chapters to x/y coordinates here if we had a proper projection function */}
+              {/* For now, we'll just show a central message */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                <Globe className="h-16 w-16 mb-4 opacity-50" />
+                <p>Interactive Map Visualization</p>
+                <p className="text-sm opacity-70">(Requires GeoJSON integration)</p>
+              </div>
             </div>
 
             {/* Overlay for Selected Chapter */}
@@ -165,7 +165,7 @@ const GlobalChapterMap: React.FC = () => {
                       {selectedChapter.city}, {selectedChapter.country}
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setSelectedChapter(null)}
                     className="text-slate-400 hover:text-slate-600"
                   >
@@ -205,11 +205,10 @@ const GlobalChapterMap: React.FC = () => {
                 <button
                   key={chapter.id}
                   onClick={() => setSelectedChapter(chapter)}
-                  className={`w-full text-left p-3 rounded-xl transition-all border ${
-                    selectedChapter?.id === chapter.id
-                      ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200'
-                      : 'bg-white border-slate-100 hover:border-blue-100 hover:bg-slate-50'
-                  }`}
+                  className={`w-full text-left p-3 rounded-xl transition-all border ${selectedChapter?.id === chapter.id
+                    ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200'
+                    : 'bg-white border-slate-100 hover:border-blue-100 hover:bg-slate-50'
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <h3 className="font-medium text-slate-900">{chapter.name}</h3>
@@ -226,7 +225,7 @@ const GlobalChapterMap: React.FC = () => {
                   </p>
                 </button>
               ))}
-              
+
               {filteredChapters.length === 0 && (
                 <div className="text-center py-8 text-slate-400">
                   <p>No chapters found matching "{searchTerm}"</p>

@@ -263,7 +263,7 @@ const CourseManagement: React.FC<CourseManagementProps> = ({
         </div>
         
         {isLoading && <div className="h-24 bg-gray-100 rounded-lg animate-pulse mb-3" />}
-
+        
         <div className="space-y-3">
           {filteredAndSortedCourses.slice(0, 4).map((course) => (
             <div

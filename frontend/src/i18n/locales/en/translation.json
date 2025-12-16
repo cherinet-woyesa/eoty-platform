@@ -71,6 +71,37 @@
     "tabs": {
       "video_studio": "Video Studio",
       "resources": "Resources"
+    },
+    "loading_studio": "Loading Video Studio...",
+    "resources": {
+      "upload_new_title": "Upload New Resource",
+      "upload_new_description": "Add files to your library or attach directly to this lesson",
+      "back_to_library": "Back to Library",
+      "library_title": "Resource Library",
+      "library_description_lesson": "Manage resources for this lesson",
+      "library_description_general": "Manage your educational materials",
+      "upload_new": "Upload New",
+      "attached_to_lesson": "Attached to Current Lesson",
+      "no_resources_attached": "No resources attached to this lesson yet.",
+      "select_resources_hint": "Select resources from the library below to attach them.",
+      "remove_from_lesson": "Remove from lesson",
+      "search_placeholder": "Search library...",
+      "chapter_library": "Chapter Library",
+      "platform_library": "Platform Library",
+      "items_count": "{{count}} items",
+      "empty_library_title": "Library is empty",
+      "empty_library_description": "Upload resources to build your library and share materials with students.",
+      "upload_first_resource": "Upload First Resource",
+      "attached": "Attached",
+      "attach": "Attach",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view_file": "View File",
+      "page_info": "Page {{page}} of {{total}}",
+      "delete_confirm_title": "Delete Resource",
+      "delete_confirm_message": "Are you sure you want to delete this resource? This action cannot be undone.",
+      "delete_failed": "Failed to delete resource",
+      "delete_success": "Resource deleted successfully"
     }
   },
   "common": {

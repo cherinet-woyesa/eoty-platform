@@ -91,38 +91,38 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
   const metrics = useMemo((): MetricItem[] => {
     const source = metricsData || stats || {};
     return [
-      {
-        title: t('dashboard.teacher.total_courses'),
+    {
+      title: t('dashboard.teacher.total_courses'),
         value: formatCount(source.totalCourses),
-        icon: <BookOpen className="h-5 w-5" />,
-        color: 'from-indigo-500 to-indigo-600',
+      icon: <BookOpen className="h-5 w-5" />,
+      color: 'from-indigo-500 to-indigo-600',
         trend: source.coursesDelta,
         trendDirection: (source.coursesDelta ?? 0) >= 0 ? 'up' : 'down'
-      },
-      {
-        title: t('dashboard.teacher.active_students'),
+    },
+    {
+      title: t('dashboard.teacher.active_students'),
         value: formatCount(source.totalStudentsEnrolled),
-        icon: <Users className="h-5 w-5" />,
-        color: 'from-blue-500 to-blue-600',
+      icon: <Users className="h-5 w-5" />,
+      color: 'from-blue-500 to-blue-600',
         trend: source.studentsDelta,
         trendDirection: (source.studentsDelta ?? 0) >= 0 ? 'up' : 'down'
-      },
-      {
-        title: t('dashboard.teacher.total_lessons'),
+    },
+    {
+      title: t('dashboard.teacher.total_lessons'),
         value: formatCount(source.totalLessons),
-        icon: <Video className="h-5 w-5" />,
-        color: 'from-violet-500 to-violet-600',
+      icon: <Video className="h-5 w-5" />,
+      color: 'from-violet-500 to-violet-600',
         trend: source.lessonsDelta,
         trendDirection: (source.lessonsDelta ?? 0) >= 0 ? 'up' : 'down'
-      },
-      {
-        title: t('dashboard.teacher.completion_rate'),
+    },
+    {
+      title: t('dashboard.teacher.completion_rate'),
         value: `${Math.round(source.averageCompletionRate || 0)}%`,
-        icon: <Target className="h-5 w-5" />,
-        color: 'from-emerald-500 to-emerald-600',
+      icon: <Target className="h-5 w-5" />,
+      color: 'from-emerald-500 to-emerald-600',
         trend: source.completionDelta,
         trendDirection: (source.completionDelta ?? 0) >= 0 ? 'up' : 'down'
-      }
+    }
     ];
   }, [metricsData, stats, t]);
 
@@ -131,7 +131,7 @@ const TeacherMetrics: React.FC<TeacherMetricsProps> = ({
       {isLoading
         ? [1,2,3,4].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)
         : metrics.map((metric) => (
-          <MetricsCard key={metric.title} {...metric} />
+        <MetricsCard key={metric.title} {...metric} />
         ))
       }
     </div>

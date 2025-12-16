@@ -14,6 +14,8 @@
     "chapters_desc": "የአካባቢ ማህበረሰቦችን ይቀላቀሉ",
     "resources": "ግብዓቶች",
     "resources_desc": "ቤተ-መጽሐፍት እና የእርዳታ ማዕከል",
+    "content": "ይዘት",
+    "content_desc": "ያትቡ፣ ያስገቡ እና ግብዓቶች",
     "students": "ተማሪዎች",
     "students_desc": "ተማሪዎች፣ የቤት ስራዎች እና ትንታኔዎች",
   
@@ -1136,6 +1138,9 @@
     }
   },
   "teacher_content": {
+    "title": "የይዘት ስቱዲዮ",
+    "subtitle_create": "ይዘት ይፍጠሩ እና ያስተዳድሩ",
+    "subtitle_edit": "የትምህርት ይዘት በማርትዕ ላይ",
     "go_back": "ተመለስ",
     "tabs": {
       "video_studio": "ቪዲዮ ስቱዲዮ",
@@ -1145,7 +1150,37 @@
       "editing_lesson": "ትምህርት በማርትዕ ላይ",
       "course_mode": "የኮርስ ሁኔታ"
     },
-    "loading_studio": "ስቱዲዮን በመጫን ላይ..."
+    "loading_studio": "ስቱዲዮን በመጫን ላይ...",
+    "resources": {
+      "upload_new_title": "አዲስ ግብዓት ይስቀሉ",
+      "upload_new_description": "ፋይሎችን ወደ ቤተ-መጽሐፍትዎ ያስገቡ ወይም ቀጥተኛ ከዚህ ትምህርት ጋር ያገናኙ",
+      "back_to_library": "ወደ ቤተ-መጽሐፍት ተመለስ",
+      "library_title": "የግብዓት ቤተ-መጽሐፍት",
+      "library_description_lesson": "ለዚህ ትምህርት ግብዓቶችን ያስተዳድሩ",
+      "library_description_general": "የእኔን የትምህርት ማዕከሎች ያስተዳድሩ",
+      "upload_new": "አዲስ ይስቀሉ",
+      "attached_to_lesson": "ከአሁኑ ትምህርት ጋር ተያያዥ",
+      "no_resources_attached": "ለዚህ ትምህርት ምንም ግብዓት አልተያያዘም።",
+      "select_resources_hint": "ከታች ባለው ቤተ-መጽሐፍት ግብዓቶችን ይምረጡ እና ያገናኛቸው።",
+      "remove_from_lesson": "ከትምህርት አስወግድ",
+      "search_placeholder": "ቤተ-መጽሐፍት ፈልግ...",
+      "chapter_library": "የምዕራፍ ቤተ-መጽሐፍት",
+      "platform_library": "የመድረክ ቤተ-መጽሐፍት",
+      "items_count": "{{count}} እቃዎች",
+      "empty_library_title": "ቤተ-መጽሐፍት ባዶ ነው",
+      "empty_library_description": "ግብዓቶችን በመስቀል ቤተ-መጽሐፍትዎን ይፍጠሩ እና ማዕከሎችን ከተማሪዎች ጋር ያጋሩ።",
+      "upload_first_resource": "መጀመሪያ ግብዓት ይስቀሉ",
+      "attached": "ተያያዥ",
+      "attach": "አያይዝ",
+      "edit": "አርትዕ",
+      "delete": "አጥፋ",
+      "view_file": "ፋይል ተመልከት",
+      "page_info": "ገጽ {{page}} ከ {{total}}",
+      "delete_confirm_title": "ግብዓት አጥፋ",
+      "delete_confirm_message": "ይህን ግብዓት መጥፋት እንደሚፈልጉ እርግጠኛ ነዎት? ይህ ተግባር መቀልበስ አይችልም።",
+      "delete_failed": "ግብዓትን መጥፋት አልተቻለም",
+      "delete_success": "ግብዓት ተጥፏል"
+    }
   },
   "teacher_courses_page": {
     "title": "የኮርስ አስተዳደር",

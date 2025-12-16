@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Search, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon, Trash2, Edit2, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Video as VideoIcon, Music } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
 // coursesApi not used; using direct fetch for lesson details
@@ -12,6 +13,7 @@ interface TeacherResourceManagerProps {
 }
 
 const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonId }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [view, setView] = useState<'list' | 'upload'>('list');
   const [resources, setResources] = useState<Resource[]>([]);
@@ -152,15 +154,15 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white rounded-2xl border border-stone-200 shadow-sm p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-stone-900">Upload New Resource</h2>
-            <p className="text-sm text-stone-500 mt-1">Add files to your library or attach directly to this lesson</p>
+            <h2 className="text-xl font-bold text-stone-900">{t('teacher_content.resources.upload_new_title')}</h2>
+            <p className="text-sm text-stone-500 mt-1">{t('teacher_content.resources.upload_new_description')}</p>
           </div>
-          <button 
+          <button
             onClick={() => setView('list')}
             className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors border border-stone-200"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Library
+            {t('teacher_content.resources.back_to_library')}
           </button>
         </div>
         <UploadResource 
@@ -187,10 +189,10 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
             <div className="p-2 bg-emerald-50 rounded-lg">
               <BookOpen className="h-5 w-5 text-emerald-600" />
             </div>
-            Resource Library
+            {t('teacher_content.resources.library_title')}
           </h2>
           <p className="text-sm text-stone-500 mt-1 ml-11">
-            {lessonId ? 'Manage resources for this lesson' : 'Manage your educational materials'}
+            {lessonId ? t('teacher_content.resources.library_description_lesson') : t('teacher_content.resources.library_description_general')}
           </p>
         </div>
         <button

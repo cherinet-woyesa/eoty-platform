@@ -56,7 +56,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
     }
     if (!isAmountValid) {
       setError(t('donation.validation.min_amount', { amount: minDonation }));
-      return;
+        return;
     }
 
     setIsProcessing(true);
@@ -176,7 +176,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
                     {statsError && (
                       <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                         {statsError}
-                      </div>
+                    </div>
                     )}
                  </div>
             </div>
@@ -314,7 +314,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
                     onClick={() => setPaymentMethod('paypal')}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${paymentMethod === 'paypal' ? 'border-indigo-900 bg-indigo-50/30' : 'border-stone-200 hover:border-stone-300'}`}
                   >
-                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3">
                       <span className="font-bold italic text-[#003087]">Pay</span><span className="font-bold italic text-[#009cde]">Pal</span>
                     </div>
                     {paymentMethod === 'paypal' && <Check className="h-5 w-5 text-indigo-900" />}
@@ -421,7 +421,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
                   <div className="mb-4 p-3 bg-amber-50 text-amber-700 text-sm rounded-lg border border-amber-100 flex items-start">
                     <X className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
                     {t('donation.validation.min_amount', { amount: minDonation })}
-                  </div>
+                    </div>
                 )}
 
                 <button
@@ -487,7 +487,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
                 <button className="w-full py-3 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl cursor-not-allowed opacity-70">
                   {t('donation.modal.receipt_email')}
                 </button>
-
+                
                 <button 
                   onClick={() => setShowConfirmation(false)}
                   className="w-full py-3 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 transition-colors"
@@ -541,9 +541,9 @@ const DonationSection = forwardRef<HTMLDivElement>((_props, ref) => {
 
     return (
         <div ref={ref} id="donation-section" data-section-id="donation-section">
-            <Elements stripe={stripePromise}>
+        <Elements stripe={stripePromise}>
                 <DonationForm totalRaised={totalRaised} statsError={statsError} loadingStats={loadingStats} />
-            </Elements>
+        </Elements>
         </div>
     );
 });
