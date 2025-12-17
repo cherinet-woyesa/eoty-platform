@@ -2,515 +2,422 @@ const db = require('../config/database');
 const teacherService = require('../services/teacherService');
 
 exports.getDashboard = async (req, res) => {
-    try {
-      const teacherId = String(req.user.userId);
-      console.log(`Fetching dashboard data for teacher ID: ${teacherId}`);
+  try {
+    const teacherId = String(req.user.userId);
+    console.log(`Fetching dashboard data for teacher ID: ${teacherId}`);
 
-      // Start timing for performance monitoring
-      const startTime = Date.now();
+    // Start timing for performance monitoring
+    const startTime = Date.now();
 
-      // Execute all queries in parallel for better performance
-      const [
-        totalCoursesResult,
-        totalStudentsResult,
-        totalLessonsResult,
-        lessonsThisMonthResult,
-        averageCompletionRateResult,
-        ratingResult
-      ] = await Promise.all([
-        // Total courses created by the teacher
-        db('courses')
-          .where('created_by', teacherId)
-          .count('id as count')
-          .first(),
+    // Execute all queries in parallel for better performance
+    const [
+      totalCoursesResult,
+      totalStudentsResult,
+      totalLessonsResult,
+      lessonsThisMonthResult,
+      averageCompletionRateResult,
+      ratingResult
+    ] = await Promise.all([
+      // Total courses created by the teacher
+      db('courses')
+        .where('created_by', teacherId)
+        .count('id as count')
+        .first(),
 
-        // Total unique students enrolled in the teacher's courses
-        db('user_course_enrollments as uce')
-          .join('courses as c', 'uce.course_id', 'c.id')
-          .where('c.created_by', teacherId)
-          .countDistinct('uce.user_id as count')
-          .first(),
+      // Total unique students enrolled in the teacher's courses
+      db('user_course_enrollments as uce')
+        .join('courses as c', 'uce.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .countDistinct('uce.user_id as count')
+        .first(),
 
-        // Total lessons across all courses created by the teacher
-        db('lessons as l')
-          .join('courses as c', 'l.course_id', 'c.id')
-          .where('c.created_by', teacherId)
-          .count('l.id as count')
-          .first(),
+      // Total lessons across all courses created by the teacher
+      db('lessons as l')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .count('l.id as count')
+        .first(),
 
-        // Lessons recorded this month (for progress on recording page)
-        db('lessons as l')
-          .join('courses as c', 'l.course_id', 'c.id')
-          .where('c.created_by', teacherId)
-          .andWhere('l.created_at', '>=', db.raw("DATE_TRUNC('month', NOW())"))
-          .count('l.id as count')
-          .first(),
+      // Lessons recorded this month (for progress on recording page)
+      db('lessons as l')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .andWhere('l.created_at', '>=', db.raw("DATE_TRUNC('month', NOW())"))
+        .count('l.id as count')
+        .first(),
 
-        // Average completion rate of lessons across all students in the teacher's courses
-        db('user_lesson_progress as ulp')
-          .join('lessons as l', 'ulp.lesson_id', 'l.id')
-          .join('courses as c', 'l.course_id', 'c.id')
-          .where('c.created_by', teacherId)
-          .avg('ulp.progress as average')
-          .first(),
+      // Average completion rate of lessons across all students in the teacher's courses
+      db('user_lesson_progress as ulp')
+        .join('lessons as l', 'ulp.lesson_id', 'l.id')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .avg('ulp.progress as average')
+        .first(),
 
-        // Average course rating across teacher's courses (if ratings exist)
-        db('course_ratings as cr')
-          .join('courses as c', 'cr.course_id', 'c.id')
-          .where('c.created_by', teacherId)
-          .avg('cr.rating as avg')
-          .first()
-          .catch(err => {
-            console.warn('Failed to calculate averageCourseRating:', err.message);
-            return { avg: 0 };
-          })
-      ]);
+      // Average course rating across teacher's courses (if ratings exist)
+      db('course_ratings as cr')
+        .join('courses as c', 'cr.course_id', 'c.id')
+        .where('c.created_by', teacherId)
+        .avg('cr.rating as avg')
+        .first()
+        .catch(err => {
+          console.warn('Failed to calculate averageCourseRating:', err.message);
+          return { avg: 0 };
+        })
+    ]);
 
-      const totalCourses = parseInt(totalCoursesResult.count, 10) || 0;
-      const totalStudentsEnrolled = parseInt(totalStudentsResult.count, 10) || 0;
-      const totalLessons = parseInt(totalLessonsResult.count, 10) || 0;
-      const lessonsRecordedThisMonth = parseInt(lessonsThisMonthResult.count, 10) || 0;
-      const averageCompletionRate = averageCompletionRateResult && averageCompletionRateResult.average ? Math.round(parseFloat(averageCompletionRateResult.average)) : 0;
-      const averageCourseRating = ratingResult && ratingResult.avg ? parseFloat(ratingResult.avg).toFixed(1) : 0;
+    const totalCourses = parseInt(totalCoursesResult.count, 10) || 0;
+    const totalStudentsEnrolled = parseInt(totalStudentsResult.count, 10) || 0;
+    const totalLessons = parseInt(totalLessonsResult.count, 10) || 0;
+    const lessonsRecordedThisMonth = parseInt(lessonsThisMonthResult.count, 10) || 0;
+    const averageCompletionRate = averageCompletionRateResult && averageCompletionRateResult.average ? Math.round(parseFloat(averageCompletionRateResult.average)) : 0;
+    const averageCourseRating = ratingResult && ratingResult.avg ? parseFloat(ratingResult.avg).toFixed(1) : 0;
 
-      // Calculate execution time
-      const executionTime = Date.now() - startTime;
-      console.log(`Dashboard data fetched in ${executionTime}ms for teacher ID: ${teacherId}`);
+    // Calculate execution time
+    const executionTime = Date.now() - startTime;
+    console.log(`Dashboard data fetched in ${executionTime}ms for teacher ID: ${teacherId}`);
 
-      res.json({
-        success: true,
-        data: {
-          totalCourses,
-          totalStudentsEnrolled,
-          totalLessons,
-          averageCompletionRate,
-          lessonsRecordedThisMonth,
-          averageCourseRating,
-          teacherId,
-        },
-      });
-    } catch (error) {
-      console.error('Get teacher dashboard error:', error);
-      res.status(500).json({ success: false, message: 'Failed to fetch teacher dashboard data' });
-    }
+    res.json({
+      success: true,
+      data: {
+        totalCourses,
+        totalStudentsEnrolled,
+        totalLessons,
+        averageCompletionRate,
+        lessonsRecordedThisMonth,
+        averageCourseRating,
+        teacherId,
+      },
+    });
+  } catch (error) {
+    console.error('Get teacher dashboard error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch teacher dashboard data' });
+  }
 };
 
-  // Get all students enrolled in teacher's courses
+// Get all students enrolled in teacher's courses
 exports.getStudents = async (req, res) => {
-    try {
-      const teacherId = String(req.user.userId); // Ensure it's a string since user_id is text
-      const { search, status, courseId, page = 1, limit = 50 } = req.query;
+  try {
+    const teacherId = String(req.user.userId); // Ensure it's a string since user_id is text
+    const { search, status, courseId, page = 1, limit = 50 } = req.query;
 
-      console.log(`[Teacher Students] Fetching students for teacher ID: ${teacherId}`);
+    console.log(`[Teacher Students] Fetching students for teacher ID: ${teacherId}`);
 
-      // First, verify teacher has courses
-      const teacherCourses = await db('courses')
-        .where('created_by', teacherId)
-        .select('id', 'title');
-      
-      console.log(`[Teacher Students] Teacher has ${teacherCourses.length} courses`);
+    // First, verify teacher has courses
+    const teacherCourses = await db('courses')
+      .where('created_by', teacherId)
+      .select('id', 'title');
 
-      if (teacherCourses.length === 0) {
-        return res.json({
-          success: true,
-          data: {
-            students: [],
-            pagination: {
-              page: parseInt(page, 10),
-              limit: parseInt(limit, 10),
-              total: 0,
-              totalPages: 0
-            }
-          }
-        });
-      }
+    console.log(`[Teacher Students] Teacher has ${teacherCourses.length} courses`);
 
-      // Base query: Get all students enrolled in teacher's courses
-      // Join through lessons to get progress (user_lesson_progress has lesson_id, not course_id)
-      let query = db('user_course_enrollments as uce')
-        .join('courses as c', 'uce.course_id', 'c.id')
-        .join('users as u', 'uce.user_id', 'u.id')
-        .leftJoin('lessons as l', 'l.course_id', 'c.id')
-        .leftJoin('user_lesson_progress as ulp', function() {
-          this.on('ulp.user_id', '=', 'u.id')
-            .andOn('ulp.lesson_id', '=', 'l.id');
-        })
-        .where('c.created_by', teacherId)
-        .whereIn('u.role', ['user', 'student'])
-        .groupBy('u.id', 'u.first_name', 'u.last_name', 'u.email', 'u.is_active', 'u.last_login_at', 'u.profile_picture')
-        .select(
-          'u.id',
-          'u.first_name',
-          'u.last_name',
-          'u.email',
-          'u.is_active',
-          'u.last_login_at',
-          'u.profile_picture',
-          db.raw('COUNT(DISTINCT uce.course_id) as enrolled_courses'),
-          db.raw('COALESCE(AVG(ulp.progress), 0) as avg_progress'),
-          db.raw('MAX(ulp.updated_at) as last_progress_at')
-        );
-
-      // Apply filters
-      if (search) {
-        query = query.where(function() {
-          this.where('u.first_name', 'ilike', `%${search}%`)
-            .orWhere('u.last_name', 'ilike', `%${search}%`)
-            .orWhere('u.email', 'ilike', `%${search}%`);
-        });
-      }
-
-      if (status === 'active') {
-        query = query.where('u.is_active', true);
-      } else if (status === 'inactive') {
-        query = query.where('u.is_active', false);
-      }
-
-      if (courseId) {
-        query = query.where('uce.course_id', courseId);
-      }
-
-      // Get total count for pagination - need to count distinct users
-      let countQuery = db('user_course_enrollments as uce')
-        .join('courses as c', 'uce.course_id', 'c.id')
-        .join('users as u', 'uce.user_id', 'u.id')
-        .where('c.created_by', teacherId)
-        .whereIn('u.role', ['user', 'student']);
-
-      // Apply same filters to count query
-      if (search) {
-        countQuery = countQuery.where(function() {
-          this.where('u.first_name', 'ilike', `%${search}%`)
-            .orWhere('u.last_name', 'ilike', `%${search}%`)
-            .orWhere('u.email', 'ilike', `%${search}%`);
-        });
-      }
-
-      if (status === 'active') {
-        countQuery = countQuery.where('u.is_active', true);
-      } else if (status === 'inactive') {
-        countQuery = countQuery.where('u.is_active', false);
-      }
-
-      if (courseId) {
-        countQuery = countQuery.where('uce.course_id', courseId);
-      }
-
-      const totalResult = await countQuery.countDistinct('u.id as total').first();
-      const total = parseInt(totalResult.total, 10);
-
-      // Apply pagination
-      const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
-      query = query.limit(parseInt(limit, 10)).offset(offset);
-
-      // Order by last active
-      query = query.orderBy('u.last_login_at', 'desc');
-
-      const students = await query;
-
-      console.log(`[Teacher Students] Found ${students.length} students`);
-
-      // Format response
-      const formattedStudents = students.map(student => ({
-        id: student.id,
-        firstName: student.first_name,
-        lastName: student.last_name,
-        email: student.email,
-        isActive: student.is_active,
-        lastActiveAt: student.last_login_at,
-        profilePicture: student.profile_picture,
-        enrolledCourses: parseInt(student.enrolled_courses, 10),
-        avgProgress: Math.round(parseFloat(student.avg_progress) || 0),
-        lastProgressAt: student.last_progress_at
-      }));
-
-      res.json({
+    if (teacherCourses.length === 0) {
+      return res.json({
         success: true,
         data: {
-          students: formattedStudents,
+          students: [],
           pagination: {
             page: parseInt(page, 10),
             limit: parseInt(limit, 10),
-            total,
-            totalPages: Math.ceil(total / parseInt(limit, 10))
+            total: 0,
+            totalPages: 0
           }
         }
       });
-    } catch (error) {
-      console.error('Get teacher students error:', error);
-      console.error('Error stack:', error.stack);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to fetch students',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }
+
+    // Base query: Get all students enrolled in teacher's courses
+    // Join through lessons to get progress (user_lesson_progress has lesson_id, not course_id)
+    let query = db('user_course_enrollments as uce')
+      .join('courses as c', 'uce.course_id', 'c.id')
+      .join('users as u', 'uce.user_id', 'u.id')
+      .leftJoin('lessons as l', 'l.course_id', 'c.id')
+      .leftJoin('user_lesson_progress as ulp', function () {
+        this.on('ulp.user_id', '=', 'u.id')
+          .andOn('ulp.lesson_id', '=', 'l.id');
+      })
+      .where('c.created_by', teacherId)
+      .whereIn('u.role', ['user', 'student'])
+      .groupBy('u.id', 'u.first_name', 'u.last_name', 'u.email', 'u.is_active', 'u.last_login_at', 'u.profile_picture')
+      .select(
+        'u.id',
+        'u.first_name',
+        'u.last_name',
+        'u.email',
+        'u.is_active',
+        'u.last_login_at',
+        'u.profile_picture',
+        db.raw('COUNT(DISTINCT uce.course_id) as enrolled_courses'),
+        db.raw('COALESCE(AVG(ulp.progress), 0) as avg_progress'),
+        db.raw('MAX(ulp.updated_at) as last_progress_at')
+      );
+
+    // Apply filters
+    if (search) {
+      query = query.where(function () {
+        this.where('u.first_name', 'ilike', `%${search}%`)
+          .orWhere('u.last_name', 'ilike', `%${search}%`)
+          .orWhere('u.email', 'ilike', `%${search}%`);
       });
     }
+
+    if (status === 'active') {
+      query = query.where('u.is_active', true);
+    } else if (status === 'inactive') {
+      query = query.where('u.is_active', false);
+    }
+
+    if (courseId) {
+      query = query.where('uce.course_id', courseId);
+    }
+
+    // Get total count for pagination - need to count distinct users
+    let countQuery = db('user_course_enrollments as uce')
+      .join('courses as c', 'uce.course_id', 'c.id')
+      .join('users as u', 'uce.user_id', 'u.id')
+      .where('c.created_by', teacherId)
+      .whereIn('u.role', ['user', 'student']);
+
+    // Apply same filters to count query
+    if (search) {
+      countQuery = countQuery.where(function () {
+        this.where('u.first_name', 'ilike', `%${search}%`)
+          .orWhere('u.last_name', 'ilike', `%${search}%`)
+          .orWhere('u.email', 'ilike', `%${search}%`);
+      });
+    }
+
+    if (status === 'active') {
+      countQuery = countQuery.where('u.is_active', true);
+    } else if (status === 'inactive') {
+      countQuery = countQuery.where('u.is_active', false);
+    }
+
+    if (courseId) {
+      countQuery = countQuery.where('uce.course_id', courseId);
+    }
+
+    const totalResult = await countQuery.countDistinct('u.id as total').first();
+    const total = parseInt(totalResult.total, 10);
+
+    // Apply pagination
+    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    query = query.limit(parseInt(limit, 10)).offset(offset);
+
+    // Order by last active
+    query = query.orderBy('u.last_login_at', 'desc');
+
+    const students = await query;
+
+    console.log(`[Teacher Students] Found ${students.length} students`);
+
+    // Format response
+    const formattedStudents = students.map(student => ({
+      id: student.id,
+      firstName: student.first_name,
+      lastName: student.last_name,
+      email: student.email,
+      isActive: student.is_active,
+      lastActiveAt: student.last_login_at,
+      profilePicture: student.profile_picture,
+      enrolledCourses: parseInt(student.enrolled_courses, 10),
+      avgProgress: Math.round(parseFloat(student.avg_progress) || 0),
+      lastProgressAt: student.last_progress_at
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        students: formattedStudents,
+        pagination: {
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit, 10))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get teacher students error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch students',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
 
 exports.getProfile = async (req, res, next) => {
-    try {
-      const userId = req.user.userId;
+  try {
+    const userId = req.user.userId;
     console.log(`[Teacher Profile] Fetching profile for user ID: ${userId}`);
-    
+
     // Get teacher profile
     const teacherProfile = await teacherService.getProfileByUserId(userId);
-    
+
     // Get user basic info
     const db = require('../config/database');
     const userInfo = await db('users')
       .where('id', userId)
       .select('first_name', 'last_name', 'email', 'profile_picture', 'is_active')
-        .first();
+      .first();
 
     if (!teacherProfile || !userInfo) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Teacher profile not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Teacher profile not found'
       });
     }
 
-    // Parse JSON fields
-    const qualifications = (() => {
+    // Helper to safely parse JSON or return original if already object
+    const safeParse = (val, fallback) => {
+      if (!val) return fallback;
+      if (typeof val === 'object') return val;
       try {
-        return Array.isArray(teacherProfile.qualifications)
-          ? teacherProfile.qualifications
-          : JSON.parse(teacherProfile.qualifications || '[]');
+        return JSON.parse(val);
       } catch (e) {
-        console.warn('Failed to parse qualifications:', e);
-        return [];
+        console.warn('JSON parse error:', e);
+        return fallback;
       }
-    })();
-
-    const specializations = (() => {
-      try {
-        return Array.isArray(teacherProfile.specializations)
-          ? teacherProfile.specializations
-          : JSON.parse(teacherProfile.specializations || '[]');
-      } catch (e) {
-        console.warn('Failed to parse specializations:', e);
-        return [];
-      }
-    })();
-
-    const languagesTaught = (() => {
-      try {
-        return Array.isArray(teacherProfile.languages_taught)
-          ? teacherProfile.languages_taught
-          : JSON.parse(teacherProfile.languages_taught || '[]');
-      } catch (e) {
-        console.warn('Failed to parse languages_taught:', e);
-        return [];
-      }
-    })();
-
-    const socialMediaLinks = (() => {
-      try {
-        return typeof teacherProfile.social_media_links === 'object'
-          ? teacherProfile.social_media_links
-          : JSON.parse(teacherProfile.social_media_links || '{}');
-      } catch (e) {
-        console.warn('Failed to parse social_media_links:', e);
-        return {};
-      }
-    })();
-
-    const onboardingStatus = (() => {
-      try {
-        return typeof teacherProfile.onboarding_status === 'object'
-          ? teacherProfile.onboarding_status
-          : JSON.parse(teacherProfile.onboarding_status || '{}');
-      } catch (e) {
-        console.warn('Failed to parse onboarding_status:', e);
-        return {};
-      }
-    })();
-
-    const verificationDocs = (() => {
-      try {
-        return typeof teacherProfile.verification_docs === 'object'
-          ? teacherProfile.verification_docs
-          : JSON.parse(teacherProfile.verification_docs || '{}');
-      } catch (e) {
-        console.warn('Failed to parse verification_docs:', e);
-        return {};
-      }
-    })();
-
-    // Format response for spiritual platform
-    const formattedProfile = {
-      // Basic Info
-      id: teacherProfile.id,
-      userId: teacherProfile.user_id,
-      firstName: userInfo.first_name,
-      lastName: userInfo.last_name,
-      email: userInfo.email,
-      isActive: userInfo.is_active,
-      
-      // Professional Profile
-      bio: teacherProfile.bio || '',
-      experienceYears: teacherProfile.experience_years || 0,
-      profilePictureUrl: teacherProfile.profile_picture_url || userInfo.profile_picture,
-      
-      // Spiritual & Teaching Qualifications
-      qualifications: qualifications.map(qual => ({
-        type: qual.type || 'certification', // 'certification', 'degree', 'spiritual_training', 'ordination'
-        title: qual.title || '',
-        institution: qual.institution || '',
-        year: qual.year || null,
-        description: qual.description || '',
-        documentUrl: qual.document_url || null
-      })),
-      
-      // Specializations (spiritual focus areas)
-      specializations: specializations.map(spec => ({
-        area: spec.area || '',
-        level: spec.level || 'intermediate', // 'beginner', 'intermediate', 'advanced', 'master'
-        description: spec.description || '',
-        yearsExperience: spec.years_experience || 0
-      })),
-      
-      // Languages (for multilingual spiritual teaching)
-      languagesTaught: languagesTaught.map(lang => ({
-        language: lang.language || '',
-        proficiency: lang.proficiency || 'fluent', // 'basic', 'intermediate', 'fluent', 'native'
-        certification: lang.certification || null
-      })),
-      
-      // Ministry/Spiritual Practice
-      spiritualBackground: {
-        tradition: teacherProfile.spiritual_tradition || '',
-        denomination: teacherProfile.denomination || '',
-        ordinationStatus: teacherProfile.ordination_status || null,
-        ministryExperience: teacherProfile.ministry_experience || null
-      },
-      
-      // Teaching Approach
-      teachingApproach: {
-        methodology: teacherProfile.teaching_methodology || '',
-        targetAudience: teacherProfile.target_audience || [],
-        classSize: teacherProfile.preferred_class_size || 'any',
-        teachingStyle: teacherProfile.teaching_style || ''
-      },
-      
-      // Social Media & Outreach
-      socialMediaLinks: {
-        website: socialMediaLinks.website || '',
-        facebook: socialMediaLinks.facebook || '',
-        youtube: socialMediaLinks.youtube || '',
-        instagram: socialMediaLinks.instagram || '',
-        podcast: socialMediaLinks.podcast || '',
-        other: socialMediaLinks.other || {}
-      },
-      
-      // Verification & Status
-      status: teacherProfile.status,
-      onboardingStatus: onboardingStatus,
-      verificationDocs: verificationDocs,
-      
-      // Financial (payout info - only show status, not sensitive details)
-      payoutInfo: {
-        method: teacherProfile.payout_method || null,
-        region: teacherProfile.payout_region || null,
-        taxStatus: teacherProfile.tax_status || null,
-        isComplete: !!(teacherProfile.payout_method && teacherProfile.payout_region)
-      },
-      
-      // Timestamps
-      createdAt: teacherProfile.created_at,
-      updatedAt: teacherProfile.updated_at
     };
 
-    res.status(200).json({ 
-      success: true, 
-      data: { teacherProfile: formattedProfile } 
+    const specializations = safeParse(teacherProfile.specializations, []);
+    const socialMediaLinks = safeParse(teacherProfile.social_media_links, {});
+    const onboardingStatus = safeParse(teacherProfile.onboarding_status, {});
+    const verificationDocs = safeParse(teacherProfile.verification_docs, {});
+    const availability = safeParse(teacherProfile.availability, {});
+    const payoutDetails = safeParse(teacherProfile.payout_details, {});
+
+    // Map specializations to simple subjects array if needed
+    const subjects = array => {
+      if (!Array.isArray(array)) return [];
+      // If it's already an array of strings, return it
+      if (typeof array[0] === 'string') return array;
+      // If it's an array of objects (legacy/spiritual format), map to area name
+      return array.map(item => item.area || item.label || JSON.stringify(item));
+    };
+
+    // Calculate or mock stats (since they might not be stored directly)
+    const stats = {
+      total_students: teacherProfile.total_students || 0,
+      total_earnings: teacherProfile.total_earnings || 0,
+      rating: teacherProfile.rating || 5.0,
+      reviews_count: teacherProfile.reviews_count || 0,
+      ...(typeof teacherProfile.stats === 'object' ? teacherProfile.stats : {})
+    };
+
+    // Format response matching frontend expectations
+    const formattedProfile = {
+      id: teacherProfile.id,
+      userId: teacherProfile.user_id,
+      bio: teacherProfile.bio || '',
+      experience_years: teacherProfile.experience_years || 0,
+      profile_picture: teacherProfile.profile_picture_url || userInfo.profile_picture,
+
+      // Navigation/Display fields
+      subjects: subjects(specializations),
+      specializations: specializations, // Keep original for reference
+
+      // Social
+      linkedin_url: teacherProfile.linkedin_url || socialMediaLinks.linkedin || '',
+      website_url: teacherProfile.website_url || socialMediaLinks.website || '',
+      social_media_links: socialMediaLinks,
+
+      // Settings & Status
+      onboarding_status: onboardingStatus,
+      verification_docs: verificationDocs,
+      availability: availability,
+
+      // Payout
+      payout_method: teacherProfile.payout_method,
+      payout_region: teacherProfile.payout_region,
+      payout_details: payoutDetails,
+      tax_status: teacherProfile.tax_status,
+
+      // Dashboard Stats
+      stats: stats
+    };
+
+    res.status(200).json({
+      success: true,
+      teacherProfile: formattedProfile
     });
-    
-    } catch (error) {
+
+  } catch (error) {
     console.error('[Teacher Profile] Error fetching profile:', error);
     next(error);
-    }
+  }
 };
 
 exports.updateProfile = async (req, res, next) => {
-    try {
-      const userId = req.user.userId;
+  try {
+    const userId = req.user.userId;
     const updateData = req.body;
-    
+
     console.log(`[Teacher Profile] Updating profile for user ID: ${userId}`);
-    
-    // Validate and structure the update data for spiritual platform
-    const structuredUpdateData = {
-      // Basic Profile
+
+    // Structure update data for backend service
+    // We map frontend fields to backend schema
+    const backendUpdateData = {
       bio: updateData.bio,
       experience_years: updateData.experienceYears,
-      profile_picture_url: updateData.profilePictureUrl,
-      
-      // Spiritual Background
-      spiritual_tradition: updateData.spiritualBackground?.tradition,
-      denomination: updateData.spiritualBackground?.denomination,
-      ordination_status: updateData.spiritualBackground?.ordinationStatus,
-      ministry_experience: updateData.spiritualBackground?.ministryExperience,
-      
-      // Teaching Approach
-      teaching_methodology: updateData.teachingApproach?.methodology,
-      target_audience: updateData.teachingApproach?.targetAudience || [],
-      preferred_class_size: updateData.teachingApproach?.classSize,
-      teaching_style: updateData.teachingApproach?.teachingStyle,
-      
-      // Qualifications (format for storage)
-      qualifications: updateData.qualifications?.map(qual => ({
-        type: qual.type,
-        title: qual.title,
-        institution: qual.institution,
-        year: qual.year,
-        description: qual.description,
-        document_url: qual.documentUrl
-      })) || [],
-      
-      // Specializations
-      specializations: updateData.specializations?.map(spec => ({
-        area: spec.area,
-        level: spec.level,
-        description: spec.description,
-        years_experience: spec.yearsExperience
-      })) || [],
-      
-      // Languages
-      languages_taught: updateData.languagesTaught?.map(lang => ({
-        language: lang.language,
-        proficiency: lang.proficiency,
-        certification: lang.certification
-      })) || [],
-      
-      // Social Media
+      profile_picture_url: updateData.profile_picture || updateData.profilePictureUrl,
+
+      // Handle subjects/specializations
+      // If sending simple string array (from subject editor), save as specializations
+      specializations: updateData.specializations || updateData.subjects,
+
+      // Social
+      linkedin_url: updateData.linkedin_url,
+      website_url: updateData.website_url,
       social_media_links: {
-        website: updateData.socialMediaLinks?.website,
-        facebook: updateData.socialMediaLinks?.facebook,
-        youtube: updateData.socialMediaLinks?.youtube,
-        instagram: updateData.socialMediaLinks?.instagram,
-        podcast: updateData.socialMediaLinks?.podcast,
-        other: updateData.socialMediaLinks?.other
+        linkedin: updateData.linkedin_url,
+        website: updateData.website_url,
+        ...updateData.social_media_links
       },
-      
-      // Onboarding and verification (if provided)
-      onboardingStatus: updateData.onboardingStatus,
-      verificationDocs: updateData.verificationDocs
+
+      // Availability
+      availability: updateData.availability,
+
+      // Status & verification
+      onboardingStatus: updateData.onboarding_status || updateData.onboardingStatus,
+      verificationDocs: updateData.verification_docs || updateData.verificationDocs,
+
+      // Payout (pass through to service)
+      payoutMethod: updateData.payout_method,
+      payoutRegion: updateData.payout_region,
+      payoutDetails: updateData.payout_details,
+      taxStatus: updateData.tax_status
     };
-    
+
     // Remove undefined values
-    Object.keys(structuredUpdateData).forEach(key => {
-      if (structuredUpdateData[key] === undefined) {
-        delete structuredUpdateData[key];
+    Object.keys(backendUpdateData).forEach(key => {
+      if (backendUpdateData[key] === undefined) {
+        delete backendUpdateData[key];
       }
     });
-    
-    const updatedProfile = await teacherService.updateProfileByUserId(userId, structuredUpdateData);
-    
-    // Return the formatted profile
+
+    // Stringify complex objects that are stored as JSON strings in standard TEXT columns
+    // (Note: teacherService might handle some of this, but we ensure consistency)
+    if (backendUpdateData.availability && typeof backendUpdateData.availability === 'object') {
+      backendUpdateData.availability = JSON.stringify(backendUpdateData.availability);
+    }
+    if (backendUpdateData.specializations && typeof backendUpdateData.specializations === 'object') {
+      backendUpdateData.specializations = JSON.stringify(backendUpdateData.specializations);
+    }
+    if (backendUpdateData.social_media_links && typeof backendUpdateData.social_media_links === 'object') {
+      backendUpdateData.social_media_links = JSON.stringify(backendUpdateData.social_media_links);
+    }
+
+    const updatedProfile = await teacherService.updateProfileByUserId(userId, backendUpdateData);
+
+    // Return the updated profile using the same format as getProfile
+    // To ensure consistency, we just call getProfile's logic or re-format
+    // For simplicity, we trigger a fetch
     return exports.getProfile(req, res, next);
-    
-    } catch (error) {
+
+  } catch (error) {
     console.error('[Teacher Profile] Error updating profile:', error);
     next(error);
   }
@@ -522,7 +429,7 @@ exports.uploadDocument = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No file uploaded.' });
     }
     const { documentType } = req.body;
-    const document = await teacherService.uploadDocument(req.user.id, req.file, documentType);
+    const document = await teacherService.uploadDocument(req.user.userId, req.file, documentType);
     res.status(200).json({ success: true, data: { documentUrl: document.file_url } });
   } catch (error) {
     next(error);
@@ -531,7 +438,7 @@ exports.uploadDocument = async (req, res, next) => {
 
 exports.getDocuments = async (req, res, next) => {
   try {
-    const documents = await teacherService.getDocumentsByUserId(req.user.id);
+    const documents = await teacherService.getDocumentsByUserId(req.user.userId);
     res.status(200).json({ success: true, data: { documents } });
   } catch (error) {
     next(error);
@@ -540,7 +447,7 @@ exports.getDocuments = async (req, res, next) => {
 
 exports.getDocumentById = async (req, res, next) => {
   try {
-    const document = await teacherService.getDocumentById(req.user.id, req.params.id);
+    const document = await teacherService.getDocumentById(req.user.userId, req.params.id);
     res.status(200).json({ success: true, data: { document } });
   } catch (error) {
     next(error);
@@ -549,7 +456,7 @@ exports.getDocumentById = async (req, res, next) => {
 
 exports.deleteDocument = async (req, res, next) => {
   try {
-    await teacherService.deleteDocument(req.user.id, req.params.id);
+    await teacherService.deleteDocument(req.user.userId, req.params.id);
     res.status(200).json({ success: true, message: 'Document deleted successfully.' });
   } catch (error) {
     next(error);
@@ -558,7 +465,7 @@ exports.deleteDocument = async (req, res, next) => {
 
 exports.getPayoutDetails = async (req, res, next) => {
   try {
-    const payoutDetails = await teacherService.getPayoutDetailsByUserId(req.user.id);
+    const payoutDetails = await teacherService.getPayoutDetailsByUserId(req.user.userId);
     res.status(200).json({ success: true, data: { payoutDetails } });
   } catch (error) {
     next(error);
@@ -567,7 +474,7 @@ exports.getPayoutDetails = async (req, res, next) => {
 
 exports.updatePayoutDetails = async (req, res, next) => {
   try {
-    const updatedPayoutDetails = await teacherService.updatePayoutDetailsByUserId(req.user.id, req.body);
+    const updatedPayoutDetails = await teacherService.updatePayoutDetailsByUserId(req.user.userId, req.body);
     res.status(200).json({ success: true, data: { payoutDetails: updatedPayoutDetails } });
   } catch (error) {
     next(error);
@@ -576,8 +483,8 @@ exports.updatePayoutDetails = async (req, res, next) => {
 
 // Get teacher statistics (students, courses, ratings, earnings)
 exports.getTeacherStats = async (req, res) => {
-    try {
-      const teacherId = String(req.user.userId);
+  try {
+    const teacherId = String(req.user.userId);
     console.log(`Fetching comprehensive teacher stats for teacher ID: ${teacherId}`);
 
     // Get detailed statistics in parallel
@@ -664,30 +571,30 @@ exports.getTeacherStats = async (req, res) => {
           uce.user_id as student_id
         `)
       )
-      .from('user_course_enrollments as uce')
-      .join('courses as c', 'uce.course_id', 'c.id')
-      .join('users as u', 'uce.user_id', 'u.id')
-      .where('c.created_by', teacherId)
-      .where('uce.enrolled_at', '>=', db.raw("NOW() - INTERVAL '30 days'"))
-      .union([
-        db.select(
-          db.raw(`
+        .from('user_course_enrollments as uce')
+        .join('courses as c', 'uce.course_id', 'c.id')
+        .join('users as u', 'uce.user_id', 'u.id')
+        .where('c.created_by', teacherId)
+        .where('uce.enrolled_at', '>=', db.raw("NOW() - INTERVAL '30 days'"))
+        .union([
+          db.select(
+            db.raw(`
             'completion' as type,
             uce.completed_at as date,
             CONCAT(u.first_name, ' ', u.last_name) as description,
             c.title as course_title,
             uce.user_id as student_id
           `)
-        )
-        .from('user_course_enrollments as uce')
-        .join('courses as c', 'uce.course_id', 'c.id')
-        .join('users as u', 'uce.user_id', 'u.id')
-        .where('c.created_by', teacherId)
-        .where('uce.completed_at', '>=', db.raw("NOW() - INTERVAL '30 days'"))
-        .whereNotNull('uce.completed_at')
-      ])
-      .orderBy('date', 'desc')
-      .limit(10),
+          )
+            .from('user_course_enrollments as uce')
+            .join('courses as c', 'uce.course_id', 'c.id')
+            .join('users as u', 'uce.user_id', 'u.id')
+            .where('c.created_by', teacherId)
+            .where('uce.completed_at', '>=', db.raw("NOW() - INTERVAL '30 days'"))
+            .whereNotNull('uce.completed_at')
+        ])
+        .orderBy('date', 'desc')
+        .limit(10),
 
       // Earnings data (placeholder for now)
       db.select(
@@ -791,7 +698,7 @@ exports.getTeacherStats = async (req, res) => {
   } catch (error) {
     console.error('Get teacher comprehensive stats error:', error);
     res.status(500).json({
-          success: false,
+      success: false,
       message: 'Failed to fetch teacher statistics'
     });
   }
@@ -802,7 +709,7 @@ exports.getEarningsAnalytics = async (req, res) => {
   try {
     const teacherId = String(req.user.userId);
     const { period = 'month' } = req.query; // 'week', 'month', 'year', 'all'
-    
+
     let dateFilter = '';
     switch (period) {
       case 'week':
@@ -869,10 +776,10 @@ exports.getRecentActivity = async (req, res) => {
     // Recent lessons created
     const lessonActivity = await db('lessons as l')
       .join('courses as c', 'l.course_id', 'c.id')
-        .where('c.created_by', teacherId)
+      .where('c.created_by', teacherId)
       .orderBy('l.created_at', 'desc')
       .limit(limit)
-        .select(
+      .select(
         'l.id as entity_id',
         'l.title',
         'l.created_at as timestamp',
@@ -882,12 +789,12 @@ exports.getRecentActivity = async (req, res) => {
 
     // Recent enrollments into teacher courses
     const enrollmentActivity = await db('user_course_enrollments as uce')
-        .join('courses as c', 'uce.course_id', 'c.id')
+      .join('courses as c', 'uce.course_id', 'c.id')
       .join('users as u', 'uce.user_id', 'u.id')
-        .where('c.created_by', teacherId)
+      .where('c.created_by', teacherId)
       .orderBy('uce.enrolled_at', 'desc')
       .limit(limit)
-        .select(
+      .select(
         'uce.course_id as entity_id',
         db.raw("CONCAT(u.first_name, ' ', u.last_name) as title"),
         'uce.enrolled_at as timestamp',
@@ -926,19 +833,19 @@ exports.getRecentActivity = async (req, res) => {
 
     const paged = combined.slice(offset, offset + limit);
 
-      res.json({
-        success: true,
-        data: {
+    res.json({
+      success: true,
+      data: {
         activities: paged,
         pagination: {
           page,
           limit,
           total: combined.length,
           pages: Math.ceil(combined.length / limit)
-          }
         }
-      });
-    } catch (error) {
+      }
+    });
+  } catch (error) {
     console.error('Get recent activity error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch activity' });
   }
@@ -1159,7 +1066,7 @@ exports.exportTasks = async (req, res) => {
 exports.getStudentAnalytics = async (req, res) => {
   try {
     const teacherId = String(req.user.userId);
-    
+
     const studentData = await db.raw(`
       SELECT 
         COUNT(DISTINCT uce.user_id) as total_students,
@@ -1193,7 +1100,7 @@ exports.updateSocialLinks = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { website_url, twitter_url, linkedin_url, facebook_url, instagram_url } = req.body;
-    
+
     await db('users')
       .where('id', userId)
       .update({
@@ -1204,12 +1111,12 @@ exports.updateSocialLinks = async (req, res) => {
         instagram_url,
         updated_at: new Date()
       });
-    
+
     const updated = await db('users')
       .where('id', userId)
       .select('website_url', 'twitter_url', 'linkedin_url', 'facebook_url', 'instagram_url')
       .first();
-    
+
     res.json({
       success: true,
       data: { socialLinks: updated }
@@ -1226,21 +1133,21 @@ exports.addCertification = async (req, res) => {
     const userId = req.user.userId;
     const { title, institution, year, description } = req.body;
     let documentUrl = null;
-    
+
     if (req.file) {
       // File upload handled by multer middleware
       documentUrl = req.file.path || req.file.location;
     }
-    
+
     const user = await db('users').where('id', userId).first();
     let certifications = [];
-    
+
     try {
       certifications = user.certifications ? JSON.parse(user.certifications) : [];
     } catch (e) {
       certifications = Array.isArray(user.certifications) ? user.certifications : [];
     }
-    
+
     const newCert = {
       id: Date.now(),
       title,
@@ -1250,16 +1157,16 @@ exports.addCertification = async (req, res) => {
       documentUrl,
       createdAt: new Date().toISOString()
     };
-    
+
     certifications.push(newCert);
-    
+
     await db('users')
       .where('id', userId)
       .update({
         certifications: JSON.stringify(certifications),
         updated_at: new Date()
       });
-    
+
     res.json({
       success: true,
       data: { certification: newCert }
@@ -1275,25 +1182,25 @@ exports.deleteCertification = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
-    
+
     const user = await db('users').where('id', userId).first();
     let certifications = [];
-    
+
     try {
       certifications = user.certifications ? JSON.parse(user.certifications) : [];
     } catch (e) {
       certifications = Array.isArray(user.certifications) ? user.certifications : [];
     }
-    
+
     certifications = certifications.filter(cert => cert.id !== parseInt(id, 10));
-    
+
     await db('users')
       .where('id', userId)
       .update({
         certifications: JSON.stringify(certifications),
         updated_at: new Date()
       });
-    
+
     res.json({
       success: true,
       message: 'Certification deleted successfully'
@@ -1308,16 +1215,16 @@ exports.deleteCertification = async (req, res) => {
 exports.getCertifications = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
+
     const user = await db('users').where('id', userId).select('certifications').first();
     let certifications = [];
-    
+
     try {
       certifications = user.certifications ? JSON.parse(user.certifications) : [];
     } catch (e) {
       certifications = Array.isArray(user.certifications) ? user.certifications : [];
     }
-    
+
     res.json({
       success: true,
       data: { certifications }

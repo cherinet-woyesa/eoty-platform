@@ -93,8 +93,14 @@ const upload = multer({
     } else if (file.mimetype.startsWith('text/') || file.mimetype === 'application/x-subrip') {
       // Use subtitle filter
       createFileFilter(ALLOWED_SUBTITLE_TYPES, 'subtitle')(req, file, cb);
+    } else if (file.mimetype.startsWith('image/')) {
+      // Use image filter
+      createFileFilter(ALLOWED_IMAGE_TYPES, 'image')(req, file, cb);
+    } else if (ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
+      // Use document filter
+      createFileFilter(ALLOWED_DOCUMENT_TYPES, 'document')(req, file, cb);
     } else {
-      cb(new Error('Only video and subtitle files are allowed!'), false);
+      cb(new Error('Invalid file type. Allowed: Video, Subtitle, Image, Document'), false);
     }
   },
   limits: {

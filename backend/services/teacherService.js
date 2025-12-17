@@ -1,5 +1,8 @@
 const knex = require('../config/database');
-const { uploadFile, deleteFile } = require('../config/cloudStorage');
+const gcsService = require('./gcsService');
+const { deleteFile: deleteFromS3 } = require('../config/cloudStorage');
+const path = require('path');
+const fs = require('fs');
 const encrypt = require('../utils/encryption');
 const decrypt = require('../utils/decryption');
 
@@ -18,7 +21,7 @@ const teacherService = {
   },
 
   async updateProfileByUserId(userId, profileData) {
-    const { onboardingStatus, verificationDocs, payoutRegion, payoutMethod, payoutDetails, taxStatus, ...restOfProfileData } = profileData;
+    const { onboardingStatus, verificationDocs, payoutRegion, payoutMethod, payoutDetails, taxStatus, linkedin_url, website_url, ...restOfProfileData } = profileData;
 
     const updateData = {
       ...restOfProfileData,
@@ -59,8 +62,23 @@ const teacherService = {
     const teacherProfile = await this.getProfileByUserId(userId);
     const teacherId = teacherProfile.id;
 
-    const s3Key = `teacher_documents/${teacherId}/${documentType}-${Date.now()}-${file.originalname}`;
-    const fileUrl = await uploadFile(file.buffer, s3Key, file.mimetype);
+    // Upload to Google Cloud Storage (preferred)
+    const folder = `teacher_documents/${teacherId}`;
+    const targetBucket = process.env.GCS_DOCUMENT_BUCKET || 'eoty-platform-documents';
+    let fileUrl;
+    try {
+      fileUrl = await gcsService.uploadFile(file, folder, targetBucket);
+    } catch (e) {
+      // Fallback to local filesystem if GCS is not available
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      const safeName = `${documentType}-${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const relPath = path.join('teacher_documents', String(teacherId), safeName);
+      const absPath = path.join(uploadsDir, relPath);
+      const dir = path.dirname(absPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(absPath, file.buffer);
+      fileUrl = `/uploads/${relPath.replace(/\\/g, '/')}`;
+    }
 
     const newDocument = {
       teacher_id: teacherId,
@@ -68,7 +86,7 @@ const teacherService = {
       file_url: fileUrl,
       file_name: file.originalname,
       mime_type: file.mimetype,
-      status: 'PENDING_REVIEW', // Default status
+      status: 'pending_review', // Default status
       uploaded_at: knex.fn.now(),
     };
 
@@ -102,9 +120,26 @@ const teacherService = {
       throw new Error('Document not found.');
     }
 
-    // Delete from S3
-    const s3Key = document.file_url.split('.com/')[1]; // Extract key from URL
-    await deleteFile(s3Key);
+    // Delete from appropriate storage based on URL
+    const url = document.file_url || '';
+    try {
+      if (url.startsWith('https://storage.googleapis.com/')) {
+        // GCS cleanup
+        await gcsService.deleteByPublicUrl(url);
+      } else if (url.startsWith('/uploads/')) {
+        // Local file cleanup
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        const rel = url.replace('/uploads/', '');
+        const abs = path.join(uploadsDir, rel);
+        if (fs.existsSync(abs)) fs.unlinkSync(abs);
+      } else if (url.includes('.amazonaws.com/')) {
+        // Legacy S3 cleanup (best-effort)
+        const parts = url.split('.com/');
+        if (parts[1]) await deleteFromS3(parts[1]);
+      }
+    } catch (e) {
+      console.warn('Document storage delete warning:', e.message);
+    }
 
     await knex(TEACHER_DOCUMENTS_TABLE).where({ id: documentId }).del();
     return { message: 'Document deleted successfully.' };

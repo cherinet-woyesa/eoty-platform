@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/context/AuthContext';
 import teacherApi from '@/services/api/teacherApi';
+import { authApi } from '@/services/api';
 import type { TeacherProfile as TeacherProfileType, TeacherStats } from '@/services/api/teacherApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +46,7 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
           className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           value={newItem}
           onChange={e => setNewItem(e.target.value)}
-          placeholder={t('teacher_profile.subjects.placeholder', 'Add a subject (e.g. Mathematics)')}
+          placeholder={t('teacher_profile.subjects.placeholder', 'Add a subject (e.g. Liturgy, Bible Study, Church History)')}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && newItem.trim() && items.length < 5 && newItem.trim().length <= 50) {
               const updated = [...items, newItem.trim()].filter(Boolean); setItems(updated); onSave(updated);
@@ -53,7 +54,8 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
           }}
         />
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors font-medium"
+          className="px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-colors font-medium"
+          style={{ backgroundColor: brandColors.primaryHex }}
           disabled={!newItem.trim() || items.length >= 5 || newItem.trim().length > 50}
           onClick={() => { const updated = [...items, newItem.trim()].filter(Boolean); setItems(updated); setNewItem(''); onSave(updated); }}
         >
@@ -62,8 +64,9 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((s, idx) => (
-          <div key={idx} className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 group hover:border-blue-200 transition-colors">
-            <span className="text-slate-700 text-sm font-medium">{s}</span>
+          <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border group transition-colors"
+               style={{ backgroundColor: '#eef2ff', borderColor: brandColors.primaryHex }}>
+            <span className="text-sm font-medium" style={{ color: brandColors.primaryHex }}>{s}</span>
             <button
               className="text-slate-400 hover:text-red-600 transition-colors p-0.5 rounded-full hover:bg-red-50"
               onClick={() => { const updated = items.filter((_, i) => i !== idx); setItems(updated); onSave(updated); }}
@@ -74,10 +77,10 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
           </div>
         ))}
         {items.length === 0 && (
-          <p className="text-sm text-slate-500 italic w-full">No subjects added yet.</p>
+          <p className="text-sm text-slate-500 italic w-full">{t('teacher_profile.subjects.no_subjects', 'No subjects added yet.')}</p>
         )}
       </div>
-      <p className="text-xs text-slate-400 mt-2">Maximum 5 subjects.</p>
+      <p className="text-xs text-slate-400 mt-2">{t('teacher_profile.subjects.max_subjects', 'Maximum 5 subjects.')}</p>
     </div>
   );
 };
@@ -135,7 +138,7 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
       {days.map(day => (
         <div key={day} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
           <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-slate-800">{day}</span>
+            <span className="font-semibold text-slate-800">{t(`teacher_profile.availability.days.${day}`, day)}</span>
             {activeDay !== day && (
               <button
                 className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md font-medium transition-colors"
@@ -145,7 +148,7 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
                   setNewTimeEnd('');
                 }}
               >
-                Add Slot
+                {t('teacher_profile.availability.add_slot', 'Add Slot')}
               </button>
             )}
           </div>
@@ -172,13 +175,13 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
                   onClick={() => handleAddSlot(day)}
                   className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Save
+                  {t('teacher_profile.availability.save', 'Save')}
                 </button>
                 <button
                   onClick={() => setActiveDay(null)}
                   className="px-3 py-1 text-xs bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
                 >
-                  Cancel
+                  {t('teacher_profile.availability.cancel', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -186,7 +189,7 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
 
           <ul className="space-y-2">
             {(slots[day] || []).length === 0 && activeDay !== day && (
-              <li className="text-xs text-slate-400 italic">No availability set</li>
+              <li className="text-xs text-slate-400 italic">{t('teacher_profile.availability.no_availability', 'No availability set')}</li>
             )}
             {(slots[day] || []).map((s, idx) => (
               <li key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-slate-100">
@@ -212,9 +215,11 @@ const DashboardView: React.FC<{
   profile: TeacherProfileData;
   onNavigate: (view: 'dashboard' | 'payout' | 'verification' | 'statistics' | 'security' | 'notifications') => void;
   onUpdate: (data: Partial<TeacherProfileType>) => Promise<void>;
-}> = ({ user, profile, onNavigate, onUpdate }) => {
+  onAvatarUpdated?: () => Promise<void>;
+}> = ({ user, profile, onNavigate, onUpdate, onAvatarUpdated }) => {
   const { t } = useTranslation();
   const { showNotification } = useNotification();
+  const queryClient = useQueryClient();
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -234,7 +239,7 @@ const DashboardView: React.FC<{
     if (profile && !hasChanges) {
       setFormData({
         bio: profile.bio || '',
-        subjects: profile.subjects || profile.specializations || [],
+        subjects: profile.subjects || [],
         linkedin_url: profile.linkedin_url || '',
         website_url: profile.website_url || ''
       });
@@ -247,13 +252,18 @@ const DashboardView: React.FC<{
       // Construct payload handling nested structures
       const payload: Partial<TeacherProfileType> = {
         bio: formData.bio,
-        // Map local 'subjects' to backend 'specializations' if that's the preferred field
-        specializations: formData.subjects,
+        subjects: formData.subjects,
         linkedin_url: formData.linkedin_url,
         website_url: formData.website_url
       };
 
-      await onUpdate(payload);
+      const result = await onUpdate(payload);
+      // Optimistically merge into cache so values persist immediately
+      queryClient.setQueryData(['teacher-profile'], (prev: any) => ({
+        ...(prev || {}),
+        ...((result && typeof result === 'object') ? result : {}),
+        ...payload
+      }));
       setHasChanges(false);
       showNotification({
         title: t('common.success', 'Success'),
@@ -278,10 +288,10 @@ const DashboardView: React.FC<{
   };
 
   const stats = [
-    { label: t('teacher_profile.dashboard.total_students', 'Total Students'), value: profile.stats?.total_students || 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: t('teacher_profile.dashboard.total_earnings', 'Total Earnings'), value: `$${profile.stats?.total_earnings || 0}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: t('teacher_profile.dashboard.rating', 'Rating'), value: profile.stats?.rating || 4.8, icon: Star, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-    { label: t('teacher_profile.dashboard.reviews', 'Reviews'), value: profile.stats?.reviews_count || 0, icon: MessageSquare, color: 'text-purple-600', bg: 'bg-purple-50' }
+    { label: t('teacher_profile.dashboard.total_students', 'Total Students'), value: profile.stats?.total_students || 0, icon: Users },
+    { label: t('teacher_profile.dashboard.total_earnings', 'Total Earnings'), value: `$${profile.stats?.total_earnings || 0}`, icon: DollarSign },
+    { label: t('teacher_profile.dashboard.rating', 'Rating'), value: profile.stats?.rating || 4.8, icon: Star },
+    { label: t('teacher_profile.dashboard.reviews', 'Reviews'), value: profile.stats?.reviews_count || 0, icon: MessageSquare }
   ];
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,15 +312,50 @@ const DashboardView: React.FC<{
       };
       reader.readAsDataURL(file);
 
-      // Simulate upload
-      // const formData = new FormData();
-      // formData.append('avatar', file);
-      // await onUpdate({ avatar: 'new-url' });
-      showNotification({
-        title: t('common.success', 'Success'),
-        message: t('teacher_profile.avatar_updated', 'Profile picture updated'),
-        type: 'success'
-      });
+      try {
+        // Prefer the same API the student profile uses for consistency
+        const response = await authApi.uploadProfileImage(file);
+        const newUrl: string | undefined = response?.data?.profilePicture
+          || response?.profilePicture
+          // Fallbacks if backend returns a different shape
+          || response?.data?.documentUrl
+          || response?.documentUrl
+          || response?.file_url
+          || response?.fileUrl
+          || response?.url
+          || response?.path;
+
+        if (newUrl) {
+          // Update teacher profile record as well to keep it in sync
+          await onUpdate({ profile_picture: newUrl });
+          setPreviewAvatar(newUrl);
+
+          // Refresh global user contexts so header/profile menu updates immediately
+          if (onAvatarUpdated) {
+            try {
+              await onAvatarUpdated();
+            } catch (e) {
+              console.warn('Avatar updated, but failed to refresh user contexts:', e);
+            }
+          }
+
+          showNotification({
+            title: t('common.success', 'Success'),
+            message: t('teacher_profile.avatar_updated', 'Profile picture updated'),
+            type: 'success'
+          });
+        } else {
+          throw new Error('No image URL returned');
+        }
+      } catch (error) {
+        console.error('Failed to upload avatar:', error);
+        setPreviewAvatar(null); // Revert preview on error
+        showNotification({
+          title: t('common.error', 'Error'),
+          message: t('teacher_profile.avatar_upload_failed', 'Failed to upload profile picture'),
+          type: 'error'
+        });
+      }
     }
   };
 
@@ -384,8 +429,8 @@ const DashboardView: React.FC<{
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map((stat, idx) => (
             <div key={idx} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
-              <div className={`p-3 rounded-full mb-3 ${stat.bg}`}>
-                <stat.icon className={`h-6 w-6 ${stat.color}`} />
+              <div className="p-3 rounded-full mb-3" style={{ backgroundColor: '#eef2ff' }}>
+                <stat.icon className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
               </div>
               <div className="text-2xl font-bold text-slate-900 font-mono mb-1">{stat.value}</div>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{stat.label}</div>
@@ -394,32 +439,12 @@ const DashboardView: React.FC<{
         </div>
 
         {/* Profile Settings Section */}
-        <div id="bio-section" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <div id="bio-section" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 p-6 flex justify-between items-center">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <User className="h-5 w-5 text-blue-600" />
               {t('teacher_profile.profile_details', 'Profile Details')}
             </h3>
-            <button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${hasChanges
-                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                }`}
-            >
-              {isSaving ? (
-                <>
-                  <LoadingSpinner size="sm" color="white" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
           </div>
 
           <div className="p-6 space-y-8">
@@ -449,7 +474,7 @@ const DashboardView: React.FC<{
             {/* Social Links */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-900 mb-2">LinkedIn Profile</label>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.social.linkedin', 'LinkedIn Profile')}</label>
                 <div className="flex items-center">
                   <span className="bg-slate-100 px-3 py-2 border border-slate-300 border-r-0 rounded-l-lg text-slate-500 text-sm">linkedin.com/in/</span>
                   <input
@@ -461,7 +486,7 @@ const DashboardView: React.FC<{
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-900 mb-2">Website</label>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.social.website', 'Website')}</label>
                 <div className="flex items-center">
                   <span className="bg-slate-100 px-3 py-2 border border-slate-300 border-r-0 rounded-l-lg text-slate-500 text-sm">https://</span>
                   <input
@@ -473,6 +498,28 @@ const DashboardView: React.FC<{
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-100 bg-slate-50">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg font-semibold text-white shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: brandColors.primaryHex }}
+            >
+              {isSaving ? (
+                <>
+                  <LoadingSpinner size="sm" color="white" />
+                  <span>{t('teacher_profile.payout_setup.saving_btn', 'Saving...')}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>{t('common.save_changes', 'Save Changes')}</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -517,10 +564,10 @@ const DashboardView: React.FC<{
         {/* Regional Resources */}
         < div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-xl shadow-md p-6 text-white relative overflow-hidden" >
           <div className="relative z-10">
-            <h3 className="font-bold text-lg mb-2">Regional Resources</h3>
-            <p className="text-blue-100 text-sm mb-4">Access guides and tools specific to your teaching region.</p>
+            <h3 className="font-bold text-lg mb-2">{t('teacher_profile.regional_resources.title', 'Regional Resources')}</h3>
+            <p className="text-blue-100 text-sm mb-4">{t('teacher_profile.regional_resources.description', 'Access guides and tools specific to your teaching region.')}</p>
             <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-sm font-semibold transition-colors">
-              View Resources
+              {t('teacher_profile.regional_resources.view_btn', 'View Resources')}
             </button>
           </div>
         </div >
@@ -540,6 +587,7 @@ const PayoutView: React.FC<{
   const [formData, setFormData] = useState({
     payout_method: profile.payout_method || 'bank',
     payout_region: profile.payout_region || 'US',
+    mobile_provider: (profile as any)?.payout_details?.mobile_provider || '',
     account_holder: profile.payout_details?.account_holder || '',
     account_number: profile.payout_details?.account_number || '',
     routing_number: profile.payout_details?.routing_number || '',
@@ -566,18 +614,23 @@ const PayoutView: React.FC<{
     e.preventDefault();
 
     // Validation
-    if (!formData.account_holder.trim()) {
+    if (formData.payout_method !== 'stripe' && !formData.account_holder.trim()) {
       showNotification({ title: t('common.warning', 'Warning'), message: t('teacher_profile.payout_account_holder_required', 'Account holder name is required'), type: 'warning' });
       return;
     }
 
-    if (!formData.account_number.trim()) {
+    if (formData.payout_method !== 'stripe' && !formData.account_number.trim()) {
       showNotification({ title: t('common.warning', 'Warning'), message: t('teacher_profile.payout_account_number_required', 'Account number is required'), type: 'warning' });
       return;
     }
 
     if (formData.payout_method === 'bank' && !formData.routing_number.trim()) {
       showNotification({ title: t('common.warning', 'Warning'), message: t('teacher_profile.payout_routing_required', 'Routing number is required for bank transfers'), type: 'warning' });
+      return;
+    }
+
+    if (formData.payout_method === 'mobile_money' && !formData.mobile_provider) {
+      showNotification({ title: t('common.warning', 'Warning'), message: t('teacher_profile.mobile_money_provider_required', 'Please select a mobile money provider'), type: 'warning' });
       return;
     }
 
@@ -613,9 +666,10 @@ const PayoutView: React.FC<{
       payout_method: formData.payout_method,
       payout_region: formData.payout_region,
       payout_details: {
-        account_holder: formData.account_holder.trim(),
-        account_number: formData.account_number.trim(),
-        routing_number: formData.routing_number.trim(),
+        account_holder: formData.payout_method === 'stripe' ? undefined : formData.account_holder.trim(),
+        account_number: formData.payout_method === 'stripe' ? undefined : formData.account_number.trim(),
+        routing_number: formData.payout_method === 'bank' ? formData.routing_number.trim() : undefined,
+        mobile_provider: formData.payout_method === 'mobile_money' ? formData.mobile_provider : undefined,
         address: formData.address.trim(),
         dob: formData.dob,
         tax_id: formData.tax_id.trim()
@@ -669,7 +723,7 @@ const PayoutView: React.FC<{
                 <label className="block text-sm font-semibold text-slate-900 mb-2">
                   {t('teacher_profile.payout_setup.method_label')}
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, payout_method: 'bank' })}
@@ -686,6 +740,24 @@ const PayoutView: React.FC<{
                       <div className="text-xs opacity-80">{t('teacher_profile.payout_setup.bank_transfer_desc')}</div>
                     </div>
                     {formData.payout_method === 'bank' && <Check className="ml-auto h-5 w-5" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, payout_method: 'stripe' })}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.payout_method === 'stripe'
+                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                      }`}
+                  >
+                    <div className={`p-2 rounded-full ${formData.payout_method === 'stripe' ? 'bg-white' : 'bg-slate-100'}`}>
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-bold">{t('teacher_profile.payout_setup.stripe_method', 'Stripe')}</div>
+                      <div className="text-xs opacity-80">{t('teacher_profile.payout_setup.stripe_desc', 'Fast, secure payouts via Stripe')}</div>
+                    </div>
+                    {formData.payout_method === 'stripe' && <Check className="ml-auto h-5 w-5" />}
                   </button>
 
                   <button
@@ -708,13 +780,14 @@ const PayoutView: React.FC<{
                 </div>
               </div>
 
-              {/* Bank Details */}
+              {/* Account / Phone Details */}
               <div className="md:col-span-2 space-y-4">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2 pt-4 border-t border-slate-100">
                   <CreditCard className="h-4 w-4" />
                   {t('teacher_profile.payout_setup.account_details_title')}
                 </h3>
 
+                {formData.payout_method !== 'stripe' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
@@ -725,7 +798,7 @@ const PayoutView: React.FC<{
                       value={formData.account_holder}
                       onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="e.g. John Doe"
+                      placeholder={t('teacher_profile.payout_setup.account_holder_placeholder', 'e.g. John Doe')}
                     />
                   </div>
                   {formData.payout_method === 'bank' && (
@@ -738,7 +811,7 @@ const PayoutView: React.FC<{
                         value={formData.routing_number}
                         onChange={e => setFormData({ ...formData, routing_number: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Routing / Sort Code"
+                        placeholder={t('teacher_profile.payout_setup.routing_number_placeholder', 'Routing / Sort Code')}
                       />
                     </div>
                   )}
@@ -751,10 +824,32 @@ const PayoutView: React.FC<{
                       value={formData.account_number}
                       onChange={e => setFormData({ ...formData, account_number: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder={formData.payout_method === 'bank' ? "Account Number / IBAN" : "+251..."}
+                      placeholder={formData.payout_method === 'bank' 
+                        ? t('teacher_profile.payout_setup.account_number_placeholder', 'Account Number / IBAN') 
+                        : t('teacher_profile.payout_setup.phone_number_placeholder', '+251...')}
                     />
                   </div>
                 </div>
+                )}
+
+                {formData.payout_method === 'mobile_money' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                        {t('teacher_profile.payout_setup.mobile_money_provider_label', 'Mobile Money Provider')}
+                      </label>
+                      <select
+                        value={formData.mobile_provider}
+                        onChange={e => setFormData({ ...formData, mobile_provider: e.target.value })}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-slate-50"
+                      >
+                        <option value="">{t('teacher_profile.payout_setup.select_provider', 'Select provider')}</option>
+                        <option value="cbe_birr">{t('teacher_profile.payout_setup.provider_cbe_birr', 'CBE Birr')}</option>
+                        <option value="tele_birr">{t('teacher_profile.payout_setup.provider_tele_birr', 'Tele Birr')}</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tax Details */}
@@ -774,7 +869,7 @@ const PayoutView: React.FC<{
                       value={formData.tax_id}
                       onChange={e => setFormData({ ...formData, tax_id: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="SSN / TIN / National ID"
+                      placeholder={t('teacher_profile.payout_setup.tax_id_placeholder', 'SSN / TIN / National ID')}
                     />
                   </div>
                   <div>
@@ -797,7 +892,7 @@ const PayoutView: React.FC<{
                       value={formData.address}
                       onChange={e => setFormData({ ...formData, address: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Full street address, City, State, Zip"
+                      placeholder={t('teacher_profile.payout_setup.address_placeholder', 'Full street address, City, State, Zip')}
                     />
                   </div>
                 </div>
@@ -850,7 +945,11 @@ const PayoutView: React.FC<{
             <div className="flex justify-between">
               <span className="text-slate-600">{t('teacher_profile.payout_setup.method_label')}</span>
               <span className="font-medium text-slate-900 capitalize">
-                {formData.payout_method === 'bank' ? t('teacher_profile.payout_setup.bank_transfer_method') : t('teacher_profile.payout_setup.mobile_money_method')}
+                {formData.payout_method === 'bank' 
+                  ? t('teacher_profile.payout_setup.bank_transfer_method') 
+                  : formData.payout_method === 'stripe' 
+                    ? t('teacher_profile.payout_setup.stripe_method', 'Stripe') 
+                    : t('teacher_profile.payout_setup.mobile_money_method')}
               </span>
             </div>
             <div className="flex justify-between">
@@ -901,29 +1000,49 @@ const VerificationView: React.FC<{
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
   const [activeDoc, setActiveDoc] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
+
+  // Fetch uploaded documents to get URLs
+  const { data: uploadedDocuments } = useQuery({
+    queryKey: ['teacher-documents'],
+    queryFn: async () => {
+      try {
+        const res = await teacherApi.getDocuments();
+        return res.data?.documents || [];
+      } catch (e) {
+        console.error('Failed to fetch documents', e);
+        return [];
+      }
+    }
+  });
 
   // Document upload mutation
   const uploadDocMutation = useMutation({
     mutationFn: async ({ key, file }: { key: string; file: File }) => {
-      // In a real app, you'd use formData to upload the file to an endpoint.
-      // For this demo/refactor, we simulate the upload and update the profile status.
-      // const formData = new FormData();
-      // formData.append('document', file);
-      // await api.post(`/teacher/documents/${key}`, formData);
-
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const currentDocs = profile.verification_docs || {};
-      return await onUpdate({
-        verification_docs: {
-          ...currentDocs,
-          [key]: 'PENDING'
+      try {
+        // Upload the document to the backend
+        const response = await teacherApi.uploadDocument(file, key);
+        
+        if (!response.data?.documentUrl) {
+          throw new Error('Upload failed: No document URL returned');
         }
-      });
+
+        // Update the profile verification status
+        const currentDocs = profile.verification_docs || {};
+        return await onUpdate({
+          verification_docs: {
+            ...currentDocs,
+            [key]: 'PENDING'
+          }
+        });
+      } catch (error) {
+        console.error('Document upload error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-documents'] }); // Refresh documents list
       showNotification({
         title: t('common.success', 'Success'),
         message: t('teacher_profile.document_upload_success', 'Document uploaded successfully. Status: Pending Review.'),
@@ -941,8 +1060,14 @@ const VerificationView: React.FC<{
     }
   });
 
-  const handleFileUpload = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setActiveDoc(file ? key : null);
+    setSelectedFiles(prev => ({ ...prev, [key]: file }));
+  };
+
+  const handleSaveUpload = (key: string) => {
+    const file = selectedFiles[key];
     if (file) {
       uploadDocMutation.mutate({ key, file });
     }
@@ -960,12 +1085,6 @@ const VerificationView: React.FC<{
       title: 'Teaching Certification',
       description: 'Valid teaching license or degree certificate.',
       icon: <Award className="h-6 w-6 text-purple-600" />
-    },
-    {
-      key: 'police_check',
-      title: 'Background Check',
-      description: 'Recent criminal record check or police clearance.',
-      icon: <Shield className="h-6 w-6 text-green-600" />
     },
     {
       key: 'tax_form',
@@ -986,10 +1105,10 @@ const VerificationView: React.FC<{
 
   const getStatusLabel = (status?: string) => {
     switch (status) {
-      case 'VERIFIED': return 'Verified';
-      case 'PENDING': return 'Pending Review';
-      case 'REJECTED': return 'Rejected';
-      default: return 'Not Submitted';
+      case 'VERIFIED': return t('teacher_documents.status.verified', 'Verified');
+      case 'PENDING': return t('teacher_documents.status.pending', 'Pending Review');
+      case 'REJECTED': return t('teacher_documents.status.rejected', 'Rejected');
+      default: return t('teacher_documents.status.not_submitted', 'Not Submitted');
     }
   };
 
@@ -998,12 +1117,12 @@ const VerificationView: React.FC<{
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-display text-slate-900">Verification Documents</h1>
-          <p className="text-slate-600 mt-1 text-lg">Upload required documents to verify your teacher status and unlock all platform features.</p>
+          <h1 className="text-3xl font-bold font-display text-slate-900">{t('teacher_documents.title', 'Verification Documents')}</h1>
+          <p className="text-slate-600 mt-1 text-lg">{t('teacher_documents.subtitle', 'Upload required documents to verify your teacher status and unlock all platform features.')}</p>
         </div>
         <div className="flex gap-2">
           <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold border border-blue-100">
-            {Object.values(profile.verification_docs || {}).filter(s => s === 'VERIFIED').length} / {docs.length} Verified
+            {Object.values(profile.verification_docs || {}).filter(s => s === 'VERIFIED').length} / {docs.length} {t('teacher_documents.status.verified', 'Verified')}
           </span>
         </div>
       </div>
@@ -1013,6 +1132,7 @@ const VerificationView: React.FC<{
         {docs.map((doc) => {
           const status = profile.verification_docs?.[doc.key];
           const isUploading = uploadDocMutation.isPending && activeDoc === doc.key;
+          const uploadedDoc = uploadedDocuments?.find((d: any) => d.document_type === doc.key);
 
           return (
             <div key={doc.key} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -1025,35 +1145,59 @@ const VerificationView: React.FC<{
                     {getStatusLabel(status)}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">{doc.title}</h3>
-                <p className="text-sm text-slate-600">{doc.description}</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">{t(`teacher_documents.doc_types.${doc.key}.title`, doc.title)}</h3>
+                <p className="text-sm text-slate-600">{t(`teacher_documents.doc_types.${doc.key}.description`, doc.description)}</p>
+                
+                {/* View Link */}
+                {uploadedDoc && (
+                  <div className="mt-3">
+                    <a 
+                      href={uploadedDoc.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                    >
+                      <FileText className="h-3 w-3" />
+                      {t('common.view', 'View Document')}
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                 {status === 'VERIFIED' ? (
                   <div className="flex items-center text-green-600 text-sm font-medium">
                     <Check className="h-4 w-4 mr-2" />
-                    Verification Complete
+                    {t('teacher_documents.verification_complete', 'Verification Complete')}
                   </div>
                 ) : (
-                  <div className="w-full">
-                    <label className="flex items-center justify-center w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="w-full flex items-center gap-3">
+                    <label className="flex items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">
                       {uploadDocMutation.isPending ? (
                         <Clock className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Upload className="h-4 w-4 mr-2" />
                       )}
-                      {status === 'PENDING' ? 'Upload New Version' : 'Upload Document'}
+                      {status === 'PENDING'
+                        ? t('teacher_documents.upload_new_btn', 'Upload New Version')
+                        : t('teacher_documents.upload_btn', 'Upload Document')}
                       <input
                         type="file"
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => handleFileUpload(doc.key, e)}
+                        onChange={(e) => handleFileSelect(doc.key, e)}
                         disabled={uploadDocMutation.isPending}
                       />
                     </label>
+                    <button
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-600"
+                      onClick={() => handleSaveUpload(doc.key)}
+                      disabled={uploadDocMutation.isPending || !selectedFiles[doc.key]}
+                    >
+                      {t('common.save_changes', 'Save Changes')}
+                    </button>
                     {status === 'REJECTED' && (
-                      <p className="text-xs text-red-600 mt-2 text-center">Previous document was rejected. Please try again.</p>
+                      <p className="text-xs text-red-600 mt-2">{t('teacher_documents.rejected_msg', 'Previous document was rejected. Please try again.')}</p>
                     )}
                   </div>
                 )}
@@ -1069,12 +1213,12 @@ const VerificationView: React.FC<{
           <HelpCircle className="h-6 w-6 text-blue-600" />
         </div>
         <div>
-          <h3 className="font-bold text-blue-900">Need help with verification?</h3>
+          <h3 className="font-bold text-blue-900">{t('teacher_documents.help_title', 'Need help with verification?')}</h3>
           <p className="text-blue-700 text-sm mt-1 mb-3">
-            Check our detailed guide on acceptable document formats and typical verification timelines.
+            {t('teacher_documents.help_desc', 'Check our detailed guide on acceptable document formats and typical verification timelines.')}
           </p>
           <a href="#" className="text-sm font-semibold text-blue-800 hover:underline">
-            Read Verification Guidelines
+            {t('teacher_documents.help_link', 'Read Verification Guidelines')}
           </a>
         </div>
       </div>
@@ -1123,8 +1267,8 @@ const StatisticsView: React.FC<{
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
-              <p className="text-slate-600 text-lg">Loading your teaching analytics...</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.loading_title', 'Performance Statistics')}</h1>
+              <p className="text-slate-600 text-lg">{t('teacher_stats.loading_subtitle', 'Loading your teaching analytics...')}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1150,21 +1294,21 @@ const StatisticsView: React.FC<{
               <ArrowLeft className="h-5 w-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
-              <p className="text-slate-600 text-lg">View your teaching performance and student engagement</p>
+              <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
+              <p className="text-slate-600 text-lg">{t('teacher_stats.subtitle', 'View your teaching performance and student engagement')}</p>
             </div>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
             <div className="text-red-600 mb-4">
               <BarChart3 className="mx-auto h-12 w-12" />
             </div>
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Failed to Load Statistics</h3>
-            <p className="text-red-700 mb-4">Unable to fetch your teaching analytics at this time.</p>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">{t('teacher_stats.error_title', 'Failed to Load Statistics')}</h3>
+            <p className="text-red-700 mb-4">{t('teacher_stats.error_desc', 'Unable to fetch your teaching analytics at this time.')}</p>
             <button
               onClick={() => refetch()}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              Try Again
+              {t('teacher_stats.retry', 'Try Again')}
             </button>
           </div>
         </div>
@@ -1184,8 +1328,8 @@ const StatisticsView: React.FC<{
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Performance Statistics</h1>
-            <p className="text-slate-600 text-lg">Comprehensive view of your teaching impact and student engagement</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
+            <p className="text-slate-600 text-lg">{t('teacher_stats.subtitle', 'Comprehensive view of your teaching impact and student engagement')}</p>
           </div>
         </div>
       </div>
@@ -1211,9 +1355,9 @@ const StatisticsView: React.FC<{
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {formatNumber(stats?.overview?.totalStudents ?? 0)}
             </div>
-            <div className="text-sm text-slate-600">Total Students</div>
+            <div className="text-sm text-slate-600">{t('teacher_stats.total_students', 'Total Students')}</div>
             <div className="text-xs text-slate-500 mt-2">
-              {stats?.overview?.recentEnrollments ?? 0} new this month
+              {stats?.overview?.recentEnrollments ?? 0} {t('teacher_stats.new_this_month', 'new this month')}
             </div>
           </div>
 
@@ -1224,15 +1368,15 @@ const StatisticsView: React.FC<{
               </div>
               <div className="flex items-center text-sm font-medium text-green-600">
                 <Activity className="h-4 w-4 mr-1" />
-                Active
+                {t('teacher_stats.active_label', 'Active')}
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {formatNumber(stats?.engagement?.activeStudents ?? 0)}
             </div>
-            <div className="text-sm text-slate-600">Active Students</div>
+            <div className="text-sm text-slate-600">{t('teacher_stats.active_students', 'Active Students')}</div>
             <div className="text-xs text-slate-500 mt-2">
-              {stats?.engagement?.weeklyEngagement ?? 0} engaged this week
+              {stats?.engagement?.weeklyEngagement ?? 0} {t('teacher_stats.engaged_this_week', 'engaged this week')}
             </div>
           </div>
 
@@ -1254,9 +1398,9 @@ const StatisticsView: React.FC<{
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {stats?.overview?.averageCompletionRate ?? 0}%
             </div>
-            <div className="text-sm text-slate-600">Avg. Completion</div>
+            <div className="text-sm text-slate-600">{t('teacher_stats.avg_completion', 'Avg. Completion')}</div>
             <div className="text-xs text-slate-500 mt-2">
-              {stats?.overview?.totalEnrollments ?? 0} completed courses
+              {stats?.overview?.totalEnrollments ?? 0} {t('teacher_stats.completed_courses', 'completed courses')}
             </div>
           </div>
 
@@ -1275,9 +1419,9 @@ const StatisticsView: React.FC<{
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {stats?.overview?.averageRating || 'N/A'}
             </div>
-            <div className="text-sm text-slate-600">Average Rating</div>
+            <div className="text-sm text-slate-600">{t('teacher_stats.avg_rating', 'Average Rating')}</div>
             <div className="text-xs text-slate-500 mt-2">
-              {stats?.overview?.totalRatings ?? 0} total reviews
+              {stats?.overview?.totalRatings ?? 0} {t('teacher_stats.total_reviews', 'total reviews')}
             </div>
           </div>
         </div>
@@ -1290,7 +1434,7 @@ const StatisticsView: React.FC<{
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Award className="h-5 w-5 text-blue-600" />
-              Top Performing Courses
+              {t('teacher_stats.top_courses.title', 'Top Performing Courses')}
             </h3>
           </div>
           <div className="p-6">
@@ -1305,8 +1449,8 @@ const StatisticsView: React.FC<{
                       <div>
                         <h4 className="font-semibold text-slate-900">{course.title}</h4>
                         <div className="flex items-center gap-4 text-sm text-slate-600">
-                          <span>{course.studentCount} students</span>
-                          <span>{course.avgCompletion}% completion</span>
+                          <span>{course.studentCount} {t('teacher_stats.top_courses.students', 'students')}</span>
+                          <span>{course.avgCompletion}% {t('teacher_stats.top_courses.completion', 'completion')}</span>
                           {course.avgRating && (
                             <div className="flex items-center gap-1">
                               <Star className="h-3 w-3 text-yellow-500 fill-current" />
@@ -1322,7 +1466,7 @@ const StatisticsView: React.FC<{
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <BookOpen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                <p>No courses yet. Create your first course to see performance metrics!</p>
+                <p>{t('teacher_stats.top_courses.no_data_desc', 'No courses yet. Create your first course to see performance metrics!')}</p>
               </div>
             )}
           </div>
@@ -1333,7 +1477,7 @@ const StatisticsView: React.FC<{
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Activity className="h-5 w-5 text-green-600" />
-              Recent Activity (30 days)
+              {t('teacher_stats.recent_activity.title', 'Recent Activity (30 days)')}
             </h3>
           </div>
           <div className="p-6">
@@ -1351,7 +1495,7 @@ const StatisticsView: React.FC<{
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-slate-900">
-                        {activity.description} {activity.type === 'enrollment' ? 'enrolled in' : 'completed'} {activity.courseTitle}
+                        {activity.description} {activity.type === 'enrollment' ? t('teacher_stats.recent_activity.enrolled_in', 'enrolled in') : t('teacher_stats.recent_activity.completed', 'completed')} {activity.courseTitle}
                       </p>
                       <p className="text-xs text-slate-500">
                         {new Date(activity.date).toLocaleDateString()}
@@ -1363,7 +1507,7 @@ const StatisticsView: React.FC<{
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <Activity className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                <p>No recent activity. Student enrollments and completions will appear here.</p>
+                <p>{t('teacher_stats.recent_activity.no_data_desc', 'No recent activity. Student enrollments and completions will appear here.')}</p>
               </div>
             )}
           </div>
@@ -1377,30 +1521,30 @@ const StatisticsView: React.FC<{
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Play className="h-4 w-4 text-purple-600" />
-              Engagement
+              {t('teacher_stats.engagement.title', 'Engagement')}
             </h3>
           </div>
           <div className="p-4 space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Watch Time</span>
+                <span className="text-slate-600">{t('teacher_stats.engagement.watch_time', 'Watch Time')}</span>
                 <span className="font-semibold text-slate-900">{formatTime(stats?.engagement?.totalWatchTime ?? 0)}</span>
               </div>
-              <div className="text-xs text-slate-500">Total time students spent watching</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.watch_time_desc', 'Total time students spent watching')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Lesson Completion</span>
+                <span className="text-slate-600">{t('teacher_stats.engagement.lesson_completion', 'Lesson Completion')}</span>
                 <span className="font-semibold text-slate-900">{stats?.engagement?.averageLessonCompletion ?? 0}%</span>
               </div>
-              <div className="text-xs text-slate-500">Average progress per lesson</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.lesson_completion_desc', 'Average progress per lesson')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Completed Lessons</span>
+                <span className="text-slate-600">{t('teacher_stats.engagement.completed_lessons', 'Completed Lessons')}</span>
                 <span className="font-semibold text-slate-900">{formatNumber(stats?.engagement?.completedLessons ?? 0)}</span>
               </div>
-              <div className="text-xs text-slate-500">Total lessons finished</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.completed_lessons_desc', 'Total lessons finished')}</div>
             </div>
           </div>
         </div>
@@ -1410,30 +1554,30 @@ const StatisticsView: React.FC<{
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-600" />
-              Earnings
+              {t('teacher_stats.earnings.title', 'Earnings')}
             </h3>
           </div>
           <div className="p-4 space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Total Earnings</span>
+                <span className="text-slate-600">{t('teacher_stats.earnings.total', 'Total Earnings')}</span>
                 <span className="font-semibold text-slate-900">${(stats?.earnings?.totalEarnings ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">All-time earnings</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.total_desc', 'All-time earnings')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">This Month</span>
+                <span className="text-slate-600">{t('teacher_stats.earnings.this_month', 'This Month')}</span>
                 <span className="font-semibold text-slate-900">${(stats?.earnings?.monthlyEarnings ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">Current month earnings</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.this_month_desc', 'Current month earnings')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">Pending</span>
+                <span className="text-slate-600">{t('teacher_stats.earnings.pending', 'Pending')}</span>
                 <span className="font-semibold text-slate-900">${(stats?.earnings?.pendingPayments ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">Awaiting payout</div>
+              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.pending_desc', 'Awaiting payout')}</div>
             </div>
           </div>
         </div>
@@ -1443,7 +1587,7 @@ const StatisticsView: React.FC<{
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-600" />
-              Monthly Trends
+              {t('teacher_stats.trends.title', 'Monthly Trends')}
             </h3>
           </div>
           <div className="p-4">
@@ -1455,15 +1599,15 @@ const StatisticsView: React.FC<{
                       {new Date(month.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </span>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-slate-900">{month.enrollments} enrollments</div>
-                      <div className="text-xs text-green-600">{month.completions} completed</div>
+                      <div className="text-sm font-semibold text-slate-900">{month.enrollments} {t('teacher_stats.trends.enrollments', 'enrollments')}</div>
+                      <div className="text-xs text-green-600">{month.completions} {t('teacher_stats.trends.completed', 'completed')}</div>
                     </div>
                   </div>
                 )) ?? []}
               </div>
             ) : (
               <div className="text-center py-4 text-slate-500 text-sm">
-                No enrollment data yet
+                {t('teacher_stats.trends.no_data', 'No enrollment data yet')}
               </div>
             )}
           </div>
@@ -1494,17 +1638,10 @@ const SecurityView: React.FC<{
   // Password change mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordForm) => {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-      return result;
+      // Use API client with correct backend route
+      const res = await teacherApi.changePassword(data);
+      if (!res.success) throw new Error(res.message || 'Failed to change password');
+      return res;
     },
     onSuccess: () => {
       showNotification({ title: t('common.success', 'Success'), message: t('teacher_security.password_changed', 'Password changed successfully'), type: 'success' });
@@ -1518,15 +1655,9 @@ const SecurityView: React.FC<{
   // Account deletion mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/auth/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-      return result;
+      const res = await teacherApi.deleteAccount();
+      if (!res.success) throw new Error(res.message || 'Failed to delete account');
+      return res;
     },
     onSuccess: () => {
       showNotification({ title: t('common.success', 'Success'), message: t('teacher_security.account_deleted', 'Account deleted successfully'), type: 'success' });
@@ -1580,8 +1711,8 @@ const SecurityView: React.FC<{
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Account Security</h1>
-            <p className="text-slate-600 text-lg">Manage your password and account security settings</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('teacher_security.title', 'Account Security')}</h1>
+            <p className="text-slate-600 text-lg">{t('teacher_security.subtitle', 'Manage your password and account security settings')}</p>
           </div>
         </div>
       </div>
@@ -1593,23 +1724,23 @@ const SecurityView: React.FC<{
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-600" />
-              Change Password
+              {t('teacher_security.change_password_title', 'Change Password')}
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              Regularly update your password to keep your account secure
+              {t('teacher_security.change_password_description', 'Regularly update your password to keep your account secure')}
             </p>
           </div>
           <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Current Password *
+                {t('teacher_security.current_password_label', 'Current Password')} *
               </label>
               <input
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="Enter your current password"
+                placeholder={t('teacher_security.current_password_placeholder', 'Enter your current password')}
                 required
               />
             </div>
@@ -1617,32 +1748,32 @@ const SecurityView: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  New Password *
+                  {t('teacher_security.new_password_label', 'New Password')} *
                 </label>
                 <input
                   type="password"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Enter new password"
+                  placeholder={t('teacher_security.new_password_placeholder', 'Enter new password')}
                   minLength={8}
                   required
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Must be at least 8 characters long
+                  {t('teacher_security.password_length_hint', 'Must be at least 8 characters long')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Confirm New Password *
+                  {t('teacher_security.confirm_password_label', 'Confirm New Password')} *
                 </label>
                 <input
                   type="password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Confirm new password"
+                  placeholder={t('teacher_security.confirm_password_placeholder', 'Confirm new password')}
                   minLength={8}
                   required
                 />
@@ -1658,12 +1789,12 @@ const SecurityView: React.FC<{
                 {changePasswordMutation.isPending ? (
                   <>
                     <Clock className="h-4 w-4 animate-spin" />
-                    Changing Password...
+                    {t('teacher_security.changing_password_btn', 'Changing Password...')}
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4" />
-                    Change Password
+                    {t('teacher_security.change_password_btn', 'Change Password')}
                   </>
                 )}
               </button>
@@ -1676,43 +1807,43 @@ const SecurityView: React.FC<{
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Settings className="h-5 w-5 text-gray-600" />
-              Security Settings
+              {t('teacher_security.security_settings_title', 'Security Settings')}
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              Additional security options for your account
+              {t('teacher_security.security_settings_description', 'Additional security options for your account')}
             </p>
           </div>
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">Two-Factor Authentication</h4>
-                <p className="text-sm text-slate-600">Add an extra layer of security to your account</p>
+                <h4 className="font-medium text-slate-900">{t('teacher_security.two_factor_auth_title', 'Two-Factor Authentication')}</h4>
+                <p className="text-sm text-slate-600">{t('teacher_security.two_factor_auth_description', 'Add an extra layer of security to your account')}</p>
               </div>
               <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                Coming Soon
+                {t('teacher_security.coming_soon', 'Coming Soon')}
               </button>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">Login Notifications</h4>
-                <p className="text-sm text-slate-600">Get notified of new logins to your account</p>
+                <h4 className="font-medium text-slate-900">{t('teacher_security.login_notifications_title', 'Login Notifications')}</h4>
+                <p className="text-sm text-slate-600">{t('teacher_security.login_notifications_description', 'Get notified of new logins to your account')}</p>
               </div>
               <div className="flex items-center">
                 <div className="w-10 h-5 bg-slate-300 rounded-full relative">
                   <div className="w-4 h-4 bg-white rounded-full absolute left-0.5 top-0.5 transition-transform"></div>
                 </div>
-                <span className="ml-2 text-sm text-slate-600">Coming Soon</span>
+                <span className="ml-2 text-sm text-slate-600">{t('teacher_security.coming_soon', 'Coming Soon')}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">Session Management</h4>
-                <p className="text-sm text-slate-600">View and manage your active sessions</p>
+                <h4 className="font-medium text-slate-900">{t('teacher_security.session_management_title', 'Session Management')}</h4>
+                <p className="text-sm text-slate-600">{t('teacher_security.session_management_description', 'View and manage your active sessions')}</p>
               </div>
               <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                View Sessions
+                {t('teacher_security.view_sessions_btn', 'View Sessions')}
               </button>
             </div>
           </div>
@@ -1725,10 +1856,10 @@ const SecurityView: React.FC<{
           <div className="p-6 border-b border-red-100">
             <h3 className="text-lg font-semibold text-red-900 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
-              Danger Zone
+              {t('teacher_security.danger_zone', 'Danger Zone')}
             </h3>
             <p className="text-sm text-red-700 mt-1">
-              Irreversible and destructive actions
+              {t('teacher_security.danger_desc', 'Irreversible and destructive actions')}
             </p>
           </div>
 
@@ -1736,32 +1867,31 @@ const SecurityView: React.FC<{
             {!showDeleteConfirm ? (
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-red-900">Delete Account</h4>
+                  <h4 className="font-medium text-red-900">{t('teacher_security.delete_account_title', 'Delete Account')}</h4>
                   <p className="text-sm text-red-700 mt-1">
-                    Permanently delete your account and all associated data. This action cannot be undone.
+                    {t('teacher_security.delete_account_desc', 'Permanently delete your account and all associated data. This action cannot be undone.')}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                 >
-                  Delete Account
+                  {t('teacher_security.delete_account_btn', 'Delete Account')}
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="p-4 bg-red-100 rounded-lg">
-                  <h4 className="font-medium text-red-900 mb-2">Confirm Account Deletion</h4>
-                  <p className="text-sm text-red-800 mb-3">
-                    This will permanently delete your account, all your courses, lessons, and data.
-                    Type <strong>DELETE</strong> to confirm.
-                  </p>
+                  <h4 className="font-medium text-red-900 mb-2">{t('teacher_security.confirm_delete_title', 'Confirm Account Deletion')}</h4>
+                  <p className="text-sm text-red-800 mb-3" dangerouslySetInnerHTML={{
+                    __html: t('teacher_security.confirm_delete_desc', 'This will permanently delete your account, all your courses, lessons, and data. Type <strong>DELETE</strong> to confirm.')
+                  }} />
                   <input
                     type="text"
                     value={deleteConfirmation}
                     onChange={(e) => setDeleteConfirmation(e.target.value)}
                     className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    placeholder="Type DELETE to confirm"
+                    placeholder={t('teacher_security.confirm_delete_placeholder', 'Type DELETE to confirm')}
                   />
                 </div>
 
@@ -1773,7 +1903,7 @@ const SecurityView: React.FC<{
                     }}
                     className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
                   >
-                    Cancel
+                    {t('teacher_security.cancel', 'Cancel')}
                   </button>
                   <button
                     onClick={handleDeleteAccount}
@@ -1783,10 +1913,10 @@ const SecurityView: React.FC<{
                     {deleteAccountMutation.isPending ? (
                       <>
                         <Clock className="h-4 w-4 animate-spin" />
-                        Deleting...
+                        {t('teacher_security.deleting', 'Deleting...')}
                       </>
                     ) : (
-                      'Confirm Delete'
+                      t('teacher_security.confirm_delete_btn', 'Confirm Delete')
                     )}
                   </button>
                 </div>
@@ -1800,25 +1930,25 @@ const SecurityView: React.FC<{
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <User className="h-4 w-4 text-blue-600" />
-              Account Information
+              {t('teacher_security.account_info_title', 'Account Information')}
             </h3>
           </div>
           <div className="p-4 space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Account Created</span>
+              <span className="text-slate-600">{t('teacher_security.account_created', 'Account Created')}</span>
               <span className="font-medium text-slate-900">
                 {new Date().toLocaleDateString()} {/* Placeholder - should come from user data */}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Last Login</span>
+              <span className="text-slate-600">{t('teacher_security.last_login', 'Last Login')}</span>
               <span className="font-medium text-slate-900">
-                Today {/* Placeholder */}
+                {t('teacher_security.today', 'Today')} {/* Placeholder */}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Account Status</span>
-              <span className="font-medium text-green-600">Active</span>
+              <span className="text-slate-600">{t('teacher_security.account_status', 'Account Status')}</span>
+              <span className="font-medium text-green-600">{t('teacher_security.status_active', 'Active')}</span>
             </div>
           </div>
         </div>
@@ -1938,8 +2068,8 @@ const NotificationsView: React.FC<{
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Notification Preferences</h1>
-            <p className="text-slate-600 text-lg">Customize how and when you receive notifications</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('notifications.title', 'Notification Preferences')}</h1>
+            <p className="text-slate-600 text-lg">{t('notifications.subtitle', 'Customize how and when you receive notifications')}</p>
           </div>
         </div>
       </div>
@@ -1951,56 +2081,56 @@ const NotificationsView: React.FC<{
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
               <Mail className="h-5 w-5 text-blue-600" />
-              Email Notifications
+              {t('notifications.email.title', 'Email Notifications')}
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              Choose which emails you'd like to receive
+              {t('notifications.email.subtitle', 'Choose which emails you\'d like to receive')}
             </p>
           </div>
           <div className="p-6 space-y-4">
             {[
               {
                 key: 'email_course_updates',
-                label: 'Course Updates',
-                description: 'Notifications about your course performance and student activity'
+                label: t('notifications.email.types.course_updates.label', 'Course Updates'),
+                description: t('notifications.email.types.course_updates.description', 'Notifications about your course performance and student activity')
               },
               {
                 key: 'email_student_messages',
-                label: 'Student Messages',
-                description: 'Direct messages from students enrolled in your courses'
+                label: t('notifications.email.types.student_messages.label', 'Student Messages'),
+                description: t('notifications.email.types.student_messages.description', 'Direct messages from students enrolled in your courses')
               },
               {
                 key: 'email_forum_replies',
-                label: 'Forum Replies',
-                description: 'Replies to your forum posts and discussions'
+                label: t('notifications.email.types.forum_replies.label', 'Forum Replies'),
+                description: t('notifications.email.types.forum_replies.description', 'Replies to your forum posts and discussions')
               },
               {
                 key: 'email_weekly_digest',
-                label: 'Weekly Digest',
-                description: 'Weekly summary of your teaching activity and platform updates'
+                label: t('notifications.email.types.weekly_digest.label', 'Weekly Digest'),
+                description: t('notifications.email.types.weekly_digest.description', 'Weekly summary of your teaching activity and platform updates')
               },
               {
                 key: 'email_marketing',
-                label: 'Marketing & Promotions',
-                description: 'Special offers, platform updates, and promotional content'
+                label: t('notifications.email.types.marketing.label', 'Marketing & Promotions'),
+                description: t('notifications.email.types.marketing.description', 'Special offers, platform updates, and promotional content')
               }
-            ].map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex-1">
-                  <h4 className="font-medium text-slate-900">{label}</h4>
-                  <p className="text-sm text-slate-600 mt-1">{description}</p>
+            ].map((option) => (
+              <div key={option.key} className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id={option.key}
+                    name={option.key}
+                    type="checkbox"
+                    checked={preferences[option.key as keyof typeof preferences]}
+                    onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
+                    className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-slate-300 rounded"
+                  />
                 </div>
-                <div className="ml-4">
-                  <button
-                    onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${preferences[key as keyof typeof preferences] ? 'bg-blue-600' : 'bg-gray-200'
-                      }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences[key as keyof typeof preferences] ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                    />
-                  </button>
+                <div className="ml-3 text-sm">
+                  <label htmlFor={option.key} className="font-medium text-slate-700">
+                    {option.label}
+                  </label>
+                  <p className="text-slate-500">{option.description}</p>
                 </div>
               </div>
             ))}
@@ -2011,52 +2141,52 @@ const NotificationsView: React.FC<{
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="p-6 border-b border-slate-100">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Bell className="h-5 w-5 text-green-600" />
-              Push Notifications
+              <Bell className="h-5 w-5 text-purple-600" />
+              {t('notifications.push.title', 'Push Notifications')}
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              Browser notifications for important updates
+              {t('notifications.push.subtitle', 'Receive real-time updates while using the platform')}
             </p>
           </div>
           <div className="p-6 space-y-4">
             {[
               {
                 key: 'push_course_activity',
-                label: 'Course Activity',
-                description: 'New enrollments and student progress updates'
+                label: t('notifications.push.types.course_activity.label', 'Course Activity'),
+                description: t('notifications.push.types.course_activity.description', 'New enrollments, reviews, and course completions')
               },
               {
                 key: 'push_student_engagement',
-                label: 'Student Engagement',
-                description: 'Comments, questions, and interactions from students'
+                label: t('notifications.push.types.student_engagement.label', 'Student Engagement'),
+                description: t('notifications.push.types.student_engagement.description', 'Comments, questions, and discussion participation')
               },
               {
                 key: 'push_forum_activity',
-                label: 'Forum Activity',
-                description: 'New replies and mentions in forum discussions'
+                label: t('notifications.push.types.forum_activity.label', 'Forum Activity'),
+                description: t('notifications.push.types.forum_activity.description', 'New topics and replies in followed discussions')
               },
               {
                 key: 'push_system_updates',
-                label: 'System Updates',
-                description: 'Platform maintenance, new features, and important announcements'
+                label: t('notifications.push.types.system_updates.label', 'System Updates'),
+                description: t('notifications.push.types.system_updates.description', 'Important platform announcements and maintenance alerts')
               }
-            ].map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex-1">
-                  <h4 className="font-medium text-slate-900">{label}</h4>
-                  <p className="text-sm text-slate-600 mt-1">{description}</p>
+            ].map((option) => (
+              <div key={option.key} className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id={option.key}
+                    name={option.key}
+                    type="checkbox"
+                    checked={preferences[option.key as keyof typeof preferences]}
+                    onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
+                    className="focus:ring-purple-500 h-4 w-4 text-purple-600 border-slate-300 rounded"
+                  />
                 </div>
-                <div className="ml-4">
-                  <button
-                    onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${preferences[key as keyof typeof preferences] ? 'bg-green-600' : 'bg-gray-200'
-                      }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences[key as keyof typeof preferences] ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                    />
-                  </button>
+                <div className="ml-3 text-sm">
+                  <label htmlFor={option.key} className="font-medium text-slate-700">
+                    {option.label}
+                  </label>
+                  <p className="text-slate-500">{option.description}</p>
                 </div>
               </div>
             ))}
@@ -2064,92 +2194,68 @@ const NotificationsView: React.FC<{
         </div>
       </div>
 
-      {/* Sidebar - Communication Preferences */}
+      {/* Sidebar - Privacy */}
       <div className="space-y-6">
-        {/* Communication Preferences */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-600" />
-              Communication
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-green-600" />
+              {t('notifications.privacy.title', 'Communication & Privacy')}
             </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              {t('notifications.privacy.subtitle', 'Manage how others interact with you')}
+            </p>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-6 space-y-4">
             {[
               {
                 key: 'allow_student_messages',
-                label: 'Student Messages',
-                description: 'Allow students to send you direct messages'
+                label: t('notifications.privacy.types.student_messages', 'Allow students to message me')
               },
               {
                 key: 'allow_course_invitations',
-                label: 'Course Invitations',
-                description: 'Receive invitations to join other courses'
+                label: t('notifications.privacy.types.course_invitations', 'Allow course invitations')
               },
               {
                 key: 'public_profile_visible',
-                label: 'Public Profile',
-                description: 'Make your profile visible to other teachers'
+                label: t('notifications.privacy.types.public_profile', 'Public Profile visibility')
               },
               {
                 key: 'show_online_status',
-                label: 'Online Status',
-                description: 'Show when you are online to students'
+                label: t('notifications.privacy.types.online_status', 'Show online status')
               },
               {
                 key: 'allow_analytics_tracking',
-                label: 'Analytics Tracking',
-                description: 'Help improve the platform with usage analytics'
+                label: t('notifications.privacy.types.analytics', 'Allow analytics tracking')
               }
-            ].map(({ key, label, description }) => (
-              <div key={key} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-slate-900">{label}</h4>
-                  <p className="text-xs text-slate-600 mt-1">{description}</p>
-                </div>
-                <button
-                  onClick={() => handlePreferenceChange(key, !preferences[key as keyof typeof preferences])}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ml-3 ${preferences[key as keyof typeof preferences] ? 'bg-purple-600' : 'bg-gray-200'
-                    }`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${preferences[key as keyof typeof preferences] ? 'translate-x-5' : 'translate-x-1'
-                      }`}
+            ].map((option) => (
+              <div key={option.key} className="flex items-center justify-between">
+                <label htmlFor={option.key} className="text-sm font-medium text-slate-700">
+                  {option.label}
+                </label>
+                <div className="flex items-center h-5">
+                  <input
+                    id={option.key}
+                    name={option.key}
+                    type="checkbox"
+                    checked={preferences[option.key as keyof typeof preferences]}
+                    onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
+                    className="focus:ring-green-500 h-4 w-4 text-green-600 border-slate-300 rounded"
                   />
-                </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Notification Summary */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">Notification Summary</h3>
-          <div className="text-sm text-blue-800 space-y-1">
-            <p>• Email notifications: {Object.entries(preferences).filter(([k, v]) => k.startsWith('email_') && v).length} enabled</p>
-            <p>• Push notifications: {Object.entries(preferences).filter(([k, v]) => k.startsWith('push_') && v).length} enabled</p>
-            <p>• Communication: {Object.entries(preferences).filter(([k, v]) => !k.startsWith('email_') && !k.startsWith('push_') && v).length} features enabled</p>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+            <button
+              onClick={handleSaveAll}
+              disabled={updatePreferencesMutation.isPending}
+              className="w-full px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {updatePreferencesMutation.isPending ? t('common.saving', 'Saving...') : t('notifications.save_changes', 'Save Changes')}
+            </button>
           </div>
         </div>
-
-        {/* Save Button */}
-        <button
-          onClick={handleSaveAll}
-          disabled={updatePreferencesMutation.isPending}
-          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center gap-2 font-medium"
-        >
-          {updatePreferencesMutation.isPending ? (
-            <>
-              <Clock className="h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Check className="h-4 w-4" />
-              Save All Preferences
-            </>
-          )}
-        </button>
       </div>
     </div>
   );
@@ -2160,6 +2266,7 @@ const NotificationsView: React.FC<{
 const TeacherProfile: React.FC = () => {
   const { t } = useTranslation();
   const { user, refreshUser } = useUser();
+  const { refreshUser: refreshAuthUser } = useAuth(); // Get refreshUser from AuthContext
   const { showNotification } = useNotification();
 
   // Initialize active view from session storage or default to dashboard
@@ -2183,7 +2290,7 @@ const TeacherProfile: React.FC = () => {
     queryKey: ['teacher-profile'],
     queryFn: async () => {
       const res = await teacherApi.getProfile();
-      return res?.data?.teacherProfile || {};
+      return res?.data?.teacherProfile;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1
@@ -2192,12 +2299,12 @@ const TeacherProfile: React.FC = () => {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: teacherApi.updateProfile,
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       if (res?.success) {
         // Invalidate and refetch profile data
-        queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
-        // Refresh user context
-        refreshUser();
+        await queryClient.invalidateQueries({ queryKey: ['teacher-profile'] });
+        // Refresh user context AND auth context
+        await Promise.all([refreshUser(), refreshAuthUser()]);
         showNotification({ title: t('common.success', 'Success'), message: t('teacher_profile.profile_updated', 'Profile updated successfully'), type: 'success' });
       }
     },
@@ -2207,21 +2314,22 @@ const TeacherProfile: React.FC = () => {
     }
   });
 
-  const profile = profileData || ({} as TeacherProfileType);
-  const loading = profileLoading;
+  const profile = profileData;
+  const loading = profileLoading || (!profile && !profileError);
   const error = profileError;
 
   const handleUpdateProfile = async (data: Partial<TeacherProfileType>) => {
-    await updateProfileMutation.mutateAsync(data);
+    const res = await updateProfileMutation.mutateAsync(data);
+    return res?.data?.teacherProfile || null;
   };
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'payout', label: 'Payout', icon: CreditCard },
-    { id: 'verification', label: 'Documents', icon: Shield },
-    { id: 'statistics', label: 'Statistics', icon: BarChart3 },
-    { id: 'security', label: 'Security', icon: Lock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'dashboard', label: t('nav.dashboard', 'Dashboard'), icon: LayoutDashboard },
+    { id: 'payout', label: t('teacher_profile.tabs.payout', 'Payout'), icon: CreditCard },
+    { id: 'verification', label: t('teacher_profile.tabs.documents', 'Documents'), icon: Shield },
+    { id: 'statistics', label: t('teacher_profile.tabs.statistics', 'Statistics'), icon: BarChart3 },
+    { id: 'security', label: t('teacher_profile.tabs.security', 'Security'), icon: Lock },
+    { id: 'notifications', label: t('teacher_profile.tabs.notifications', 'Notifications'), icon: Bell },
   ];
 
   if (loading) {
@@ -2289,6 +2397,10 @@ const TeacherProfile: React.FC = () => {
               profile={profile}
               onNavigate={setActiveView}
               onUpdate={handleUpdateProfile}
+              onAvatarUpdated={async () => {
+                // Update both user contexts so header and other UI reflect the new picture
+                await Promise.all([refreshUser(), refreshAuthUser()]);
+              }}
             />
           )}
           {activeView === 'payout' && (

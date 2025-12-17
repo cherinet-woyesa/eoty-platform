@@ -53,6 +53,9 @@ i18n
     },
     // Default language
     fallbackLng: 'en',
+    // Ensure i18next resolves language codes like en-US -> en
+    supportedLngs: Object.keys(supportedLanguages),
+    load: 'languageOnly',
     // Detect language
     detection: {
       // order and from where user language should be detected

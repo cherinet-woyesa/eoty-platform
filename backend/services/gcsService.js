@@ -62,6 +62,36 @@ class GCSService {
       blobStream.end(file.buffer);
     });
   }
+
+  /**
+   * Delete a file in GCS by its public URL
+   * @param {string} publicUrl - Public URL like https://storage.googleapis.com/<bucket>/<key>
+   * @returns {Promise<void>}
+   */
+  async deleteByPublicUrl(publicUrl) {
+    if (!publicUrl || typeof publicUrl !== 'string') return;
+
+    const prefix = 'https://storage.googleapis.com/';
+    if (!publicUrl.startsWith(prefix)) return; // Not a GCS public URL
+
+    const remainder = publicUrl.substring(prefix.length);
+    const firstSlash = remainder.indexOf('/');
+    if (firstSlash === -1) return;
+
+    const bucketName = remainder.substring(0, firstSlash);
+    const filePath = remainder.substring(firstSlash + 1);
+
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(filePath);
+    try {
+      await file.delete();
+    } catch (e) {
+      // Swallow not-found errors to keep delete idempotent
+      if (e.code !== 404) {
+        throw e;
+      }
+    }
+  }
 }
 
 module.exports = new GCSService();

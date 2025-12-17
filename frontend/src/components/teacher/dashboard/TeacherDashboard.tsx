@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, Users, Plus,
-  AlertCircle, RefreshCw, Megaphone, Calendar,
-  TrendingUp, Video, AlertTriangle
+  RefreshCw, Megaphone, Calendar,
+  AlertTriangle
 } from 'lucide-react';
-import { brandColors } from '@/theme/brand';
 import { useAuth } from '@/context/AuthContext';
 import TeacherMetrics from './TeacherMetrics';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -62,27 +61,33 @@ const TeacherDashboard: React.FC = () => {
       throw new Error(response.data.message || 'Failed to load dashboard data');
     },
     staleTime: 2 * 60 * 1000,
-    retry: 1,
-    onSuccess: (data) => {
+    retry: 1
+  });
+
+  useEffect(() => {
+    if (dashboardResp) {
       setTeacherData({
-        totalCourses: data.totalCourses ?? 0,
-        totalStudentsEnrolled: data.totalStudentsEnrolled ?? 0,
-        totalLessons: data.totalLessons ?? 0,
-        averageCompletionRate: data.averageCompletionRate ?? 0,
-        courses: data.courses ?? [],
-        recentActivity: data.recentActivity ?? [],
-        studentPerformance: data.studentPerformance ?? [],
-        upcomingTasks: data.upcomingTasks ?? []
+        totalCourses: dashboardResp.totalCourses ?? 0,
+        totalStudentsEnrolled: dashboardResp.totalStudentsEnrolled ?? 0,
+        totalLessons: dashboardResp.totalLessons ?? 0,
+        averageCompletionRate: dashboardResp.averageCompletionRate ?? 0,
+        courses: dashboardResp.courses ?? [],
+        recentActivity: dashboardResp.recentActivity ?? [],
+        studentPerformance: dashboardResp.studentPerformance ?? [],
+        upcomingTasks: dashboardResp.upcomingTasks ?? []
       });
       setLastUpdated(Date.now());
       setError(null);
       setIsLoading(false);
-    },
-    onError: (err: any) => {
-      setError(err?.message || 'Failed to load dashboard data');
+    }
+  }, [dashboardResp]);
+
+  useEffect(() => {
+    if (queryError) {
+      setError('Failed to load dashboard data');
       setIsLoading(false);
     }
-  });
+  }, [queryError]);
 
   useEffect(() => {
     const flag = localStorage.getItem('show_profile_completion');

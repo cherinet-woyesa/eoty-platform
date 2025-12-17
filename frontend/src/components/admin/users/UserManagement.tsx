@@ -7,11 +7,11 @@ import { brandColors } from '@/theme/brand';
 import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import { useTranslation } from 'react-i18next';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Edit, 
+import {
+  Users,
+  UserPlus,
+  Search,
+  Edit,
   Shield,
   Mail,
   Calendar,
@@ -31,6 +31,7 @@ import {
   Trash2
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import TeacherVerificationModal from './TeacherVerificationModal';
 
 interface User {
   id: string;
@@ -44,6 +45,8 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   profilePicture?: string;
+  verification_docs?: any;
+  onboarding_status?: any;
 }
 
 const UserManagement: React.FC = () => {
@@ -52,12 +55,16 @@ const UserManagement: React.FC = () => {
   const { showNotification } = useNotification();
   const { confirm } = useConfirmDialog();
   const [searchParams] = useSearchParams();
-  
+
   // State
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // State for teacher verification
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -71,15 +78,20 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     const status = searchParams.get('status');
     if (status) setStatusFilter(status);
-    
+
     const time = searchParams.get('time');
     if (time) setTimeFilter(time);
-    
+
     const sort = searchParams.get('sort');
     if (sort) setSortBy(sort);
   }, [searchParams]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
+
+  const handleVerifyTeacher = (teacher: any) => {
+    setSelectedTeacher(teacher);
+    setShowVerificationModal(true);
+  };
+  const [chapters, setChapters] = useState<{ id: number, name: string, location: string }[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -324,7 +336,7 @@ const UserManagement: React.FC = () => {
       variant: 'danger'
     });
     if (!ok) return;
-    
+
     setActionLoading(userId);
     try {
       await adminApi.deleteUser(userId);
@@ -350,7 +362,7 @@ const UserManagement: React.FC = () => {
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    
+
     setActionLoading('edit');
     try {
       await adminApi.updateUser({
@@ -374,7 +386,7 @@ const UserManagement: React.FC = () => {
   };
 
   const openEditModal = (user: User) => {
-    setEditingUser({...user});
+    setEditingUser({ ...user });
     setShowEditModal(true);
   };
 
@@ -385,7 +397,7 @@ const UserManagement: React.FC = () => {
     setActionLoading('bulk');
     try {
       await Promise.all(
-        selectedUsers.map(userId => 
+        selectedUsers.map(userId =>
           adminApi.updateUserStatus(userId, isActive)
         )
       );
@@ -449,8 +461,8 @@ const UserManagement: React.FC = () => {
   };
 
   const handleSelectUser = (userId: string) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
+    setSelectedUsers(prev =>
+      prev.includes(userId)
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
@@ -468,7 +480,7 @@ const UserManagement: React.FC = () => {
     const now = new Date();
     const userDate = typeof date === 'string' ? new Date(date) : date;
     const diffInHours = Math.floor((now.getTime() - userDate.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
@@ -532,191 +544,191 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Compact Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm text-stone-600">
-              {stats.total} total users • {stats.active} active • {stats.inactive} inactive
+      {/* Compact Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm text-stone-600">
+            {stats.total} total users • {stats.active} active • {stats.inactive} inactive
+          </span>
+          {lastUpdated && (
+            <span className="text-xs px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
+              Last updated {new Date(lastUpdated).toLocaleTimeString()}
             </span>
-            {lastUpdated && (
-              <span className="text-xs px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
-                Last updated {new Date(lastUpdated).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={fetchUsers}
-              disabled={loading || isRefreshing}
-              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
-              style={{ 
-                borderColor: `${brandColors.primaryHex}40`,
-                '--tw-ring-color': brandColors.primaryHex 
-              } as React.CSSProperties}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
-              style={{ 
-                backgroundColor: brandColors.primaryHex,
-                '--tw-ring-color': brandColors.primaryHex 
-              } as React.CSSProperties}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              New User
-            </button>
-          </div>
+          )}
         </div>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchUsers}
+            disabled={loading || isRefreshing}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
+            style={{
+              borderColor: `${brandColors.primaryHex}40`,
+              '--tw-ring-color': brandColors.primaryHex
+            } as React.CSSProperties}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
+            style={{
+              backgroundColor: brandColors.primaryHex,
+              '--tw-ring-color': brandColors.primaryHex
+            } as React.CSSProperties}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            New User
+          </button>
+        </div>
+      </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
-            { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
-            { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
-          ].filter(stat => stat.value !== null && stat.value !== undefined).map((stat, index) => (
-            <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`relative ${stat.textColor}`} style={stat.name === 'Total' || stat.name === 'Admins' ? { color: brandColors.primaryHex } : undefined}>
-                  <div className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`} style={stat.name === 'Total' || stat.name === 'Admins' ? { backgroundColor: `${brandColors.primaryHex}26` } : undefined}></div>
-                  <div className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`} style={stat.name === 'Total' || stat.name === 'Admins' ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}40` } : undefined}>
-                    <stat.icon className="h-4 w-4" />
-                  </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[
+          { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
+          { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
+          { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
+        ].filter(stat => stat.value !== null && stat.value !== undefined).map((stat, index) => (
+          <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <div className={`relative ${stat.textColor}`} style={stat.name === 'Total' || stat.name === 'Admins' ? { color: brandColors.primaryHex } : undefined}>
+                <div className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`} style={stat.name === 'Total' || stat.name === 'Admins' ? { backgroundColor: `${brandColors.primaryHex}26` } : undefined}></div>
+                <div className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`} style={stat.name === 'Total' || stat.name === 'Admins' ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}40` } : undefined}>
+                  <stat.icon className="h-4 w-4" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-stone-800">{stat.value}</p>
-              <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
             </div>
-          ))}
-        </div>
+            <p className="text-2xl font-bold text-stone-800">{stat.value}</p>
+            <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-                  style={{ 
-                    '--tw-ring-color': brandColors.primaryHex,
-                    borderColor: searchTerm ? brandColors.primaryHex : undefined
-                  } as React.CSSProperties}
-                />
-              </div>
+      {/* Search and Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                style={{
+                  '--tw-ring-color': brandColors.primaryHex,
+                  borderColor: searchTerm ? brandColors.primaryHex : undefined
+                } as React.CSSProperties}
+              />
+            </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                <select
-                  value={roleFilter}
-                  onChange={(e) => {
-                    setRoleFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                >
-                  <option value="all">All Roles</option>
-                  <option value="student">Students</option>
-                  <option value="teacher">Teachers</option>
-                  <option value="chapter_admin">Chapter Admins</option>
-                  <option value="regional_coordinator">Regional Coordinators</option>
-                  <option value="admin">Platform Admins</option>
-                </select>
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+              >
+                <option value="all">All Roles</option>
+                <option value="student">Students</option>
+                <option value="teacher">Teachers</option>
+                <option value="chapter_admin">Chapter Admins</option>
+                <option value="regional_coordinator">Regional Coordinators</option>
+                <option value="admin">Platform Admins</option>
+              </select>
 
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
 
-                <select
-                  value={chapterFilter}
-                  onChange={(e) => {
-                    setChapterFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
-                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                >
-                  <option value="all">All Chapters</option>
-                  {chapters.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name || c.location || `Chapter ${c.id}`}</option>
-                  ))}
-                </select>
+              <select
+                value={chapterFilter}
+                onChange={(e) => {
+                  setChapterFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+              >
+                <option value="all">All Chapters</option>
+                {chapters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name || c.location || `Chapter ${c.id}`}</option>
+                ))}
+              </select>
 
-                <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`px-3 py-2 ${viewMode === 'table' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
-                    style={viewMode === 'table' ? { backgroundColor: brandColors.primaryHex } : undefined}
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
-                    style={viewMode === 'grid' ? { backgroundColor: brandColors.primaryHex } : undefined}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Actions row */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <button
-                  onClick={fetchUsers}
-                  disabled={loading || isRefreshing}
-                  className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
-                  style={{ 
-                    borderColor: `${brandColors.primaryHex}40`,
-                    '--tw-ring-color': brandColors.primaryHex 
-                  } as React.CSSProperties}
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-2 ${viewMode === 'table' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                  style={viewMode === 'table' ? { backgroundColor: brandColors.primaryHex } : undefined}
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                  <List className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={exportCsv}
-                  className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50"
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 border-l border-stone-300 ${viewMode === 'grid' ? 'text-white font-semibold' : 'bg-white/90 text-stone-700 hover:bg-stone-50'}`}
+                  style={viewMode === 'grid' ? { backgroundColor: brandColors.primaryHex } : undefined}
                 >
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => setShowCreateForm(!showCreateForm)}
-                  className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                  style={{ 
-                    backgroundColor: brandColors.primaryHex,
-                    '--tw-ring-color': brandColors.primaryHex 
-                  } as React.CSSProperties}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  New User
+                  <LayoutGrid className="h-4 w-4" />
                 </button>
               </div>
             </div>
+
+            {/* Actions row */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={fetchUsers}
+                disabled={loading || isRefreshing}
+                className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
+                style={{
+                  borderColor: `${brandColors.primaryHex}40`,
+                  '--tw-ring-color': brandColors.primaryHex
+                } as React.CSSProperties}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+              <button
+                onClick={exportCsv}
+                className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
+                style={{
+                  backgroundColor: brandColors.primaryHex,
+                  '--tw-ring-color': brandColors.primaryHex
+                } as React.CSSProperties}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                New User
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
       {/* Error Display */}
       {error && (
@@ -729,9 +741,9 @@ const UserManagement: React.FC = () => {
             <button
               onClick={fetchUsers}
               className="px-3 py-1.5 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
-              style={{ 
+              style={{
                 backgroundColor: brandColors.primaryHex,
-                '--tw-ring-color': brandColors.primaryHex 
+                '--tw-ring-color': brandColors.primaryHex
               } as React.CSSProperties}
             >
               Retry
@@ -755,9 +767,9 @@ const UserManagement: React.FC = () => {
                 onClick={() => handleBulkStatusChange(true)}
                 disabled={actionLoading === 'bulk'}
                 className="inline-flex items-center px-3 py-1.5 text-white text-sm font-semibold rounded-lg disabled:opacity-50 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{ 
+                style={{
                   backgroundColor: brandColors.primaryHex,
-                  '--tw-ring-color': brandColors.primaryHex 
+                  '--tw-ring-color': brandColors.primaryHex
                 } as React.CSSProperties}
               >
                 <UserCheck className="h-4 w-4 mr-1" />
@@ -797,7 +809,7 @@ const UserManagement: React.FC = () => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          
+
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
@@ -806,7 +818,7 @@ const UserManagement: React.FC = () => {
                   type="text"
                   name="firstName"
                   value={newUser.firstName}
-                  onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   required
@@ -818,7 +830,7 @@ const UserManagement: React.FC = () => {
                   type="text"
                   name="lastName"
                   value={newUser.lastName}
-                  onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   required
@@ -830,7 +842,7 @@ const UserManagement: React.FC = () => {
                   type="email"
                   name="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   required
@@ -842,7 +854,7 @@ const UserManagement: React.FC = () => {
                   type="password"
                   name="password"
                   value={newUser.password}
-                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   required
@@ -853,7 +865,7 @@ const UserManagement: React.FC = () => {
                 <select
                   name="chapter"
                   value={newUser.chapter}
-                  onChange={(e) => setNewUser({...newUser, chapter: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, chapter: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 >
@@ -870,7 +882,7 @@ const UserManagement: React.FC = () => {
                 <select
                   name="role"
                   value={newUser.role}
-                  onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
                   style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 >
@@ -887,9 +899,9 @@ const UserManagement: React.FC = () => {
                 type="submit"
                 disabled={actionLoading === 'create'}
                 className="flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{ 
+                style={{
                   backgroundColor: brandColors.primaryHex,
-                  '--tw-ring-color': brandColors.primaryHex 
+                  '--tw-ring-color': brandColors.primaryHex
                 } as React.CSSProperties}
               >
                 {actionLoading === 'create' ? (
@@ -948,6 +960,7 @@ const UserManagement: React.FC = () => {
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Verification</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Chapter</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Joined</th>
@@ -969,7 +982,7 @@ const UserManagement: React.FC = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center">
-                            <div 
+                            <div
                               className="h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold mr-3"
                               style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
                             >
@@ -1002,9 +1015,23 @@ const UserManagement: React.FC = () => {
                           </select>
                         </td>
                         <td className="px-4 py-3">
+                          {user.role === 'teacher' ? (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${user.verification_docs && Object.keys(user.verification_docs).length > 0
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {user.verification_docs && Object.keys(user.verification_docs).length > 0
+                                ? 'Docs Submitted'
+                                : 'No Docs'}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
                           <span className="text-sm text-gray-900 capitalize">
-                            {typeof user.chapter === 'string' 
-                              ? user.chapter.replace(/-/g, ' ') 
+                            {typeof user.chapter === 'string'
+                              ? user.chapter.replace(/-/g, ' ')
                               : chapters.find(c => c.id === user.chapter)?.location || 'N/A'}
                           </span>
                         </td>
@@ -1012,11 +1039,10 @@ const UserManagement: React.FC = () => {
                           <button
                             onClick={() => handleToggleUserStatus(user.id, user.isActive)}
                             disabled={actionLoading === user.id}
-                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 hover:opacity-80 ${
-                              user.isActive
-                                ? ''
-                                : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
-                            }`}
+                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 hover:opacity-80 ${user.isActive
+                              ? ''
+                              : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
+                              }`}
                             style={user.isActive ? {
                               backgroundColor: `${brandColors.primaryHex}1A`,
                               color: brandColors.primaryHex,
@@ -1054,6 +1080,15 @@ const UserManagement: React.FC = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </button>
+                            {user.role === 'teacher' && (
+                              <button
+                                onClick={() => handleVerifyTeacher(user)}
+                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Verify Teacher"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => openEditModal(user)}
                               className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1108,8 +1143,8 @@ const UserManagement: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedUsers.map((user) => (
-                <div 
-                  key={user.id} 
+                <div
+                  key={user.id}
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all relative"
                 >
                   {isRefreshing && (
@@ -1155,11 +1190,10 @@ const UserManagement: React.FC = () => {
                         <button
                           onClick={() => handleToggleUserStatus(user.id, user.isActive)}
                           disabled={actionLoading === user.id}
-                          className={`w-full flex items-center justify-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
-                            user.isActive
-                              ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
-                          }`}
+                          className={`w-full flex items-center justify-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${user.isActive
+                            ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                            : 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
+                            }`}
                         >
                           {user.isActive ? (
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -1175,8 +1209,8 @@ const UserManagement: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500">Chapter:</span>
                         <span className="font-medium capitalize">
-                          {typeof user.chapter === 'string' 
-                            ? user.chapter.replace(/-/g, ' ') 
+                          {typeof user.chapter === 'string'
+                            ? user.chapter.replace(/-/g, ' ')
                             : chapters.find(c => c.id === user.chapter)?.location || 'N/A'}
                         </span>
                       </div>
@@ -1207,13 +1241,13 @@ const UserManagement: React.FC = () => {
                         <Eye className="mr-1 h-3 w-3" />
                         View
                       </button>
-                      <button 
+                      <button
                         onClick={() => openEditModal(user)}
                         className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <Edit className="h-3 w-3" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteUser(user.id)}
                         disabled={actionLoading === user.id || String(user.id) === String(currentUser?.id)}
                         className="inline-flex items-center px-3 py-1.5 border border-red-200 text-xs font-medium rounded-lg text-red-600 bg-white hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -1234,7 +1268,7 @@ const UserManagement: React.FC = () => {
             {users.length === 0 ? 'No users yet' : 'No users found'}
           </h3>
           <p className="text-gray-600 text-sm mb-4">
-            {users.length === 0 
+            {users.length === 0
               ? 'Create your first user to start managing platform access.'
               : 'Try adjusting your search or filter criteria.'}
           </p>
@@ -1294,8 +1328,8 @@ const UserManagement: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Chapter</p>
                   <p className="text-base font-medium text-gray-900 capitalize">
-                    {typeof selectedUser.chapter === 'string' 
-                      ? selectedUser.chapter.replace(/-/g, ' ') 
+                    {typeof selectedUser.chapter === 'string'
+                      ? selectedUser.chapter.replace(/-/g, ' ')
                       : chapters.find(c => c.id === selectedUser.chapter)?.location || 'N/A'}
                   </p>
                 </div>
@@ -1341,7 +1375,7 @@ const UserManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editingUser.firstName}
-                    onChange={(e) => setEditingUser({...editingUser, firstName: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
                     style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
@@ -1352,7 +1386,7 @@ const UserManagement: React.FC = () => {
                   <input
                     type="text"
                     value={editingUser.lastName}
-                    onChange={(e) => setEditingUser({...editingUser, lastName: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
                     style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
@@ -1363,7 +1397,7 @@ const UserManagement: React.FC = () => {
                   <input
                     type="email"
                     value={editingUser.email}
-                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-50 focus:border-transparent"
                     style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     required
@@ -1373,7 +1407,7 @@ const UserManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
                     value={editingUser.role}
-                    onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
                     style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     disabled={String(editingUser.id) === String(currentUser?.id)}
@@ -1392,7 +1426,7 @@ const UserManagement: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Chapter</label>
                   <select
                     value={editingUser.chapterId || editingUser.chapter}
-                    onChange={(e) => setEditingUser({...editingUser, chapterId: parseInt(e.target.value), chapter: parseInt(e.target.value)})}
+                    onChange={(e) => setEditingUser({ ...editingUser, chapterId: parseInt(e.target.value), chapter: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-opacity-40"
                     style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   >
@@ -1406,7 +1440,7 @@ const UserManagement: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={editingUser.isActive}
-                      onChange={(e) => setEditingUser({...editingUser, isActive: e.target.checked})}
+                      onChange={(e) => setEditingUser({ ...editingUser, isActive: e.target.checked })}
                       className="rounded border-gray-300 focus:ring-opacity-50 mr-2"
                       style={{ color: brandColors.secondaryHex, '--tw-ring-color': brandColors.secondaryHex } as React.CSSProperties}
                     />
@@ -1442,6 +1476,19 @@ const UserManagement: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      {showVerificationModal && selectedTeacher && (
+        <TeacherVerificationModal
+          teacher={selectedTeacher}
+          onClose={() => {
+            setShowVerificationModal(false);
+            setSelectedTeacher(null);
+          }}
+          onUpdate={() => {
+            fetchUsers();
+            fetchCounts();
+          }}
+        />
       )}
     </div>
   );

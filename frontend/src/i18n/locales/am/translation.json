@@ -1,73 +1,17 @@
 {
-  "nav": {
-    "dashboard": "ዳሽቦርድ",
-    "dashboard_desc": "የመድረክ አጠቃላይ እይታ እና መለኪያዎች",
-    "courses": "ኮርሶች",
-    "courses_desc": "የእኔ ኮርሶች፣ ይፍጠሩ እና ያስሱ",
-    "learning": "ትምህርት",
-    "learning_desc": "ሂደት፣ የቤት ስራዎች፣ መንገዶች እና ስኬቶች",
-    "ai_assistant": "AI ረዳት",
-    "ai_assistant_desc": "ፈጣን እርዳታ እና መልሶችን ያግኙ",
-    "community": "ማህበረሰብ",
-    "community_desc": "መጋቢ፣ ቡድኖች እና መድረኮች",
-    "chapters": "ምዕራፎች",
-    "chapters_desc": "የአካባቢ ማህበረሰቦችን ይቀላቀሉ",
-    "resources": "ግብዓቶች",
-    "resources_desc": "ቤተ-መጽሐፍት እና የእርዳታ ማዕከል",
-    "content": "ይዘት",
-    "content_desc": "ያትቡ፣ ያስገቡ እና ግብዓቶች",
-    "users_access": "ተማሪዎች እና መድረሻ",
-    "users_access_desc": "ተማሪዎች፣ ምዕራፎች እና ሚናዎች",
-    "communications": "መልዕክቶች",
-    "communications_desc": "ክስተቶች እና ማስታወቂያዎች ያስተዳድሩ",
-    "system": "ስርዓት",
-    "system_desc": "ትንታኔዎች፣ ማዋቀሪያ፣ ምዝግብ ቃል እና መሣሪያዎች",
-    "students": "ተማሪዎች",
-    "students_desc": "ተማሪዎች፣ የቤት ስራዎች እና ትንታኔዎች",
-  
-    "register": "ተመዝገብ",
-    "email": "ኢሜል",
-    "password": "የይለፍ ቃል",
-    "confirm_password": "የይለፍ ቃል ያረጋግጡ",
-    "upload_image": "ምስል ይስቀሉ",
-    "first_name": "የመጀመሪያ ስም",
-    "last_name": "የአባት ስም",
-    "chapter": "ምድር",
-    "dismiss": "አስወግድ",
-    "role": "ሚና",
-    "cancel": "ሰርዝ",
-    "save": "አስቀምጥ",
-    "delete": "አጥፋ",
-    "edit": "አርትዕ",
-    "view": "ተመልከት",
-    "search": "ፈልግ",
-    "filter": "አጣራ",
-    "loading": "በመጫን ላይ...",
-    "error": "ስህተት",
+  "common": {
     "success": "ተሳክቷል",
+    "error": "ስህተት",
     "warning": "ማስጠንቀቂያ",
-    "live_updates": "ቀጥታ ዝመናዎች",
-    "inspiring_students": "{{students}} ተማሪዎችን በ {{courses}} ኮርስዎች ላይ ማስደስት",
+    "save_changes": "ለውጦችን አስቀምጥ",
+    "saving": "በማስቀመጥ ላይ...",
+    "loading": "በመጫን ላይ...",
+    "loading_dashboard": "ዳሽቦርድ በመጫን ላይ...",
+    "error_loading_data": "ውሂብ መጫን አልተቻለም",
     "try_again": "እንደገና ይሞክሩ",
-    "engagement": "አበርታችነት",
-    "manage_students": "ተማሪዎችን አስተዳድር",
-    "discussions": "የውይይት መድረኮች",
-    "student": "ተማሪ",
-    "previous": "የቀድሞ",
-    "next": "ቀጣይ",
-    "optional": "አማራጭ",
-    "done": "ጨርሷል",
-    "pending": "በመጠባበቅ ላይ",
-    "page": "ገጽ {{count}}",
-    "sort_by": "ቅደም ተከተል በ",
-    "security": "ደህንነት",
-    "security_hint": "የ2FAን እና የመለያ ደህንነትን ከመገለጫዎ ያስተዳድሩ።",
-    "linked_accounts": "የተገናኙ መለያዎች",
-    "sso_hint": "ለፈጣን መግቢያ Google ወይም Apple ያገናኙ።",
-    "location_hint": "ይዘትን ለማበጃት ከተማ/ክልልዎን ያስቀምጡ።",
-    "online": "ኦንላይን"
+    "try_again_description": "እባክዎ እንደገና ይሞክሩ ወይም ችግሩ ከቀጠለ ድጋፍን ያነጋግሩ።",
+    "quick_actions": "ፈጣን እርምጃዎች"
   },
-
   "ai_labeling": {
     "title": "አአ ምልክት መስጠት",
     "subtitle": "የአአ ምላሾችን ለትግበራና ደህንነት ይገምጹ",
@@ -88,13 +32,6 @@
     "check_again": "እንደገና በኋላ ይመልከቱ",
     "page_of": "ገጽ {{page}} ከ {{total}}"
   },
-
-  "common": {
-    "upload_image": "ምስል ይስቀሉ",
-    "public_course": "የህዝብ ኮርስ",
-    "private_course": "የግል ኮርስ"
-  },
-
   "onboarding": {
     "step_of": "እርምጃ {{index}} ከ {{total}}",
     "video_not_supported": "በርካታ መተግበሪያዎች ይህን ቪዲዮ አይደግፉም።",
@@ -156,7 +93,6 @@
       "skip": "አሁን ዝም በል"
     }
   },
-
   "courses": {
     "title": "ኮርስዎች",
     "my_courses": "የኔ ኮርስዎች",
@@ -293,6 +229,7 @@
         "email_invalid": "እባክዎን ትክክለኛ ኢሜል ያስገቡ",
         "password_required": "የይለፍ ቃል ያስፈልጋል",
         "password_min": "የይለፍ ቃል ቢያንስ 6 ቁምፊ ይሆን",
+        "password_in": "የይለፍ ቃል ቢያንስ 6 ቁምፊ ይሆን",
         "code_invalid": "እባክዎን ትክክለኛ 6-አሃዝ ኮድ ያስገቡ"
       },
       "messages": {
@@ -404,7 +341,6 @@
     "all_topics": "ሁሉም ርዕሶች",
     "articles": "ጽሑፎች"
   },
-
   "dashboard": {
     "teacher": {
       "title": "የአስተማሪ ዳሽቦርድ",
@@ -575,8 +511,7 @@
     "remove_bookmark_confirm_title": "ይህን ዕልባት ማስወገድዎ እርግጠኛ ነዎት?",
     "remove_bookmark_confirm_desc": "ይህ ኮርሱን ከዕልባት ካደረጉት ዝርዝርዎ ያስወግዳል።",
     "confirm_remove_btn": "ማስወገድን አረጋግጥ"
-  }
-  ,
+  },
   "learning_page": {
     "title": "የእኔ ትምህርት",
     "subtitle": "እድገትዎን፣ የቤት ስራዎችዎን እና ስኬቶችዎን ይከታተሉ",
@@ -694,8 +629,7 @@
     "browse_courses": "ኮርሶችን ያስሱ",
     "paths_label": "{{count}} መንገዶች",
     "enroll_error": "መመዝገብ አልተሳካም። እባክዎ ዳግም ይሞክሩ።"
-  }
-  ,
+  },
   "bookmarks_page": {
     "title": "የእኔ ዕልባት",
     "subtitle": "የተቀመጡ ኮርሶች እና ትምህርቶች ለፈጣን መድረስ",
@@ -922,8 +856,7 @@
       "title": "ኮርስ አልተገኘም",
       "description": "የምትፈልጉት ኮርስ የለም ወይም ተወግዷል።"
     }
-  }
-  ,
+  },
   "spiritual_journeys": {
     "loading_text": "የመንገዶችዎን መረጃ በመጫን ላይ...",
     "title": "የመንፈሳዊ ጉዞዎች",
@@ -1043,36 +976,36 @@
       "enrolled": "የተመዘገቡ",
       "rating": "ደረጃ",
       "avg_rating": "አማካይ ደረጃ",
-    "select_course_optional": "ኮርስ ይምረጡ (አማራጭ)",
-    "select_target_course": "የታለመ ኮርስ ይምረጡ",
-    "no_course_selected": "ምንም ኮርስ አልተምረጠም",
-    "create_new_course": "አዲስ ኮርስ ይፍጠሩ",
-    "video_recorder": {
-      "ready_to_record": "ለመቅረጽ የተሰማሩ",
-      "ready_to_record_desc": "ካሜራ ወይም ስክሪን ሽር ለማስጀመር መቅረጽ ይጀምሩ",
-      "camera": "ካሜራ",
-      "screen": "ስክሪን",
-      "no_sources": "(ምንም ምንጮች የሉም)",
-      "record": "ቅረጽ",
-      "upload": "ስቀል",
-      "start_recording": "መቅረጽ ጀምር",
-      "create_new_lesson": "አዲስ ትምህርት ፍጠር",
-      "update_lesson": "ትምህርት አድስ",
-      "new_lesson_mode": "አዲስ የትምህርት ሁኔታ",
-      "recording_mode": "የመቅረጽ ሁኔታ",
-      "new_lesson_desc": "ከተቀረጸ ወይም ከተስቀለ ቪዲዮ ጋር አዲስ ትምህርት ፍጠር",
-      "select_course": "ኮርስ ይምረጡ",
-      "select_course_required": "ኮርስ ይምረጡ *",
-      "choose_course": "ኮርስ ይምረጡ...",
-      "create_new_course": "አዲስ ኮርስ ፍጠር",
-      "lesson_title": "የትምህርት ርዕስ",
-      "lesson_title_required": "የትምህርት ርዕስ *",
-      "enter_lesson_title": "የትምህርት ርዕስ አስገባ...",
-      "description_optional": "መግለጫ (አማራጭ)",
-      "brief_description": "አጭር መግለጫ...",
-      "create_lesson": "ትምህርት ፍጠር",
-      "record_or_upload_required": "ትምህርት ለመፍጠር እባክዎ ቪዲዮ ይቅረጹ ወይም ያስቀሉ"
-    }
+      "select_course_optional": "ኮርስ ይምረጡ (አማራጭ)",
+      "select_target_course": "የታለመ ኮርስ ይምረጡ",
+      "no_course_selected": "ምንም ኮርስ አልተምረጠም",
+      "create_new_course": "አዲስ ኮርስ ይፍጠሩ",
+      "video_recorder": {
+        "ready_to_record": "ለመቅረጽ የተሰማሩ",
+        "ready_to_record_desc": "ካሜራ ወይም ስክሪን ሽር ለማስጀመር መቅረጽ ይጀምሩ",
+        "camera": "ካሜራ",
+        "screen": "ስክሪን",
+        "no_sources": "(ምንም ምንጮች የሉም)",
+        "record": "ቅረጽ",
+        "upload": "ስቀል",
+        "start_recording": "መቅረጽ ጀምር",
+        "create_new_lesson": "አዲስ ትምህርት ፍጠር",
+        "update_lesson": "ትምህርት አድስ",
+        "new_lesson_mode": "አዲስ የትምህርት ሁኔታ",
+        "recording_mode": "የመቅረጽ ሁኔታ",
+        "new_lesson_desc": "ከተቀረጸ ወይም ከተስቀለ ቪዲዮ ጋር አዲስ ትምህርት ፍጠር",
+        "select_course": "ኮርስ ይምረጡ",
+        "select_course_required": "ኮርስ ይምረጡ *",
+        "choose_course": "ኮርስ ይምረጡ...",
+        "create_new_course": "አዲስ ኮርስ ፍጠር",
+        "lesson_title": "የትምህርት ርዕስ",
+        "lesson_title_required": "የትምህርት ርዕስ *",
+        "enter_lesson_title": "የትምህርት ርዕስ አስገባ...",
+        "description_optional": "መግለጫ (አማራጭ)",
+        "brief_description": "አጭር መግለጫ...",
+        "create_lesson": "ትምህርት ፍጠር",
+        "record_or_upload_required": "ትምህርት ለመፍጠር እባክዎ ቪዲዮ ይቅረጹ ወይም ያስቀሉ"
+      }
     },
     "quick_actions": {
       "title": "ፈጣን እርምጃዎች",
@@ -1422,7 +1355,7 @@
     "activity": {
       "title": "የቅርብ እንቅስቃሴ",
       "count": "{{count}} እቃዎች",
-      "loading": "እንቅስቃሴን በመጫን ላይ…",
+      "loading": "እንቅስቃሴን በመጫን ላይ...",
       "empty": "እስካሁን ድረስ የቅርብ እንቅስቃሴ የለም። ማድረግ ጀምሩ እና ትዝታዎን ይመልከቱ።",
       "failed": "አልተሳካም",
       "at": "{{value, datetime}}"
@@ -1436,7 +1369,6 @@
       "groups": "የምዕራፍ ቡድኖች",
       "forums": "ውይይቶች"
     },
-
     "hero": {
       "badge": "የማህበረሰብ አቅጣጫ",
       "teacher_title": "ማህበሩን መምርጥ፣ {{name}}",
@@ -1698,7 +1630,6 @@
       "load_failed": "የኮርስ ካታሎግ መጫን አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
     }
   },
-  
   "chapters": {
     "header": {
       "title": "ምዕራፎች",
@@ -1854,7 +1785,7 @@
       "amount": "መጠን",
       "frequency": "ድግግሞሽ",
       "secure": "የታመነ እና የተፈቀደ በጎ አድራጊ",
-      "stats_error": "የበይነመረብ ውጤቶች ማግኘት አልተሳካም።",
+      "stats_error": "የበይነመረብ ውጤቶች ማግኘት አልተቻለም።",
       "submit": "ድጋፉን ያጠናቁ",
       "processing": "በሂደት ላይ...",
       "terms": "በመመዝገብዎ የአገልግሎት ውሎችን እና የግላዊነት ፖሊሲን ታግዳላችሁ። ሁሉም ድጋፎች የግብር ቀነስ ያላቸው ናቸው።"
@@ -1915,10 +1846,34 @@
       "title": "የትምህርትዎ ጉዞ በ4 ደረጃ",
       "subtitle": "ቀላል እና ተስማሚ ደረጃዎች ለእምነት የተመሰረተ ትምህርት",
       "defaults": [
-        { "title": "ይመዝገቡ", "desc": "መለያ ይፍጠሩና ይቀላቀሉ", "f1": "ነፃ መመዝገብ", "f2": "መገለጫ ማዘጋጀት", "f3": "ማህበረሰብ መዳረሻ" },
-        { "title": "ኮርስ ይምረጡ", "desc": "የተመረጡ ኮርሶችን ይዘርዝሩ", "f1": "ተለያዩ ጉዳዮች", "f2": "ባለሙያ አስተማሪዎች", "f3": "ተስማሚ መማር" },
-        { "title": "ይጀምሩ", "desc": "በተሞክሮ ይዘት ጀምሩ", "f1": "ቪዲዮ ትምህርቶች", "f2": "ተግባራዊ ቀጠሮዎች", "f3": "እድገት መከታተል" },
-        { "title": "ማረጋገጥ ያግኙ", "desc": "ኮርሶችን ይጨርሱና ማረጋገጫ ያግኙ", "f1": "የመንፈስ ማረጋገጫዎች", "f2": "ትርፍ ማሳያዎች", "f3": "ክብር እውቅና" }
+        {
+          "title": "ይመዝገቡ",
+          "desc": "መለያ ይፍጠሩና ይቀላቀሉ",
+          "f1": "ነፃ መመዝገብ",
+          "f2": "መገለጫ ማዘጋጀት",
+          "f3": "ማህበረሰብ መዳረሻ"
+        },
+        {
+          "title": "ኮርስ ይምረጡ",
+          "desc": "የተመረጡ ኮርሶችን ይዘርዝሩ",
+          "f1": "ተለያዩ ጉዳዮች",
+          "f2": "ባለሙያ አስተማሪዎች",
+          "f3": "ተስማሚ መማር"
+        },
+        {
+          "title": "ይጀምሩ",
+          "desc": "በተሞክሮ ይዘት ጀምሩ",
+          "f1": "ቪዲዮ ትምህርቶች",
+          "f2": "ተግባራዊ ቀጠሮዎች",
+          "f3": "እድገት መከታተል"
+        },
+        {
+          "title": "ማረጋገጥ ያግኙ",
+          "desc": "ኮርሶችን ይጨርሱና ማረጋገጫ ያግኙ",
+          "f1": "የመንፈስ ማረጋገጫዎች",
+          "f2": "ትርፍ ማሳያዎች",
+          "f3": "ክብር እውቅና"
+        }
       ]
     },
     "courses": {
@@ -1972,7 +1927,7 @@
   "teacher_profile": {
     "payout_setup": {
       "main_title": "የክፍያ ማዋቀር",
-      "subtitle": "ገቢዎን ለመቀበል የክፍያ ዘዴዎን ያዋቅሩ።",
+      "subtitle": "ገቢዎን እንዴት መቀበል እንደሚፈልጉ ያዋቅሩ።",
       "payout_details_title": "የክፍያ ዝርዝሮች",
       "selected_country_title": "የተመረጠ ሀገር",
       "country_ethiopia": "ኢትዮጵያ",
@@ -2010,10 +1965,12 @@
       "method_label": "ዘዴ",
       "region_label": "ክልል",
       "currency_label": "ምንዛሬ",
+      "currency_etb": "ETB (የኢትዮጵያ ብር)",
+      "currency_usd": "USD (የአሜሪካ ዶላር)",
       "transactional_terms_title": "የግብይት ውሎች",
-      "transactional_terms_description": "በማረጋገጥ፣ በግብይት ውሎች ይስማማሉ።",
-      "next_steps_title": "ቀጣይ ደረጃዎች",
-      "next_steps_description": "የክፍያ ማዋቀርዎ እየተሰራ ነው።",
+      "transactional_terms_description": "በማረጋገጥ፣ በእኛ የክፍያ ውሎች ይስማማሉ። ክፍያዎች ለእኩል $50 በላይ ለሆኑ ቀሪ ሂሳቦች በሳምንት ይከናወናሉ። እንደ ባንክዎ ወይም አቅራቢዎ መደበኛ የማቀነባበሪያ ጊዜዎች ይተገበራሉ።",
+      "next_steps_title": "ቀጥሎ ምን ይሆናል?",
+      "next_steps_description": "የክፍያ ዝርዝሮችዎን እናረጋግጣለን። ይህ ብዙ ጊዜ 1-2 የስራ ቀናት ይወስዳል። እስከዚያው ድረስ፣ ያልተቋረጡ ክፍያዎች ለማረጋገጥ እባክዎን የማንነት ማረጋገጫዎን ያጠናቅቁ።",
       "proceed_to_documents_btn": "ወደ ሰነዶች ይቀጥሉ"
     },
     "verification_docs": {
@@ -2136,5 +2093,614 @@
     "saving_preferences_btn": "በማስቀመጥ ላይ...",
     "preferences_saved": "የማሳወቂያ ምርጫዎች ተቀይረዋል",
     "preferences_save_failed": "ምርጫዎችን መቀመጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "teacher_profile": {
+    "welcome_back": "እንኳን ደህና መጡ፣ {{name}}!",
+    "dashboard_subtitle": "የማስተማር መገለጫዎን እና ቅንብሮችዎን ያስተዳድሩ።",
+    "profile_details": "የመገለጫ ዝርዝሮች",
+    "bio_label": "ሙያዊ ባዮ",
+    "bio_placeholder": "ስለ ማስተማር ልምድዎ እና ዘዴዎ ለተማሪዎች ይንገሩ...",
+    "bio_hint": "ቢያንስ 50 ቁምፊዎች ይመከራል።",
+    "subjects_label": "የትምህርት ዓይነቶች",
+    "subjects": {
+      "placeholder": "የትምህርት ዓይነት ያክሉ (ምሳሌ፦ የሂሳብ ትምህርት)",
+      "no_subjects": "እስካሁን ምንም የትምህርት ዓይነቶች አልተጨመሩም።",
+      "max_subjects": "ከፍተኛው 5 የትምህርት ዓይነቶች።"
+    },
+    "availability": {
+      "add_slot": "ክፍተት ጨምር",
+      "save": "አስቀምጥ",
+      "cancel": "ይቅር",
+      "no_availability": "ምንም ተገኝነት አልተዘጋጀም"
+    },
+    "setup_progress": "የማዋቀር ሂደት",
+    "time_required": "እባክዎን የመነሻ እና የማብቂያ ጊዜዎችን ይምረጡ",
+    "invalid_time_range": "የማብቂያ ጊዜ ከመነሻ ጊዜ በኋላ መሆን አለበት",
+    "time_slot_exists": "ይህ የጊዜ ክፍተት አስቀድሞ አለ",
+    "profile_updated": "መገለጫው በተሳካ ሁኔታ ተዘምኗል",
+    "save_failed": "መገለጫውን ማስቀመጥ አልተቻለም",
+    "avatar_size_error": "የምስል መጠን ከ 5 ሜባ ያነሰ መሆን አለበት",
+    "avatar_updated": "የመገለጫ ምስል ተዘምኗል",
+    "payout_updated": "የክፍያ ቅንብሮች በተሳካ ሁኔታ ተዘምነዋል",
+    "payout_update_failed": "የክፍያ ቅንብሮችን ማዘመን አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "payout_account_holder_required": "የሂሳብ ባለቤቱ ስም ያስፈልጋል",
+    "payout_account_number_required": "የሂሳብ ቁጥር ያስፈልጋል",
+    "payout_routing_required": "ለባንክ ዝውውሮች የራውቲንግ ቁጥር ያስፈልጋል",
+    "payout_address_required": "የክፍያ አድራሻ ያስፈልጋል",
+    "payout_dob_required": "የትውልድ ቀን ያስፈልጋል",
+    "payout_tax_id_required": "የግብር መለያ ያስፈልጋል",
+    "payout_tax_agreement_required": "እባክዎ በግብር መረጃ ውሎች ይስማሙ",
+    "mobile_money_provider_required": "እባክዎ የሞባይል ገንዘብ አቅራቢ ይምረጡ",
+    "payout_age_requirement": "ዕድሜዎ ቢያንስ 18 ዓመት መሆን አለበት",
+    "document_upload_success": "ሰነዱ በተሳካ ሁኔታ ተሰቅሏል። ሁኔታ፦ በመጠባበቅ ላይ ያለ ግምገማ።",
+    "document_upload_failed": "ሰነዱን መስቀል አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "dashboard": {
+      "total_students": "ጠቅላላ ተማሪዎች",
+      "total_earnings": "ጠቅላላ ገቢ",
+      "rating": "ደረጃ",
+      "reviews": "ግምገማዎች"
+    },
+    "payout_setup": {
+      "country_united_states": "አሜሪካ",
+      "country_united_kingdom": "እንግሊዝ",
+      "country_canada": "ካናዳ",
+      "country_ethiopia": "ኢትዮጵያ",
+      "main_title": "የክፍያ ማዋቀር",
+      "subtitle": "ገቢዎን እንዴት መቀበል እንደሚፈልጉ ያዋቅሩ።",
+      "region_label": "የክፍያ ክልል",
+      "method_label": "የክፍያ ዘዴ",
+      "bank_transfer_method": "የባንክ ዝውውር",
+      "bank_transfer_desc": "ወደ ባንክ ሂሳብዎ ቀጥታ ተቀማጭ",
+      "stripe_method": "Stripe",
+      "stripe_desc": "በStripe ፈጣንና የታመነ ክፍያ",
+      "mobile_money_method": "ሞባይል ገንዘብ",
+      "mobile_money_desc": "ወደ ሞባይል ቦርሳ ያስተላልፉ (ምሳሌ፦ ቴሌብር፣ M-Pesa)",
+      "mobile_money_provider_label": "የሞባይል ገንዘብ አቅራቢ",
+      "select_provider": "አቅራቢ ይምረጡ",
+      "provider_cbe_birr": "CBE ብር",
+      "provider_tele_birr": "ቴሌ ብር",
+      "account_details_title": "የሂሳብ ዝርዝሮች",
+      "account_holder_label": "የሂሳብ ባለቤቱ ስም",
+      "routing_number_label": "ራውቲንግ ቁጥር / የመለያ ኮድ",
+      "account_number_label": "የሂሳብ ቁጥር / IBAN",
+      "phone_number_label": "የሞባይል ቁጥር",
+      "tax_information_title": "የግብር መረጃ",
+      "tax_id_label": "የግብር መለያ / SSN",
+      "dob_label": "የትውልድ ቀን",
+      "billing_address_label": "የክፍያ አድራሻ",
+      "account_holder_placeholder": "ምሳሌ፦ John Doe",
+      "routing_number_placeholder": "የራውቲንግ / የመለያ ኮድ",
+      "account_number_placeholder": "የሂሳብ ቁጥር / IBAN",
+      "phone_number_placeholder": "+251...",
+      "tax_id_placeholder": "SSN / TIN / የመታወቂያ መለያ",
+      "address_placeholder": "ሙሉ የመንገድ አድራሻ፣ ከተማ፣ ክልል፣ ዚፕ",
+      "account_holder_placeholder": "ምሳሌ፦ John Doe",
+      "routing_number_placeholder": "የራውቲንግ / የመለያ ኮድ",
+      "account_number_placeholder": "የሂሳብ ቁጥር / IBAN",
+      "phone_number_placeholder": "+251...",
+      "tax_id_placeholder": "SSN / TIN / የመታወቂያ መለያ",
+      "address_placeholder": "ሙሉ የመንገድ አድራሻ፣ ከተማ፣ ክልል፣ ዚፕ",
+      "tax_agree_label": "የቀረበው መረጃ ትክክለኛ መሆኑን አረጋግጣለሁ እናም በ<a href=የግብር ውሎች</a> እስማማለሁ።",
+      "cancel_btn": "ይቅር",
+      "saving_btn": "በማስቀመጥ ላይ...",
+      "confirm_details_btn": "ዝርዝሮችን ያረጋግጡ",
+      "payout_summary_title": "የክፍያ ማጠቃለያ",
+      "currency_label": "ምንዛሬ",
+      "currency_etb": "ETB (የኢትዮጵያ ብር)",
+      "currency_usd": "USD (የአሜሪካ ዶላር)",
+      "transactional_terms_title": "የግብይት ውሎች",
+      "transactional_terms_description": "በማረጋገጥ፣ በእኛ የክፍያ ውሎች ይስማማሉ። ክፍያዎች ለእኩል $50 በላይ ለሆኑ ቀሪ ሂሳቦች በሳምንት ይከናወናሉ። እንደ ባንክዎ ወይም አቅራቢዎ መደበኛ የማቀነባበሪያ ጊዜዎች ይተገበራሉ።",
+      "next_steps_title": "ቀጥሎ ምን ይሆናል?",
+      "next_steps_description": "የክፍያ ዝርዝሮችዎን እናረጋግጣለን። ይህ ብዙ ጊዜ 1-2 የስራ ቀናት ይወስዳል። እስከዚያው ድረስ፣ ያልተቋረጡ ክፍያዎች ለማረጋገጥ እባክዎን የማንነት ማረጋገጫዎን ያጠናቅቁ።",
+      "proceed_to_documents_btn": "ወደ ሰነዶች ይቀጥሉ"
+    },
+    "tabs": {
+      "payout": "ክፍያ",
+      "documents": "ሰነዶች",
+      "statistics": "ስታቲስቲክስ",
+      "security": "ደህንነት",
+      "notifications": "ማሳወቂያዎች"
+    },
+    "social": {
+      "linkedin": "LinkedIn መገለጫ",
+      "website": "ድር ጣቢያ"
+    },
+    "avatar_upload_failed": "የመገለጫ ምስል መስቀል አልተቻለም"
+  },
+  "teacher_dashboard": {
+    "checklist_complete_profile": "መገለጫን ያጠናቅቁ",
+    "checklist_setup_payout": "ክፍያን ያዋቅሩ",
+    "checklist_verify_identity": "ሰነዶችን ያረጋግጡ"
+  },
+  "teacher_security": {
+    "title": "የመለያ ደህንነት",
+    "subtitle": "የይለፍ ቃልዎን እና የመለያ ደህንነት ቅንብሮችዎን ያስተዳድሩ",
+    "password_changed": "የመለያ ምሥጢራዊ ቃል ተለውጧል",
+    "password_change_failed": "የመለያ ምሥጢራዊ ቃል መለወጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "account_deleted": "መለያ በተሳካ ሁኔታ ተሰርዟል",
+    "account_deletion_failed": "መለያን መሰረዝ አልተቻለም",
+    "current_password_required": "አሁን ያለው የመለያ ምሥጢራዊ ቃል አስፈላጊ ነው",
+    "password_too_short": "አዲስ የመለያ ምሥጢራዊ ቃል ቢያንስ 8 ባህሪያት መሆኑ አለበት",
+    "passwords_dont_match": "የመለያ ምሥጢራዊ ቃሎች አይዛመዱም",
+    "confirmation_required": "እባክዎ ለማረጋገጥ DELETE ይተይቡ",
+    "change_password_title": "የይለፍ ቃል ቀይር",
+    "change_password_description": "መለያዎን ደህንነቱ የተጠበቀ ለማድረግ የይለፍ ቃልዎን በየጊዜው ያዘምኑ",
+    "current_password_label": "የአሁኑ የይለፍ ቃል",
+    "current_password_placeholder": "የአሁኑን የይለፍ ቃል ያስገቡ",
+    "new_password_label": "አዲስ የይለፍ ቃል",
+    "new_password_placeholder": "አዲስ የይለፍ ቃል ያስገቡ",
+    "confirm_password_label": "አዲሱን የይለፍ ቃል ያረጋግጡ",
+    "confirm_password_placeholder": "አዲሱን የይለፍ ቃል ያረጋግጡ",
+    "password_length_hint": "ቢያንስ 8 ቁምፊዎች መሆን አለበት",
+    "changing_password_btn": "የይለፍ ቃል በመቀየር ላይ...",
+    "change_password_btn": "የይለፍ ቃል ቀይር",
+    "security_settings_title": "የደህንነት ቅንብሮች",
+    "security_settings_description": "ለመለያዎ ተጨማሪ የደህንነት አማራጮች",
+    "two_factor_auth_title": "ባለ ሁለት ደረጃ ማረጋገጫ",
+    "two_factor_auth_description": "ለመለያዎ ተጨማሪ የደህንነት ሽፋን ያክሉ",
+    "coming_soon": "በቅርብ ቀን",
+    "login_notifications_title": "የመግቢያ ማሳወቂያዎች",
+    "login_notifications_description": "ወደ መለያዎ አዲስ መግቢያዎች ሲኖሩ ማሳወቂያ ያግኙ",
+    "session_management_title": "የክፍለ ጊዜ አስተዳደር",
+    "session_management_description": "ንቁ የሆኑ ክፍለ ጊዜዎችዎን ይመልከቱ እና ያስተዳድሩ",
+    "view_sessions_btn": "ክፍለ ጊዜዎችን ይመልከቱ",
+    "danger_zone": "አደገኛ ዞን",
+    "danger_desc": "ሊቀለበሱ የማይችሉ እና አጥፊ እርምጃዎች",
+    "delete_account_title": "መለያ ሰርዝ",
+    "delete_account_desc": "መለያዎን እና ሁሉንም ተዛማጅ መረጃዎችን በቋሚነት ይሰርዙ። ይህ እርምጃ ሊቀለበስ አይችልም።",
+    "delete_account_btn": "መለያ ሰርዝ",
+    "confirm_delete_title": "መለያ መሰረዝን ያረጋግጡ",
+    "confirm_delete_desc": "ይህ መለያዎን፣ ሁሉንም ኮርሶችዎን፣ ትምህርቶችዎን እና መረጃዎችዎን በቋሚነት ይሰርዛል። ለማረጋገጥ <strong>DELETE</strong> ብለው ይተይቡ።",
+    "confirm_delete_placeholder": "ለማረጋገጥ DELETE ብለው ይተይቡ",
+    "cancel": "ይቅር",
+    "confirm_delete_btn": "መሰረዝን ያረጋግጡ",
+    "deleting": "Deleting...",
+    "account_info_title": "Account Information",
+    "account_created": "Account Created",
+    "last_login": "Last Login",
+    "today": "Today",
+    "account_status": "Account Status",
+    "status_active": "Active"
+  },
+  "notifications": {
+    "preferences_updated": "የማሳወቂያ ምርጫዎች ተቀይረዋል",
+    "preferences_update_failed": "ምርጫዎችን መቀመጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "title": "Notification Preferences",
+    "subtitle": "Customize how and when you receive notifications",
+    "email": {
+      "title": "Email Notifications",
+      "subtitle": "Choose which emails you'd like to receive",
+      "types": {
+        "course_updates": {
+          "label": "Course Updates",
+          "description": "Notifications about your course performance and student activity"
+        },
+        "student_messages": {
+          "label": "Student Messages",
+          "description": "Direct messages from students enrolled in your courses"
+        },
+        "forum_replies": {
+          "label": "Forum Replies",
+          "description": "Replies to your forum posts and discussions"
+        },
+        "weekly_digest": {
+          "label": "Weekly Digest",
+          "description": "Weekly summary of your teaching activity and platform updates"
+        },
+        "marketing": {
+          "label": "Marketing & Promotions",
+          "description": "Special offers, platform updates, and promotional content"
+        }
+      }
+    },
+    "push": {
+      "title": "Push Notifications",
+      "subtitle": "Receive real-time updates while using the platform",
+      "types": {
+        "course_activity": {
+          "label": "Course Activity",
+          "description": "New enrollments, reviews, and course completions"
+        },
+        "student_engagement": {
+          "label": "Student Engagement",
+          "description": "Comments, questions, and discussion participation"
+        },
+        "forum_activity": {
+          "label": "Forum Activity",
+          "description": "New topics and replies in followed discussions"
+        },
+        "system_updates": {
+          "label": "System Updates",
+          "description": "Important platform announcements and maintenance alerts"
+        }
+      }
+    },
+    "privacy": {
+      "title": "Communication & Privacy",
+      "subtitle": "Manage how others interact with you",
+      "types": {
+        "student_messages": "Allow students to message me",
+        "course_invitations": "Allow course invitations",
+        "public_profile": "Public Profile visibility",
+        "online_status": "Show online status",
+        "analytics": "Allow analytics tracking"
+      }
+    },
+    "save_changes": "Save Changes"
+  },
+  "nav": {
+    "dashboard": "ዳሽቦርድ",
+    "dashboard_desc": "የመድረክ አጠቃላይ እይታ እና መለኪያዎች",
+
+    "courses": "ኮርሶች",
+    "courses_desc": "ኮርሶችን ያስሱ እና ያስተዳድሩ",
+
+    "students": "ተማሪዎች",
+    "students_desc": "የተማሪ መገለጫዎችን ይመልከቱ እና ያስተዳድሩ",
+
+    "content": "ይዘት",
+    "content_desc": "ኮርሶችን፣ ትምህርቶችን እና ግብዓቶችን ያስተዳድሩ",
+
+    "resources": "ግብዓቶች",
+    "resources_desc": "የትምህርት ቁሳቁሶችን እና ሰነዶችን ይድረሱ",
+
+    "ai_assistant": "AI ረዳት",
+    "ai_assistant_desc": "ለድጋፍ ከAI ረዳት ጋር ይገናኙ",
+
+    "community": "ማህበረሰብ",
+    "community_desc": "ከመማሪያ ማህበረሰቡ ጋር ይሳተፉ",
+
+    "chapters": "ምዕራፎች",
+    "chapters_desc": "የማህበረሰብ ምዕራፎችን ያስሱ እና ያስተዳድሩ",
+
+    "learning": "ትምህርት",
+    "learning_desc": "የትምህርት ጉዞዎን እና ሂደትዎን ይከታተሉ",
+
+    "users_access": "ተጠቃሚዎች እና መዳረሻ",
+    "users_access_desc": "የተጠቃሚ መለያዎችን እና ፈቃዶችን ያስተዳድሩ",
+
+    "communications": "ግንኙነቶች",
+    "communications_desc": "ማስታወቂያዎችን እና መልዕክቶችን ያስተዳድሩ",
+
+    "ai_labeling": "AI መለያ መስጠት",
+    "ai_labeling_desc": "የAI ይዘት ምደባን እና መለያዎችን ያስተዳድሩ",
+
+    "system": "ስርዓት",
+    "system_desc": "የስርዓት ቅንብሮችን እና ምርጫዎችን ያዋቅሩ",
+
+    "member": "አባል",
+    "teacher_portal": "የመምህራን መግቢያ",
+    "admin_panel": "የአስተዳዳሪ ፓነል",
+    "revenue": "ገቢ",
+    "admin": "አስተዳዳሪ",
+    "teacher": "አስተማሪ",
+    "profile": "መገለጫ",
+    "users": "ተጠቃሚዎች",
+    "forums": "መድረኮች",
+    "achievements": "ስኬቶች",
+    "analytics": "ትንታኔ",
+    "settings": "ቅንብሮች",
+    "course_details": "የኮርስ ዝርዝሮች",
+    "user_profile": "የተጠቃሚ መገለጫ",
+
+    "stats": {
+      "active_students": "ንቁ ተማሪዎች",
+      "courses": "ኮርሶች",
+      "rating": "ደረጃ",
+      "revenue": "ገቢ"
+    }
+  },
+  "teacher_stats": {
+    "loading_title": "Performance Statistics",
+    "loading_subtitle": "Loading your teaching analytics...",
+    "error_title": "Failed to Load Statistics",
+    "error_desc": "Unable to fetch your teaching analytics at this time.",
+    "retry": "Try Again",
+    "title": "Performance Statistics",
+    "subtitle": "Comprehensive view of your teaching impact and student engagement",
+    "total_students": "Total Students",
+    "new_this_month": "new this month",
+    "active_label": "Active",
+    "active_students": "Active Students",
+    "engaged_this_week": "engaged this week",
+    "avg_completion": "Avg. Completion",
+    "completed_courses": "completed courses",
+    "avg_rating": "Average Rating",
+    "total_reviews": "total reviews",
+    "top_courses": {
+      "title": "Top Performing Courses",
+      "students": "students",
+      "completion": "completion",
+      "no_data_desc": "No courses yet. Create your first course to see performance metrics!"
+    },
+    "recent_activity": {
+      "title": "Recent Activity (30 days)",
+      "enrolled_in": "enrolled in",
+      "completed": "completed",
+      "no_data_desc": "No recent activity. Student enrollments and completions will appear here."
+    },
+    "engagement": {
+      "title": "Engagement",
+      "watch_time": "Watch Time",
+      "watch_time_desc": "Total time students spent watching",
+      "lesson_completion": "Lesson Completion",
+      "lesson_completion_desc": "Average progress per lesson",
+      "completed_lessons": "Completed Lessons",
+      "completed_lessons_desc": "Total lessons finished"
+    },
+    "earnings": {
+      "title": "Earnings",
+      "total": "Total Earnings",
+      "total_desc": "All-time earnings",
+      "this_month": "This Month",
+      "this_month_desc": "Current month earnings",
+      "pending": "Pending",
+      "pending_desc": "Awaiting payout"
+    },
+    "trends": {
+      "title": "Monthly Trends",
+      "enrollments": "enrollments",
+      "completed": "completed",
+      "no_data": "No enrollment data yet"
+    }
+  },
+  "teacher_documents": {
+    "title": "የማረጋገጫ ሰነዶች",
+    "subtitle": "የአስተማሪነት ሁኔታዎን ለማረጋገጥ እና ሁሉንም የመድረክ ባህሪያት ለመክፈት አስፈላጊ ሰነዶችን ይስቀሉ።",
+    "status": {
+      "verified": "ተረጋግጧል",
+      "pending": "በመጠባበቅ ላይ",
+      "rejected": "ውድቅ ተደርጓል",
+      "not_submitted": "አልገባም"
+    },
+    "doc_types": {
+      "national_id": {
+        "title": "ብሔራዊ መታወቂያ / ፓስፖርት",
+        "description": "ለመታወቂያ ማረጋገጫ በመንግስት የተሰጠ መታወቂያ።"
+      },
+      "teaching_cert": {
+        "title": "የማስተማር የምስክር ወረቀት",
+        "description": "የሚሰራ የማስተማር ፈቃድ ወይም የዲግሪ የምስክር ወረቀት።"
+      },
+      "police_check": {
+        "title": "የጀርባ ታሪክ ምርመራ",
+        "description": "የቅርብ ጊዜ የወንጀል ሪከርድ ምርመራ ወይም የፖሊስ ማረጋገጫ።"
+      },
+      "tax_form": {
+        "title": "የግብር ነዋሪነት ቅጽ",
+        "description": "ለክፍያ ተገዢነት የግብር ነዋሪነት ማረጋገጫ።"
+      }
+    },
+    "verification_complete": "ማረጋገጫ ተጠናቅቋል",
+    "upload_new_btn": "አዲስ ስሪት ይስቀሉ",
+    "upload_btn": "ሰነድ ይስቀሉ",
+    "rejected_msg": "ቀዳሚው ሰነድ ውድቅ ተደርጓል። እባክዎ እንደገና ይሞክሩ።",
+    "help_title": "በማረጋገጫ ላይ እገዛ ይፈልጋሉ?",
+    "help_desc": "ተቀባይነት ስላላቸው የሰነድ ቅርጸቶች እና የተለመዱ የማረጋገጫ ጊዜዎች ዝርዝር መመሪያችንን ይመልከቱ።",
+    "help_link": "የማረጋገጫ መመሪያዎችን ያንብቡ"
+  },
+  "teacher_profile": {
+    "tabs": {
+      "dashboard": "ዳሽቦርድ",
+      "payout": "ክፍያ",
+      "documents": "ሰነዶች",
+      "statistics": "ስታቲስቲክስ",
+      "security": "ደህንነት",
+      "notifications": "ማሳወቂያዎች"
+    },
+    "regional_resources": {
+      "title": "ክልላዊ ግብዓቶች",
+      "description": "ለማስተማር ክልልዎ የተወሰኑ መመሪያዎችን እና መሳሪያዎችን ያግኙ።",
+      "view_btn": "ግብዓቶችን ይመልከቱ"
+    },
+    "setup_progress": "የማዋቀር ሂደት",
+    "subjects": {
+      "placeholder": "ርዕሰ ጉዳይ ያክሉ (ለምሳሌ ሂሳብ)",
+      "no_subjects": "እስካሁን ምንም ርዕሰ ጉዳዮች አልተጨመሩም።",
+      "max_subjects": "ከፍተኛ 5 ርዕሰ ጉዳዮች።"
+    },
+    "availability": {
+      "no_availability": "ምንም ተገኝነት አልተዘጋጀም",
+      "add_slot": "ክፍተት ያክሉ",
+      "save": "አስቀምጥ",
+      "cancel": "ሰርዝ",
+      "days": {
+        "Mon": "ሰኞ",
+        "Tue": "ማክሰኞ",
+        "Wed": "ረቡዕ",
+        "Thu": "ሐሙስ",
+        "Fri": "አርብ",
+        "Sat": "ቅዳሜ",
+        "Sun": "እሁድ"
+      }
+    },
+    "welcome_back": "እንኳን ደህና መጡ፣ {{name}}!",
+    "dashboard_subtitle": "የማስተማር መገለጫዎን እና ቅንብሮችዎን ያስተዳድሩ።",
+    "profile_details": "የመገለጫ ዝርዝሮች",
+    "bio_label": "ሙያዊ ባዮ",
+    "bio_placeholder": "ስለ ማስተማር ልምድዎ እና ዘዴዎ ለተማሪዎች ይንገሩ...",
+    "bio_hint": "ቢያንስ 50 ቁምፊዎች ይመከራል።",
+    "time_required": "እባክዎን የመነሻ እና የማብቂያ ጊዜዎችን ይምረጡ",
+    "invalid_time_range": "የማብቂያ ጊዜ ከመነሻ ጊዜ በኋላ መሆን አለበት",
+    "time_slot_exists": "ይህ የጊዜ ክፍተት አስቀድሞ አለ",
+    "profile_updated": "መገለጫው በተሳካ ሁኔታ ተዘምኗል",
+    "save_failed": "መገለጫውን ማስቀመጥ አልተቻለም",
+    "avatar_size_error": "የምስል መጠን ከ 5 ሜባ ያነሰ መሆን አለበት",
+    "avatar_updated": "የመገለጫ ምስል ተዘምኗል",
+    "avatar_upload_failed": "የመገለጫ ምስል መስቀል አልተቻለም",
+    "payout_updated": "የክፍያ ቅንብሮች በተሳካ ሁኔታ ተዘምነዋል",
+    "payout_update_failed": "የክፍያ ቅንብሮችን ማዘመን አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "payout_account_holder_required": "የሂሳብ ባለቤቱ ስም ያስፈልጋል",
+    "payout_account_number_required": "የሂሳብ ቁጥር ያስፈልጋል",
+    "payout_routing_required": "ለባንክ ዝውውሮች የራውቲንግ ቁጥር ያስፈልጋል",
+    "payout_address_required": "የክፍያ አድራሻ ያስፈልጋል",
+    "payout_dob_required": "የትውልድ ቀን ያስፈልጋል",
+    "payout_tax_id_required": "የግብር መለያ ያስፈልጋል",
+    "payout_tax_agreement_required": "እባክዎ በግብር መረጃ ውሎች ይስማሙ",
+    "payout_age_requirement": "ዕድሜዎ ቢያንስ 18 ዓመት መሆን አለበት",
+    "document_upload_success": "ሰነዱ በተሳካ ሁኔታ ተሰቅሏል። ሁኔታ፦ በመጠባበቅ ላይ ያለ ግምገማ።",
+    "document_upload_failed": "ሰነዱን መስቀል አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "dashboard": {
+      "total_students": "ጠቅላላ ተማሪዎች",
+      "total_earnings": "ጠቅላላ ገቢ",
+      "rating": "ደረጃ",
+      "reviews": "ግምገማዎች"
+    },
+    "payout_setup": {
+      "country_united_states": "አሜሪካ",
+      "country_united_kingdom": "እንግሊዝ",
+      "country_canada": "ካናዳ",
+      "country_ethiopia": "ኢትዮጵያ",
+      "main_title": "የክፍያ ማዋቀር",
+      "subtitle": "ገቢዎን እንዴት መቀበል እንደሚፈልጉ ያዋቅሩ።",
+      "region_label": "የክፍያ ክልል",
+      "method_label": "የክፍያ ዘዴ",
+      "bank_transfer_method": "የባንክ ዝውውር",
+      "bank_transfer_desc": "ወደ ባንክ ሂሳብዎ ቀጥታ ተቀማጭ",
+      "mobile_money_method": "ሞባይል ገንዘብ",
+      "mobile_money_desc": "ወደ ሞባይል ቦርሳ ያስተላልፉ (ምሳሌ፦ ቴሌብር፣ M-Pesa)",
+      "account_details_title": "የሂሳብ ዝርዝሮች",
+      "account_holder_label": "የሂሳብ ባለቤቱ ስም",
+      "routing_number_label": "ራውቲንግ ቁጥር / የመለያ ኮድ",
+      "account_number_label": "የሂሳብ ቁጥር / IBAN",
+      "phone_number_label": "የሞባይል ቁጥር",
+      "tax_information_title": "የግብር መረጃ",
+      "tax_id_label": "የግብር መለያ / SSN",
+      "dob_label": "የትውልድ ቀን",
+      "billing_address_label": "የክፍያ አድራሻ",
+      "tax_agree_label": "የቀረበው መረጃ ትክክለኛ መሆኑን አረጋግጣለሁ እናም በ<a href=የግብር ውሎች</a> እስማማለሁ።",
+      "cancel_btn": "ይቅር",
+      "saving_btn": "በማስቀመጥ ላይ...",
+      "confirm_details_btn": "ዝርዝሮችን ያረጋግጡ",
+      "payout_summary_title": "የክፍያ ማጠቃለያ",
+      "currency_label": "ምንዛሬ",
+      "currency_etb": "ETB (የኢትዮጵያ ብር)",
+      "currency_usd": "USD (የአሜሪካ ዶላር)",
+      "transactional_terms_title": "የግብይት ውሎች",
+      "transactional_terms_description": "በማረጋገጥ፣ በእኛ የክፍያ ውሎች ይስማማሉ። ክፍያዎች ለእኩል $50 በላይ ለሆኑ ቀሪ ሂሳቦች በሳምንት ይከናወናሉ። እንደ ባንክዎ ወይም አቅራቢዎ መደበኛ የማቀነባበሪያ ጊዜዎች ይተገበራሉ።",
+      "next_steps_title": "ቀጥሎ ምን ይሆናል?",
+      "next_steps_description": "የክፍያ ዝርዝሮችዎን እናረጋግጣለን። ይህ ብዙ ጊዜ 1-2 የስራ ቀናት ይወስዳል። እስከዚያው ድረስ፣ ያልተቋረጡ ክፍያዎች ለማረጋገጥ እባክዎን የማንነት ማረጋገጫዎን ያጠናቅቁ።",
+      "proceed_to_documents_btn": "ወደ ሰነዶች ይቀጥሉ"
+    },
+    "social": {
+      "linkedin": "LinkedIn መገለጫ",
+      "website": "ድር ጣቢያ"
+    }
+  },
+  "teacher_stats": {
+    "loading_title": "የአፈጻጸም ስታቲስቲክስ",
+    "loading_subtitle": "የማስተማር ትንታኔዎችዎን በመጫን ላይ...",
+    "error_title": "ስታቲስቲክስን መጫን አልተቻለም",
+    "error_desc": "በዚህ ጊዜ የማስተማር ትንታኔዎችዎን ማምጣት አልተቻለም።",
+    "retry": "እንደገና ይሞክሩ",
+    "title": "የአፈጻጸም ስታቲስቲክስ",
+    "subtitle": "የማስተማር ተጽእኖዎ እና የተማሪ ተሳትፎ አጠቃላይ እይታ",
+    "total_students": "ጠቅላላ ተማሪዎች",
+    "new_this_month": "በዚህ ወር አዲስ",
+    "active_label": "ንቁ",
+    "active_students": "ንቁ ተማሪዎች",
+    "engaged_this_week": "በዚህ ሳምንት ተሳትፈዋል",
+    "avg_completion": "አማካይ አፈጻጸም",
+    "completed_courses": "የተጠናቀቁ ኮርሶች",
+    "avg_rating": "አማካይ ደረጃ",
+    "total_reviews": "ጠቅላላ ግምገማዎች",
+    "top_courses": {
+      "title": "ከፍተኛ አፈጻጸም ያላቸው ኮርሶች",
+      "students": "ተማሪዎች",
+      "completion": "አፈጻጸም",
+      "no_data_desc": "እስካሁን ምንም ኮርሶች የሉም። የአፈጻጸም መለኪያዎችን ለማየት የመጀመሪያ ኮርስዎን ይፍጠሩ!"
+    },
+    "recent_activity": {
+      "title": "የቅርብ ጊዜ እንቅስቃሴ (30 ቀናት)",
+      "enrolled_in": "ተመዝግቧል በ",
+      "completed": "ተጠናቅቋል",
+      "no_data_desc": "ምንም የቅርብ ጊዜ እንቅስቃሴ የለም። የተማሪ ምዝገባዎች እና ማጠናቀቂያዎች እዚህ ይታያሉ።"
+    },
+    "engagement": {
+      "title": "ተሳትፎ",
+      "watch_time": "የእይታ ጊዜ",
+      "watch_time_desc": "ተማሪዎች ያዩበት ጠቅላላ ጊዜ",
+      "lesson_completion": "የትምህርት አፈጻጸም",
+      "lesson_completion_desc": "አማካይ ሂደት በየ ትምህርቱ",
+      "completed_lessons": "የተጠናቀቁ ትምህርቶች",
+      "completed_lessons_desc": "ጠቅላላ የተጠናቀቁ ትምህርቶች"
+    },
+    "earnings": {
+      "title": "ገቢዎች",
+      "total": "ጠቅላላ ገቢዎች",
+      "total_desc": "የምንጊዜም ገቢዎች",
+      "this_month": "በዚህ ወር",
+      "this_month_desc": "የአሁኑ ወር ገቢዎች",
+      "pending": "በመጠባበቅ ላይ",
+      "pending_desc": "ክፍያ በመጠባበቅ ላይ"
+    },
+    "trends": {
+      "title": "ወርሃዊ አዝማሚያዎች",
+      "enrollments": "ምዝገባዎች",
+      "completed": "ተጠናቅቋል",
+      "no_data": "እስካሁን ምንም የምዝገባ ውሂብ የለም"
+    }
+  },
+  "notifications": {
+    "email": {
+      "title": "የኢሜይል ማሳወቂያዎች",
+      "subtitle": "የትኞቹን ኢሜይሎች መቀበል እንደሚፈልጉ ይምረጡ",
+      "types": {
+        "new_student": {
+          "label": "አዲስ ተማሪ ምዝገባ",
+          "description": "አዲስ ተማሪ በኮርሶችዎ ውስጥ ሲመዘገብ ማሳወቂያ ያግኙ"
+        },
+        "course_completion": {
+          "label": "የኮርስ ማጠናቀቂያ",
+          "description": "ተማሪ ኮርስ ሲያጠናቅቅ ማሳወቂያ ያግኙ"
+        },
+        "new_review": {
+          "label": "አዲስ ግምገማዎች",
+          "description": "አዲስ የኮርስ ግምገማ ሲለጠፍ ማሳወቂያ ያግኙ"
+        },
+        "weekly_digest": {
+          "label": "ሳምንታዊ ማጠቃለያ",
+          "description": "የማስተማር እንቅስቃሴዎ እና የመድረክ ዝመናዎች ሳምንታዊ ማጠቃለያ"
+        },
+        "marketing": {
+          "label": "ግብይት እና ማስተዋወቂያዎች",
+          "description": "ልዩ ቅናሾች፣ የመድረክ ዝመናዎች እና የማስተዋወቂያ ይዘት"
+        }
+      }
+    },
+    "push": {
+      "title": "የሞባይል ማሳወቂያዎች",
+      "subtitle": "መድረኩን በሚጠቀሙበት ጊዜ የቀጥታ ዝመናዎችን ያግኙ",
+      "types": {
+        "course_activity": {
+          "label": "የኮርስ እንቅስቃሴ",
+          "description": "አዲስ ምዝገባዎች፣ ግምገማዎች እና የኮርስ ማጠናቀቂያዎች"
+        },
+        "student_engagement": {
+          "label": "የተማሪ ተሳትፎ",
+          "description": "አስተያየቶች፣ ጥያቄዎች እና የውይይት ተሳትፎ"
+        },
+        "forum_activity": {
+          "label": "የመድረክ እንቅስቃሴ",
+          "description": "በተከታተሏቸው ውይይቶች ውስጥ አዲስ ርዕሶች እና ምላሾች"
+        },
+        "system_updates": {
+          "label": "የስርዓት ዝመናዎች",
+          "description": "አስፈላጊ የመድረክ ማስታወቂያዎች እና የጥገና ማስጠንቀቂያዎች"
+        }
+      }
+    },
+    "privacy": {
+      "title": "ግንኙነት እና ግላዊነት",
+      "subtitle": "ሌሎች ከእርስዎ ጋር እንዴት እንደሚገናኙ ያስተዳድሩ",
+      "types": {
+        "student_messages": "ተማሪዎች መልእክት እንዲልኩልኝ ፍቀድ",
+        "course_invitations": "የኮርስ ግብዣዎችን ፍቀድ",
+        "public_profile": "የህዝብ መገለጫ ታይነት",
+        "online_status": "የመስመር ላይ ሁኔታን አሳይ",
+        "analytics": "የትንታኔ ክትትልን ፍቀድ"
+      }
+    },
+    "save_changes": "ለውጦችን አስቀምጥ"
   }
-}
+} 

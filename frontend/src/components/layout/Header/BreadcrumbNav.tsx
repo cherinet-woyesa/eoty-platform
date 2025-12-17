@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, Home, BookOpen, Users, Settings, Award, MessageSquare, Bot } from 'lucide-react';
 
 interface BreadcrumbItem {
@@ -12,11 +13,13 @@ interface BreadcrumbItem {
 const BreadcrumbNav: React.FC = () => {
   const location = useLocation();
 
+  const { t } = useTranslation();
+
   const breadcrumbItems = useMemo((): BreadcrumbItem[] => {
     const pathnames = location.pathname.split('/').filter(x => x);
-    
+
     if (pathnames.length === 0) {
-      return [{ label: 'Dashboard', href: '/dashboard', icon: <Home className="h-3 w-3" />, isCurrent: true }];
+      return [{ label: t('nav.dashboard', 'Dashboard'), href: '/dashboard', icon: <Home className="h-3 w-3" />, isCurrent: true }];
     }
 
     const items: BreadcrumbItem[] = [];
@@ -24,7 +27,7 @@ const BreadcrumbNav: React.FC = () => {
 
     // Always start with Dashboard
     items.push({
-      label: 'Dashboard',
+      label: t('nav.dashboard', 'Dashboard'),
       href: '/dashboard',
       icon: <Home className="h-3 w-3" />,
       isCurrent: pathnames.length === 0
@@ -35,56 +38,70 @@ const BreadcrumbNav: React.FC = () => {
       if (index === 0 && pathname.toLowerCase() === 'dashboard') {
         return;
       }
+      // Also skip trailing 'dashboard' segment to avoid "Dashboard > ... > Dashboard"
+      if (pathname.toLowerCase() === 'dashboard' && index === pathnames.length - 1) {
+        return;
+      }
       accumulatedPath += `/${pathname}`;
       const isLast = index === pathnames.length - 1;
 
       // Map pathnames to friendly labels and icons
       let label = pathname.replace(/-/g, ' ');
+      let translationKey = `nav.${pathname.toLowerCase()}`;
       let icon: React.ReactNode = null;
 
       switch (pathname) {
         case 'admin':
-          label = 'Admin';
+          label = t('nav.admin', 'Admin');
           icon = <Settings className="h-3 w-3" />;
           break;
+        case 'teacher':
+          label = t('nav.teacher', 'Teacher');
+          icon = <Users className="h-3 w-3" />; // Using Users icon for Teacher
+          break;
+        case 'member':
+          label = t('nav.member', 'Member');
+          icon = <Users className="h-3 w-3" />;
+          break;
         case 'courses':
-          label = 'Courses';
+          label = t('nav.courses', 'Courses');
           icon = <BookOpen className="h-3 w-3" />;
           break;
         case 'users':
-          label = 'Users';
+          label = t('nav.users', 'Users');
           icon = <Users className="h-3 w-3" />;
           break;
         case 'forums':
-          label = 'Forums';
+          label = t('nav.forums', 'Forums');
           icon = <MessageSquare className="h-3 w-3" />;
           break;
         case 'achievements':
-          label = 'Achievements';
+          label = t('nav.achievements', 'Achievements');
           icon = <Award className="h-3 w-3" />;
           break;
         case 'ai-assistant':
-          label = 'AI Assistant';
+          label = t('nav.ai_assistant', 'AI Assistant');
           icon = <Bot className="h-3 w-3" />;
           break;
         case 'analytics':
-          label = 'Analytics';
+          label = t('nav.analytics', 'Analytics');
           icon = <Settings className="h-3 w-3" />;
           break;
         case 'settings':
-          label = 'Settings';
+          label = t('nav.settings', 'Settings');
           icon = <Settings className="h-3 w-3" />;
           break;
         default:
-          // Capitalize and format the label
-          label = label.charAt(0).toUpperCase() + label.slice(1);
+          // Try to translate generic path segments, otherwise Capitalize
+          label = t(translationKey as any, label.charAt(0).toUpperCase() + label.slice(1));
+
           if (/\d/.test(label)) {
             // If it's a numeric ID, show a more friendly label
             const parent = pathnames[index - 1];
             if (parent === 'courses') {
-              label = 'Course Details';
+              label = t('nav.course_details', 'Course Details');
             } else if (parent === 'users') {
-              label = 'User Profile';
+              label = t('nav.user_profile', 'User Profile');
             }
           }
       }
@@ -98,7 +115,7 @@ const BreadcrumbNav: React.FC = () => {
     });
 
     return items;
-  }, [location.pathname]);
+  }, [location.pathname, t]);
 
   if (breadcrumbItems.length <= 1) {
     return null;
@@ -111,7 +128,7 @@ const BreadcrumbNav: React.FC = () => {
           {index > 0 && (
             <ChevronRight className="h-3 w-3 text-slate-400 flex-shrink-0" aria-hidden="true" />
           )}
-          
+
           {item.isCurrent ? (
             <div className="flex items-center space-x-1 max-w-32 sm:max-w-none">
               {item.icon && (
@@ -119,7 +136,7 @@ const BreadcrumbNav: React.FC = () => {
                   {item.icon}
                 </span>
               )}
-              <span 
+              <span
                 className="text-slate-900 font-medium truncate"
                 title={item.label}
                 aria-current="page"
@@ -137,7 +154,7 @@ const BreadcrumbNav: React.FC = () => {
                   {item.icon}
                 </span>
               )}
-              <span 
+              <span
                 className="truncate text-slate-600 group-hover:text-slate-900"
                 title={item.label}
               >

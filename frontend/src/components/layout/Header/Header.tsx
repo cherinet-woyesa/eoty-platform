@@ -1,4 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
@@ -17,6 +18,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleMobileMenuToggle = useCallback(() => {
     setIsMobileMenuOpen(prev => !prev);
@@ -95,7 +97,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               
               {/* Mobile Quick Actions */}
               <div className="border-t border-gray-200 pt-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Quick Actions</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t('common.quick_actions')}</p>
                 <QuickActions />
               </div>
               

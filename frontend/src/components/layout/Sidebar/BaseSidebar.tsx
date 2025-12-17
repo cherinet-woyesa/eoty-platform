@@ -16,6 +16,7 @@ import RecentItems from './RecentItems';
 import { brandColors } from '@/theme/brand';
 
 import { useSidebar } from '@/hooks/useSidebar';
+import { useTranslation } from 'react-i18next';
 
 interface BaseSidebarProps {
   isCollapsed?: boolean;
@@ -42,18 +43,19 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const { favoriteHrefs, recentHrefs, toggleFavorite, addRecent, isFavorite } = useSidebar();
+  const { t, i18n } = useTranslation();
 
   // Base navigation items available to all roles
   const baseNavigationItems: NavigationItem[] = useMemo(() => [
     {
-      name: 'Dashboard',
+      name: t('nav.dashboard'),
       href: '/dashboard',
       icon: <Home className="h-4 w-4" />,
       badge: null,
-      description: 'Overview and metrics',
+      description: t('nav.dashboard_desc'),
       color: 'text-blue-600'
     }
-  ], []);
+  ], [t, i18n.language]);
 
   // Role-specific navigation items
   const roleNavigationItems: NavigationItem[] = useMemo(() => {
@@ -63,29 +65,29 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
     if (user?.role === 'user' || user?.role === 'student') {
       items.push(
         {
-          name: 'My Courses',
+          name: t('nav.my_courses'),
           href: '/courses',
           icon: <span>📚</span>,
           badge: '5',
-          description: 'Continue learning',
+          description: t('nav.courses_desc'),
           color: 'text-green-600',
           roles: ['user', 'student']
         },
         {
-          name: 'Bookmarks',
+          name: t('nav.bookmarks'),
           href: '/bookmarks',
           icon: <Star className="h-4 w-4" />,
           badge: '12',
-          description: 'Saved lessons',
+          description: t('nav.bookmarks_desc'),
           color: 'text-yellow-600',
           roles: ['user', 'student']
         },
         {
-          name: 'Study Schedule',
+          name: t('nav.study_schedule'),
           href: '/schedule',
           icon: <Clock className="h-4 w-4" />,
           badge: null,
-          description: 'Plan your study',
+          description: t('nav.study_schedule_desc'),
           color: 'text-purple-600',
           roles: ['user', 'student']
         }
@@ -95,29 +97,29 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
     if (user?.role === 'teacher' || user?.role === 'admin') {
       items.push(
         {
-          name: 'My Courses',
+          name: t('nav.my_courses'),
           href: '/courses',
           icon: <span>📚</span>,
           badge: '8',
-          description: 'Manage courses',
+          description: t('nav.courses_desc'),
           color: 'text-green-600',
           roles: ['teacher', 'admin']
         },
         {
-          name: 'Record Video',
+          name: t('nav.record_video'),
           href: '/record',
           icon: <span>🎥</span>,
           badge: null,
-          description: 'Create lessons',
+          description: t('nav.record_video_desc'),
           color: 'text-red-600',
           roles: ['teacher', 'admin']
         },
         {
-          name: 'Students',
+          name: t('nav.students'),
           href: '/students',
           icon: <span>👥</span>,
           badge: '247',
-          description: 'Manage learners',
+          description: t('nav.students_desc'),
           color: 'text-indigo-600',
           roles: ['teacher', 'admin']
         }
@@ -127,20 +129,20 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
     if (user?.role === 'admin') {
       items.push(
         {
-          name: 'Analytics',
+          name: t('nav.analytics'),
           href: '/analytics',
           icon: <span>📊</span>,
           badge: null,
-          description: 'View reports',
+          description: t('nav.analytics_desc'),
           color: 'text-orange-600',
           roles: ['admin']
         },
         {
-          name: 'User Management',
+          name: t('nav.user_management'),
           href: '/admin/users',
           icon: <span>👤</span>,
           badge: '12',
-          description: 'Manage users',
+          description: t('nav.user_management_desc'),
           color: 'text-blue-600',
           roles: ['admin']
         }
@@ -150,33 +152,33 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
     // Common items for all roles
     items.push(
       {
-        name: 'Discussions',
+        name: t('nav.discussions'),
         href: '/forums',
         icon: <span>💬</span>,
         badge: '12',
-        description: 'Community forums',
+        description: t('nav.discussions_desc'),
         color: 'text-pink-600'
       },
       {
-        name: 'Achievements',
+        name: t('nav.achievements'),
         href: '/achievements',
         icon: <span>🏆</span>,
         badge: '5',
-        description: 'View badges',
+        description: t('nav.achievements_desc'),
         color: 'text-orange-600'
       },
       {
-        name: 'AI Assistant',
+        name: t('nav.ai_assistant'),
         href: '/ai-assistant',
         icon: <span>🤖</span>,
         badge: 'AI',
-        description: 'Get help',
+        description: t('nav.ai_assistant_desc'),
         color: 'text-cyan-600'
       }
     );
 
     return items;
-  }, [user?.role]);
+  }, [user?.role, t, i18n.language]);
 
   // Combine and filter navigation items based on user role
   const navigationItems = useMemo(() => {
@@ -242,13 +244,13 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
             <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
               <img src="/eoc.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-sm font-bold text-slate-900">EOTY Platform</h1>
+              <h1 className="text-sm font-bold text-slate-900">{t('common.eoty_platform')}</h1>
           </div>
         )}
         <button
           onClick={onToggleCollapse}
           className="p-1 rounded-md hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isCollapsed ? t('common.expand_sidebar') : t('common.collapse_sidebar')}
         >
           {isCollapsed ? (
             <ChevronRight className="h-3 w-3 text-slate-500" />
@@ -264,7 +266,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           <SidebarSearch
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search navigation..."
+            placeholder={t('common.search_navigation_placeholder')}
           />
         </div>
       )}
@@ -276,7 +278,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           <div className="mb-4">
             <div className="px-3 py-2">
               <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
-                Favorites
+                {t('common.favorites')}
               </h3>
             </div>
             <FavoriteItems
@@ -293,7 +295,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
           <div className="mb-4">
             <div className="px-3 py-2">
               <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
-                Recent
+                {t('common.recent')}
               </h3>
             </div>
             <RecentItems
@@ -322,9 +324,9 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
         {searchQuery && filteredItems.length === 0 && (
           <div className="px-3 py-8 text-center">
             <Search className="h-8 w-8 text-white/30 mx-auto mb-2" />
-            <p className="text-sm text-white/70">No results found</p>
+            <p className="text-sm text-white/70">{t('common.no_results_found')}</p>
             <p className="text-xs text-white/50 mt-1">
-              Try searching with different terms
+              {t('common.try_different_terms')}
             </p>
           </div>
         )}
@@ -350,7 +352,7 @@ const BaseSidebar: React.FC<BaseSidebarProps> = ({
               </p>
               <div className="flex items-center space-x-2 mt-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-xs text-white/70">Online</span>
+                <span className="text-xs text-white/70">{t('common.online')}</span>
               </div>
             </div>
           </div>

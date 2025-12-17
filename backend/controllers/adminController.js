@@ -113,7 +113,7 @@ const adminController = {
 
       // Get chapter ID - handle both string (chapter name) and integer (chapter_id)
       let chapterId;
-      
+
       // First, try to parse as number (most common case from frontend)
       if (!isNaN(parseInt(chapter))) {
         chapterId = parseInt(chapter);
@@ -234,11 +234,12 @@ const adminController = {
       const sortOrder = req.query.sortOrder || 'desc';
 
       let query = db('users')
-        .leftJoin('chapters', 'users.chapter_id', 'chapters.id');
+        .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
+        .leftJoin('teacher_profiles', 'users.id', 'teacher_profiles.user_id');
 
       // Apply filters
       if (search) {
-        query = query.where(function() {
+        query = query.where(function () {
           this.where('users.first_name', 'like', `%${search}%`)
             .orWhere('users.last_name', 'like', `%${search}%`)
             .orWhere('users.email', 'like', `%${search}%`);
@@ -260,15 +261,15 @@ const adminController = {
         // But usually it should be. Let's assume we might need to fetch it if missing.
         let chapterId = requestingUserChapterId;
         if (!chapterId) {
-           const adminUser = await db('users').where('id', req.user.userId).select('chapter_id').first();
-           chapterId = adminUser ? adminUser.chapter_id : null;
+          const adminUser = await db('users').where('id', req.user.userId).select('chapter_id').first();
+          chapterId = adminUser ? adminUser.chapter_id : null;
         }
-        
+
         if (chapterId) {
           query = query.where('users.chapter_id', chapterId);
         } else {
-           // Should not happen for a valid chapter_admin
-           return res.status(403).json({ success: false, message: 'Chapter context missing' });
+          // Should not happen for a valid chapter_admin
+          return res.status(403).json({ success: false, message: 'Chapter context missing' });
         }
       }
 
@@ -289,16 +290,18 @@ const adminController = {
 
       query = query
         .select(
-          'users.id', 
-          'users.first_name', 
-          'users.last_name', 
-          'users.email', 
-          'users.role', 
-          'users.chapter_id', 
-          'users.is_active', 
-          'users.created_at', 
+          'users.id',
+          'users.first_name',
+          'users.last_name',
+          'users.email',
+          'users.role',
+          'users.chapter_id',
+          'users.is_active',
+          'users.created_at',
           'users.last_login_at',
-          'chapters.name as chapter_name'
+          'chapters.name as chapter_name',
+          'teacher_profiles.verification_docs',
+          'teacher_profiles.onboarding_status'
         )
         .orderBy(dbSortBy, sortOrder)
         .limit(limit)
@@ -319,7 +322,9 @@ const adminController = {
             chapterId: user.chapter_id,
             isActive: user.is_active,
             createdAt: user.created_at,
-            lastLogin: user.last_login_at || null
+            lastLogin: user.last_login_at || null,
+            verification_docs: user.verification_docs,
+            onboarding_status: user.onboarding_status
           })),
           pagination: {
             total,
@@ -344,7 +349,7 @@ const adminController = {
     try {
       const { userId, firstName, lastName, email, role, chapter, isActive } = req.body;
       const requestingUserRole = req.user.role;
-      
+
       // Check if requesting user is an admin or chapter_admin
       if (requestingUserRole !== 'admin' && requestingUserRole !== 'chapter_admin') {
         return res.status(403).json({
@@ -374,7 +379,7 @@ const adminController = {
       if (requestingUserRole === 'chapter_admin') {
         // Get requester's chapter
         const requester = await db('users').where('id', req.user.userId).select('chapter_id').first();
-        
+
         // 1. Can only update users in same chapter
         if (userToUpdate.chapter_id !== requester.chapter_id) {
           return res.status(403).json({
@@ -385,27 +390,27 @@ const adminController = {
 
         // 2. Cannot change user's chapter
         if (chapter !== undefined) {
-           // Check if trying to change to a different chapter
-           let targetChapterId = chapter;
-           if (typeof chapter === 'string') {
-              const ch = await db('chapters').where('name', chapter).first();
-              targetChapterId = ch ? ch.id : null;
-           }
-           
-           if (parseInt(targetChapterId) !== requester.chapter_id) {
-             return res.status(403).json({
-               success: false,
-               message: 'Chapter admins cannot move users to other chapters'
-             });
-           }
+          // Check if trying to change to a different chapter
+          let targetChapterId = chapter;
+          if (typeof chapter === 'string') {
+            const ch = await db('chapters').where('name', chapter).first();
+            targetChapterId = ch ? ch.id : null;
+          }
+
+          if (parseInt(targetChapterId) !== requester.chapter_id) {
+            return res.status(403).json({
+              success: false,
+              message: 'Chapter admins cannot move users to other chapters'
+            });
+          }
         }
 
         // 3. Cannot promote to admin or change admin's role
         if (userToUpdate.role === 'admin') {
-           return res.status(403).json({ success: false, message: 'Cannot modify platform administrators' });
+          return res.status(403).json({ success: false, message: 'Cannot modify platform administrators' });
         }
         if (role === 'admin') {
-           return res.status(403).json({ success: false, message: 'Cannot promote users to platform admin' });
+          return res.status(403).json({ success: false, message: 'Cannot promote users to platform admin' });
         }
       }
 
@@ -428,7 +433,7 @@ const adminController = {
             message: 'Invalid role specified'
           });
         }
-        
+
         // Prevent users from changing their own role
         if (userId === req.user.userId && role !== userToUpdate.role) {
           return res.status(403).json({
@@ -436,14 +441,14 @@ const adminController = {
             message: 'Cannot change your own role'
           });
         }
-        
+
         updateData.role = role;
       }
 
       // Handle chapter update
       if (chapter !== undefined) {
         let chapterId;
-        
+
         // Try to parse as number first
         if (!isNaN(parseInt(chapter))) {
           chapterId = parseInt(chapter);
@@ -465,7 +470,7 @@ const adminController = {
           }
           chapterId = chapterRecord.id;
         }
-        
+
         updateData.chapter_id = chapterId;
       }
 
@@ -576,7 +581,7 @@ const adminController = {
       // Update the user's role
       await db('users')
         .where({ id: userId })
-        .update({ 
+        .update({
           role: newRole,
           updated_at: new Date()
         });
@@ -645,7 +650,7 @@ const adminController = {
       // Update the user's status
       await db('users')
         .where({ id: userId })
-        .update({ 
+        .update({
           is_active: isActive,
           updated_at: new Date()
         });
@@ -734,10 +739,10 @@ const adminController = {
       console.error('Delete user error:', error);
       // Check for foreign key constraint violation
       if (error.code === '23503') {
-         return res.status(400).json({
-           success: false,
-           message: 'Cannot delete user because they have related records. Deactivate them instead.'
-         });
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete user because they have related records. Deactivate them instead.'
+        });
       }
       res.status(500).json({
         success: false,
@@ -803,7 +808,7 @@ const adminController = {
       });
     } catch (error) {
       console.error('Get upload queue error:', error);
-      
+
       // Handle specific database errors
       if (error.code === '42P01') { // Table does not exist
         return res.json({
@@ -811,7 +816,7 @@ const adminController = {
           data: { uploads: [], message: 'Content uploads table not yet initialized' }
         });
       }
-      
+
       res.status(500).json({
         success: false,
         message: 'Failed to fetch upload queue',
@@ -841,7 +846,7 @@ const adminController = {
         let chapterRecord = await db('chapters')
           .where({ name: chapterId, is_active: true })
           .first();
-        
+
         // If not found, try case-insensitive match
         if (!chapterRecord) {
           chapterRecord = await db('chapters')
@@ -849,7 +854,7 @@ const adminController = {
             .where({ is_active: true })
             .first();
         }
-        
+
         // If still not found, try matching by slug (e.g., "addis-ababa" -> "Addis Ababa Chapter")
         if (!chapterRecord) {
           const slugToNameMap = {
@@ -859,7 +864,7 @@ const adminController = {
             'london': 'London Chapter',
             'bahir-dar': 'Bahir Dar Chapter'
           };
-          
+
           const mappedName = slugToNameMap[chapterId.toLowerCase()];
           if (mappedName) {
             chapterRecord = await db('chapters')
@@ -867,7 +872,7 @@ const adminController = {
               .first();
           }
         }
-        
+
         if (!chapterRecord) {
           return res.status(400).json({
             success: false,
@@ -895,7 +900,7 @@ const adminController = {
       // Check quota
       const fileType = file.mimetype.split('/')[0]; // video, image, etc.
       const quota = await ContentUpload.checkQuota(resolvedChapterId, fileType);
-      
+
       if (quota.monthly_limit > 0 && quota.current_usage >= quota.monthly_limit) {
         return res.status(400).json({
           success: false,
@@ -1049,7 +1054,7 @@ const adminController = {
       });
     } catch (error) {
       console.error('Upload content error:', error);
-      
+
       if (error.message.includes('quota exceeded')) {
         return res.status(400).json({
           success: false,
@@ -1120,20 +1125,20 @@ const adminController = {
           console.error('Failed to move approved content to resources:', moveError);
           // Don't fail the approval if moving to resources fails
         }
-        
+
       } else if (action === 'reject') {
         newStatus = 'rejected';
         actionType = 'content_reject';
-        
+
         if (!rejectionReason) {
           return res.status(400).json({
             success: false,
             message: 'Rejection reason is required'
           });
         }
-        
+
         await ContentUpload.updateStatus(uploadId, newStatus, null, rejectionReason);
-        
+
         // Delete the uploaded file
         // fs.unlinkSync(upload.file_path); // In production, handle async
       }
@@ -1336,7 +1341,7 @@ const adminController = {
   async warnUser(contentType, contentId, moderatorId, notes) {
     // Get user ID from content
     let userId;
-    
+
     switch (contentType) {
       case 'forum_post':
         const post = await db('forum_posts').where({ id: contentId }).select('author_id').first();
@@ -1396,13 +1401,13 @@ const adminController = {
       let metrics = snapshot && snapshot.metrics
         ? (typeof snapshot.metrics === 'string' ? JSON.parse(snapshot.metrics) : snapshot.metrics)
         : { users: {} };
-      
+
       // Calculate real-time active users (users who logged in within last 30 days)
       const activeUsersCount = await db('users')
         .where('last_login_at', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
         .count('id as count')
         .first();
-      
+
       // Calculate new users this week
       const newUsersCount = await db('users')
         .where('created_at', '>=', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -1449,8 +1454,8 @@ const adminController = {
   async getTags(req, res) {
     try {
       const { category } = req.query;
-      
-      const tags = category 
+
+      const tags = category
         ? await ContentTag.findByCategory(category)
         : await ContentTag.findAllActive();
 
@@ -2132,7 +2137,7 @@ const adminController = {
         } catch (err) {
           // Only warn for specific tables that might be missing during dev/migration
           if (!err.message.includes('relation "users" does not exist')) {
-             console.warn('Stats query failed:', err.message);
+            console.warn('Stats query failed:', err.message);
           }
           return 0;
         }
@@ -2161,33 +2166,33 @@ const adminController = {
       ] = await Promise.all([
         // Total users
         safeCount(db('users')),
-        
+
         // Active users
         safeCount(db('users').where('last_login_at', '>=', thirtyDaysAgo)),
-        
+
         // New registrations
         safeCount(db('users').where('created_at', '>=', sevenDaysAgo)),
-        
+
         // Active courses
         safeCount(db('courses').where('is_published', true)),
-        
+
         // Completed lessons
-        safeCount(db('user_lesson_progress').where(function() {
-            this.where('progress', 100).orWhere('is_completed', true);
+        safeCount(db('user_lesson_progress').where(function () {
+          this.where('progress', 100).orWhere('is_completed', true);
         })),
-        
+
         // Pending content approvals
         safeCount(db('content_uploads').where('status', 'pending')),
-        
+
         // Pending teacher applications
         safeCount(db('teacher_applications').where('status', 'pending')),
-        
+
         // Flagged content
         safeCount(db('flagged_content').where('status', 'pending')),
-        
+
         // Total enrollments
         safeCount(db('user_course_enrollments')),
-        
+
         // Completed enrollments
         safeCount(db('user_course_enrollments').where('enrollment_status', 'completed')),
 
@@ -2195,11 +2200,11 @@ const adminController = {
         safeCount(db('users').where('role', 'admin')),
 
         // Active Today
-        safeCount(db('users').where('last_login_at', '>=', new Date(new Date().setHours(0,0,0,0))))
+        safeCount(db('users').where('last_login_at', '>=', new Date(new Date().setHours(0, 0, 0, 0))))
       ]);
 
       const pendingApprovals = contentApprovals + teacherAppsCount;
-      
+
       const avgEngagement = totalEnrollments > 0
         ? Math.round((completedEnrollments / totalEnrollments) * 100)
         : 0;
@@ -2457,7 +2462,7 @@ const adminController = {
     try {
       const { uploadId } = req.params;
       const preview = await adminToolsService.getUploadPreview(uploadId);
-      
+
       res.json({
         success: true,
         data: { preview }
@@ -2476,9 +2481,9 @@ const adminController = {
     try {
       const { uploadId } = req.params;
       const userId = req.user.userId;
-      
+
       const upload = await adminToolsService.retryUpload(uploadId, userId);
-      
+
       res.json({
         success: true,
         message: 'Upload queued for retry',
@@ -2501,9 +2506,9 @@ const adminController = {
       const { userId } = req.params;
       const { reason, duration } = req.body; // duration in seconds
       const adminId = req.user.userId;
-      
+
       const banData = await adminToolsService.banUser(userId, adminId, reason, duration);
-      
+
       res.json({
         success: true,
         message: 'User banned successfully',
@@ -2523,9 +2528,9 @@ const adminController = {
     try {
       const { userId } = req.params;
       const adminId = req.user.userId;
-      
+
       await adminToolsService.unbanUser(userId, adminId);
-      
+
       res.json({
         success: true,
         message: 'User unbanned successfully'
@@ -2545,9 +2550,9 @@ const adminController = {
       const { postId } = req.params;
       const { reason } = req.body;
       const adminId = req.user.userId;
-      
+
       await adminToolsService.banPost(postId, adminId, reason);
-      
+
       res.json({
         success: true,
         message: 'Post banned successfully'
@@ -2566,9 +2571,9 @@ const adminController = {
     try {
       const { postId } = req.params;
       const adminId = req.user.userId;
-      
+
       await adminToolsService.unbanPost(postId, adminId);
-      
+
       res.json({
         success: true,
         message: 'Post unbanned successfully'
@@ -2588,9 +2593,9 @@ const adminController = {
       const { contentType, contentId } = req.params;
       const updates = req.body;
       const adminId = req.user.userId;
-      
+
       const updatedContent = await adminToolsService.editContent(contentType, contentId, updates, adminId);
-      
+
       res.json({
         success: true,
         message: 'Content edited successfully',
@@ -2611,9 +2616,9 @@ const adminController = {
   async getRetentionMetrics(req, res) {
     try {
       const { timeframe = '30days' } = req.query;
-      
+
       const metrics = await adminToolsService.getRetentionMetrics(timeframe);
-      
+
       res.json({
         success: true,
         data: { metrics }
@@ -2631,9 +2636,9 @@ const adminController = {
   async verifyDashboardAccuracy(req, res) {
     try {
       const { snapshotId } = req.params;
-      
+
       const accuracy = await adminToolsService.verifyDashboardAccuracy(snapshotId);
-      
+
       res.json({
         success: true,
         data: {
@@ -2654,19 +2659,19 @@ const adminController = {
   async exportUsageData(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      
+
       if (!startDate || !endDate) {
         return res.status(400).json({
           success: false,
           message: 'Start date and end date are required'
         });
       }
-      
+
       const data = await adminToolsService.exportUsageData(
         new Date(startDate),
         new Date(endDate)
       );
-      
+
       res.json({
         success: true,
         data: { export: data }
@@ -2686,9 +2691,9 @@ const adminController = {
   async getAnomalies(req, res) {
     try {
       const { severity, limit = 50 } = req.query;
-      
+
       const anomalies = await adminToolsService.getAnomalies(severity, parseInt(limit));
-      
+
       res.json({
         success: true,
         data: { anomalies }

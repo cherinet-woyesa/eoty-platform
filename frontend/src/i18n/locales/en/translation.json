@@ -1,43 +1,7 @@
 {
-  "nav": {
-    "dashboard": "Dashboard",
-    "dashboard_desc": "Platform overview and metrics",
-    "characters": "characters",
-    "previous": "Previous",
-    "next": "Next",
-    "page": "Page {{count}}",
-    "sort_by": "Sort by",
-    "courses": "Videos",
-    "courses_desc": "My Courses, Create & Browse",
-    "learning": "Learning",
-    "learning_desc": "Progress, Assignments, Paths & Achievements",
-    "ai_assistant": "AI Assistant",
-    "ai_assistant_desc": "Get instant help and answers",
-    "community": "Community",
-    "community_desc": "Feed, Groups & Forums",
-    "chapters": "Chapters",
-    "chapters_desc": "Join local communities",
-    "resources": "Resources",
-    "resources_desc": "Library and Help Center",
-    "students": "Members",
-    "students_desc": "Members, Assignments & Analytics",
-    "content": "Content",
-    "content_desc": "Record, Upload & Resources",
-    "admin_panel": "Admin Panel",
-    "admin_panel_desc": "System management",
-    "revenue": "Revenue",
-    "revenue_desc": "Earnings & payments",
-    "users_access": "Members & Access",
-    "users_access_desc": "Members, Chapters & Roles",
-    "ai_labeling": "AI Labeling",
-    "ai_labeling_desc": "Label AI responses for faith alignment",
-    "system": "System",
-    "system_desc": "Analytics, Config, Logs & Tools",
-    "communications": "Communications",
-    "communications_desc": "Manage events and announcements",
-    "home": "Home",
-    "assignments": "Assignments",
-    "calendar": "Calendar"
+  "admin": {
+    "chapter_roles": "Chapter Roles",
+    "permissions": "Permissions"
   },
   "ai_labeling": {
     "title": "AI Labeling",
@@ -1707,6 +1671,7 @@
       "spiritual": "Spiritual life",
       "history": "History"
     },
+    "quick_actions": "Quick Actions",
     "guide": {
       "how_title": "How it works",
       "how_1": "Ask questions about Orthodox Christianity, theology, or teaching methods.",
@@ -1715,9 +1680,67 @@
       "safety_title": "Doctrinal safety",
       "safety_1": "Aligned with Ethiopian Orthodox teachings",
       "safety_2": "References Scripture and Church Fathers",
-      "safety_3": "Encourages consultation with clergy for complex matters"
-    },
-    "languages": {
+        "safety_3": "Encourages consultation with clergy for complex matters"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "dashboard_desc": "Overview of your activities and progress",
+        "users_access": "Users & Access",
+        "users_access_desc": "Manage user accounts and permissions",
+        "content": "Content",
+        "content_desc": "Manage courses, lessons, and resources",
+        "communications": "Communications",
+        "communications_desc": "Manage announcements and messages",
+        "ai_labeling": "AI Labeling",
+        "ai_labeling_desc": "Manage AI content categorization and labels",
+        "system": "System",
+        "system_desc": "Configure system settings and preferences",
+        "courses": "Courses",
+        "courses_desc": "Browse and manage courses",
+        "students": "Students",
+        "students_desc": "View and manage student profiles",
+        "resources": "Resources",
+        "resources_desc": "Access learning materials and documents",
+        "ai_assistant": "AI Assistant",
+        "ai_assistant_desc": "Interact with the AI assistant for support",
+        "community": "Community",
+        "community_desc": "Engage with the learning community",
+        "chapters": "Chapters",
+        "chapters_desc": "Explore and manage community chapters",
+        "learning": "Learning",
+        "learning_desc": "Track your learning journey and progress",
+        "admin": "Admin",
+        "teacher": "Teacher",
+        "users": "Users",
+        "forums": "Forums",
+        "achievements": "Achievements",
+        "analytics": "Analytics",
+        "settings": "Settings",
+        "course_details": "Course Details",
+        "user_profile": "User Profile",
+        "my_courses": "My Courses",
+        "bookmarks": "Bookmarks",
+        "study_schedule": "Study Schedule",
+        "record_video": "Record Video",
+        "discussions": "Discussions",
+        "user_management": "User Management",
+        "user_management_desc": "Manage users",
+        "bookmarks_desc": "Saved lessons",
+        "study_schedule_desc": "Plan your study",
+        "record_video_desc": "Create lessons",
+        "discussions_desc": "Community forums",
+        "analytics_desc": "View reports"
+      },
+  "common": {
+    "eoty_platform": "EOTY Platform",
+    "search_navigation_placeholder": "Search navigation...",
+    "favorites": "Favorites",
+    "recent": "Recent",
+    "no_results_found": "No results found",
+    "try_different_terms": "Try searching with different terms",
+    "online": "Online"
+  },
+  "languages": {
       "title": "Languages",
       "en": "English",
       "am": "Amharic",
@@ -2050,7 +2073,39 @@
     "welcome_subtitle": "Complete your setup to start teaching and serving.",
     "welcome_back": "Welcome back, {{name}}!",
     "dashboard_subtitle": "Manage your teaching profile and settings.",
+    "subjects": {
+      "placeholder": "Add a subject (e.g. Mathematics)",
+      "no_subjects": "No subjects added yet.",
+      "max_subjects": "Maximum 5 subjects."
+    },
+    "availability": {
+      "no_availability": "No availability set",
+      "add_slot": "Add Slot",
+      "save": "Save",
+      "cancel": "Cancel",
+      "days": {
+        "Mon": "Mon",
+        "Tue": "Tue",
+        "Wed": "Wed",
+        "Thu": "Thu",
+        "Fri": "Fri",
+        "Sat": "Sat",
+        "Sun": "Sun"
+      }
+    },
+    "regional_resources": {
+      "title": "Regional Resources",
+      "description": "Access guides and tools specific to your teaching region.",
+      "view_btn": "View Resources"
+    },
     "setup_progress": "Setup Progress",
+    "tabs": {
+      "payout": "Payout",
+      "documents": "Documents",
+      "statistics": "Statistics",
+      "security": "Security",
+      "notifications": "Notifications"
+    },
     "dashboard": {
       "total_students": "Total Students",
       "total_earnings": "Total Earnings",
@@ -2253,6 +2308,7 @@
     "payout_dob_required": "Date of birth is required",
     "payout_tax_id_required": "Tax ID is required",
     "payout_tax_agreement_required": "Please agree to the tax information terms",
+    "mobile_money_provider_required": "Please select a mobile money provider",
     "payout_age_requirement": "You must be at least 18 years old",
     "invalid_social_urls": "Invalid URL format for: {{fields}}",
     "invalid_time_format": "Please use format HH:MM-HH:MM (e.g., 09:00-17:00)",
@@ -2898,6 +2954,383 @@
       "platform": "Platform Library",
       "chapter": "Chapter Resources",
       "help": "Help Center"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "dashboard_desc": "Platform overview and metrics",
+
+    "courses": "Videos",
+    "courses_desc": "My Courses, Create & Browse",
+
+    "students": "Members",
+    "students_desc": "Members, Assignments & Analytics",
+
+    "content": "Content",
+    "content_desc": "Record, Upload & Resources",
+
+    "resources": "Resources",
+    "resources_desc": "Library and Help Center",
+
+    "ai_assistant": "AI Assistant",
+    "ai_assistant_desc": "Get instant help and answers",
+
+    "community": "Community",
+    "community_desc": "Feed, Groups & Forums",
+
+    "chapters": "Chapters",
+    "chapters_desc": "Join local communities",
+
+    "learning": "Learning",
+    "learning_desc": "Progress, Assignments, Paths & Achievements",
+
+    "users_access": "Members & Access",
+    "users_access_desc": "Members, Chapters & Roles",
+
+    "communications": "Communications",
+    "communications_desc": "Manage events and announcements",
+
+    "ai_labeling": "AI Labeling",
+    "ai_labeling_desc": "Label AI responses for faith alignment",
+
+    "system": "System",
+    "system_desc": "Analytics, Config, Logs & Tools",
+
+    "member": "Member",
+    "teacher_portal": "Teacher Portal",
+    "admin_panel": "Admin Panel",
+    "admin_panel_desc": "System management",
+    "revenue": "Revenue",
+    "revenue_desc": "Earnings & payments",
+
+    "home": "Home",
+    "assignments": "Assignments",
+    "calendar": "Calendar",
+
+    "stats": {
+      "active_students": "Active Students",
+      "courses": "Courses",
+      "rating": "Rating",
+      "revenue": "Revenue"
+    },
+
+    "admin": "Admin",
+    "teacher": "Teacher",
+    "profile": "Profile",
+    "users": "Users",
+    "forums": "Forums",
+    "achievements": "Achievements",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "course_details": "Course Details",
+    "user_profile": "User Profile"
+  },
+  "teacher_profile": {
+    "welcome_back": "Welcome back, {{name}}!",
+    "dashboard_subtitle": "Manage your teaching profile and settings.",
+    "profile_details": "Profile Details",
+    "bio_label": "Professional Bio",
+    "bio_placeholder": "Tell students about your teaching experience and methodology...",
+    "bio_hint": "Min 50 characters recommended.",
+    "subjects_label": "Subjects",
+    "subjects": {
+      "placeholder": "Add a subject (e.g. Mathematics)",
+      "no_subjects": "No subjects added yet.",
+      "max_subjects": "Maximum 5 subjects."
+    },
+    "availability": {
+      "add_slot": "Add Slot",
+      "save": "Save",
+      "cancel": "Cancel",
+      "no_availability": "No availability set"
+    },
+    "setup_progress": "Setup Progress",
+    "time_required": "Please select both start and end times",
+    "invalid_time_range": "End time must be after start time",
+    "time_slot_exists": "This time slot already exists",
+    "profile_updated": "Profile updated successfully",
+    "save_failed": "Failed to save profile",
+    "avatar_size_error": "Image size should be less than 5MB",
+    "avatar_updated": "Profile picture updated",
+    "payout_updated": "Payout settings updated successfully",
+    "payout_update_failed": "Failed to update payout settings. Please try again.",
+    "payout_account_holder_required": "Account holder name is required",
+    "payout_account_number_required": "Account number is required",
+    "payout_routing_required": "Routing number is required for bank transfers",
+    "payout_address_required": "Billing address is required",
+    "payout_dob_required": "Date of birth is required",
+    "payout_tax_id_required": "Tax ID is required",
+    "payout_tax_agreement_required": "Please agree to the tax information terms",
+    "payout_age_requirement": "You must be at least 18 years old",
+    "document_upload_success": "Document uploaded successfully. Status: Pending Review.",
+    "document_upload_failed": "Failed to upload document. Please try again.",
+    "dashboard": {
+      "total_students": "Total Students",
+      "total_earnings": "Total Earnings",
+      "rating": "Rating",
+      "reviews": "Reviews"
+    },
+    "payout_setup": {
+      "country_united_states": "United States",
+      "country_united_kingdom": "United Kingdom",
+      "country_canada": "Canada",
+      "country_ethiopia": "Ethiopia",
+      "main_title": "Payout Setup",
+      "subtitle": "Configure how you want to receive your earnings.",
+      "region_label": "Billing Region",
+      "method_label": "Payout Method",
+      "bank_transfer_method": "Bank Transfer",
+      "bank_transfer_desc": "Direct deposit to your bank account",
+      "stripe_method": "Stripe",
+      "stripe_desc": "Fast, secure payouts via Stripe",
+      "mobile_money_method": "Mobile Money",
+      "mobile_money_desc": "Transfer to mobile wallet (e.g. Telebirr, M-Pesa)",
+      "mobile_money_provider_label": "Mobile Money Provider",
+      "select_provider": "Select provider",
+      "provider_cbe_birr": "CBE Birr",
+      "provider_tele_birr": "Tele Birr",
+      "account_details_title": "Account Details",
+      "account_holder_label": "Account Holder Name",
+      "routing_number_label": "Routing Number / Sort Code",
+      "account_number_label": "Account Number / IBAN",
+      "phone_number_label": "Mobile Number",
+      "tax_information_title": "Tax Information",
+      "tax_id_label": "Tax ID / SSN",
+      "dob_label": "Date of Birth",
+      "billing_address_label": "Billing Address",
+      "account_holder_placeholder": "e.g. John Doe",
+      "routing_number_placeholder": "Routing / Sort Code",
+      "account_number_placeholder": "Account Number / IBAN",
+      "phone_number_placeholder": "+251...",
+      "tax_id_placeholder": "SSN / TIN / National ID",
+      "address_placeholder": "Full street address, City, State, Zip",
+      "tax_agree_label": "I certify that the information provided is correct and I agree to the <a href='#' class='text-blue-600 hover:underline'>Tax Terms</a>.",
+      "cancel_btn": "Cancel",
+      "saving_btn": "Saving...",
+      "confirm_details_btn": "Confirm Details",
+      "payout_summary_title": "Payout Summary",
+      "currency_label": "Currency",
+      "currency_etb": "ETB (Ethiopian Birr)",
+      "currency_usd": "USD (US Dollar)",
+      "transactional_terms_title": "Transactional Terms",
+      "transactional_terms_description": "By confirming, you agree to our payout terms. Payments are processed weekly for balances over $50 equivalent. Standard processing times apply based on your bank or provider.",
+      "next_steps_title": "What happens next?",
+      "next_steps_description": "We will verify your payout details. This usually takes 1-2 business days. In the meantime, please complete your identity verification to ensure uninterrupted payments.",
+      "proceed_to_documents_btn": "Proceed to Documents"
+    },
+    "social": {
+      "linkedin": "LinkedIn Profile",
+      "website": "Website"
+    }
+  },
+  "teacher_dashboard": {
+    "checklist_complete_profile": "Complete Profile",
+    "checklist_setup_payout": "Setup Payout",
+    "checklist_verify_identity": "Verify Documents"
+  },
+  "teacher_security": {
+    "title": "Account Security",
+    "subtitle": "Manage your password and account security settings",
+    "password_changed": "Password changed successfully",
+    "password_change_failed": "Failed to change password",
+    "account_deleted": "Account deleted successfully",
+    "account_deletion_failed": "Failed to delete account",
+    "current_password_required": "Current password is required",
+    "password_too_short": "New password must be at least 8 characters",
+    "passwords_dont_match": "Passwords do not match",
+    "confirmation_required": "Please type DELETE to confirm",
+    "change_password_title": "Change Password",
+    "change_password_description": "Regularly update your password to keep your account secure",
+    "current_password_label": "Current Password",
+    "current_password_placeholder": "Enter your current password",
+    "new_password_label": "New Password",
+    "new_password_placeholder": "Enter new password",
+    "confirm_password_label": "Confirm New Password",
+    "confirm_password_placeholder": "Confirm new password",
+    "password_length_hint": "Must be at least 8 characters long",
+    "changing_password_btn": "Changing Password...",
+    "change_password_btn": "Change Password",
+    "security_settings_title": "Security Settings",
+    "security_settings_description": "Additional security options for your account",
+    "two_factor_auth_title": "Two-Factor Authentication",
+    "two_factor_auth_description": "Add an extra layer of security to your account",
+    "coming_soon": "Coming Soon",
+    "login_notifications_title": "Login Notifications",
+    "login_notifications_description": "Get notified of new logins to your account",
+    "session_management_title": "Session Management",
+    "session_management_description": "View and manage your active sessions",
+    "view_sessions_btn": "View Sessions",
+    "danger_zone": "Danger Zone",
+    "danger_desc": "Irreversible and destructive actions",
+    "delete_account_title": "Delete Account",
+    "delete_account_desc": "Permanently delete your account and all associated data. This action cannot be undone.",
+    "delete_account_btn": "Delete Account",
+    "confirm_delete_title": "Confirm Account Deletion",
+    "confirm_delete_desc": "This will permanently delete your account, all your courses, lessons, and data. Type <strong>DELETE</strong> to confirm.",
+    "confirm_delete_placeholder": "Type DELETE to confirm",
+    "cancel": "Cancel",
+    "confirm_delete_btn": "Confirm Delete",
+    "deleting": "Deleting...",
+    "account_info_title": "Account Information",
+    "account_created": "Account Created",
+    "last_login": "Last Login",
+    "today": "Today",
+    "account_status": "Account Status",
+    "status_active": "Active"
+  },
+  "notifications": {
+    "preferences_updated": "Notification preferences updated successfully",
+    "preferences_update_failed": "Failed to update preferences",
+    "title": "Notification Preferences",
+    "subtitle": "Customize how and when you receive notifications",
+    "email": {
+      "title": "Email Notifications",
+      "subtitle": "Choose which emails you'd like to receive",
+      "types": {
+        "course_updates": {
+          "label": "Course Updates",
+          "description": "Notifications about your course performance and student activity"
+        },
+        "student_messages": {
+          "label": "Student Messages",
+          "description": "Direct messages from students enrolled in your courses"
+        },
+        "forum_replies": {
+          "label": "Forum Replies",
+          "description": "Replies to your forum posts and discussions"
+        },
+        "weekly_digest": {
+          "label": "Weekly Digest",
+          "description": "Weekly summary of your teaching activity and platform updates"
+        },
+        "marketing": {
+          "label": "Marketing & Promotions",
+          "description": "Special offers, platform updates, and promotional content"
+        }
+      }
+    },
+    "push": {
+      "title": "Push Notifications",
+      "subtitle": "Receive real-time updates while using the platform",
+      "types": {
+        "course_activity": {
+          "label": "Course Activity",
+          "description": "New enrollments, reviews, and course completions"
+        },
+        "student_engagement": {
+          "label": "Student Engagement",
+          "description": "Comments, questions, and discussion participation"
+        },
+        "forum_activity": {
+          "label": "Forum Activity",
+          "description": "New topics and replies in followed discussions"
+        },
+        "system_updates": {
+          "label": "System Updates",
+          "description": "Important platform announcements and maintenance alerts"
+        }
+      }
+    },
+    "privacy": {
+      "title": "Communication & Privacy",
+      "subtitle": "Manage how others interact with you",
+      "types": {
+        "student_messages": "Allow students to message me",
+        "course_invitations": "Allow course invitations",
+        "public_profile": "Public Profile visibility",
+        "online_status": "Show online status",
+        "analytics": "Allow analytics tracking"
+      }
+    },
+    "save_changes": "Save Changes"
+  },
+  "teacher_documents": {
+    "title": "Verification Documents",
+    "subtitle": "Upload required documents to verify your teacher status and unlock all platform features.",
+    "status": {
+      "verified": "Verified",
+      "pending": "Pending Review",
+      "rejected": "Rejected",
+      "not_submitted": "Not Submitted"
+    },
+    "doc_types": {
+      "national_id": {
+        "title": "National ID / Passport",
+        "description": "Government-issued ID for identity verification."
+      },
+      "teaching_cert": {
+        "title": "Teaching Certification",
+        "description": "Valid teaching license or degree certificate."
+      },
+      "police_check": {
+        "title": "Background Check",
+        "description": "Recent criminal record check or police clearance."
+      },
+      "tax_form": {
+        "title": "Tax Residency Form",
+        "description": "Proof of tax residency for payout compliance."
+      }
+    },
+    "verification_complete": "Verification Complete",
+    "upload_new_btn": "Upload New Version",
+    "upload_btn": "Upload Document",
+    "rejected_msg": "Previous document was rejected. Please try again.",
+    "help_title": "Need help with verification?",
+    "help_desc": "Check our detailed guide on acceptable document formats and typical verification timelines.",
+    "help_link": "Read Verification Guidelines"
+  },
+  "teacher_stats": {
+    "loading_title": "Performance Statistics",
+    "loading_subtitle": "Loading your teaching analytics...",
+    "error_title": "Failed to Load Statistics",
+    "error_desc": "Unable to fetch your teaching analytics at this time.",
+    "retry": "Try Again",
+    "title": "Performance Statistics",
+    "subtitle": "Comprehensive view of your teaching impact and student engagement",
+    "total_students": "Total Students",
+    "new_this_month": "new this month",
+    "active_label": "Active",
+    "active_students": "Active Students",
+    "engaged_this_week": "engaged this week",
+    "avg_completion": "Avg. Completion",
+    "completed_courses": "completed courses",
+    "avg_rating": "Average Rating",
+    "total_reviews": "total reviews",
+    "top_courses": {
+      "title": "Top Performing Courses",
+      "students": "students",
+      "completion": "completion",
+      "no_data_desc": "No courses yet. Create your first course to see performance metrics!"
+    },
+    "recent_activity": {
+      "title": "Recent Activity (30 days)",
+      "enrolled_in": "enrolled in",
+      "completed": "completed",
+      "no_data_desc": "No recent activity. Student enrollments and completions will appear here."
+    },
+    "engagement": {
+      "title": "Engagement",
+      "watch_time": "Watch Time",
+      "watch_time_desc": "Total time students spent watching",
+      "lesson_completion": "Lesson Completion",
+      "lesson_completion_desc": "Average progress per lesson",
+      "completed_lessons": "Completed Lessons",
+      "completed_lessons_desc": "Total lessons finished"
+    },
+    "earnings": {
+      "title": "Earnings",
+      "total": "Total Earnings",
+      "total_desc": "All-time earnings",
+      "this_month": "This Month",
+      "this_month_desc": "Current month earnings",
+      "pending": "Pending",
+      "pending_desc": "Awaiting payout"
+    },
+    "trends": {
+      "title": "Monthly Trends",
+      "enrollments": "enrollments",
+      "completed": "completed",
+      "no_data": "No enrollment data yet"
     }
   }
 }
