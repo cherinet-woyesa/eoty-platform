@@ -56,6 +56,8 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       }
     } catch (error) {
       console.error('Failed to load resources:', error);
+      // Don't crash the UI if API fails
+      setResources([]);
     } finally {
       setLoading(false);
     }

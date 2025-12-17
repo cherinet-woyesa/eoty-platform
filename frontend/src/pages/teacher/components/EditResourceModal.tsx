@@ -37,7 +37,7 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
         title,
         description,
         category
-      });
+      } as any);
       onUpdate();
       onClose();
     } catch (err) {
