@@ -33,6 +33,8 @@ export interface ForumTopic {
   last_post_last_name?: string;
   created_at: string;
   updated_at: string;
+  user_liked?: boolean;
+  likes_count?: number;
 }
 
 export interface ForumPost {
@@ -52,6 +54,8 @@ export interface ForumPost {
   replies?: ForumPost[];
   created_at: string;
   updated_at: string;
+  user_liked?: boolean;
+  likes?: number;
 }
 
 export interface Badge {
@@ -99,7 +103,7 @@ export interface LeaderboardEntry {
   period_date?: string;
   first_name: string;
   last_name: string;
- 
+
   created_at: string;
   updated_at: string;
 }

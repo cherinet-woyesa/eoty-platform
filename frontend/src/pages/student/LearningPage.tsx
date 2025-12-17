@@ -36,44 +36,40 @@ const LearningPage: React.FC = () => {
           <nav className="flex border-b border-stone-200 flex-shrink-0 overflow-x-auto">
             <button
               onClick={() => setActiveTab('progress')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'progress'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'progress'
                   ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.07)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-              }`}
+                }`}
             >
               <TrendingUp className="h-4 w-4" />
               <span>{t('learning_page.progress_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('assignments')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'assignments'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'assignments'
                   ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.07)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-              }`}
+                }`}
             >
               <CheckSquare className="h-4 w-4" />
               <span>{t('learning_page.assignments_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('paths')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'paths'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'paths'
                   ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.07)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-              }`}
+                }`}
             >
               <Map className="h-4 w-4" />
               <span>{t('learning_page.paths_tab')}</span>
             </button>
             <button
               onClick={() => setActiveTab('achievements')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'achievements'
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'achievements'
                   ? 'border-[color:#1e1b4b] text-[color:#1e1b4b] bg-[color:rgba(30,27,75,0.07)]'
                   : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-              }`}
+                }`}
             >
               <Award className="h-4 w-4" />
               <span>{t('learning_page.achievements_tab')}</span>

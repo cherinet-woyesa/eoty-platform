@@ -130,8 +130,8 @@ const StudentAssignments: React.FC = () => {
           <Clock className="h-3.5 w-3.5" />
           <span>{t('assignments_page.last_updated')}:</span>
           <span className="font-medium text-stone-700">{lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '—'}</span>
-          <button 
-            onClick={() => loadAssignments()} 
+          <button
+            onClick={() => loadAssignments()}
             className="ml-2 p-1 hover:bg-stone-100 rounded-full transition-colors"
             title={t('assignments_page.refresh') || 'Refresh'}
           >
@@ -273,7 +273,7 @@ const StudentAssignments: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-xs text-gray-500 pt-1">
                       <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
                         <Calendar className="h-3.5 w-3.5" />
@@ -315,7 +315,7 @@ const StudentAssignments: React.FC = () => {
                       >
                         {t('assignments_page.view_course')}
                       </Link>
-                      
+
                       {isPending && (
                         <button
                           onClick={() => handleOpenSubmission(a)}
@@ -325,14 +325,14 @@ const StudentAssignments: React.FC = () => {
                           <ChevronRight className="h-4 w-4" />
                         </button>
                       )}
-                      
+
                       {isSubmitted && !isGraded && (
-                         <button
-                         onClick={() => handleOpenSubmission(a)} // Allow re-submission if not graded? Or just view?
-                         className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                       >
-                         {t('assignments_page.update_submission') || 'Update'}
-                       </button>
+                        <button
+                          onClick={() => handleOpenSubmission(a)} // Allow re-submission if not graded? Or just view?
+                          className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          {t('assignments_page.update_submission') || 'Update'}
+                        </button>
                       )}
                     </div>
                   </div>

@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { 
-  Target, BookOpen, CheckCircle, Clock, ArrowRight, 
+import {
+  Target, BookOpen, CheckCircle, Clock, ArrowRight,
   AlertCircle, Star, Lock, Unlock, Users, RefreshCw, Search, Filter
 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
@@ -179,7 +179,7 @@ const LearningPathsPage: React.FC = () => {
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-600 text-lg mb-4">{t('learning_paths.load_failed')}</p>
-              <button 
+              <button
                 onClick={() => refetch()}
                 className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
               >
@@ -314,7 +314,7 @@ const LearningPathsPage: React.FC = () => {
                       <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
                         {t(`learning_paths.${path.difficulty}`)}
                       </span>
-                        {path.is_enrolled && (
+                      {path.is_enrolled && (
                         <span className="px-2 py-1 rounded text-xs font-semibold bg-[color:rgba(30,27,75,0.05)] text-[color:#1e1b4b] border border-[color:rgba(30,27,75,0.15)]">
                           {t('learning_paths.enrolled_label')}
                         </span>
@@ -324,7 +324,7 @@ const LearningPathsPage: React.FC = () => {
                     <p className="text-gray-500 text-sm">{path.description}</p>
                   </div>
                 </div>
-                
+
                 {/* Progress Bar */}
                 {path.is_enrolled && path.progress > 0 && (
                   <div className="mt-4">

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { FC } from 'react';
 import { useVideoRecorder } from '@/hooks/useVideoRecorder';
 import { coursesApi } from '@/services/api';
@@ -78,14 +79,15 @@ interface Course {
 
 // S3 upload helper functions removed - all uploads use Mux direct upload
 
-const VideoRecorder: FC<VideoRecorderProps> = ({ 
-  onRecordingComplete, 
+const VideoRecorder: FC<VideoRecorderProps> = ({
+  onRecordingComplete,
   onUploadComplete,
   courseId,
   lessonId,
   variant = 'default',
   onToggleTips
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
@@ -1598,8 +1600,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse">
                     <Camera className="h-6 w-6 text-slate-400" />
                   </div>
-                  <h3 className="text-base font-medium mb-1">Ready to Record</h3>
-                  <p className="text-slate-400 text-xs mb-4">Start recording to activate camera or screen share</p>
+                  <h3 className="text-base font-medium mb-1">{t('record_video.ready_to_record')}</h3>
+                  <p className="text-slate-400 text-xs mb-4">{t('record_video.ready_to_record_desc')}</p>
                   {!enableAudio && (
                     <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
                       <MicOff className="h-3 w-3 mr-1.5" />
@@ -1622,7 +1624,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         autoPlay muted playsInline 
                       className="w-full h-full object-cover" 
                     />
-                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.screen')}</div>
                 </div>
                 <div className="w-1/2 h-full relative">
                     <video 
@@ -1630,7 +1632,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         autoPlay muted playsInline 
                       className="w-full h-full object-cover" 
                     />
-                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.camera')}</div>
                 </div>
                 {renderRecordingStats()}
             </div>
@@ -1672,7 +1674,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         autoPlay muted playsInline 
                       className="w-full h-full object-cover" 
                     />
-                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Screen</div>
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.screen')}</div>
                 </div>
                 <div className="w-[30%] h-full relative bg-slate-900">
                     <video 
@@ -1680,7 +1682,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         autoPlay muted playsInline 
                       className="w-full h-full object-cover" 
                     />
-                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">Camera</div>
+                    <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.camera')}</div>
                 </div>
                 {renderRecordingStats()}
             </div>
@@ -2203,7 +2205,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   <div className="w-6 h-6 bg-red-600 rounded-full shadow-lg group-hover:scale-90 transition-transform duration-300"></div>
                 </button>
                 <span className="text-white/90 text-xs font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
-                  Start Recording
+                  {t('record_video.start_recording')}
                 </span>
               </div>
               ) : (
@@ -2468,7 +2470,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <h3 className="text-lg font-semibold flex items-center space-x-2 text-slate-700">
                 <Star className="h-5 w-5 text-[#FFD700]" />
                 <span>
-                  {lessonId ? 'Update Lesson' : 'Create New Lesson'}
+                  {lessonId ? t('record_video.update_lesson') : t('record_video.create_new_lesson')}
                 </span>
               </h3>
               {/* Mode indicator */}
@@ -2477,7 +2479,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   ? 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
                   : 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
               }`}>
-                {lessonId ? '🎬 Recording Mode' : '📝 New Lesson Mode'}
+                {lessonId ? `🎬 ${t('record_video.recording_mode')}` : `📝 ${t('record_video.new_lesson_mode')}`}
               </div>
             </div>
             <p className="text-sm text-slate-600 hidden sm:block">
@@ -2535,7 +2537,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-slate-700">Select Course *</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.select_course_required')}</label>
               <div className="flex flex-col gap-2">
                 <select 
                   value={selectedCourse} 
@@ -2543,7 +2545,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm"
                   disabled={uploading || isCreatingCourseLoading}
                 >
-                  <option value="">Choose a course...</option>
+                  <option value="">{t('record_video.choose_course')}</option>
                   {courses.map(course => (
                     <option key={course.id} value={course.id}>{course.title}</option>
                   ))}
@@ -2616,22 +2618,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-slate-700">Lesson Title *</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.lesson_title_required')}</label>
               <input 
                 type="text" 
                 value={lessonTitle} 
                 onChange={(e) => setLessonTitle(e.target.value)} 
-                placeholder="Enter lesson title..." 
+                placeholder={t('record_video.enter_lesson_title')} 
                 className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm" 
                 disabled={uploading} 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-slate-700">Description (Optional)</label>
+              <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.description_optional')}</label>
               <textarea 
                 value={lessonDescription} 
                 onChange={(e) => setLessonDescription(e.target.value)} 
-                placeholder="Brief description..." 
+                placeholder={t('record_video.brief_description')} 
                 rows={3} 
                 className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm" 
                 disabled={uploading} 
@@ -2667,7 +2669,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 ) : (
                   <>
                     <Upload className="h-4 w-4" />
-                    <span>{lessonId ? 'Update Lesson' : 'Create Lesson'}</span>
+                    <span>{lessonId ? t('record_video.update_lesson') : t('record_video.create_lesson')}</span>
                   </>
                 )}
               </button>
@@ -2677,7 +2679,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             {(!recordedVideo && !selectedFile) && (
               <p className="text-xs text-center text-amber-600 mt-2 flex items-center justify-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Please record or upload a video to create the lesson
+                {t('record_video.record_or_upload_required')}
               </p>
             )}
           </div>

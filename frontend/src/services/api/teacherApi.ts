@@ -1,5 +1,5 @@
 import api from './apiClient';
-import { ApiResponse } from './types';
+import type { ApiResponse } from '@/types/api';
 
 export interface TeacherProfile {
   id: string;
@@ -8,6 +8,7 @@ export interface TeacherProfile {
   phone?: string;
   location?: string;
   profilePicture?: string;
+  profile_picture?: string;
   specialties?: string[];
   teachingExperience?: number;
   education?: string;
@@ -24,11 +25,69 @@ export interface TeacherProfile {
     tax_id?: string;
   };
   tax_status?: string;
+  website_url?: string;
+  twitter_url?: string;
+  linkedin_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  subjects?: string[];
+  availability?: Record<string, string[]>;
+  stats?: {
+    total_students?: number;
+    total_earnings?: number;
+    rating?: number;
+    reviews_count?: number;
+  };
 }
 
 interface DocumentUploadResponse {
   profilePicture?: string;
   documentUrl?: string;
+}
+
+export interface TeacherStats {
+  overview: {
+    totalStudents: number;
+    enrollmentGrowth: number;
+    recentEnrollments: number;
+    completionGrowth: number;
+    averageCompletionRate: number;
+    totalEnrollments: number;
+    averageRating: number;
+    totalRatings: number;
+  };
+  engagement: {
+    activeStudents: number;
+    weeklyEngagement: number;
+    totalWatchTime: number;
+    averageLessonCompletion: number;
+    completedLessons: number;
+  };
+  earnings: {
+    totalEarnings: number;
+    monthlyEarnings: number;
+    pendingPayments: number;
+  };
+  trends: {
+    topCourses: Array<{
+      id: string;
+      title: string;
+      studentCount: number;
+      avgCompletion: number;
+      avgRating: number;
+    }>;
+    monthlyActivity: Array<{
+      month: string;
+      enrollments: number;
+      completions: number;
+    }>;
+  };
+  recentActivity: Array<{
+    type: 'enrollment' | 'completion';
+    description: string;
+    courseTitle: string;
+    date: string;
+  }>;
 }
 
 const teacherApi = {
@@ -55,7 +114,7 @@ const teacherApi = {
     });
   },
 
-  getTeacherStats: (): Promise<ApiResponse<any>> => {
+  getTeacherStats: (): Promise<ApiResponse<TeacherStats>> => {
     return api.get('/teacher/analytics/stats');
   },
 

@@ -185,7 +185,7 @@ export const useForumTopic = (topicId: number) => {
       setLoading(true);
       const response = await forumsApi.getTopic(topicId);
       setTopic(response.data.topic);
-      setPosts(response.data.posts);
+      setPosts(response.data.replies);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch topic');
@@ -202,6 +202,7 @@ export const useAchievements = () => {
   const [badges, setBadges] = useState<UserBadge[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -210,7 +211,12 @@ export const useAchievements = () => {
 
   const fetchAchievements = async () => {
     try {
-      setLoading(true);
+      setIsFetching(true);
+      // Only show full loading skeleton if we don't have data yet
+      if (badges.length === 0) {
+        setLoading(true);
+      }
+
       const response = await achievementsApi.getUserBadges();
       setBadges(response.data.badges);
       setTotalPoints(response.data.total_points);
@@ -219,10 +225,11 @@ export const useAchievements = () => {
       setError(err.message || 'Failed to fetch achievements');
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
-  return { badges, totalPoints, loading, error, refetch: fetchAchievements };
+  return { badges, totalPoints, loading, error, refetch: fetchAchievements, isFetching };
 };
 
 export const useLeaderboard = (type: 'chapter' | 'global' = 'chapter', period: 'current' | 'weekly' | 'monthly' = 'current') => {
@@ -321,11 +328,11 @@ export const useTopicDetail = (topicId: number) => {
         prev.map(r =>
           r.id === postId
             ? {
-                ...r,
-                user_liked: !r.user_liked,
-                likes: r.user_liked ? (r.likes || r.likes_count || 0) - 1 : (r.likes || r.likes_count || 0) + 1,
-                likes_count: r.user_liked ? (r.likes_count || r.likes || 0) - 1 : (r.likes_count || r.likes || 0) + 1
-              }
+              ...r,
+              user_liked: !r.user_liked,
+              likes: r.user_liked ? (r.likes || r.like_count || 0) - 1 : (r.likes || r.like_count || 0) + 1,
+              like_count: r.user_liked ? (r.like_count || r.likes || 0) - 1 : (r.like_count || r.likes || 0) + 1
+            }
             : r
         )
       );

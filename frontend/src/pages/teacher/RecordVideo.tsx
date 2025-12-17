@@ -160,7 +160,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 >
                   <BookOpen className="h-3 w-3" />
                   <span className="max-w-[150px] truncate">
-                    {selectedCourse ? selectedCourse.title : 'Select Course (Optional)'}
+                    {selectedCourse ? selectedCourse.title : t('record_video.select_course_optional')}
                   </span>
                   <ChevronDown className="h-3 w-3 opacity-70" />
                 </button>
@@ -168,7 +168,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 {showCourseSelector && (
                   <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-3 border-b border-stone-100 bg-stone-50/50">
-                      <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Select Target Course</h3>
+                      <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('record_video.select_target_course')}</h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-2 space-y-1">
                       <button
@@ -178,7 +178,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                         }`}
                       >
                         <div className="w-2 h-2 rounded-full border border-stone-300 bg-white"></div>
-                        No Course Selected
+                        {t('record_video.no_course_selected')}
                       </button>
                       {courses.map(course => (
                         <button
@@ -210,7 +210,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                         className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[#27AE60] hover:border-[#27AE60]/30 transition-all"
                       >
                         <Plus className="h-3 w-3" />
-                        Create New Course
+                        {t('record_video.create_new_course')}
                       </Link>
                     </div>
                   </div>

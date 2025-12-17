@@ -60,7 +60,7 @@ const ProgressDashboard: React.FC = () => {
             ? Number(course.overall_progress)
             : totalLessons > 0
               ? (course.lessons || []).reduce((sum: number, l: any) => sum + (l.progress || 0), 0) /
-                totalLessons
+              totalLessons
               : 0;
 
         return {
@@ -82,13 +82,13 @@ const ProgressDashboard: React.FC = () => {
       const averageQuizScore =
         quizAttempts > 0
           ? Math.round(
-              quizzes.reduce((sum: number, q: any) => {
-                if (q.max_score) {
-                  return sum + Math.round(((q.score || 0) / q.max_score) * 100);
-                }
-                return sum;
-              }, 0) / quizAttempts
-            )
+            quizzes.reduce((sum: number, q: any) => {
+              if (q.max_score) {
+                return sum + Math.round(((q.score || 0) / q.max_score) * 100);
+              }
+              return sum;
+            }, 0) / quizAttempts
+          )
           : 0;
 
       const realStats: UserProgressStats = {

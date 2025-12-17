@@ -9,6 +9,7 @@ import { useAchievements } from '@/hooks/useCommunity';
 import { Link } from 'react-router-dom';
 import { brandColors } from '@/theme/brand';
 import { useNotification } from '@/context/NotificationContext';
+import type { UserBadge } from '@/types/community';
 
 const Achievements: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -17,7 +18,7 @@ const Achievements: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'recent' | 'points' | 'name'>('recent');
-  const [selectedBadge, setSelectedBadge] = useState<any | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<UserBadge | null>(null);
 
   const categories = [
     {
@@ -63,14 +64,14 @@ const Achievements: React.FC = () => {
   ];
 
   const filteredAndSortedBadges = useMemo(() => {
-    let filtered = activeCategory === 'all' 
-      ? badges 
+    let filtered = activeCategory === 'all'
+      ? badges
       : badges.filter(badge => badge.badge_type === activeCategory);
 
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(badge => 
+      filtered = filtered.filter(badge =>
         badge.name.toLowerCase().includes(query) ||
         badge.description?.toLowerCase().includes(query)
       );
@@ -235,18 +236,16 @@ const Achievements: React.FC = () => {
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
                 title={category.description}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all font-medium ${
-                  isActive
-                    ? 'bg-[color:#1e1b4b] text-white border-[color:#1e1b4b] shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-full border transition-all font-medium ${isActive
+                  ? 'bg-[color:#1e1b4b] text-white border-[color:#1e1b4b] shadow-sm'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  }`}
               >
                 <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'} transition-colors`} />
                 <span>{category.name}</span>
                 <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}
                 >
                   {category.count}
                 </span>
@@ -260,58 +259,58 @@ const Achievements: React.FC = () => {
       {filteredAndSortedBadges.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedBadges.map(badge => (
-          <div key={badge.id} className="space-y-3">
-            <BadgeCard badge={badge} showDetails={true} />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setSelectedBadge(badge)}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-gray-800 hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                <Info className="h-4 w-4" />
-                {t('achievements.view_details')}
-              </button>
-              <button
-                onClick={async () => {
-                  const shareUrl = `${window.location.origin}/member/learning?tab=achievements#badge-${badge.id}`;
-                  const shareData = {
-                    title: badge.name,
-                    text: badge.description || t('achievements.share_default_text'),
-                    url: shareUrl
-                  };
-                  try {
-                    if (navigator.share) {
-                      await navigator.share(shareData);
-                    } else if (navigator.clipboard?.writeText) {
-                      await navigator.clipboard.writeText(shareUrl);
+            <div key={badge.id} className="space-y-3">
+              <BadgeCard badge={badge} showDetails={true} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedBadge(badge)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-gray-800 hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  <Info className="h-4 w-4" />
+                  {t('achievements.view_details')}
+                </button>
+                <button
+                  onClick={async () => {
+                    const shareUrl = `${window.location.origin}/member/learning?tab=achievements#badge-${badge.id}`;
+                    const shareData = {
+                      title: badge.name,
+                      text: badge.description || t('achievements.share_default_text'),
+                      url: shareUrl
+                    };
+                    try {
+                      if (navigator.share) {
+                        await navigator.share(shareData);
+                      } else if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(shareUrl);
+                        showNotification({
+                          type: 'success',
+                          title: t('achievements.share_title'),
+                          message: t('achievements.share_copied')
+                        });
+                      } else {
+                        showNotification({
+                          type: 'info',
+                          title: t('achievements.share_title'),
+                          message: shareUrl
+                        });
+                      }
+                    } catch (err) {
+                      console.error('Share failed', err);
                       showNotification({
-                        type: 'success',
+                        type: 'error',
                         title: t('achievements.share_title'),
-                        message: t('achievements.share_copied')
-                      });
-                    } else {
-                      showNotification({
-                        type: 'info',
-                        title: t('achievements.share_title'),
-                        message: shareUrl
+                        message: t('achievements.share_failed')
                       });
                     }
-                  } catch (err) {
-                    console.error('Share failed', err);
-                    showNotification({
-                      type: 'error',
-                      title: t('achievements.share_title'),
-                      message: t('achievements.share_failed')
-                    });
-                  }
-                }}
-                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-white rounded-lg transition-colors text-sm font-semibold"
-                style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-              >
-                <Share className="h-4 w-4" />
-                {t('achievements.share')}
-              </button>
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-white rounded-lg transition-colors text-sm font-semibold"
+                  style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                >
+                  <Share className="h-4 w-4" />
+                  {t('achievements.share')}
+                </button>
+              </div>
             </div>
-          </div>
           ))}
         </div>
       ) : (
@@ -323,9 +322,9 @@ const Achievements: React.FC = () => {
             {searchQuery ? t('achievements.empty_search_title') : t('achievements.empty_category_title')}
           </h3>
           <p className="text-gray-500 max-w-md mx-auto">
-            {searchQuery 
+            {searchQuery
               ? t('achievements.empty_search_desc', { query: searchQuery })
-              : activeCategory === 'all' 
+              : activeCategory === 'all'
                 ? t('achievements.empty_all_desc')
                 : t('achievements.empty_category_desc')
             }
@@ -365,7 +364,7 @@ const Achievements: React.FC = () => {
                 <span>{t('achievements.progress_of_total', { earned: earnedBadgesCount, total: Math.max(20, earnedBadgesCount + 5) })}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div 
+                <div
                   className="bg-gray-900 h-3 rounded-full transition-all duration-700"
                   style={{ width: `${Math.min((earnedBadgesCount / Math.max(20, earnedBadgesCount + 5)) * 100, 100)}%` }}
                 ></div>
