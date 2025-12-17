@@ -68,9 +68,15 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
       try {
         setIsLoadingCourses(true);
         const response = await coursesApi.getCourses();
-        setCourses(response.data.courses || []);
+        // Safety check for response structure
+        if (response && response.data && Array.isArray(response.data.courses)) {
+          setCourses(response.data.courses);
+        } else {
+          setCourses([]);
+        }
       } catch (error) {
         console.error('Failed to fetch courses', error);
+        setCourses([]);
       } finally {
         setIsLoadingCourses(false);
       }
