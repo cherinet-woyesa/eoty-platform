@@ -300,7 +300,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       )}
 
       {/* Upload Progress */}
-      {uploadStatus === 'uploading' && uploadProgress <= 5 && (
+      {uploadStatus === 'uploading' && (videoBlob || uploadProgress <= 5) && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
@@ -318,8 +318,8 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
         </div>
       )}
 
-      {/* Mux Uploader Component */}
-      {!uploadUrl && uploadStatus !== 'success' && (
+      {/* Mux Uploader Component - Only show if no blob is provided */}
+      {!uploadUrl && uploadStatus !== 'success' && !videoBlob && (
         <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -348,7 +348,7 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
         </div>
       )}
 
-      {uploadUrl && uploadStatus !== 'success' && (
+      {uploadUrl && uploadStatus !== 'success' && !videoBlob && (
         <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
           <MuxUploader
             endpoint={uploadUrl}

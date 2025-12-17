@@ -171,9 +171,9 @@ const UploadResource: React.FC<UploadResourceProps> = ({
       return <FileText className="h-6 w-6 text-red-500" />;
     }
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
-      return <Image className="h-6 w-6 text-green-500" />;
+      return <Image className="h-6 w-6 text-emerald-600" />;
     }
-    return <File className="h-6 w-6 text-blue-500" />;
+    return <File className="h-6 w-6 text-[color:#1e1b4b]" />;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,8 +278,8 @@ const UploadResource: React.FC<UploadResourceProps> = ({
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="h-8 w-8 text-emerald-600" />
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Complete!</h2>
@@ -288,7 +288,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
           <div className="flex flex-col gap-3">
             <Link
               to="/teacher/resources"
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              className="w-full py-2.5 bg-[color:#1e1b4b] hover:bg-[color:#1e1b4b]/90 text-white font-medium rounded-lg transition-colors"
             >
               View Library
             </Link>

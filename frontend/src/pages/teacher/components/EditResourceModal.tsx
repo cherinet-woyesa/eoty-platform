@@ -71,7 +71,7 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
               required
             />
           </div>
@@ -81,7 +81,7 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
             >
               <option value="">Select Category</option>
               <option value="document">Document</option>

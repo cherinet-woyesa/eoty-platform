@@ -54,8 +54,8 @@ const TeacherContentPage: React.FC = () => {
                 )}
 
                 <div className="flex items-center gap-2">
-                  <div className="p-2 bg-indigo-50 rounded-lg">
-                    <Layout className="h-5 w-5 text-indigo-600" />
+                  <div className="p-2 bg-[color:rgba(30,27,75,0.05)] rounded-lg">
+                    <Layout className="h-5 w-5 text-[color:#1e1b4b]" />
                   </div>
                   <div>
                     <h1 className="text-lg font-bold text-stone-900 leading-none">
@@ -73,22 +73,22 @@ const TeacherContentPage: React.FC = () => {
                 <button
                   onClick={() => handleTabChange('record')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'record'
-                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
+                    ? 'bg-white text-[color:#1e1b4b] shadow-sm ring-1 ring-black/5'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
                     }`}
                 >
                   <Video className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t('teacher_content.tabs.video_studio')}</span>
+                  <span className="hidden sm:inline">{t('teacher_content.tabs.video_studio', 'Video Studio')}</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('resources')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'resources'
-                    ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
+                    ? 'bg-white text-[color:#1e1b4b] shadow-sm ring-1 ring-black/5'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
                     }`}
                 >
                   <Library className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t('teacher_content.tabs.resources')}</span>
+                  <span className="hidden sm:inline">{t('teacher_content.tabs.resources', 'Resources')}</span>
                 </button>
               </div>
             </div>

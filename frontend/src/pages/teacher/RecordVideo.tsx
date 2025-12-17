@@ -121,14 +121,11 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg ${isNewLesson
-                  ? 'bg-[#27AE60]/10 border border-[#27AE60]/20'
-                  : 'bg-[#2980B9]/10 border border-[#2980B9]/20'
-                }`}>
+              <div className="p-2 rounded-lg bg-[color:rgba(30,27,75,0.05)] border border-[color:rgba(30,27,75,0.1)]">
                 {isNewLesson ? (
-                  <BookOpen className={`h-6 w-6 ${isNewLesson ? 'text-[#27AE60]' : 'text-[#2980B9]'}`} />
+                  <BookOpen className="h-6 w-6 text-[color:#1e1b4b]" />
                 ) : (
-                  <Video className={`h-6 w-6 ${isNewLesson ? 'text-[#27AE60]' : 'text-[#2980B9]'}`} />
+                  <Video className="h-6 w-6 text-[color:#1e1b4b]" />
                 )}
               </div>
               <div>
@@ -146,7 +143,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 <button
                   onClick={() => setShowCourseSelector(!showCourseSelector)}
                   className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${selectedCourseId
-                      ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700'
+                      ? 'bg-[color:#1e1b4b] text-white border-[color:#1e1b4b] hover:bg-[color:#1e1b4b]/90'
                       : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
                     }`}
                 >
@@ -176,7 +173,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                           key={course.id}
                           onClick={() => handleCourseSelect(String(course.id))}
                           className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${String(selectedCourseId) === String(course.id)
-                              ? 'bg-[#2980B9]/10 text-[#2980B9] font-medium'
+                              ? 'bg-[color:#1e1b4b]/10 text-[color:#1e1b4b] font-medium'
                               : 'text-stone-600 hover:bg-stone-50'
                             }`}
                         >
@@ -197,7 +194,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <div className="p-2 border-t border-stone-100 bg-stone-50/50">
                       <Link
                         to="/teacher/courses/new"
-                        className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[#27AE60] hover:border-[#27AE60]/30 transition-all"
+                        className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[color:#1e1b4b] hover:border-[color:#1e1b4b]/30 transition-all"
                       >
                         <Plus className="h-3 w-3" />
                         {t('record_video.create_new_course')}
@@ -219,7 +216,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
             </button>
             <Link
               to="/teacher/courses"
-              className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors text-sm font-medium shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[color:#1e1b4b] text-white rounded-lg hover:bg-[color:#1e1b4b]/90 transition-colors text-sm font-medium shadow-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               {t('record_video.back_to_courses')}
@@ -294,7 +291,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
             <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-stone-800 flex items-center">
-                  <TrendingUp className="mr-2 h-4 w-4 text-[#27AE60]" />
+                  <TrendingUp className="mr-2 h-4 w-4 text-[color:#1e1b4b]" />
                   {t('record_video.impact.title')}
                 </h3>
               </div>
@@ -304,7 +301,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
                       {t('record_video.impact.this_month')}
                     </span>
-                    <Video className="h-3.5 w-3.5 text-[#27AE60]" />
+                    <Video className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
                   </div>
                   <p className="text-xl font-bold text-stone-900">{stats.thisMonth}</p>
                   <p className="text-[10px] text-stone-500">{t('record_video.impact.new_videos')}</p>
@@ -314,7 +311,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
                       {t('record_video.impact.library')}
                     </span>
-                    <FileVideo className="h-3.5 w-3.5 text-[#16A085]" />
+                    <FileVideo className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
                   </div>
                   <p className="text-xl font-bold text-stone-900">{stats.totalVideos}</p>
                   <p className="text-[10px] text-stone-500">{t('record_video.impact.total_videos')}</p>
@@ -324,7 +321,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
                       {t('record_video.impact.students')}
                     </span>
-                    <Users className="h-3.5 w-3.5 text-[#2980B9]" />
+                    <Users className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
                   </div>
                   <p className="text-xl font-bold text-stone-900">{stats.totalStudents}</p>
                   <p className="text-[10px] text-stone-500">{t('record_video.impact.enrolled')}</p>
@@ -334,7 +331,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
                       {t('record_video.impact.rating')}
                     </span>
-                    <BookOpen className="h-3.5 w-3.5 text-[#F39C12]" />
+                    <BookOpen className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
                   </div>
                   <p className="text-xl font-bold text-stone-900">
                     {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '-'}
@@ -350,10 +347,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
               <div className="space-y-3">
                 <Link
                   to="/teacher/courses/new"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#27AE60]/30 hover:bg-[#27AE60]/5 transition-all group"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#27AE60]/10 flex items-center justify-center group-hover:bg-[#27AE60]/20 transition-colors">
-                    <BookOpen className="h-5 w-5 text-[#27AE60]" />
+                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
+                    <BookOpen className="h-5 w-5 text-[color:#1e1b4b]" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-stone-800">{t('record_video.quick_actions.create_course')}</span>
@@ -363,10 +360,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
 
                 <Link
                   to="/teacher/courses"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#2980B9]/30 hover:bg-[#2980B9]/5 transition-all group"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#2980B9]/10 flex items-center justify-center group-hover:bg-[#2980B9]/20 transition-colors">
-                    <FileVideo className="h-5 w-5 text-[#2980B9]" />
+                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
+                    <FileVideo className="h-5 w-5 text-[color:#1e1b4b]" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-stone-800">{t('record_video.quick_actions.manage_content')}</span>
@@ -376,10 +373,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
 
                 <Link
                   to="/teacher/students"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#8E44AD]/30 hover:bg-[#8E44AD]/5 transition-all group"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#8E44AD]/10 flex items-center justify-center group-hover:bg-[#8E44AD]/20 transition-colors">
-                    <Users className="h-5 w-5 text-[#8E44AD]" />
+                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
+                    <Users className="h-5 w-5 text-[color:#1e1b4b]" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-stone-800">{t('record_video.impact.students')}</span>

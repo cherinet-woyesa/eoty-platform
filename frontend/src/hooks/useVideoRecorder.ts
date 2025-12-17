@@ -87,6 +87,7 @@ interface UseVideoRecorderReturn {
   initializeCamera: () => Promise<void>;
   closeCamera: () => void;
   cameraInitialized: boolean;
+  setCameraStream: (stream: MediaStream | null) => void;
   
   // Multi-source recording properties
   recordingSources: RecordingSources;
@@ -2219,6 +2220,20 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     };
   }, [cleanupLocalStreams]);
 
+  // NEW: Allow external components to update camera stream (e.g. for virtual background)
+  const setCameraStream = useCallback((stream: MediaStream | null) => {
+    console.log('Updating camera stream externally (Virtual Background)');
+    setRecordingSources(prev => ({ ...prev, camera: stream }));
+    
+    if (compositorInstance && stream) {
+      // Update compositor source
+      compositorInstance.addVideoSource('camera', stream, {
+        visible: true,
+        opacity: 1.0
+      });
+    }
+  }, [compositorInstance]);
+
   return {
     // Core recording properties
     isRecording,
@@ -2237,6 +2252,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     devices,
     initializeCamera,
     closeCamera,
+    setCameraStream, // NEW: Virtual Background support
     acknowledgePreview,
     cameraInitialized,
     

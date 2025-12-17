@@ -31,6 +31,9 @@ import ErrorAlert from '@/components/common/ErrorAlert';
 import VideoTimelineEditor from './VideoTimelineEditor';
 import SimpleTrimEditor from './SimpleTrimEditor';
 import SlideManager from './SlideManager';
+import Teleprompter from './Teleprompter';
+import PreFlightCheck from './PreFlightCheck';
+import { useVirtualBackground } from '@/hooks/useVirtualBackground';
 import VideoProcessingStatus from './VideoProcessingStatus';
 import SuccessNotificationModal from './SuccessNotificationModal';
 import LayoutSelector from './LayoutSelector';
@@ -57,7 +60,7 @@ import {
   Sparkles, Star,
   Monitor, Save, FolderOpen, Scissors,
   FileText, Clock, Keyboard, XCircle,
-  BookOpen, ArrowRight
+  BookOpen, ArrowRight, AlignLeft, User
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -104,6 +107,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     stream,
     initializeCamera,
     closeCamera,
+    setCameraStream,
     recordingSources,
     currentLayout,
     setLayout,
@@ -206,6 +210,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [countdownValue, setCountdownValue] = useState(3);
   // Simple vs advanced mode toggle - default to simple for most teachers
   const [showAdvancedTools, setShowAdvancedTools] = useState(false);
+  const [showPreFlight, setShowPreFlight] = useState(false);
 
   // Mux upload state - Mux is now the default and only upload method
   const [useMuxUpload] = useState(true); // Always use Mux - no longer configurable
@@ -251,7 +256,44 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Integrated Features State
   const [showTimelineEditor, setShowTimelineEditor] = useState(false);
   const [showSlideManager, setShowSlideManager] = useState(false);
+  const [showTeleprompter, setShowTeleprompter] = useState(false);
   const [showProcessingStatus, setShowProcessingStatus] = useState(false);
+  
+  // Virtual Background State
+  const [vbEnabled, setVbEnabled] = useState(false);
+  const [vbMode, setVbMode] = useState<'blur' | 'image' | 'none'>('none');
+  const [rawCameraStream, setRawCameraStream] = useState<MediaStream | null>(null);
+  const isSettingStreamRef = useRef(false);
+
+  const { processedStream, isModelLoaded } = useVirtualBackground(rawCameraStream, {
+    enabled: vbEnabled,
+    mode: vbMode,
+    blurRadius: 10
+  });
+
+  // Capture raw stream
+  useEffect(() => {
+    if (isSettingStreamRef.current) {
+        isSettingStreamRef.current = false;
+        return;
+    }
+    if (recordingSources.camera) {
+        if (!vbEnabled) {
+             setRawCameraStream(recordingSources.camera);
+        }
+    }
+  }, [recordingSources.camera, vbEnabled]);
+
+  // Apply processed stream
+  useEffect(() => {
+      if (vbEnabled && processedStream && processedStream !== recordingSources.camera) {
+          isSettingStreamRef.current = true;
+          setCameraStream(processedStream);
+      } else if (!vbEnabled && rawCameraStream && rawCameraStream !== recordingSources.camera) {
+          isSettingStreamRef.current = true;
+          setCameraStream(rawCameraStream);
+      }
+  }, [vbEnabled, processedStream, rawCameraStream, setCameraStream, recordingSources.camera]);
   const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
   const [currentSlides, setCurrentSlides] = useState<any[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
@@ -593,7 +635,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Create new URLs for the edited video
       const newVideoUrl = URL.createObjectURL(editedBlob);
 
-      setSuccessMessage('Video edited successfully! Ready to upload.');
+      setSuccessMessage(t('record_video.edit_success', 'Video edited successfully! Ready to upload.'));
       setShowTimelineEditor(false);
       setShowPreview(false);
       setShowLessonForm(true); // Go back to upload form after editing
@@ -605,7 +647,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }
     } catch (error) {
       // Video editing failed
-      setErrorMessage('Failed to apply edits. Please try again.');
+      setErrorMessage(t('record_video.edit_error', 'Failed to apply edits. Please try again.'));
       setRecordingStatus('idle');
     }
   };
@@ -736,17 +778,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       // Show feedback notification
       const layoutNames: Record<LayoutType, string> = {
-        'picture-in-picture': 'Picture-in-Picture',
-        'side-by-side': 'Side-by-Side',
-        'presentation': 'Presentation',
-        'screen-only': 'Screen Only',
-        'camera-only': 'Camera Only'
+        'picture-in-picture': t('record_video.layout_pip', 'Picture-in-Picture'),
+        'side-by-side': t('record_video.layout_side_by_side', 'Side-by-Side'),
+        'presentation': t('record_video.layout_presentation', 'Presentation'),
+        'screen-only': t('record_video.layout_screen_only', 'Screen Only'),
+        'camera-only': t('record_video.layout_camera_only', 'Camera Only')
       };
 
-      setLayoutChangeNotification(`Layout changed to ${layoutNames[layout]}`);
+      setLayoutChangeNotification(t('record_video.layout_changed', { layout: layoutNames[layout] }));
       setTimeout(() => setLayoutChangeNotification(null), 2000);
     }
-  }, [changeLayout]);
+  }, [changeLayout, t]);
 
   // NEW: Layout cycling function for keyboard shortcuts (Task 7.2)
   const cycleLayout = useCallback(() => {
@@ -794,7 +836,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         autoStopTimerRef.current = setTimeout(() => {
           if (isRecording) {
             handleStopRecording();
-            setSuccessMessage(`Recording automatically stopped after ${autoStopTimer} minutes`);
+            setSuccessMessage(t('record_video.auto_stop_message', { minutes: autoStopTimer }));
           }
         }, autoStopTimer * 60 * 1000);
       }
@@ -930,7 +972,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   const handleCreateCourseInline = async () => {
     if (!newCourseTitle.trim()) {
-      setErrorMessage('Please enter a course title.');
+      setErrorMessage(t('record_video.enter_course_title', 'Please enter a course title.'));
       return;
     }
     try {
@@ -949,15 +991,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         setSelectedCourse(String(createdCourse.id));
         setNewCourseTitle('');
         setIsCreatingCourse(false);
-        setSuccessMessage('Course created. You can now save this lesson into it.');
+        setSuccessMessage(t('record_video.course_created_success', 'Course created. You can now save this lesson into it.'));
       } else {
-        setErrorMessage('Course was created but no course data was returned.');
+        setErrorMessage(t('record_video.course_created_no_data', 'Course was created but no course data was returned.'));
       }
     } catch (error: any) {
       // Failed to create course inline
       setErrorMessage(
         error?.response?.data?.message ||
-        'Failed to create course. Please try again or create it from My Courses.'
+        t('record_video.course_create_error', 'Failed to create course. Please try again or create it from My Courses.')
       );
     } finally {
       setIsCreatingCourseLoading(false);
@@ -968,12 +1010,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('video/')) {
-        setErrorMessage('Please select a valid video file.');
+        setErrorMessage(t('record_video.select_valid_video', 'Please select a valid video file.'));
         return;
       }
 
       if (file.size > 2 * 1024 * 1024 * 1024) { // 2GB
-        setErrorMessage('Video file must be less than 2GB.');
+        setErrorMessage(t('record_video.video_too_large', 'Video file must be less than 2GB.'));
         return;
       }
 
@@ -988,9 +1030,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setRecordingDuration(0); // Will be calculated from video metadata
       setErrorMessage(null);
       setActiveTab('upload');
-      setSuccessMessage('Video file selected! Preview it before uploading.');
+      setSuccessMessage(t('record_video.video_selected', 'Video file selected! Preview it before uploading.'));
     }
-  }, [filePreview]);
+  }, [filePreview, t]);
 
   // Enhanced: Start recording with multi-source initialization
   const handleStartRecording = async () => {
@@ -1032,7 +1074,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }
     } catch (error: any) {
       // Error starting recording
-      setErrorMessage(formatErrorForDisplay(error) || 'Failed to start recording.');
+      setErrorMessage(formatErrorForDisplay(error) || t('record_video.start_recording_error', 'Failed to start recording.'));
       setRecordingStatus('idle');
       resetRecording();
     }
@@ -1060,7 +1102,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       // Check minimum recording duration
       if (recordingTime < 1) {
-        setErrorMessage('Recording too short. Please record for at least 1 second.');
+        setErrorMessage(t('record_video.recording_too_short', 'Recording too short. Please record for at least 1 second.'));
         isStoppingRef.current = false;
         isStoppingRef.current = false;
         return;
@@ -1111,7 +1153,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     } catch (error) {
       // Error stopping recording
-      setErrorMessage('Failed to stop recording.');
+      setErrorMessage(t('record_video.stop_recording_error', 'Failed to stop recording.'));
       setRecordingStatus('idle');
       isStoppingRef.current = false;
     }
@@ -1123,7 +1165,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       const sessionId = Date.now().toString();
       saveSession(sessionId);
       setSavedSessions(getSavedSessions());
-      setSuccessMessage('Recording session saved successfully');
+      setSuccessMessage(t('record_video.session_saved', 'Recording session saved successfully'));
     }
   };
 
@@ -1131,11 +1173,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const handleLoadSession = (sessionId: string) => {
     const success = loadSession(sessionId);
     if (success) {
-      setSuccessMessage('Session loaded successfully');
+      setSuccessMessage(t('record_video.session_loaded', 'Session loaded successfully'));
       setShowSessionMenu(false);
       setShowPreview(true);
     } else {
-      setErrorMessage('Failed to load session');
+      setErrorMessage(t('record_video.session_load_error', 'Failed to load session'));
     }
   };
 
@@ -1143,7 +1185,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const handleExportSession = () => {
     if (exportSession && currentSession) {
       exportSession(currentSession);
-      setSuccessMessage('Session exported successfully');
+      setSuccessMessage(t('record_video.session_exported', 'Session exported successfully'));
     }
   };
 
@@ -1460,9 +1502,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   const handleTabChange = (tab: 'record' | 'upload') => {
-    if (activeTab === 'record' && tab === 'upload') {
+    if (activeTab === tab) return;
+
+    // Clearance check: If we have unsaved work, confirm before switching
+    if ((activeTab === 'record' && (recordedVideo || videoBlob)) || 
+        (activeTab === 'upload' && (selectedFile || filePreview))) {
+      // Simple confirmation - in a real app might use a modal
+      if (!window.confirm(t('common.discard_changes', 'Switching modes will discard your current recording/selection. Continue?'))) {
+        return;
+      }
+      // Clear previous state
+      handleReset();
+    }
+
+    if (tab === 'upload') {
       closeCamera();
       setShowSlideManager(false);
+    } else {
+      // Switching back to record - optionally re-init camera
+      // initializeCamera(); 
     }
     setActiveTab(tab);
   };
@@ -1499,10 +1557,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (el && recordingSources.camera) {
       el.srcObject = recordingSources.camera;
       el.play().catch(() => {
-        setErrorMessage('Camera preview failed to start.');
+        setErrorMessage(t('record_video.camera_preview_error', 'Camera preview failed to start.'));
       });
     }
-  }, [recordingSources.camera]);
+  }, [recordingSources.camera, t]);
 
   const handleScreenRef = useCallback((el: HTMLVideoElement | null) => {
     // Update the ref for other uses
@@ -1512,16 +1570,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (el && recordingSources.screen) {
       el.srcObject = recordingSources.screen;
       el.play().catch(() => {
-        setErrorMessage('Screen preview failed to start.');
+        setErrorMessage(t('record_video.screen_preview_error', 'Screen preview failed to start.'));
       });
     }
-  }, [recordingSources.screen]);
+  }, [recordingSources.screen, t]);
 
   // NEW: Enhanced preview rendering with slide support
   const renderPreview = () => {
     // 1. Playback Mode (Recorded Video or Uploaded File)
-    if (recordedVideo || (activeTab === 'upload' && filePreview)) {
-      const src = activeTab === 'record' ? recordedVideo : filePreview;
+    const showRecordPreview = activeTab === 'record' && recordedVideo;
+    const showUploadPreview = activeTab === 'upload' && filePreview;
+
+    if (showRecordPreview || showUploadPreview) {
+      const src = showRecordPreview ? recordedVideo : filePreview;
       return (
         <div className="relative w-full h-full bg-black flex items-center justify-center group">
           <video
@@ -1548,13 +1609,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 try {
                   acknowledgePreview();
                 } catch (err) {
-                  setErrorMessage('Unable to finalize preview state.');
+                  setErrorMessage(t('record_video.preview_finalize_error', 'Unable to finalize preview state.'));
                 }
 
                 // Close camera after a short delay to ensure preview is stable
                 // This fixes the issue where camera remains active after recording stops
                 setTimeout(() => {
-                  try { closeCamera(); } catch (e) { setErrorMessage('Camera cleanup encountered an issue.'); }
+                  try { closeCamera(); } catch (e) { setErrorMessage(t('record_video.camera_cleanup_error', 'Camera cleanup encountered an issue.')); }
                 }, 1000);
               }
             }}
@@ -1569,15 +1630,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         <div className="w-full h-full flex items-center justify-center bg-slate-50/50 rounded-2xl">
           <div className="text-center p-8">
             <Cloud className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Video File</h3>
-            <p className="text-gray-600 text-sm mb-4">Supported formats: MP4, WebM, MOV, AVI, MPEG</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('record_video.upload_video_file', 'Upload Video File')}</h3>
+            <p className="text-gray-600 text-sm mb-4">{t('record_video.supported_formats', 'Supported formats: MP4, WebM, MOV, AVI, MPEG')}</p>
             <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileSelect} className="hidden" />
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-3 bg-indigo-900 text-white rounded-xl hover:bg-indigo-800 transition-colors flex items-center space-x-2 mx-auto shadow-md"
             >
               <Upload className="h-4 w-4" />
-              <span>Choose Video File</span>
+              <span>{t('record_video.choose_video_file', 'Choose Video File')}</span>
             </button>
           </div>
         </div>
@@ -1757,7 +1818,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   recordingSources={recordingSources}
                   onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
                   onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
-                  disabled={false}
+                  disabled={!!recordedVideo || !!filePreview}
                   isRecording={isRecording}
                 />
                 {recordingSources.camera && recordingSources.screen && (
@@ -1765,7 +1826,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <LayoutSelector
                       currentLayout={currentLayout as LayoutType}
                       onLayoutChange={handleLayoutChange}
-                      disabled={false}
+                      disabled={!!recordedVideo || !!filePreview}
                       isCompositing={isCompositing}
                     />
                   </div>
@@ -1792,14 +1853,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     className={`px-2 py-1 rounded text-xs font-medium transition-all ${activeTab === 'record' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
-                    Record
+                    {t('record_video.record')}
                   </button>
                   <button
                     onClick={() => handleTabChange('upload')}
                     className={`px-2 py-1 rounded text-xs font-medium transition-all ${activeTab === 'upload' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
-                    Upload
+                    {t('record_video.upload')}
                   </button>
                 </div>
                 {onToggleTips && (
@@ -1817,25 +1878,31 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   onClick={() => setShowSettings(!showSettings)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
                 >
-                  <Sparkles className="h-4 w-4" /> Tips
+                  <Sparkles className="h-4 w-4" /> {t('record_video.tips_label', 'Tips')}
                 </button>
                 <button
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
                 >
-                  <Zap className="h-4 w-4" /> Settings
+                  <Zap className="h-4 w-4" /> {t('record_video.settings', 'Settings')}
                 </button>
                 <button
                   onClick={() => setShowSlideManager(!showSlideManager)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
                 >
-                  <FileText className="h-4 w-4" /> Slides
+                  <FileText className="h-4 w-4" /> {t('record_video.slides', 'Slides')}
+                </button>
+                <button
+                  onClick={() => setShowTeleprompter(!showTeleprompter)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${showTeleprompter ? 'bg-sky-100 text-sky-700 border border-sky-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <AlignLeft className="h-4 w-4" /> {t('teleprompter.title', 'Teleprompter')}
                 </button>
                 <button
                   onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
                 >
-                  <Keyboard className="h-4 w-4" /> Shortcuts
+                  <Keyboard className="h-4 w-4" /> {t('record_video.shortcuts', 'Shortcuts')}
                 </button>
               </div>
             )}
@@ -1852,7 +1919,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   }`}
               >
                 <VideoIcon className="h-4 w-4" />
-                <span>Record</span>
+                <span>{t('record_video.record')}</span>
               </button>
               <button
                 onClick={() => handleTabChange('upload')}
@@ -1862,7 +1929,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   }`}
               >
                 <Cloud className="h-4 w-4" />
-                <span>Upload Video</span>
+                <span>{t('record_video.upload')}</span>
               </button>
             </div>
 
@@ -1892,7 +1959,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   recordingSources={recordingSources}
                   onToggleCamera={() => recordingSources.camera ? closeCamera() : initializeCamera()}
                   onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
-                  disabled={false}
+                  disabled={!!recordedVideo || !!filePreview}
                   isRecording={isRecording}
                 />
 
@@ -1902,7 +1969,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   <LayoutSelector
                     currentLayout={currentLayout as LayoutType}
                     onLayoutChange={handleLayoutChange}
-                    disabled={false}
+                    disabled={!!recordedVideo || !!filePreview}
                     isCompositing={isCompositing}
                   />
                 )}
@@ -1910,74 +1977,61 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
               {/* Right: Additional Tools */}
               <div className="flex items-center gap-2 ml-auto">
-                {/* Advanced Tools Toggle */}
+                {/* Virtual Background Toggle */}
                 <button
-                  onClick={() => setShowAdvancedTools(prev => !prev)}
-                  className={`p-2 rounded-lg transition-colors border ${showAdvancedTools
-                      ? 'bg-slate-100 text-slate-700 border-slate-300'
+                  onClick={() => {
+                      const newEnabled = !vbEnabled;
+                      setVbEnabled(newEnabled);
+                      setVbMode(newEnabled ? 'blur' : 'none');
+                  }}
+                  className={`p-2 rounded-lg transition-colors border ${vbEnabled
+                      ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
                       : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
                     }`}
-                  title={showAdvancedTools ? "Hide Advanced Tools" : "Show Advanced Tools"}
+                  title={vbEnabled ? "Disable Virtual Background" : "Enable Blur Background"}
                 >
-                  <Settings className="h-4 w-4" />
+                  <User className="h-4 w-4" />
                 </button>
 
-                {showAdvancedTools && (
-                  <>
-                    {/* Tips */}
-                    <button
-                      onClick={() => setShowSettings(!showSettings)}
-                      className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
-                      title="Tips & guidance"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                    </button>
+                {/* System Check */}
+                <button
+                  onClick={() => setShowPreFlight(true)}
+                  className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
+                  title={t('preflight.title', "System Check")}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                </button>
 
-                    {/* Advanced Settings Panel Toggle */}
-                    <button
-                      onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                      className={`p-2 rounded-lg transition-colors border ${showAdvancedSettings
-                          ? 'bg-slate-100 text-slate-700 border-slate-300'
-                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                        }`}
-                      title="Recording Settings"
-                    >
-                      <Zap className="h-4 w-4" />
-                    </button>
+                {/* Teleprompter Toggle */}
+                <button
+                  onClick={() => setShowTeleprompter(!showTeleprompter)}
+                  className={`p-2 rounded-lg transition-colors border ${showTeleprompter
+                      ? 'bg-sky-100 text-sky-700 border-sky-300'
+                      : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
+                    }`}
+                  title={t('record_video.teleprompter', "Teleprompter")}
+                >
+                  <AlignLeft className="h-4 w-4" />
+                </button>
 
-                    {/* Slide Manager Toggle */}
-                    <button
-                      onClick={() => setShowSlideManager(!showSlideManager)}
-                      className={`p-2 rounded-lg transition-colors border ${showSlideManager
-                          ? 'bg-gradient-to-r from-[#FF6B9D]/20 to-[#FF8E9B]/20 text-[#FF6B9D] border-[#FF6B9D]/30'
-                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                        }`}
-                      title="Slides"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </button>
+                {/* Tips */}
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
+                  title={t('record_video.tips_guidance', "Tips & guidance")}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </button>
 
-                    {/* Keyboard Shortcuts Toggle */}
-                    <button
-                      onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
-                      className={`p-2 rounded-lg transition-colors border ${showKeyboardShortcuts
-                          ? 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA500]/20 text-[#FFD700] border-[#FFD700]/30'
-                          : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                        }`}
-                      title="Shortcuts"
-                    >
-                      <Keyboard className="h-4 w-4" />
-                    </button>
-
-                    {/* Compositor Preview Toggle */}
-                    {isCompositing && (
+                {/* Compositor Preview Toggle */}
+                {isCompositing && (
                       <button
                         onClick={() => setShowCompositorPreview(!showCompositorPreview)}
                         className={`p-2 rounded-lg transition-colors border ${showCompositorPreview
                             ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 border-blue-300'
                             : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
                           }`}
-                        title="Preview"
+                        title={t('record_video.preview', "Preview")}
                       >
                         <Monitor className="h-4 w-4" />
                       </button>
@@ -1996,8 +2050,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                         <Mic className="h-4 w-4" />
                       </button>
                     )}
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -2440,7 +2492,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             </div>
             <MuxVideoUploader
               lessonId={muxUploadLessonId}
-              videoBlob={videoBlob || undefined}
+              videoBlob={videoBlob || selectedFile || undefined}
               onUploadComplete={handleMuxUploadComplete}
               onError={handleMuxUploadError}
               onCancel={handleMuxUploadCancel}
@@ -2546,19 +2598,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                       disabled={uploading}
                     >
                       <FileText className="h-3.5 w-3.5 mr-1" />
-                      Create new course
+                      {t('record_video.create_new_course_button')}
                     </button>
                   )}
                   {isCreatingCourse && (
                     <div className="mt-1 space-y-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
                       <label className="block text-xs font-medium text-slate-600 mb-1">
-                        New course title
+                        {t('record_video.new_course_title')}
                       </label>
                       <input
                         type="text"
                         value={newCourseTitle}
                         onChange={(e) => setNewCourseTitle(e.target.value)}
-                        placeholder="e.g. Introduction to Orthodox Liturgy"
+                        placeholder={t('record_video.course_title_placeholder')}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
                         disabled={isCreatingCourseLoading}
                       />
@@ -2574,7 +2626,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                           className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-white"
                           disabled={isCreatingCourseLoading}
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                         <button
                           type="button"
@@ -2585,18 +2637,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                           {isCreatingCourseLoading ? (
                             <>
                               <Loader className="h-3.5 w-3.5 mr-1 animate-spin" />
-                              Creating…
+                              {t('record_video.creating')}
                             </>
                           ) : (
                             <>
                               <BookOpen className="h-3.5 w-3.5 mr-1" />
-                              Create & Select
+                              {t('record_video.create_and_select')}
                             </>
                           )}
                         </button>
                       </div>
                       <p className="text-[11px] text-slate-500">
-                        We’ll create a new draft course and attach this lesson to it automatically.
+                        {t('record_video.create_course_help_text')}
                       </p>
                     </div>
                   )}
@@ -2670,6 +2722,21 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             </div>
           </div>
         )}
+
+        {/* NEW: Teleprompter Overlay */}
+        <Teleprompter 
+          isOpen={showTeleprompter} 
+          onClose={() => setShowTeleprompter(false)} 
+        />
+
+        {/* NEW: Pre-flight Check */}
+        <PreFlightCheck
+          isOpen={showPreFlight}
+          onComplete={() => {
+            setShowPreFlight(false);
+          }}
+          onCancel={() => setShowPreFlight(false)}
+        />
 
         {/* NEW: Simple Video Editor Modal */}
         {showTimelineEditor && videoBlob && recordedVideo && (

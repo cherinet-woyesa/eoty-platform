@@ -1,5 +1,6 @@
 // frontend/src/components/courses/SourceControlIndicators.tsx
 import type { FC } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Monitor, Mic, MicOff } from 'lucide-react';
 
 interface RecordingSources {
@@ -27,6 +28,7 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
   isRecording = false,
   micLevel = 0
 }) => {
+  const { t } = useTranslation();
   const isCameraActive = !!recordingSources.camera;
   const isScreenActive = !!recordingSources.screen;
   const isMicActive = !!recordingSources.microphone || 
@@ -47,10 +49,10 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
-        title={isCameraActive ? 'Stop Camera' : 'Start Camera'}
+        title={isCameraActive ? t('record_video.stop_camera') : t('record_video.start_camera')}
       >
         <Camera className="h-3.5 w-3.5" />
-        <span>Camera</span>
+        <span>{t('record_video.camera')}</span>
         
         {/* Active indicator dot */}
         {isCameraActive && (
@@ -72,10 +74,10 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
           }
           ${(disabled && !isRecording) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
-        title={isScreenActive ? 'Stop Screen' : 'Start Screen'}
+        title={isScreenActive ? t('record_video.stop_screen') : t('record_video.start_screen')}
       >
         <Monitor className="h-3.5 w-3.5" />
-        <span>Screen</span>
+        <span>{t('record_video.screen')}</span>
         
         {/* Active indicator dot */}
         {isScreenActive && (
@@ -97,14 +99,14 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
-          title={isMicActive ? 'Microphone active - Click to mute' : 'Microphone muted - Click to unmute'}
+          title={isMicActive ? t('record_video.mute_mic') : t('record_video.unmute_mic')}
         >
           {isMicActive ? (
             <Mic className="h-4 w-4" />
           ) : (
             <MicOff className="h-4 w-4" />
           )}
-          <span>Mic</span>
+          <span>{t('record_video.mic')}</span>
           
           {/* Audio level indicator */}
           {isMicActive && micLevel > 0 && (
@@ -120,7 +122,7 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
 
           {/* Tooltip */}
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-            {isMicActive ? 'Mute microphone' : 'Unmute microphone'}
+            {isMicActive ? t('record_video.mute_mic') : t('record_video.unmute_mic')}
             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
           </div>
         </button>
@@ -130,16 +132,16 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
       {isRecording && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium border-2 border-red-300">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          <span>Recording</span>
+          <span>{t('record_video.recording_indicator')}</span>
         </div>
       )}
 
       {/* Status summary */}
       <div className="ml-2 text-xs text-gray-500">
-        {isCameraActive && isScreenActive && '(Both sources active)'}
-        {isCameraActive && !isScreenActive && '(Camera only)'}
-        {!isCameraActive && isScreenActive && '(Screen only)'}
-        {!isCameraActive && !isScreenActive && '(No sources)'}
+        {isCameraActive && isScreenActive && `(${t('record_video.both_sources_active')})`}
+        {isCameraActive && !isScreenActive && `(${t('record_video.camera_only')})`}
+        {!isCameraActive && isScreenActive && `(${t('record_video.screen_only')})`}
+        {!isCameraActive && !isScreenActive && `(${t('record_video.no_sources')})`}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Search, Plus, FolderOpen, ArrowLeft, CheckCircle, X, Link as LinkIcon, Trash2, Edit2, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Video as VideoIcon, Music } from 'lucide-react';
 import { resourcesApi } from '@/services/api/resources';
-// coursesApi not used; using direct fetch for lesson details
+import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import type { Resource } from '@/types/resources';
 import UploadResource from '../UploadResource';
@@ -14,13 +14,13 @@ interface TeacherResourceManagerProps {
 
 const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonId }) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const [view, setView] = useState<'list' | 'upload'>('list');
   const [resources, setResources] = useState<Resource[]>([]);
   const [attachedResources, setAttachedResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedScope, setSelectedScope] = useState<'chapter_wide' | 'platform_wide'>('chapter_wide');
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'mine'>('all');
   const [attaching, setAttaching] = useState<number | null>(null);
   
   // Pagination
@@ -31,30 +31,22 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   // Edit State
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
 
-  const isAdmin = user?.role === 'admin';
-
   useEffect(() => {
     loadResources();
     if (lessonId) {
       loadAttachedResources();
     }
-  }, [selectedScope, lessonId, page]);
+  }, [scopeFilter, lessonId, page]);
 
   const loadResources = async () => {
     try {
       setLoading(true);
-      let response;
-      const filters = { 
+      const response = await resourcesApi.searchResources({
         search: searchTerm,
         page,
-        limit: LIMIT
-      };
-
-      if (selectedScope === 'platform_wide' || !user?.chapter) {
-        response = await resourcesApi.getPlatformResources(filters);
-      } else {
-        response = await resourcesApi.getChapterResources(String(user.chapter), filters);
-      }
+        limit: LIMIT,
+        resource_scope: scopeFilter === 'mine' ? 'mine' : undefined
+      } as any);
 
       if (response.success) {
         setResources(response.data.resources || []);
@@ -72,11 +64,9 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const loadAttachedResources = async () => {
     if (!lessonId) return;
     try {
-      const res = await fetch(`/api/lessons/${lessonId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const res = await apiClient.get(`/lessons/${lessonId}`);
+      if (res.data?.success) {
+        const data = res.data.data;
         if (data?.lesson?.resources) {
           setAttachedResources(data.lesson.resources);
         }
@@ -97,11 +87,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     if (!lessonId) return;
     setAttaching(resourceId);
     try {
-      await fetch('/api/resources/attach-to-lesson', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ resourceId, lessonId: parseInt(lessonId) })
-      });
+      await apiClient.post('/resources/attach-to-lesson', { resourceId, lessonId: parseInt(lessonId) });
       await loadAttachedResources();
     } catch (error) {
       console.error('Failed to attach resource:', error);
@@ -113,11 +99,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   const handleDetachResource = async (resourceId: number) => {
     if (!lessonId) return;
     try {
-      await fetch('/api/resources/detach-from-lesson', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ resourceId })
-      });
+      await apiClient.post('/resources/detach-from-lesson', { resourceId });
       await loadAttachedResources();
     } catch (error) {
       console.error('Failed to detach resource:', error);
@@ -125,7 +107,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   };
 
   const handleDeleteResource = async (resourceId: number) => {
-    if (!window.confirm('Are you sure you want to delete this resource? This action cannot be undone.')) return;
+    if (!window.confirm(t('teacher_content.resources.delete_confirm', 'Are you sure you want to delete this resource? This action cannot be undone.'))) return;
     
     try {
       await resourcesApi.deleteResource(resourceId);
@@ -133,7 +115,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       if (lessonId) loadAttachedResources();
     } catch (error) {
       console.error('Failed to delete resource:', error);
-      alert('Failed to delete resource');
+      alert(t('teacher_content.resources.delete_error', 'Failed to delete resource'));
     }
   };
 
@@ -154,15 +136,15 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white rounded-2xl border border-stone-200 shadow-sm p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-stone-900">{t('teacher_content.resources.upload_new_title')}</h2>
-            <p className="text-sm text-stone-500 mt-1">{t('teacher_content.resources.upload_new_description')}</p>
+            <h2 className="text-xl font-bold text-stone-900">{t('teacher_content.resources.upload_new_title', 'Upload New Resource')}</h2>
+            <p className="text-sm text-stone-500 mt-1">{t('teacher_content.resources.upload_new_description', 'Add content to your library')}</p>
           </div>
           <button
             onClick={() => setView('list')}
             className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors border border-stone-200"
           >
             <ArrowLeft className="h-4 w-4" />
-            {t('teacher_content.resources.back_to_library')}
+            {t('teacher_content.resources.back_to_library', 'Back to Library')}
           </button>
         </div>
         <UploadResource 
@@ -186,21 +168,21 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <BookOpen className="h-5 w-5 text-emerald-600" />
+            <div className="p-2 bg-[color:rgba(30,27,75,0.05)] rounded-lg">
+              <BookOpen className="h-5 w-5 text-[color:#1e1b4b]" />
             </div>
-            {t('teacher_content.resources.library_title')}
+            {t('teacher_content.resources.library_title', 'Resource Library')}
           </h2>
           <p className="text-sm text-stone-500 mt-1 ml-11">
-            {lessonId ? t('teacher_content.resources.library_description_lesson') : t('teacher_content.resources.library_description_general')}
+            {lessonId ? t('teacher_content.resources.library_description_lesson', 'Select resources to attach to this lesson') : t('teacher_content.resources.library_description_general', 'Manage your educational materials')}
           </p>
         </div>
         <button
           onClick={() => setView('upload')}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-900 text-white rounded-xl hover:bg-indigo-800 transition-all shadow-sm hover:shadow-md font-medium"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[color:#1e1b4b] text-white rounded-xl hover:bg-[color:#1e1b4b]/90 transition-all shadow-sm hover:shadow-md font-medium"
         >
           <Plus className="h-4 w-4" />
-          Upload New
+          {t('teacher_content.resources.upload_new', 'Upload New')}
         </button>
       </div>
 
@@ -209,12 +191,12 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-6">
           <h3 className="text-sm font-bold text-emerald-900 mb-4 flex items-center gap-2 uppercase tracking-wider">
             <LinkIcon className="h-4 w-4" />
-            Attached to Current Lesson
+            {t('teacher_content.resources.attached_title', 'Attached to Current Lesson')}
           </h3>
           {attachedResources.length === 0 ? (
             <div className="text-center py-8 border-2 border-dashed border-emerald-200/50 rounded-xl bg-white/50">
-              <p className="text-sm text-emerald-600/70 italic">No resources attached to this lesson yet.</p>
-              <p className="text-xs text-emerald-500 mt-1">Select resources from the library below to attach them.</p>
+              <p className="text-sm text-emerald-600/70 italic">{t('teacher_content.resources.no_attached', 'No resources attached to this lesson yet.')}</p>
+              <p className="text-xs text-emerald-500 mt-1">{t('teacher_content.resources.attach_hint', 'Select resources from the library below to attach them.')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -232,7 +214,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                   <button 
                     onClick={() => handleDetachResource(resource.id)}
                     className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Remove from lesson"
+                    title={t('teacher_content.resources.remove_from_lesson', 'Remove from lesson')}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -253,23 +235,23 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Search library..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-shadow"
+                  placeholder={t('teacher_content.resources.search_placeholder', 'Search library...')}
+                  className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-transparent text-sm transition-shadow"
                   value={searchTerm}
                   onChange={handleSearch}
                 />
               </div>
               <select
-                className="px-4 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white cursor-pointer hover:border-stone-400 transition-colors"
-                value={selectedScope}
-                onChange={(e) => setSelectedScope(e.target.value as 'chapter_wide' | 'platform_wide')}
+                className="px-4 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] text-sm bg-white cursor-pointer hover:border-stone-400 transition-colors"
+                value={scopeFilter}
+                onChange={(e) => setScopeFilter(e.target.value as 'all' | 'mine')}
               >
-                <option value="chapter_wide">Chapter Library</option>
-                {isAdmin && <option value="platform_wide">Platform Library</option>}
+                <option value="all">{t('teacher_content.resources.filter_all', 'All Resources')}</option>
+                <option value="mine">{t('teacher_content.resources.filter_mine', 'My Uploads')}</option>
               </select>
             </div>
             <div className="text-xs font-medium px-3 py-1 bg-stone-100 rounded-full text-stone-600 border border-stone-200">
-              {resources.length} items
+              {resources.length} {t('teacher_content.resources.items', 'items')}
             </div>
           </div>
         </div>
@@ -278,21 +260,21 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
         <div className="flex-1 overflow-y-auto p-6 bg-stone-50/30">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[color:#1e1b4b]"></div>
             </div>
           ) : resources.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="h-10 w-10 text-stone-400" />
               </div>
-              <h3 className="text-lg font-semibold text-stone-900">Library is empty</h3>
-              <p className="text-stone-500 text-sm mt-2 max-w-xs mx-auto">Upload resources to build your library and share materials with students.</p>
+              <h3 className="text-lg font-semibold text-stone-900">{t('teacher_content.resources.empty_title', 'Library is empty')}</h3>
+              <p className="text-stone-500 text-sm mt-2 max-w-xs mx-auto">{t('teacher_content.resources.empty_desc', 'Upload resources to build your library and share materials with students.')}</p>
               <button
                 onClick={() => setView('upload')}
                 className="mt-6 inline-flex items-center px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50 shadow-sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Upload First Resource
+                {t('teacher_content.resources.upload_first', 'Upload First Resource')}
               </button>
             </div>
           ) : (
@@ -305,7 +287,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                     className={`group relative bg-white rounded-xl border transition-all duration-200 flex flex-col ${
                       attached 
                         ? 'border-emerald-200 ring-1 ring-emerald-100 shadow-sm' 
-                        : 'border-stone-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5'
+                        : 'border-stone-200 hover:border-[color:#1e1b4b]/30 hover:shadow-lg hover:-translate-y-0.5'
                     }`}
                   >
                     <div className="p-5 flex-1">
@@ -321,7 +303,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                                 attached
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-red-50 hover:text-red-700 hover:border-red-100'
-                                  : 'bg-stone-50 text-stone-600 border border-stone-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
+                                  : 'bg-stone-50 text-stone-600 border border-stone-200 hover:bg-[color:#1e1b4b]/10 hover:text-[color:#1e1b4b] hover:border-[color:#1e1b4b]/20'
                               }`}
                             >
                               {attaching === resource.id ? (
@@ -329,12 +311,12 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                               ) : attached ? (
                                 <>
                                   <CheckCircle className="h-3 w-3" />
-                                  Attached
+                                  {t('teacher_content.resources.attached', 'Attached')}
                                 </>
                               ) : (
                                 <>
                                   <Plus className="h-3 w-3" />
-                                  Attach
+                                  {t('teacher_content.resources.attach', 'Attach')}
                                 </>
                               )}
                             </button>
@@ -344,15 +326,15 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={() => setEditingResource(resource)}
-                              className="p-1.5 text-stone-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Edit"
+                              className="p-1.5 text-stone-400 hover:text-[color:#1e1b4b] hover:bg-[color:#1e1b4b]/10 rounded-lg transition-colors"
+                              title={t('common.edit', 'Edit')}
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
                             <button 
                               onClick={() => handleDeleteResource(resource.id)}
                               className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
+                              title={t('common.delete', 'Delete')}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -385,7 +367,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
 
                     <div className="px-5 py-3 border-t border-stone-100 bg-stone-50/50 rounded-b-xl flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700 border border-indigo-200">
+                        <div className="w-6 h-6 rounded-full bg-[color:rgba(30,27,75,0.1)] flex items-center justify-center text-[10px] font-bold text-[color:#1e1b4b] border border-[color:rgba(30,27,75,0.2)]">
                           {resource.author?.charAt(0) || 'U'}
                         </div>
                         <span className="text-xs font-medium text-stone-500 truncate max-w-[80px]">
@@ -393,12 +375,12 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
                         </span>
                       </div>
                       <a 
-                        href={resource.file_path} 
+                        href={resource.file_url || resource.file_path} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group/link"
+                        className="text-xs font-semibold text-[color:#1e1b4b] hover:text-[color:#1e1b4b]/80 flex items-center gap-1 group/link"
                       >
-                        View File
+                        {t('teacher_content.resources.view_file', 'View File')}
                         <ArrowLeft className="h-3 w-3 rotate-180 transition-transform group-hover/link:translate-x-0.5" />
                       </a>
                     </div>
@@ -420,7 +402,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
               <ChevronLeft className="h-5 w-5 text-stone-600" />
             </button>
             <span className="text-sm font-medium text-stone-600 bg-stone-100 px-3 py-1 rounded-full">
-              Page {page} of {totalPages}
+              {t('common.pagination', { page, total: totalPages, defaultValue: `Page ${page} of ${totalPages}` })}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
