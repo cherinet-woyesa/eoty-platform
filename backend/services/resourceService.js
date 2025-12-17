@@ -661,7 +661,7 @@ class ResourceService {
    * @returns {Promise<Object>} Upload result
    */
   async uploadToLibrary(fileBuffer, originalFilename, metadata, userId) {
-    const { title, description, category, language, tags, resourceScope = 'chapter_wide', courseId } = metadata;
+    let { title, description, category, language, tags, resourceScope = 'chapter_wide', courseId, chapter_id } = metadata;
 
     try {
       // Validate file
@@ -702,28 +702,25 @@ class ResourceService {
       // Validate chapter_id if scope is chapter_wide
       let finalChapterId = null;
       if (resourceScope === 'chapter_wide') {
-        if (user.chapter_id) {
+        // Priority 1: Check if chapter_id was passed in metadata (from frontend)
+        if (chapter_id) {
+           const explicitChapter = await db('chapters').where({ id: chapter_id }).first();
+           if (explicitChapter) {
+             finalChapterId = chapter_id;
+           }
+        }
+
+        // Priority 2: Check user's main chapter_id
+        if (!finalChapterId && user.chapter_id) {
             // Check if chapter exists
             const chapterExists = await db('chapters').where({ id: user.chapter_id }).first();
             if (chapterExists) {
                 finalChapterId = user.chapter_id;
-            } else {
-                console.warn(`User ${userId} has invalid chapter_id ${user.chapter_id}.`);
-                // Fallback: try to find a valid chapter for this user
-                const memberChapter = await db('user_chapters')
-                    .where({ user_id: userId })
-                    .whereNot('status', 'rejected')
-                    .first();
-                
-                if (memberChapter) {
-                    finalChapterId = memberChapter.chapter_id;
-                    console.log(`Falling back to chapter ${finalChapterId} from user_chapters.`);
-                } else {
-                     throw new Error('Your account is not associated with a valid chapter.');
-                }
             }
-        } else {
-             // Try to find a chapter from user_chapters if main chapter_id is missing
+        }
+        
+        // Priority 3: Check user_chapters
+        if (!finalChapterId) {
              const memberChapter = await db('user_chapters')
                 .where({ user_id: userId })
                 .whereNot('status', 'rejected')
@@ -731,9 +728,18 @@ class ResourceService {
             
             if (memberChapter) {
                 finalChapterId = memberChapter.chapter_id;
-            } else {
-                throw new Error('Your account is not associated with a chapter.');
             }
+        }
+
+        // If still no chapter ID and scope is chapter_wide, we have a problem.
+        if (!finalChapterId) {
+             // If user is admin, maybe they meant platform_wide?
+             if (user.role === 'admin') {
+                 resourceScope = 'platform_wide'; // Auto-correct scope
+                 console.log('Auto-corrected resource scope to platform_wide for admin with no chapter.');
+             } else {
+                 throw new Error('Unable to determine valid chapter for resource upload. Please ensure you are a member of a chapter.');
+             }
         }
       }
 
