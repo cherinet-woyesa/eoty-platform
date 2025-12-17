@@ -14,8 +14,10 @@ const teacherService = {
   async getProfileByUserId(userId) {
     const profile = await knex(TEACHER_PROFILE_TABLE).where({ user_id: userId }).first();
     if (!profile) {
-      // Optionally create a default profile if none exists
-      return knex(TEACHER_PROFILE_TABLE).insert({ user_id: userId }).returning('*');
+      const [inserted] = await knex(TEACHER_PROFILE_TABLE)
+        .insert({ user_id: userId })
+        .returning('*');
+      return inserted;
     }
     return profile;
   },

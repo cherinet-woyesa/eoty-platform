@@ -126,7 +126,7 @@ const UserManagement: React.FC = () => {
 
   // Fetch users
   const fetchUsers = useCallback(async (pageOverride?: number) => {
-    const pageToLoad = pageOverride ?? currentPage;
+    const pageToLoad = typeof pageOverride === 'number' ? pageOverride : currentPage;
     try {
       setLoading(users.length === 0);
       setIsInitialLoading(users.length === 0);
@@ -558,7 +558,7 @@ const UserManagement: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={fetchUsers}
+            onClick={() => fetchUsers()}
             disabled={loading || isRefreshing}
             className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
             style={{
@@ -697,7 +697,7 @@ const UserManagement: React.FC = () => {
             {/* Actions row */}
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={fetchUsers}
+                onClick={() => fetchUsers()}
                 disabled={loading || isRefreshing}
                 className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
                 style={{
@@ -739,7 +739,7 @@ const UserManagement: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchUsers}
+              onClick={() => fetchUsers()}
               className="px-3 py-1.5 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
               style={{
                 backgroundColor: brandColors.primaryHex,

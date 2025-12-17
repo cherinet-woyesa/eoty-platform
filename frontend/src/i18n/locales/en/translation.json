@@ -2490,6 +2490,21 @@
       "no_description": "No description provided",
       "general": "General",
       "download": "Download"
+    },
+    "filters": {
+      "all": "All Resources",
+      "platform_wide": "Platform Wide",
+      "chapter_wide": "Chapter Wide",
+      "course_specific": "Course Specific",
+      "mine": "My Uploads",
+      "category": "Category",
+      "language": "Language",
+      "type": "File Type",
+      "sort_newest": "Newest First",
+      "sort_oldest": "Oldest First",
+      "sort_title": "Title (A-Z)",
+      "page_size": "{{count}} per page",
+      "reset": "Reset Filters"
     }
   },
   "courses_page": {

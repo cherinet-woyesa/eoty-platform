@@ -21,7 +21,6 @@ import DiscussionThread from '@/pages/shared/social/DiscussionThread';
 import CreateTopic from '@/pages/shared/social/CreateTopic';
 import Achievements from '@/pages/shared/social/Achievements';
 import TeacherAchievements from '@/pages/teacher/TeacherAchievements';
-import UploadResource from '@/pages/teacher/UploadResource';
 import Leaderboards from '@/pages/shared/social/Leaderboards';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import AdminDashboard from '@/components/admin/dashboard/AdminDashboard';
@@ -711,16 +710,7 @@ function AppContent() {
           } 
         />
 
-        <Route 
-          path="/teacher/resources/upload" 
-          element={
-            <TeacherRoute>
-              <DashboardLayout>
-                <UploadResource />
-              </DashboardLayout>
-            </TeacherRoute>
-          } 
-        />
+
 
         <Route 
           path="/teacher/profile" 
@@ -1269,16 +1259,7 @@ function AppContent() {
         />
 
         {/* Resource Routes - Role-specific */}
-        <Route 
-          path="/teacher/resources" 
-          element={
-            <TeacherRoute>
-              <DashboardLayout>
-                <ResourceLibrary />
-              </DashboardLayout>
-            </TeacherRoute>
-          } 
-        />
+
         <Route 
           path="/member/resources" 
           element={

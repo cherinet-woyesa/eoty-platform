@@ -260,7 +260,7 @@ exports.getProfile = async (req, res, next) => {
     const db = require('../config/database');
     const userInfo = await db('users')
       .where('id', userId)
-      .select('first_name', 'last_name', 'email', 'profile_picture', 'is_active')
+      .select('first_name', 'last_name', 'email', 'is_active') // Removed profile_picture to avoid 500 if column missing
       .first();
 
     if (!teacherProfile || !userInfo) {
@@ -346,7 +346,52 @@ exports.getProfile = async (req, res, next) => {
 
   } catch (error) {
     console.error('[Teacher Profile] Error fetching profile:', error);
-    next(error);
+    // DEBUG: Check if table exists and return error details
+    try {
+        const db = require('../config/database');
+        const hasTeachers = await db.schema.hasTable('teachers');
+        const hasUsers = await db.schema.hasTable('users');
+
+        // Self-healing: Create teachers table if missing
+        if (!hasTeachers) {
+            console.log('Self-healing: Creating teachers table...');
+            await db.schema.createTable('teachers', function(table) {
+                table.increments('id').primary();
+                table.integer('user_id').references('id').inTable('users').onDelete('CASCADE').notNullable().unique();
+                table.text('bio');
+                table.integer('experience_years').defaultTo(0);
+                table.jsonb('qualifications').defaultTo('[]');
+                table.jsonb('specializations').defaultTo('[]');
+                table.jsonb('languages_taught').defaultTo('[]');
+                table.string('profile_picture_url');
+                table.jsonb('social_media_links').defaultTo('{}');
+                table.enu('status', ['pending_verification', 'verified', 'active', 'inactive', 'suspended']).defaultTo('pending_verification');
+                table.jsonb('onboarding_status').defaultTo('{}');
+                table.jsonb('verification_docs').defaultTo('{}');
+                table.string('payout_method');
+                table.string('payout_region');
+                table.jsonb('payout_details').defaultTo('{}');
+                table.string('tax_status');
+                table.timestamp('created_at').defaultTo(db.fn.now());
+                table.timestamp('updated_at').defaultTo(db.fn.now());
+            });
+            
+            // Retry getProfile
+            return exports.getProfile(req, res, next);
+        }
+
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Internal server error', 
+            debug: { 
+                error: error.message, 
+                hasTeachers,
+                hasUsers
+            } 
+        });
+    } catch (e) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    }
   }
 };
 

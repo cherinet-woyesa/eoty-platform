@@ -235,7 +235,7 @@ const adminController = {
 
       let query = db('users')
         .leftJoin('chapters', 'users.chapter_id', 'chapters.id')
-        .leftJoin('teacher_profiles', 'users.id', 'teacher_profiles.user_id');
+        .leftJoin('teachers', 'users.id', 'teachers.user_id');
 
       // Apply filters
       if (search) {
@@ -300,8 +300,9 @@ const adminController = {
           'users.created_at',
           'users.last_login_at',
           'chapters.name as chapter_name',
-          'teacher_profiles.verification_docs',
-          'teacher_profiles.onboarding_status'
+          'teachers.verification_docs',
+          'teachers.onboarding_status',
+          'teachers.profile_picture_url'
         )
         .orderBy(dbSortBy, sortOrder)
         .limit(limit)
@@ -324,7 +325,8 @@ const adminController = {
             createdAt: user.created_at,
             lastLogin: user.last_login_at || null,
             verification_docs: user.verification_docs,
-            onboarding_status: user.onboarding_status
+            onboarding_status: user.onboarding_status,
+            profilePicture: user.profile_picture_url
           })),
           pagination: {
             total,

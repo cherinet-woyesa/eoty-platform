@@ -670,6 +670,8 @@ class ResourceService {
       // Get user info
       const user = await db('users').where({ id: userId }).select('chapter_id', 'role').first();
       if (!user) throw new Error('User not found');
+      
+      console.log(`[UploadToLibrary] User ${userId} found. Role: ${user.role}, ChapterID: ${user.chapter_id}`);
 
       // Validate scope permissions
       if (resourceScope === 'platform_wide' && user.role !== 'admin') {
@@ -697,6 +699,44 @@ class ResourceService {
       // Upload file to cloud storage
       const fileUrl = await cloudStorageService.uploadResource(fileBuffer, originalFilename, userId);
 
+      // Validate chapter_id if scope is chapter_wide
+      let finalChapterId = null;
+      if (resourceScope === 'chapter_wide') {
+        if (user.chapter_id) {
+            // Check if chapter exists
+            const chapterExists = await db('chapters').where({ id: user.chapter_id }).first();
+            if (chapterExists) {
+                finalChapterId = user.chapter_id;
+            } else {
+                console.warn(`User ${userId} has invalid chapter_id ${user.chapter_id}.`);
+                // Fallback: try to find a valid chapter for this user
+                const memberChapter = await db('user_chapters')
+                    .where({ user_id: userId })
+                    .whereNot('status', 'rejected')
+                    .first();
+                
+                if (memberChapter) {
+                    finalChapterId = memberChapter.chapter_id;
+                    console.log(`Falling back to chapter ${finalChapterId} from user_chapters.`);
+                } else {
+                     throw new Error('Your account is not associated with a valid chapter.');
+                }
+            }
+        } else {
+             // Try to find a chapter from user_chapters if main chapter_id is missing
+             const memberChapter = await db('user_chapters')
+                .where({ user_id: userId })
+                .whereNot('status', 'rejected')
+                .first();
+            
+            if (memberChapter) {
+                finalChapterId = memberChapter.chapter_id;
+            } else {
+                throw new Error('Your account is not associated with a chapter.');
+            }
+        }
+      }
+
       // Create resource record
       const resourceData = {
         title,
@@ -710,7 +750,7 @@ class ResourceService {
         file_size: fileBuffer.length,
         file_url: fileUrl,
         resource_scope: resourceScope,
-        chapter_id: resourceScope === 'chapter_wide' ? user.chapter_id : null,
+        chapter_id: finalChapterId,
         course_id: resourceScope === 'course_specific' ? courseId : null,
         is_public: resourceScope === 'platform_wide',
         published_at: new Date(),

@@ -170,37 +170,129 @@
       "checklist_subtitle": "ለቀላል ህትመት እነዚህን ያጠናቅቁ።",
       "checklist_completed": "ዋና መስኮች ተዘጋጁ",
       "helper_tips": "ፈጣን ምክሮች",
-      "helper_validation": "አርእስቱን ግልጽ ያድርጉ እና መግለጫውን አጭር ያድርጉ።",
       "helper_media": "ጥሩ ጥራት ያለው የሽፋን ምስል ይጠቀሙ።",
       "cover_uploading": "የሽፋን ምስል በመጫን ላይ...",
       "cover_upload_success": "የሽፋን ምስል ተጫኗል።",
       "cover_upload_failed": "የሽፋን ምስል መጫን አልተሳካም። ከመቀመጥ በኋላ እንደገና ይሞክሩ።"
     }
   },
-  "video_recorder": {
+  "teacher_content": {
+    "title": "የይዘት ማዘጋጃ",
+    "subtitle_create": "ይዘትን ይፍጠሩ እና ያስተዳድሩ",
+    "subtitle_edit": "የትምህርት ይዘትን ማስተካከል",
+    "go_back": "ተመለስ",
+    "context": {
+      "editing_lesson": "ትምህርት ማስተካከል",
+      "course_mode": "የኮርስ ሁነታ"
+    },
+    "tabs": {
+      "video_studio": "ቪዲዮ ስቱዲዮ",
+      "resources": "ግብዓቶች"
+    },
+    "loading_studio": "ቪዲዮ ስቱዲዮን በመጫን ላይ...",
+    "resources": {
+      "upload_new_title": "አዲስ ግብዓት ይስቀሉ",
+      "upload_new_description": "ፋይሎችን ወደ ቤተ-መጽሐፍትዎ ያክሉ ወይም በቀጥታ ከዚህ ትምህርት ጋር ያያይዙ",
+      "back_to_library": "ወደ ቤተ-መጽሐፍት ተመለስ",
+      "library_title": "የግብዓት ቤተ-መጽሐፍት",
+      "library_description_lesson": "ለዚህ ትምህርት ግብዓቶችን ያስተዳድሩ",
+      "library_description_general": "የትምህርት መርጃዎችን ያስተዳድሩ",
+      "upload_new": "አዲስ ይስቀሉ",
+      "attached_to_lesson": "ከአሁኑ ትምህርት ጋር የተያያዘ",
+      "no_resources_attached": "እስካሁን ከዚህ ትምህርት ጋር የተያያዘ ምንም ግብዓት የለም።",
+      "select_resources_hint": "ከቤተ-መጽሐፍት ግብዓቶችን መርጠው ያያይዙ።",
+      "remove_from_lesson": "ከትምህርት ያስወግዱ",
+      "search_placeholder": "ቤተ-መጽሐፍትን ይፈልጉ...",
+      "chapter_library": "የምዕራፍ ቤተ-መጽሐፍት",
+      "platform_library": "የመድረክ ቤተ-መጽሐፍት",
+      "items_count": "{{count}} እቃዎች",
+      "empty_library_title": "ቤተ-መጽሐፍት ባዶ ነው",
+      "empty_library_description": "ቤተ-መጽሐፍትዎን ለመገንባት እና ከተማሪዎች ጋር ለማጋራት ግብዓቶችን ይስቀሉ።",
+      "upload_first_resource": "የመጀመሪያ ግብዓት ይስቀሉ",
+      "attached": "ተያይዟል",
+      "attach": "ያያይዙ",
+      "edit": "አስተካክል",
+      "delete": "ሰርዝ",
+      "view_file": "ፋይል ይመልከቱ",
+      "page_info": "ገጽ {{page}} ከ {{total}}",
+      "delete_confirm_title": "ግብዓት ሰርዝ",
+      "delete_confirm_message": "ይህን ግብዓት መሰረዝ ይፈልጋሉ? ይህን እርምጃ መመለስ አይቻልም።",
+      "delete_failed": "ግብዓት መሰረዝ አልተሳካም",
+      "delete_success": "ግብዓት በተሳካ ሁኔታ ተሰርዟል"
+    }
+  },
+  "record_video": {
     "title": "ቪዲዮ መቅረጽ",
+    "create_new_lesson": "አዲስ ትምህርት ይፍጠሩ",
+    "create_new_lesson_desc": "አዲስ የቪዲዮ ትምህርት ይቅረጹ",
+    "record_video_for_lesson": "ቪዲዮ ይቅረጹ",
+    "record_video_desc": "ለነባር ትምህርት ቪዲዮ ይቅረጹ",
+    "new_lesson_mode": "አዲስ ትምህርት",
+    "recording_mode": "መቅረት",
+    "select_course_optional": "ኮርስ ይምረጡ (አማራጭ)",
+    "select_target_course": "ኮርስ ይምረጡ",
+    "no_course_selected": "ኮርስ አልተመረጠም",
+    "create_new_course": "አዲስ ኮርስ ይፍጠሩ",
+    "hide_tips": "ምክሮችን ደብቅ",
+    "recording_tips": "የመቅረጽ ምክሮች",
+    "back_to_courses": "ወደ ኮርሶች ተመለስ",
+    "pro_tips_title": "ለተሻለ ቀረጻ ምክሮች",
+    "close": "ዝጋ",
+    "tips": {
+      "lighting_title": "መብራት",
+      "lighting_desc": "ፊትዎ ላይ የሚመጣ በቂ ብርሃን እንዳለ ያረጋግጡ",
+      "audio_title": "ድምፅ",
+      "audio_desc": "ጸጥ ያለ ቦታ ይምረጡ እና ማይክሮፎንዎን ይፈትሹ",
+      "engagement_title": "ተሳትፎ",
+      "engagement_desc": "ካሜራውን በቀጥታ ይመልከቱ እና በግልጽ ይናገሩ"
+    },
+    "impact": {
+      "title": "የእርስዎ ተጽዕኖ",
+      "this_month": "በዚህ ወር",
+      "new_videos": "አዲስ ቪዲዮዎች",
+      "library": "ቤተ-መጽሐፍት",
+      "total_videos": "ጠቅላላ ቪዲዮዎች",
+      "students": "ተማሪዎች",
+      "enrolled": "የተመዘገቡ",
+      "rating": "ደረጃ",
+      "avg_rating": "አማካይ ደረጃ"
+    },
+    "quick_actions": {
+      "title": "ፈጣን እርምጃዎች",
+      "create_course": "ኮርስ ፍጠር",
+      "start_series": "አዲስ ተከታታይ ይጀምሩ",
+      "manage_content": "ይዘት ያስተዳድሩ",
+      "edit_videos": "ቪዲዮዎችን ያስተካክሉ",
+      "view_engagement": "ተሳትፎን ይመልከቱ"
+    },
     "ready_to_record": "ለመቅረጽ ዝግጁ",
+    "ready_to_record_desc": "ካሜራዎን እና ማይክሮፎንዎን ያዘጋጁ",
     "start_recording": "መቅረጽ ይጀምሩ",
-    "pause": "ለአፍታ አቁም",
-    "paused": "ለአፍታ ቆሟል",
-    "resume": "ይቀጥሉ",
-    "stop": "አቁም",
-    "reset": "ዳግም ያስጀምሩ",
-    "save_recording": "መቅረጹን ያስቀምጡ",
-    "select_course": "ኮርስ ይምረጡ",
+    "select_course_required": "እባክዎ መጀመሪያ ኮርስ ይምረጡ",
     "choose_course": "ኮርስ ይምረጡ...",
-    "lesson_title": "የትምህርት ርዕስ",
+    "lesson_title_required": "የትምህርት ርዕስ ያስፈልጋል",
     "enter_lesson_title": "የትምህርት ርዕስ ያስገቡ...",
+    "description_optional": "መግለጫ (አማራጭ)",
+    "brief_description": "ስለ ትምህርቱ አጭር መግለጫ",
+    "create_lesson": "ትምህርት ፍጠር",
+    "record_or_upload_required": "ቪዲዮ መቅረጽ ወይም መስቀል አለብዎት",
     "record_again": "ዳግም መቅረጽ",
     "save_lesson": "ትምህርት አስቀምጥ",
     "uploading": "በመስቀል ላይ...",
     "uploaded": "ተቀርቷል!",
     "camera_access_required": "ካሜራ መድረሻ ያስፈልጋል",
     "try_again": "እንደገና ይሞክሩ",
-    "camera_access_instructions": "የቪዲዮ ትምህርትዎን ለመጀመር \"መቅረጽ ይጀምሩ\" ይጫኑ። ጥሩ ብርሃን እና ድምፅ እንዳለዎት ያረጋግጡ።",
+    "camera_access_instructions": "የቪዲዮ ትምህርትዎን ለመጀመር \"መቅረጽ ይጀምሩ\" ይጫኑ።",
     "select_course_lesson_title": "እባክዎ ኮርስ ይምረጡ እና የትምህርት ርዕስ ያስገቡ",
-    "video_lesson_description": "በአሳሽ ላይ የተቀረጸ የቪዲዮ ትምህርት",
-    "upload_failed": "ቪዲዮ መስቀል አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+    "video_lesson_description": "የቪዲዮ ትምህርት",
+    "upload_failed": "ቪዲዮ መስቀል አልተሳካም",
+    "audio_disabled": "ድምፅ ተሰናክሏል",
+    "camera_lost": "ካሜራ ጠፍቷል",
+    "screen_share_lost": "የስክሪን ማጋራት ጠፍቷል",
+    "camera_lost_message": "የካሜራዎ ግንኙነት ተቋርጧል። መቅረጽ በቀሪ ምንጮች ይቀጥላል።",
+    "screen_share_lost_message": "የስክሪን ማጋራት ቆሟል። መቅረጽ በካሜራ ብቻ ይቀጥላል።",
+    "reconnect_camera": "ካሜራ እንደገና ያገናኙ",
+    "start_screen_share": "ስክሪን ማጋራት ይጀምሩ"
   },
   "auth": {
     "login": {
@@ -2331,43 +2423,30 @@
   "nav": {
     "dashboard": "ዳሽቦርድ",
     "dashboard_desc": "የመድረክ አጠቃላይ እይታ እና መለኪያዎች",
-
     "courses": "ኮርሶች",
     "courses_desc": "ኮርሶችን ያስሱ እና ያስተዳድሩ",
-
     "students": "ተማሪዎች",
     "students_desc": "የተማሪ መገለጫዎችን ይመልከቱ እና ያስተዳድሩ",
-
     "content": "ይዘት",
     "content_desc": "ኮርሶችን፣ ትምህርቶችን እና ግብዓቶችን ያስተዳድሩ",
-
     "resources": "ግብዓቶች",
     "resources_desc": "የትምህርት ቁሳቁሶችን እና ሰነዶችን ይድረሱ",
-
     "ai_assistant": "AI ረዳት",
     "ai_assistant_desc": "ለድጋፍ ከAI ረዳት ጋር ይገናኙ",
-
     "community": "ማህበረሰብ",
     "community_desc": "ከመማሪያ ማህበረሰቡ ጋር ይሳተፉ",
-
     "chapters": "ምዕራፎች",
     "chapters_desc": "የማህበረሰብ ምዕራፎችን ያስሱ እና ያስተዳድሩ",
-
     "learning": "ትምህርት",
     "learning_desc": "የትምህርት ጉዞዎን እና ሂደትዎን ይከታተሉ",
-
     "users_access": "ተጠቃሚዎች እና መዳረሻ",
     "users_access_desc": "የተጠቃሚ መለያዎችን እና ፈቃዶችን ያስተዳድሩ",
-
     "communications": "ግንኙነቶች",
     "communications_desc": "ማስታወቂያዎችን እና መልዕክቶችን ያስተዳድሩ",
-
     "ai_labeling": "AI መለያ መስጠት",
     "ai_labeling_desc": "የAI ይዘት ምደባን እና መለያዎችን ያስተዳድሩ",
-
     "system": "ስርዓት",
     "system_desc": "የስርዓት ቅንብሮችን እና ምርጫዎችን ያዋቅሩ",
-
     "member": "አባል",
     "teacher_portal": "የመምህራን መግቢያ",
     "admin_panel": "የአስተዳዳሪ ፓነል",
@@ -2382,12 +2461,77 @@
     "settings": "ቅንብሮች",
     "course_details": "የኮርስ ዝርዝሮች",
     "user_profile": "የተጠቃሚ መገለጫ",
-
     "stats": {
       "active_students": "ንቁ ተማሪዎች",
       "courses": "ኮርሶች",
       "rating": "ደረጃ",
       "revenue": "ገቢ"
+    }
+  },
+  "teacher_resources": {
+    "title": "የመረጃ ቤተ-መጽሐፍት",
+    "subtitle": "ትምህርታዊ ይዘቶችን ያስተዳድሩ እና ለአባላት ያሰራጩ",
+    "back_dashboard": "ወደ ዳሽቦርድ ተመለስ",
+    "new_resource": "አዲስ መረጃ",
+    "stats": {
+      "total": "ጠቅላላ መረጃዎች",
+      "storage": "ጥቅም ላይ የዋለ ማከማቻ",
+      "this_month": "በዚህ ወር"
+    },
+    "tabs": {
+      "upload": "የመስቀያ ማዕከል",
+      "browse": "ቤተ-መጽሐፍቱን ያስሱ"
+    },
+    "upload_center": {
+      "title": "የት መስቀል ይፈልጋሉ?",
+      "subtitle": "ለአዲሱ መረጃዎ የታይነት ወሰን ይምረጡ",
+      "platform": {
+        "title": "በመድረኩ ደረጃ",
+        "description": "መረጃዎችን በዓለም ዙሪያ ካሉ የኦርቶዶክስ ማህበረሰብ ጋር ያጋሩ።",
+        "badge": "የአስተዳዳሪ መዳረሻ"
+      },
+      "chapter": {
+        "title": "በማዕከል ደረጃ",
+        "description": "ለአካባቢዎ ማዕከል አባላት ብቻ የሚሆን ይዘት።",
+        "badge": "በጣም የተለመደ"
+      },
+      "course": {
+        "title": "ለኮርስ ብቻ",
+        "description": "ትምህርታዊ ቁሳቁሶችን በቀጥታ ከኮርሶችዎ እና ትምህርቶችዎ ጋር ያያይዙ።",
+        "badge": "የታለመ"
+      }
+    },
+    "browse": {
+      "search_placeholder": "በስም፣ በዓይነት ወይም በታግ ይፈልጉ...",
+      "scope": {
+        "chapter": "የማዕከል መረጃዎች",
+        "platform": "የመድረክ መረጃዎች"
+      },
+      "loading": "ቤተ-መጽሐፍቱን በመጫን ላይ...",
+      "empty": {
+        "title": "ምንም መረጃዎች አልተገኙም",
+        "subtitle": "የመጀመሪያውን መረጃ በመስቀል ይጀምሩ",
+        "btn": "መረጃ ይስቀሉ"
+      },
+      "uncategorized": "ያልተመደበ",
+      "no_description": "ምንም መግለጫ አልተሰጠም",
+      "general": "አጠቃላይ",
+      "download": "አውርድ"
+    },
+    "filters": {
+      "all": "ሁሉም መረጃዎች",
+      "platform_wide": "በመድረኩ ደረጃ",
+      "chapter_wide": "በማዕከል ደረጃ",
+      "course_specific": "ለኮርስ ብቻ",
+      "mine": "የእኔ ብቻ",
+      "category": "ምድብ",
+      "language": "ቋንቋ",
+      "type": "የፋይል ዓይነት",
+      "sort_newest": "አዲስ",
+      "sort_oldest": "የቆየ",
+      "sort_title": "ርዕስ (A-Z)",
+      "page_size": "{{count}} በገጽ",
+      "reset": "ማጣሪያዎችን ዳግም አስጀምር"
     }
   },
   "teacher_stats": {
@@ -2703,4 +2847,4 @@
     },
     "save_changes": "ለውጦችን አስቀምጥ"
   }
-} 
+}

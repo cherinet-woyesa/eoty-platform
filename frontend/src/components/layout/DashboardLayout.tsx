@@ -18,9 +18,10 @@ import { HelpCircle } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  hideHeader?: boolean;
 }
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader = false }) => {
   const { user, isLoading } = useAuth();
   const { hasOnboarding, isCompleted, flow, progress } = useOnboarding();
   const location = useLocation();
@@ -143,10 +144,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       {/* Main content area - Takes remaining space */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Sticky header */}
-        <Header 
-          onToggleSidebar={handleMobileSidebarToggle}
-          sidebarCollapsed={sidebarCollapsed}
-        />
+        {!hideHeader && (
+          <Header 
+            onToggleSidebar={handleMobileSidebarToggle}
+            sidebarCollapsed={sidebarCollapsed}
+          />
+        )}
         
         {/* Main content - Full width with proper scrolling */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-transparent flex flex-col">

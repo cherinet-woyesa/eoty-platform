@@ -15,8 +15,8 @@ interface RecordVideoProps {
   onSuccess?: (lessonId: string) => void;
 }
 
-const RecordVideo: React.FC<RecordVideoProps> = ({ 
-  courseId: propCourseId, 
+const RecordVideo: React.FC<RecordVideoProps> = ({
+  courseId: propCourseId,
   lessonId: propLessonId,
   variant = 'full',
   onSuccess
@@ -94,7 +94,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
   const [showTips, setShowTips] = useState(false);
 
   // If embedded, we skip the page wrapper styles
-  const containerClasses = variant === 'full' 
+  const containerClasses = variant === 'full'
     ? "w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen"
     : "w-full min-h-full relative";
 
@@ -121,11 +121,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg ${
-                isNewLesson
+              <div className={`p-2 rounded-lg ${isNewLesson
                   ? 'bg-[#27AE60]/10 border border-[#27AE60]/20'
                   : 'bg-[#2980B9]/10 border border-[#2980B9]/20'
-              }`}>
+                }`}>
                 {isNewLesson ? (
                   <BookOpen className={`h-6 w-6 ${isNewLesson ? 'text-[#27AE60]' : 'text-[#2980B9]'}`} />
                 ) : (
@@ -138,25 +137,18 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
               </div>
             </div>
 
-            {/* Mode indicator & Course Selector */}
+            {/* Mode indicator removed as per requirements */}
             <div className="flex items-center gap-3">
-              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                isNewLesson
-                  ? 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
-                  : 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
-              }`}>
-                {isNewLesson ? `📝 ${t('record_video.new_lesson_mode')}` : `🎬 ${t('record_video.recording_mode')}`}
-              </div>
+
 
               {/* Course Selector Dropdown */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowCourseSelector(!showCourseSelector)}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                    selectedCourseId 
-                      ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700' 
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${selectedCourseId
+                      ? 'bg-stone-800 text-white border-stone-800 hover:bg-stone-700'
                       : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
-                  }`}
+                    }`}
                 >
                   <BookOpen className="h-3 w-3" />
                   <span className="max-w-[150px] truncate">
@@ -173,9 +165,8 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <div className="max-h-64 overflow-y-auto p-2 space-y-1">
                       <button
                         onClick={() => handleCourseSelect('')}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                          !selectedCourseId ? 'bg-stone-100 text-stone-900 font-medium' : 'text-stone-600 hover:bg-stone-50'
-                        }`}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${!selectedCourseId ? 'bg-stone-100 text-stone-900 font-medium' : 'text-stone-600 hover:bg-stone-50'
+                          }`}
                       >
                         <div className="w-2 h-2 rounded-full border border-stone-300 bg-white"></div>
                         {t('record_video.no_course_selected')}
@@ -184,11 +175,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                         <button
                           key={course.id}
                           onClick={() => handleCourseSelect(String(course.id))}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                            String(selectedCourseId) === String(course.id) 
-                              ? 'bg-[#2980B9]/10 text-[#2980B9] font-medium' 
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${String(selectedCourseId) === String(course.id)
+                              ? 'bg-[#2980B9]/10 text-[#2980B9] font-medium'
                               : 'text-stone-600 hover:bg-stone-50'
-                          }`}
+                            }`}
                         >
                           {course.thumbnail ? (
                             <img src={course.thumbnail} alt="" className="w-5 h-5 rounded object-cover" />
@@ -205,7 +195,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                       ))}
                     </div>
                     <div className="p-2 border-t border-stone-100 bg-stone-50/50">
-                      <Link 
+                      <Link
                         to="/teacher/courses/new"
                         className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[#27AE60] hover:border-[#27AE60]/30 transition-all"
                       >
@@ -220,14 +210,14 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
           </div>
 
           <div className="flex gap-3">
-             <button 
+            <button
               onClick={() => setShowTips(!showTips)}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-sm font-medium shadow-sm"
             >
               <TrendingUp className="h-4 w-4" />
               {showTips ? t('record_video.hide_tips') : t('record_video.recording_tips')}
             </button>
-            <Link 
+            <Link
               to="/teacher/courses"
               className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors text-sm font-medium shadow-sm"
             >
@@ -275,9 +265,9 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
       <div className={`${variant === 'full' ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : 'h-full'}`}>
         {/* Main Recording Area */}
         <div className={`${variant === 'full' ? 'xl:col-span-3 space-y-6' : 'h-full'}`}>
-          <EnhancedVideoRecorder 
-            courseId={selectedCourseId} 
-            lessonId={lessonId} 
+          <EnhancedVideoRecorder
+            courseId={selectedCourseId}
+            lessonId={lessonId}
             variant={variant === 'embedded' ? 'embedded' : 'default'}
             onToggleTips={() => setShowTips(!showTips)}
             onUploadComplete={(completedLessonId) => {
@@ -370,7 +360,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                     <span className="text-xs text-stone-500">{t('record_video.quick_actions.start_series')}</span>
                   </div>
                 </Link>
-                
+
                 <Link
                   to="/teacher/courses"
                   className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[#2980B9]/30 hover:bg-[#2980B9]/5 transition-all group"
