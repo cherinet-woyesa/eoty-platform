@@ -3769,9 +3769,9 @@
     "locating": "Locating...",
     "km": "km",
     "status": {
-        "pending": "Pending",
-        "approved": "Approved",
-        "rejected": "Rejected"
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
     },
     "manage": {
       "no_chapter": {

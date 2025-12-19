@@ -3,7 +3,7 @@ import { studyGroupsApi } from '@/services/api/studyGroups';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Users, Plus, Search, MessageCircle,
-  BookOpen, Crown, Loader2, AlertCircle,
+  Crown, Loader2, AlertCircle,
   X, UserPlus, LogOut, Trash2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -285,7 +285,7 @@ const StudyGroupsPage: React.FC<StudyGroupsPageProps> = ({ embedded = false }) =
 
   return (
     <div className={embedded ? 'w-full' : 'min-h-screen bg-gray-50/50 pb-12'}>
-      <div className={embedded ? 'w-full p-6 space-y-6' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8'}>
+      <div className={embedded ? 'w-full p-6 space-y-6' : 'max-w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-8 space-y-8'}>
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -335,7 +335,7 @@ const StudyGroupsPage: React.FC<StudyGroupsPageProps> = ({ embedded = false }) =
                 placeholder={t('community.groups.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border-transparent rounded-xl text-gray-900 placeholder-gray-500 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 sm:text-sm"
+                className="block w-full pl-11 pr-4 py-2.5 bg-gray-50 border-transparent rounded-xl text-gray-900 placeholder-gray-500 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 sm:text-sm"
               />
             </div>
           </div>
@@ -361,72 +361,76 @@ const StudyGroupsPage: React.FC<StudyGroupsPageProps> = ({ embedded = false }) =
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {filteredMyGroups.map((group) => (
                     <div
                       key={group.id}
-                      className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-indigo-100 flex flex-col h-full relative overflow-hidden"
+                      className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-indigo-100 flex flex-col h-full"
                     >
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                          <Users className="h-6 w-6" />
+                      <div className="mb-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                            <Users className="h-5 w-5" />
+                          </div>
+                          {(group.members || []).some(m => m.id === user?.id && m.role === 'admin') && (
+                            <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                              <Crown className="h-3 w-3" />
+                              Admin
+                            </span>
+                          )}
                         </div>
-                        {(group.members || []).some(m => m.id === user?.id && m.role === 'admin') && (
-                          <span className="flex items-center gap-1.5 text-[11px] uppercase font-bold tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
-                            <Crown className="h-3 w-3" />
-                            Admin
-                          </span>
-                        )}
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          {group.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed h-8">
+                          {group.description?.trim() || t('community.groups.no_description')}
+                        </p>
                       </div>
 
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                        {group.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 line-clamp-2 mb-6 flex-1 leading-relaxed">
-                        {group.description || t('community.groups.no_description')}
-                      </p>
-
-                      <div className="flex items-center justify-between text-xs font-medium text-gray-400 mb-6 pt-4 border-t border-gray-50">
-                        <span className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          {group.member_count} / {group.max_members} members
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-gray-400 mb-4 pt-3 border-t border-gray-50">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" />
+                          {group.member_count} / {group.max_members}
                         </span>
                         {group.course_title && (
-                          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-md text-gray-500">
-                            <BookOpen className="h-3.5 w-3.5" />
-                            <span className="max-w-[120px] truncate">{group.course_title}</span>
+                          <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md truncate max-w-[100px]">
+                            {group.course_title}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 mt-auto">
+                      <div className="flex items-center gap-2 mt-auto">
                         <Link
-                          to={`/member/study-groups/${group.id}`}
+                          to={`${(() => {
+                            const path = window.location.pathname;
+                            if (path.includes('/admin')) return '/admin/community/study-groups';
+                            if (path.includes('/teacher')) return '/teacher/community/study-groups';
+                            if (path.includes('/member')) return '/member/community/study-groups';
+                            return '/community/study-groups';
+                          })()}/${group.id}`}
                           state={{ fromTab: activeTab }}
-                          className="flex-1 px-4 py-3 text-white rounded-xl shadow-sm hover:shadow-md transition-all font-semibold text-sm flex items-center justify-center gap-2 group-hover:bg-indigo-700"
+                          className="flex-1 px-3 py-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all font-bold text-xs flex items-center justify-center gap-2 group-hover:bg-indigo-700"
                           style={{ backgroundColor: brandColors.primaryHex }}
                         >
-                          <MessageCircle className="h-4 w-4" />
+                          <MessageCircle className="h-3.5 w-3.5" />
                           Enter Group
                         </Link>
 
                         {String(group.created_by) === String(user?.id) ? (
                           <button
                             onClick={() => handleDeleteGroup(group.id, group.name)}
-                            className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                             title="Delete group"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         ) : (
                           <button
                             onClick={() => handleLeaveGroup(group.id, group.name)}
-                            className="p-3 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 hover:text-gray-800 transition-all"
+                            className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-800 transition-all"
                             title="Leave group"
                           >
-                            <LogOut className="h-4 w-4" />
+                            <LogOut className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
@@ -448,46 +452,46 @@ const StudyGroupsPage: React.FC<StudyGroupsPageProps> = ({ embedded = false }) =
                   <p className="text-gray-500 mb-6 max-w-md mx-auto">{t('community.groups.empty_public_body')}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {filteredPublicGroups.map((group) => (
                     <div
                       key={group.id}
-                      className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-indigo-100 flex flex-col h-full relative"
+                      className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-indigo-100 flex flex-col h-full relative"
                     >
-                      <div className="mb-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                            <Users className="h-6 w-6" />
+                      <div className="mb-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                            <Users className="h-4 w-4" />
                           </div>
                           {group.course_title && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full">
-                              Course Group
+                            <span className="text-[10px] font-extrabold uppercase tracking-tight text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md truncate max-w-[100px]">
+                              {group.course_title}
                             </span>
                           )}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors line-clamp-1">
                           {group.name}
                         </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed h-8">
                           {group.description?.trim() || t('community.groups.no_description')}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs font-medium text-gray-400 mb-6 pt-4 border-t border-gray-50">
-                        <span className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          {group.member_count} / {group.max_members} members
+                      <div className="flex items-center justify-between text-[10px] font-semibold text-gray-400 mb-4 pt-4 border-t border-gray-50">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5" />
+                          {group.member_count} / {group.max_members}
                         </span>
-                        <span className="text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-semibold">Public</span>
+                        <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[10px]">Public</span>
                       </div>
 
                       <button
                         onClick={() => handleJoinGroup(group)}
                         disabled={group.member_count >= group.max_members || joinMutation.isPending}
-                        className="w-full mt-auto px-4 py-3 text-white rounded-xl shadow-sm hover:shadow-md transition-all font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
+                        className="w-full mt-auto px-3 py-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all font-bold text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
                         style={{ backgroundColor: brandColors.primaryHex }}
                       >
-                        <UserPlus className="h-4 w-4" />
+                        <UserPlus className="h-3.5 w-3.5" />
                         {group.member_count >= group.max_members ? t('community.groups.full') : t('community.groups.join_open')}
                       </button>
                     </div>
@@ -499,70 +503,72 @@ const StudyGroupsPage: React.FC<StudyGroupsPageProps> = ({ embedded = false }) =
         </div>
 
         {/* Create Group Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
-                <h2 className="text-xl font-bold text-gray-900">Create New Group</h2>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Group Name</label>
-                  <input
-                    type="text"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    placeholder="e.g., Biology 101 Study Crew"
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-gray-900 placeholder:text-gray-400 transition-all"
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
-                  <textarea
-                    value={newGroupDescription}
-                    onChange={(e) => setNewGroupDescription(e.target.value)}
-                    placeholder="Briefly describe the goal of this group..."
-                    rows={4}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-gray-900 placeholder:text-gray-400 resize-none transition-all"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
+        {
+          showCreateModal && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
+                  <h2 className="text-xl font-bold text-gray-900">Create New Group</h2>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
+                    className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
                   >
-                    Cancel
+                    <X className="h-5 w-5" />
                   </button>
-                  <button
-                    onClick={handleCreateGroup}
-                    disabled={!newGroupName.trim() || createMutation.isPending}
-                    className="flex-1 px-4 py-3 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: brandColors.primaryHex }}
-                  >
-                    {createMutation.isPending ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Creating...
-                      </span>
-                    ) : 'Create Group'}
-                  </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Group Name</label>
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="e.g., Biology 101 Study Crew"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-gray-900 placeholder:text-gray-400 transition-all"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                    <textarea
+                      value={newGroupDescription}
+                      onChange={(e) => setNewGroupDescription(e.target.value)}
+                      placeholder="Briefly describe the goal of this group..."
+                      rows={4}
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-gray-900 placeholder:text-gray-400 resize-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setShowCreateModal(false)}
+                      className="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateGroup}
+                      disabled={!newGroupName.trim() || createMutation.isPending}
+                      className="flex-1 px-4 py-3 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: brandColors.primaryHex }}
+                    >
+                      {createMutation.isPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating...
+                        </span>
+                      ) : 'Create Group'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
+          )
+        }
+      </div >
+    </div >
   );
 };
 

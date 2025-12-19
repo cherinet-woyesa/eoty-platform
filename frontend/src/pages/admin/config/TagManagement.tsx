@@ -369,7 +369,7 @@ export const TagManagement = () => {
           </button>
           <button
             onClick={openCreateForm}
-            className="inline-flex items-center px-6 py-2 text-white rounded-lg transition-colors shadow-sm"
+            className="inline-flex items-center px-6 py-2 text-white rounded-lg transition-colors shadow-sm active:scale-95"
             style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -413,7 +413,7 @@ export const TagManagement = () => {
                 {/* Header */}
                 <div
                   className="px-6 py-4 text-white"
-                  style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -543,7 +543,7 @@ export const TagManagement = () => {
               {/* Header */}
               <div
                 className="px-6 py-4 text-white"
-                style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.accentHex})` }}
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <div className="flex items-center justify-between">
                   <div>

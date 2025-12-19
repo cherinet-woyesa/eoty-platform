@@ -59,7 +59,7 @@ const AnalyticsDashboard: React.FC = () => {
         throw new Error('Invalid analytics response');
       }
       setAnalytics(data);
-      
+
       // FR5: Extract accuracy score if available
       if (data.metrics?.accuracy_score) {
         setAccuracyScore(data.metrics.accuracy_score);
@@ -120,7 +120,7 @@ const AnalyticsDashboard: React.FC = () => {
     try {
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Last 90 days
-      
+
       const response = await adminApi.exportUsageData(startDate, endDate);
       if (response.success) {
         // Create download link
@@ -293,11 +293,10 @@ const AnalyticsDashboard: React.FC = () => {
               <button
                 key={option.value}
                 onClick={() => setTimeframe(option.value)}
-                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  timeframe === option.value
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${timeframe === option.value
                     ? 'text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent hover:border-gray-300'
-                }`}
+                  }`}
                 style={
                   timeframe === option.value
                     ? { background: `linear-gradient(to right, ${brandPrimary}, ${brandAccent})` }

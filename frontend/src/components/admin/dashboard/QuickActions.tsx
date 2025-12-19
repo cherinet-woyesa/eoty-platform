@@ -8,7 +8,7 @@ const QuickActions: React.FC = () => {
       icon: <Users className="h-5 w-5" />,
       label: 'Manage Users',
       description: 'View and manage users',
-      href: '/admin/users',
+      href: '/admin/all-users',
       color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50'
     },

@@ -119,7 +119,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       value: stats.totalUsers,
       icon: <Users className="h-5 w-5" />,
       color: 'from-indigo-900 to-indigo-800',
-      link: '/admin/users'
+      link: '/admin/all-users'
     },
     {
       id: 'activeUsers',
@@ -127,7 +127,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       value: stats.activeUsers,
       icon: <Users className="h-5 w-5" />,
       color: 'from-indigo-700 to-indigo-600',
-      link: '/admin/users?status=active'
+      link: '/admin/all-users?status=active'
     },
     {
       id: 'activeCourses',
@@ -135,7 +135,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       value: stats.activeCourses,
       icon: <BookOpen className="h-5 w-5" />,
       color: 'from-blue-900 to-blue-800',
-      link: '/admin/courses?status=published'
+      link: '/admin/all-content?status=published'
     },
     {
       id: 'completedLessons',
@@ -151,7 +151,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       value: stats.newRegistrations,
       icon: <TrendingUp className="h-5 w-5" />,
       color: 'from-slate-700 to-slate-600',
-      link: '/admin/users?time=week&sort=newest'
+      link: '/admin/all-users?time=week&sort=newest'
     },
     {
       id: 'flaggedContent',
@@ -159,7 +159,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       value: stats.flaggedContent,
       icon: <AlertTriangle className="h-5 w-5" />,
       color: stats.flaggedContent > 0 ? 'from-red-900 to-red-800' : 'from-gray-400 to-gray-500',
-      link: '/admin/moderation',
+      link: '/admin/all-content',
       isAlert: stats.flaggedContent > 0
     }
   ], [stats, t]);
@@ -199,7 +199,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const prefetchUsers = () => {
     if (prefetched.current.users) return;
     prefetched.current.users = true;
-    apiClient.get('/admin/users').catch(() => {
+    apiClient.get('/admin/all-users').catch(() => {
       prefetched.current.users = false;
     });
   };
@@ -327,28 +327,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
               )}
               <div className="flex items-center justify-between mb-3">
                 <div className={`relative ${metric.id === 'totalUsers' ? 'text-indigo-900' :
-                    metric.id === 'activeUsers' ? 'text-indigo-700' :
-                      metric.id === 'activeCourses' ? 'text-blue-900' :
-                        metric.id === 'completedLessons' ? 'text-blue-700' :
-                          metric.id === 'newRegistrations' ? 'text-slate-700' :
-                            metric.id === 'flaggedContent' ? 'text-red-900' :
-                              'text-slate-600'
+                  metric.id === 'activeUsers' ? 'text-indigo-700' :
+                    metric.id === 'activeCourses' ? 'text-blue-900' :
+                      metric.id === 'completedLessons' ? 'text-blue-700' :
+                        metric.id === 'newRegistrations' ? 'text-slate-700' :
+                          metric.id === 'flaggedContent' ? 'text-red-900' :
+                            'text-slate-600'
                   }`}>
                   <div className={`absolute inset-0 ${metric.id === 'totalUsers' ? 'bg-indigo-900/10' :
-                      metric.id === 'activeUsers' ? 'bg-indigo-700/10' :
-                        metric.id === 'activeCourses' ? 'bg-blue-900/10' :
-                          metric.id === 'completedLessons' ? 'bg-blue-700/10' :
-                            metric.id === 'newRegistrations' ? 'bg-slate-700/10' :
-                              metric.id === 'flaggedContent' ? 'bg-red-900/10' :
-                                'bg-slate-600/10'
+                    metric.id === 'activeUsers' ? 'bg-indigo-700/10' :
+                      metric.id === 'activeCourses' ? 'bg-blue-900/10' :
+                        metric.id === 'completedLessons' ? 'bg-blue-700/10' :
+                          metric.id === 'newRegistrations' ? 'bg-slate-700/10' :
+                            metric.id === 'flaggedContent' ? 'bg-red-900/10' :
+                              'bg-slate-600/10'
                     } rounded-lg blur-md`}></div>
                   <div className={`relative p-3 ${metric.id === 'totalUsers' ? 'bg-indigo-50' :
-                      metric.id === 'activeUsers' ? 'bg-indigo-50' :
-                        metric.id === 'activeCourses' ? 'bg-blue-50' :
-                          metric.id === 'completedLessons' ? 'bg-blue-50' :
-                            metric.id === 'newRegistrations' ? 'bg-slate-50' :
-                              metric.id === 'flaggedContent' ? 'bg-red-50' :
-                                'bg-slate-50'
+                    metric.id === 'activeUsers' ? 'bg-indigo-50' :
+                      metric.id === 'activeCourses' ? 'bg-blue-50' :
+                        metric.id === 'completedLessons' ? 'bg-blue-50' :
+                          metric.id === 'newRegistrations' ? 'bg-slate-50' :
+                            metric.id === 'flaggedContent' ? 'bg-red-50' :
+                              'bg-slate-50'
                     } rounded-lg border ${metric.id === 'totalUsers' ? 'border-indigo-200' :
                       metric.id === 'activeUsers' ? 'border-indigo-200' :
                         metric.id === 'activeCourses' ? 'border-blue-200' :
@@ -380,7 +380,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
           <h3 className="text-base font-semibold text-stone-800 mb-3">{t('admin.dashboard.quick_actions')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <Link
-              to="/admin/users"
+              to="/admin/all-users"
               onMouseEnter={prefetchUsers}
               className="flex items-center p-3 bg-indigo-900 hover:bg-indigo-800 rounded-lg border border-indigo-800 transition-all shadow-sm hover:shadow-md text-white"
             >
@@ -388,7 +388,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
               <span className="font-medium text-white text-sm">{t('admin.dashboard.actions.manage_users')}</span>
             </Link>
             <Link
-              to="/admin/courses"
+              to="/admin/all-content"
               className="flex items-center p-3 bg-indigo-900 hover:bg-indigo-800 rounded-lg border border-indigo-800 transition-all shadow-sm hover:shadow-md text-white"
             >
               <BookOpen className="h-5 w-5 text-white mr-2" />

@@ -96,15 +96,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       setAudioQuality(null);
       chunksRef.current = [];
 
-      // Enhanced audio constraints for better speech recognition
-      const audioConstraints: AudioConstraints = {
+      // Use simpler constraints to ensure compatibility across devices
+      const audioConstraints: any = {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 44100,
-        channelCount: 1, // Mono for better speech recognition
-        sampleSize: 16, // 16-bit for better quality
-        // Removed latency as it's not a standard constraint
+        autoGainControl: true
       };
 
       // Request microphone access
@@ -186,7 +182,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       mediaRecorder.start(1000);
       setIsRecording(true);
 
-      // Start recording timer
+      // Start recording timer - ensure previous timer is cleared
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime(prev => {
           // Auto-stop after 2 minutes to prevent very long recordings
@@ -223,23 +223,20 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   }, [cleanup]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      console.log('Stopping recording...');
-      
-      // Stop media recorder
-      if (mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
-      
-      setIsRecording(false);
-      
-      // Clear timer
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
+    console.log('Stopping recording...');
+    
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
-  }, [isRecording]);
+    
+    setIsRecording(false);
+    
+    // Clear timer
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  }, []);
 
   return {
     isRecording,

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   BookOpen,
   Loader2,
   AlertCircle,
@@ -34,14 +34,14 @@ const DashboardSkeleton: React.FC = React.memo(() => (
   <div className="w-full space-y-6 p-6">
     {/* Welcome Section Skeleton */}
     <div className="bg-stone-200 rounded-xl p-6 animate-pulse h-32"></div>
-    
+
     {/* Stats Grid Skeleton */}
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {[...Array(4)].map((_, i) => (
         <div key={i} className="bg-stone-200 rounded-xl p-4 animate-pulse h-24"></div>
       ))}
     </div>
-    
+
     {/* Main Content Skeleton */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
@@ -244,7 +244,7 @@ const StudentDashboard: React.FC = () => {
     if (!studentData?.enrolledCourses || !Array.isArray(studentData.enrolledCourses)) {
       return [];
     }
-    
+
     const transformed = studentData.enrolledCourses.map((course: any) => ({
       id: String(course.id || course.course_id || ''),
       title: course.title || 'Untitled Course',
@@ -265,7 +265,7 @@ const StudentDashboard: React.FC = () => {
       isFeatured: course.isFeatured || course.is_featured || false,
       status: course.status || course.enrollment_status || 'enrolled'
     }));
-    
+
     return transformed;
   }, [studentData?.enrolledCourses]);
 
@@ -322,9 +322,9 @@ const StudentDashboard: React.FC = () => {
   }, [announcementsData, globalAnnouncementsData]);
 
   const events = useMemo(() => {
-    const chapterEvents = Array.isArray(eventsData?.data?.events) ? eventsData.data.events.map((e: any) => ({...e, source: 'chapter'})) : [];
-    const globalEvents = Array.isArray(globalEventsData?.data?.events) ? globalEventsData.data.events.map((e: any) => ({...e, source: 'global'})) : [];
-    
+    const chapterEvents = Array.isArray(eventsData?.data?.events) ? eventsData.data.events.map((e: any) => ({ ...e, source: 'chapter' })) : [];
+    const globalEvents = Array.isArray(globalEventsData?.data?.events) ? globalEventsData.data.events.map((e: any) => ({ ...e, source: 'global' })) : [];
+
     // Combine and sort by date
     const allEvents = [...globalEvents, ...chapterEvents];
     return allEvents.sort((a: any, b: any) => new Date(a.start_time || a.date).getTime() - new Date(b.start_time || b.date).getTime());
@@ -347,19 +347,19 @@ const StudentDashboard: React.FC = () => {
 
   // Enhanced stats with real-time updates and memoization
   const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString(i18n.language, { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString(i18n.language, {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   }, [i18n.language]);
 
   const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString(i18n.language, { 
+    return date.toLocaleDateString(i18n.language, {
       weekday: 'long',
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }, [i18n.language]);
 
@@ -421,7 +421,7 @@ const StudentDashboard: React.FC = () => {
               {error ? String(error) : t('dashboard.teacher.unable_to_load_message')}
             </p>
             <div className="flex gap-3 justify-center">
-              <button 
+              <button
                 onClick={handleRetry}
                 className="inline-flex items-center px-4 py-2 text-white font-semibold rounded-lg transition-all disabled:opacity-60"
                 style={{ backgroundColor: primaryHex }}
@@ -463,7 +463,7 @@ const StudentDashboard: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-[#f6f7fb] via-white to-[#f9f5ef]">
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/30 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
@@ -475,12 +475,12 @@ const StudentDashboard: React.FC = () => {
             <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
               <div className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
-                    <button
-                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
                     className="lg:hidden p-1.5 bg-white/60 hover:bg-white/80 rounded-md transition-colors"
-                    >
-                      <Menu className="h-4 w-4" />
-                    </button>
+                  >
+                    <Menu className="h-4 w-4" />
+                  </button>
                   <div className="flex items-center gap-2 text-sm font-semibold bg-white/80 text-[#2f3f82] px-3 py-1 rounded-full border border-[#e5e9f5]">
                     <Sparkles className="h-4 w-4" />
                     <span>{t('student.member_dashboard')}</span>
@@ -587,7 +587,7 @@ const StudentDashboard: React.FC = () => {
                             <p className="text-xs text-slate-500">{activity.course_title}</p>
                           </div>
                         </div>
-                        <Link 
+                        <Link
                           to={`/member/courses/${activity.course_id}?lesson=${activity.lesson_id}`}
                           className="text-xs font-medium text-[#2f3f82] hover:underline px-3 py-1.5 rounded-lg bg-[#eef2ff] hover:bg-[#e0e7ff] transition-colors"
                         >
@@ -612,20 +612,20 @@ const StudentDashboard: React.FC = () => {
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {studentData.recommendations.map((course: any) => (
-                      <Link 
-                        key={course.id} 
+                    {studentData.recommendations.map((course: any) => (
+                      <Link
+                        key={course.id}
                         to={`/member/courses/${course.id}`}
                         className="group block p-3 rounded-xl border border-[#e5e9f5] hover:border-[#2f3f82]/30 hover:shadow-md transition-all"
                       >
                         <div className="aspect-video rounded-lg bg-stone-200 mb-3 overflow-hidden">
                           {course.cover_image ? (
-                            <img 
-                              src={course.cover_image} 
-                              alt={course.title} 
+                            <img
+                              src={course.cover_image}
+                              alt={course.title}
                               loading="lazy"
                               decoding="async"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-stone-400">
@@ -653,7 +653,7 @@ const StudentDashboard: React.FC = () => {
                   </Link>
                 </div>
                 {bookmarkedCourses.length > 0 ? (
-                  <CourseGrid 
+                  <CourseGrid
                     courses={bookmarkedCourses.slice(0, 2)}
                     compact={true}
                     onCourseAction={handleCourseAction}
@@ -685,8 +685,8 @@ const StudentDashboard: React.FC = () => {
                 ) : events.length > 0 ? (
                   <div className="space-y-3">
                     {events.slice(0, 4).map((item: any, idx: number) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className="p-3 rounded-xl border border-[#e5e9f5] hover:bg-stone-50 cursor-pointer transition-colors"
                         onClick={() => setSelectedEvent(item)}
                       >
@@ -731,12 +731,12 @@ const StudentDashboard: React.FC = () => {
                         <p className="text-sm font-semibold text-stone-900 line-clamp-2">
                           {item.title || t('student.default_announcement_title')}
                         </p>
-                        { (item.body || item.content || item.message) && (
+                        {(item.body || item.content || item.message) && (
                           <p className="text-xs text-stone-600 mt-1 line-clamp-3">
                             {item.body || item.content || item.message}
                           </p>
                         )}
-                        { (item.timestamp || item.created_at || item.createdAt) && (
+                        {(item.timestamp || item.created_at || item.createdAt) && (
                           <p className="text-[11px] text-stone-500 mt-1">
                             {new Date(item.timestamp || item.created_at || item.createdAt).toLocaleString()}
                           </p>
@@ -792,7 +792,7 @@ const StudentDashboard: React.FC = () => {
                     <span className="text-xs text-slate-500">{t('student.contact_support')}</span>
                   </Link>
                   <Link
-                    to="/member/community-hub"
+                    to="/member/community"
                     className="flex items-center justify-between rounded-xl border border-[#e5e9f5] px-3 py-2 hover:border-[#2f3f82]/30 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-[#1e2a55]">
@@ -818,12 +818,12 @@ const StudentDashboard: React.FC = () => {
         </div>
       </div>
 
-      <EventDetailsModal 
-        isOpen={!!selectedEvent} 
-        onClose={() => setSelectedEvent(null)} 
-        event={selectedEvent} 
+      <EventDetailsModal
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        event={selectedEvent}
       />
-      
+
       <ContactAdminModal
         isOpen={contactModalOpen}
         onClose={() => setContactModalOpen(false)}
@@ -831,9 +831,9 @@ const StudentDashboard: React.FC = () => {
 
       {/* Profile Completion Modal */}
       {profileModalOpen && (
-        <ProfileCompletionModal 
-          isOpen={true} 
-          onClose={() => setProfileModalOpen(false)} 
+        <ProfileCompletionModal
+          isOpen={true}
+          onClose={() => setProfileModalOpen(false)}
         />
       )}
     </ErrorBoundary>

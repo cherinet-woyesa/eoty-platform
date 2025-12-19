@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Users, Sparkles } from 'lucide-react';
+import { useLocation, Routes, Route, Link } from 'react-router-dom';
 import { useCommunityFeed } from '@/hooks/useCommunity';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import StudyGroupsPage from '@/pages/student/community/StudyGroupsPage';
+import GroupDetailPage from '@/pages/student/community/GroupDetailPage';
 import Forums from '@/pages/shared/social/Forums';
+import DiscussionThread from '@/pages/shared/social/DiscussionThread';
 import { brandColors } from '@/theme/brand';
 
 const TeacherCommunityPage: React.FC = () => {
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'forums'>('feed');
-  const feed = useCommunityFeed();
+   const { t } = useTranslation();
+   const location = useLocation();
+   const feed = useCommunityFeed();
+
+   const activeTab = useMemo(() => {
+      const path = location.pathname;
+      if (path.includes('/study-groups')) return 'groups';
+      if (path.includes('/forums')) return 'forums';
+      return 'feed';
+   }, [location.pathname]);
 
    return (
       <div className="w-full h-full">
@@ -26,58 +36,67 @@ const TeacherCommunityPage: React.FC = () => {
             {/* Tabs */}
             <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-indigo-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
                <nav className="flex border-b border-indigo-100 overflow-x-auto flex-shrink-0">
-                  <button
-                     onClick={() => setActiveTab('feed')}
-                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                        activeTab === 'feed'
-                           ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                           : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-                     }`}
+                  <Link
+                     to="/teacher/community"
+                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'feed'
+                        ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                        : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                        }`}
                   >
                      <Sparkles className="h-5 w-5" />
                      <span>{t('community.tabs.feed')}</span>
-                  </button>
-                  <button
-                     onClick={() => setActiveTab('groups')}
-                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                        activeTab === 'groups'
-                           ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                           : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-                     }`}
+                  </Link>
+                  <Link
+                     to="/teacher/community/study-groups"
+                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'groups'
+                        ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                        : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                        }`}
                   >
                      <Users className="h-5 w-5" />
                      <span>{t('community.tabs.groups')}</span>
-                  </button>
-                  <button
-                     onClick={() => setActiveTab('forums')}
-                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                        activeTab === 'forums'
-                           ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                           : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-                     }`}
+                  </Link>
+                  <Link
+                     to="/teacher/community/forums"
+                     className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'forums'
+                        ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                        : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                        }`}
                   >
                      <MessageSquare className="h-5 w-5" />
                      <span>{t('community.tabs.forums')}</span>
-                  </button>
+                  </Link>
                </nav>
 
                {/* Tab Content */}
                <div className="flex-1 overflow-y-auto">
-                  {activeTab === 'feed' && (
-                     <div className="animate-in fade-in duration-300">
-                        <CommunityHub variant="teacher" feedState={feed} showTabs={false} />
-                     </div>
-                  )}
-                  {activeTab === 'groups' && (
-                     <div className="animate-in fade-in duration-300">
-                        <StudyGroupsPage />
-                     </div>
-                  )}
-                  {activeTab === 'forums' && (
-                     <div className="animate-in fade-in duration-300">
-                        <Forums embedded />
-                     </div>
-                  )}
+                  <Routes>
+                     <Route index element={
+                        <div className="animate-in fade-in duration-300">
+                           <CommunityHub variant="teacher" feedState={feed} showTabs={false} />
+                        </div>
+                     } />
+                     <Route path="study-groups" element={
+                        <div className="animate-in fade-in duration-300">
+                           <StudyGroupsPage embedded />
+                        </div>
+                     } />
+                     <Route path="study-groups/:groupId" element={
+                        <div className="animate-in fade-in duration-300">
+                           <GroupDetailPage embedded />
+                        </div>
+                     } />
+                     <Route path="forums" element={
+                        <div className="animate-in fade-in duration-300">
+                           <Forums embedded />
+                        </div>
+                     } />
+                     <Route path="forums/:discussionId/thread" element={
+                        <div className="animate-in fade-in duration-300">
+                           <DiscussionThread embedded />
+                        </div>
+                     } />
+                  </Routes>
                </div>
             </div>
          </div>

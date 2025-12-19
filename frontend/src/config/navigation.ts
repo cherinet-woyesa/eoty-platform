@@ -292,7 +292,7 @@ export const studentNavItems: NavItem[] = [
   },
   {
     name: 'nav.community',
-    href: '/member/community-hub',
+    href: '/member/community',
     icon: Users,
     badge: null,
     description: 'nav.community_desc',

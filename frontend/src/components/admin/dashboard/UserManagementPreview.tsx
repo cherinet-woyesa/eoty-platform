@@ -102,7 +102,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
           <Link
-            to="/admin/users"
+            to="/admin/all-users"
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             Manage All
@@ -202,7 +202,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
           <p className="text-gray-600 mt-1">Manage platform users and permissions</p>
         </div>
         <Link
-          to="/admin/users"
+          to="/admin/all-users"
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           Manage Users

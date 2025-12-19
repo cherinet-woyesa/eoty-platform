@@ -1,12 +1,12 @@
 import React, { useMemo, useCallback } from 'react';
-import { 
-  Users, 
-  Upload, 
-  Shield, 
-  BarChart3, 
-  Tag, 
-  FileText, 
-  AlertTriangle, 
+import {
+  Users,
+  Upload,
+  Shield,
+  BarChart3,
+  Tag,
+  FileText,
+  AlertTriangle,
   Home,
   LogOut
 } from 'lucide-react';
@@ -64,7 +64,7 @@ const AdminPanel: React.FC = () => {
   // Memoized page title
   const getCurrentPageTitle = useCallback(() => {
     switch (location.pathname) {
-      case '/admin/users':
+      case '/admin/all-users':
         return 'User Management';
       case '/admin/content':
         return 'Content Management';
@@ -91,7 +91,7 @@ const AdminPanel: React.FC = () => {
 
   // Memoized quick actions
   const quickActions = useMemo(() => [
-    { icon: Users, label: 'Manage Users', path: '/admin/users' },
+    { icon: Users, label: 'Manage Users', path: '/admin/all-users' },
     { icon: FileText, label: 'Content Manager', path: '/admin/content' },
     { icon: Upload, label: 'Upload Queue', path: '/admin/uploads' },
     { icon: Tag, label: 'Manage Tags', path: '/admin/tags' }
@@ -99,26 +99,26 @@ const AdminPanel: React.FC = () => {
 
   // Memoized recent activities
   const recentActivities = useMemo(() => [
-    { 
-      icon: Users, 
-      title: 'New user registered', 
-      description: 'John Doe joined as a student in Addis Ababa chapter', 
-      timeAgo: '2 minutes ago', 
-      iconBg: 'bg-blue-100' 
+    {
+      icon: Users,
+      title: 'New user registered',
+      description: 'John Doe joined as a student in Addis Ababa chapter',
+      timeAgo: '2 minutes ago',
+      iconBg: 'bg-blue-100'
     },
-    { 
-      icon: Upload, 
-      title: 'Content uploaded', 
-      description: 'Mathematics lesson uploaded by Teacher Smith', 
-      timeAgo: '15 minutes ago', 
-      iconBg: 'bg-green-100' 
+    {
+      icon: Upload,
+      title: 'Content uploaded',
+      description: 'Mathematics lesson uploaded by Teacher Smith',
+      timeAgo: '15 minutes ago',
+      iconBg: 'bg-green-100'
     },
-    { 
-      icon: Shield, 
-      title: 'Content flagged', 
-      description: 'Forum post flagged for inappropriate content', 
-      timeAgo: '1 hour ago', 
-      iconBg: 'bg-yellow-100' 
+    {
+      icon: Shield,
+      title: 'Content flagged',
+      description: 'Forum post flagged for inappropriate content',
+      timeAgo: '1 hour ago',
+      iconBg: 'bg-yellow-100'
     }
   ], []);
 
@@ -189,7 +189,7 @@ const AdminPanel: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Stats cards */}
             {stats.map((stat, index) => (
-              <StatCard 
+              <StatCard
                 key={index}
                 icon={stat.icon}
                 title={stat.title}

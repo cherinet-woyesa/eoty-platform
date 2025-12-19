@@ -57,7 +57,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
 
   const saveSearch = useCallback((query: string) => {
     if (!query.trim()) return;
-    
+
     const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
     setRecentSearches(updated);
     localStorage.setItem('dashboard_recent_searches', JSON.stringify(updated));
@@ -323,14 +323,13 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                 <button
                   key={filter.value}
                   onClick={() => handleQuickFilter(filter.value)}
-                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center ${
-                    filter.color === 'green' ? 'bg-green-50 text-green-700 hover:bg-green-100' :
+                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center ${filter.color === 'green' ? 'bg-green-50 text-green-700 hover:bg-green-100' :
                     filter.color === 'blue' ? 'bg-[#27AE60]/10 text-[#27AE60] hover:bg-[#27AE60]/20' :
-                    filter.color === 'purple' ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' :
-                    filter.color === 'orange' ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' :
-                    filter.color === 'red' ? 'bg-red-50 text-red-700 hover:bg-red-100' :
-                    'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                  }`}
+                      filter.color === 'purple' ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' :
+                        filter.color === 'orange' ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' :
+                          filter.color === 'red' ? 'bg-red-50 text-red-700 hover:bg-red-100' :
+                            'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}
                 >
                   {filter.label}
                 </button>
@@ -349,22 +348,29 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                 {results.map((result) => (
                   <div
                     key={result.id}
-                    className="p-3 border border-gray-200 rounded-lg hover:border-[#27AE60]/50 hover:shadow-sm transition-all cursor-pointer group"
+                    className="p-2 border border-gray-200 rounded-lg hover:border-[#27AE60]/50 hover:shadow-sm transition-all cursor-pointer group"
                     onClick={() => {
                       handleSearch(result.title);
                       // Navigate to relevant page
+                      const path = window.location.pathname;
+                      let prefix = '';
+                      if (path.includes('/admin')) prefix = '/admin';
+                      else if (path.includes('/teacher')) prefix = '/teacher';
+                      else if (path.includes('/member')) prefix = '/member';
+                      else prefix = '/member'; // Default fallback
+
                       switch (result.type) {
                         case 'course':
-                          navigate(`/member/courses/${result.id}`);
+                          navigate(`${prefix}/courses/${result.id}`);
                           break;
                         case 'chapter':
-                          navigate(`/member/chapters?chapterId=${result.id}`);
+                          navigate(`${prefix}/chapters?chapterId=${result.id}`);
                           break;
                         case 'resource':
-                          navigate(`/member/all-resources?resourceId=${result.id}`);
+                          navigate(`${prefix}/all-resources?resourceId=${result.id}`);
                           break;
                         case 'community':
-                          navigate('/member/community-hub');
+                          navigate(prefix === '/member' ? '/member/community' : `${prefix}/community`);
                           break;
                         default:
                           break;
@@ -396,7 +402,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                           {result.progress !== undefined && (
                             <div className="flex items-center space-x-1">
                               <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                                <div 
+                                <div
                                   className="bg-green-500 h-1.5 rounded-full"
                                   style={{ width: `${result.progress}%` }}
                                 />
@@ -410,7 +416,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({
                   </div>
                 ))}
               </div>
-              
+
               {/* No Results State */}
               {results.length === 0 && !loading && (
                 <div className="text-center py-6">

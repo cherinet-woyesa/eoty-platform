@@ -534,9 +534,14 @@ export const speechToText = {
     }
     
     // Check MIME type
-    const validTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg'];
-    if (!validTypes.includes(audioBlob.type) && audioBlob.type !== '') {
-      issues.push(`Unsupported audio format: ${audioBlob.type}. Supported: ${validTypes.join(', ')}`);
+    const validTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/webm;codecs=opus'];
+    const type = audioBlob.type.split(';')[0]; // Handle codecs parameter
+    
+    if (!validTypes.includes(type) && !validTypes.includes(audioBlob.type) && audioBlob.type !== '') {
+      // Allow if it starts with audio/ and we just missed the specific subtype
+      if (!audioBlob.type.startsWith('audio/')) {
+        issues.push(`Unsupported audio format: ${audioBlob.type}. Supported: ${validTypes.join(', ')}`);
+      }
     }
     
     return {

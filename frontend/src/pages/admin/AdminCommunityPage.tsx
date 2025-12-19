@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Users, Sparkles, ShieldAlert } from 'lucide-react';
+import { useLocation, Routes, Route, Link } from 'react-router-dom';
 import { useCommunityFeed } from '@/hooks/useCommunity';
 import CommunityHub from '@/pages/shared/social/CommunityHub';
 import StudyGroupsPage from '@/pages/student/community/StudyGroupsPage';
+import GroupDetailPage from '@/pages/student/community/GroupDetailPage';
 import Forums from '@/pages/shared/social/Forums';
+import DiscussionThread from '@/pages/shared/social/DiscussionThread';
 import { brandColors } from '@/theme/brand';
 
 const AdminCommunityPage: React.FC = () => {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'feed' | 'groups' | 'forums'>('feed');
+    const location = useLocation();
     const feed = useCommunityFeed();
 
-    // Admin might want to see moderation queue or other stats, 
-    // currently CommunityHub handles 'admin' variant for hero/actions.
+    const activeTab = useMemo(() => {
+        const path = location.pathname;
+        if (path.includes('/study-groups')) return 'groups';
+        if (path.includes('/forums')) return 'forums';
+        return 'feed';
+    }, [location.pathname]);
 
     return (
         <div className="w-full h-full">
@@ -32,55 +39,67 @@ const AdminCommunityPage: React.FC = () => {
                 {/* Tabs */}
                 <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-indigo-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
                     <nav className="flex border-b border-indigo-100 overflow-x-auto flex-shrink-0">
-                        <button
-                            onClick={() => setActiveTab('feed')}
+                        <Link
+                            to="/admin/community"
                             className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'feed'
-                                    ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                                ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                                : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
                             <Sparkles className="h-5 w-5" />
                             <span>{t('community.tabs.feed')}</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('groups')}
+                        </Link>
+                        <Link
+                            to="/admin/community/study-groups"
                             className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'groups'
-                                    ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                                ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                                : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
                             <Users className="h-5 w-5" />
                             <span>{t('community.tabs.groups')}</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('forums')}
+                        </Link>
+                        <Link
+                            to="/admin/community/forums"
                             className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'forums'
-                                    ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
-                                    : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                                ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
+                                : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
                                 }`}
                         >
                             <MessageSquare className="h-5 w-5" />
                             <span>{t('community.tabs.forums')}</span>
-                        </button>
+                        </Link>
                     </nav>
 
                     {/* Tab Content */}
                     <div className="flex-1 overflow-y-auto">
-                        {activeTab === 'feed' && (
-                            <div className="animate-in fade-in duration-300">
-                                <CommunityHub variant="admin" feedState={feed} showTabs={false} />
-                            </div>
-                        )}
-                        {activeTab === 'groups' && (
-                            <div className="animate-in fade-in duration-300">
-                                <StudyGroupsPage />
-                            </div>
-                        )}
-                        {activeTab === 'forums' && (
-                            <div className="animate-in fade-in duration-300">
-                                <Forums embedded />
-                            </div>
-                        )}
+                        <Routes>
+                            <Route index element={
+                                <div className="animate-in fade-in duration-300">
+                                    <CommunityHub variant="admin" feedState={feed} showTabs={false} />
+                                </div>
+                            } />
+                            <Route path="study-groups" element={
+                                <div className="animate-in fade-in duration-300">
+                                    <StudyGroupsPage embedded />
+                                </div>
+                            } />
+                            <Route path="study-groups/:groupId" element={
+                                <div className="animate-in fade-in duration-300">
+                                    <GroupDetailPage embedded />
+                                </div>
+                            } />
+                            <Route path="forums" element={
+                                <div className="animate-in fade-in duration-300">
+                                    <Forums embedded />
+                                </div>
+                            } />
+                            <Route path="forums/:discussionId/thread" element={
+                                <div className="animate-in fade-in duration-300">
+                                    <DiscussionThread embedded />
+                                </div>
+                            } />
+                        </Routes>
                     </div>
                 </div>
             </div>

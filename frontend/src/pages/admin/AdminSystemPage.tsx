@@ -27,66 +27,60 @@ const AdminSystemPage: React.FC = () => {
           <nav className="flex space-x-2 p-2 bg-white border-b border-slate-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('landing')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'landing'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'landing'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <FileEdit className="h-4 w-4" />
               <span className="text-sm">Landing Page</span>
             </button>
             <button
               onClick={() => setActiveTab('knowledge')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'knowledge'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'knowledge'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Book className="h-4 w-4" />
               <span className="text-sm">Knowledge Base</span>
             </button>
             <button
               onClick={() => setActiveTab('config')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'config'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'config'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Settings className="h-4 w-4" />
               <span className="text-sm">System Config</span>
             </button>
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'logs'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'logs'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <ShieldIcon className="h-4 w-4" />
               <span className="text-sm">Activity Logs</span>
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'analytics'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'analytics'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <BarChart2 className="h-4 w-4" />
               <span className="text-sm">Analytics</span>
             </button>
             <button
               onClick={() => setActiveTab('support')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'support'
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'support'
                   ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <LifeBuoy className="h-4 w-4" />
               <span className="text-sm">Support Tickets</span>

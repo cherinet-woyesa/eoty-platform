@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import {
     Users, Plus, X, Loader2,
-    Shield, RefreshCw, TrendingUp, ClipboardList,
+    Shield, RefreshCw, TrendingUp,
     Globe, BookOpen, Settings
 } from 'lucide-react';
 import { chaptersApi } from '@/services/api/chapters';
@@ -54,7 +54,7 @@ const ChaptersPage: React.FC = () => {
     const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '', is_pinned: false });
 
     // --- Queries ---
-    const { data: managedChapter, isLoading: isLoadingManaged } = useQuery({
+    const { data: managedChapter } = useQuery({
         queryKey: ['managed-chapter'],
         queryFn: chaptersApi.getManagedChapter,
         retry: false
@@ -92,7 +92,7 @@ const ChaptersPage: React.FC = () => {
 
     const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
         queryKey: ['event-attendance', selectedEventId],
-        queryFn: () => chaptersApi.getEventAttendance(managedChapter.id, selectedEventId!),
+        queryFn: () => chaptersApi.getEventAttendance(selectedEventId!),
         enabled: !!managedChapter && !!selectedEventId && showAttendanceModal
     });
 
@@ -100,65 +100,65 @@ const ChaptersPage: React.FC = () => {
     const startChapterMutation = useMutation({
         mutationFn: chaptersApi.createChapter,
         onSuccess: () => {
-            showNotification('success', t('chapters.start.success_msg'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.start.success_msg') });
             setShowStartChapterModal(false);
             queryClient.invalidateQueries({ queryKey: ['managed-chapter'] });
             setActiveTab('manage');
         },
-        onError: () => showNotification('error', t('chapters.start.error_msg'))
+        onError: () => showNotification({ type: 'error', title: 'Error', message: t('chapters.start.error_msg') })
     });
 
     const applyLeadershipMutation = useMutation({
-        mutationFn: (data: any) => chaptersApi.applyForLeadership(managedChapter.id, data),
+        mutationFn: (data: any) => chaptersApi.applyLeadership(data),
         onSuccess: () => {
-            showNotification('success', t('chapters.manage.apply_leadership.success_msg'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.manage.apply_leadership.success_msg') });
             setShowApplyLeadershipModal(false);
         },
-        onError: () => showNotification('error', t('chapters.manage.apply_leadership.error_msg'))
+        onError: () => showNotification({ type: 'error', title: 'Error', message: t('chapters.manage.apply_leadership.error_msg') })
     });
 
     const createEventMutation = useMutation({
         mutationFn: (data: any) => chaptersApi.createEvent(managedChapter.id, data),
         onSuccess: () => {
-            showNotification('success', t('chapters.manage.events_management.success_msg'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.manage.events_management.success_msg') });
             setShowCreateEventModal(false);
             queryClient.invalidateQueries({ queryKey: ['chapter-events'] });
         },
-        onError: () => showNotification('error', t('chapters.manage.events_management.error_msg'))
+        onError: () => showNotification({ type: 'error', title: 'Error', message: t('chapters.manage.events_management.error_msg') })
     });
 
     const createResourceMutation = useMutation({
         mutationFn: (data: any) => chaptersApi.createResource(managedChapter.id, data),
         onSuccess: () => {
-            showNotification('success', t('chapters.manage.resources_management.success_msg'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.manage.resources_management.success_msg') });
             setShowCreateResourceModal(false);
             queryClient.invalidateQueries({ queryKey: ['chapter-resources'] });
         },
-        onError: () => showNotification('error', t('chapters.manage.resources_management.error_msg'))
+        onError: () => showNotification({ type: 'error', title: 'Error', message: t('chapters.manage.resources_management.error_msg') })
     });
 
     const createAnnouncementMutation = useMutation({
         mutationFn: (data: any) => chaptersApi.createAnnouncement(managedChapter.id, data),
         onSuccess: () => {
-            showNotification('success', t('chapters.manage.announcements_management.success_msg'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.manage.announcements_management.success_msg') });
             setShowCreateAnnouncementModal(false);
             queryClient.invalidateQueries({ queryKey: ['chapter-announcements'] });
         },
-        onError: () => showNotification('error', t('chapters.manage.announcements_management.error_msg'))
+        onError: () => showNotification({ type: 'error', title: 'Error', message: t('chapters.manage.announcements_management.error_msg') })
     });
 
     const updateStatusMutation = useMutation({
         mutationFn: ({ userId, status }: { userId: number, status: string }) =>
-            chaptersApi.updateMemberStatus(managedChapter.id, userId, status),
+            chaptersApi.updateMemberStatus(managedChapter.id, userId, status as 'approved' | 'rejected'),
         onSuccess: () => {
-            showNotification('success', t('chapters.manage.member_management.update_success'));
+            showNotification({ type: 'success', title: 'Success', message: t('chapters.manage.member_management.update_success') });
             queryClient.invalidateQueries({ queryKey: ['chapter-members'] });
         }
     });
 
     const markAttendanceMutation = useMutation({
         mutationFn: ({ userId, status }: { userId: number, status: string }) =>
-            chaptersApi.markAttendance(managedChapter.id, selectedEventId!, userId, status),
+            chaptersApi.markAttendance(selectedEventId!, userId, status),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['event-attendance', selectedEventId] });
         }
@@ -167,11 +167,11 @@ const ChaptersPage: React.FC = () => {
     const awardBadgeMutation = useMutation({
         mutationFn: () => achievementsApi.awardBadge(selectedMemberId!, selectedBadgeId!),
         onSuccess: () => {
-            showNotification('success', 'Badge awarded successfully');
+            showNotification({ type: 'success', title: 'Success', message: 'Badge awarded successfully' });
             setSelectedBadgeId(null);
             setSelectedMemberId(null);
         },
-        onError: () => showNotification('error', 'Failed to award badge')
+        onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to award badge' })
     });
 
     // --- Handlers ---
@@ -296,12 +296,14 @@ const ChaptersPage: React.FC = () => {
                         {activeTab === 'manage' && managedChapter && (
                             <div className="mb-6">
                                 <QuickStats
-                                    memberCount={membersData?.data?.members?.length || 0}
-                                    eventCount={eventsData?.data?.events?.length || 0}
-                                    badgeCount={badgesData?.length || 0}
-                                    pendingRequests={pendingRequestsCount}
-                                />
-                            </div>
+                                        stats={{
+                                            total_members: membersData?.data?.members?.length || 0,
+                                            upcoming_events: eventsData?.data?.events?.length || 0,
+                                            active_discussions: 0,
+                                            resources_count: resourcesData?.data?.resources?.length || 0
+                                        }}
+                                    />
+                                </div>
                         )}
 
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -349,7 +351,9 @@ const ChaptersPage: React.FC = () => {
                                                     </div>
                                                     <ChapterMemberManagement
                                                         members={membersData?.data?.members || []}
-                                                        onUpdateStatus={(userId, status) => updateStatusMutation.mutate({ userId, status })}
+                                                        onApprove={(userId) => updateStatusMutation.mutate({ userId, status: 'approved' })}
+                                                        onReject={(userId) => updateStatusMutation.mutate({ userId, status: 'rejected' })}
+                                                        onRemove={(userId) => updateStatusMutation.mutate({ userId, status: 'rejected' })}
                                                         isLoading={isLoadingMembers}
                                                     />
                                                 </section>

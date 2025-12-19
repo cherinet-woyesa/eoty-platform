@@ -37,6 +37,8 @@ router.post('/', authenticateToken, upload.single('audio'), async (req, res) => 
 
     const { language = 'en-US' } = req.body;
 
+    console.log(`Speech-to-text request: ${req.file.mimetype}, size: ${req.file.size} bytes, language: ${language}`);
+
     // Map frontend language codes to Google Cloud Speech codes
     const languageMap = {
       'en-US': 'en-US',

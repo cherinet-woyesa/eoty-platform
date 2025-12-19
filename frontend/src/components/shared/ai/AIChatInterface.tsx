@@ -118,9 +118,21 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     audioQuality
   } = useAudioRecorder();
 
+  // Helper to normalize language codes
+  const normalizeLanguageCode = (lang: string | undefined | null): string | undefined => {
+    if (!lang) return undefined;
+    const map: Record<string, string> = {
+      'en': 'en-US',
+      'am': 'am-ET',
+      'ti': 'ti-ET',
+      'om': 'om-ET'
+    };
+    return map[lang] || lang;
+  };
+
   // UI-controlled language selection (overrides automatic detection when set)
   const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    detectedLanguage || i18n.language || speechToText.getUserLanguage() || 'en-US'
+    detectedLanguage || normalizeLanguageCode(i18n.language) || speechToText.getUserLanguage() || 'en-US'
   );
 
   // Enhanced auto-scroll to bottom
@@ -272,51 +284,26 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
       // Prefer explicit user-selected language when available, otherwise use detectedLanguage
       const recognitionLanguage = selectedLanguage || detectedLanguage || undefined;
 
-      // If user selected an Ethiopian language, prefer cloud transcription first for reliability
-      const ethiopianLangs = ['am-ET', 'ti-ET', 'om-ET'];
-      const prefersCloud = recognitionLanguage && ethiopianLangs.includes(recognitionLanguage as string);
-
-      if (prefersCloud) {
-        // Use cloud transcription first for Ethiopian languages
-        transcription = await speechToText.transcribeWithCloudService(audioBlob, recognitionLanguage || 'en-US');
-        setInput(transcription.transcript);
-        setDetectedLanguage(transcription.language || recognitionLanguage || null);
-        if (transcription.isFallback) {
-          setShowLanguageWarning(true);
-          setTimeout(() => setShowLanguageWarning(false), 5000);
-        }
-      } else {
-        // Browser-first flow for English and other supported languages
-        if (browserSupport.supported) {
-          transcription = await speechToText.startEnhancedBrowserRecognition(recognitionLanguage);
-
-          // Enhanced confidence handling
-          if (transcription.confidence < 0.7) {
-            setInput(`${transcription.transcript} ${t('ai.lowConfidence', '(Low confidence - please verify)')}`);
-          } else {
-            setInput(transcription.transcript);
-          }
-
-          setDetectedLanguage(transcription.language || recognitionLanguage || null);
-
-          // Enhanced language warning
-          if (transcription.isFallback) {
-            setShowLanguageWarning(true);
-            setTimeout(() => setShowLanguageWarning(false), 5000);
-          }
-        } else {
-          // Fallback to cloud service
-          transcription = await speechToText.transcribeAudio(audioBlob, recognitionLanguage || undefined);
-          setInput(transcription.transcript);
-          setDetectedLanguage(transcription.language || recognitionLanguage || null);
-        }
-      }
+      // Always use cloud transcription service since we have a recorded blob.
+      // Browser native SpeechRecognition cannot transcribe a pre-recorded blob; 
+      // it only works with live microphone input.
+      transcription = await speechToText.transcribeWithCloudService(audioBlob, recognitionLanguage || 'en-US');
       
-      // Enhanced auto-submit logic
-      if (transcription.confidence >= 0.6 && transcription.transcript.trim().length > 3) {
-        setTimeout(() => {
-          handleSubmitWithText(transcription.transcript);
-        }, 800);
+      // Seamless flow: Don't show transcript in input, just submit immediately
+      if (transcription.transcript && transcription.transcript.trim().length > 0) {
+        // Update detected language state for UI reference
+        setDetectedLanguage(transcription.language || recognitionLanguage || null);
+        
+        // Submit directly with the detected language
+        await handleSubmitWithText(transcription.transcript, transcription.language || recognitionLanguage || undefined);
+      } else {
+        // Handle silence or empty transcript
+        reportError(t('ai.no_speech', 'No speech detected. Please try again.'));
+      }
+
+      if (transcription.isFallback) {
+        setShowLanguageWarning(true);
+        setTimeout(() => setShowLanguageWarning(false), 5000);
       }
       
     } catch (err: any) {
@@ -349,15 +336,15 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     setInputRows(1);
   };
 
-  const handleSubmitWithText = async (text: string) => {
+  const handleSubmitWithText = async (text: string, languageOverride?: string) => {
     const derivedContext = {
       route: location.pathname,
       params,
       userRole: user?.role,
       userId: user?.id,
       language: i18n.language,
-      // prefer explicit selection, then detection
-      detectedLanguage: selectedLanguage || detectedLanguage || undefined,
+      // prefer explicit selection, then override, then detection
+      detectedLanguage: selectedLanguage || languageOverride || detectedLanguage || undefined,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       platform: navigator.platform
@@ -598,6 +585,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           >
             <option value="en-US">{t('ai.language_en', 'English (US)')}</option>
             <option value="am-ET">{t('ai.language_am', 'Amharic (Ethiopia)')}</option>
+            <option value="ti-ET">Tigrigna</option>
+            <option value="om-ET">Afan Oromo</option>
           </select>
           </div>
 
@@ -710,17 +699,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           </div>
         )}
 
-        {/* Guidance when input is vague */}
-        {isVague(input) && !isProcessing && (
-          <div className="flex justify-center">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 max-w-md w-full">
-              <div className="flex items-start">
-                <MessageCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                <span>{t('ai.vagueGuidance', 'For better results, add details. Example: "Explain the significance of fasting during [season]" or "How does this chapter relate to [topic]?"')}</span>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Messages */}
         {messages.map((message) => (
@@ -962,38 +941,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           </div>
         )}
 
-        {/* Enhanced Audio Recording Indicator */}
-        {isRecording && (
-          <div className="flex justify-center">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 max-w-md w-full shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-red-800">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                  </div>
-                  <div>
-                    <span className="font-medium">{t('ai.recording', 'Recording...')} {formatRecordingTime(recordingTime)}</span>
-                    <p className="text-xs text-red-600 mt-1">{t('ai.recording_hint', 'Click stop when finished')}</p>
-                  </div>
-                </div>
-                <Volume2 className="h-5 w-5 text-red-600" />
-              </div>
-              {detectedLanguage && (
-                <div className="text-xs text-red-600 mt-2 flex items-center">
-                  <Globe className="h-3 w-3 mr-1" />
-                  {speechToText.getLanguageDisplayName(detectedLanguage)}
-                </div>
-              )}
-              {audioQuality && (
-                <div className="text-xs text-red-500 mt-1">
-                  {t('ai.audio_quality_metrics', 'Quality: {{rate}}kHz, {{bitDepth}}bit', { rate: audioQuality.sampleRate/1000, bitDepth: audioQuality.bitDepth })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Enhanced Audio Transcription Indicator */}
         {isUsingAudio && (
@@ -1046,6 +994,25 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
         <form onSubmit={handleSubmit} className="flex space-x-3">
           <div className="flex-1 relative">
+            {isRecording && (
+              <div className="absolute inset-0 z-20 flex items-center justify-between px-4 bg-gray-50/95 rounded-xl backdrop-blur-sm border border-red-100">
+                <div className="flex items-center gap-3 text-red-600 font-medium">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                  <span>{t('ai.recording', 'Recording...')} {formatRecordingTime(recordingTime)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <div className="w-3 h-3 bg-red-600 rounded-sm" />
+                  {t('ai.stop', 'Stop')}
+                </button>
+              </div>
+            )}
             <textarea
               ref={textareaRef}
               value={input}

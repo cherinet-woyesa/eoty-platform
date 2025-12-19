@@ -260,7 +260,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
 
   return (
     <div className={embedded ? 'w-full' : 'min-h-screen bg-slate-50'}>
-      <div className={embedded ? 'w-full p-4' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'}>
+      <div className={embedded ? 'w-full p-4' : 'max-w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-6'}>
         {/* Header */}
         {!embedded && (
           <div className="mb-6">
@@ -441,12 +441,28 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
             </div>
           ) : filteredDiscussions.length > 0 ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {filteredDiscussions.map((discussion) => (
                   <DiscussionCard
                     key={discussion.id}
                     discussion={discussion}
-                    onClick={(id) => navigate(`/forums/${id}/thread`)}
+                    onClick={(id) => {
+                      // Dynamically determine the prefix to maintain context (Admin/Teacher/Member)
+                      const pathParts = window.location.pathname.split('/');
+                      const isCommunity = window.location.pathname.includes('/community');
+
+                      let prefix = '';
+                      if (pathParts[1] === 'admin') prefix = '/admin';
+                      else if (pathParts[1] === 'teacher') prefix = '/teacher';
+                      else if (pathParts[1] === 'member') prefix = '/member';
+
+                      if (isCommunity) {
+                        navigate(`${prefix}/community/forums/${id}/thread`);
+                      } else {
+                        // Fallback logic for root /forums or other structures
+                        navigate(`/forums/${id}/thread`);
+                      }
+                    }}
                     onTagClick={(tag) => setActiveTag(tag)}
                     onLike={(id) => handleLikeCard(id)}
                   />

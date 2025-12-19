@@ -25,7 +25,6 @@ import {
   X,
   Download
 } from 'lucide-react';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { Course } from '@/types/courses';
 
@@ -49,7 +48,7 @@ const AllCourses: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(20);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number; page: number; limit: number }>({
     total: 0,
     totalPages: 1,
@@ -405,7 +404,7 @@ const AllCourses: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={fetchCourses}
+            onClick={() => fetchCourses()}
             disabled={loading}
             className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
             style={{ borderColor: `${brandColors.primaryHex}40` }}
@@ -424,8 +423,8 @@ const AllCourses: React.FC = () => {
           </button>
           <button
             onClick={() => navigate('/admin/courses/create')}
-            className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
-            style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
+            className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:bg-opacity-90 active:scale-95"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             {t('courses.new_course', 'New Course')}

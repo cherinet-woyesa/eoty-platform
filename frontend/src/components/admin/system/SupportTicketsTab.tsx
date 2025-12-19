@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api/apiClient';
 import { format } from 'date-fns';
 import {
-  Mail, User, Clock, Tag, AlertCircle, Eye, X, CheckCircle,
-  MessageSquare, Search, Filter, RefreshCw, Send, ChevronRight,
+  Mail, Clock, Tag, CheckCircle,
+  MessageSquare, Search, RefreshCw, Send,
   MoreVertical, Archive
 } from 'lucide-react';
-import { brandColors } from '@/theme/brand';
 
 interface Ticket {
   id: number;
@@ -23,7 +22,6 @@ interface Ticket {
 const SupportTicketsTab: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
@@ -48,7 +46,6 @@ const SupportTicketsTab: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch tickets:', err);
-      setError('Failed to load support tickets');
     } finally {
       setLoading(false);
     }
@@ -78,9 +75,9 @@ const SupportTicketsTab: React.FC = () => {
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch =
-      ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (ticket.first_name + ' ' + ticket.last_name).toLowerCase().includes(searchTerm.toLowerCase());
+      (ticket.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (ticket.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (`${ticket.first_name || ''} ${ticket.last_name || ''}`).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || ticket.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -148,8 +145,8 @@ const SupportTicketsTab: React.FC = () => {
                   key={status}
                   onClick={() => setFilterStatus(status)}
                   className={`px-3 py-1 text-xs font-medium rounded-full capitalize whitespace-nowrap transition-colors ${filterStatus === status
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                 >
                   {status}
@@ -177,8 +174,8 @@ const SupportTicketsTab: React.FC = () => {
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${ticket.status === 'open' ? 'text-yellow-700 bg-yellow-50' :
-                        ticket.status === 'closed' ? 'text-gray-600 bg-gray-100' :
-                          'text-blue-700 bg-blue-50'
+                      ticket.status === 'closed' ? 'text-gray-600 bg-gray-100' :
+                        'text-blue-700 bg-blue-50'
                       }`}>
                       {ticket.status}
                     </span>
@@ -191,7 +188,7 @@ const SupportTicketsTab: React.FC = () => {
                   </h3>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500 truncate max-w-[120px]">
-                      {ticket.first_name} {ticket.last_name}
+                      {ticket.first_name || ''} {ticket.last_name || ''}
                     </span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider ${getTypeColor(ticket.type)}`}>
                       {ticket.type}
@@ -219,11 +216,11 @@ const SupportTicketsTab: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                      {selectedTicket.first_name[0]}
+                    <div className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                      {selectedTicket.first_name ? selectedTicket.first_name[0] : (selectedTicket.email ? selectedTicket.email[0] : '?')}
                     </div>
                     <span className="font-medium text-gray-900">
-                      {selectedTicket.first_name} {selectedTicket.last_name}
+                      {selectedTicket.first_name || ''} {selectedTicket.last_name || ''}
                     </span>
                     <span className="text-gray-400">&lt;{selectedTicket.email}&gt;</span>
                   </div>

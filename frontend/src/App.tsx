@@ -302,7 +302,7 @@ function AppContent() {
 
           {/* Consolidated Community Page - Feed | Groups | Forums | Chapters */}
           <Route
-            path="/member/community-hub"
+            path="/member/community"
             element={
               <StudentRoute>
                 <DashboardLayout>
@@ -949,7 +949,7 @@ function AppContent() {
           />
 
           <Route
-            path="/admin/community"
+            path="/admin/community/*"
             element={
               <AdminRoute>
                 <DashboardLayout>
@@ -1270,7 +1270,7 @@ function AppContent() {
           />
 
           <Route
-            path="/member/community"
+            path="/member/community/*"
             element={
               <StudentRoute>
                 <DashboardLayout>
@@ -1325,11 +1325,11 @@ function AppContent() {
 
           {/* Chapters Routes - Role-specific */}
           <Route
-            path="/teacher/chapters"
+            path="/teacher/community/*"
             element={
               <TeacherRoute>
                 <DashboardLayout>
-                  <ChaptersPage />
+                  <TeacherCommunityPage />
                 </DashboardLayout>
               </TeacherRoute>
             }

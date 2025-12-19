@@ -1122,6 +1122,15 @@ const authController = {
             db.raw('COALESCE(date_of_birth, NULL) as date_of_birth'),
             db.raw('COALESCE(is_public, true) as is_public'),
             db.raw('COALESCE(notification_preferences, \'{}\') as notification_preferences'),
+            db.raw('COALESCE(social_links, \'[]\') as social_links'),
+            db.raw('COALESCE(linked_accounts, \'[]\') as linked_accounts'),
+            db.raw('COALESCE(address, \'\') as address'),
+            db.raw('COALESCE(city, \'\') as city'),
+            db.raw('COALESCE(state, \'\') as state'),
+            db.raw('COALESCE(country, \'\') as country'),
+            db.raw('COALESCE(zip_code, \'\') as zip_code'),
+            db.raw('COALESCE(profile_visibility, \'public\') as profile_visibility'),
+            db.raw('COALESCE(share_location, false) as share_location'),
             'created_at',
             'is_2fa_enabled'
           )

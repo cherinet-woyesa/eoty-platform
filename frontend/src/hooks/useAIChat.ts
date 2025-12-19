@@ -1,6 +1,6 @@
 // frontend/src/hooks/useAIChat.ts
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { aiApi } from '@/services/api';
 
 export interface MessageMetadata {
@@ -70,11 +70,48 @@ interface ExtendedAIApi {
 }
 
 const useAIChat = (): UseAIChatReturn => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Initialize session ID from storage or create new
+  const [sessionId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_chat_session_id');
+      if (saved) return saved;
+      const newId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('ai_chat_session_id', newId);
+      return newId;
+    } catch {
+      return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+  });
+
+  // Initialize messages from storage
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem('ai_chat_messages');
+      if (saved) {
+        return JSON.parse(saved).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to load messages from storage', e);
+    }
+    return [];
+  });
+
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const sessionIdRef = useRef<string>(sessionId);
   const lastQuestionRef = useRef<{ question: string; context: any } | null>(null);
+
+  // Persist messages to storage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('ai_chat_messages', JSON.stringify(messages));
+    } catch (e) {
+      console.error('Failed to save messages to storage', e);
+    }
+  }, [messages]);
 
   const generateMessageId = (): string => {
     return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -242,25 +279,32 @@ const useAIChat = (): UseAIChatReturn => {
 
   const clearConversation = useCallback(async () => {
     try {
-      // Clear on server if method exists - FIXED OPTIONAL METHOD CHECK
+      // Clear on server if method exists
       if ('clearConversation' in aiApi && typeof aiApi.clearConversation === 'function') {
         await (aiApi as ExtendedAIApi).clearConversation!(sessionIdRef.current);
       }
       
-      // Clear locally
+      // Clear locally and storage
       setMessages([]);
       setError(null);
       lastQuestionRef.current = null;
+      localStorage.removeItem('ai_chat_messages');
       
       // Generate new session ID
-      sessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionIdRef.current = newId;
+      localStorage.setItem('ai_chat_session_id', newId);
     } catch (err) {
       console.error('Error clearing conversation:', err);
       // Still clear locally even if server call fails
       setMessages([]);
       setError(null);
       lastQuestionRef.current = null;
-      sessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.removeItem('ai_chat_messages');
+      
+      const newId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionIdRef.current = newId;
+      localStorage.setItem('ai_chat_session_id', newId);
     }
   }, []);
 

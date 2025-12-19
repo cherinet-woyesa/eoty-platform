@@ -153,8 +153,18 @@ class AIService {
         }
       }
 
-      // Detect language
-      const detectedLanguage = aiConfig.detectLanguage(question);
+      // Detect language - prefer explicit context from UI, fallback to auto-detection
+      let language = context.detectedLanguage || aiConfig.detectLanguage(question);
+      
+      // Normalize language code
+      if (language && typeof language === 'string') {
+        if (language.startsWith('am')) language = 'am';
+        else if (language.startsWith('ti')) language = 'ti';
+        else if (language.startsWith('om')) language = 'om';
+        else if (language.startsWith('en')) language = 'en';
+      } else {
+        language = 'en';
+      }
 
       // Enhance context with lesson/chapter awareness
       const enhancedContext = aiConfig.enhanceContext(question, context);
@@ -166,7 +176,7 @@ class AIService {
       const conversationContext = this.buildConversationContext(conversationHistory);
 
       // Construct prompt with faith alignment
-      const prompt = this.buildPrompt(question, enhancedContext, conversationContext, relevantContent, detectedLanguage);
+      const prompt = this.buildPrompt(question, enhancedContext, conversationContext, relevantContent, language);
 
       // Execute with rate limiting and timeout
       const result = await this.executeWithRateLimit(async () => {
@@ -209,7 +219,7 @@ class AIService {
         faithAlignment,
         cacheHit: false,
         processingTime,
-        detectedLanguage
+        detectedLanguage: language
       };
 
       // Cache successful responses
@@ -392,6 +402,11 @@ class AIService {
 
   // Build comprehensive prompt for Vertex AI
   buildPrompt(question, faithContext, conversationContext, relevantContent, language) {
+    let languageInstruction = 'Respond in English';
+    if (language === 'am') languageInstruction = 'Respond in Amharic';
+    else if (language === 'ti') languageInstruction = 'Respond in Tigrigna';
+    else if (language === 'om') languageInstruction = 'Respond in Afan Oromo';
+
     return `You are an AI assistant for the Ethiopian Orthodox Tewahedo Church education platform.
 
 ${faithContext}
@@ -402,7 +417,7 @@ ${conversationContext ? `CONVERSATION CONTEXT:\n${conversationContext}\n\n` : ''
 
 ${relevantContent ? `RELEVANT CONTENT:\n${relevantContent}\n\n` : ''}
 
-LANGUAGE: ${language === 'am' ? 'Respond in Amharic' : 'Respond in English'}
+LANGUAGE: ${languageInstruction}
 
 INSTRUCTIONS:
 - Provide doctrinally accurate responses aligned with Ethiopian Orthodox Tewahedo teachings

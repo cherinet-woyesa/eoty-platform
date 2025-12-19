@@ -10,7 +10,7 @@ import { brandColors } from '@/theme/brand';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
-const DiscussionThread: React.FC = () => {
+const DiscussionThread: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { discussionId } = useParams<{ discussionId: string }>();
@@ -222,7 +222,7 @@ const DiscussionThread: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className={`${embedded ? 'h-64' : 'min-h-screen bg-slate-50'} flex items-center justify-center`}>
         <div className="text-center space-y-4">
           <div className="h-10 w-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
           <p className="text-slate-500 font-medium">Loading conversation...</p>
@@ -233,12 +233,22 @@ const DiscussionThread: React.FC = () => {
 
   if (error || !topic) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className={`${embedded ? 'py-12' : 'min-h-screen bg-slate-50'} flex items-center justify-center p-4`}>
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center max-w-md w-full">
           <AlertTriangle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 mb-2">{t('community.discussion.not_found_title')}</h2>
           <p className="text-slate-600 mb-6">{error || t('community.discussion.not_found_body')}</p>
-          <button onClick={() => navigate('/community')} className="px-6 py-2.5 rounded-xl font-semibold text-white transition-colors" style={{ backgroundColor: brandColors.primaryHex }}>
+          <button
+            onClick={() => {
+              const currentPath = window.location.pathname;
+              if (currentPath.includes('/admin/community')) navigate('/admin/community');
+              else if (currentPath.includes('/teacher/community')) navigate('/teacher/community');
+              else if (currentPath.includes('/member/community')) navigate('/member/community');
+              else navigate('/community');
+            }}
+            className="px-6 py-2.5 rounded-xl font-semibold text-white transition-colors"
+            style={{ backgroundColor: brandColors.primaryHex }}
+          >
             {t('community.discussion.return_community')}
           </button>
         </div>
@@ -247,15 +257,15 @@ const DiscussionThread: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className={`${embedded ? '' : 'min-h-screen bg-gray-50/50 pb-20'} transition-all duration-300`}>
+      <div className={`${embedded ? 'px-4 py-2 sm:px-6' : 'max-w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-8'}`}>
         {/* Breadcrumb / Back */}
-        <div className="mb-6">
+        <div className="mb-4">
           <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
             {t('community.discussion.back')}
           </button>
         </div>
@@ -267,21 +277,17 @@ const DiscussionThread: React.FC = () => {
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 sm:p-8">
                 {/* Topic Header */}
-                <div className="flex items-start justify-between gap-4 mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold text-xl border-2 border-white shadow-md">
-                      {topic.author_name ? topic.author_name.charAt(0).toUpperCase() : <User className="h-7 w-7" />}
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold text-lg border-2 border-white shadow-sm">
+                      {topic.author_name ? topic.author_name.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
                     </div>
                     <div>
-                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-1">{topic.title}</h1>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span className="font-semibold text-gray-900">{topic.author_name || 'Member'}</span>
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight tracking-tight mb-1">{topic.title}</h1>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                        <span className="text-gray-900">{topic.author_name || 'Member'}</span>
                         <span className="text-gray-300">•</span>
-                        <span>{new Date(topic.created_at || Date.now()).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}</span>
+                        <span>{new Date(topic.created_at || Date.now()).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
@@ -317,8 +323,8 @@ const DiscussionThread: React.FC = () => {
                     onClick={handleLikeTopic}
                     disabled={likedTopic}
                     className={`flex items-center gap-2 transition-all font-semibold ${likedTopic
-                        ? 'text-rose-600'
-                        : 'text-gray-500 hover:text-rose-600 hover:scale-105'
+                      ? 'text-rose-600'
+                      : 'text-gray-500 hover:text-rose-600 hover:scale-105'
                       }`}
                   >
                     <Heart className={`h-6 w-6 ${likedTopic ? 'fill-current' : ''}`} />
@@ -493,15 +499,24 @@ const DiscussionThread: React.FC = () => {
               </h3>
               {relatedTopics.length > 0 ? (
                 <div className="space-y-4">
-                  {relatedTopics.map((item) => (
-                    <a key={item.id} href={`/forums/${item.id}/thread`} className="block group p-4 rounded-2xl hover:bg-indigo-50/50 transition-all border border-transparent hover:border-indigo-100">
-                      <h4 className="text-sm font-bold text-gray-800 group-hover:text-indigo-700 transition-colors line-clamp-2 mb-2 leading-snug">{item.title}</h4>
-                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300"></div>
-                        {new Date(item.lastActivity).toLocaleDateString()}
-                      </p>
-                    </a>
-                  ))}
+                  {relatedTopics.map((item) => {
+                    const currentPath = window.location.pathname;
+                    let link = `/forums/${item.id}/thread`;
+
+                    if (currentPath.includes('/admin/community')) link = `/admin/community/forums/${item.id}/thread`;
+                    else if (currentPath.includes('/teacher/community')) link = `/teacher/community/forums/${item.id}/thread`;
+                    else if (currentPath.includes('/member/community')) link = `/member/community/forums/${item.id}/thread`;
+
+                    return (
+                      <a key={item.id} href={link} className="block group p-4 rounded-2xl hover:bg-indigo-50/50 transition-all border border-transparent hover:border-indigo-100">
+                        <h4 className="text-sm font-bold text-gray-800 group-hover:text-indigo-700 transition-colors line-clamp-2 mb-2 leading-snug">{item.title}</h4>
+                        <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-300"></div>
+                          {new Date(item.lastActivity).toLocaleDateString()}
+                        </p>
+                      </a>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 italic text-center py-4">{t('community.discussion.no_related')}</p>

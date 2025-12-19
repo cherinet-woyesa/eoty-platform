@@ -12,7 +12,6 @@ import {
   Edit3,
   Plus,
   X,
-  Check,
   Trash2,
   ChevronDown,
   ChevronUp,
@@ -79,20 +78,27 @@ const LandingPageEditor: React.FC = () => {
       console.log('[LandingPageEditor] Upload response:', response);
 
       if (response.success) {
-        setLandingContent(prev => {
-          const newVideos = [...(prev.videos || [])];
+        setLandingContent((prev: any) => {
+          const section = prev.videos || {};
+          const videoList = [...(section.videos || [])];
+
           // Ensure the index exists
-          if (!newVideos[index]) {
+          if (!videoList[index]) {
             console.error('[LandingPageEditor] Video index not found in state:', index);
             alert('Error: Video index not found. Please refresh and try again.');
             return prev;
           }
-          newVideos[index] = {
-            ...newVideos[index],
+
+          videoList[index] = {
+            ...videoList[index],
             videoUrl: response.data.videoUrl
           };
+
           console.log('[LandingPageEditor] State updated with URL:', response.data.videoUrl);
-          return { ...prev, videos: newVideos };
+          return {
+            ...prev,
+            videos: { ...section, videos: videoList }
+          };
         });
         alert('Video uploaded successfully!');
       } else {
@@ -210,7 +216,7 @@ const LandingPageEditor: React.FC = () => {
 
       const response = await adminApi.updateLandingContent(sectionId, content);
       if (response.success) {
-        setLandingContent(prev => ({
+        setLandingContent((prev: any) => ({
           ...prev,
           [sectionId]: content
         }));
@@ -246,7 +252,7 @@ const LandingPageEditor: React.FC = () => {
                     <input
                       type="text"
                       value={currentContent.badge || ''}
-                      onChange={(e) => setLandingContent(prev => ({
+                      onChange={(e) => setLandingContent((prev: any) => ({
                         ...prev,
                         hero: { ...prev.hero, badge: e.target.value }
                       }))}
@@ -259,7 +265,7 @@ const LandingPageEditor: React.FC = () => {
                     <input
                       type="text"
                       value={currentContent.title || ''}
-                      onChange={(e) => setLandingContent(prev => ({
+                      onChange={(e) => setLandingContent((prev: any) => ({
                         ...prev,
                         hero: { ...prev.hero, title: e.target.value }
                       }))}
@@ -274,7 +280,7 @@ const LandingPageEditor: React.FC = () => {
                   <input
                     type="text"
                     value={currentContent.titleGradient || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       hero: { ...prev.hero, titleGradient: e.target.value }
                     }))}
@@ -287,7 +293,7 @@ const LandingPageEditor: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Subheading / Description</label>
                   <textarea
                     value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       hero: { ...prev.hero, description: e.target.value }
                     }))}
@@ -304,7 +310,7 @@ const LandingPageEditor: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={currentContent.showVideo || false}
-                        onChange={(e) => setLandingContent(prev => ({
+                        onChange={(e) => setLandingContent((prev: any) => ({
                           ...prev,
                           hero: { ...prev.hero, showVideo: e.target.checked }
                         }))}
@@ -320,7 +326,7 @@ const LandingPageEditor: React.FC = () => {
                           <input
                             type="text"
                             value={currentContent.videoUrl || ''}
-                            onChange={(e) => setLandingContent(prev => ({
+                            onChange={(e) => setLandingContent((prev: any) => ({
                               ...prev,
                               hero: { ...prev.hero, videoUrl: e.target.value }
                             }))}
@@ -364,7 +370,7 @@ const LandingPageEditor: React.FC = () => {
                     <input
                       type="text"
                       value={currentContent.badge || ''}
-                      onChange={(e) => setLandingContent(prev => ({
+                      onChange={(e) => setLandingContent((prev: any) => ({
                         ...prev,
                         about: { ...prev.about, badge: e.target.value }
                       }))}
@@ -377,7 +383,7 @@ const LandingPageEditor: React.FC = () => {
                     <input
                       type="text"
                       value={currentContent.title || ''}
-                      onChange={(e) => setLandingContent(prev => ({
+                      onChange={(e) => setLandingContent((prev: any) => ({
                         ...prev,
                         about: { ...prev.about, title: e.target.value }
                       }))}
@@ -389,7 +395,7 @@ const LandingPageEditor: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
                       value={currentContent.description || ''}
-                      onChange={(e) => setLandingContent(prev => ({
+                      onChange={(e) => setLandingContent((prev: any) => ({
                         ...prev,
                         about: { ...prev.about, description: e.target.value }
                       }))}
@@ -407,7 +413,7 @@ const LandingPageEditor: React.FC = () => {
                     <button
                       onClick={() => {
                         const newFeatures = [...(currentContent.features || []), { icon: 'Target', title: '', description: '' }];
-                        setLandingContent(prev => ({
+                        setLandingContent((prev: any) => ({
                           ...prev,
                           about: { ...prev.about, features: newFeatures }
                         }));
@@ -424,7 +430,7 @@ const LandingPageEditor: React.FC = () => {
                         <button
                           onClick={() => {
                             const newFeatures = currentContent.features.filter((_: any, i: number) => i !== index);
-                            setLandingContent(prev => ({
+                            setLandingContent((prev: any) => ({
                               ...prev,
                               about: { ...prev.about, features: newFeatures }
                             }));
@@ -442,7 +448,7 @@ const LandingPageEditor: React.FC = () => {
                               onChange={(e) => {
                                 const newFeatures = [...currentContent.features];
                                 newFeatures[index].title = e.target.value;
-                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
+                                setLandingContent((prev: any) => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
                               }}
                               className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
                               placeholder="Feature Title"
@@ -456,7 +462,7 @@ const LandingPageEditor: React.FC = () => {
                               onChange={(e) => {
                                 const newFeatures = [...currentContent.features];
                                 newFeatures[index].icon = e.target.value;
-                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
+                                setLandingContent((prev: any) => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
                               }}
                               className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
                               placeholder="e.g. Target, Users, Book"
@@ -469,7 +475,7 @@ const LandingPageEditor: React.FC = () => {
                               onChange={(e) => {
                                 const newFeatures = [...currentContent.features];
                                 newFeatures[index].description = e.target.value;
-                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
+                                setLandingContent((prev: any) => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
                               }}
                               rows={2}
                               className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
@@ -518,7 +524,7 @@ const LandingPageEditor: React.FC = () => {
                   <input
                     type="text"
                     value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'how-it-works': { ...prev['how-it-works'], title: e.target.value }
                     }))}
@@ -530,7 +536,7 @@ const LandingPageEditor: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'how-it-works': { ...prev['how-it-works'], description: e.target.value }
                     }))}
@@ -547,7 +553,7 @@ const LandingPageEditor: React.FC = () => {
                     <button
                       onClick={() => {
                         const newSteps = [...(currentContent.steps || []), { title: '', description: '', icon: 'Check' }];
-                        setLandingContent(prev => ({
+                        setLandingContent((prev: any) => ({
                           ...prev,
                           'how-it-works': { ...prev['how-it-works'], steps: newSteps }
                         }));
@@ -564,7 +570,7 @@ const LandingPageEditor: React.FC = () => {
                         <button
                           onClick={() => {
                             const newSteps = currentContent.steps.filter((_: any, i: number) => i !== index);
-                            setLandingContent(prev => ({
+                            setLandingContent((prev: any) => ({
                               ...prev,
                               'how-it-works': { ...prev['how-it-works'], steps: newSteps }
                             }));
@@ -588,7 +594,7 @@ const LandingPageEditor: React.FC = () => {
                                 onChange={(e) => {
                                   const newSteps = [...currentContent.steps];
                                   newSteps[index].title = e.target.value;
-                                  setLandingContent(prev => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
+                                  setLandingContent((prev: any) => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
                                 }}
                                 className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
                                 placeholder="Step Title"
@@ -601,7 +607,7 @@ const LandingPageEditor: React.FC = () => {
                                 onChange={(e) => {
                                   const newSteps = [...currentContent.steps];
                                   newSteps[index].description = e.target.value;
-                                  setLandingContent(prev => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
+                                  setLandingContent((prev: any) => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
                                 }}
                                 rows={2}
                                 className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
@@ -650,7 +656,7 @@ const LandingPageEditor: React.FC = () => {
                   <input
                     type="text"
                     value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'featured-courses': { ...prev['featured-courses'], title: e.target.value }
                     }))}
@@ -674,7 +680,7 @@ const LandingPageEditor: React.FC = () => {
                               : featuredCourseIds.filter(id => id !== parseInt(course.id));
                             setFeaturedCourseIds(newIds);
                             // Also update content state if needed for strict saving
-                            setLandingContent(prev => ({
+                            setLandingContent((prev: any) => ({
                               ...prev,
                               'featured-courses': { ...prev['featured-courses'], courseIds: newIds }
                             }));
@@ -716,24 +722,39 @@ const LandingPageEditor: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-1">Manage downloadable resources and materials.</p>
               </div>
               <div className="p-6 space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
-                  <input
-                    type="text"
-                    value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      'resources': { ...prev['resources'], title: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="e.g. Free Resources"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                    <input
+                      type="text"
+                      value={currentContent.badge || ''}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'resources': { ...prev['resources'], badge: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g. Resources"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                    <input
+                      type="text"
+                      value={currentContent.title || ''}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'resources': { ...prev['resources'], title: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g. Free Resources"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'resources': { ...prev['resources'], description: e.target.value }
                     }))}
@@ -761,46 +782,224 @@ const LandingPageEditor: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                <h3 className="text-lg font-semibold text-gray-900">Video Section</h3>
-                <p className="text-sm text-gray-500 mt-1">Manage featured videos and tutorials.</p>
-              </div>
-              <div className="p-6 space-y-6">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
-                  <input
-                    type="text"
-                    value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      'videos': { ...prev['videos'], title: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="e.g. Latest Videos"
-                  />
+                  <h3 className="text-lg font-semibold text-gray-900">Video Section</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage featured videos and tutorials.</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      'videos': { ...prev['videos'], description: e.target.value }
-                    }))}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="Section description..."
-                  />
+                <button
+                  onClick={() => {
+                    const newVideos = [...(Array.isArray(currentContent.videos) ? currentContent.videos : []), { title: '', description: '', thumbnail: '', videoUrl: '' }];
+                    setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                    setExpandedVideo(newVideos.length - 1);
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
+                >
+                  <Plus className="h-4 w-4" /> Add Video
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-gray-100">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                    <input
+                      type="text"
+                      value={currentContent.title || ''}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'videos': { ...prev['videos'], title: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g. Featured Videos"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={currentContent.description || ''}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'videos': { ...prev['videos'], description: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Section description..."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(Array.isArray(currentContent.videos) ? currentContent.videos : []).map((video: any, index: number) => (
+                    <div key={index} className="border border-gray-200 rounded-lg bg-white overflow-hidden transition-all duration-200 hover:shadow-md">
+                      <div
+                        className="flex items-center justify-between p-4 cursor-pointer bg-gray-50/50 hover:bg-gray-50"
+                        onClick={() => setExpandedVideo(expandedVideo === index ? null : index)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                            {video.thumbnail ? (
+                              <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-gray-400">
+                                <PlayCircle className="h-5 w-5" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{video.title || 'Untitled Video'}</h4>
+                            <p className="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-xs">{video.videoUrl || 'No URL set'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Are you sure you want to remove this video?')) {
+                                const newVideos = [...currentContent.videos];
+                                newVideos.splice(index, 1);
+                                setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                              }
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          {expandedVideo === index ? (
+                            <ChevronUp className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                      </div>
+
+                      {expandedVideo === index && (
+                        <div className="p-4 border-t border-gray-100 bg-white animate-in slide-in-from-top-2 duration-200">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                              <input
+                                type="text"
+                                value={video.title || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent.videos];
+                                  newVideos[index] = { ...video, title: e.target.value };
+                                  setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="Video Title"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Video Source</label>
+                              <div className="flex space-x-4 mb-2">
+                                <button
+                                  onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'youtube' }))}
+                                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${(videoSourceTypes[index] || 'youtube') === 'youtube'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                  YouTube Link
+                                </button>
+                                <button
+                                  onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'upload' }))}
+                                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${videoSourceTypes[index] === 'upload'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                  Upload Video
+                                </button>
+                              </div>
+
+                              {(videoSourceTypes[index] || 'youtube') === 'youtube' ? (
+                                <input
+                                  type="text"
+                                  value={video.videoUrl || ''}
+                                  onChange={(e) => {
+                                    const newVideos = [...currentContent.videos];
+                                    newVideos[index] = { ...video, videoUrl: e.target.value };
+                                    setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                                  }}
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                  placeholder="https://youtube.com/..."
+                                />
+                              ) : (
+                                <div className="flex items-center space-x-4">
+                                  <input
+                                    type="file"
+                                    accept="video/*"
+                                    onChange={(e) => handleVideoUpload(e, index)}
+                                    disabled={uploadingVideoIndex === index}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50"
+                                  />
+                                  {uploadingVideoIndex === index && <span className="text-xs text-indigo-600 animate-pulse">Uploading...</span>}
+                                </div>
+                              )}
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                              <textarea
+                                value={video.description || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent.videos];
+                                  newVideos[index] = { ...video, description: e.target.value };
+                                  setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                                }}
+                                rows={2}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="Brief description..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
+                              <input
+                                type="text"
+                                value={video.thumbnail || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent.videos];
+                                  newVideos[index] = { ...video, thumbnail: e.target.value };
+                                  setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="https://..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                              <input
+                                type="text"
+                                value={video.author || ''}
+                                onChange={(e) => {
+                                  const newVideos = [...currentContent.videos];
+                                  newVideos[index] = { ...video, author: e.target.value };
+                                  setLandingContent((prev: any) => ({ ...prev, videos: { ...prev.videos, videos: newVideos } }));
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="Author name"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {(Array.isArray(currentContent.videos) ? currentContent.videos : []).length === 0 && (
+                    <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                      No videos added yet.
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('videos', currentContent)}
-                  disabled={saving}
+                  disabled={saving || uploadingVideoIndex !== null}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Videos'}
+                  {saving ? 'Saving...' : (uploadingVideoIndex !== null ? 'Uploading...' : 'Save Videos')}
                 </button>
               </div>
             </div>
@@ -816,24 +1015,51 @@ const LandingPageEditor: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-1">Configure the blog highlights section.</p>
               </div>
               <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                    <input
+                      type="text"
+                      value={currentContent.badge || ''}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'blogs': { ...prev['blogs'], badge: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g. Latest News"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Posts Count</label>
+                    <input
+                      type="number"
+                      value={currentContent.count || 3}
+                      onChange={(e) => setLandingContent((prev: any) => ({
+                        ...prev,
+                        'blogs': { ...prev['blogs'], count: parseInt(e.target.value) }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
                   <input
                     type="text"
                     value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'blogs': { ...prev['blogs'], title: e.target.value }
                     }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="e.g. Latest News"
+                    placeholder="e.g. From Our Blog"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
+                    onChange={(e) => setLandingContent((prev: any) => ({
                       ...prev,
                       'blogs': { ...prev['blogs'], description: e.target.value }
                     }))}

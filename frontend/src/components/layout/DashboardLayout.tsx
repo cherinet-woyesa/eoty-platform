@@ -37,7 +37,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   // Base members (user/legacy student) use the student dashboard/sidebar
   const isStudent = user?.role === 'user' || user?.role === 'student';
-  
+
   // Check if current route is admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
@@ -81,34 +81,65 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
     setSidebarOpen(false);
   }, []);
 
-  // Render appropriate sidebar based on user role and route
+  // Render appropriate sidebar based on route prefix first, then fallback to user role
   const renderSidebar = () => {
+    const isTeacherRoute = location.pathname.startsWith('/teacher');
+    const isStudentRoute = location.pathname.startsWith('/member') || location.pathname.startsWith('/classroom') || location.pathname.startsWith('/catalog');
+
     if (isAdminRoute && isAdminUser) {
       return (
-        <AdminSidebar 
-          isCollapsed={sidebarCollapsed} 
-          onToggleCollapse={handleToggleSidebar} 
+        <AdminSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+        />
+      );
+    }
+
+    if (isTeacherRoute && isTeacher) {
+      return (
+        <TeacherSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+        />
+      );
+    }
+
+    if (isStudentRoute) {
+      return (
+        <StudentSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+        />
+      );
+    }
+
+    // Fallback based on role if no specific prefix matched
+    if (isAdminUser) {
+      return (
+        <AdminSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
         />
       );
     } else if (isTeacher) {
       return (
-        <TeacherSidebar 
-          isCollapsed={sidebarCollapsed} 
-          onToggleCollapse={handleToggleSidebar} 
+        <TeacherSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
         />
       );
     } else if (isStudent) {
       return (
-        <StudentSidebar 
-          isCollapsed={sidebarCollapsed} 
-          onToggleCollapse={handleToggleSidebar} 
+        <StudentSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
         />
       );
     } else {
       return (
-        <Sidebar 
-          isCollapsed={sidebarCollapsed} 
-          onToggleCollapse={handleToggleSidebar} 
+        <Sidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
         />
       );
     }
@@ -125,7 +156,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
   return (
     <div className="flex h-screen w-screen bg-[#fdfbf7]">
       {/* Sidebar - Dynamic width based on collapse state */}
-      <div 
+      <div
         className={`
           fixed inset-y-0 left-0 z-40 
           lg:static lg:z-auto
@@ -145,28 +176,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Sticky header */}
         {!hideHeader && (
-          <Header 
+          <Header
             onToggleSidebar={handleMobileSidebarToggle}
             sidebarCollapsed={sidebarCollapsed}
           />
         )}
-        
+
         {/* Main content - Full width with proper scrolling */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-transparent flex flex-col">
           {/* Content container - Full width, no max-width constraints */}
           <div className="w-full flex-1 min-h-full">
             {children}
           </div>
-          
+
           {/* Footer */}
-         
+
         </main>
       </div>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black/20 z-30 backdrop-blur-sm transition-opacity duration-300" 
+        <div
+          className="lg:hidden fixed inset-0 bg-black/20 z-30 backdrop-blur-sm transition-opacity duration-300"
           onClick={handleOverlayClick}
           aria-hidden="true"
         />
@@ -174,7 +205,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
 
       {/* Onboarding Components */}
       {/* Reminder notifications (REQUIREMENT: Follow-up reminders) */}
-      <ReminderNotification 
+      <ReminderNotification
         onResume={() => {
           // Open onboarding modal when user clicks resume (REQUIREMENT: Auto-resume)
           setShowOnboardingModal(true);
@@ -182,7 +213,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideHeader 
       />
 
       {showWelcome && user && (
-        <WelcomeMessage 
+        <WelcomeMessage
           userName={user.firstName}
           onDismiss={handleDismissWelcome}
           onStartOnboarding={() => {
