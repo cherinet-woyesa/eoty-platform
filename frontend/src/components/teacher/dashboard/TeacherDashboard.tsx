@@ -16,6 +16,7 @@ import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 import CreateAnnouncementModal from '@/components/admin/dashboard/modals/CreateAnnouncementModal';
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
 import { useQuery } from '@tanstack/react-query';
+import { brandColors } from '@/theme/brand';
 
 // Types
 interface TeacherStats {
@@ -237,14 +238,15 @@ const TeacherDashboard: React.FC = () => {
 
   if (!user || user.role !== 'teacher') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white rounded-xl p-8 border border-gray-200 shadow-lg">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-stone-800 mb-2">{t('dashboard.teacher.access_denied_title')}</h3>
-          <p className="text-stone-600 mb-4">{t('dashboard.teacher.access_denied_message')}</p>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('dashboard.teacher.access_denied_title')}</h3>
+          <p className="text-gray-600 mb-4">{t('dashboard.teacher.access_denied_message')}</p>
           <Link
             to="/login"
-            className="px-6 py-3 bg-indigo-900 text-white font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg"
+            className="px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             {t('dashboard.teacher.go_to_login')}
           </Link>
@@ -259,14 +261,15 @@ const TeacherDashboard: React.FC = () => {
 
   if (queryError && teacherData.totalCourses === 0 && teacherData.totalLessons === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md bg-white/90 backdrop-blur-md rounded-xl p-8 border border-stone-200 shadow-lg">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md bg-white rounded-xl p-8 border border-gray-200 shadow-lg">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-stone-800 mb-2">{t('dashboard.teacher.unable_to_load_title')}</h3>
-          <p className="text-stone-600 mb-4">{error || t('dashboard.teacher.unable_to_load_message')}</p>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('dashboard.teacher.unable_to_load_title')}</h3>
+          <p className="text-gray-600 mb-4">{error || t('dashboard.teacher.unable_to_load_message')}</p>
           <button 
             onClick={handleRetry}
-            className="px-6 py-3 bg-indigo-900 text-white font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg"
+            className="px-6 py-3 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             {t('dashboard.teacher.try_again')}
           </button>
@@ -286,19 +289,16 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+      <div className="w-full space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-indigo-900/5 via-blue-900/5 to-slate-900/5 rounded-lg p-4 border border-indigo-900/10 shadow-lg backdrop-blur-sm">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-indigo-900/20 rounded-lg blur-md"></div>
-                  <div className="relative p-1.5 bg-gradient-to-br from-indigo-900/10 to-blue-900/10 rounded-lg border border-indigo-900/20">
-                    <BookOpen className="h-5 w-5 text-indigo-900" />
-                  </div>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+                  <BookOpen className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
                 </div>
-                <h1 className="text-2xl font-bold text-stone-800">{t('dashboard.teacher.title', 'Teacher Dashboard')}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.teacher.title', 'Teacher Dashboard')}</h1>
                 {isConnected && (
                   <div className="flex items-center space-x-2 text-emerald-600">
                     <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
@@ -306,31 +306,33 @@ const TeacherDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
-              <p className="text-stone-700 text-sm mt-1">
+              <p className="text-gray-600 text-sm mt-1">
                 {t('dashboard.teacher.welcome_back', { name: user?.firstName || t('dashboard.teacher.default_teacher_name') })}! {formatDate(currentTime)} • {formatTime(currentTime)}
               </p>
-              <p className="text-stone-600 text-xs">
+              <p className="text-gray-500 text-xs mt-1">
                 {t('dashboard.teacher.overview_summary', { students: teacherData.totalStudentsEnrolled, courses: teacherData.totalCourses })}
               </p>
-              <div className="flex items-center gap-2 text-xs text-stone-600 mt-2">
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full border ${isLoading ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-stone-200 bg-white/70 text-stone-700'}`}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full border ${isLoading ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
                   <span className={`h-2 w-2 rounded-full ${isLoading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-600'}`} />
                   {isLoading ? t('admin.dashboard.updating') : t('admin.dashboard.synced')}
                 </div>
-                <span className="text-stone-500">Last updated {lastUpdatedLabel}</span>
+                <span className="text-gray-400">Last updated {lastUpdatedLabel}</span>
               </div>
             </div>
-            <div className="mt-3 lg:mt-0 flex flex-wrap gap-2">
+            <div className="mt-4 lg:mt-0 flex flex-wrap gap-3">
               <Link
                 to="/teacher/courses"
-                className="inline-flex items-center px-4 py-2 bg-indigo-900 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-indigo-800 transition-all"
+                className="inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg shadow-sm transition-all hover:shadow-md"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <BookOpen className="mr-2 h-4 w-4" />
                 {t('dashboard.teacher.manage_courses')}
               </Link>
               <Link
                 to="/teacher/all-students"
-                className="inline-flex items-center px-4 py-2 bg-white text-indigo-900 text-sm font-medium rounded-lg border border-indigo-200 shadow-sm hover:bg-indigo-50 transition-all"
+                className="inline-flex items-center px-4 py-2 bg-white text-sm font-medium rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 transition-all"
+                style={{ color: brandColors.primaryHex, borderColor: `${brandColors.primaryHex}33` }}
               >
                 <Users className="mr-2 h-4 w-4" />
                 {t('dashboard.teacher.view_students')}
@@ -342,19 +344,20 @@ const TeacherDashboard: React.FC = () => {
         <TeacherMetrics stats={teacherData} />
 
         {teacherData.totalCourses === 0 && !isLoading && (
-          <section className="rounded-xl border border-dashed border-indigo-200 bg-white/50 p-8 text-center shadow-sm backdrop-blur-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 border border-indigo-100">
-              <BookOpen className="h-8 w-8 text-indigo-900" />
+          <section className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
+              <BookOpen className="h-8 w-8 text-gray-400" />
             </div>
-            <h2 className="mt-4 text-xl font-semibold text-stone-800">
+            <h2 className="mt-4 text-xl font-semibold text-gray-900">
               {t('dashboard.teacher.start_teaching_title', 'Start Your Teaching Journey')}
             </h2>
-            <p className="mt-2 text-stone-600 max-w-md mx-auto">
+            <p className="mt-2 text-gray-500 max-w-md mx-auto">
               {t('dashboard.teacher.start_teaching_desc', 'Create your first course to start sharing your knowledge with students.')}
             </p>
             <Link
               to="/teacher/courses"
-              className="mt-6 inline-flex items-center rounded-lg bg-indigo-900 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-800 hover:shadow-lg"
+              className="mt-6 inline-flex items-center rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <Plus className="mr-2 h-5 w-5" />
               {t('dashboard.teacher.create_first_course_btn', 'Create Course')}
@@ -363,7 +366,7 @@ const TeacherDashboard: React.FC = () => {
         )}
 
         {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (
-          <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between backdrop-blur-sm">
+          <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold text-amber-900">
                 {t('dashboard.teacher.complete_profile_title')}
@@ -389,14 +392,14 @@ const TeacherDashboard: React.FC = () => {
           </section>
         )}
 
-        <section className="rounded-xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-stone-800">
+            <h3 className="text-lg font-semibold text-gray-900">
               {t('dashboard.teacher.quick_actions')}
             </h3>
             <button
               onClick={handleRetry}
-              className="inline-flex items-center rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-800 bg-white"
+              className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:text-gray-900 bg-white hover:bg-gray-50"
             >
               <RefreshCw className="mr-2 h-3.5 w-3.5" />
               {t('dashboard.teacher.refresh_data')}
@@ -404,51 +407,59 @@ const TeacherDashboard: React.FC = () => {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link
-              to="/teacher/all-courses"
-              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
+              to="/teacher/courses"
+              className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition hover:bg-white hover:shadow-md"
+              style={{ ':hover': { borderColor: `${brandColors.primaryHex}4D` } } as React.CSSProperties}
             >
               <div>
-                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.manage_courses')}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.manage_courses_desc')}</p>
+                <p className="text-sm font-semibold text-gray-900">{t('dashboard.teacher.manage_courses')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.teacher.manage_courses_desc')}</p>
               </div>
-              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
-                <BookOpen className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              <div className="rounded-lg bg-white p-2 shadow-sm transition-colors"
+                   style={{ ':group-hover': { backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex } } as React.CSSProperties}>
+                <BookOpen className="h-5 w-5 text-gray-500 group-hover:text-current" />
               </div>
             </Link>
             <Link
               to="/teacher/all-students"
-              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
+              className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition hover:bg-white hover:shadow-md"
+              style={{ ':hover': { borderColor: `${brandColors.primaryHex}4D` } } as React.CSSProperties}
             >
               <div>
-                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.view_students')}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.view_students_desc')}</p>
+                <p className="text-sm font-semibold text-gray-900">{t('dashboard.teacher.view_students')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.teacher.view_students_desc')}</p>
               </div>
-              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
-                <Users className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              <div className="rounded-lg bg-white p-2 shadow-sm transition-colors"
+                   style={{ ':group-hover': { backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex } } as React.CSSProperties}>
+                <Users className="h-5 w-5 text-gray-500 group-hover:text-current" />
               </div>
             </Link>
             <button
               onClick={() => setShowAnnouncementModal(true)}
-              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 text-left transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
+              className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition hover:bg-white hover:shadow-md"
+              style={{ ':hover': { borderColor: `${brandColors.primaryHex}4D` } } as React.CSSProperties}
             >
               <div>
-                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.announcements')}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.announcements_desc')}</p>
+                <p className="text-sm font-semibold text-gray-900">{t('dashboard.teacher.announcements')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.teacher.announcements_desc')}</p>
               </div>
-              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
-                <Megaphone className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              <div className="rounded-lg bg-white p-2 shadow-sm transition-colors"
+                   style={{ ':group-hover': { backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex } } as React.CSSProperties}>
+                <Megaphone className="h-5 w-5 text-gray-500 group-hover:text-current" />
               </div>
             </button>
             <button
               onClick={() => setShowEventModal(true)}
-              className="group flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-5 py-4 text-left transition hover:border-indigo-300 hover:bg-white hover:shadow-md"
+              className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition hover:bg-white hover:shadow-md"
+              style={{ ':hover': { borderColor: `${brandColors.primaryHex}4D` } } as React.CSSProperties}
             >
               <div>
-                <p className="text-sm font-semibold text-stone-900">{t('dashboard.teacher.events')}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.teacher.events_desc')}</p>
+                <p className="text-sm font-semibold text-gray-900">{t('dashboard.teacher.events')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.teacher.events_desc')}</p>
               </div>
-              <div className="rounded-lg bg-white p-2 shadow-sm group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
-                <Calendar className="h-5 w-5 text-stone-600 group-hover:text-indigo-700" />
+              <div className="rounded-lg bg-white p-2 shadow-sm transition-colors"
+                   style={{ ':group-hover': { backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex } } as React.CSSProperties}>
+                <Calendar className="h-5 w-5 text-gray-500 group-hover:text-current" />
               </div>
             </button>
           </div>

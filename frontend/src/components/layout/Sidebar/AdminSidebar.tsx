@@ -107,7 +107,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
               <Crown className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-white">Admin Panel</h1>
+            <h1 className="text-sm font-bold text-white">{t('nav.admin_panel', 'Admin Panel')}</h1>
           </div>
         )}
         <button
@@ -128,7 +128,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       {/* Navigation - Fills available space */}
       <div className="flex-1 overflow-y-auto py-4 min-h-0 bg-white">
         {/* Primary (high-frequency) items */}
-        <nav className="space-y-2 px-2">
+        <nav className={`space-y-2 ${isCollapsed ? 'px-1' : 'px-2'}`}>
           {sectionedItems.primary.map((item) => {
             const active = isActive(item.href);
             const IconComponent = item.icon as React.ElementType;
@@ -137,7 +137,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <Link
                 key={item.name}
                 to={item.href}
-                className={`group flex items-center px-3 py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
+                className={`group flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-3'} py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
                     ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
@@ -187,7 +187,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
             )}
 
             {sectionedItems.content.length > 0 && (
-              <nav className="space-y-1 px-2">
+              <nav className={`space-y-1 ${isCollapsed ? 'px-1' : 'px-2'}`}>
                 {sectionedItems.content.map((item) => {
                   const active = isActive(item.href);
                   const IconComponent = item.icon as React.ElementType;
@@ -196,7 +196,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      className={`group flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-2'} py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                         active
                           ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -230,10 +230,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
             {/* System Config Expandable Menu */}
             {systemConfigItem && (
-              <div className="px-2 mt-1">
+              <div className={`${isCollapsed ? 'px-1' : 'px-2'} mt-1`}>
             <button
               onClick={() => setIsSystemConfigExpanded(!isSystemConfigExpanded)}
-              className={`group w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+              className={`group w-full flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-2'} py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                 location.pathname.startsWith('/admin/config')
                   ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
@@ -344,7 +344,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               </div>
             )}
 
-            <nav className="space-y-1 px-2">
+            <nav className={`space-y-1 ${isCollapsed ? 'px-1' : 'px-2'}`}>
               {sectionedItems.system.map((item) => {
                 const active = isActive(item.href);
                 const IconComponent = item.icon as React.ElementType;
@@ -353,7 +353,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-2'} py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
                         ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -404,7 +404,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
               </div>
             )}
 
-            <nav className="space-y-1 px-2">
+            <nav className={`space-y-1 ${isCollapsed ? 'px-1' : 'px-2'}`}>
               {sectionedItems.reference.map((item) => {
                 const active = isActive(item.href);
                 const IconComponent = item.icon as React.ElementType;
@@ -413,7 +413,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-2'} py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
                         ? 'bg-slate-50 text-slate-800 border border-slate-200'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'

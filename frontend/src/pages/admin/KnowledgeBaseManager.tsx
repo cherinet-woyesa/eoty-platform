@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Book, 
-  Upload, 
-  Trash2, 
-  FileText, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Book,
+  Upload,
+  Trash2,
+  FileText,
+  Search,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
   Loader2,
   Plus,
   RefreshCw,
-  X
+  X,
+  Grid,
+  List as ListIcon,
+  MoreVertical,
+  Download
 } from 'lucide-react';
 import { adminApi } from '@/services/api/admin';
 import { brandColors } from '@/theme/brand';
@@ -38,7 +42,8 @@ const KnowledgeBaseManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
   // Upload Form State
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -119,15 +124,6 @@ const KnowledgeBaseManager: React.FC = () => {
     return byStatus.filter(d => d.title.toLowerCase().includes(term) || d.description?.toLowerCase().includes(term));
   }, [documents, searchTerm, statusFilter]);
 
-  const counts = useMemo(() => {
-    return {
-      total: documents.length,
-      active: documents.filter(d => d.status === 'active').length,
-      processing: documents.filter(d => d.status === 'processing').length,
-      error: documents.filter(d => d.status === 'error').length,
-    };
-  }, [documents]);
-
   const categories = [
     { id: 'scripture', label: 'Scripture (81 Books)' },
     { id: 'liturgy', label: 'Liturgy & Prayer' },
@@ -137,209 +133,235 @@ const KnowledgeBaseManager: React.FC = () => {
     { id: 'general', label: 'General Reference' }
   ];
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-emerald-100 text-emerald-700';
+      case 'processing': return 'bg-amber-100 text-amber-700';
+      case 'error': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Book className="h-8 w-8" style={{ color: brandColors.primaryHex }} />
-            Theological Knowledge Base
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage the authoritative texts used by the AI for faith-based responses.
-          </p>
-          {lastUpdated && (
-            <p className="text-xs text-gray-400 mt-1">
-              Last updated {new Date(lastUpdated).toLocaleString()}
-            </p>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
+    <div className="h-full flex flex-col md:flex-row bg-gray-50/50">
+      {/* Sidebar Filters */}
+      <div className="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex-col hidden md:flex h-[calc(100vh-8rem)] overflow-y-auto">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Categories</h3>
+        <nav className="space-y-1 mb-8">
           <button
-            onClick={() => fetchDocuments({ silent: true })}
-            disabled={refreshing}
-            className="inline-flex items-center px-4 py-2 border rounded-lg text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
-            style={{ borderColor: `${brandColors.primaryHex}40`, color: brandColors.primaryHex }}
+            onClick={() => setFilterCategory('')}
+            className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors ${filterCategory === '' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
+              }`}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            All Documents
+            <span className="bg-white px-2 py-0.5 rounded-full text-xs shadow-sm border border-gray-100">
+              {documents.length}
+            </span>
           </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
-            style={{ backgroundColor: brandColors.primaryHex }}
-          >
-            <Plus className="h-5 w-5" />
-            Upload Document
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total', value: counts.total, color: brandColors.primaryHex },
-          { label: 'Active', value: counts.active, color: '#16a34a' },
-          { label: 'Processing', value: counts.processing, color: '#f59e0b' },
-          { label: 'Errors', value: counts.error, color: '#dc2626' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <p className="text-xs uppercase tracking-wide text-gray-500">{stat.label}</p>
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-6 flex flex-col gap-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="h-4 w-4 text-gray-400 absolute left-2 top-2.5" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search title or description"
-                className="pl-8 pr-3 py-2 text-sm border rounded-md focus:ring-2"
-                style={{ borderColor: '#e5e7eb', outline: 'none' }}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Categories</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'active', label: 'Active' },
-              { id: 'processing', label: 'Processing' },
-              { id: 'error', label: 'Errors' },
-            ].map(pill => (
-              <button
-                key={pill.id}
-                onClick={() => setStatusFilter(pill.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  statusFilter === pill.id
-                    ? 'text-white'
-                    : 'text-gray-600 bg-white'
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setFilterCategory(cat.id)}
+              className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors ${filterCategory === cat.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
                 }`}
-                style={statusFilter === pill.id ? { backgroundColor: brandColors.primaryHex, borderColor: brandColors.primaryHex } : { borderColor: '#e5e7eb' }}
+            >
+              <span className="truncate">{cat.label}</span>
+              <span className="bg-white px-2 py-0.5 rounded-full text-xs shadow-sm border border-gray-100">
+                {documents.filter(d => d.category === cat.id).length}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Status</h3>
+        <nav className="space-y-1">
+          {['all', 'active', 'processing', 'error'].map(status => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${statusFilter === status ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${status === 'active' ? 'bg-emerald-500' :
+                  status === 'processing' ? 'bg-amber-500' :
+                    status === 'error' ? 'bg-red-500' : 'bg-gray-400'
+                }`} />
+              <span className="capitalize">{status}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-6 h-[calc(100vh-8rem)] overflow-y-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Knowledge Base</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage AI training data and resources</p>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex bg-white rounded-lg border border-gray-200 p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
               >
-                {pill.label}
+                <Grid className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-100 text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <ListIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Upload
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar Mobile Only (since desktop has sidebar filters) or Global Search */}
+        <div className="md:hidden mb-6 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+          <select
+            className="w-full border-gray-300 rounded-lg"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
+
+        {/* Desktop Search within content area */}
+        <div className="hidden md:block mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search documents by title or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-48 bg-white rounded-xl border border-gray-200 animate-pulse" />
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            <span>{error}</span>
+        ) : filteredDocuments.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+            <Book className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">No documents found</h3>
+            <p className="text-gray-500 mt-1">Try adjusting your filters or upload a new document.</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => fetchDocuments({ silent: true })}
-              className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-red-300 hover:bg-red-100"
-            >
-              Retry
-            </button>
-            <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+        ) : (
+          <>
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredDocuments.map(doc => (
+                  <div key={doc.id} className="group bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200 flex flex-col relative">
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleDelete(doc.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
 
-      {/* Document List */}
-      {loading ? (
-        <div className="grid grid-cols-1 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-gray-200 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-1/3 bg-gray-200 rounded" />
-                  <div className="h-3 w-2/3 bg-gray-200 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filteredDocuments.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <Book className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-          <h3 className="text-lg font-medium text-gray-900">No documents found</h3>
-          <p className="text-gray-500">Upload authoritative texts to start building the knowledge base.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredDocuments.map(doc => (
-            <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}0f` }}>
-                  <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{doc.title}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-1">{doc.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {categories.find(c => c.id === doc.category)?.label || doc.category}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      doc.status === 'active' ? 'bg-green-100 text-green-800' :
-                      doc.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      doc.status === 'error' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {doc.status === 'active' && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                      {doc.status === 'processing' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                      {doc.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
-                      {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </span>
+                    <div className="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mb-4 text-indigo-600">
+                      <FileText className="w-6 h-6" />
+                    </div>
+
+                    <h3 className="font-semibold text-gray-900 line-clamp-1 mb-1" title={doc.title}>
+                      {doc.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                      {doc.description}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(doc.status)}`}>
+                        {doc.status}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-              
-              <div className="flex items-center gap-2">
-                <a
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-indigo-600 hover:underline"
-                >
-                  View
-                </a>
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete Document"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredDocuments.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-[200px]">{doc.description}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {categories.find(c => c.id === doc.category)?.label || doc.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusColor(doc.status)}`}>
+                            {doc.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(doc.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50">
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <button onClick={() => handleDelete(doc.id)} className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
       {/* Upload Modal */}
       {showUploadModal && (
@@ -358,7 +380,7 @@ const KnowledgeBaseManager: React.FC = () => {
                   placeholder="e.g., The Book of Enoch"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select

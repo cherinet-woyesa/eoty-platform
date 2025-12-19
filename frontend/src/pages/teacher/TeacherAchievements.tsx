@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Trophy, Award, Star, Target, Users, BookOpen, Video, TrendingUp, Sparkles, Medal, Crown, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAchievements } from '@/hooks/useCommunity';
+import { brandColors } from '@/theme/brand';
 
 const TeacherAchievements: React.FC = () => {
   const { t } = useTranslation();
@@ -13,11 +14,11 @@ const TeacherAchievements: React.FC = () => {
 
   // Teacher-specific achievement categories
   const categories = [
-    { id: 'all', name: t('teacher_achievements.categories.all'), icon: Trophy, count: badges.length, color: 'text-[#27AE60]' },
-    { id: 'teaching', name: t('teacher_achievements.categories.teaching'), icon: GraduationCap, count: badges.filter(b => b.badge_type === 'teaching' || b.badge_type === 'completion').length, color: 'text-[#16A085]' },
-    { id: 'engagement', name: t('teacher_achievements.categories.engagement'), icon: Users, count: badges.filter(b => b.badge_type === 'participation' || b.badge_type === 'engagement').length, color: 'text-[#2980B9]' },
-    { id: 'content', name: t('teacher_achievements.categories.content'), icon: Video, count: badges.filter(b => b.badge_type === 'content' || b.badge_type === 'creation').length, color: 'text-[#F39C12]' },
-    { id: 'leadership', name: t('teacher_achievements.categories.leadership'), icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-[#E67E22]' },
+    { id: 'all', name: t('teacher_achievements.categories.all'), icon: Trophy, count: badges.length, color: `text-[${brandColors.primaryHex}]` },
+    { id: 'teaching', name: t('teacher_achievements.categories.teaching'), icon: GraduationCap, count: badges.filter(b => b.badge_type === 'teaching' || b.badge_type === 'completion').length, color: `text-[${brandColors.secondaryHex}]` },
+    { id: 'engagement', name: t('teacher_achievements.categories.engagement'), icon: Users, count: badges.filter(b => b.badge_type === 'participation' || b.badge_type === 'engagement').length, color: `text-[${brandColors.accentHex}]` },
+    { id: 'content', name: t('teacher_achievements.categories.content'), icon: Video, count: badges.filter(b => b.badge_type === 'content' || b.badge_type === 'creation').length, color: 'text-amber-500' },
+    { id: 'leadership', name: t('teacher_achievements.categories.leadership'), icon: Award, count: badges.filter(b => b.badge_type === 'leadership').length, color: 'text-orange-500' },
   ];
 
   const filteredBadges = useMemo(() => {
@@ -62,16 +63,16 @@ const TeacherAchievements: React.FC = () => {
     return (
       <div className="w-full space-y-2 p-2">
         <div className="animate-pulse space-y-3">
-          <div className="h-8 bg-stone-200 rounded-lg w-1/4"></div>
+          <div className="h-8 bg-gray-200 rounded-lg w-1/4"></div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-20 bg-stone-200 rounded-lg"></div>
+              <div key={i} className="h-20 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
-          <div className="h-24 bg-stone-200 rounded-lg"></div>
+          <div className="h-24 bg-gray-200 rounded-lg"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-24 bg-stone-200 rounded-lg"></div>
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -90,7 +91,8 @@ const TeacherAchievements: React.FC = () => {
           <p className="text-red-600 mb-3 text-xs">{error}</p>
           <button
             onClick={() => refetch()}
-            className="px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-lg font-semibold hover:shadow-lg transition-all text-xs"
+            className="px-3 py-1.5 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-xs"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             {t('teacher_achievements.error.try_again')}
           </button>
@@ -103,42 +105,42 @@ const TeacherAchievements: React.FC = () => {
     <div className="w-full space-y-2 p-2">
       {/* Compact Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-gray-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-            <Trophy className="relative h-5 w-5 text-[#27AE60] mx-auto" />
+            <div className="absolute inset-0 rounded-lg blur-md" style={{ backgroundColor: `${brandColors.primaryHex}20` }}></div>
+            <Trophy className="relative h-5 w-5 mx-auto" style={{ color: brandColors.primaryHex }} />
           </div>
-          <div className="text-lg font-bold text-stone-800 mb-0.5">{earnedBadgesCount}</div>
-          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.total_achievements')}</div>
+          <div className="text-lg font-bold text-gray-800 mb-0.5">{earnedBadgesCount}</div>
+          <div className="text-xs text-gray-600 font-medium">{t('teacher_achievements.stats.total_achievements')}</div>
         </div>
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-gray-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 bg-[#16A085]/20 rounded-lg blur-md"></div>
-            <Star className="relative h-5 w-5 text-[#16A085] mx-auto" />
+            <div className="absolute inset-0 rounded-lg blur-md" style={{ backgroundColor: `${brandColors.secondaryHex}20` }}></div>
+            <Star className="relative h-5 w-5 mx-auto" style={{ color: brandColors.secondaryHex }} />
           </div>
-          <div className="text-lg font-bold text-stone-800 mb-0.5">{totalPoints}</div>
-          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.total_points')}</div>
+          <div className="text-lg font-bold text-gray-800 mb-0.5">{totalPoints}</div>
+          <div className="text-xs text-gray-600 font-medium">{t('teacher_achievements.stats.total_points')}</div>
         </div>
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-gray-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 bg-[#2980B9]/20 rounded-lg blur-md"></div>
-            <BookOpen className="relative h-5 w-5 text-[#2980B9] mx-auto" />
+            <div className="absolute inset-0 rounded-lg blur-md" style={{ backgroundColor: `${brandColors.accentHex}20` }}></div>
+            <BookOpen className="relative h-5 w-5 mx-auto" style={{ color: brandColors.accentHex }} />
           </div>
-          <div className="text-lg font-bold text-stone-800 mb-0.5">{teachingStats.totalCourses}</div>
-          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.course_badges')}</div>
+          <div className="text-lg font-bold text-gray-800 mb-0.5">{teachingStats.totalCourses}</div>
+          <div className="text-xs text-gray-600 font-medium">{t('teacher_achievements.stats.course_badges')}</div>
         </div>
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm text-center">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-gray-200 shadow-sm text-center">
           <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 bg-[#F39C12]/20 rounded-lg blur-md"></div>
-            <Users className="relative h-5 w-5 text-[#F39C12] mx-auto" />
+            <div className="absolute inset-0 bg-amber-500/20 rounded-lg blur-md"></div>
+            <Users className="relative h-5 w-5 text-amber-500 mx-auto" />
           </div>
-          <div className="text-lg font-bold text-stone-800 mb-0.5">{teachingStats.totalStudents}</div>
-          <div className="text-xs text-stone-600 font-medium">{t('teacher_achievements.stats.student_impact')}</div>
+          <div className="text-lg font-bold text-gray-800 mb-0.5">{teachingStats.totalStudents}</div>
+          <div className="text-xs text-gray-600 font-medium">{t('teacher_achievements.stats.student_impact')}</div>
         </div>
       </div>
 
       {/* Compact Search and Categories */}
-      <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-3 shadow-sm">
+      <div className="bg-white/90 backdrop-blur-md rounded-lg border border-gray-200 p-3 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3 mb-3">
           <div className="flex-1 relative">
             <input
@@ -146,9 +148,10 @@ const TeacherAchievements: React.FC = () => {
               placeholder={t('teacher_achievements.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-stone-700 text-sm"
+              className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 text-gray-700 text-sm"
+              style={{ '--tw-ring-color': `${brandColors.primaryHex}50`, borderColor: 'transparent' } as React.CSSProperties}
             />
-            <Star className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
+            <Star className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -160,16 +163,19 @@ const TeacherAchievements: React.FC = () => {
                 onClick={() => setActiveCategory(category.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeCategory === category.id
-                    ? 'bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 shadow-md'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                    ? 'text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
+                style={activeCategory === category.id ? {
+                  background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})`
+                } : {}}
               >
                 <Icon className={`h-3 w-3 ${activeCategory === category.id ? '' : category.color}`} />
                 {category.name}
                 <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${
                   activeCategory === category.id
-                    ? 'bg-stone-900/20 text-stone-900'
-                    : 'bg-stone-200 text-stone-600'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-200 text-gray-600'
                 }`}>
                   {category.count}
                 </span>
@@ -185,36 +191,43 @@ const TeacherAchievements: React.FC = () => {
           {filteredBadges.map((badge) => (
             <div
               key={badge.id}
-              className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-4 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/50"
+              className="bg-white/90 backdrop-blur-md rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all"
+              style={{ ':hover': { borderColor: `${brandColors.primaryHex}50` } } as any}
             >
               <div className="flex items-start gap-3">
                 <div className="relative flex-shrink-0">
-                  <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-                  <div className="relative w-12 h-12 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg flex items-center justify-center border border-[#27AE60]/30">
+                  <div className="absolute inset-0 rounded-lg blur-md" style={{ backgroundColor: `${brandColors.primaryHex}20` }}></div>
+                  <div
+                    className="relative w-12 h-12 rounded-lg flex items-center justify-center border"
+                    style={{
+                      background: `linear-gradient(to bottom right, ${brandColors.primaryHex}20, ${brandColors.secondaryHex}20)`,
+                      borderColor: `${brandColors.primaryHex}30`
+                    }}
+                  >
                     {badge.badge_type === 'leadership' ? (
-                      <Crown className="h-5 w-5 text-[#F39C12]" />
+                      <Crown className="h-5 w-5 text-orange-500" />
                     ) : badge.badge_type === 'teaching' || badge.badge_type === 'completion' ? (
-                      <GraduationCap className="h-5 w-5 text-[#27AE60]" />
+                      <GraduationCap className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
                     ) : badge.badge_type === 'content' || badge.badge_type === 'creation' ? (
-                      <Video className="h-5 w-5 text-[#2980B9]" />
+                      <Video className="h-5 w-5" style={{ color: brandColors.accentHex }} />
                     ) : (
-                      <Award className="h-5 w-5 text-[#16A085]" />
+                      <Award className="h-5 w-5" style={{ color: brandColors.secondaryHex }} />
                     )}
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-stone-800 mb-1">{badge.name}</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">{badge.name}</h3>
                   {badge.description && (
-                    <p className="text-xs text-stone-600 mb-2">{badge.description}</p>
+                    <p className="text-xs text-gray-600 mb-2">{badge.description}</p>
                   )}
                   <div className="flex items-center justify-between">
                     {badge.points && (
-                      <span className="text-xs font-medium text-[#27AE60]">
+                      <span className="text-xs font-medium" style={{ color: brandColors.primaryHex }}>
                         +{badge.points} {t('teacher_achievements.points')}
                       </span>
                     )}
                     {badge.earned_at && (
-                      <span className="text-xs text-stone-500">
+                      <span className="text-xs text-gray-500">
                         {new Date(badge.earned_at).toLocaleDateString()}
                       </span>
                     )}
@@ -225,10 +238,10 @@ const TeacherAchievements: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-8 text-center shadow-sm">
-          <Trophy className="h-8 w-8 text-stone-300 mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-stone-800 mb-1">{t('teacher_achievements.empty.no_achievements')}</h3>
-          <p className="text-xs text-stone-600">
+        <div className="bg-white/90 backdrop-blur-md rounded-lg border border-gray-200 p-8 text-center shadow-sm">
+          <Trophy className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+          <h3 className="text-sm font-semibold text-gray-800 mb-1">{t('teacher_achievements.empty.no_achievements')}</h3>
+          <p className="text-xs text-gray-600">
             {searchQuery ? t('teacher_achievements.empty.adjust_search') : t('teacher_achievements.empty.keep_teaching')}
           </p>
         </div>

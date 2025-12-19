@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/services/api/admin';
 import LabelingItemCard from './components/LabelingItemCard';
 import { Loader2, RefreshCw, AlertCircle, CheckCircle2, Brain, MessageSquare, Filter } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 export default function AIFaithLabeling() {
   const { t } = useTranslation();
@@ -68,7 +69,7 @@ export default function AIFaithLabeling() {
         setTotalPages(incomingItems.length === pageSize ? pageNum + 1 : pageNum);
       }
     } catch (err: any) {
-      console.error('Failed to fetch items', err);
+      // console.error('Failed to fetch items', err);
       const message = err?.message || 'Failed to load items';
       setFetchError(message);
       showToast('error', message);
@@ -108,7 +109,7 @@ export default function AIFaithLabeling() {
       showToast('success', t('ai_labeling.toast_item_action', { action }));
       handleRemoveItem(itemId);
     } catch (err: any) {
-      console.error('Moderation action failed', err);
+      // console.error('Moderation action failed', err);
       showToast('error', err?.message || 'Failed to update item');
     }
   }
@@ -118,9 +119,8 @@ export default function AIFaithLabeling() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Toast Notification */}
         {toast && (
-          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-in slide-in-from-top-2 duration-200 ${
-            toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
+          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-in slide-in-from-top-2 duration-200 ${toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+            }`}>
             {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span className="text-sm font-medium">{toast.message}</span>
           </div>
@@ -138,7 +138,7 @@ export default function AIFaithLabeling() {
                 <p className="text-sm text-gray-500 mt-1">{t('ai_labeling.subtitle')}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => fetchItems(page)}
@@ -156,22 +156,20 @@ export default function AIFaithLabeling() {
             <div className="flex p-1 bg-gray-100 rounded-lg">
               <button
                 onClick={() => { setSource('pending'); setPage(1); }}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                  source === 'pending'
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${source === 'pending'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <Filter size={16} />
                 {t('ai_labeling.tab_pending')}
               </button>
               <button
                 onClick={() => { setSource('assistant'); setPage(1); }}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                  source === 'assistant'
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${source === 'assistant'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <MessageSquare size={16} />
                 {t('ai_labeling.tab_recent')}
@@ -247,9 +245,10 @@ export default function AIFaithLabeling() {
             <p className="text-gray-500 max-w-md mx-auto mb-8">
               {t('ai_labeling.empty_body')}
             </p>
-            <button 
+            <button
               onClick={() => fetchItems(page)}
-              className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm hover:shadow"
+              className="px-6 py-2.5 text-white rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               {t('ai_labeling.check_again')}
             </button>

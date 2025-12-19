@@ -556,7 +556,7 @@ const resourceLibraryController = {
       const data = req.body;
 
       const resourceService = require('../services/resourceService');
-      const result = await resourceService.updateResource(parseInt(id), data, userId);
+      const result = await resourceService.updateLibraryResource(parseInt(id), data, userId);
 
       res.json({
         success: true,
@@ -579,7 +579,7 @@ const resourceLibraryController = {
       const userId = req.user.userId;
 
       const resourceService = require('../services/resourceService');
-      const result = await resourceService.deleteResource(parseInt(id), userId);
+      const result = await resourceService.deleteLibraryResource(parseInt(id), userId);
 
       res.json({
         success: true,

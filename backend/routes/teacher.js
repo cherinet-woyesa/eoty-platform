@@ -23,7 +23,7 @@ router.put('/profile', authenticateToken, requirePermission('teacher:profile:upd
 router.get('/students', authenticateToken, teacherController.getStudents);
 
 // Document Management Routes
-router.post('/documents/upload', authenticateToken, requirePermission('teacher:document:create'), upload.single('file'), teacherController.uploadDocument);
+router.post('/documents/upload', authenticateToken, requirePermission('teacher:document:create'), upload.single('document'), teacherController.uploadDocument);
 router.get('/documents', authenticateToken, requirePermission('teacher:document:view'), teacherController.getDocuments);
 router.get('/documents/:id', authenticateToken, requirePermission('teacher:document:view'), teacherController.getDocumentById);
 router.delete('/documents/:id', authenticateToken, requirePermission('teacher:document:delete'), teacherController.deleteDocument);

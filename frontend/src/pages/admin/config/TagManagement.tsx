@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Tag, Shuffle } from 'lucide-react';
+import { Plus, Shuffle } from 'lucide-react';
 import { systemConfigApi } from '@/services/api/systemConfig';
 import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/system/ConfigTable';
 import type { ConfigTableColumn } from '@/components/admin/system/ConfigTable';
@@ -15,7 +15,7 @@ export const TagManagement = () => {
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
   const { confirm } = useConfirmDialog();
-  
+
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [editingTag, setEditingTag] = useState<ContentTag | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -105,7 +105,7 @@ export const TagManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
       queryClient.invalidateQueries({ queryKey: ['system-config-metrics'] });
       setSelectedItems(new Set());
-      
+
       if (result.failed > 0) {
         showNotification({
           type: 'warning',
@@ -200,7 +200,7 @@ export const TagManagement = () => {
   // Handlers
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showNotification({
         type: 'error',
@@ -253,12 +253,12 @@ export const TagManagement = () => {
 
   const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
     const ids = Array.from(selectedItems);
-    
+
     if (action === 'delete') {
       const tagsWithUsage = tags.filter(
         t => ids.includes(t.id) && t.usage_count > 0
       );
-      
+
       if (tagsWithUsage.length > 0) {
         showNotification({
           type: 'error',
@@ -361,18 +361,18 @@ export const TagManagement = () => {
         <div className="flex justify-end gap-3">
           <button
             onClick={() => setShowMergeDialog(true)}
-            className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
+            className="inline-flex items-center px-6 py-2 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50"
             style={{ backgroundColor: brandColors.primaryHex }}
           >
-            <Shuffle className="h-5 w-5" />
+            <Shuffle className="h-5 w-5 mr-2" />
             Merge Tags
           </button>
           <button
             onClick={openCreateForm}
-            className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-sm"
+            className="inline-flex items-center px-6 py-2 text-white rounded-lg transition-colors shadow-sm"
             style={{ backgroundColor: brandColors.primaryHex }}
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-5 w-5 mr-2" />
             New Tag
           </button>
         </div>
@@ -445,9 +445,8 @@ export const TagManagement = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., sacraments"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formErrors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
                     {formErrors.name && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
@@ -467,9 +466,8 @@ export const TagManagement = () => {
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       placeholder="e.g., Theology"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formErrors.category ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formErrors.category ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
                     {formErrors.category && (
                       <p className="mt-1 text-sm text-red-600">{formErrors.category}</p>

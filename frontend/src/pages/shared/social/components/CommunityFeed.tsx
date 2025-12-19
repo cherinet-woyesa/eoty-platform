@@ -19,6 +19,7 @@ interface CommunityFeedProps {
   onEditContentChange?: (content: string) => void;
   onSaveEdit?: (postId: string) => void;
   onCancelEdit?: () => void;
+  isAdmin?: boolean;
 }
 
 const CommunityFeed: React.FC<CommunityFeedProps> = ({
@@ -36,7 +37,8 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   editContent,
   onEditContentChange,
   onSaveEdit,
-  onCancelEdit
+  onCancelEdit,
+  isAdmin = false
 }) => {
   const { t } = useTranslation();
 
@@ -96,6 +98,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
           key={post.id}
           post={post}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
           onLike={() => onLike(post.id)}
           onDelete={() => onDelete(post.id)}
           onStartEditing={onEdit}

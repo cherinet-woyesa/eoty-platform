@@ -62,6 +62,10 @@ const UserMenu: React.FC = () => {
               src={user.profilePicture} 
               alt="Profile" 
               className="w-7 h-7 rounded-full object-cover"
+              loading="lazy"
+              decoding="async"
+              width={28}
+              height={28}
             />
           ) : (
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -94,6 +98,10 @@ const UserMenu: React.FC = () => {
                     src={user.profilePicture} 
                     alt="Profile" 
                     className="w-12 h-12 rounded-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    width={48}
+                    height={48}
                   />
                 ) : (
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">

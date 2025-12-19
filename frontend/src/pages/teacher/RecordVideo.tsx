@@ -7,6 +7,7 @@ import {
 import EnhancedVideoRecorder from '@/components/shared/courses/EnhancedVideoRecorder';
 import { teacherApi } from '@/services/api/teacher';
 import { coursesApi } from '@/services/api';
+import { brandColors } from '@/theme/brand';
 
 interface RecordVideoProps {
   courseId?: string;
@@ -101,7 +102,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
 
   // If embedded, we skip the page wrapper styles
   const containerClasses = variant === 'full'
-    ? "w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen"
+    ? "w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen"
     : "w-full min-h-full relative";
 
   const handleCourseSelect = (courseId: string) => {
@@ -113,8 +114,8 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
 
   if (isLoadingCourses && variant === 'full') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-stone-50">
-        <Loader2 className="h-8 w-8 animate-spin text-stone-400" />
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -127,16 +128,22 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-[color:rgba(30,27,75,0.05)] border border-[color:rgba(30,27,75,0.1)]">
+              <div
+                className="p-2 rounded-lg border"
+                style={{
+                  backgroundColor: `${brandColors.primaryHex}0D`, // 0.05 opacity
+                  borderColor: `${brandColors.primaryHex}1A`, // 0.1 opacity
+                }}
+              >
                 {isNewLesson ? (
-                  <BookOpen className="h-6 w-6 text-[color:#1e1b4b]" />
+                  <BookOpen className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                 ) : (
-                  <Video className="h-6 w-6 text-[color:#1e1b4b]" />
+                  <Video className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-stone-900">{pageTitle}</h1>
-                <p className="text-sm text-stone-600">{pageSubtitle}</p>
+                <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+                <p className="text-sm text-gray-600">{pageSubtitle}</p>
               </div>
             </div>
 
@@ -149,9 +156,10 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 <button
                   onClick={() => setShowCourseSelector(!showCourseSelector)}
                   className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all ${selectedCourseId
-                      ? 'bg-[color:#1e1b4b] text-white border-[color:#1e1b4b] hover:bg-[color:#1e1b4b]/90'
-                      : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'
+                      ? 'text-white hover:opacity-90'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                     }`}
+                  style={selectedCourseId ? { backgroundColor: brandColors.primaryHex, borderColor: brandColors.primaryHex } : {}}
                 >
                   <BookOpen className="h-3 w-3" />
                   <span className="max-w-[150px] truncate">
@@ -161,17 +169,17 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 </button>
 
                 {showCourseSelector && (
-                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-3 border-b border-stone-100 bg-stone-50/50">
-                      <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('record_video.select_target_course')}</h3>
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('record_video.select_target_course')}</h3>
                     </div>
                     <div className="max-h-64 overflow-y-auto p-2 space-y-1">
                       <button
                         onClick={() => handleCourseSelect('')}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${!selectedCourseId ? 'bg-stone-100 text-stone-900 font-medium' : 'text-stone-600 hover:bg-stone-50'
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${!selectedCourseId ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-50'
                           }`}
                       >
-                        <div className="w-2 h-2 rounded-full border border-stone-300 bg-white"></div>
+                        <div className="w-2 h-2 rounded-full border border-gray-300 bg-white"></div>
                         {t('record_video.no_course_selected')}
                       </button>
                       {courses.map(course => (
@@ -179,14 +187,15 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                           key={course.id}
                           onClick={() => handleCourseSelect(String(course.id))}
                           className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${String(selectedCourseId) === String(course.id)
-                              ? 'bg-[color:#1e1b4b]/10 text-[color:#1e1b4b] font-medium'
-                              : 'text-stone-600 hover:bg-stone-50'
+                              ? 'font-medium'
+                              : 'text-gray-600 hover:bg-gray-50'
                             }`}
+                          style={String(selectedCourseId) === String(course.id) ? { backgroundColor: `${brandColors.primaryHex}1A`, color: brandColors.primaryHex } : {}}
                         >
                           {course.thumbnail ? (
                             <img src={course.thumbnail} alt="" className="w-5 h-5 rounded object-cover" />
                           ) : (
-                            <div className="w-5 h-5 rounded bg-stone-200 flex items-center justify-center text-[10px]">
+                            <div className="w-5 h-5 rounded bg-gray-200 flex items-center justify-center text-[10px]">
                               {course.title.charAt(0)}
                             </div>
                           )}
@@ -197,10 +206,11 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                         </button>
                       ))}
                     </div>
-                    <div className="p-2 border-t border-stone-100 bg-stone-50/50">
+                    <div className="p-2 border-t border-gray-100 bg-gray-50/50">
                       <Link
                         to="/teacher/courses/new"
-                        className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-[color:#1e1b4b] hover:border-[color:#1e1b4b]/30 transition-all"
+                        className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all"
+                        style={{ ':hover': { color: brandColors.primaryHex, borderColor: `${brandColors.primaryHex}4D` } } as any}
                       >
                         <Plus className="h-3 w-3" />
                         {t('record_video.create_new_course')}
@@ -215,14 +225,15 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
           <div className="flex gap-3">
             <button
               onClick={() => setShowTips(!showTips)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-sm font-medium shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
             >
               <TrendingUp className="h-4 w-4" />
               {showTips ? t('record_video.hide_tips') : t('record_video.recording_tips')}
             </button>
             <Link
               to="/teacher/courses"
-              className="flex items-center gap-2 px-4 py-2 bg-[color:#1e1b4b] text-white rounded-lg hover:bg-[color:#1e1b4b]/90 transition-colors text-sm font-medium shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors text-sm font-medium shadow-sm"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <ArrowLeft className="h-4 w-4" />
               {t('record_video.back_to_courses')}
@@ -265,9 +276,9 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
         </div>
       )}
 
-      <div className={`${variant === 'full' ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : 'h-full'}`}>
+      <div className={`${variant === 'full' ? 'grid grid-cols-1 gap-6' : 'h-full'}`}>
         {/* Main Recording Area */}
-        <div className={`${variant === 'full' ? 'xl:col-span-3 space-y-6' : 'h-full'}`}>
+        <div className={`${variant === 'full' ? 'w-full space-y-6' : 'h-full'}`}>
           <EnhancedVideoRecorder
             courseId={selectedCourseId}
             lessonId={lessonId}
@@ -290,109 +301,8 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
           />
         </div>
 
-        {/* Sidebar with Stats and Quick Actions */}
-        {variant === 'full' && (
-          <div className="space-y-6">
-            {/* Stats Card */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-stone-800 flex items-center">
-                  <TrendingUp className="mr-2 h-4 w-4 text-[color:#1e1b4b]" />
-                  {t('record_video.impact.title')}
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
-                      {t('record_video.impact.this_month')}
-                    </span>
-                    <Video className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
-                  </div>
-                  <p className="text-xl font-bold text-stone-900">{stats.thisMonth}</p>
-                  <p className="text-[10px] text-stone-500">{t('record_video.impact.new_videos')}</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
-                      {t('record_video.impact.library')}
-                    </span>
-                    <FileVideo className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
-                  </div>
-                  <p className="text-xl font-bold text-stone-900">{stats.totalVideos}</p>
-                  <p className="text-[10px] text-stone-500">{t('record_video.impact.total_videos')}</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
-                      {t('record_video.impact.students')}
-                    </span>
-                    <Users className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
-                  </div>
-                  <p className="text-xl font-bold text-stone-900">{stats.totalStudents}</p>
-                  <p className="text-[10px] text-stone-500">{t('record_video.impact.enrolled')}</p>
-                </div>
-                <div className="rounded-xl border border-stone-100 bg-stone-50/50 p-3 hover:bg-stone-50 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] uppercase tracking-wide text-stone-500 font-medium">
-                      {t('record_video.impact.rating')}
-                    </span>
-                    <BookOpen className="h-3.5 w-3.5 text-[color:#1e1b4b]" />
-                  </div>
-                  <p className="text-xl font-bold text-stone-900">
-                    {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '-'}
-                  </p>
-                  <p className="text-[10px] text-stone-500">{t('record_video.impact.avg_rating')}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions Card */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-stone-800 mb-4">{t('record_video.quick_actions.title')}</h3>
-              <div className="space-y-3">
-                <Link
-                  to="/teacher/courses/new"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
-                    <BookOpen className="h-5 w-5 text-[color:#1e1b4b]" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-stone-800">{t('record_video.quick_actions.create_course')}</span>
-                    <span className="text-xs text-stone-500">{t('record_video.quick_actions.start_series')}</span>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/teacher/courses"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
-                    <FileVideo className="h-5 w-5 text-[color:#1e1b4b]" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-stone-800">{t('record_video.quick_actions.manage_content')}</span>
-                    <span className="text-xs text-stone-500">{t('record_video.quick_actions.edit_videos')}</span>
-                  </div>
-                </Link>
-
-                <Link
-                  to="/teacher/students"
-                  className="flex items-center gap-3 p-3 rounded-xl border border-stone-100 hover:border-[color:#1e1b4b]/30 hover:bg-[color:#1e1b4b]/5 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[color:#1e1b4b]/10 flex items-center justify-center group-hover:bg-[color:#1e1b4b]/20 transition-colors">
-                    <Users className="h-5 w-5 text-[color:#1e1b4b]" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-stone-800">{t('record_video.impact.students')}</span>
-                    <span className="text-xs text-stone-500">{t('record_video.quick_actions.view_engagement')}</span>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Sidebar with Stats and Quick Actions - Moved below or removed if not needed, but user said "increase container" so we remove the sidebar constraint */}
+        {/* We can keep the stats but maybe make them horizontal or less intrusive if needed, but for now just making the main area full width */}
       </div>
     </div>
   );

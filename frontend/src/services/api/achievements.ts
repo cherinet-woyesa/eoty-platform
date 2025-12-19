@@ -11,6 +11,10 @@ export interface Badge {
 }
 
 export const achievementsApi = {
+  getAllBadges: async () => {
+    return achievementsApi.getAvailableBadges();
+  },
+
   getAvailableBadges: async () => {
     const response = await apiClient.get('/achievements/badges/available');
     return response.data;

@@ -129,7 +129,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 				}));
 			}
 		} catch (error) {
-			console.error('Failed to load preview:', error);
+			// console.error('Failed to load preview:', error);
 		} finally {
 			setLoadingPreview(null);
 		}
@@ -145,8 +145,8 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 				window.location.reload(); // Temporary - should use refetch callback
 			}
 		} catch (error: any) {
-			console.error('Failed to retry upload:', error);
-			alert(error.response?.data?.message || 'Failed to retry upload');
+			// console.error('Failed to retry upload:', error);
+			// alert(error.response?.data?.message || 'Failed to retry upload');
 		} finally {
 			setRetryingId(null);
 		}
@@ -338,8 +338,7 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 							<button
 								disabled={loading}
 								onClick={onRefresh}
-								className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors duration-200 disabled:opacity-50"
-								style={{ backgroundColor: brandColors.primaryHex }}
+								className="inline-flex items-center px-4 py-2 bg-indigo-900 text-white text-xs font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
 							>
 								<RefreshCw
 									className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`}
@@ -432,22 +431,20 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 							<div className="text-right">
 								<div className="flex items-center space-x-1">
 									<TrendingUp
-										className={`h-2.5 w-2.5 ${
-											stat.changeType === 'positive'
-												? 'text-brand-primary'
-												: stat.changeType === 'negative'
+										className={`h-2.5 w-2.5 ${stat.changeType === 'positive'
+											? 'text-brand-primary'
+											: stat.changeType === 'negative'
 												? 'text-brand-accent'
 												: 'text-slate-600'
-										}`}
+											}`}
 									/>
 									<span
-										className={`text-xs font-medium ${
-											stat.changeType === 'positive'
-												? 'text-brand-primary'
-												: stat.changeType === 'negative'
+										className={`text-xs font-medium ${stat.changeType === 'positive'
+											? 'text-brand-primary'
+											: stat.changeType === 'negative'
 												? 'text-brand-accent'
 												: 'text-slate-700'
-										}`}
+											}`}
 									>
 										{stat.change}
 									</span>
@@ -596,12 +593,12 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 											currentTags={upload.tags as any} // Tags are strings, component will handle conversion
 											currentChapterId={upload.chapter_id}
 											availableChapters={availableChapters}
-											onTagsUpdated={(tags) => {
+											onTagsUpdated={(_tags) => {
 												// Refresh upload list - parent should handle this
-												console.log('Tags updated:', tags);
+												// console.log('Tags updated:', tags);
 											}}
-											onChapterAssigned={(chapterId) => {
-												console.log('Chapter assigned:', chapterId);
+											onChapterAssigned={(_chapterId) => {
+												// console.log('Chapter assigned:', chapterId);
 												// Update chapter assignment - would need API call
 											}}
 										/>
@@ -619,16 +616,16 @@ const UploadQueue: React.FC<UploadQueueProps> = ({
 										) : previewData[upload.id] ? (
 											<div className="bg-gray-50 rounded-lg p-4">
 												{previewData[upload.id].thumbnail_url && (
-													<img 
-														src={previewData[upload.id].thumbnail_url} 
-														alt="Preview" 
+													<img
+														src={previewData[upload.id].thumbnail_url}
+														alt="Preview"
 														className="w-full rounded-lg mb-2"
 													/>
 												)}
 												{previewData[upload.id].preview_url && (
-													<a 
-														href={previewData[upload.id].preview_url} 
-														target="_blank" 
+													<a
+														href={previewData[upload.id].preview_url}
+														target="_blank"
 														rel="noopener noreferrer"
 														className="text-sm text-blue-600 hover:underline"
 													>

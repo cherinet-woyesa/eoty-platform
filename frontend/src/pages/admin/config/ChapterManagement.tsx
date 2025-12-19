@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, BookOpen, RefreshCw, Search } from 'lucide-react';
@@ -48,7 +48,7 @@ export const ChapterManagement = () => {
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
   const { confirm } = useConfirmDialog();
-  
+
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -108,7 +108,7 @@ export const ChapterManagement = () => {
   // User requested "real data from backend", so we prioritize that.
   // We can keep the restcountries fetch for the *form* options if we want to allow new countries, 
   // but for filters we use the backend data.
-  
+
   /* 
   useEffect(() => {
     // ... existing restcountries fetch ...
@@ -190,7 +190,7 @@ export const ChapterManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['chapters'] });
       queryClient.invalidateQueries({ queryKey: ['system-config-metrics'] });
       setSelectedItems(new Set());
-      
+
       if (result.failed > 0) {
         showNotification({
           type: 'warning',
@@ -215,13 +215,13 @@ export const ChapterManagement = () => {
   });
 
   // Form initialization
-  const openCreateForm = () => {
+  const openCreateForm = useCallback(() => {
     setFormData({ name: '', description: '', city: '', country: '', region: '', address: '' });
     setFormErrors({});
     setIsCreating(true);
-  };
+  }, []);
 
-  const openEditForm = (chapter: Chapter) => {
+  const openEditForm = useCallback((chapter: Chapter) => {
     setFormData({
       name: chapter.name,
       description: chapter.description || '',
@@ -232,17 +232,17 @@ export const ChapterManagement = () => {
     });
     setFormErrors({});
     setEditingChapter(chapter);
-  };
+  }, []);
 
-  const closeForm = () => {
+  const closeForm = useCallback(() => {
     setIsCreating(false);
     setEditingChapter(null);
     setFormData({ name: '', description: '', city: '', country: '', region: '', address: '' });
     setFormErrors({});
-  };
+  }, []);
 
   // Form validation
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
     if (!formData.name || formData.name.trim().length < 3) {
@@ -257,12 +257,12 @@ export const ChapterManagement = () => {
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  };
+  }, [formData.name, formData.description]);
 
   // Handlers
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showNotification({
         type: 'error',
@@ -282,9 +282,9 @@ export const ChapterManagement = () => {
     } catch (error) {
       // Error handled by mutation
     }
-  };
+  }, [validateForm, isCreating, editingChapter, formData, createMutation, updateMutation, closeForm, showNotification]);
 
-  const handleDelete = async (chapter: Chapter) => {
+  const handleDelete = useCallback(async (chapter: Chapter) => {
     if (chapter.course_count > 0) {
       showNotification({
         type: 'error',
@@ -304,23 +304,23 @@ export const ChapterManagement = () => {
     if (confirmed) {
       await deleteMutation.mutateAsync(chapter.id);
     }
-  };
+  }, [showNotification, confirm, deleteMutation]);
 
-  const handleToggleActive = async (chapter: Chapter) => {
+  const handleToggleActive = useCallback(async (chapter: Chapter) => {
     await updateMutation.mutateAsync({
       id: chapter.id,
       data: { is_active: !chapter.is_active },
     });
-  };
+  }, [updateMutation]);
 
-  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+  const handleBulkAction = useCallback(async (action: 'activate' | 'deactivate' | 'delete') => {
     const ids = Array.from(selectedItems);
-    
+
     if (action === 'delete') {
       const chaptersWithCourses = chapters.filter(
         c => ids.includes(c.id) && c.course_count > 0
       );
-      
+
       if (chaptersWithCourses.length > 0) {
         showNotification({
           type: 'error',
@@ -332,7 +332,7 @@ export const ChapterManagement = () => {
     }
 
     return await bulkActionMutation.mutateAsync({ action, ids });
-  };
+  }, [selectedItems, chapters, showNotification, bulkActionMutation]);
 
   const filteredChapters = useMemo(() => {
     const term = debouncedSearch;
@@ -363,7 +363,7 @@ export const ChapterManagement = () => {
     return sortedChapters.slice(start, start + pageSize);
   }, [sortedChapters, currentPage, pageSize]);
 
-  const runGeoPreview = async () => {
+  const runGeoPreview = useCallback(async () => {
     setGeoPreviewError(null);
     setGeoPreview(null);
     if (!formData.address && !formData.city && !formData.country && !formData.region) {
@@ -389,7 +389,7 @@ export const ChapterManagement = () => {
     } catch (err: any) {
       setGeoPreviewError(err.message || 'Geocode preview failed');
     }
-  };
+  }, [formData.address, formData.city, formData.country, formData.region]);
 
   const analyticsLikelyMissing = useMemo(() => {
     if (isLoading || chapters.length === 0) return false;
@@ -408,7 +408,7 @@ export const ChapterManagement = () => {
     return { total, active, inactive, totalCourses };
   }, [chapters]);
 
-  const exportCsv = () => {
+  const exportCsv = useCallback(() => {
     const header = ['Name', 'Description', 'City', 'Country', 'Region', 'Courses', 'Status'];
     const rows = filteredChapters.map((c) => [
       c.name || '',
@@ -427,7 +427,7 @@ export const ChapterManagement = () => {
     link.download = 'chapters.csv';
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [filteredChapters]);
 
   // Table columns
   const columns: ConfigTableColumn[] = [
@@ -511,9 +511,9 @@ export const ChapterManagement = () => {
               <button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ['chapters'] })}
                 className="inline-flex items-center px-3 py-2 bg-white border text-sm font-medium rounded-lg text-stone-800 hover:bg-white focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{ 
+                style={{
                   borderColor: `${brandColors.primaryHex}4D`, // 30% opacity
-                  '--tw-ring-color': brandColors.primaryHex 
+                  '--tw-ring-color': brandColors.primaryHex
                 } as React.CSSProperties}
               >
                 <RefreshCw className="h-4 w-4 mr-1" style={{ color: brandColors.primaryHex }} />
@@ -522,9 +522,9 @@ export const ChapterManagement = () => {
               <button
                 onClick={openCreateForm}
                 className="text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{ 
+                style={{
                   backgroundColor: brandColors.primaryHex,
-                  '--tw-ring-color': brandColors.primaryHex 
+                  '--tw-ring-color': brandColors.primaryHex
                 } as React.CSSProperties}
               >
                 <Plus className="h-5 w-5" />
@@ -571,7 +571,7 @@ export const ChapterManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search chapters by name or description..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{ 
+                style={{
                   '--tw-ring-color': brandColors.primaryHex,
                   borderColor: searchTerm ? brandColors.primaryHex : undefined
                 } as React.CSSProperties}
@@ -698,9 +698,8 @@ export const ChapterManagement = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Introduction to Orthodox Faith"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
-                        formErrors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                     {formErrors.name && (
@@ -721,9 +720,8 @@ export const ChapterManagement = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of this chapter..."
                       rows={4}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
-                        formErrors.description ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${formErrors.description ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                     {formErrors.description && (
@@ -734,89 +732,89 @@ export const ChapterManagement = () => {
                     </p>
                   </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                    <input
-                      type="text"
-                      value={formData.city || ''}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      placeholder="e.g., Addis Ababa"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                    <input
-                      type="text"
-                      value={formData.country || ''}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      placeholder="e.g., Ethiopia"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Region/State</label>
-                    <input
-                      type="text"
-                      value={formData.region || ''}
-                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      placeholder="e.g., Oromia"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address (for pin)</label>
-                    <input
-                      type="text"
-                      value={formData.address || ''}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
-                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      placeholder="Street, building, etc. (optional)"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Used for geocoding the chapter location. Geocoding via Google Maps API.</p>
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-                        onClick={runGeoPreview}
-                      >
-                        Geocode Preview
-                      </button>
-                      {geoPreview && (
-                        <span className="text-xs text-green-700">
-                          {geoPreview.location || 'Location found'} ({geoPreview.latitude?.toFixed(4)}, {geoPreview.longitude?.toFixed(4)})
-                        </span>
-                      )}
-                      {geoPreviewError && (
-                        <span className="text-xs text-amber-700">
-                          {geoPreviewError}
-                        </span>
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={formData.city || ''}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                        placeholder="e.g., Addis Ababa"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                      <input
+                        type="text"
+                        value={formData.country || ''}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                        placeholder="e.g., Ethiopia"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Region/State</label>
+                      <input
+                        type="text"
+                        value={formData.region || ''}
+                        onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                        placeholder="e.g., Oromia"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address (for pin)</label>
+                      <input
+                        type="text"
+                        value={formData.address || ''}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                        placeholder="Street, building, etc. (optional)"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Used for geocoding the chapter location. Geocoding via Google Maps API.</p>
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                          onClick={runGeoPreview}
+                        >
+                          Geocode Preview
+                        </button>
+                        {geoPreview && (
+                          <span className="text-xs text-green-700">
+                            {geoPreview.location || 'Location found'} ({geoPreview.latitude?.toFixed(4)}, {geoPreview.longitude?.toFixed(4)})
+                          </span>
+                        )}
+                        {geoPreviewError && (
+                          <span className="text-xs text-amber-700">
+                            {geoPreviewError}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Map Preview */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Map Preview</label>
-                  {editingChapter && (editingChapter as any).latitude && (editingChapter as any).longitude ? (
-                    <div className="rounded-lg overflow-hidden border border-gray-200">
-                      <iframe
-                        title="Chapter location map"
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${(editingChapter as any).longitude - 0.01}%2C${(editingChapter as any).latitude - 0.01}%2C${(editingChapter as any).longitude + 0.01}%2C${(editingChapter as any).latitude + 0.01}&layer=mapnik&marker=${(editingChapter as any).latitude}%2C${(editingChapter as any).longitude}`}
-                        style={{ border: 0 }}
-                        className="w-full h-48"
-                        loading="lazy"
-                      ></iframe>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">Map will appear after save once geocoding succeeds.</p>
-                  )}
+                  {/* Map Preview */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Map Preview</label>
+                    {editingChapter && (editingChapter as any).latitude && (editingChapter as any).longitude ? (
+                      <div className="rounded-lg overflow-hidden border border-gray-200">
+                        <iframe
+                          title="Chapter location map"
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${(editingChapter as any).longitude - 0.01}%2C${(editingChapter as any).latitude - 0.01}%2C${(editingChapter as any).longitude + 0.01}%2C${(editingChapter as any).latitude + 0.01}&layer=mapnik&marker=${(editingChapter as any).latitude}%2C${(editingChapter as any).longitude}`}
+                          style={{ border: 0 }}
+                          className="w-full h-48"
+                          loading="lazy"
+                        ></iframe>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Map will appear after save once geocoding succeeds.</p>
+                    )}
                   </div>
 
                   {/* Action Buttons */}

@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, CheckCircle, XCircle, MapPin, Monitor, Smartphone, Tablet, Globe } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, XCircle, MapPin, Monitor, Smartphone, Tablet, Globe, Search, Filter, ShieldAlert } from 'lucide-react';
 import { activityApi, type ActivityLog, type AbnormalActivityAlert } from '@/services/api/activity';
+import { format } from 'date-fns';
 
 interface ActivityLogsProps {
   userId?: number;
@@ -64,196 +65,199 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
     }
   };
 
-  const getActivityIcon = (activityType: string, success: boolean) => {
-    if (!success) {
-      return <XCircle className="h-5 w-5 text-red-500" />;
-    }
-
-    switch (activityType) {
-      case 'login':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'logout':
-        return <Clock className="h-5 w-5 text-gray-500" />;
-      case 'failed_login':
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Clock className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
   const getDeviceIcon = (deviceType: string) => {
-    switch (deviceType) {
-      case 'mobile':
-        return <Smartphone className="h-4 w-4" />;
-      case 'tablet':
-        return <Tablet className="h-4 w-4" />;
-      default:
-        return <Monitor className="h-4 w-4" />;
+    switch (deviceType?.toLowerCase()) {
+      case 'mobile': return <Smartphone className="h-4 w-4" />;
+      case 'tablet': return <Tablet className="h-4 w-4" />;
+      default: return <Monitor className="h-4 w-4" />;
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString();
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      default:
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'critical': return 'bg-red-50 text-red-700 border-red-200';
+      case 'high': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'medium': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      default: return 'bg-blue-50 text-blue-700 border-blue-200';
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Abnormal Activity Alerts (REQUIREMENT: Abnormal activity alerts) */}
+    <div className="space-y-6 bg-gray-50/50 p-6 rounded-xl min-h-[600px]">
+      {/* Abnormal Activity Alerts */}
       {showAlerts && alerts.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <h3 className="font-semibold text-yellow-900">Security Alerts</h3>
+        <div className="bg-white border border-red-100 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <ShieldAlert className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Security Alerts</h3>
+              <p className="text-sm text-gray-500">Unusual activity detected needing attention.</p>
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="grid gap-3">
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                className={`p-3 rounded-lg border ${getSeverityColor(alert.severity)}`}
+                className={`p-4 rounded-lg border ${getSeverityColor(alert.severity)} flex items-start justify-between transition-all hover:shadow-md`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium mb-1">{alert.description}</div>
+                <div className="flex gap-3">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold mb-1">{alert.description}</div>
                     <div className="text-xs opacity-75">
-                      {formatDate(alert.created_at)}
+                      {format(new Date(alert.created_at), 'PPpp')}
                     </div>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-1 rounded">
-                    {alert.severity.toUpperCase()}
-                  </span>
                 </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/50 border border-current uppercase tracking-wider">
+                  {alert.severity}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Activity Logs (REQUIREMENT: Login history) */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Activity History</h2>
-          <select
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              setPage(0);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Activities</option>
-            <option value="login">Logins</option>
-            <option value="logout">Logouts</option>
-            <option value="failed_login">Failed Logins</option>
-          </select>
+      {/* Activity Logs Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Activity History</h2>
+            <p className="text-sm text-gray-500 mt-1">Audit trail of system access and actions</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Filter className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <select
+                value={filter}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  setPage(0);
+                }}
+                className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+              >
+                <option value="all">All Activities</option>
+                <option value="login">Logins</option>
+                <option value="logout">Logouts</option>
+                <option value="failed_login">Failed Logins</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+          <div className="m-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <XCircle className="h-5 w-5 mr-2" />
             {error}
           </div>
         )}
 
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Loading activity logs...</div>
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading records...</p>
+          </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No activity logs found</div>
+          <div className="p-12 text-center text-gray-500">
+            <Search className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-lg font-medium text-gray-900">No activity found</p>
+            <p>Try adjusting your filters.</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className={`border rounded-lg p-4 ${
-                  log.success
-                    ? 'border-gray-200 bg-white'
-                    : 'border-red-200 bg-red-50'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {getActivityIcon(log.activity_type, log.success)}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="font-medium text-gray-900 capitalize">
-                        {log.activity_type.replace('_', ' ')}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatDate(log.created_at)}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-2">
-                      {log.location && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{log.location}</span>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className={`p-2 rounded-lg mr-3 ${log.activity_type.includes('login') ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                          {log.activity_type.includes('login') ? <CheckCircle className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
                         </div>
-                      )}
-                      {log.device_type && (
-                        <div className="flex items-center gap-1">
-                          {getDeviceIcon(log.device_type)}
-                          <span className="capitalize">{log.device_type}</span>
-                        </div>
-                      )}
-                      {log.browser && (
-                        <div className="flex items-center gap-1">
-                          <Globe className="h-4 w-4" />
-                          <span className="capitalize">{log.browser}</span>
-                        </div>
-                      )}
-                      {log.os && (
-                        <span className="capitalize">{log.os}</span>
-                      )}
-                    </div>
-
-                    {log.ip_address && (
-                      <div className="text-xs text-gray-500 mb-1">
-                        IP: {log.ip_address}
+                        <span className="text-sm font-medium text-gray-900 capitalize">
+                          {log.activity_type.replace(/_/g, ' ')}
+                        </span>
                       </div>
-                    )}
-
-                    {!log.success && log.failure_reason && (
-                      <div className="text-sm text-red-600 mt-2">
-                        {log.failure_reason}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {log.success ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Success
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Failed
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        {!log.success && log.failure_reason && (
+                          <div className="text-xs text-red-600 font-medium flex items-center mb-1">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {log.failure_reason}
+                          </div>
+                        )}
+                        <div className="flex text-xs text-gray-500 gap-3">
+                          {log.location && (
+                            <span className="flex items-center gap-1" title="Location"><MapPin className="h-3 w-3" /> {log.location}</span>
+                          )}
+                          {log.ip_address && (
+                            <span className="flex items-center gap-1" title="IP Address"><Globe className="h-3 w-3" /> {log.ip_address}</span>
+                          )}
+                        </div>
+                        <div className="flex text-xs text-gray-400 gap-3 mt-1">
+                          {log.device_type && (
+                            <span className="flex items-center gap-1 capitalize"><Monitor className="h-3 w-3" /> {log.device_type}</span>
+                          )}
+                          {log.browser && (
+                            <span className="capitalize">• {log.browser}</span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(log.created_at), 'MMM d, yyyy')}
+                      <span className="block text-xs text-gray-400">{format(new Date(log.created_at), 'h:mm a')}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
         {/* Pagination */}
-        {logs.length === pageSize && (
-          <div className="flex justify-center gap-2 mt-6">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 text-right">
+          <div className="inline-flex bg-white rounded-lg shadow-sm">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-200 rounded-l-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              disabled={logs.length < pageSize}
+              className="px-4 py-2 border-t border-b border-r border-gray-200 rounded-r-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

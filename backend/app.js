@@ -348,6 +348,7 @@ app.use('/api/video-analytics', require('./routes/videoAnalytics')); // Video an
 app.use('/api', videoNotesRoutes); // Video notes routes (authentication handled in route file)
 app.use('/api', videoChaptersRoutes); // Video chapters routes (authentication handled in route file)
 app.use('/api', thumbnailRoutes); // Thumbnail routes (authentication handled in route file)
+app.use('/api/support', require('./routes/support')); // Support routes
 app.use('/api', relatedVideosRoutes); // Related videos routes (authentication handled in route file)
 app.use('/api/recording-presets', recordingPresetsRoutes); // Recording presets routes (authentication handled in route file)
 app.use('/api/video-progress', videoProgressRoutes); // Video progress tracking routes (authentication handled in route file)

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { FC } from 'react';
 import { useVideoRecorder } from '@/hooks/useVideoRecorder';
 import { coursesApi } from '@/services/api';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 // Mobile detection hook
 const useIsMobile = () => {
@@ -30,10 +31,10 @@ import { formatErrorForDisplay } from '@/utils/errorHandler';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import VideoTimelineEditor from './VideoTimelineEditor';
 import SimpleTrimEditor from './SimpleTrimEditor';
-import SlideManager from './SlideManager';
+// import SlideManager from './SlideManager';
 import Teleprompter from './Teleprompter';
 import PreFlightCheck from './PreFlightCheck';
-import { useVirtualBackground } from '@/hooks/useVirtualBackground';
+// import { useVirtualBackground } from '@/hooks/useVirtualBackground';
 import VideoProcessingStatus from './VideoProcessingStatus';
 import SuccessNotificationModal from './SuccessNotificationModal';
 import LayoutSelector from './LayoutSelector';
@@ -93,6 +94,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { confirm } = useConfirmDialog();
+  
+  // Refs for click-outside detection
+  const shortcutsRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Enhanced video recorder hook with production features
   const {
@@ -145,9 +151,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     startAudioLevelMonitoring,
     stopAudioLevelMonitoring,
     options,
-    setOptions
-    ,
-    acknowledgePreview
+    setOptions,
+    acknowledgePreview,
+    initializeCompositor
   } = useVideoRecorder();
 
   // Refs
@@ -255,23 +261,43 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Integrated Features State
   const [showTimelineEditor, setShowTimelineEditor] = useState(false);
-  const [showSlideManager, setShowSlideManager] = useState(false);
+  // const [showSlideManager, setShowSlideManager] = useState(false);
   const [showTeleprompter, setShowTeleprompter] = useState(false);
   const [showProcessingStatus, setShowProcessingStatus] = useState(false);
   
-  // Virtual Background State
+  // Virtual Background State - COMMENTED OUT FOR NOW
+  /*
   const [vbEnabled, setVbEnabled] = useState(false);
   const [vbMode, setVbMode] = useState<'blur' | 'image' | 'none'>('none');
   const [rawCameraStream, setRawCameraStream] = useState<MediaStream | null>(null);
   const isSettingStreamRef = useRef(false);
 
-  const { processedStream, isModelLoaded } = useVirtualBackground(rawCameraStream, {
+  const { processedStream, isModelLoaded, error: vbError } = useVirtualBackground(rawCameraStream, {
     enabled: vbEnabled,
     mode: vbMode,
     blurRadius: 10
   });
+  */
 
-  // Capture raw stream
+  // Handle VB Error - COMMENTED OUT FOR NOW
+  /*
+  useEffect(() => {
+    if (vbError && vbEnabled) {
+      setVbEnabled(false);
+      setVbMode('none');
+      setModalNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Virtual Background Error',
+        message: `Failed to enable virtual background: ${vbError}`,
+        autoCloseDelay: 5000
+      });
+    }
+  }, [vbError, vbEnabled]);
+  */
+
+  // Capture raw stream - COMMENTED OUT FOR NOW
+  /*
   useEffect(() => {
     if (isSettingStreamRef.current) {
         isSettingStreamRef.current = false;
@@ -283,8 +309,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         }
     }
   }, [recordingSources.camera, vbEnabled]);
+  */
 
-  // Apply processed stream
+  // Apply processed stream - COMMENTED OUT FOR NOW
+  /*
   useEffect(() => {
       if (vbEnabled && processedStream && processedStream !== recordingSources.camera) {
           isSettingStreamRef.current = true;
@@ -294,6 +322,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           setCameraStream(rawCameraStream);
       }
   }, [vbEnabled, processedStream, rawCameraStream, setCameraStream, recordingSources.camera]);
+  */
   const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
   const [currentSlides, setCurrentSlides] = useState<any[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
@@ -488,36 +517,51 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
 
     // Audio analysis setup
+    let micInterval: NodeJS.Timeout | null = null;
+
     if (stream && enableAudio) {
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        audioAnalyserRef.current = analyser;
-        audioContextRef.current = audioCtx;
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const audioCtx = new AudioContextClass();
+          // Check if stream has audio tracks before creating source
+          if (stream.getAudioTracks().length > 0) {
+            const source = audioCtx.createMediaStreamSource(stream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            audioAnalyserRef.current = analyser;
+            audioContextRef.current = audioCtx;
 
-        // Update mic level periodically
-        const updateMicLevel = () => {
-          if (audioAnalyserRef.current) {
-            const dataArray = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
-            audioAnalyserRef.current.getByteFrequencyData(dataArray);
-            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            // Update mic level periodically
+            const updateMicLevel = () => {
+              if (audioAnalyserRef.current) {
+                const dataArray = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
+                audioAnalyserRef.current.getByteFrequencyData(dataArray);
+                // const average = dataArray.reduce((a, b) => a + b) / dataArray.length; // Unused
+              }
+            };
+
+            micInterval = setInterval(updateMicLevel, 100);
+          } else {
+            // No audio tracks, close context immediately
+            audioCtx.close().catch(() => {});
           }
-        };
-
-        const micInterval = setInterval(updateMicLevel, 100);
-        return () => clearInterval(micInterval);
+        }
       } catch (error) {
-        // Audio context not supported
+        console.warn('Audio context setup failed:', error);
       }
     }
 
     return () => {
+      if (micInterval) {
+        clearInterval(micInterval);
+      }
       audioAnalyserRef.current = null;
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => { });
+        if (audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => { });
+        }
         audioContextRef.current = null;
       }
     };
@@ -809,6 +853,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Enhanced recording with multi-source support
   const startCountdownAndRecording = useCallback(async () => {
     try {
+      // Pre-initialize compositor to reduce delay after countdown
+      // We do this BEFORE the countdown starts so the user waits here instead of after "GO!"
+      if (!compositorInstance && (recordingSources.camera || recordingSources.screen)) {
+         setIsInitializingCompositor(true);
+         try {
+           await initializeCompositor();
+         } catch (e) {
+           console.warn('Pre-initialization of compositor failed', e);
+         } finally {
+           setIsInitializingCompositor(false);
+         }
+      }
+
       setRecordingStatus('countdown');
       setCountdownValue(3);
 
@@ -860,13 +917,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Keep default layout predictable without requesting camera permissions automatically
     const hasCamera = !!recordingSources.camera;
     const hasScreen = !!recordingSources.screen;
-
-    // Only reset layout if we have NO sources and are not recording
-    // This prevents overriding the user's layout choice (e.g. screen-only) when they stop sharing
-    if (!hasCamera && !hasScreen && !isRecording) {
-      handleLayoutChange('camera-only');
+    
+    // Only force layout change if the current layout is invalid for the available sources
+    if (hasCamera && !hasScreen) {
+      if (currentLayout !== 'camera-only') {
+        handleLayoutChange('camera-only');
+      }
+    } else if (!hasCamera && hasScreen) {
+      if (currentLayout !== 'screen-only') {
+        handleLayoutChange('screen-only');
+      }
     }
-  }, [recordingSources.camera, recordingSources.screen, isRecording, handleLayoutChange]);
+    // If both are available, allow any layout (including screen-only or camera-only)
+  }, [recordingSources.camera, recordingSources.screen, currentLayout, handleLayoutChange]);
 
   // Load teacher's courses
   useEffect(() => {
@@ -1006,6 +1069,36 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
+  // Handle click outside to close menus
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // Close shortcuts panel if clicked outside
+      if (showKeyboardShortcuts && shortcutsRef.current && !shortcutsRef.current.contains(target)) {
+        // If clicked inside toolbar, let the toolbar buttons handle it
+        if (toolbarRef.current && toolbarRef.current.contains(target)) {
+          return;
+        }
+        setShowKeyboardShortcuts(false);
+      }
+
+      // Close advanced tools if clicked outside toolbar
+      if (showAdvancedTools && toolbarRef.current && !toolbarRef.current.contains(target)) {
+        // If clicked inside shortcuts panel, keep advanced tools open
+        if (shortcutsRef.current && shortcutsRef.current.contains(target)) {
+          return;
+        }
+        setShowAdvancedTools(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showKeyboardShortcuts, showAdvancedTools]);
+
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -1030,7 +1123,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setRecordingDuration(0); // Will be calculated from video metadata
       setErrorMessage(null);
       setActiveTab('upload');
-      setSuccessMessage(t('record_video.video_selected', 'Video file selected! Preview it before uploading.'));
+      // setSuccessMessage(t('record_video.video_selected', 'Video file selected! Preview it before uploading.'));
     }
   }, [filePreview, t]);
 
@@ -1104,7 +1197,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       if (recordingTime < 1) {
         setErrorMessage(t('record_video.recording_too_short', 'Recording too short. Please record for at least 1 second.'));
         isStoppingRef.current = false;
-        isStoppingRef.current = false;
         return;
       }
 
@@ -1128,26 +1220,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // This ensures preview shows even if blob creation is delayed
       setShowLessonForm(false); // Don't show form until user clicks "Upload"
 
-      // Don't close camera immediately - let the useEffect handle it when blob is ready
-      // This ensures the blob is created before cleanup happens
-      // The useEffect that watches for videoBlob will call closeCamera() when ready
-      // Waiting for blob to be created before closing camera
-
-      // Fallback: if preview acknowledgement hasn't happened, close camera after a short delay
-      setTimeout(() => {
-        try {
-          if (!isRecording && !previewAcknowledgedRef.current) {
-            // Fallback closing camera after stop
-            closeCamera();
-          }
-        } catch (e) {
-          // Fallback closeCamera error
-        }
-      }, 3000);
+      // FIX: Close camera immediately when stopping recording
+      // This ensures the camera light turns off promptly
+      closeCamera();
 
       // Reset stopping flag after a delay to allow blob creation
       setTimeout(() => {
-        isStoppingRef.current = false;
         isStoppingRef.current = false;
       }, 2000);
 
@@ -1218,7 +1296,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setAutoStopTimer(0);
     setRecordingStatus('idle');
     setShowTimelineEditor(false);
-    setShowSlideManager(false);
+    // setShowSlideManager(false);
     setShowProcessingStatus(false);
     setProcessingLessonId(null);
     setCurrentSlides([]);
@@ -1340,9 +1418,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // setShowProcessingStatus(false);
 
     // Show prominent success message that persists
-    const persistentMessage = '🎉 Video processing completed successfully! Your video is now available for viewing.';
-    persistentSuccessMessageRef.current = persistentMessage;
-    setSuccessMessage(persistentMessage);
+    // const persistentMessage = '🎉 Video processing completed successfully! Your video is now available for viewing.';
+    // persistentSuccessMessageRef.current = persistentMessage;
+    // setSuccessMessage(persistentMessage);
+    /*
     try {
       // Also show a visible toast popup
       addNotification(
@@ -1353,6 +1432,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         true // auto-hide
       );
     } catch { }
+    */
 
     // If we have a transcoded video URL, notify parent components
     if (processingLessonId) {
@@ -1371,7 +1451,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const handleMuxUploadComplete = useCallback((lessonId: string) => {
     // Mux upload complete
     setUploadSuccess(true);
-    setSuccessMessage('Video uploaded to Mux successfully! Processing will begin shortly.');
+    // setSuccessMessage('Video uploaded to Mux successfully! Processing will begin shortly.');
 
     // Hide Mux uploader and show processing status
     setShowMuxUploader(false);
@@ -1467,8 +1547,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
-  const handleDeleteRecording = () => {
-    if (confirm('Are you sure you want to delete this recording?')) {
+  const handleDeleteRecording = async () => {
+    const confirmed = await confirm({
+      title: t('record_video.delete_recording_title', 'Delete Recording?'),
+      message: t('record_video.delete_recording_message', 'Are you sure you want to delete this recording?'),
+      confirmLabel: t('common.delete', 'Delete'),
+      variant: 'danger'
+    });
+
+    if (confirmed) {
       handleReset();
     }
   };
@@ -1501,14 +1588,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleTabChange = (tab: 'record' | 'upload') => {
+  const handleTabChange = async (tab: 'record' | 'upload') => {
     if (activeTab === tab) return;
 
     // Clearance check: If we have unsaved work, confirm before switching
     if ((activeTab === 'record' && (recordedVideo || videoBlob)) || 
         (activeTab === 'upload' && (selectedFile || filePreview))) {
       // Simple confirmation - in a real app might use a modal
-      if (!window.confirm(t('common.discard_changes', 'Switching modes will discard your current recording/selection. Continue?'))) {
+      const confirmed = await confirm({
+        title: t('common.discard_changes_title', 'Discard Changes?'),
+        message: t('common.discard_changes', 'Switching modes will discard your current recording/selection. Continue?'),
+        confirmLabel: t('common.continue', 'Continue'),
+        cancelLabel: t('common.cancel', 'Cancel'),
+        variant: 'danger'
+      });
+      
+      if (!confirmed) {
         return;
       }
       // Clear previous state
@@ -1517,10 +1612,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     if (tab === 'upload') {
       closeCamera();
-      setShowSlideManager(false);
+      // setShowSlideManager(false);
     } else {
-      // Switching back to record - optionally re-init camera
-      // initializeCamera(); 
+      // Switching back to record - re-init camera
+      initializeCamera(); 
     }
     setActiveTab(tab);
   };
@@ -1555,10 +1650,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     // Attach stream if element exists
     if (el && recordingSources.camera) {
-      el.srcObject = recordingSources.camera;
-      el.play().catch(() => {
-        setErrorMessage(t('record_video.camera_preview_error', 'Camera preview failed to start.'));
-      });
+      // Only update if different to avoid interrupting playback
+      if (el.srcObject !== recordingSources.camera) {
+        el.srcObject = recordingSources.camera;
+        el.play().catch((e) => {
+          // Ignore AbortError which happens when element is removed or playback interrupted
+          if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+            console.warn('Camera preview play error:', e);
+            // Only show error if it's a real failure, not just an interruption
+            // setErrorMessage(t('record_video.camera_preview_error', 'Camera preview failed to start.'));
+          }
+        });
+      }
     }
   }, [recordingSources.camera, t]);
 
@@ -1568,10 +1671,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     // Attach stream if element exists
     if (el && recordingSources.screen) {
-      el.srcObject = recordingSources.screen;
-      el.play().catch(() => {
-        setErrorMessage(t('record_video.screen_preview_error', 'Screen preview failed to start.'));
-      });
+      // Only update if different to avoid interrupting playback
+      if (el.srcObject !== recordingSources.screen) {
+        el.srcObject = recordingSources.screen;
+        el.play().catch((e) => {
+          // Ignore AbortError which happens when element is removed or playback interrupted
+          if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+            console.warn('Screen preview play error:', e);
+            // setErrorMessage(t('record_video.screen_preview_error', 'Screen preview failed to start.'));
+          }
+        });
+      }
     }
   }, [recordingSources.screen, t]);
 
@@ -1791,10 +1901,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
       <div className={`relative flex flex-col overflow-hidden ${variant === 'default'
-          ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm max-w-3xl w-full ml-4 md:ml-6 mr-4 md:mr-6 my-4'
+          ? 'bg-white/85 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-sm w-full max-w-[95%] mx-auto my-4'
           : variant === 'embedded'
-            ? 'w-full max-w-4xl ml-4 md:ml-6 mr-4 md:mr-6 bg-white rounded-xl border border-slate-200 shadow-sm my-4' // Reduced container size
-            : 'w-full max-w-lg ml-4 md:ml-6 mr-4 md:mr-6 flex-none max-h-[520px] overflow-hidden'
+            ? 'w-full max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm my-4' // Reduced container size
+            : 'w-full max-w-lg mx-auto flex-none max-h-[520px] overflow-hidden'
         }`}>
         {/* Reserved right sidebar space removed to keep recorder size unchanged */}
         {/* Error Alert */}
@@ -1810,7 +1920,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         {/* Header - Adaptive based on variant */}
         {variant === 'embedded' ? (
-          <div className="px-3 py-2 border-b border-slate-200 bg-white">
+          <div ref={toolbarRef} className="px-3 py-2 border-b border-slate-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-2">
               {/* Sources & Layouts - Left Aligned */}
               <div className="flex items-center gap-2">
@@ -1835,6 +1945,45 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
               {/* Right Side: Tabs & Tools */}
               <div className="flex items-center gap-2 ml-auto">
+                {/* Pre-flight Check Toggle */}
+                <button
+                  onClick={() => setShowPreFlight(true)}
+                  className="p-1.5 rounded-md transition-colors border bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  title={t('record_video.check_devices', 'Check Devices')}
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Teleprompter Toggle - Always Visible */}
+                <button
+                  onClick={() => setShowTeleprompter(!showTeleprompter)}
+                  className={`p-1.5 rounded-md transition-colors border ${showTeleprompter
+                      ? 'bg-sky-100 text-sky-700 border-sky-300'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  title={t('teleprompter.title', 'Teleprompter')}
+                >
+                  <AlignLeft className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Virtual Background Toggle - Always Visible - COMMENTED OUT FOR NOW
+                <button
+                  onClick={() => {
+                      const newEnabled = !vbEnabled;
+                      setVbEnabled(newEnabled);
+                      setVbMode(newEnabled ? 'blur' : 'none');
+                  }}
+                  disabled={!isModelLoaded && !vbError}
+                  className={`p-1.5 rounded-md transition-colors border ${vbEnabled
+                      ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    } ${(!isModelLoaded && !vbError) ? 'opacity-50 cursor-wait' : ''}`}
+                  title={!isModelLoaded ? "Loading Virtual Background Model..." : (vbEnabled ? "Disable Virtual Background" : "Enable Blur Background")}
+                >
+                  {!isModelLoaded && !vbError ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <User className="h-3.5 w-3.5" />}
+                </button>
+                */}
+
                 {/* Advanced Tools Toggle */}
                 <button
                   onClick={() => setShowAdvancedTools(prev => !prev)}
@@ -1874,29 +2023,19 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             {/* Advanced Tools Toolbar (Embedded) */}
             {showAdvancedTools && (
               <div className="flex items-center gap-2 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2">
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
-                >
-                  <Sparkles className="h-4 w-4" /> {t('record_video.tips_label', 'Tips')}
-                </button>
+                {onToggleTips && (
+                  <button
+                    onClick={onToggleTips}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
+                  >
+                    <Sparkles className="h-4 w-4" /> {t('record_video.tips_label', 'Tips')}
+                  </button>
+                )}
                 <button
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
                 >
                   <Zap className="h-4 w-4" /> {t('record_video.settings', 'Settings')}
-                </button>
-                <button
-                  onClick={() => setShowSlideManager(!showSlideManager)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 text-sm"
-                >
-                  <FileText className="h-4 w-4" /> {t('record_video.slides', 'Slides')}
-                </button>
-                <button
-                  onClick={() => setShowTeleprompter(!showTeleprompter)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${showTeleprompter ? 'bg-sky-100 text-sky-700 border border-sky-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
-                >
-                  <AlignLeft className="h-4 w-4" /> {t('teleprompter.title', 'Teleprompter')}
                 </button>
                 <button
                   onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
@@ -1977,32 +2116,30 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
               {/* Right: Additional Tools */}
               <div className="flex items-center gap-2 ml-auto">
-                {/* Virtual Background Toggle */}
+                {/* Virtual Background Toggle - Always Visible - COMMENTED OUT FOR NOW
                 <button
                   onClick={() => {
+                      if (!isModelLoaded && !vbEnabled) {
+                         // If model not loaded yet, maybe show toast?
+                         // But we allow clicking to trigger loading if it's lazy, 
+                         // though currently it loads on mount.
+                      }
                       const newEnabled = !vbEnabled;
                       setVbEnabled(newEnabled);
                       setVbMode(newEnabled ? 'blur' : 'none');
                   }}
+                  disabled={!isModelLoaded && !vbError}
                   className={`p-2 rounded-lg transition-colors border ${vbEnabled
                       ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
                       : 'bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50'
-                    }`}
-                  title={vbEnabled ? "Disable Virtual Background" : "Enable Blur Background"}
+                    } ${(!isModelLoaded && !vbError) ? 'opacity-50 cursor-wait' : ''}`}
+                  title={!isModelLoaded ? "Loading Virtual Background Model..." : (vbEnabled ? "Disable Virtual Background" : "Enable Blur Background")}
                 >
-                  <User className="h-4 w-4" />
+                  {!isModelLoaded && !vbError ? <Loader className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
                 </button>
+                */}
 
-                {/* System Check */}
-                <button
-                  onClick={() => setShowPreFlight(true)}
-                  className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
-                  title={t('preflight.title', "System Check")}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                </button>
-
-                {/* Teleprompter Toggle */}
+                {/* Teleprompter Toggle - Always Visible */}
                 <button
                   onClick={() => setShowTeleprompter(!showTeleprompter)}
                   className={`p-2 rounded-lg transition-colors border ${showTeleprompter
@@ -2014,14 +2151,25 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                   <AlignLeft className="h-4 w-4" />
                 </button>
 
-                {/* Tips */}
+                {/* System Check */}
                 <button
-                  onClick={() => setShowSettings(!showSettings)}
+                  onClick={() => setShowPreFlight(true)}
                   className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
-                  title={t('record_video.tips_guidance', "Tips & guidance")}
+                  title={t('preflight.title', "System Check")}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <CheckCircle className="h-4 w-4" />
                 </button>
+
+                {/* Tips */}
+                {onToggleTips && (
+                  <button
+                    onClick={onToggleTips}
+                    className="p-2 rounded-lg transition-colors border bg-white/90 text-slate-600 border-slate-200/50 hover:bg-slate-50/50"
+                    title={t('record_video.tips_guidance', "Tips & guidance")}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </button>
+                )}
 
                 {/* Compositor Preview Toggle */}
                 {isCompositing && (
@@ -2133,10 +2281,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         {/* Main Preview Area */}
         <div className={`relative bg-black ${variant === 'default'
-            ? 'aspect-video w-full max-w-5xl mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[720px]'
+            ? 'aspect-video w-full mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[80vh]'
             : variant === 'embedded'
-              ? 'aspect-video w-full max-w-3xl mx-auto rounded-lg overflow-hidden shadow-md border border-slate-200 my-4' // Reduced size for embedded
-              : 'aspect-video w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[420px]'
+              ? 'aspect-video w-full mx-auto rounded-lg overflow-hidden shadow-md border border-slate-200 my-4' // Reduced size for embedded
+              : 'aspect-video w-full mx-auto rounded-lg overflow-hidden shadow-lg border border-slate-800/50 my-4 max-h-[420px]'
           }`}>
           {/* Use our custom preview logic (handles side-by-side, PiP, etc.) so framing stays predictable */}
           {renderPreview()}
@@ -2294,7 +2442,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         </div>
 
-        {/* NEW: Slide Manager (advanced only) */}
+        {/* NEW: Slide Manager (advanced only) - REMOVED */}
+        {/* 
         {showAdvancedTools && showSlideManager && (
           <div className="absolute top-4 right-4 z-40 w-96">
             <SlideManager
@@ -2302,14 +2451,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               onSlideAdvance={handleSlideAdvance}
             />
           </div>
-        )}
+        )} 
+        */}
 
         {/* NEW: Keyboard Shortcuts Panel (Task 7.1, 7.2) - advanced only */}
         {showAdvancedTools && showKeyboardShortcuts && (
-          <div className="absolute top-4 left-4 z-40 w-80">
+          <div ref={shortcutsRef} className="absolute top-16 left-4 z-50 w-80 shadow-xl rounded-xl overflow-hidden border border-slate-200">
             <KeyboardShortcuts
               isRecording={isRecording}
               isPaused={isPaused}
+              onStartRecording={handleStartRecording}
+              onStopRecording={handleStopRecording}
               onPauseResume={() => isPaused ? resumeRecording() : pauseRecording()}
               onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
               onCycleLayout={cycleLayout}
@@ -2421,6 +2573,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
               {/* Secondary Actions Group */}
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Record Again Button - Moved here as requested */}
+                <button
+                  onClick={handleReset}
+                  className="py-2 px-3 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Record Again</span>
+                </button>
+
                 {activeTab === 'record' && videoBlob && (
                   <button
                     onClick={() => {
@@ -2440,13 +2601,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 >
                   <Download className="h-4 w-4" />
                   <span>Download</span>
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  className="py-2 px-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
-                >
-                  Discard
                 </button>
               </div>
             </div>
@@ -2484,10 +2638,10 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <div className="mb-4">
               <h3 className="text-lg font-semibold flex items-center space-x-2 mb-2">
                 <Cloud className="h-5 w-5 text-blue-600" />
-                <span>Upload to Mux</span>
+                <span>Upload Video</span>
               </h3>
               <p className="text-sm text-gray-600">
-                Your lesson has been created. Now upload your video to Mux for optimized streaming.
+                Your lesson has been created. Now upload your video for optimized streaming.
               </p>
             </div>
             <MuxVideoUploader
@@ -2551,22 +2705,31 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                     <span>Preview</span>
                   </button>
                   {activeTab === 'record' && (
-                    <div className="relative group">
+                    <>
                       <button
-                        onClick={() => {
-                          setShowTimelineEditor(true);
-                          // Don't hide form
-                        }}
-                        className="px-3 py-2 bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-all duration-200 flex items-center space-x-2 text-sm"
+                        onClick={handleReset}
+                        className="px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center space-x-2 text-sm"
                       >
-                        <Scissors className="h-4 w-4" />
-                        <span>Edit Video</span>
+                        <RotateCcw className="h-4 w-4" />
+                        <span>Record Again</span>
                       </button>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                        Trim your video to remove unwanted parts
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                      <div className="relative group">
+                        <button
+                          onClick={() => {
+                            setShowTimelineEditor(true);
+                            // Don't hide form
+                          }}
+                          className="px-3 py-2 bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-all duration-200 flex items-center space-x-2 text-sm"
+                        >
+                          <Scissors className="h-4 w-4" />
+                          <span>Edit Video</span>
+                        </button>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          Trim your video to remove unwanted parts
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -2677,14 +2840,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 />
               </div>
               <div className="flex space-x-3 pt-2">
-                {(recordedVideo || selectedFile) && (
+                {(recordedVideo || selectedFile) && activeTab !== 'record' && (
                   <button
                     onClick={handleReset}
                     disabled={uploading}
                     className="px-4 py-3 border border-slate-300/50 rounded-xl bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 disabled:opacity-50 transition-all duration-200 flex items-center justify-center space-x-2 text-slate-700"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    <span>{activeTab === 'record' ? 'Record Again' : 'Upload New'}</span>
+                    <span>Upload New</span>
                   </button>
                 )}
 
@@ -2759,6 +2922,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             isOpen={showProcessingStatus}
             onClose={() => setShowProcessingStatus(false)}
             onProcessingComplete={handleProcessingComplete}
+            onViewLesson={() => {
+              const targetCourseId = courseId || selectedCourse;
+              if (targetCourseId) {
+                navigate(`/teacher/courses/${targetCourseId}`);
+              } else {
+                navigate('/dashboard');
+              }
+            }}
             videoProvider="mux"
           />
         )}

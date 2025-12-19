@@ -79,7 +79,7 @@ const SystemAlerts: React.FC<SystemAlertsProps> = ({ alerts, compact = false }) 
   const formatTimeAgo = (timestamp: Date) => {
     const now = new Date();
     const diff = now.getTime() - timestamp.getTime();
-    
+
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
@@ -88,12 +88,16 @@ const SystemAlerts: React.FC<SystemAlertsProps> = ({ alerts, compact = false }) 
 
   const handleResolveAlert = useCallback((alertId: string) => {
     // Handle alert resolution
-    console.log('Resolving alert:', alertId);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SystemAlerts] Resolving alert:', alertId);
+    }
   }, []);
 
   const handleDismissAlert = useCallback((alertId: string) => {
     // Handle alert dismissal
-    console.log('Dismissing alert:', alertId);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SystemAlerts] Dismissing alert:', alertId);
+    }
   }, []);
 
   const activeAlerts = alerts.filter(alert => !alert.resolved);
@@ -106,7 +110,7 @@ const SystemAlerts: React.FC<SystemAlertsProps> = ({ alerts, compact = false }) 
           <AlertTriangle className="h-5 w-5 mr-2 text-yellow-500" />
           System Alerts
         </h3>
-        
+
         <div className="space-y-3">
           {activeAlerts.slice(0, 3).map((alert) => (
             <div
@@ -171,9 +175,8 @@ const SystemAlerts: React.FC<SystemAlertsProps> = ({ alerts, compact = false }) 
           <p className="text-gray-600 mt-1">Monitor platform health and issues</p>
         </div>
         <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            activeAlerts.length > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-          }`}>
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${activeAlerts.length > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+            }`}>
             {activeAlerts.length > 0 ? `${activeAlerts.length} Active` : 'All Systems OK'}
           </span>
         </div>

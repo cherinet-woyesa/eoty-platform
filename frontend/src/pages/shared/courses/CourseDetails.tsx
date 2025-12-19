@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { coursesApi, interactiveApi } from '@/services/api';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/api/apiClient';
@@ -15,12 +15,18 @@ import UnifiedResourceView from '@/components/student/UnifiedResourceView';
 import { useAuth } from '@/context/AuthContext';
 import CourseDetailsSkeleton from '@/components/shared/courses/CourseDetailsSkeleton';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import { brandColors } from '@/theme/brand';
+import CourseHeader from '@/components/shared/courses/CourseHeader';
+import CourseSidebar from '@/components/shared/courses/CourseSidebar';
+import VideoRecorder from '@/components/shared/courses/EnhancedVideoRecorder';
+import MuxVideoUploader from '@/components/shared/courses/MuxVideoUploader';
 import {
   ArrowLeft, BookOpen, Clock, PlayCircle, Video,
-  Search, CheckCircle, Bookmark,
-  Download, Share2, Edit,
-  Loader2, Plus, Trash2, Bot, BarChart3,
-  Maximize2, Minimize2, Monitor, MessageSquare, Activity
+  CheckCircle,
+  Download,
+  Loader2, Plus, Bot, BarChart3,
+  Minimize2, MessageSquare, Activity, AlertCircle,
+  Camera, Upload
 } from 'lucide-react';
 
 interface Lesson {
@@ -90,10 +96,6 @@ const CourseDetails: React.FC = () => {
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [markingComplete, setMarkingComplete] = useState<string | null>(null);
   const [updatingProgress, setUpdatingProgress] = useState<string | null>(null);
-  const [isCreatingLesson, setIsCreatingLesson] = useState(false);
-  const [isEditingLesson, setIsEditingLesson] = useState<Lesson | null>(null);
-  const [newLessonTitle, setNewLessonTitle] = useState('');
-  const [newLessonDescription, setNewLessonDescription] = useState('');
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
   const [currentLessonTime, setCurrentLessonTime] = useState<number>(0);
   const [seekTo, setSeekTo] = useState<number | null>(null);
@@ -103,6 +105,7 @@ const CourseDetails: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showCourseUploader, setShowCourseUploader] = useState(false);
   const [resourcesRefreshToken, setResourcesRefreshToken] = useState(0);
+  const [mediaMode, setMediaMode] = useState<'view' | 'record' | 'upload'>('view');
   const { confirm } = useConfirmDialog();
 
   const openAIAssistant = () => {
@@ -255,47 +258,41 @@ const CourseDetails: React.FC = () => {
   }, [isStudent, markingComplete, updateProgress]);
 
   // Create lesson
-  const handleCreateLesson = useCallback(async () => {
-    if (!courseId || !newLessonTitle.trim()) return;
+  const handleCreateLesson = useCallback(async (title: string, description: string) => {
+    if (!courseId || !title.trim()) return;
     
     try {
       const response = await coursesApi.createLesson(courseId, {
-        title: newLessonTitle.trim(),
-        description: newLessonDescription.trim() || undefined,
+        title: title.trim(),
+        description: description.trim() || undefined,
         order: lessons.length
       });
       
       const newLesson = response.data.lesson;
       setLessons(prev => [...prev, newLesson].sort((a, b) => (a.order || 0) - (b.order || 0)));
-      setNewLessonTitle('');
-      setNewLessonDescription('');
-      setIsCreatingLesson(false);
       setSelectedLesson(newLesson);
     } catch (error) {
       console.error('Failed to create lesson:', error);
     }
-  }, [courseId, newLessonTitle, newLessonDescription, lessons.length]);
+  }, [courseId, lessons.length]);
 
   // Update lesson
-  const handleUpdateLesson = useCallback(async (lesson: Lesson) => {
-    if (!lesson.id || !newLessonTitle.trim()) return;
+  const handleUpdateLesson = useCallback(async (lesson: Lesson, title: string, description: string) => {
+    if (!lesson.id || !title.trim()) return;
     
     try {
       const response = await coursesApi.updateLesson(lesson.id, {
-        title: newLessonTitle.trim(),
-        description: newLessonDescription.trim() || undefined
+        title: title.trim(),
+        description: description.trim() || undefined
       });
       
       const updatedLesson = response.data.lesson;
       setLessons(prev => prev.map(l => l.id === lesson.id ? updatedLesson : l));
-      setNewLessonTitle('');
-      setNewLessonDescription('');
-      setIsEditingLesson(null);
       setSelectedLesson(updatedLesson);
     } catch (error) {
       console.error('Failed to update lesson:', error);
     }
-  }, [newLessonTitle, newLessonDescription]);
+  }, []);
 
   // Delete lesson
   const handleDeleteLesson = useCallback(async (lessonId: string) => {
@@ -323,20 +320,6 @@ const CourseDetails: React.FC = () => {
     }
   }, [lessons, selectedLesson, confirm]);
 
-  // Memoized filtered lessons
-  const filteredLessons = useMemo(() => {
-    return lessons.filter(lesson => {
-      const matchesSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           lesson.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const progress = lessonProgress[lesson.id];
-      const isCompleted = progress?.is_completed || lesson.is_completed;
-      const matchesFilter = filterCompleted === 'all' || 
-                           (filterCompleted === 'completed' && isCompleted) ||
-                           (filterCompleted === 'incomplete' && !isCompleted);
-      return matchesSearch && matchesFilter;
-    });
-  }, [lessons, searchQuery, filterCompleted, lessonProgress]);
-
   // Memoized tabs - Role-based ordering
   // Deprecated tabs memo (legacy UI)
 
@@ -362,58 +345,83 @@ const CourseDetails: React.FC = () => {
 
     try {
       setLoading(true);
+      setError(null);
 
       // Load course details using specific course API
-      const courseResponse = await coursesApi.getCourseById(courseId);
-      const courseData = courseResponse.data.course;
-      setCourse(courseData);
-
-      // Load lessons
-      const lessonsResponse = await coursesApi.getLessons(courseId);
-      const lessonsData = lessonsResponse.data.lessons || [];
-
-      setLessons(lessonsData);
-
-      // Load progress for all lessons if student
-      if (isStudent) {
-        await Promise.all(lessonsData.map((lesson: Lesson) => loadLessonProgress(lesson.id)));
+      let courseData;
+      try {
+        const courseResponse = await coursesApi.getCourseById(courseId);
+        courseData = courseResponse.data.course;
+        setCourse(courseData);
+      } catch (err: any) {
+        console.error('Failed to load course details:', err);
+        if (err.response && err.response.status === 404) {
+           setError(t('course_details.not_found.title'));
+           setLoading(false);
+           return;
+        }
+        throw new Error(t('course_details.error_loading_course'));
       }
 
-      // Auto-select first lesson if available
-      if (lessonsData.length > 0) {
-        // Check for URL param lesson ID
-        const params = new URLSearchParams(window.location.search);
-        const lessonIdParam = params.get('lesson');
-        
-        if (lessonIdParam) {
-          const foundLesson = lessonsData.find((l: Lesson) => l.id === lessonIdParam);
-          if (foundLesson) {
-            setSelectedLesson(foundLesson);
+      // Load lessons - handle separately so course can load even if lessons fail
+      try {
+        const lessonsResponse = await coursesApi.getLessons(courseId);
+        const lessonsData = lessonsResponse.data.lessons || [];
+        setLessons(lessonsData);
+
+        // Load progress for all lessons if student
+        if (isStudent) {
+          // Don't block on progress loading
+          Promise.all(lessonsData.map((lesson: Lesson) => loadLessonProgress(lesson.id))).catch(e => console.warn('Failed to load progress', e));
+        }
+
+        // Auto-select first lesson if available
+        if (lessonsData.length > 0) {
+          // Check for URL param lesson ID
+          const params = new URLSearchParams(window.location.search);
+          const lessonIdParam = params.get('lesson');
+          
+          if (lessonIdParam) {
+            const foundLesson = lessonsData.find((l: Lesson) => l.id === lessonIdParam);
+            if (foundLesson) {
+              setSelectedLesson(foundLesson);
+            } else {
+              setSelectedLesson(lessonsData[0]);
+            }
           } else {
             setSelectedLesson(lessonsData[0]);
           }
-        } else {
-          setSelectedLesson(lessonsData[0]);
         }
+        
+        // Update stats with lesson count
+        setCourseStats(prev => ({
+            ...prev,
+            totalLessons: courseData.lesson_count || lessonsData.length
+        }));
+
+      } catch (lessonErr) {
+        console.error('Failed to load lessons:', lessonErr);
+        // We don't set global error here, just log it. 
+        // The UI will show empty lessons list which is better than full crash.
+        // Optionally set a specific warning state
       }
 
       // Load initial stats from course data
-      setCourseStats({
+      setCourseStats(prev => ({
+        ...prev,
         totalStudents: courseData.student_count || 0,
-        completionRate: 0, // Could be calculated from lesson progress if needed
+        completionRate: 0, 
         averageRating: courseData.average_rating || 4.5,
-        totalLessons: courseData.lesson_count || lessonsData.length,
-        completedLessons: 0, // Will be updated when lesson progress is loaded
         activeStudents: 0
-      });
+      }));
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load course data:', error);
-      setError('Failed to load course data. Please try again.');
+      setError(error.message || 'Failed to load course data. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [courseId, isStudent, loadLessonProgress]);
+  }, [courseId, isStudent, loadLessonProgress, t]);
 
   useEffect(() => {
     loadCourseData();
@@ -461,22 +469,22 @@ const CourseDetails: React.FC = () => {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
             <div className="text-red-500 mb-4">
-              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
+              <AlertCircle className="h-12 w-12 mx-auto" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('course_details.error_title')}</h3>
             <p className="text-gray-600 text-sm mb-4">{error}</p>
             <div className="flex justify-center gap-3">
               <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-indigo-900 text-white text-sm rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-colors"
+                onClick={() => loadCourseData()}
+                className="px-4 py-2 text-white text-sm rounded-lg border transition-colors"
+                style={{ backgroundColor: brandColors.primaryHex, borderColor: brandColors.primaryHex }}
               >
                 {t('common.try_again')}
               </button>
               <button
                 onClick={() => navigate(getBackLink())}
-                className="px-4 py-2 bg-white text-indigo-900 text-sm rounded-lg border border-indigo-200 hover:border-indigo-400 transition-colors"
+                className="px-4 py-2 bg-white text-sm rounded-lg border transition-colors"
+                style={{ color: brandColors.primaryHex, borderColor: `${brandColors.primaryHex}40` }}
               >
                 {t('common.back_to_courses')}
               </button>
@@ -496,131 +504,143 @@ const CourseDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to={getBackLink()}
-              className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors group"
-            >
-              <div className="p-1.5 rounded-full bg-gray-100 group-hover:bg-gray-200 mr-2 transition-colors">
-                <ArrowLeft className="h-4 w-4" />
-              </div>
-              <span className="hidden sm:inline">{getBackLabel()}</span>
-            </Link>
-            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-bold text-gray-900 truncate max-w-md leading-tight">{course.title}</h1>
-              {(isAdmin || isOwner) && (
-                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit border border-amber-100">
-                  {t('course_details.instructor_view')}
-                </span>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {isStudent && (
-               <div className="hidden md:flex items-center gap-4 mr-4 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
-                  <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-wider font-semibold text-gray-500">{t('course_details.your_progress')}</div>
-                    <div className="text-sm font-bold text-[#27AE60]">{progressPercentage}% {t('course_details.complete_word')}</div>
-                  </div>
-                  <div className="w-32 bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-[#27AE60] to-[#2ECC71] h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(39,174,96,0.3)]"
-                      style={{ width: `${progressPercentage}%` }}
-                    ></div>
-                  </div>
-               </div>
-            )}
-
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              <button 
-                onClick={() => setIsTheaterMode(!isTheaterMode)}
-                className={`p-2 rounded-md transition-all ${isTheaterMode ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
-                title={isTheaterMode ? t('course_details.exit_theater_mode') : t('course_details.theater_mode')}
-              >
-                <Monitor className="h-4 w-4" />
-              </button>
-
-              <button 
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className={`p-2 rounded-md transition-all ${!isSidebarOpen ? 'bg-white shadow-sm text-[#27AE60]' : 'text-gray-500 hover:text-gray-700'}`}
-                title={isSidebarOpen ? t('course_details.expand_view') : t('course_details.show_sidebar')}
-              >
-                {isSidebarOpen ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-              </button>
-            </div>
-            
-            {(isAdmin || isOwner) && (
-              <Link
-                to={`/teacher/courses/${courseId}/edit`}
-                className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white text-sm font-medium rounded-lg hover:bg-[#219150] transition-all shadow-sm hover:shadow-md"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                {t('common.edit_course')}
-              </Link>
-            )}
-            {isStudent && (
-              <button
-                onClick={toggleBookmark}
-                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
-                  isBookmarked 
-                    ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' 
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <Bookmark className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                {isBookmarked ? t('common.saved') : t('common.save')}
-              </button>
-            )}
-            <button className="inline-flex items-center px-3 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-              <Share2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <CourseHeader
+        course={course}
+        isAdmin={isAdmin}
+        isOwner={isOwner}
+        isStudent={isStudent}
+        isTheaterMode={isTheaterMode}
+        isSidebarOpen={isSidebarOpen}
+        isBookmarked={isBookmarked}
+        progressPercentage={progressPercentage}
+        onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onToggleBookmark={toggleBookmark}
+        getBackLink={getBackLink}
+        getBackLabel={getBackLabel}
+      />
 
       <main className={`flex-1 w-full mx-auto transition-all duration-300 ${isTheaterMode ? 'max-w-full p-0' : 'max-w-[1600px] p-4 sm:p-6 lg:p-8'}`}>
         <div className={`flex flex-col lg:flex-row gap-6 h-full relative ${isTheaterMode ? 'gap-0' : ''}`}>
           {/* Left Column - Main Content */}
           <div className={`flex flex-col gap-6 transition-all duration-300 ${isSidebarOpen && !isTheaterMode ? 'lg:w-[70%]' : 'lg:w-full'} ${isTheaterMode ? 'w-full' : ''}`}>
-            {/* Video Player */}
+            {/* Video Player Area */}
             <div className={`bg-black overflow-hidden shadow-lg relative group transition-all duration-300 ${isTheaterMode ? 'h-[85vh] rounded-none' : 'aspect-video rounded-xl'}`}>
                {selectedLesson ? (
-                  <UnifiedVideoPlayer 
-                    lesson={{
-                      id: selectedLesson.id,
-                      title: selectedLesson.title,
-                      video_provider: selectedLesson.video_provider === 'mux' ? 'mux' : undefined,
-                      mux_playback_id: selectedLesson.mux_playback_id,
-                      allow_download: selectedLesson.allow_download
-                    }}
-                    courseTitle={course?.title}
-                    showTheaterToggle={false}
-                    onTimestampClick={handleTimestampClick}
-                    seekTo={seekTo}
-                    onProgress={(time) => {
-                      setCurrentLessonTime(time);
-                      if (selectedLesson && isStudent) {
-                        const duration = selectedLesson.duration || 0;
-                        if (duration > 0) {
-                          const progress = time / (duration * 60);
-                          updateProgress(selectedLesson.id, progress, time);
-                        }
-                      }
-                    }}
-                    onComplete={() => {
-                      if (selectedLesson && isStudent) {
-                        markLessonComplete(selectedLesson.id);
-                      }
-                    }}
-                    onError={(error) => {
-                      console.error('Video playback error:', error);
-                    }}
-                  />
+                  <>
+                    {/* Case 1: Lesson has video content */}
+                    {(selectedLesson.video_url || selectedLesson.mux_playback_id) && mediaMode === 'view' ? (
+                      <UnifiedVideoPlayer 
+                        lesson={{
+                          id: selectedLesson.id,
+                          title: selectedLesson.title,
+                          video_provider: selectedLesson.video_provider === 'mux' ? 'mux' : undefined,
+                          mux_playback_id: selectedLesson.mux_playback_id,
+                          allow_download: selectedLesson.allow_download
+                        }}
+                        courseTitle={course?.title}
+                        showTheaterToggle={false}
+                        onTimestampClick={handleTimestampClick}
+                        seekTo={seekTo}
+                        onProgress={(time) => {
+                          setCurrentLessonTime(time);
+                          if (selectedLesson && isStudent) {
+                            const duration = selectedLesson.duration || 0;
+                            if (duration > 0) {
+                              const progress = time / (duration * 60);
+                              updateProgress(selectedLesson.id, progress, time);
+                            }
+                          }
+                        }}
+                        onComplete={() => {
+                          if (selectedLesson && isStudent) {
+                            markLessonComplete(selectedLesson.id);
+                          }
+                        }}
+                        onError={(error) => {
+                          console.error('Video playback error:', error);
+                        }}
+                      />
+                    ) : (
+                      /* Case 2: No video content (or explicitly in record/upload mode) */
+                      <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center text-white p-6">
+                        {mediaMode === 'record' ? (
+                          <div className="w-full h-full">
+                            <div className="absolute top-4 right-4 z-50">
+                              <button 
+                                onClick={() => setMediaMode('view')}
+                                className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                              >
+                                <Minimize2 className="h-5 w-5" />
+                              </button>
+                            </div>
+                            <VideoRecorder 
+                              courseId={courseId}
+                              lessonId={selectedLesson.id}
+                              onUploadComplete={() => {
+                                setMediaMode('view');
+                                loadCourseData(); // Refresh to get new video data
+                              }}
+                            />
+                          </div>
+                        ) : mediaMode === 'upload' ? (
+                          <div className="w-full max-w-md bg-white rounded-xl p-6 text-gray-900">
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="font-bold text-lg">{t('course_details.upload_video')}</h3>
+                              <button onClick={() => setMediaMode('view')} className="text-gray-500 hover:text-gray-700">
+                                <Minimize2 className="h-5 w-5" />
+                              </button>
+                            </div>
+                            <MuxVideoUploader 
+                              lessonId={selectedLesson.id}
+                              onUploadComplete={() => {
+                                setMediaMode('view');
+                                loadCourseData(); // Refresh
+                              }}
+                              onCancel={() => setMediaMode('view')}
+                            />
+                          </div>
+                        ) : (
+                          /* Default Empty State */
+                          <div className="text-center max-w-md">
+                            {(isAdmin || isOwner) ? (
+                              <>
+                                <div className="mb-6">
+                                  <div className="h-20 w-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Video className="h-10 w-10 text-gray-400" />
+                                  </div>
+                                  <h3 className="text-xl font-bold mb-2">{t('course_details.no_content_title')}</h3>
+                                  <p className="text-gray-400 mb-8">{t('course_details.no_content_desc')}</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                  <button
+                                    onClick={() => navigate(`/teacher/record?courseId=${courseId}&lessonId=${selectedLesson.id}`)}
+                                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:scale-105"
+                                    style={{ backgroundColor: brandColors.primaryHex }}
+                                  >
+                                    <Camera className="h-5 w-5" />
+                                    {t('course_details.record_video')}
+                                  </button>
+                                  <button
+                                    onClick={() => setMediaMode('upload')}
+                                    className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-lg font-medium transition-all hover:bg-gray-100"
+                                  >
+                                    <Upload className="h-5 w-5" />
+                                    {t('course_details.upload_video')}
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                                <p>{t('course_details.lesson_not_ready')}</p>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-white">
                     <div className="text-center">
@@ -676,57 +696,68 @@ const CourseDetails: React.FC = () => {
 
             {/* Contextual Tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
-              <div className="border-b border-gray-200 px-6 flex items-center justify-between">
-                <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-                  {[
-                    { id: 'description', label: t('course_details.tabs.overview'), icon: BookOpen },
-                    { id: 'resources', label: t('course_details.tabs.resources'), icon: Download },
-                    { id: 'polls', label: t('course_details.tabs.polls'), icon: BarChart3, count: pollCount },
-                    { id: 'discussion', label: t('course_details.tabs.discussion'), icon: MessageSquare },
-                    ...((isAdmin || isOwner) ? [{ id: 'analytics', label: t('course_details.tabs.analytics'), icon: Activity }] : [])
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as TabType)}
-                      className={`flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        activeTab === tab.id
-                          ? 'border-[#27AE60] text-[#27AE60]'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <tab.icon className="h-4 w-4" />
-                      {tab.label}
-                      {tab.count !== undefined && tab.count > 0 && (
-                        <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px]">
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                
-                <div className="flex items-center gap-2 pl-4 border-l border-gray-200 ml-4">
-                  <button
-                    onClick={openAIAssistant}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    <Bot className="h-3.5 w-3.5 mr-1.5 text-[#16A085]" />
-                    {t('course_details.ask_ai')}
-                  </button>
+              <div className="border-b border-gray-200">
+                <div className="flex items-center justify-between px-6 pt-2">
+                  <div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
+                    {[
+                      { id: 'description', label: t('course_details.tabs.overview'), icon: BookOpen },
+                      { id: 'resources', label: t('course_details.tabs.resources'), icon: Download },
+                      { id: 'polls', label: t('course_details.tabs.polls'), icon: BarChart3, count: pollCount },
+                      { id: 'discussion', label: t('course_details.tabs.discussion'), icon: MessageSquare },
+                      ...((isAdmin || isOwner) ? [{ id: 'analytics', label: t('course_details.tabs.analytics'), icon: Activity }] : [])
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as TabType)}
+                        className={`group flex items-center gap-2 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                          activeTab === tab.id
+                            ? 'border-current text-current'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                        style={activeTab === tab.id ? { color: brandColors.primaryHex, borderColor: brandColors.primaryHex } : {}}
+                      >
+                        <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? '' : 'text-gray-400 group-hover:text-gray-500'}`} />
+                        {tab.label}
+                        {tab.count !== undefined && tab.count > 0 && (
+                          <span 
+                            className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                            style={activeTab === tab.id 
+                              ? { backgroundColor: `${brandColors.primaryHex}15`, color: brandColors.primaryHex }
+                              : { backgroundColor: '#F3F4F6', color: '#4B5563' }
+                            }
+                          >
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                   
-                  {(activeTab === 'resources') && (isAdmin || isOwner) && (
+                  <div className="flex items-center gap-3 pl-4 border-l border-gray-200 ml-4 py-3">
                     <button
-                      onClick={() => setShowCourseUploader(v => !v)}
-                      className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                        showCourseUploader
-                          ? 'bg-indigo-900 text-white border-indigo-800 hover:bg-indigo-800'
-                          : 'bg-white text-indigo-900 border-indigo-200 hover:border-indigo-400'
-                      }`}
+                      onClick={openAIAssistant}
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white rounded-lg shadow-sm transition-all hover:shadow-md hover:scale-105"
+                      style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" />
-                      {showCourseUploader ? t('course_details.hide_uploader') : t('course_details.add_resource')}
+                      <Bot className="h-3.5 w-3.5 mr-1.5" />
+                      {t('course_details.ask_ai')}
                     </button>
-                  )}
+                    
+                    {(activeTab === 'resources') && (isAdmin || isOwner) && (
+                      <button
+                        onClick={() => setShowCourseUploader(v => !v)}
+                        className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                          showCourseUploader
+                            ? 'text-white border-transparent'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                        style={showCourseUploader ? { backgroundColor: brandColors.primaryHex } : {}}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        {showCourseUploader ? t('course_details.hide_uploader') : t('course_details.add_resource')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -839,162 +870,24 @@ const CourseDetails: React.FC = () => {
 
 
           {/* Right Column - Sidebar */}
-          <div className={`flex flex-col gap-6 transition-all duration-300 ${
-            isSidebarOpen && !isTheaterMode
-              ? 'lg:w-[30%] opacity-100' 
-              : 'lg:w-0 opacity-0 overflow-hidden'
-          } ${isTheaterMode ? 'hidden' : ''}`}>
-            {/* Search & Filter */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-               <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('course_details.search_lessons_placeholder')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60]/20 focus:border-[#27AE60]"
-                  />
-               </div>
-               <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{filteredLessons.length} {t('common.lessons')}</span>
-                  <select
-                    value={filterCompleted}
-                    onChange={(e) => setFilterCompleted(e.target.value as any)}
-                    className="border-none bg-transparent font-medium text-gray-700 focus:ring-0 cursor-pointer"
-                  >
-                    <option value="all">{t('course_details.filters.all_status')}</option>
-                    <option value="completed">{t('course_details.filters.completed')}</option>
-                    <option value="incomplete">{t('course_details.filters.incomplete')}</option>
-                  </select>
-               </div>
-            </div>
-
-            {/* Lesson List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden max-h-[calc(100vh-300px)]">
-               <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{t('course_details.course_content')}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{filteredLessons.length} {t('common.lessons')} • {formatDuration(filteredLessons.reduce((acc, l) => acc + (l.duration || 0), 0))}</p>
-                  </div>
-                  {(isAdmin || isOwner) && (
-                    <button
-                      onClick={() => {
-                        setIsCreatingLesson(true);
-                        setNewLessonTitle('');
-                        setNewLessonDescription('');
-                        setIsEditingLesson(null);
-                      }}
-                      className="text-xs bg-[#27AE60] text-white px-3 py-1.5 rounded-lg hover:bg-[#219150] transition-colors flex items-center gap-1.5 font-medium shadow-sm"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                     {t('course_details.add_lesson')}
-                    </button>
-                  )}
-               </div>
-               
-               {/* Create Lesson Form */}
-               {(isCreatingLesson || isEditingLesson) && (
-                  <div className="p-4 bg-blue-50 border-b border-blue-100 animate-in slide-in-from-top-2">
-                     <input
-                        type="text"
-                        value={newLessonTitle}
-                        onChange={(e) => setNewLessonTitle(e.target.value)}
-                      placeholder={t('course_details.lesson_title_placeholder')}
-                        className="w-full mb-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        autoFocus
-                     />
-                     <div className="flex gap-2">
-                        <button 
-                           onClick={() => isEditingLesson ? handleUpdateLesson(isEditingLesson) : handleCreateLesson()}
-                           className="flex-1 bg-indigo-900 text-white text-xs py-1.5 rounded-lg border border-indigo-800 hover:bg-indigo-800 font-medium"
-                        >
-                        {isEditingLesson ? t('course_details.save_changes') : t('course_details.create_lesson')}
-                        </button>
-                        <button 
-                           onClick={() => {
-                              setIsCreatingLesson(false);
-                              setIsEditingLesson(null);
-                           }}
-                           className="flex-1 bg-white text-indigo-900 text-xs py-1.5 rounded-lg border border-indigo-200 hover:border-indigo-400 font-medium"
-                        >
-                        {t('common.cancel')}
-                        </button>
-                     </div>
-                  </div>
-               )}
-
-               <div className="overflow-y-auto flex-1 p-2 space-y-1 custom-scrollbar">
-                  {filteredLessons.map((lesson, index) => {
-                     const progress = lessonProgress[lesson.id];
-                     const isCompleted = progress?.is_completed || lesson.is_completed;
-                     const isSelected = selectedLesson?.id === lesson.id;
-                     
-                     return (
-                        <div 
-                           key={lesson.id}
-                           className={`group p-3 rounded-lg cursor-pointer transition-all border-l-4 ${
-                              isSelected 
-                                 ? 'bg-[#27AE60]/5 border-l-[#27AE60] border-y border-r border-gray-100 shadow-sm' 
-                                 : 'hover:bg-gray-50 border-l-transparent border-y border-r border-transparent'
-                           }`}
-                           onClick={() => setSelectedLesson(lesson)}
-                        >
-                           <div className="flex gap-3">
-                              <div className="flex-shrink-0 mt-0.5">
-                                 {isCompleted ? (
-                                    <div className="h-5 w-5 rounded-full bg-[#27AE60] flex items-center justify-center">
-                                      <CheckCircle className="h-3.5 w-3.5 text-white" />
-                                    </div>
-                                 ) : (
-                                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
-                                       isSelected ? 'border-[#27AE60] text-[#27AE60] bg-white' : 'border-gray-300 text-gray-500 group-hover:border-gray-400'
-                                    }`}>
-                                       {lesson.order !== undefined ? lesson.order + 1 : index + 1}
-                                    </div>
-                                 )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                 <h4 className={`text-sm font-medium mb-1 leading-snug ${isSelected ? 'text-[#27AE60]' : 'text-gray-900'}`}>
-                                    {lesson.title}
-                                 </h4>
-                                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                       <Video className="h-3 w-3" />
-                                       {formatDuration(lesson.duration || 0)}
-                                    </span>
-                                 </div>
-                              </div>
-                              {(isAdmin || isOwner) && (
-                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-                                    <button 
-                                       onClick={(e) => { e.stopPropagation(); setIsEditingLesson(lesson); }}
-                                       className="p-1.5 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded transition-colors"
-                                      title={t('course_details.edit_lesson_title')}
-                                    >
-                                       <Edit className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button 
-                                       onClick={(e) => { e.stopPropagation(); handleDeleteLesson(lesson.id); }}
-                                       disabled={deletingLessonId === lesson.id}
-                                       className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded transition-colors disabled:opacity-50"
-                                      title={t('course_details.delete_lesson_title')}
-                                    >
-                                       {deletingLessonId === lesson.id ? (
-                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                       ) : (
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                       )}
-                                    </button>
-                                 </div>
-                              )}
-                           </div>
-                        </div>
-                     );
-                  })}
-               </div>
-            </div>
-          </div>
+          <CourseSidebar
+            lessons={lessons}
+            selectedLesson={selectedLesson}
+            searchQuery={searchQuery}
+            filterCompleted={filterCompleted}
+            isAdmin={isAdmin}
+            isOwner={isOwner}
+            isTheaterMode={isTheaterMode}
+            isSidebarOpen={isSidebarOpen}
+            lessonProgress={lessonProgress}
+            deletingLessonId={deletingLessonId}
+            onSearchChange={setSearchQuery}
+            onFilterChange={setFilterCompleted}
+            onSelectLesson={(l) => setSelectedLesson(l as any)}
+            onCreateLesson={handleCreateLesson}
+            onUpdateLesson={(l, t, d) => handleUpdateLesson(l as any, t, d)}
+            onDeleteLesson={handleDeleteLesson}
+          />
         </div>
       </main>
     </div>

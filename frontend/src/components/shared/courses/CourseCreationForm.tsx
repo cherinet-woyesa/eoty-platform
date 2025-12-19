@@ -463,7 +463,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
     return (
       <>
         {/* Success Header */}
-        <div className="bg-gradient-to-r from-[#27AE60] via-[#16A085] to-[#2980B9] rounded-xl shadow-sm p-8 text-white">
+        <div className="rounded-xl shadow-sm p-8 text-white" style={{ background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHex}dd)` }}>
           <div className="flex items-center justify-center">
             <div className="text-center">
               <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6">
@@ -472,7 +472,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
               <h1 className="text-3xl font-bold mb-4">
                 {editMode ? t('courses.creation.update_success') : t('courses.creation.creation_success')} 🎉
               </h1>
-              <p className="text-green-100 text-lg">
+              <p className="text-indigo-100 text-lg">
                 {editMode 
                   ? t('courses.creation.course_updated')
                   : t('courses.creation.course_ready', { title: formData.title })
@@ -490,7 +490,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate(returnPath || '/teacher/courses')}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 transition-all duration-200 shadow-lg shadow-[#27AE60]/25"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white transition-all duration-200 shadow-lg"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <BookOpen className="mr-2 h-5 w-5" />
               {t('courses.creation.view_my_courses')}
@@ -584,8 +585,12 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.title}
                 onChange={handleChange}
                 placeholder={t('courses.creation.title_placeholder')}
-                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca]/50 transition-all duration-200 text-lg font-medium bg-white/80 backdrop-blur-sm shadow-sm"
-                style={{ borderColor: brandColors.primaryHex + '20' }}
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 text-lg font-medium bg-white/80 backdrop-blur-sm shadow-sm"
+                style={{ 
+                  borderColor: brandColors.primaryHex + '20',
+                  '--tw-ring-color': brandColors.primaryHex + '20',
+                  '--tw-ring-opacity': 1
+                } as React.CSSProperties}
               />
               {errors.title && (
                 <p className="mt-2 text-sm text-red-600 flex items-center gap-2 font-medium">
@@ -608,8 +613,12 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 value={formData.description}
                 onChange={handleChange}
                 placeholder={t('courses.creation.description_placeholder')}
-                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca]/50 transition-all duration-200 resize-none bg-white/80 backdrop-blur-sm shadow-sm"
-                style={{ borderColor: brandColors.primaryHex + '20' }}
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200 resize-none bg-white/80 backdrop-blur-sm shadow-sm"
+                style={{ 
+                  borderColor: brandColors.primaryHex + '20',
+                  '--tw-ring-color': brandColors.primaryHex + '20',
+                  '--tw-ring-opacity': 1
+                } as React.CSSProperties}
               />
               <div className="flex justify-between mt-2 text-xs text-gray-500">
                 <span>
@@ -638,6 +647,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   {categories.map(category => {
                     const Icon = category.icon;
+                    const isSelected = formData.category === category.value;
                     return (
                       <button
                         key={category.value}
@@ -647,13 +657,17 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           category: category.value
                         }))}
                         className={`p-3 border-2 rounded-xl text-left transition-all duration-200 ${
-                          formData.category === category.value
-                            ? 'border-[#4338ca]/60 bg-[#4338ca]/8 shadow-md'
-                            : 'border-gray-100/80 hover:border-[#4338ca]/30 bg-white/60'
+                          isSelected
+                            ? 'shadow-md'
+                            : 'border-gray-100/80 bg-white/60'
                         }`}
+                        style={isSelected ? {
+                          borderColor: brandColors.primaryHex + '60',
+                          backgroundColor: brandColors.primaryHex + '08'
+                        } : {}}
                       >
                         <div className="flex items-center space-x-2">
-                          <Icon className={`h-4 w-4 ${formData.category === category.value ? 'text-[#4338ca]' : 'text-gray-500'} flex-shrink-0`} />
+                          <Icon className={`h-4 w-4 flex-shrink-0`} style={{ color: isSelected ? brandColors.primaryHex : '#6b7280' }} />
                           <div className="font-medium text-gray-900 text-sm">{category.label}</div>
                         </div>
                       </button>
@@ -675,20 +689,28 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     {t('courses.creation.difficulty_level')} *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {levels.map(level => (
-                      <button
-                        key={level.value}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
-                        className={`p-2 border rounded-lg text-center transition-all ${
-                          formData.level === level.value
-                            ? `border-[#4338ca] bg-[#4338ca]/5 text-[#4338ca]`
-                            : 'border-stone-200 hover:border-indigo-200'
-                        }`}
-                      >
-                        <div className="text-xs font-medium">{level.label}</div>
-                      </button>
-                    ))}
+                    {levels.map(level => {
+                      const isSelected = formData.level === level.value;
+                      return (
+                        <button
+                          key={level.value}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, level: level.value as CourseFormData['level'] }))}
+                          className={`p-2 border rounded-lg text-center transition-all ${
+                            isSelected
+                              ? ''
+                              : 'border-stone-200 hover:border-indigo-200'
+                          }`}
+                          style={isSelected ? {
+                            borderColor: brandColors.primaryHex,
+                            backgroundColor: brandColors.primaryHex + '05',
+                            color: brandColors.primaryHex
+                          } : {}}
+                        >
+                          <div className="text-xs font-medium">{level.label}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -701,7 +723,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     name="language"
                     value={formData.language}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   >
                     {languages.map(lang => (
                       <option key={lang.value} value={lang.value}>
@@ -727,7 +750,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         value={objective}
                         onChange={(e) => updateLearningObjective(index, e.target.value)}
                         placeholder={t('courses.creation.objective_placeholder', { number: index + 1 })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       />
                     </div>
                     {formData.learningObjectives.length > 1 && (
@@ -744,7 +768,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                 <button
                   type="button"
                   onClick={addLearningObjective}
-                  className="text-[#4338ca] hover:text-[#312e81] font-medium text-sm flex items-center"
+                  className="font-medium text-sm flex items-center"
+                  style={{ color: brandColors.primaryHex }}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   {t('courses.creation.add_another_objective')}
@@ -785,7 +810,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       value={formData.prerequisites}
                       onChange={handleChange}
                       placeholder={t('courses.creation.prerequisites_placeholder')}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg placeholder-stone-400 focus:outline-none focus:ring-2 focus:border-transparent"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                   </div>
 
@@ -802,13 +828,15 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyPress={handleTagKeyPress}
                           placeholder={t('courses.creation.add_tag_placeholder')}
-                          className="flex-1 px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4338ca] focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                         />
                         <button
                           type="button"
                           onClick={addTag}
                           disabled={!newTag.trim()}
-                          className="px-3 py-2 bg-[#4338ca] text-white rounded-lg hover:bg-[#312e81] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          style={{ backgroundColor: brandColors.primaryHex }}
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -817,13 +845,18 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                         {formData.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center px-2 py-1 bg-[#4338ca]/10 text-[#4338ca] rounded-full text-xs"
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs"
+                            style={{ 
+                              backgroundColor: brandColors.primaryHex + '10',
+                              color: brandColors.primaryHex
+                            }}
                           >
                             {tag}
                             <button
                               type="button"
                               onClick={() => removeTag(tag)}
-                            className="ml-1 text-[#4338ca] hover:text-[#312e81]"
+                              className="ml-1 hover:opacity-70"
+                              style={{ color: brandColors.primaryHex }}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -843,8 +876,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={handleCoverDrop}
                       className={`relative border-2 border-dashed rounded-xl p-4 transition-colors ${
-                        isDragging ? 'border-indigo-400 bg-indigo-50/60' : 'border-stone-200 hover:border-indigo-200'
+                        isDragging ? 'bg-indigo-50/60' : 'border-stone-200'
                       }`}
+                      style={isDragging ? { borderColor: brandColors.primaryHex } : {}}
                     >
                       <div className="flex items-center gap-3 flex-wrap">
                         <label className="inline-flex items-center px-3 py-2 border border-indigo-100 rounded-lg text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 cursor-pointer transition-colors">
@@ -898,7 +932,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {formData.isPublic ? (
-                            <Globe className="h-5 w-5 text-[#4338ca]" />
+                            <Globe className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
                           ) : (
                             <Lock className="h-5 w-5 text-stone-400" />
                           )}
@@ -912,8 +946,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.isPublic ? 'bg-[#4338ca]' : 'bg-stone-300'
+                            formData.isPublic ? '' : 'bg-stone-300'
                           }`}
+                          style={formData.isPublic ? { backgroundColor: brandColors.primaryHex } : {}}
                         >
                           <span
                             className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
@@ -928,7 +963,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     <div className="bg-stone-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? 'text-[#4338ca]' : 'text-stone-400'}`} />
+                          <Award className={`h-5 w-5 ${formData.certificationAvailable ? '' : 'text-stone-400'}`} style={formData.certificationAvailable ? { color: brandColors.primaryHex } : {}} />
                           <div>
                             <div className="font-medium text-stone-900 text-sm">
                               {t('courses.creation.certification_available')}
@@ -942,8 +977,9 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                             certificationAvailable: !prev.certificationAvailable 
                           }))}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            formData.certificationAvailable ? 'bg-[#4338ca]' : 'bg-stone-300'
+                            formData.certificationAvailable ? '' : 'bg-stone-300'
                           }`}
+                          style={formData.certificationAvailable ? { backgroundColor: brandColors.primaryHex } : {}}
                         >
                           <span
                             className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
@@ -979,7 +1015,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                   <button
                     type="button"
                     onClick={handleSaveDraft}
-                    className="inline-flex items-center justify-center px-4 py-2 border border-indigo-100 text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-all"
+                    className="inline-flex items-center justify-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all"
                   >
                     <BookOpen className="mr-2 h-4 w-4" />
                     {t('courses.creation.save_draft')}
@@ -989,8 +1025,8 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
                     disabled={isSubmitting}
                     className="inline-flex items-center justify-center px-8 py-3.5 border-2 text-base font-semibold rounded-xl text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
                     style={{ 
-                      background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHex}dd)`,
-                      borderColor: brandColors.primaryHex + '40'
+                      backgroundColor: brandColors.primaryHex,
+                      borderColor: brandColors.primaryHex
                     }}
                   >
                     {isSubmitting ? (

@@ -134,145 +134,177 @@ const courseController = {
         perPage = 20
       } = req.query;
 
+      // Base query
       let coursesQuery = db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
-        .leftJoin('user_lesson_progress as ulp', 'l.id', 'ulp.lesson_id')
-        .groupBy('c.id')
-        .select(
-          'c.*',
-          db.raw('COUNT(DISTINCT l.id) as lesson_count'),
-          db.raw('COUNT(DISTINCT ulp.user_id) as student_count'),
-          db.raw('SUM(l.duration) as total_duration')
-        );
+        .groupBy('c.id');
 
+      // Selects
+      const selects = [
+        'c.*',
+        db.raw('COUNT(DISTINCT l.id) as lesson_count'),
+        db.raw('COALESCE(SUM(l.duration), 0) as total_duration')
+      ];
+
+      // Role-based filtering and joins
       if (userRole === 'user' || userRole === 'student') {
         coursesQuery = coursesQuery
           .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
           .where('uce.user_id', userId);
+          
+          // For students, we want to see how many students are in the course (social proof)
+          coursesQuery.leftJoin('user_course_enrollments as all_uce', 'c.id', 'all_uce.course_id');
+          selects.push(db.raw('COUNT(DISTINCT all_uce.user_id) as student_count'));
       } else if (userRole === 'teacher') {
         coursesQuery = coursesQuery.where('c.created_by', userId);
+        // For teachers, count their students
+        coursesQuery.leftJoin('user_course_enrollments as uce', 'c.id', 'uce.course_id');
+        selects.push(db.raw('COUNT(DISTINCT uce.user_id) as student_count'));
       } else if (userRole === 'admin') {
-        // Admins can see all courses, no additional where clause needed
+         coursesQuery.leftJoin('user_course_enrollments as uce', 'c.id', 'uce.course_id');
+         selects.push(db.raw('COUNT(DISTINCT uce.user_id) as student_count'));
       }
 
-      const rawCourses = await coursesQuery;
+      coursesQuery.select(selects);
 
-      // Process metadata for each course (similar to getCourse)
-      let processedCourses = rawCourses.map(course => {
-        let metadata = {};
-        try {
-          if (course.metadata) {
-            metadata = typeof course.metadata === 'string'
-              ? JSON.parse(course.metadata)
-              : course.metadata;
-          }
-        } catch (e) {
-          console.warn('Failed to parse course metadata for course', course.id, ':', e.message);
-          metadata = {};
-        }
-
-        // Extract fields from direct columns first, then metadata
-        course.level = course.level || metadata.level || metadata.levelSlug || null;
-        course.cover_image = course.cover_image || metadata.coverImage || metadata.cover_image || null;
-        course.learning_objectives = course.learning_objectives || metadata.learningObjectives || metadata.learning_objectives || null;
-        course.prerequisites = course.prerequisites || metadata.prerequisites || null;
-        course.estimated_duration = course.estimated_duration || metadata.estimatedDuration || metadata.estimated_duration || null;
-        course.tags = course.tags || metadata.tags || [];
-        course.language = course.language || metadata.language || 'en';
-        course.is_public = course.is_public !== undefined ? course.is_public : (metadata.isPublic !== undefined ? metadata.isPublic : true);
-        course.certification_available = course.certification_available !== undefined ? course.certification_available : (metadata.certificationAvailable !== undefined ? metadata.certificationAvailable : false);
-        course.welcome_message = course.welcome_message || metadata.welcomeMessage || '';
-
-        // Derive status (published/draft/scheduled/archived)
-        const now = new Date();
-        const metaStatus = metadata.status;
-        const scheduled = course.scheduled_publish_at ? new Date(course.scheduled_publish_at) : null;
-        let derivedStatus = 'draft';
-        if (metaStatus) {
-          derivedStatus = metaStatus;
-        } else if (course.status) {
-          derivedStatus = course.status;
-        } else if (scheduled && scheduled > now && !course.is_published) {
-          derivedStatus = 'scheduled';
-        } else if (course.is_published) {
-          derivedStatus = 'published';
-        }
-        course.status = derivedStatus;
-
-        return course;
-      });
-
-      // In-memory filters
+      // Filtering
       if (q) {
-        const needle = String(q).toLowerCase();
-        processedCourses = processedCourses.filter(c =>
-          (c.title || '').toLowerCase().includes(needle) ||
-          (c.description || '').toLowerCase().includes(needle)
-        );
+        coursesQuery.where(builder => {
+          builder.where('c.title', 'ilike', `%${q}%`)
+            .orWhere('c.description', 'ilike', `%${q}%`);
+        });
       }
 
-      if (category) {
-        processedCourses = processedCourses.filter(c => c.category === category);
+      if (category && category !== 'all') {
+        coursesQuery.where(builder => {
+            builder.where('c.category', category)
+                   .orWhere('c.category', 'ilike', category);
+        });
       }
 
       if (status && status !== 'all') {
-        processedCourses = processedCourses.filter(c => c.status === status);
+         if (status === 'published') {
+             coursesQuery.where(builder => {
+                 builder.where('c.is_published', true)
+                        .orWhere('c.status', 'published');
+             });
+         } else if (status === 'draft') {
+             coursesQuery.where(builder => {
+                 builder.where('c.is_published', false)
+                        .andWhereNot('c.status', 'archived')
+                        .andWhereNot('c.status', 'published'); // Ensure not published
+             });
+         } else if (status === 'archived') {
+             coursesQuery.where('c.status', 'archived');
+         } else if (status === 'scheduled') {
+             coursesQuery.where('c.status', 'scheduled');
+         } else {
+             coursesQuery.where('c.status', status);
+         }
       }
 
-      // Sort in-memory to support aggregate fields
-      const sortKey = sortBy;
-      processedCourses = processedCourses.sort((a, b) => {
-        let aVal = a[sortKey];
-        let bVal = b[sortKey];
-
-        if (['created_at', 'updated_at', 'published_at', 'scheduled_publish_at'].includes(sortKey)) {
-          aVal = aVal ? new Date(aVal).getTime() : 0;
-          bVal = bVal ? new Date(bVal).getTime() : 0;
-        }
-
-        if (sortKey === 'title') {
-          aVal = (aVal || '').toLowerCase();
-          bVal = (bVal || '').toLowerCase();
-        }
-
-        if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
-        return aVal < bVal ? 1 : -1;
-      });
+      // Sorting
+      if (sortBy === 'student_count') {
+          coursesQuery.orderBy('student_count', sortOrder);
+      } else if (sortBy === 'lesson_count') {
+          coursesQuery.orderBy('lesson_count', sortOrder);
+      } else if (sortBy === 'total_duration') {
+          coursesQuery.orderBy('total_duration', sortOrder);
+      } else {
+          // Default column sort
+          coursesQuery.orderBy(`c.${sortBy}`, sortOrder);
+      }
 
       // Pagination
       const pageNum = Math.max(parseInt(page, 10) || 1, 1);
       const perPageNum = Math.max(parseInt(perPage, 10) || 20, 1);
-      const start = (pageNum - 1) * perPageNum;
-      const paginatedCourses = processedCourses.slice(start, start + perPageNum);
+      const offset = (pageNum - 1) * perPageNum;
 
-      // Aggregate counts for status badges
-      const counts = {
-        total: processedCourses.length,
-        published: processedCourses.filter(c => c.status === 'published').length,
-        draft: processedCourses.filter(c => c.status === 'draft').length,
-        archived: processedCourses.filter(c => c.status === 'archived').length,
-        scheduled: processedCourses.filter(c => c.status === 'scheduled').length
-      };
+      coursesQuery.limit(perPageNum).offset(offset);
 
-      console.log('Returning courses list:', processedCourses.map(course => ({
-        id: course.id,
-        title: course.title,
-        cover_image: course.cover_image,
-        hasCoverImage: !!course.cover_image
-      })));
+      const processedCourses = await coursesQuery;
+
+      // We need total count for pagination.
+      let countQuery = db('courses as c');
+      if (userRole === 'user' || userRole === 'student') {
+          countQuery.join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
+                    .where('uce.user_id', userId);
+      } else if (userRole === 'teacher') {
+          countQuery.where('c.created_by', userId);
+      }
+      
+      if (q) {
+        countQuery.where(builder => {
+          builder.where('c.title', 'ilike', `%${q}%`)
+            .orWhere('c.description', 'ilike', `%${q}%`);
+        });
+      }
+      if (category && category !== 'all') {
+         countQuery.where(builder => {
+            builder.where('c.category', category)
+                   .orWhere('c.category', 'ilike', category);
+        });
+      }
+      if (status && status !== 'all') {
+         if (status === 'published') {
+             countQuery.where(builder => {
+                 builder.where('c.is_published', true)
+                        .orWhere('c.status', 'published');
+             });
+         } else if (status === 'draft') {
+             countQuery.where(builder => {
+                 builder.where('c.is_published', false)
+                        .andWhereNot('c.status', 'archived')
+                        .andWhereNot('c.status', 'published');
+             });
+         } else if (status === 'archived') {
+             countQuery.where('c.status', 'archived');
+         } else {
+             countQuery.where('c.status', status);
+         }
+      }
+      
+      const totalResult = await countQuery.count('c.id as total').first();
+      const total = parseInt(totalResult.total || 0, 10);
+
+      // Aggregate counts for status badges (Teacher only)
+      let counts = { total };
+      if (userRole === 'teacher') {
+          const statusCounts = await db('courses')
+              .where('created_by', userId)
+              .select(
+                  db.raw('COUNT(*) as total'),
+                  // Published: is_published=true OR status='published'
+                  db.raw("COUNT(CASE WHEN is_published = true OR status = 'published' THEN 1 END) as published"),
+                  // Archived: status='archived'
+                  db.raw("COUNT(CASE WHEN status = 'archived' THEN 1 END) as archived"),
+                  // Draft: NOT Published AND NOT Archived
+                  db.raw("COUNT(CASE WHEN (is_published = false AND status != 'published') AND status != 'archived' THEN 1 END) as draft")
+              )
+              .first();
+          
+          counts = {
+              total: parseInt(statusCounts.total || 0),
+              published: parseInt(statusCounts.published || 0),
+              draft: parseInt(statusCounts.draft || 0),
+              archived: parseInt(statusCounts.archived || 0)
+          };
+      }
 
       res.json({
         success: true,
         data: {
-          courses: paginatedCourses,
+          courses: processedCourses,
           pagination: {
-            total: processedCourses.length,
             page: pageNum,
-            perPage: perPageNum
+            perPage: perPageNum,
+            total,
+            totalPages: Math.ceil(total / perPageNum)
           },
           counts
         }
       });
+
     } catch (error) {
       console.error('Get user courses error:', error);
       res.status(500).json({

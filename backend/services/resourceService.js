@@ -727,7 +727,11 @@ class ResourceService {
                 .first();
             
             if (memberChapter) {
-                finalChapterId = memberChapter.chapter_id;
+                // Verify this chapter actually exists
+                const chapterExists = await db('chapters').where({ id: memberChapter.chapter_id }).first();
+                if (chapterExists) {
+                    finalChapterId = memberChapter.chapter_id;
+                }
             }
         }
 
@@ -741,6 +745,20 @@ class ResourceService {
                  throw new Error('Unable to determine valid chapter for resource upload. Please ensure you are a member of a chapter.');
              }
         }
+      }
+      
+      // FINAL SAFETY CHECK: If we have a chapter_id, verify it exists one last time to prevent FK errors
+      if (finalChapterId) {
+          const exists = await db('chapters').where({ id: finalChapterId }).first();
+          if (!exists) {
+              console.error(`[Critical] Attempted to use non-existent chapter_id ${finalChapterId} for upload.`);
+              if (user.role === 'admin') {
+                  resourceScope = 'platform_wide';
+                  finalChapterId = null;
+              } else {
+                  throw new Error('Selected chapter does not exist.');
+              }
+          }
       }
 
       // Create resource record
@@ -770,6 +788,95 @@ class ResourceService {
 
     } catch (error) {
       console.error('Error uploading to library:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a library resource
+   * @param {number} resourceId - Resource ID
+   * @param {Object} data - Data to update
+   * @param {number} userId - User ID requesting update
+   * @returns {Promise<Object>} Updated resource
+   */
+  async updateLibraryResource(resourceId, data, userId) {
+    try {
+      // Verify ownership
+      const resource = await db('resources').where({ id: resourceId }).first();
+      if (!resource) {
+        throw new Error('Resource not found');
+      }
+
+      // Check if user is author or admin
+      const user = await db('users').where({ id: userId }).first();
+      if (resource.author !== userId && user.role !== 'admin') {
+        throw new Error('Access denied');
+      }
+
+      const updateData = {
+        updated_at: new Date()
+      };
+
+      if (data.title) updateData.title = data.title;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.category) updateData.category = data.category;
+      if (data.is_public !== undefined) {
+        updateData.is_public = data.is_public;
+        // If making public, ensure scope is platform_wide? 
+        // Or just trust the flag. Let's trust the flag but maybe update scope if needed.
+        // For now, just update the flag as requested.
+        if (data.is_public) {
+           updateData.resource_scope = 'platform_wide';
+        } else if (resource.resource_scope === 'platform_wide') {
+           // If un-publishing, revert to chapter_wide or course_specific?
+           // Default to chapter_wide if not specified
+           updateData.resource_scope = 'chapter_wide';
+        }
+      }
+
+      await db('resources').where({ id: resourceId }).update(updateData);
+
+      return await db('resources').where({ id: resourceId }).first();
+    } catch (error) {
+      console.error('Error updating library resource:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a library resource
+   * @param {number} resourceId - Resource ID
+   * @param {number} userId - User ID requesting deletion
+   * @returns {Promise<Object>} Deletion result
+   */
+  async deleteLibraryResource(resourceId, userId) {
+    try {
+      // Verify ownership
+      const resource = await db('resources').where({ id: resourceId }).first();
+      if (!resource) {
+        throw new Error('Resource not found');
+      }
+
+      // Check if user is author or admin
+      const user = await db('users').where({ id: userId }).first();
+      if (resource.author !== userId && user.role !== 'admin') {
+        throw new Error('Access denied');
+      }
+
+      // Delete from cloud storage if needed (optional, depending on retention policy)
+      // For now, just delete from DB
+      if (resource.file_url) {
+         const s3Key = this.extractS3KeyFromUrl(resource.file_url);
+         if (s3Key) {
+            await cloudStorageService.deleteVideo(s3Key).catch(err => console.warn('Failed to delete file from storage:', err));
+         }
+      }
+
+      await db('resources').where({ id: resourceId }).delete();
+
+      return { success: true, id: resourceId };
+    } catch (error) {
+      console.error('Error deleting library resource:', error);
       throw error;
     }
   }

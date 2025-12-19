@@ -25,7 +25,12 @@ interface CourseStats {
   archivedCourses: number;
 }
 
-const MyCourses: React.FC = () => {
+interface MyCoursesProps {
+  hideHeader?: boolean;
+  onCreateClick?: () => void;
+}
+
+const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick }) => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -36,7 +41,10 @@ const MyCourses: React.FC = () => {
   const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('order') as 'asc' | 'desc') || 'desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (searchParams.get('view') as 'grid' | 'list') || 'grid');
-  const [activeTab, setActiveTab] = useState(() => searchParams.get('status') || 'all');
+  const [activeTab, setActiveTab] = useState(() => {
+    const status = searchParams.get('status');
+    return status === 'drafts' ? 'draft' : (status || 'all');
+  });
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -125,7 +133,7 @@ const MyCourses: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [categories, t]);
+  }, [searchTerm, filterCategory, activeTab, sortBy, sortOrder, currentPage, itemsPerPage, t]);
 
   useEffect(() => {
     loadCourses();
@@ -136,14 +144,14 @@ const MyCourses: React.FC = () => {
 
   const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
-      faith: 'from-[color:#1e1b4b] to-[color:#312e81]',
-      history: 'from-indigo-500 to-indigo-600',
-      spiritual: 'from-indigo-500 to-indigo-700',
-      bible: 'from-indigo-500 to-indigo-600',
-      liturgical: 'from-indigo-600 to-indigo-800',
-      youth: 'from-indigo-400 to-indigo-600'
+      faith: 'from-blue-500 to-blue-700',
+      history: 'from-emerald-500 to-emerald-700',
+      spiritual: 'from-purple-500 to-purple-700',
+      bible: 'from-amber-500 to-amber-700',
+      liturgical: 'from-rose-500 to-rose-700',
+      youth: 'from-cyan-500 to-cyan-700'
     };
-    return colors[category] || 'from-indigo-500 to-indigo-700';
+    return colors[category] || 'from-gray-500 to-gray-700';
   }, []);
 
   const paginatedCourses = useMemo(() => filteredAndSortedCourses, [filteredAndSortedCourses]);
@@ -179,9 +187,9 @@ const MyCourses: React.FC = () => {
   // Memoize compact course rendering to prevent unnecessary re-renders
   const renderCourseCard = useCallback((course: Course) => (
     <div key={course.id} className={`relative group ${viewMode === 'grid'
-      ? "bg-white rounded-lg border border-stone-200 overflow-hidden hover:shadow-lg transition-all duration-200"
-      : "bg-white rounded-lg border border-stone-200 p-3 hover:shadow-md transition-all duration-200"
-    } ${selectedCourses.includes(course.id) ? 'ring-2 ring-[color:#1e1b4b] bg-indigo-50/40' : ''}`}>
+      ? "bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200"
+      : "bg-white rounded-xl border border-gray-200 p-3 hover:shadow-md transition-all duration-200"
+    }`} style={selectedCourses.includes(course.id) ? { borderColor: brandColors.primaryHex, backgroundColor: brandColors.primaryHex + '05' } : {}}>
       
       {/* Selection Checkbox - Improved visibility */}
       <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
@@ -195,7 +203,8 @@ const MyCourses: React.FC = () => {
               setSelectedCourses(selectedCourses.filter(id => id !== course.id));
             }
           }}
-          className="rounded border-gray-300 text-[color:#1e1b4b] focus:ring-[color:#1e1b4b] w-4 h-4 cursor-pointer shadow-sm"
+          className="rounded border-gray-300 w-4 h-4 cursor-pointer shadow-sm focus:ring-offset-0"
+          style={{ color: brandColors.primaryHex, '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
         />
       </div>
 
@@ -203,7 +212,8 @@ const MyCourses: React.FC = () => {
       <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
         <Link 
           to={`/teacher/courses/${course.id}/edit`}
-          className="p-1.5 bg-white text-stone-600 rounded-full shadow-md hover:text-[#27AE60] hover:bg-emerald-50"
+          className="p-1.5 bg-white text-gray-600 rounded-full shadow-md hover:bg-gray-50 transition-colors"
+          style={{ ':hover': { color: brandColors.primaryHex } } as React.CSSProperties}
           title={t('common.edit')}
           onClick={(e) => e.stopPropagation()}
         >
@@ -214,7 +224,7 @@ const MyCourses: React.FC = () => {
       {viewMode === 'grid' ? (
         // Compact Grid View
         <Link to={`/teacher/courses/${course.id}`} className="block h-full">
-          <div className="relative h-40 bg-stone-100">
+          <div className="relative h-40 bg-gray-100">
             {course.cover_image ? (
               <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (
@@ -225,12 +235,12 @@ const MyCourses: React.FC = () => {
             <div className="absolute bottom-2 right-2">
               <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${
                 getStatus(course) === 'published'
-                  ? 'bg-indigo-100 text-indigo-800'
+                  ? 'bg-green-100 text-green-800'
                   : getStatus(course) === 'scheduled'
                   ? 'bg-amber-100 text-amber-800'
                   : getStatus(course) === 'archived'
-                  ? 'bg-rose-100 text-rose-800'
-                  : 'bg-stone-100 text-stone-800'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-gray-100 text-gray-800'
               }`}>
                 {getStatus(course) === 'published' && t('common.published')}
                 {getStatus(course) === 'scheduled' && t('teacher_courses.status_scheduled')}
@@ -240,14 +250,14 @@ const MyCourses: React.FC = () => {
             </div>
           </div>
           <div className="p-4">
-            <h3 className="font-bold text-stone-800 truncate mb-2 text-base group-hover:text-[color:#1e1b4b] transition-colors">{course.title}</h3>
-            <div className="flex items-center justify-between text-xs text-stone-500">
-              <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
-                <Users className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
+            <h3 className="font-bold text-gray-900 truncate mb-2 text-base group-hover:text-blue-900 transition-colors">{course.title}</h3>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
+                <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                 <span>{course.student_count || 0} {t('common.students', 'Students')}</span>
               </div>
-              <div className="flex items-center bg-stone-50 px-2 py-1 rounded-md">
-                <Video className="h-3.5 w-3.5 mr-1.5 text-stone-400" />
+              <div className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
+                <Video className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                 <span>{course.lesson_count || 0} {t('common.lessons', 'Lessons')}</span>
               </div>
             </div>
@@ -256,7 +266,7 @@ const MyCourses: React.FC = () => {
       ) : (
         // List View
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-stone-100">
+          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
              {course.cover_image ? (
               <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (
@@ -266,8 +276,8 @@ const MyCourses: React.FC = () => {
             )}
           </div>
           <div className="flex-grow min-w-0">
-            <Link to={`/teacher/courses/${course.id}`} className="font-semibold text-stone-800 hover:text-[color:#1e1b4b] truncate block text-base">{course.title}</Link>
-            <div className="flex items-center gap-3 text-xs text-stone-500 mt-1">
+            <Link to={`/teacher/courses/${course.id}`} className="font-semibold text-gray-900 hover:text-blue-900 truncate block text-base">{course.title}</Link>
+            <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
               <span>{t('common.student_count', { count: course.student_count || 0 })}</span>
               <span>•</span>
               <span>{formatDuration(course.total_duration || 0)}</span>
@@ -278,12 +288,12 @@ const MyCourses: React.FC = () => {
           <div className="flex-shrink-0 flex items-center gap-3">
             <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
               getStatus(course) === 'published'
-                ? 'bg-indigo-100 text-indigo-800'
+                ? 'bg-green-100 text-green-800'
                 : getStatus(course) === 'scheduled'
                 ? 'bg-amber-100 text-amber-800'
                 : getStatus(course) === 'archived'
-                ? 'bg-rose-100 text-rose-800'
-                : 'bg-stone-100 text-stone-800'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-gray-100 text-gray-800'
             }`}>
               {getStatus(course) === 'published' && t('common.published')}
               {getStatus(course) === 'scheduled' && t('teacher_courses.status_scheduled')}
@@ -292,7 +302,7 @@ const MyCourses: React.FC = () => {
             </span>
             <Link 
               to={`/teacher/courses/${course.id}/edit`}
-              className="p-2 text-stone-400 hover:text-[color:#1e1b4b] hover:bg-stone-50 rounded-full transition-colors"
+              className="p-2 text-gray-400 hover:text-blue-900 hover:bg-gray-50 rounded-full transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               <Edit className="h-4 w-4" />
@@ -330,84 +340,131 @@ const MyCourses: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-4 p-2 sm:p-4" style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}10, #fff 80%)` }}>
+    <div className="w-full space-y-6 p-4 sm:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
+      {!hideHeader && (
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.title')}</h1>
-          <p className="text-sm mt-1" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.description')}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('teacher_courses.title')}</h1>
+          <p className="text-sm mt-1 text-gray-600">{t('teacher_courses.description')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to="/teacher/courses/new" className="px-4 py-2 rounded-md flex items-center font-semibold text-sm transition-colors shadow-sm hover:shadow-md" style={{ background: brandColors.primaryHex, color: '#fff' }}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t('teacher_courses.new_course_btn')}
-          </Link>
-          <button onClick={() => setShowTemplates(true)} className="px-4 py-2 rounded-md flex items-center font-semibold text-sm border transition-colors" style={{ background: '#fff', color: brandColors.primaryHex, borderColor: brandColors.primaryHex + '40' }}>
-            <Sparkles className="h-4 w-4 mr-1 text-amber-500" />
+        <div className="flex items-center gap-3">
+          {onCreateClick ? (
+            <button 
+              onClick={onCreateClick}
+              className="px-4 py-2 rounded-lg flex items-center font-medium text-sm transition-all shadow-sm hover:shadow-md text-white" 
+              style={{ backgroundColor: brandColors.primaryHex }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t('teacher_courses.new_course_btn')}
+            </button>
+          ) : (
+            <Link 
+              to="/teacher/courses/new" 
+              className="px-4 py-2 rounded-lg flex items-center font-medium text-sm transition-all shadow-sm hover:shadow-md text-white" 
+              style={{ backgroundColor: brandColors.primaryHex }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t('teacher_courses.new_course_btn')}
+            </Link>
+          )}
+          <button 
+            onClick={() => setShowTemplates(true)} 
+            className="px-4 py-2 rounded-lg flex items-center font-medium text-sm border bg-white transition-colors hover:bg-gray-50" 
+            style={{ color: brandColors.primaryHex, borderColor: brandColors.primaryHex + '40' }}
+          >
+            <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
             {t('teacher_courses.use_template_btn')}
           </button>
         </div>
       </div>
+      )}
 
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
-            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_total_courses')}</p>
-            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.totalCourses}</p>
+          <div className="p-4 rounded-xl border bg-white shadow-sm" style={{ borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide font-semibold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_total_courses')}</p>
+            <p className="font-bold text-2xl mt-2 text-gray-900">{stats.totalCourses}</p>
           </div>
-          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
-            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_published_courses')}</p>
-            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.publishedCourses}</p>
+          <div className="p-4 rounded-xl border bg-white shadow-sm" style={{ borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide font-semibold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_published_courses')}</p>
+            <p className="font-bold text-2xl mt-2 text-gray-900">{stats.publishedCourses}</p>
           </div>
-          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
-            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_draft_courses')}</p>
-            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.draftCourses || 0}</p>
+          <div className="p-4 rounded-xl border bg-white shadow-sm" style={{ borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide font-semibold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_draft_courses')}</p>
+            <p className="font-bold text-2xl mt-2 text-gray-900">{stats.draftCourses || 0}</p>
           </div>
-          <div className="p-4 rounded-lg border shadow-sm" style={{ background: brandColors.primaryHex + '08', borderColor: brandColors.primaryHex + '20' }}>
-            <p className="text-xs uppercase tracking-wide" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_archived_courses')}</p>
-            <p className="font-bold text-2xl mt-1" style={{ color: brandColors.primaryHex }}>{stats.archivedCourses || 0}</p>
+          <div className="p-4 rounded-xl border bg-white shadow-sm" style={{ borderColor: brandColors.primaryHex + '20' }}>
+            <p className="text-xs uppercase tracking-wide font-semibold" style={{ color: brandColors.primaryHex }}>{t('teacher_courses.stats_archived_courses')}</p>
+            <p className="font-bold text-2xl mt-2 text-gray-900">{stats.archivedCourses || 0}</p>
           </div>
         </div>
       )}
 
       {/* Filters and Actions */}
-      <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="flex-grow sm:max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder={t('common.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-md text-sm"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => loadCourses()} className="p-2 text-stone-600 hover:text-emerald-600"><RefreshCw className="h-4 w-4" /></button>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><Grid className="h-4 w-4" /></button>
-              <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><List className="h-4 w-4" /></button>
+            <button onClick={() => loadCourses()} className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="h-4 w-4" /></button>
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+              <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Grid className="h-4 w-4" /></button>
+              <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><List className="h-4 w-4" /></button>
             </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setSortOrder('asc')} className={`p-2 rounded-md ${sortOrder === 'asc' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><SortAsc className="h-4 w-4" /></button>
-              <button onClick={() => setSortOrder('desc')} className={`p-2 rounded-md ${sortOrder === 'desc' ? 'bg-emerald-100 text-emerald-700' : 'text-stone-500 hover:bg-stone-100'}`}><SortDesc className="h-4 w-4" /></button>
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+              <button onClick={() => setSortOrder('asc')} className={`p-1.5 rounded-md transition-all ${sortOrder === 'asc' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><SortAsc className="h-4 w-4" /></button>
+              <button onClick={() => setSortOrder('desc')} className={`p-1.5 rounded-md transition-all ${sortOrder === 'desc' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><SortDesc className="h-4 w-4" /></button>
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <div className="flex items-center border border-stone-200 rounded-md">
-            <button onClick={() => setActiveTab('all')} className={`px-3 py-1 rounded-l-md ${activeTab === 'all' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.all_tab')}</button>
-            <button onClick={() => setActiveTab('published')} className={`px-3 py-1 border-l ${activeTab === 'published' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.published_tab')}</button>
-            <button onClick={() => setActiveTab('drafts')} className={`px-3 py-1 border-l rounded-r-md ${activeTab === 'drafts' ? 'bg-[color:#1e1b4b] text-white' : 'hover:bg-stone-50'}`}>{t('teacher_courses.drafts_tab')}</button>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex items-center bg-gray-100 p-1 rounded-lg">
+            <button 
+              onClick={() => setActiveTab('all')} 
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              {t('teacher_courses.all_tab')}
+            </button>
+            <button 
+              onClick={() => setActiveTab('published')} 
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'published' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              {t('teacher_courses.published_tab')}
+            </button>
+            <button 
+              onClick={() => setActiveTab('draft')} 
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'draft' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              {t('teacher_courses.drafts_tab')}
+            </button>
           </div>
-          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
+          <select 
+            value={filterCategory} 
+            onChange={(e) => setFilterCategory(e.target.value)} 
+            className="border border-gray-300 rounded-lg py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+          >
             {categories.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
           </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-stone-300 rounded-md py-1 text-sm">
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)} 
+            className="border border-gray-300 rounded-lg py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+          >
             {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </div>
@@ -483,10 +540,21 @@ const MyCourses: React.FC = () => {
           </p>
           {!(searchTerm || filterCategory !== 'all' || activeTab !== 'all') && (
             <div className="mt-6">
-              <Link to="/teacher/courses/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[color:#1e1b4b] hover:bg-[color:#312e81]">
-                <Plus className="h-4 w-4 mr-2" />
-                {t('teacher_courses.create_first_course_btn')}
-              </Link>
+              {onCreateClick ? (
+                <button 
+                  onClick={onCreateClick}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white"
+                  style={{ backgroundColor: brandColors.primaryHex }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('teacher_courses.create_first_course_btn')}
+                </button>
+              ) : (
+                <Link to="/teacher/courses/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white" style={{ backgroundColor: brandColors.primaryHex }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('teacher_courses.create_first_course_btn')}
+                </Link>
+              )}
             </div>
           )}
         </div>

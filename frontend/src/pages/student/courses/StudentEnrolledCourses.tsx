@@ -170,16 +170,6 @@ const StudentEnrolledCourses: React.FC = () => {
     const target = courses.find(c => c.id === courseId);
     const currentlyFav = Boolean(target?.is_favorite);
 
-    const ok = await confirm({
-      title: currentlyFav ? t('enrolled_courses.favorite_remove_title') : t('enrolled_courses.favorite_add_title'),
-      message: currentlyFav
-        ? t('enrolled_courses.favorite_remove_message', { title })
-        : t('enrolled_courses.favorite_add_message', { title }),
-      confirmText: currentlyFav ? t('enrolled_courses.remove_favorite') : t('enrolled_courses.add_favorite'),
-      cancelText: t('common.cancel')
-    });
-    if (!ok) return;
-
     // Optimistic toggle for immediate UI feedback
     setCourses(prev =>
       prev.map(c => c.id === courseId ? { ...c, is_favorite: !currentlyFav } : c)
@@ -189,7 +179,6 @@ const StudentEnrolledCourses: React.FC = () => {
       const endpoint = currentlyFav ? 'unfavorite' : 'favorite';
       const res = await apiClient.post(`/courses/${courseId}/${endpoint}`);
 
-      // Update stats if needed, but maybe not strictly necessary for UX
       showNotification({ 
         type: 'success', 
         title: t('common.success'), 
@@ -197,6 +186,10 @@ const StudentEnrolledCourses: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
+      // Revert optimistic update
+      setCourses(prev =>
+        prev.map(c => c.id === courseId ? { ...c, is_favorite: currentlyFav } : c)
+      );
       const message = err.response?.data?.message || '';
 
       // Revert optimistic change on failure
@@ -406,30 +399,52 @@ const StudentEnrolledCourses: React.FC = () => {
                       <BookOpen className="h-12 w-12 text-slate-400" />
                     </div>
                   )}
-                  <button
-                    onClick={() => handleToggleFavorite(course.id, course.title)}
-                    className="absolute top-2 right-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
-                    title={course.is_favorite ? t('enrolled_courses.remove_favorite') : t('enrolled_courses.add_favorite')}
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${course.is_favorite ? 'text-[#EF5350] fill-current' : 'text-white stroke-[2px]'}`}
-                    />
-                  </button>
-                  <button
-                    onClick={() => handleToggleBookmark(course.id, course.title)}
-                    className="absolute top-12 right-2 p-2 bg-black/20 backdrop-blur-sm rounded-full hover:bg-black/30 transition-colors shadow-sm border border-white/30"
-                    title={course.is_bookmarked ? t('enrolled_courses.remove_bookmark') : t('enrolled_courses.add_bookmark')}
-                  >
-                    <Bookmark
-                      className={`h-5 w-5 ${course.is_bookmarked ? 'text-amber-400 fill-current' : 'text-white stroke-[2px]'}`}
-                    />
-                  </button>
-                  {course.completed_at && (
-                    <div className="absolute top-2 left-2 bg-gradient-to-r from-[#66BB6A]/90 to-[#4CAF50]/90 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm border border-[#66BB6A]/30 shadow-sm">
-                      <CheckCircle className="h-3 w-3 inline mr-1" />
-                      {t('enrolled_courses.filter.completed')}
-                    </div>
-                  )}
+                  
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    {course.progress_percentage >= 100 && (
+                      <span className="px-2 py-0.5 rounded-full bg-green-500/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-sm">
+                        {t('enrolled_courses.status.completed')}
+                      </span>
+                    )}
+                    {course.is_favorite && (
+                      <span className="p-1 rounded-full bg-red-500/90 text-white shadow-sm backdrop-blur-sm">
+                        <Heart className="h-3 w-3 fill-current" />
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions Overlay */}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleToggleBookmark(course.id, course.title);
+                      }}
+                      className={`p-1.5 rounded-full backdrop-blur-md transition-colors ${
+                        course.is_bookmarked 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white/80 text-slate-600 hover:bg-white hover:text-blue-600'
+                      }`}
+                      title={course.is_bookmarked ? t('enrolled_courses.remove_bookmark') : t('enrolled_courses.add_bookmark')}
+                    >
+                      <Bookmark className={`h-3.5 w-3.5 ${course.is_bookmarked ? 'fill-current' : ''}`} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleToggleFavorite(course.id, course.title);
+                      }}
+                      className={`p-1.5 rounded-full backdrop-blur-md transition-colors ${
+                        course.is_favorite 
+                          ? 'bg-red-500 text-white' 
+                          : 'bg-white/80 text-slate-600 hover:bg-white hover:text-red-500'
+                      }`}
+                      title={course.is_favorite ? t('enrolled_courses.remove_favorite') : t('enrolled_courses.add_favorite')}
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${course.is_favorite ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className={compact ? "p-4" : "p-5"}>

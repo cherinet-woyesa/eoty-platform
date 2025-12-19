@@ -121,31 +121,25 @@ const BookmarksPage: React.FC = () => {
   const handleRemoveBookmark = useCallback(async (item: BookmarkedItem, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const confirmed = await confirm({
-        title: t('bookmarks_page.remove_bookmark_title'),
-        message: t('bookmarks_page.remove_message')
-      });
-      if (!confirmed) return;
-
+      // Optimistic update
       setRemovingId(item.id);
+      setBookmarks(prev => prev.filter(b => b.id !== item.id));
 
       await apiClient.post('/bookmarks/toggle', {
         entityType: item.entity_type,
         entityId: item.entity_id
       });
 
-      // Remove from local state immediately
-      setBookmarks(prev => prev.filter(b => b.id !== item.id));
-      // Notification
       showNotification({ type: 'success', title: t('common.success'), message: t('bookmarks_page.removed') });
     } catch (err) {
       console.error('Failed to remove bookmark:', err);
-      // Reload to ensure sync
+      // Revert on error
       loadBookmarks();
+      showNotification({ type: 'error', title: t('common.error'), message: t('bookmarks_page.remove_error') });
     } finally {
       setRemovingId(null);
     }
-  }, [loadBookmarks]);
+  }, [loadBookmarks, showNotification, t]);
 
   // Format duration
   const formatDuration = useCallback((seconds: number) => {
@@ -348,7 +342,7 @@ const BookmarksPage: React.FC = () => {
           )}
           {!searchTerm && (
             <Link 
-              to="/member/browse-courses"
+              to="/member/all-courses?tab=browse"
               className="mt-6 inline-flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors"
             >
               {t('student.browse_catalog')}

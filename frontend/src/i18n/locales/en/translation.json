@@ -1,7 +1,172 @@
 {
+  "send": "Send Message",
+  "success": "Message sent successfully!",
   "admin": {
     "chapter_roles": "Chapter Roles",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "welcome": "Welcome",
+      "managing": "Managing {{users}} users across {{courses}} courses",
+      "access_denied": "Access Denied",
+      "access_denied_msg": "You do not have permission to access the admin dashboard.",
+      "load_error": "Failed to Load Dashboard",
+      "load_error_msg": "We encountered an error while loading dashboard data.",
+      "try_again": "Try Again",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "synced": "Synced",
+      "updating": "Updating...",
+      "quick_actions": "Quick Actions",
+      "metrics": {
+        "total_users": "Total Users",
+        "active_users": "Active Users",
+        "active_courses": "Active Courses",
+        "completed_lessons": "Completed Lessons",
+        "new_registrations": "New Registrations",
+        "flagged_content": "Flagged Content"
+      },
+      "actions": {
+        "manage_users": "Manage Users",
+        "manage_courses": "Manage Courses",
+        "create_announcement": "Create Announcement",
+        "review_flagged": "Review Flagged Content"
+      },
+      "time": {
+        "never": "Never",
+        "just_now": "Just now",
+        "minutes_ago": "{{count}} minutes ago"
+      }
+    },
+    "users": {
+      "title": "User Management",
+      "create_user": "Create User",
+      "edit_user": "Edit User",
+      "delete_user": "Delete User",
+      "search_placeholder": "Search users...",
+      "filter_by_role": "Filter by Role",
+      "filter_by_status": "Filter by Status",
+      "all_roles": "All Roles",
+      "all_statuses": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive",
+      "bulk_actions": "Bulk Actions",
+      "select_all": "Select All",
+      "export_csv": "Export CSV",
+      "user_created": "User created successfully",
+      "user_updated": "User updated successfully",
+      "user_deleted": "User deleted successfully",
+      "delete_confirm_title": "Delete User",
+      "delete_confirm_body": "Are you sure you want to delete this user? This action cannot be undone.",
+      "delete_confirm_cta": "Delete",
+      "role_updated": "User role updated successfully",
+      "status_updated": "User status updated successfully",
+      "bulk_activate_title": "Activate Users",
+      "bulk_deactivate_title": "Deactivate Users",
+      "bulk_activate_message": "Are you sure you want to activate {{count}} user(s)?",
+      "bulk_deactivate_message": "Are you sure you want to deactivate {{count}} user(s)?",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "users_activated": "{{count}} user(s) activated successfully",
+      "users_deactivated": "{{count}} user(s) deactivated successfully",
+      "error_fetch": "Failed to load users. Please try again.",
+      "error_create": "Failed to create user",
+      "error_update": "Failed to update user",
+      "error_delete": "Failed to delete user",
+      "error_export": "Failed to export CSV. Please try again.",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "email": "Email",
+      "password": "Password",
+      "chapter": "Chapter",
+      "role": "Role",
+      "status": "Status",
+      "created_at": "Created At",
+      "last_login": "Last Login",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "new_user": "New User",
+      "exporting": "Exporting...",
+      "total_users": "Total Users",
+      "active_users": "Active Users",
+      "inactive_users": "Inactive Users",
+      "search_by_name_email": "Search by name or email...",
+      "all_chapters": "All Chapters",
+      "filter_by_chapter": "Filter by Chapter",
+      "table_view": "Table View",
+      "grid_view": "Grid View",
+      "selected_count": "{{count}} user(s) selected",
+      "last_updated": "Last updated {{time}}",
+      "page_of": "Page {{current}} of {{total}}",
+      "showing_results": "Showing {{start}}-{{end}} of {{total}} users",
+      "no_users_found": "No users found",
+      "loading": "Loading users...",
+      "students": "Students",
+      "teachers": "Teachers",
+      "chapter_admins": "Chapter Admins",
+      "regional_coordinators": "Regional Coordinators",
+      "platform_admins": "Platform Admins",
+      "role_student": "Student",
+      "role_teacher": "Teacher",
+      "role_chapter_admin": "Chapter Admin",
+      "role_regional_coordinator": "Regional Coordinator",
+      "role_admin": "Platform Admin",
+      "total": "Total",
+      "stats_summary": "{{total}} total users • {{active}} active • {{inactive}} inactive"
+    },
+    "chapters": {
+      "title": "Chapter Management",
+      "create_chapter": "Create Chapter",
+      "edit_chapter": "Edit Chapter",
+      "delete_chapter": "Delete Chapter",
+      "search_placeholder": "Search chapters...",
+      "filter_by_country": "Filter by country",
+      "filter_by_region": "Filter by region",
+      "chapter_created": "Chapter created successfully",
+      "chapter_updated": "Chapter updated successfully",
+      "chapter_deleted": "Chapter deleted successfully",
+      "confirm_delete": "Are you sure you want to delete this chapter?",
+      "geolocation_preview": "Geolocation Preview",
+      "test_location": "Test Location"
+    },
+    "roles": {
+      "title": "Chapter Roles",
+      "assign_role": "Assign Role",
+      "remove_role": "Remove Role",
+      "role_assigned": "Role assigned successfully",
+      "role_removed": "Role removed successfully",
+      "select_user": "Select User",
+      "select_chapter": "Select Chapter",
+      "select_role": "Select Role",
+      "chapter_admin": "Chapter Admin",
+      "chapter_leader": "Chapter Leader",
+      "moderator": "Moderator",
+      "regional_coordinator": "Regional Coordinator"
+    },
+    "permissions": {
+      "title": "Roles & Permissions",
+      "manage_permissions": "Manage Permissions",
+      "permission_updated": "Permission updated successfully",
+      "categories": {
+        "users": "User Management",
+        "content": "Content Management",
+        "chapters": "Chapter Management",
+        "system": "System Administration"
+      }
+    }
+  },
+  "classroom": {
+    "overview": "Overview",
+    "resources": "Resources",
+    "discussion": "Discussion",
+    "next_lesson": "Next Lesson",
+    "previous_lesson": "Previous Lesson",
+    "completed": "Completed",
+    "locked": "Locked"
   },
   "ai_labeling": {
     "title": "AI Labeling",
@@ -37,7 +202,6 @@
       "resources": "Resources"
     },
     "loading_studio": "Loading Video Studio...",
-
     "resources": {
       "upload_new_title": "Upload New Resource",
       "upload_new_description": "Add files to your library or attach directly to this lesson",
@@ -69,16 +233,16 @@
       "delete_success": "Resource deleted successfully"
     }
   },
-    "teleprompter": {
-      "title": "Teleprompter",
-      "placeholder": "Paste your script here...",
-      "empty_preview": "No script content",
-      "preview": "Preview",
-      "edit": "Edit",
-      "speed": "Speed",
-      "size": "Size"
-    },
-    "record_video": {
+  "teleprompter": {
+    "title": "Teleprompter",
+    "placeholder": "Paste your script here...",
+    "empty_preview": "No script content",
+    "preview": "Preview",
+    "edit": "Edit",
+    "speed": "Speed",
+    "size": "Size"
+  },
+  "record_video": {
     "ready_to_record": "Ready to Record",
     "ready_to_record_desc": "Select a source above to begin",
     "start_recording": "Start Recording",
@@ -210,7 +374,13 @@
     "preview": "Preview"
   },
   "common": {
+    "next": "Next",
+    "skip": "Skip",
+    "back": "Back",
     "welcome": "Welcome",
+    "next": "Next",
+    "skip": "Skip",
+    "back": "Back",
     "dashboard": "Dashboard",
     "courses": "Courses",
     "create_course": "Create Course",
@@ -245,6 +415,8 @@
     "uploading": "Uploading...",
     "error": "Error",
     "success": "Success",
+    "sending": "Sending...",
+    "send_message": "Send Message",
     "warning": "Warning",
     "try_again": "Try again",
     "live_updates": "Live Updates",
@@ -501,6 +673,22 @@
     }
   },
   "student": {
+    "contact_admin_title": "Contact Support",
+    "contact_success": "Message sent successfully",
+    "contact_error": "Failed to send message. Please try again.",
+    "message_sent": "Message Sent!",
+    "message_sent_desc": "We will get back to you shortly.",
+    "contact_subject": "Subject",
+    "select_subject": "Select a topic...",
+    "subject_technical": "Technical Issue",
+    "subject_course": "Course Content",
+    "subject_account": "Account & Billing",
+    "subject_other": "Other",
+    "contact_message": "Message",
+    "contact_message_placeholder": "How can we help you?",
+    "complete_profile": "Complete Your Profile",
+    "profile_completion_msg": "Your profile is {{percent}}% complete. Add a photo and bio to finish setup.",
+    "update_profile": "Update Profile",
     "title": "Member Dashboard",
     "my_courses": "My Courses",
     "browse_courses": "Browse Courses",
@@ -1123,6 +1311,73 @@
     "error": {
       "title": "Onboarding Error",
       "skip": "Skip for Now"
+    },
+    "flows": {
+      "student": {
+        "title": "New User Onboarding",
+        "milestones": {
+          "0": "Welcome & Setup",
+          "1": "Discovery",
+          "2": "All Set!"
+        },
+        "steps": {
+          "0": {
+            "title": "Welcome to EOTY Platform",
+            "description": "We are glad to have you here. Let's get you set up.",
+            "content": "Welcome video or text goes here."
+          },
+          "1": {
+            "title": "Complete Your Profile",
+            "description": "Upload a profile picture and set your bio.",
+            "action_required": "Update your profile to continue."
+          },
+          "2": {
+            "title": "Explore Courses",
+            "description": "Check out our library of courses."
+          },
+          "3": {
+            "title": "Join a Chapter",
+            "description": "Connect with your local community.",
+            "action_required": "Join a chapter to connect with others."
+          },
+          "4": {
+            "title": "Claim Your Badge",
+            "description": "Congratulations! You have completed the onboarding."
+          }
+        }
+      },
+      "teacher": {
+        "title": "Teacher Onboarding",
+        "steps": {
+          "0": {
+            "title": "Welcome, Teacher!",
+            "description": "Learn about your role as a teacher on the platform.",
+            "content": "<p>As a teacher, you can create and manage courses, interact with students, and contribute to the community.</p>"
+          },
+          "1": {
+            "title": "Create Your First Course",
+            "description": "Learn how to create and structure a course.",
+            "content": "<p>Creating a course involves setting up course details, adding lessons, and organizing content.</p>",
+            "action_required": "Navigate to the course creation page and explore the options."
+          },
+          "2": {
+            "title": "Add Lessons to Your Course",
+            "description": "Learn how to add and organize lessons within your course.",
+            "content": "<p>Lessons are the building blocks of your course. You can add videos, quizzes, and resources to each lesson.</p>",
+            "action_required": "Try adding a lesson to understand the lesson creation process."
+          },
+          "3": {
+            "title": "Manage Student Engagement",
+            "description": "Learn how to interact with students and track their progress.",
+            "content": "<p>You can view student progress, respond to questions, and provide feedback through the platform.</p>"
+          },
+          "4": {
+            "title": "Use Admin Tools",
+            "description": "Explore the admin tools available to teachers.",
+            "content": "<p>Teachers have access to moderation tools, analytics, and content management features.</p>"
+          }
+        }
+      }
     }
   },
   "chapters": {
@@ -1329,6 +1584,8 @@
   },
   "community": {
     "title": "Community",
+    "admin_title": "Community Administration",
+    "admin_subtitle": "Manage and moderate community interactions",
     "subtitle": "Connect, collaborate, and grow together.",
     "tabs": {
       "feed": "Feed",
@@ -1340,6 +1597,10 @@
       "student_title": "Share and connect",
       "student_subtitle": "Share ideas, join groups, and start discussions with peers.",
       "cta_share": "Share a post",
+      "admin_title": "Community Administration",
+      "admin_subtitle": "Monitor and moderate community discussions",
+      "cta_announce": "Create Announcement",
+      "cta_hint_admin": "Post an official announcement or update.",
       "teacher_title": "Lead the conversation, {{name}}",
       "teacher_subtitle": "Share updates, guide chapters, and spark discussions.",
       "cta_create": "Start a discussion",
@@ -1353,6 +1614,12 @@
     "actions": {
       "browse_forums": "Browse forums",
       "browse_forums_desc": "Find discussions by topic or chapter",
+      "moderation_queue": "Moderation Queue",
+      "moderation_queue_desc": "Review reported content",
+      "explore_trending": "Explore Trending",
+      "explore_trending_desc": "See what's popular right now",
+      "view_achievements": "View Achievements",
+      "view_achievements_desc": "Check your progress and badges",
       "refresh": "Refresh feed",
       "refresh_desc": "Reload posts and latest activity",
       "invite_chapter": "Invite chapter members",
@@ -1821,67 +2088,67 @@
       "safety_title": "Doctrinal safety",
       "safety_1": "Aligned with Ethiopian Orthodox teachings",
       "safety_2": "References Scripture and Church Fathers",
-        "safety_3": "Encourages consultation with clergy for complex matters"
-      },
-      "nav": {
-        "dashboard": "Dashboard",
-        "dashboard_desc": "Overview of your activities and progress",
-        "users_access": "Users & Access",
-        "users_access_desc": "Manage user accounts and permissions",
-        "content": "Content",
-        "content_desc": "Manage courses, lessons, and resources",
-        "communications": "Communications",
-        "communications_desc": "Manage announcements and messages",
-        "ai_labeling": "AI Labeling",
-        "ai_labeling_desc": "Manage AI content categorization and labels",
-        "system": "System",
-        "system_desc": "Configure system settings and preferences",
-        "courses": "Courses",
-        "courses_desc": "Browse and manage courses",
-        "students": "Students",
-        "students_desc": "View and manage student profiles",
-        "resources": "Resources",
-        "resources_desc": "Access learning materials and documents",
-        "ai_assistant": "AI Assistant",
-        "ai_assistant_desc": "Interact with the AI assistant for support",
-        "community": "Community",
-        "community_desc": "Engage with the learning community",
-        "chapters": "Chapters",
-        "chapters_desc": "Explore and manage community chapters",
-        "learning": "Learning",
-        "learning_desc": "Track your learning journey and progress",
-        "admin": "Admin",
-        "teacher": "Teacher",
-        "users": "Users",
-        "forums": "Forums",
-        "achievements": "Achievements",
-        "analytics": "Analytics",
-        "settings": "Settings",
-        "course_details": "Course Details",
-        "user_profile": "User Profile",
-        "my_courses": "My Courses",
-        "bookmarks": "Bookmarks",
-        "study_schedule": "Study Schedule",
-        "record_video": "Record Video",
-        "discussions": "Discussions",
-        "user_management": "User Management",
-        "user_management_desc": "Manage users",
-        "bookmarks_desc": "Saved lessons",
-        "study_schedule_desc": "Plan your study",
-        "record_video_desc": "Create lessons",
-        "discussions_desc": "Community forums",
-        "analytics_desc": "View reports"
-      },
-  "common": {
-    "eoty_platform": "EOTY Platform",
-    "search_navigation_placeholder": "Search navigation...",
-    "favorites": "Favorites",
-    "recent": "Recent",
-    "no_results_found": "No results found",
-    "try_different_terms": "Try searching with different terms",
-    "online": "Online"
-  },
-  "languages": {
+      "safety_3": "Encourages consultation with clergy for complex matters"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "dashboard_desc": "Overview of your activities and progress",
+      "users_access": "Users & Access",
+      "users_access_desc": "Manage user accounts and permissions",
+      "content": "Content",
+      "content_desc": "Manage courses, lessons, and resources",
+      "communications": "Communications",
+      "communications_desc": "Manage announcements and messages",
+      "ai_labeling": "AI Labeling",
+      "ai_labeling_desc": "Manage AI content categorization and labels",
+      "system": "System",
+      "system_desc": "Configure system settings and preferences",
+      "courses": "Courses",
+      "courses_desc": "Browse and manage courses",
+      "students": "Students",
+      "students_desc": "View and manage student profiles",
+      "resources": "Resources",
+      "resources_desc": "Access learning materials and documents",
+      "ai_assistant": "AI Assistant",
+      "ai_assistant_desc": "Interact with the AI assistant for support",
+      "community": "Community",
+      "community_desc": "Engage with the learning community",
+      "chapters": "Chapters",
+      "chapters_desc": "Explore and manage community chapters",
+      "learning": "Learning",
+      "learning_desc": "Track your learning journey and progress",
+      "admin": "Admin",
+      "teacher": "Teacher",
+      "users": "Users",
+      "forums": "Forums",
+      "achievements": "Achievements",
+      "analytics": "Analytics",
+      "settings": "Settings",
+      "course_details": "Course Details",
+      "user_profile": "User Profile",
+      "my_courses": "My Courses",
+      "bookmarks": "Bookmarks",
+      "study_schedule": "Study Schedule",
+      "record_video": "Record Video",
+      "discussions": "Discussions",
+      "user_management": "User Management",
+      "user_management_desc": "Manage users",
+      "bookmarks_desc": "Saved lessons",
+      "study_schedule_desc": "Plan your study",
+      "record_video_desc": "Create lessons",
+      "discussions_desc": "Community forums",
+      "analytics_desc": "View reports"
+    },
+    "common": {
+      "eoty_platform": "EOTY Platform",
+      "search_navigation_placeholder": "Search navigation...",
+      "favorites": "Favorites",
+      "recent": "Recent",
+      "no_results_found": "No results found",
+      "try_different_terms": "Try searching with different terms",
+      "online": "Online"
+    },
+    "languages": {
       "title": "Languages",
       "en": "English",
       "am": "Amharic",
@@ -1935,7 +2202,12 @@
     "not_found": {
       "title": "Course Not Found",
       "description": "The course you're looking for doesn't exist or may have been removed."
-    }
+    },
+    "no_content_title": "No Content Yet",
+    "no_content_desc": "This lesson is empty. Record a video or upload a file to get started.",
+    "record_video": "Record Video",
+    "upload_video": "Upload Video",
+    "lesson_description_placeholder": "Enter a description for this lesson..."
   },
   "spiritual_journeys": {
     "loading_text": "Loading your spiritual journeys...",
@@ -2034,7 +2306,6 @@
     "error_load_courses": "Failed to load your courses. You can still invite a member without selecting a course.",
     "error_send_invite": "Failed to send invitation. Please try again."
   },
-
   "student_management": {
     "loading": "Loading members...",
     "invite": "Invite",
@@ -2146,7 +2417,7 @@
     "welcome_back": "Welcome back, {{name}}!",
     "dashboard_subtitle": "Manage your teaching profile and settings.",
     "subjects": {
-      "placeholder": "Add a subject (e.g. Mathematics)",
+      "placeholder": "Add a subject (e.g. Liturgy, Bible Study, Church History)",
       "no_subjects": "No subjects added yet.",
       "max_subjects": "Maximum 5 subjects."
     },
@@ -2563,6 +2834,13 @@
       "general": "General",
       "download": "Download"
     },
+    "actions": {
+      "manage": "Manage",
+      "download": "Download",
+      "preview": "Preview",
+      "delete": "Delete",
+      "edit": "Edit"
+    },
     "filters": {
       "all": "All Resources",
       "platform_wide": "Platform Wide",
@@ -2724,6 +3002,11 @@
         "just_now": "Just now",
         "minutes_ago": "{{count}}m ago"
       }
+    },
+    "courses": {
+      "no_courses_yet": "No courses yet",
+      "no_courses_found": "No courses found",
+      "create_first_course_prompt": "Create your first course to start managing content."
     }
   },
   "communications": {
@@ -3046,61 +3329,46 @@
   "nav": {
     "dashboard": "Dashboard",
     "dashboard_desc": "Platform overview and metrics",
-
     "courses": "Videos",
     "courses_desc": "My Courses, Create & Browse",
-
     "students": "Members",
     "students_desc": "Members, Assignments & Analytics",
-
     "content": "Content",
     "content_desc": "Record, Upload & Resources",
-
     "resources": "Resources",
     "resources_desc": "Library and Help Center",
-
     "ai_assistant": "AI Assistant",
     "ai_assistant_desc": "Get instant help and answers",
-
     "community": "Community",
     "community_desc": "Feed, Groups & Forums",
-
     "chapters": "Chapters",
     "chapters_desc": "Join local communities",
-
     "learning": "Learning",
     "learning_desc": "Progress, Assignments, Paths & Achievements",
-
     "users_access": "Members & Access",
     "users_access_desc": "Members, Chapters & Roles",
-
     "communications": "Communications",
     "communications_desc": "Manage events and announcements",
-
     "ai_labeling": "AI Labeling",
     "ai_labeling_desc": "Label AI responses for faith alignment",
-
     "system": "System",
     "system_desc": "Analytics, Config, Logs & Tools",
-
     "member": "Member",
     "teacher_portal": "Teacher Portal",
     "admin_panel": "Admin Panel",
+    "member_portal": "Member Portal",
     "admin_panel_desc": "System management",
     "revenue": "Revenue",
     "revenue_desc": "Earnings & payments",
-
     "home": "Home",
     "assignments": "Assignments",
     "calendar": "Calendar",
-
     "stats": {
       "active_students": "Active Students",
       "courses": "Courses",
       "rating": "Rating",
       "revenue": "Revenue"
     },
-
     "admin": "Admin",
     "teacher": "Teacher",
     "profile": "Profile",
@@ -3121,7 +3389,7 @@
     "bio_hint": "Min 50 characters recommended.",
     "subjects_label": "Subjects",
     "subjects": {
-      "placeholder": "Add a subject (e.g. Mathematics)",
+      "placeholder": "Add a subject (e.g. Liturgy, Bible Study, Church History)",
       "no_subjects": "No subjects added yet.",
       "max_subjects": "Maximum 5 subjects."
     },
@@ -3436,5 +3704,556 @@
     "confirm_hear": "Can you hear the sound?",
     "finish": "Start Recording",
     "next": "Next"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "no_bookmarks": "No bookmarks yet",
+    "no_bookmarks_desc": "Save items to revisit them quickly."
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to EOTY Platform",
+      "subtitle": "Your journey to spiritual growth and community connection starts here.",
+      "benefits_title": "What you can do:",
+      "benefit_rewards": "Earn rewards and badges",
+      "benefit_badges": "Track your spiritual progress",
+      "benefit_setup": "Customize your learning path",
+      "benefit_quick": "Quick and easy setup",
+      "cta_start": "Get Started",
+      "cta_later": "Maybe Later"
+    },
+    "flows": {
+      "student": {
+        "steps": {
+          "1": {
+            "content": "Welcome to the EOTY Platform! Let's get you set up."
+          },
+          "2": {
+            "content": "Join a chapter to connect with your local community."
+          },
+          "3": {
+            "content": "Browse courses and start your learning journey."
+          },
+          "4": {
+            "content": "You're all set! Explore your dashboard."
+          }
+        }
+      }
+    }
+  },
+  "chapters": {
+    "title": "Chapters",
+    "description": "Connect with local communities, attend events, and grow together.",
+    "search_placeholder": "Search chapters...",
+    "all_countries": "All Countries",
+    "all_regions": "All Regions",
+    "all_cities": "All Cities",
+    "near_me": "Near Me",
+    "header": {
+      "title": "Chapters",
+      "subtitle": "Discover and join your local community"
+    },
+    "actions": {
+      "start": "Start Chapter"
+    },
+    "tabs": {
+      "browse": "Browse Chapters",
+      "my_chapters": "My Chapters",
+      "manage": "Manage Chapter"
+    },
+    "browse": {
+      "title": "Browse Chapters",
+      "subtitle": "Find chapters based on your location or interests",
+      "start_chapter_btn": "Start a Chapter"
+    },
+    "locating": "Locating...",
+    "km": "km",
+    "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+    },
+    "manage": {
+      "no_chapter": {
+        "title": "No Chapter Managed",
+        "subtitle": "You are not managing any chapter yet."
+      },
+      "apply_leadership_btn": "Apply for Leadership",
+      "member_management": {
+        "title": "Member Management",
+        "update_success": "Member status updated successfully"
+      },
+      "events_management": {
+        "create_modal_title": "Create Event",
+        "event_title_label": "Event Title",
+        "event_desc_label": "Description",
+        "event_date_label": "Date & Time",
+        "duration_label": "Duration (minutes)",
+        "is_online_label": "Is Online Event?",
+        "meeting_link_label": "Meeting Link",
+        "location_label": "Location",
+        "create_btn": "Create Event",
+        "success_msg": "Event created successfully",
+        "error_msg": "Failed to create event"
+      },
+      "resources_management": {
+        "add_modal_title": "Add Resource",
+        "resource_title_label": "Title",
+        "resource_url_label": "URL",
+        "resource_desc_label": "Description",
+        "add_btn": "Add Resource",
+        "success_msg": "Resource added successfully",
+        "error_msg": "Failed to add resource"
+      },
+      "announcements_management": {
+        "post_modal_title": "Post Announcement",
+        "title_label": "Title",
+        "content_label": "Content",
+        "pin_label": "Pin Announcement",
+        "post_btn": "Post",
+        "success_msg": "Announcement posted successfully",
+        "error_msg": "Failed to post announcement"
+      },
+      "attendance_modal": {
+        "title": "Attendance",
+        "message": "Mark attendance for this event",
+        "no_data": "No attendance data available",
+        "attended": "Attended",
+        "absent": "Absent"
+      },
+      "apply_leadership": {
+        "title": "Apply for Leadership",
+        "reason_label": "Reason",
+        "experience_label": "Experience",
+        "submit_btn": "Submit Application",
+        "success_msg": "Application submitted successfully",
+        "error_msg": "Failed to submit application"
+      },
+      "insights": {
+        "title": "Growth Insights",
+        "retention": "Member Retention",
+        "engagement": "Event Engagement"
+      }
+    },
+    "start": {
+      "title": "Start a Chapter",
+      "name_label": "Chapter Name",
+      "country_label": "Country",
+      "city_label": "City",
+      "desc_label": "Description",
+      "topics_label": "Topics",
+      "submit_btn": "Create Chapter",
+      "success_msg": "Chapter created successfully",
+      "error_msg": "Failed to create chapter"
+    },
+    "adjust_filters": "Adjust filters or search to find a chapter.",
+    "leaderboard_title": "Chapter Leaderboard",
+    "leaderboard_desc": "See how your chapter compares to others in engagement and learning.",
+    "view_rankings": "View Rankings",
+    "about_membership": "About Membership",
+    "join_multiple": "Join multiple chapters to connect across regions",
+    "set_primary": "Set a **Primary Chapter** for personalized content",
+    "participate_events": "Participate in local events and discussions"
+  },
+  "resources": {
+    "search_placeholder": "Search resources...",
+    "all_categories": "All Categories",
+    "join_chapter_hint": "Join a chapter to view chapter resources.",
+    "no_resources_found": "No resources found",
+    "join_chapter_desc": "Join a chapter to view chapter resources."
+  },
+  "enrolled_courses": {
+    "error": {
+      "load_failed": "Failed to load enrolled courses. Please try again.",
+      "try_again": "Try Again"
+    },
+    "stats": {
+      "total": "Total Courses",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "favorites": "Favorites",
+      "avg_progress": "Avg. Progress"
+    },
+    "empty_title": "No courses found",
+    "empty_no_enrollment": "You haven't enrolled in any courses yet. Browse the catalog to get started!",
+    "empty_no_match": "No courses match your filters.",
+    "browse_catalog": "Browse Course Catalog",
+    "search_placeholder": "Search your courses...",
+    "view_dense": "Dense View",
+    "view_comfy": "Comfy View",
+    "sort": {
+      "last_accessed": "Last Accessed",
+      "progress": "Progress",
+      "title": "Title"
+    },
+    "filter": {
+      "all": "All",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "favorites": "Favorites",
+      "clear": "Clear Filters"
+    },
+    "next_lesson": "Next Lesson",
+    "next_lesson_default": "Start Course",
+    "rating_label": "Your Rating:",
+    "rate_course": "Rate Course",
+    "rating_placeholder": "Write a review...",
+    "rating_submit": "Submit Review",
+    "unenroll": {
+      "title": "Unenroll",
+      "message": "Are you sure you want to unenroll from \"{{title}}\"? Your progress will be saved but you won't see it in your active courses.",
+      "confirm": "Unenroll"
+    }
+  },
+  "student_courses": {
+    "catalog_error_title": "Failed to load course catalog. Please try again.",
+    "enroll_confirm_title": "Enroll in Course",
+    "enroll_confirm_message": "Are you sure you want to enroll in \"{{title}}\"?",
+    "enroll_confirm_cta": "Enroll Now",
+    "default_course_title": "this course",
+    "enroll_success": "Successfully enrolled in course",
+    "invites_count": "{{count}} Pending Invitations",
+    "invites_message": "You have been invited to join courses.",
+    "view_invites": "View Invites",
+    "search_placeholder": "Search courses...",
+    "sort_title": "Title",
+    "sort_popular": "Popularity",
+    "load_more": "Load More",
+    "no_courses_found": "No courses found",
+    "adjust_filters_prompt": "Try adjusting your search or filters to find what you're looking for."
+  },
+  "catalog": {
+    "categories": {
+      "all": "All Categories",
+      "faith": "Faith & Theology",
+      "history": "Church History",
+      "spiritual": "Spiritual Life",
+      "bible": "Bible Study",
+      "liturgical": "Liturgical Studies",
+      "youth": "Youth Ministry"
+    },
+    "levels": {
+      "all": "All Levels",
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "error": {
+      "load_failed": "Failed to load course catalog. Please try again."
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "subtitle": "Find answers, guides, and support",
+    "searchPlaceholder": "Search for help...",
+    "allCategories": "All Categories",
+    "faqTitle": "Frequently Asked Questions",
+    "articlesTitle": "Help Articles",
+    "noFaqsFound": "No FAQs found matching your search",
+    "quickActions": {
+      "contactSupport": {
+        "title": "Contact Support",
+        "description": "Get help from our support team"
+      },
+      "videoTutorials": {
+        "title": "Video Tutorials",
+        "description": "Watch helpful video guides"
+      },
+      "communityForum": {
+        "title": "Community Forum",
+        "description": "Ask the community"
+      }
+    },
+    "categories": {
+      "all": "All Categories",
+      "gettingStarted": "Getting Started",
+      "progress": "Progress",
+      "features": "Features",
+      "studyGroups": "Study Groups",
+      "technical": "Technical",
+      "account": "Account"
+    },
+    "faqs": {
+      "q1": {
+        "question": "How do I enroll in a course?",
+        "answer": "To enroll in a course, go to the Browse Courses page, find a course you're interested in, and click the \"Enroll\" button."
+      },
+      "q2": {
+        "question": "How do I track my progress?",
+        "answer": "Your progress is automatically tracked as you complete lessons."
+      },
+      "q3": {
+        "question": "Can I bookmark lessons?",
+        "answer": "Yes! Click the bookmark icon to save it for later."
+      },
+      "q4": {
+        "question": "How do study groups work?",
+        "answer": "Study groups allow you to collaborate with other students. You can create your own group or join existing public groups."
+      },
+      "q5": {
+        "question": "What if I have technical issues?",
+        "answer": "If you experience technical issues, please contact support using the contact form below."
+      },
+      "q6": {
+        "question": "How do I reset my password?",
+        "answer": "To reset your password, go to the Sign In page and click \"Forgot Password\"."
+      },
+      "q7": {
+        "question": "Can I download course materials?",
+        "answer": "Course materials availability depends on the course. Some courses may offer downloadable resources."
+      },
+      "q8": {
+        "question": "How are points and achievements calculated?",
+        "answer": "You earn points by completing lessons, quizzes, and maintaining study streaks."
+      }
+    },
+    "articles": {
+      "a1": {
+        "title": "Getting Started Guide",
+        "content": "Welcome to EOTY Platform! This guide will help you get started with your learning journey..."
+      },
+      "a2": {
+        "title": "How to Use the Video Player",
+        "content": "Learn how to navigate the video player, adjust playback speed, and use subtitles..."
+      },
+      "a3": {
+        "title": "Understanding Your Progress",
+        "content": "Learn how to interpret your progress metrics and track your learning journey..."
+      }
+    },
+    "contact": {
+      "title": "Contact Support",
+      "subtitle": "Can't find what you're looking for?",
+      "subject": "Subject",
+      "subjectPlaceholder": "What can we help you with?",
+      "message": "Message",
+      "messagePlaceholder": "Describe your issue or question...",
+      "cancel": "Cancel",
+      "send": "Send Message",
+      "sending": "Sending...",
+      "success": "Thank you for contacting us! We will get back to you soon.",
+      "error": "Failed to send message. Please try again."
+    }
+  },
+  "ai_labeling": {
+    "title": "AI & Faith Consistency",
+    "subtitle": "Review and correct AI classification of content alignment with Orthodox Faith",
+    "refresh": "Refresh",
+    "tab_pending": "Pending Review",
+    "tab_recent": "Recent Classification",
+    "language_all": "All Languages",
+    "days_7": "Last 7 days",
+    "days_14": "Last 14 days",
+    "days_30": "Last 30 days",
+    "page_size": "Rows:",
+    "error_load": "Failed to load items",
+    "retry": "Retry",
+    "loading": "Loading items...",
+    "empty_title": "All Caught Up!",
+    "empty_body": "There are no items currently waiting for review (or matching your filters).",
+    "check_again": "Check Again",
+    "page_of": "Page {{page}} of {{total}}",
+    "toast_item_action": "Item {{action}}ed successfully",
+    "classification_complete": "Classification updated",
+    "classification_failed": "Classification failed",
+    "label_submitted": "Label submitted",
+    "label_submit_failed": "Failed to submit label",
+    "moderation_failed": "Moderation action failed",
+    "id_label": "ID",
+    "priority": "Priority",
+    "reason": "Reason",
+    "ai_classifier": "AI Classifier",
+    "running": "Running...",
+    "run_check": "Run Check",
+    "score": "Confidence Score",
+    "verdict": "Verdict",
+    "aligned": "Aligned",
+    "ambiguous": "Ambiguous",
+    "not_aligned": "Not Aligned",
+    "no_classification": "No classification data. {{note}}",
+    "note_review": "Please review manually.",
+    "note_run_check": "Click 'Run Check' to classify.",
+    "moderation_actions": "Moderation Actions",
+    "notes_placeholder": "Add optional notes or reasoning...",
+    "saving": "Saving...",
+    "approve": "Approve",
+    "reject": "Reject",
+    "escalate": "Escalate",
+    "human_label": "Human Labeling",
+    "saving_label": "Saving...",
+    "submit_label": "Submit Label",
+    "skip": "Skip"
+  },
+  "community": {
+    "title": "Community Hub",
+    "tabs": {
+      "feed": "Feed",
+      "groups": "Groups",
+      "forums": "Forums"
+    },
+    "hero": {
+      "teacher_title": "Welcome, {{name}}!",
+      "teacher_subtitle": "Connect with your students and fellow teachers.",
+      "cta_create": "Create Post",
+      "cta_hint_teacher": "Share updates or resources",
+      "student_title": "Hello, {{name}}!",
+      "student_subtitle": "Join the discussion and learn together.",
+      "cta_share": "Share Thoughts",
+      "cta_hint_student": "Ask questions or share insights",
+      "admin_title": "Community Administration",
+      "admin_subtitle": "Manage and oversee community interactions.",
+      "cta_announce": "Make Announcement",
+      "cta_hint_admin": "Post an official update",
+      "default_title": "Community",
+      "default_subtitle": "Connect with the community.",
+      "cta_start": "Start Posting",
+      "cta_hint_default": "Share something with the group",
+      "badge": "Community"
+    },
+    "actions": {
+      "browse_forums": "Browse Forums",
+      "browse_forums_desc": "Explore categorized discussions",
+      "refresh": "Refresh Feed",
+      "refresh_desc": "Get the latest updates",
+      "invite_chapter": "Invite Chapter",
+      "invite_chapter_desc": "Add members to your chapter",
+      "explore_trending": "Explore Trending",
+      "explore_trending_desc": "See what's popular",
+      "view_achievements": "View Achievements",
+      "view_achievements_desc": "Check your progress",
+      "moderation_queue": "Moderation Queue",
+      "moderation_queue_desc": "Review reported content"
+    },
+    "feed": {
+      "search_placeholder": "Search posts, authors, or content...",
+      "share_thoughts": "What's on your mind, {{name}}?"
+    },
+    "sidebar": {
+      "trending_now": "Trending Now",
+      "trending_empty": "No trending posts yet.",
+      "top_contributors": "Top Contributors",
+      "contributors_empty": "No contributors yet."
+    },
+    "filters": {
+      "sort": "Sort By",
+      "type": "Type",
+      "newest": "Newest",
+      "most_liked": "Most Liked",
+      "most_commented": "Most Commented",
+      "all": "All Posts",
+      "text": "Text",
+      "image": "Images",
+      "video": "Videos",
+      "audio": "Audio",
+      "article": "Articles"
+    },
+    "groups": {
+      "title": "Study Groups",
+      "subtitle": "Join groups to collaborate and learn together.",
+      "create": "Create Group",
+      "my_groups": "My Groups",
+      "discover": "Discover",
+      "search": "Search groups...",
+      "empty_mine_title": "No Groups Yet",
+      "empty_mine_body": "You haven't joined any study groups yet. Create one or discover existing groups!",
+      "created_body": "Study group created successfully!",
+      "create_error": "Failed to create study group.",
+      "joined_body": "Joined group successfully!",
+      "join_error": "Failed to join group.",
+      "left_body": "Left group successfully.",
+      "leave_error": "Failed to leave group.",
+      "leave_confirm_title": "Leave Group?",
+      "leave_confirm_body": "Are you sure you want to leave {{name}}?",
+      "leave_confirm_cta": "Leave",
+      "deleted_body": "Group deleted successfully.",
+      "delete_error": "Failed to delete group.",
+      "delete_confirm_title": "Delete Group?",
+      "delete_confirm_body": "Are you sure you want to delete {{name}}? This cannot be undone.",
+      "loading": "Loading groups...",
+      "error": "Failed to load groups.",
+      "no_description": "No description available.",
+      "empty_public_title": "No Groups Found",
+      "empty_public_body": "We couldn't find any public groups matching your criteria.",
+      "full": "Full",
+      "join_open": "Join Group"
+    },
+    "forums": {
+      "badge": "Forums",
+      "header_title": "Discussion Forums",
+      "search": "Search",
+      "search_placeholder": "Search discussions...",
+      "forum_label": "Forum",
+      "all_forums": "All Forums",
+      "sort_label": "Sort by",
+      "sort": {
+        "newest": "Newest",
+        "replies": "Most Replies",
+        "views": "Most Views",
+        "pinned": "Pinned"
+      },
+      "new": "New Discussion",
+      "new_forum": "New Forum",
+      "new_topic_short": "New Topic",
+      "new_forum_short": "Forum",
+      "clear_filters": "Clear Filters",
+      "stats": {
+        "total": "Total Discussions",
+        "active_today": "Active Today",
+        "forums": "Forums",
+        "popular_tags": "Popular Tags"
+      },
+      "tag_general": "General",
+      "empty_title": "No discussions found",
+      "empty_body": "Try adjusting your search or Filters, or start a new discussion.",
+      "create_success": "Discussion created successfully!",
+      "create_failed_title": "Creation Failed",
+      "create_failed_message": "Could not create discussion.",
+      "like_success": "Liked discussion!",
+      "like_failed_title": "Like Failed",
+      "like_failed_message": "Could not like discussion.",
+      "error_title": "Error Loading Forums",
+      "load_error": "Unable to load discussions.",
+      "no_description": "No preview available.",
+      "recently": "Recently",
+      "no_forum_error": "No forum selected."
+    },
+    "discussion": {
+      "back": "Back to Discussions",
+      "not_found_title": "Discussion Not Found",
+      "not_found_body": "The discussion you're looking for doesn't exist or has been removed.",
+      "return_community": "Return to Community",
+      "pinned": "Pinned",
+      "share": "Share",
+      "report": "Report",
+      "reports": {
+        "title": "Report Discussion",
+        "desc": "Please help us understand what's going on. What's the issue with this post?",
+        "placeholder": "Describe the issue...",
+        "submit": "Submit Report",
+        "cancel": "Cancel",
+        "success": "Thank you for your report.",
+        "error": "Failed to submit report"
+      },
+      "replies_count": "Comments",
+      "replies_label": "Replies",
+      "replying_to": "Replying to a comment...",
+      "reply_placeholder": "Write a thoughtful reply...",
+      "post_reply": "Post Reply",
+      "posting": "Posting...",
+      "related_topics": "Related Topics",
+      "no_related": "No related topics found.",
+      "guidelines_title": "Community Guidelines",
+      "guidelines_items": {
+        "0": "Be respectful and kind to others",
+        "1": "Stay on topic and contribute meaningfully",
+        "2": "No spam or self-promotion",
+        "3": "Report inappropriate content"
+      },
+      "copied": "Link copied to clipboard",
+      "copy_error": "Failed to copy link",
+      "posted_success": "Your reply has been posted.",
+      "post_error": "Failed to post reply",
+      "like_error": "Could not like discussion"
+    }
   }
 }

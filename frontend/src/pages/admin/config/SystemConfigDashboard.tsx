@@ -4,7 +4,9 @@ import {
   Target,
   Clock,
   Tag,
-  BookOpen
+  BookOpen,
+  ChevronRight,
+  Settings
 } from 'lucide-react';
 import CategoryManagement from './CategoryManagement';
 import LevelManagement from './LevelManagement';
@@ -20,74 +22,89 @@ export const SystemConfigDashboard = () => {
     {
       id: 'categories' as const,
       label: 'Categories',
+      description: 'Manage course categories and hierarchical structures',
       icon: <Layers className="h-4 w-4" />,
       component: CategoryManagement
     },
     {
       id: 'levels' as const,
       label: 'Levels',
+      description: 'Define difficulty levels for courses',
       icon: <Target className="h-4 w-4" />,
       component: LevelManagement
     },
     {
       id: 'durations' as const,
       label: 'Durations',
+      description: 'Configure standard course duration options',
       icon: <Clock className="h-4 w-4" />,
       component: DurationManagement
     },
     {
       id: 'tags' as const,
       label: 'Tags',
+      description: 'Manage content tags for improved discoverability',
       icon: <Tag className="h-4 w-4" />,
       component: TagManagement
     },
     {
       id: 'chapters' as const,
       label: 'Chapters',
+      description: 'Organize local chapters and jurisdictions',
       icon: <BookOpen className="h-4 w-4" />,
       component: ChapterManagement
     }
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || CategoryManagement;
+  const activeTabDetails = tabs.find(tab => tab.id === activeTab);
 
   return (
-    <div className="w-full h-full">
-      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">System Configuration</h2>
-            <p className="text-sm text-gray-500">Manage taxonomies and chapter structure used across the platform.</p>
+    <div className="w-full h-full p-6 bg-gray-50/50">
+      <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] flex bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-80 bg-slate-50 border-r border-gray-200 flex flex-col">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Settings className="w-6 h-6 text-indigo-600" />
+              Settings
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Platform configuration</p>
           </div>
-          <div className="text-xs text-gray-400">Brand aligned</div>
-        </div>
-        {/* Tab Navigation */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
-          <nav className="flex border-b border-gray-200 flex-shrink-0 overflow-x-auto">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+              Taxonomies
+            </div>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 font-medium transition-all border-b-2 whitespace-nowrap text-sm min-w-[120px] ${
-                  activeTab === tab.id
-                    ? 'text-white'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                }`}
-                style={
-                  activeTab === tab.id
-                    ? { backgroundColor: brandColors.primaryHex, borderColor: brandColors.primaryHex }
-                    : undefined
-                }
+                className={`w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${activeTab === tab.id
+                    ? 'bg-white shadow-sm border border-gray-200 text-indigo-600'
+                    : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                  }`}
               >
-                {tab.icon}
-                <span>{tab.label}</span>
+                <div className={`p-2 rounded-md transition-colors ${activeTab === tab.id ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500 group-hover:bg-white group-hover:shadow-sm'
+                  }`}>
+                  {tab.icon}
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="block text-gray-900">{tab.label}</span>
+                </div>
+                {activeTab === tab.id && <ChevronRight className="w-4 h-4 text-indigo-600" />}
               </button>
             ))}
           </nav>
+        </div>
 
-          {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="animate-in fade-in duration-300 p-3">
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white">
+          <div className="border-b border-gray-200 px-8 py-6 bg-white">
+            <h1 className="text-2xl font-bold text-gray-900">{activeTabDetails?.label}</h1>
+            <p className="text-gray-500 mt-1">{activeTabDetails?.description}</p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className={`animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-4xl`}>
               <ActiveComponent />
             </div>
           </div>
@@ -96,8 +113,5 @@ export const SystemConfigDashboard = () => {
     </div>
   );
 };
-
-
-
 
 export default SystemConfigDashboard;

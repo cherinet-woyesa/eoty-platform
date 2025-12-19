@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { interactiveApi } from '@/services/api/interactive';
-import PollVoter from './PollVoter';
-import PollCreator from './PollCreator';
-import { Plus, Trash2, Loader, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { interactiveApi } from '@/services/api';
+import { brandColors } from '@/theme/brand';
 
 interface Poll {
   id: number;
@@ -91,7 +89,7 @@ const LessonPolls: React.FC<LessonPollsProps> = ({ lessonId, onPollCountChange }
       <div className="bg-gradient-to-br from-white/90 to-stone-50/90 rounded-lg shadow-sm p-4 border border-stone-200/50">
         <div className="flex items-center justify-center py-6">
           <div className="text-center">
-            <Loader className="h-6 w-6 animate-spin text-[#27AE60] mx-auto mb-2" />
+            <Loader className="h-6 w-6 animate-spin mx-auto mb-2" style={{ color: brandColors.primaryHex }} />
             <p className="text-sm text-stone-600">Loading interactive polls...</p>
           </div>
         </div>

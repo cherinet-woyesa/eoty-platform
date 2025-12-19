@@ -2,14 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heart, Share2, Flag, Eye, MessageSquare, ArrowLeft,
-  Sparkles, AlertTriangle, Check, Calendar, User, Clock
+  Sparkles, AlertTriangle, Check, User, X
 } from 'lucide-react';
 import { forumApi } from '@/services/api/forums';
 import { useNotification } from '@/context/NotificationContext';
 import { brandColors } from '@/theme/brand';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const DiscussionThread: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { discussionId } = useParams<{ discussionId: string }>();
   const { user } = useAuth();
@@ -30,6 +32,16 @@ const DiscussionThread: React.FC = () => {
   const [reportReason, setReportReason] = useState('');
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
 
+  // Helper to safely get user display name
+  const getUserName = (entity: any) => {
+    if (!entity) return 'Member';
+    if (entity.author_name) return entity.author_name;
+    if (entity.display_name) return entity.display_name;
+    if (entity.first_name && entity.last_name) return `${entity.first_name} ${entity.last_name}`;
+    if (entity.name) return entity.name;
+    return 'Member';
+  };
+
   const loadTopic = async () => {
     if (!discussionId) return;
     try {
@@ -41,29 +53,24 @@ const DiscussionThread: React.FC = () => {
       if (topicPayload) {
         topicPayload = {
           ...topicPayload,
-          author_name: topicPayload.author_name ||
-            (topicPayload.author ? `${topicPayload.author.first_name || ''} ${topicPayload.author.last_name || ''}`.trim() : '') ||
-            'Anonymous User'
+          author_name: getUserName(topicPayload)
         };
       }
 
       const replies = data.replies || data.posts || [];
-      // Normalize reply author names
       const normalizedReplies = replies.map((r: any) => ({
         ...r,
-        author_name: r.author_name ||
-          (r.author ? `${r.author.first_name || ''} ${r.author.last_name || ''}`.trim() : '') ||
-          'Anonymous'
+        author_name: getUserName(r)
       }));
 
       setTopic(topicPayload);
       setPosts(normalizedReplies);
       setLikes(topicPayload?.like_count || topicPayload?.likes_count || 0);
       setLikedTopic(Boolean(topicPayload?.user_liked));
-      setLikedReplies(new Set()); // In a real app, populate this based on user_liked property of posts
+      setLikedReplies(new Set());
       setError(null);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load discussion');
+      setError(err?.message || t('community.discussion.not_found_body'));
       showNotification({ type: 'error', title: 'Error', message: err?.message || 'Failed to load discussion' });
     } finally {
       setLoading(false);
@@ -106,10 +113,10 @@ const DiscussionThread: React.FC = () => {
       setReplyContent('');
       setReplyParentId(null);
       await loadTopic();
-      showNotification({ type: 'success', title: 'Success', message: 'Your reply has been posted.' });
+      showNotification({ type: 'success', title: 'Success', message: t('community.discussion.posted_success') });
     } catch (err) {
       console.error('Failed to post reply', err);
-      showNotification({ type: 'error', title: 'Error', message: 'Failed to post reply' });
+      showNotification({ type: 'error', title: 'Error', message: t('community.discussion.post_error') });
     } finally {
       setReplying(false);
     }
@@ -125,7 +132,7 @@ const DiscussionThread: React.FC = () => {
       setTopic((prev: any) => (prev ? { ...prev, user_liked: true } : prev));
     } catch (err) {
       console.error('Failed to like topic', err);
-      showNotification({ type: 'error', title: 'Error', message: 'Could not like discussion' });
+      showNotification({ type: 'error', title: 'Error', message: t('community.discussion.like_error') });
     } finally {
       setLikingTopic(false);
     }
@@ -154,10 +161,10 @@ const DiscussionThread: React.FC = () => {
         await navigator.clipboard.writeText(window.location.href);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-        showNotification({ type: 'success', title: 'Copied', message: 'Link copied to clipboard' });
+        showNotification({ type: 'success', title: 'Copied', message: t('community.discussion.copied') });
       }
     } catch (err) {
-      showNotification({ type: 'error', title: 'Error', message: 'Failed to copy link' });
+      showNotification({ type: 'error', title: 'Error', message: t('community.discussion.copy_error') });
     }
   };
 
@@ -167,9 +174,9 @@ const DiscussionThread: React.FC = () => {
       await forumApi.reportTopic(discussionId, { reason: 'user_report', details: reportReason.trim() });
       setReportOpen(false);
       setReportReason('');
-      showNotification({ type: 'success', title: 'Reported', message: 'Thank you for your report.' });
+      showNotification({ type: 'success', title: 'Reported', message: t('community.discussion.reports.success') });
     } catch (err) {
-      showNotification({ type: 'error', title: 'Error', message: 'Failed to submit report' });
+      showNotification({ type: 'error', title: 'Error', message: t('community.discussion.reports.error') });
     }
   };
 
@@ -217,7 +224,7 @@ const DiscussionThread: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
+          <div className="h-10 w-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
           <p className="text-slate-500 font-medium">Loading conversation...</p>
         </div>
       </div>
@@ -229,10 +236,10 @@ const DiscussionThread: React.FC = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center max-w-md w-full">
           <AlertTriangle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Discussion Not Found</h2>
-          <p className="text-slate-600 mb-6">{error || "The discussion you're looking for doesn't exist or has been removed."}</p>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">{t('community.discussion.not_found_title')}</h2>
+          <p className="text-slate-600 mb-6">{error || t('community.discussion.not_found_body')}</p>
           <button onClick={() => navigate('/community')} className="px-6 py-2.5 rounded-xl font-semibold text-white transition-colors" style={{ backgroundColor: brandColors.primaryHex }}>
-            Return to Community
+            {t('community.discussion.return_community')}
           </button>
         </div>
       </div>
@@ -240,154 +247,147 @@ const DiscussionThread: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header / Nav */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50/50 pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb / Back */}
+        <div className="mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
-            aria-label="Go back"
+            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            {t('community.discussion.back')}
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold text-slate-900 truncate">
-              {topic.title}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleShare} className="p-2 rounded-full hover:bg-slate-100 text-slate-600">
-              {copied ? <Check className="h-5 w-5 text-green-600" /> : <Share2 className="h-5 w-5" />}
-            </button>
-          </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Content */}
-          <div className="space-y-6">
-
-            {/* Original Post Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-6 sm:p-8 space-y-6">
-                {/* Meta Header */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-700 font-bold text-lg border border-indigo-100">
-                      {topic.author_name ? topic.author_name.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Topic Card */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 sm:p-8">
+                {/* Topic Header */}
+                <div className="flex items-start justify-between gap-4 mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold text-xl border-2 border-white shadow-md">
+                      {topic.author_name ? topic.author_name.charAt(0).toUpperCase() : <User className="h-7 w-7" />}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 text-lg">
-                        {topic.author_name || 'Anonymous User'}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{new Date(topic.created_at || Date.now()).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{new Date(topic.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-1">{topic.title}</h1>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span className="font-semibold text-gray-900">{topic.author_name || 'Member'}</span>
+                        <span className="text-gray-300">•</span>
+                        <span>{new Date(topic.created_at || Date.now()).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}</span>
                       </div>
                     </div>
                   </div>
-
                   {topic.is_pinned && (
-                    <span className="bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium border border-amber-100 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> Pinned
+                    <span className="bg-amber-50 text-amber-700 text-xs px-3 py-1.5 rounded-full font-bold border border-amber-100 flex items-center gap-1.5 shrink-0 uppercase tracking-wide">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {t('community.discussion.pinned')}
                     </span>
                   )}
                 </div>
 
-                {/* Content */}
-                <div className="prose prose-slate max-w-none prose-headings:text-slate-900 prose-a:text-indigo-600 hover:prose-a:underline">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">{topic.title}</h1>
-                  <div className="text-slate-700 text-lg leading-relaxed whitespace-pre-wrap">
-                    <div dangerouslySetInnerHTML={{ __html: topic.content || '' }} />
-                  </div>
+                {/* Topic Body */}
+                <div className="prose prose-lg prose-indigo max-w-none text-gray-700 leading-relaxed mb-8">
+                  <div dangerouslySetInnerHTML={{ __html: topic.content || '' }} />
                 </div>
 
-                {/* Attachments */}
                 {renderAttachments(topic.attachments)}
 
                 {/* Tags */}
                 {topic.tags && topic.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
+                  <div className="flex flex-wrap gap-2 mt-8">
                     {topic.tags.map((tag: string) => (
-                      <span key={tag} className="px-3 py-1 rounded-full text-sm bg-slate-100 text-slate-700 font-medium">
-                        #{tag}
-                      </span>
+                      <span key={tag} className="px-3 py-1 rounded-full text-sm bg-gray-100/80 text-gray-600 font-medium hover:bg-gray-200 transition-colors cursor-pointer border border-transparent hover:border-gray-300">#{tag}</span>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Action Bar */}
-              <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+              {/* Topic Actions */}
+              <div className="bg-gray-50/50 px-6 sm:px-8 py-5 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-6">
                   <button
                     onClick={handleLikeTopic}
                     disabled={likedTopic}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors font-medium ${likedTopic
-                      ? 'text-rose-600 bg-rose-50'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    className={`flex items-center gap-2 transition-all font-semibold ${likedTopic
+                        ? 'text-rose-600'
+                        : 'text-gray-500 hover:text-rose-600 hover:scale-105'
                       }`}
                   >
-                    <Heart className={`h-5 w-5 ${likedTopic ? 'fill-current' : ''}`} />
-                    <span>{likes} {likes === 1 ? 'Like' : 'Likes'}</span>
+                    <Heart className={`h-6 w-6 ${likedTopic ? 'fill-current' : ''}`} />
+                    <span className="text-lg">{likes}</span>
                   </button>
-                  <div className="flex items-center gap-2 text-slate-600 px-3 py-1.5">
-                    <Eye className="h-5 w-5" />
-                    <span>{topic.view_count || 0} Views</span>
+                  <div className="flex items-center gap-2 text-gray-400" title="Views">
+                    <Eye className="h-6 w-6" />
+                    <span className="text-lg">{topic.view_count || 0}</span>
                   </div>
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors group"
+                  >
+                    {copied ? <Check className="h-6 w-6 text-green-600" /> : <Share2 className="h-6 w-6 group-hover:scale-110 transition-transform" />}
+                    <span className="font-medium hidden sm:inline">{t('community.discussion.share')}</span>
+                  </button>
                 </div>
                 <button
                   onClick={() => setReportOpen(true)}
-                  className="text-slate-400 hover:text-rose-600 flex items-center gap-1 text-sm font-medium transition-colors"
+                  className="text-gray-400 hover:text-rose-600 flex items-center gap-1.5 text-sm font-medium transition-colors px-3 py-1.5 rounded-lg hover:bg-rose-50"
                 >
-                  <Flag className="h-4 w-4" /> Report
+                  <Flag className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t('community.discussion.report')}</span>
                 </button>
               </div>
             </div>
 
             {/* Replies Section */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between px-2">
-                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-indigo-600" />
-                  {posts.length} Replies
-                </h2>
-              </div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 pl-2">
+                <MessageSquare className="h-6 w-6 text-indigo-600" />
+                {posts.length} {t('community.discussion.replies_count')}
+              </h2>
 
               {/* Reply Input */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
                 {replyParentId && (
-                  <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg mb-4 text-sm text-indigo-800">
-                    <span>Replying to a comment...</span>
-                    <button onClick={() => setReplyParentId(null)} className="text-indigo-900 font-bold hover:underline">Cancel</button>
+                  <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-xl mb-6 text-sm text-indigo-900 border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                    <span className="font-medium flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                      {t('community.discussion.replying_to')}
+                    </span>
+                    <button onClick={() => setReplyParentId(null)} className="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
                 <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
+                  <div className="flex-shrink-0 hidden sm:block">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-700 font-bold border border-gray-300">
                       {user?.firstName?.charAt(0) || 'U'}
                     </div>
                   </div>
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-4">
                     <textarea
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Write a thoughtful reply..."
-                      className="w-full min-h-[120px] p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-y text-slate-700"
+                      placeholder={t('community.discussion.reply_placeholder')}
+                      className="w-full min-h-[120px] p-4 rounded-2xl border-2 border-gray-100 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-y text-gray-700 bg-gray-50 focus:bg-white text-base"
                     />
                     <div className="flex justify-end">
                       <button
                         onClick={handlePostReply}
                         disabled={!replyContent.trim() || replying}
-                        className="px-6 py-2.5 rounded-xl text-white font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-8 py-3 rounded-xl text-white font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
                         style={{ backgroundColor: brandColors.primaryHex }}
                       >
-                        {replying ? 'Posting...' : 'Post Reply'}
+                        {replying ? t('community.discussion.posting') : t('community.discussion.post_reply')}
                       </button>
                     </div>
                   </div>
@@ -395,75 +395,83 @@ const DiscussionThread: React.FC = () => {
               </div>
 
               {/* Reply List */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {rootPosts.map((post) => (
-                  <div key={post.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-                    {/* Post Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm">
-                          {post.author_name ? post.author_name.charAt(0).toUpperCase() : 'A'}
+                  <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 hover:border-gray-200 transition-colors">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="h-12 w-12 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-600 font-bold text-lg border border-white shadow-sm">
+                        {post.author_name ? post.author_name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-bold text-gray-900 text-base">{post.author_name || 'Member'}</p>
+                            <p className="text-xs text-gray-500 font-medium">{new Date(post.created_at).toLocaleString()}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-900">{post.author_name || 'Anonymous'}</p>
-                          <p className="text-xs text-slate-500">{new Date(post.created_at).toLocaleString()}</p>
+
+                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-base mb-4">
+                          {post.content}
+                        </div>
+                        {renderAttachments(post.attachments)}
+
+                        <div className="flex items-center gap-6 mt-4">
+                          <button
+                            onClick={() => handleLikeReply(post.id)}
+                            className={`flex items-center gap-2 text-sm font-semibold transition-colors group ${likedReplies.has(String(post.id)) ? 'text-rose-600' : 'text-gray-500 hover:text-rose-600'
+                              }`}
+                          >
+                            <Heart className={`h-4.5 w-4.5 group-hover:scale-110 transition-transform ${likedReplies.has(String(post.id)) ? 'fill-current' : ''}`} />
+                            {post.like_count || 0}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setReplyParentId(post.id);
+                              window.scrollTo({ top: 350, behavior: 'smooth' });
+                            }}
+                            className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 transition-colors group"
+                          >
+                            <MessageSquare className="h-4.5 w-4.5 group-hover:scale-110 transition-transform" />
+                            {t('community.discussion.replies_label')}
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Post Content */}
-                    <div className="text-slate-700 whitespace-pre-wrap leading-relaxed pl-13">
-                      {post.content}
-                    </div>
-                    {renderAttachments(post.attachments)}
-
-                    {/* Post Actions */}
-                    <div className="flex items-center gap-4 pt-2">
-                      <button
-                        onClick={() => handleLikeReply(post.id)}
-                        className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${likedReplies.has(String(post.id)) ? 'text-rose-600' : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                      >
-                        <Heart className={`h-4 w-4 ${likedReplies.has(String(post.id)) ? 'fill-current' : ''}`} />
-                        {post.like_count || 0}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReplyParentId(post.id);
-                          window.scrollTo({ top: 350, behavior: 'smooth' }); // Scroll to input
-                        }}
-                        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
-                      >
-                        <MessageSquare className="h-4 w-4" /> Reply
-                      </button>
-                    </div>
-
-                    {/* Nested Replies */}
+                    {/* Threaded Replies */}
                     {childrenMap[post.id] && (
-                      <div className="mt-4 pl-6 border-l-2 border-slate-100 space-y-4">
+                      <div className="mt-6 pl-8 sm:pl-16 relative space-y-6">
+                        {/* Vertical Thread Line */}
+                        <div className="absolute left-6 sm:left-14 top-0 bottom-6 w-0.5 bg-gray-200"></div>
+
                         {childrenMap[post.id].map((child: any) => (
-                          <div key={child.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200/60">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="h-8 w-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs">
-                                {child.author_name ? child.author_name.charAt(0).toUpperCase() : 'A'}
+                          <div key={child.id} className="relative">
+                            {/* Connector Curve (Optional styling) */}
+                            <div className="absolute -left-6 top-6 w-4 h-0.5 bg-gray-200"></div>
+
+                            <div className="bg-gray-50/80 rounded-2xl p-6 border border-gray-100 hover:bg-white hover:shadow-sm transition-all">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs shadow-sm">
+                                  {child.author_name ? child.author_name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">{child.author_name || 'Member'}</p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{new Date(child.created_at).toLocaleDateString()}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-slate-900 text-sm">{child.author_name || 'Anonymous'}</p>
-                                <p className="text-xs text-slate-500">{new Date(child.created_at).toLocaleString()}</p>
+                              <div className="text-gray-700 text-sm leading-relaxed mb-3 pl-1">
+                                {child.content}
                               </div>
-                            </div>
-                            <div className="text-slate-700 text-sm leading-relaxed mb-3">
-                              {child.content}
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={() => handleLikeReply(child.id)}
-                                className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${likedReplies.has(String(child.id)) ? 'text-rose-600' : 'text-slate-500 hover:text-slate-800'
-                                  }`}
-                              >
-                                <Heart className={`h-3.5 w-3.5 ${likedReplies.has(String(child.id)) ? 'fill-current' : ''}`} />
-                                {child.like_count || 0}
-                              </button>
+                              <div className="flex items-center gap-4 pl-1">
+                                <button
+                                  onClick={() => handleLikeReply(child.id)}
+                                  className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${likedReplies.has(String(child.id)) ? 'text-rose-600' : 'text-gray-400 hover:text-rose-600'
+                                    }`}
+                                >
+                                  <Heart className={`h-3.5 w-3.5 ${likedReplies.has(String(child.id)) ? 'fill-current' : ''}`} />
+                                  {child.like_count || 0}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -473,46 +481,53 @@ const DiscussionThread: React.FC = () => {
                 ))}
               </div>
             </div>
-
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sticky top-24">
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-indigo-500" />
-                Related Topics
+          <div className="lg:col-span-4 space-y-6">
+            {/* Related Topics */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+              <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-indigo-500" />
+                {t('community.discussion.related_topics')}
               </h3>
               {relatedTopics.length > 0 ? (
                 <div className="space-y-4">
                   {relatedTopics.map((item) => (
-                    <a
-                      key={item.id}
-                      href={`/forums/${item.id}/thread`}
-                      className="block group"
-                    >
-                      <h4 className="text-sm font-medium text-slate-700 group-hover:text-indigo-600 transition-colors line-clamp-2 mb-1">
-                        {item.title}
-                      </h4>
-                      <p className="text-xs text-slate-400">
+                    <a key={item.id} href={`/forums/${item.id}/thread`} className="block group p-4 rounded-2xl hover:bg-indigo-50/50 transition-all border border-transparent hover:border-indigo-100">
+                      <h4 className="text-sm font-bold text-gray-800 group-hover:text-indigo-700 transition-colors line-clamp-2 mb-2 leading-snug">{item.title}</h4>
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-300"></div>
                         {new Date(item.lastActivity).toLocaleDateString()}
                       </p>
                     </a>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 italic">No related topics found.</p>
+                <p className="text-sm text-gray-500 italic text-center py-4">{t('community.discussion.no_related')}</p>
               )}
+            </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <h3 className="font-bold text-slate-900 mb-3 text-sm uppercase tracking-wide">Community Guidelines</h3>
-                <ul className="space-y-2 text-sm text-slate-600 marker:text-indigo-500 list-disc pl-4">
-                  <li>Be respectful and kind</li>
-                  <li>Stay on topic</li>
-                  <li>No spam or self-promotion</li>
-                  <li>Report inappropriate content</li>
-                </ul>
-              </div>
+            {/* Guidelines */}
+            <div className="bg-gradient-to-br from-indigo-50 to-white rounded-3xl border border-indigo-100 p-6 sm:p-8">
+              <h3 className="font-bold text-indigo-900 mb-5 text-sm uppercase tracking-wider flex items-center gap-2">
+                <Check className="h-4 w-4" />
+                {t('community.discussion.guidelines_title')}
+              </h3>
+              <ul className="space-y-4 text-sm text-indigo-900/80 font-medium">
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 mt-2 rounded-full bg-indigo-400 flex-shrink-0 ring-4 ring-indigo-100" />
+                  {t('community.discussion.guidelines_items.0')}
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 mt-2 rounded-full bg-indigo-400 flex-shrink-0 ring-4 ring-indigo-100" />
+                  {t('community.discussion.guidelines_items.1')}
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 mt-2 rounded-full bg-indigo-400 flex-shrink-0 ring-4 ring-indigo-100" />
+                  {t('community.discussion.guidelines_items.2')}
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -520,28 +535,25 @@ const DiscussionThread: React.FC = () => {
 
       {/* Report Modal */}
       {reportOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 w-full max-w-md scale-100 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-rose-500" />
-                Report Discussion
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-md scale-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="h-6 w-6 text-rose-500" />
+                {t('community.discussion.reports.title')}
               </h3>
-              <button onClick={() => setReportOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <span className="sr-only">Close</span>
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setReportOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <p className="text-slate-600 text-sm mb-4">
-              Please help us understand what's going on. What's the issue with this post?
+            <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+              {t('community.discussion.reports.desc')}
             </p>
 
             <textarea
-              className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-400 min-h-[100px] mb-4"
-              placeholder="Describe the issue..."
+              className="w-full border-2 border-gray-100 rounded-2xl p-4 text-sm focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-400 min-h-[140px] mb-8 resize-none bg-gray-50 focus:bg-white transition-all font-medium"
+              placeholder={t('community.discussion.reports.placeholder')}
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
             />
@@ -549,16 +561,16 @@ const DiscussionThread: React.FC = () => {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setReportOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all"
+                className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all"
               >
-                Cancel
+                {t('community.discussion.reports.cancel')}
               </button>
               <button
                 onClick={handleReport}
                 disabled={!reportReason.trim()}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-all disabled:opacity-50"
+                className="px-6 py-3 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Report
+                {t('community.discussion.reports.submit')}
               </button>
             </div>
           </div>

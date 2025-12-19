@@ -34,7 +34,7 @@ interface UnifiedVideoPlayerProps {
   lesson: {
     id: string;
     title?: string;
-    video_provider?: 'mux';
+    video_provider?: 'mux' | 's3' | string;
     mux_playback_id?: string | null;
     mux_asset_id?: string | null;
     mux_status?: string | null;

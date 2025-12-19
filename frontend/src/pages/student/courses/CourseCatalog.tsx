@@ -7,6 +7,7 @@ import { studentsApi } from '@/services/api/students';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useNotification } from '@/context/NotificationContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface CatalogCourse {
@@ -28,6 +29,7 @@ const CourseCatalog: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { confirm } = useConfirmDialog();
+  const { showNotification } = useNotification();
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,11 @@ const CourseCatalog: React.FC = () => {
             : course
         )
       );
-      window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+      showNotification({
+        type: 'success',
+        title: t('common.success'),
+        message: t('student_courses.enroll_success', 'Successfully enrolled in course')
+      });
     } catch (err: any) {
       console.error('Failed to enroll:', err);
       const msg = err?.response?.data?.message || '';
@@ -145,13 +151,22 @@ const CourseCatalog: React.FC = () => {
           )
         );
         window.dispatchEvent(new CustomEvent('student-enrollment-updated'));
+        showNotification({
+          type: 'info',
+          title: t('common.info'),
+          message: t('student_courses.already_enrolled', 'You are already enrolled in this course')
+        });
         return;
       }
-      alert(t('student_courses.enroll_error'));
+      showNotification({
+        type: 'error',
+        title: t('common.error'),
+        message: t('student_courses.enroll_error')
+      });
     } finally {
       setEnrolling(null);
     }
-  }, [confirm, t]);
+  }, [confirm, t, showNotification]);
 
   // Memoize filtered courses to prevent unnecessary re-calculations
   useEffect(() => {
@@ -164,8 +179,25 @@ const CourseCatalog: React.FC = () => {
       const title = (course.title || '').toLowerCase();
       const description = (course.description || '').toLowerCase();
       const matchesSearch = !query || title.includes(query) || description.includes(query);
-      const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-      const matchesLevel = filterLevel === 'all' || course.level === filterLevel;
+      
+      // Flexible category matching
+      const courseCat = (course.category || '').toLowerCase();
+      const filterCat = filterCategory.toLowerCase();
+      const matchesCategory = filterCategory === 'all' || 
+                              courseCat === filterCat ||
+                              courseCat.includes(filterCat) ||
+                              (filterCat === 'faith' && (courseCat.includes('doctrine') || courseCat.includes('faith'))) ||
+                              (filterCat === 'history' && courseCat.includes('history')) ||
+                              (filterCat === 'bible' && courseCat.includes('bible')) ||
+                              (filterCat === 'liturgical' && courseCat.includes('liturg')) ||
+                              (filterCat === 'youth' && courseCat.includes('youth'));
+
+      // Flexible level matching
+      const courseLevel = (course.level || '').toLowerCase();
+      const filterLvl = filterLevel.toLowerCase();
+      const matchesLevel = filterLevel === 'all' || 
+                           courseLevel === filterLvl ||
+                           courseLevel.includes(filterLvl);
       
       return matchesSearch && matchesCategory && matchesLevel && course.is_published;
     });

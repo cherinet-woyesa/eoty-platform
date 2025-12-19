@@ -98,7 +98,7 @@ const StudentAssignments: React.FC = () => {
 
   if (loading && assignments.length === 0) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
+      <div className="w-full space-y-4 sm:space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
           {Array.from({ length: 4 }).map((_, idx) => (
             <div key={idx} className="bg-white rounded-xl border border-stone-200 p-5 space-y-3">
@@ -114,18 +114,9 @@ const StudentAssignments: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-600" />
-            {t('assignments_page.title') || 'My Assignments'}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {t('assignments_page.subtitle') || 'Track and submit your course assignments'}
-          </p>
-        </div>
+    <div className="w-full space-y-6">
+      {/* Header utility bar */}
+      <div className="flex justify-end">
         <div className="flex items-center gap-2 text-xs text-stone-500 bg-white px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm">
           <Clock className="h-3.5 w-3.5" />
           <span>{t('assignments_page.last_updated')}:</span>
@@ -135,7 +126,7 @@ const StudentAssignments: React.FC = () => {
             className="ml-2 p-1 hover:bg-stone-100 rounded-full transition-colors"
             title={t('assignments_page.refresh') || 'Refresh'}
           >
-            <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
+            <RefreshCw className="h-3.5 w-3.5 text-brand-primary" />
           </button>
         </div>
       </div>
@@ -159,7 +150,7 @@ const StudentAssignments: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: t('assignments_page.stats_total'), value: stats.total, icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: t('assignments_page.stats_total'), value: stats.total, icon: BookOpen, color: 'text-brand-primary', bg: 'bg-brand-primary/10' },
           { label: t('assignments_page.stats_pending'), value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: t('assignments_page.stats_submitted'), value: stats.submitted, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: t('assignments_page.stats_graded'), value: stats.graded, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' }
@@ -184,7 +175,7 @@ const StudentAssignments: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('assignments_page.search_placeholder') || 'Search assignments...'}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -204,7 +195,7 @@ const StudentAssignments: React.FC = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+            className="px-3 py-2 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary cursor-pointer"
           >
             <option value="due_asc">{t('assignments_page.sort_due_asc')}</option>
             <option value="due_desc">{t('assignments_page.sort_due_desc')}</option>
@@ -227,13 +218,13 @@ const StudentAssignments: React.FC = () => {
             </p>
             <Link
               to="/member/all-courses?tab=browse"
-              className="inline-flex items-center px-5 py-2.5 rounded-lg text-white text-sm font-semibold bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm hover:shadow"
+              className="inline-flex items-center px-5 py-2.5 rounded-lg text-white text-sm font-semibold bg-brand-primary hover:bg-brand-primary/90 transition-colors shadow-sm hover:shadow"
             >
               {t('assignments_page.browse_courses')}
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSorted.map((a) => {
               const isGraded = a.submission_status === 'graded';
               const isSubmitted = a.submission_status === 'submitted';
@@ -243,98 +234,74 @@ const StudentAssignments: React.FC = () => {
               return (
                 <div
                   key={a.id}
-                  className="group bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row gap-4"
+                  className="group bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
                 >
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {a.title}
-                        </h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                          <BookOpen className="h-3.5 w-3.5" />
-                          {a.course_title || t('assignments_page.course_label')}
-                        </p>
-                      </div>
-                      <div className="sm:hidden">
-                        {/* Mobile status badge */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-brand-primary transition-colors line-clamp-2" title={a.title}>
+                        {a.title}
+                      </h3>
+                      <div className="flex-shrink-0">
                         {isGraded ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                            {a.score !== null ? `${a.score}/${a.max_points}` : t('assignments_page.status_graded')}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+                            {a.score !== null ? `${a.score}/${a.max_points}` : 'Graded'}
                           </span>
                         ) : isSubmitted ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {t('assignments_page.status_submitted')}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wide">
+                            Submitted
                           </span>
                         ) : (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isOverdue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {isOverdue ? 'Overdue' : t('assignments_page.status_pending')}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${isOverdue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {isOverdue ? 'Overdue' : 'Pending'}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-1">
-                      <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
-                        <Calendar className="h-3.5 w-3.5" />
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5 line-clamp-1">
+                        <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
+                        {a.course_title || t('assignments_page.course_label')}
+                      </p>
+                      <div className={`flex items-center gap-1.5 text-xs ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                         <span>{t('assignments_page.due_label', { date: formatDate(a.due_date) })}</span>
                       </div>
                       {a.max_points && (
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
                           <span>{a.max_points} Points</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-gray-100 pt-4 sm:pt-0 mt-2 sm:mt-0">
-                    <div className="hidden sm:block">
-                      {isGraded ? (
-                        <div className="text-right">
-                          <span className="block text-sm font-bold text-emerald-600">
-                            {a.score !== null ? `${a.score}/${a.max_points}` : t('assignments_page.status_graded')}
-                          </span>
-                          <span className="text-xs text-emerald-600/80">Score</span>
-                        </div>
-                      ) : isSubmitted ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                          {t('assignments_page.status_submitted')}
-                        </span>
-                      ) : (
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${isOverdue ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
-                          {isOverdue ? 'Overdue' : t('assignments_page.status_pending')}
-                        </span>
-                      )}
-                    </div>
+                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+                    <Link
+                      to={`/member/courses/${a.course_id || ''}`}
+                      className="flex-1 text-center px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      View
+                    </Link>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Link
-                        to={`/member/courses/${a.course_id || ''}`}
-                        className="flex-1 sm:flex-none text-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    {isPending && (
+                      <button
+                        onClick={() => handleOpenSubmission(a)}
+                        className="flex-1 px-3 py-2 text-xs font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-primary/90 transition-colors shadow-sm flex items-center justify-center gap-1"
                       >
-                        {t('assignments_page.view_course')}
-                      </Link>
+                        <span>Submit</span>
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    )}
 
-                      {isPending && (
-                        <button
-                          onClick={() => handleOpenSubmission(a)}
-                          className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow flex items-center justify-center gap-2"
-                        >
-                          <span>{t('assignments_page.submit_btn')}</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      )}
-
-                      {isSubmitted && !isGraded && (
-                        <button
-                          onClick={() => handleOpenSubmission(a)} // Allow re-submission if not graded? Or just view?
-                          className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                          {t('assignments_page.update_submission') || 'Update'}
-                        </button>
-                      )}
-                    </div>
+                    {isSubmitted && !isGraded && (
+                      <button
+                        onClick={() => handleOpenSubmission(a)}
+                        className="flex-1 px-3 py-2 text-xs font-medium text-brand-primary bg-brand-primary/5 border border-brand-primary/20 rounded-lg hover:bg-brand-primary/10 transition-colors"
+                      >
+                        Update
+                      </button>
+                    )}
                   </div>
                 </div>
               );

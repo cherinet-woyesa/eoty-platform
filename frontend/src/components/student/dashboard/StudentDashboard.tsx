@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Menu,
   Zap,
-  Award,
   Target,
   Sparkles,
   Compass,
@@ -16,6 +15,7 @@ import {
   Users
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
 import CourseGrid from './CourseGrid';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
@@ -23,9 +23,10 @@ import { apiClient } from '@/services/api/apiClient';
 import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Alert from '@/components/common/Alert';
-import ProgressBar from '@/components/common/ProgressBar';
 import { chaptersApi } from '@/services/api/chapters';
 import { brandButtons, brandColors } from '@/theme/brand';
+import ContactAdminModal from './modals/ContactAdminModal';
+import ProfileCompletionBanner from './ProfileCompletionBanner';
 import EventDetailsModal from './modals/EventDetailsModal';
 
 // Skeleton loader components
@@ -78,6 +79,7 @@ interface StudentDashboardData {
 const StudentDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -87,13 +89,13 @@ const StudentDashboard: React.FC = () => {
   const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const {
     data: studentData,
     isLoading,
     isError,
     error,
     refetch,
-    isFetching,
   } = useQuery({
     queryKey: ['student-dashboard'],
     queryFn: async () => {
@@ -331,7 +333,17 @@ const StudentDashboard: React.FC = () => {
   const primaryHex = brandColors.primaryHex;
   const accentHex = brandColors.accentHex;
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [manualRefreshing, setManualRefreshing] = useState(false);
+
+  const profileCompletion = useMemo(() => {
+    if (!user) return 0;
+    let score = 0;
+    if (user.firstName) score += 25;
+    if (user.lastName) score += 25;
+    if (user.profilePicture) score += 25;
+    if (user.bio) score += 25;
+    // If score is 0 (e.g. just created), default to 25 as per requirement to show progress
+    return score === 0 ? 25 : score;
+  }, [user]);
 
   // Enhanced stats with real-time updates and memoization
   const formatTime = useCallback((date: Date) => {
@@ -355,16 +367,6 @@ const StudentDashboard: React.FC = () => {
     refetch();
   }, [refetch]);
 
-  const handleManualRefresh = useCallback(async () => {
-    setManualRefreshing(true);
-    try {
-      await refetch();
-      setLastUpdated(new Date());
-    } finally {
-      setManualRefreshing(false);
-    }
-  }, [refetch]);
-
   useEffect(() => {
     if (studentData) {
       setLastUpdated(new Date());
@@ -385,6 +387,11 @@ const StudentDashboard: React.FC = () => {
           });
         } catch (err) {
           console.error('Failed to toggle bookmark:', err);
+          showNotification({
+            type: 'error',
+            title: t('common.error', 'Error'),
+            message: t('student.bookmark_error', 'Failed to update bookmark')
+          });
         }
         break;
       case 'download-certificate':
@@ -430,15 +437,6 @@ const StudentDashboard: React.FC = () => {
     );
   }
 
-  // Show only the profile completion modal for new users before dashboard UI
-  if (profileModalOpen) {
-    return (
-      <ErrorBoundary>
-        <ProfileCompletionModal isOpen={true} onClose={() => setProfileModalOpen(false)} />
-      </ErrorBoundary>
-    );
-  }
-
   if (!studentData) {
     return (
       <div className="w-full space-y-4 p-6">
@@ -453,14 +451,11 @@ const StudentDashboard: React.FC = () => {
     );
   }
 
-  const weeklyGoal = studentData?.progress?.weeklyGoal || 10;
-  const weeklyProgress = studentData?.progress?.weeklyProgress || 0;
-  const weeklyPct = Math.min(100, Math.round((weeklyProgress / weeklyGoal) * 100));
   const quickActions = [
     { label: t('student.browse_courses'), icon: BookOpen, to: '/member/all-courses' },
     { label: t('student.find_resources'), icon: Compass, to: '/member/all-resources' },
     { label: t('student.jump_back_in'), icon: Zap, to: continueCourse ? `/member/courses/${continueCourse.id}` : '/member/learning' },
-    { label: t('bookmarks.title'), icon: Bookmark, to: '/member/bookmarks' }
+    { label: t('bookmarks_page.title', 'Bookmarks'), icon: Bookmark, to: '/member/bookmarks' }
   ];
 
   return (
@@ -501,15 +496,6 @@ const StudentDashboard: React.FC = () => {
                       {t('student.last_updated', { time: lastUpdated.toLocaleString(i18n.language) })}
                     </span>
                   )}
-                  <button
-                    onClick={handleManualRefresh}
-                    disabled={manualRefreshing || isFetching}
-                    className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border"
-                    style={{ borderColor: `${primaryHex}33`, color: primaryHex }}
-                  >
-                    <Loader2 className={`h-3.5 w-3.5 ${manualRefreshing || isFetching ? 'animate-spin' : ''}`} />
-                    {manualRefreshing || isFetching ? t('student.refreshing') : t('student.refresh')}
-                  </button>
                 </div>
                 {chapters.length > 1 && (
                   <div className="mt-3">
@@ -530,11 +516,12 @@ const StudentDashboard: React.FC = () => {
                     </select>
                   </div>
                 )}
-                {/* CTAs removed to keep header minimal (member hub below) */}
               </div>
-              {/* simplified hero, removed mini metrics */}
             </div>
           </div>
+
+          {/* Profile Completion Banner */}
+          <ProfileCompletionBanner completionPercentage={profileCompletion} />
 
           {/* Inline alert if refetch failed but partial data exists */}
           {isError && (
@@ -814,16 +801,16 @@ const StudentDashboard: React.FC = () => {
                     </div>
                     <span className="text-xs text-slate-500">{t('student.peers_teachers')}</span>
                   </Link>
-                  <a
-                    href="mailto:support@eotcommunity.org"
-                    className="flex items-center justify-between rounded-xl border border-[#e5e9f5] px-3 py-2 hover:border-[#2f3f82]/30 hover:shadow-sm transition-all"
+                  <button
+                    onClick={() => setContactModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-[#e5e9f5] px-3 py-2 hover:border-[#2f3f82]/30 hover:shadow-sm transition-all w-full text-left"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-[#1e2a55]">
                       <LifeBuoy className="h-4 w-4" style={{ color: primaryHex }} />
                       {t('student.email_admin')}
                     </div>
-                    <span className="text-xs text-slate-500">support@eotcommunity.org</span>
-                  </a>
+                    <span className="text-xs text-slate-500">{t('student.contact_support')}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -836,6 +823,19 @@ const StudentDashboard: React.FC = () => {
         onClose={() => setSelectedEvent(null)} 
         event={selectedEvent} 
       />
+      
+      <ContactAdminModal
+        isOpen={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+      />
+
+      {/* Profile Completion Modal */}
+      {profileModalOpen && (
+        <ProfileCompletionModal 
+          isOpen={true} 
+          onClose={() => setProfileModalOpen(false)} 
+        />
+      )}
     </ErrorBoundary>
   );
 };

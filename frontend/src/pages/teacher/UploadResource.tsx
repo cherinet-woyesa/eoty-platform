@@ -5,6 +5,7 @@ import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import { lessonResourcesApi } from '@/services/api/lessonResources';
 import { coursesApi } from '@/services/api';
+import { brandColors } from '@/theme/brand';
 
 interface UploadResourceProps {
   variant?: 'full' | 'embedded';
@@ -173,7 +174,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
       return <Image className="h-6 w-6 text-emerald-600" />;
     }
-    return <File className="h-6 w-6 text-[color:#1e1b4b]" />;
+    return <File className="h-6 w-6" style={{ color: brandColors.primaryHex }} />;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,19 +277,20 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
   if (success && variant === 'full') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="h-8 w-8 text-emerald-600" />
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Complete!</h2>
-          <p className="text-slate-600 mb-8">Your resource has been successfully added to the library.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Complete!</h2>
+          <p className="text-gray-600 mb-8">Your resource has been successfully added to the library.</p>
 
           <div className="flex flex-col gap-3">
             <Link
               to="/teacher/resources"
-              className="w-full py-2.5 bg-[color:#1e1b4b] hover:bg-[color:#1e1b4b]/90 text-white font-medium rounded-lg transition-colors"
+              className="w-full py-2.5 text-white font-medium rounded-lg transition-colors"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               View Library
             </Link>
@@ -310,18 +312,18 @@ const UploadResource: React.FC<UploadResourceProps> = ({
   }
 
   const content = (
-    <div className={variant === 'full' ? "min-h-screen bg-slate-50 p-6 lg:p-8" : "w-full"}>
+    <div className={variant === 'full' ? "min-h-screen bg-gray-50 p-6 lg:p-8" : "w-full"}>
       <div className={variant === 'full' ? "max-w-3xl mx-auto" : ""}>
         {/* Header - Only show in full variant */}
         {variant === 'full' && (
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Upload Resource</h1>
-              <p className="text-slate-500 mt-1">Add new materials to your library</p>
+              <h1 className="text-2xl font-bold text-gray-900">Upload Resource</h1>
+              <p className="text-gray-500 mt-1">Add new materials to your library</p>
             </div>
             <Link
               to="/teacher/resources"
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="h-6 w-6" />
             </Link>
@@ -329,20 +331,21 @@ const UploadResource: React.FC<UploadResourceProps> = ({
         )}
 
         {/* Main Form Card */}
-        <div className={`${variant === 'full' ? 'bg-white rounded-2xl border border-slate-200 shadow-sm' : 'bg-white rounded-xl border border-slate-200'} overflow-hidden`}>
+        <div className={`${variant === 'full' ? 'bg-white rounded-2xl border border-gray-200 shadow-sm' : 'bg-white rounded-xl border border-gray-200'} overflow-hidden`}>
           <div className={variant === 'full' ? "p-8" : "p-4"}>
             
             {/* Target Toggle - Only if lessonId is present */}
             {lessonId && (
-              <div className="flex p-1 bg-slate-100 rounded-lg mb-8">
+              <div className="flex p-1 bg-gray-100 rounded-lg mb-8">
                 <button
                   type="button"
                   onClick={() => setActiveTarget('library')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     activeTarget === 'library'
-                      ? 'bg-white text-[#1e1b4b] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
+                  style={activeTarget === 'library' ? { color: brandColors.primaryHex } : {}}
                 >
                   <BookOpen className="h-4 w-4" />
                   Add to Library
@@ -352,9 +355,10 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                   onClick={() => setActiveTarget('lesson')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     activeTarget === 'lesson'
-                      ? 'bg-white text-[#1e1b4b] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
+                  style={activeTarget === 'lesson' ? { color: brandColors.primaryHex } : {}}
                 >
                   <LinkIcon className="h-4 w-4" />
                   Direct Lesson Attachment
@@ -367,12 +371,23 @@ const UploadResource: React.FC<UploadResourceProps> = ({
               <div>
                 {!file ? (
                   <label className="block group cursor-pointer">
-                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center hover:border-[#1e1b4b] hover:bg-[#1e1b4b]/5 transition-all duration-200">
-                      <div className="w-16 h-16 bg-[#1e1b4b]/5 text-[#1e1b4b] rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center transition-all duration-200"
+                      style={{
+                        ':hover': {
+                          borderColor: brandColors.primaryHex,
+                          backgroundColor: `${brandColors.primaryHex}0D` // 0.05 opacity
+                        }
+                      } as any}
+                    >
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"
+                        style={{ backgroundColor: `${brandColors.primaryHex}0D`, color: brandColors.primaryHex }}
+                      >
                         <Upload className="h-8 w-8" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">Click to upload or drag and drop</h3>
-                      <p className="text-slate-500 text-sm max-w-xs mx-auto">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Click to upload or drag and drop</h3>
+                      <p className="text-gray-500 text-sm max-w-xs mx-auto">
                         Support for PDF, DOC, Images, Audio and Video files (Max 100MB)
                       </p>
                     </div>
@@ -384,14 +399,14 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                     />
                   </label>
                 ) : (
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-between group">
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between group">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-lg border border-slate-200 flex items-center justify-center shadow-sm">
+                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center shadow-sm">
                         {getFileIcon(file.name)}
                       </div>
                       <div>
-                        <h3 className="font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs">{file.name}</h3>
-                        <p className="text-xs text-slate-500">
+                        <h3 className="font-medium text-gray-900 truncate max-w-[200px] sm:max-w-xs">{file.name}</h3>
+                        <p className="text-xs text-gray-500">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </p>
                       </div>
@@ -402,7 +417,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                     <button
                       type="button"
                       onClick={() => setFile(null)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
@@ -414,14 +429,15 @@ const UploadResource: React.FC<UploadResourceProps> = ({
               <div className="space-y-6">
                 {activeTarget === 'library' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Title <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent outline-none transition-all"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder="e.g., Introduction to Liturgy"
                       required
                     />
@@ -429,14 +445,15 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent outline-none transition-all resize-none"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all resize-none"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     placeholder="Briefly describe this resource..."
                   />
                 </div>
@@ -445,7 +462,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {!lockScope && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Scope
                       </label>
                       <select
@@ -457,7 +474,8 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                             loadCourses();
                           }
                         }}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       >
                         <option value="chapter_wide">Chapter Library</option>
                         {isAdmin && <option value="platform_wide">Platform Library</option>}
@@ -468,13 +486,14 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
                     {resourceScope === 'course_specific' && !lockScope && (
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Select Course <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={selectedCourse}
                           onChange={(e) => setSelectedCourse(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent outline-none transition-all"
+                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
+                          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                         >
                           <option value="">Choose a course...</option>
                           {courses.map((course) => (
@@ -488,14 +507,14 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
                     {resourceScope === 'course_specific' && lockScope && selectedCourse && (
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Destination
                         </label>
-                        <div className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
+                        <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
                           Uploading to this course
                         </div>
                         {variant === 'embedded' && (
-                          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
                             <input
                               id="compress-images"
                               type="checkbox"
@@ -509,13 +528,14 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Category <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                         required
                       >
                         <option value="">Select category...</option>
@@ -545,7 +565,8 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                 <button
                   type="submit"
                   disabled={loading || !file || (activeTarget === 'library' && !title.trim())}
-                  className="w-full flex items-center justify-center px-6 py-3 bg-[#1e1b4b] hover:bg-[#1e1b4b]/90 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center px-6 py-3 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   {loading ? (
                     <>

@@ -11,69 +11,87 @@ const TeacherStudentsPage: React.FC = () => {
 
   const { t } = useTranslation();
   return (
-    <div className="w-full h-full">
-      <div className="w-full space-y-3 p-3 sm:p-4 lg:p-6" style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}10, #fff 80%)` }}>
-        {/* Compact Header */}
-        <div className="mb-3">
-          <h1 className="text-xl font-semibold mb-1 flex items-center gap-2" style={{ color: brandColors.primaryHex }}>
-            <Users className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
+    <div className="w-full h-full bg-gray-50">
+      <div className="w-full space-y-4 p-4 lg:p-6">
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <Users className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
             {t('teacher_students.member_management')}
           </h1>
-          <p className="text-sm" style={{ color: brandColors.primaryText }}>{t('teacher_students.manage_members_desc')}</p>
+          <p className="text-sm text-gray-600">{t('teacher_students.manage_members_desc')}</p>
         </div>
 
-        {/* Compact Tabs */}
-        <div className="rounded-lg shadow-sm border overflow-hidden flex flex-col h-[calc(100vh-8rem)]" style={{ background: '#fff', borderColor: brandColors.primaryHex + '20' }}>
-          <nav className="flex border-b flex-shrink-0" style={{ borderColor: brandColors.primaryHex + '20' }}>
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-9rem)]">
+          <nav className="flex border-b border-gray-200 flex-shrink-0">
             <button
               onClick={() => setActiveTab('students')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap text-sm ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'students'
-                  ? 'border-b-2' : ''
+                  ? 'bg-gray-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
-              style={activeTab === 'students' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex, background: brandColors.primaryHex + '08' } : { color: brandColors.primaryText }}
+              style={activeTab === 'students' ? { 
+                borderColor: brandColors.primaryHex, 
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : {}}
             >
               <Users className="h-4 w-4" />
-              <span>{t('teacher_students.my_members')}</span>
+              <span className="hidden sm:inline">{t('teacher_students.my_members')}</span>
+              <span className="sm:hidden">{t('teacher_students.tabs.members')}</span>
             </button>
             <button
               onClick={() => setActiveTab('assignments')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap text-sm ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'assignments'
-                  ? 'border-b-2' : ''
+                  ? 'bg-gray-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
-              style={activeTab === 'assignments' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex, background: brandColors.primaryHex + '08' } : { color: brandColors.primaryText }}
+              style={activeTab === 'assignments' ? { 
+                borderColor: brandColors.primaryHex, 
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : {}}
             >
               <CheckSquare className="h-4 w-4" />
-              <span>{t('teacher_students.assignments')}</span>
+              <span className="hidden sm:inline">{t('teacher_students.assignments')}</span>
+              <span className="sm:hidden">{t('teacher_students.tabs.assignments')}</span>
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap text-sm ${
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all border-b-2 text-sm ${
                 activeTab === 'analytics'
-                  ? 'border-b-2' : ''
+                  ? 'bg-gray-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
-              style={activeTab === 'analytics' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex, background: brandColors.primaryHex + '08' } : { color: brandColors.primaryText }}
+              style={activeTab === 'analytics' ? { 
+                borderColor: brandColors.primaryHex, 
+                color: brandColors.primaryHex,
+                backgroundColor: `${brandColors.primaryHex}0D`
+              } : {}}
             >
               <BarChart2 className="h-4 w-4" />
-              <span>{t('teacher_students.analytics')}</span>
+              <span className="hidden sm:inline">{t('teacher_students.analytics')}</span>
+              <span className="sm:hidden">{t('teacher_students.tabs.analytics')}</span>
             </button>
           </nav>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto bg-gray-50">
             {activeTab === 'students' && (
-              <div className="animate-in fade-in duration-300">
+              <div className="animate-in fade-in duration-300 h-full">
                 <StudentManagement />
               </div>
             )}
             {activeTab === 'assignments' && (
-              <div className="animate-in fade-in duration-300">
+              <div className="animate-in fade-in duration-300 h-full">
                 <Assignments />
               </div>
             )}
             {activeTab === 'analytics' && (
-              <div className="animate-in fade-in duration-300">
+              <div className="animate-in fade-in duration-300 h-full">
                 <VideoAnalyticsDashboard />
               </div>
             )}

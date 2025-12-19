@@ -20,9 +20,9 @@ interface UserManagementPreviewProps {
   compact?: boolean;
 }
 
-const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({ 
-  users = [], 
-  compact = false 
+const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
+  users = [],
+  compact = false
 }) => {
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -77,14 +77,18 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
     const now = new Date();
     const lastActive = new Date(timestamp);
     const diff = now.getTime() - lastActive.getTime();
-    
+
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return `${Math.floor(diff / 86400000)}d ago`;
   };
 
   const handleUserAction = useCallback((userId: string, action: string) => {
-    console.log(`Action ${action} on user ${userId}`);
+    // Action handling would be implemented here
+    // In development, we can log for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[UserManagementPreview] Action ${action} on user ${userId}`);
+    }
   }, []);
 
   const pendingUsers = users.filter(user => user.status === 'pending');
@@ -104,7 +108,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
             Manage All
           </Link>
         </div>
-        
+
         {/* Pending Users Alert */}
         {pendingUsers.length > 0 && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -264,7 +268,7 @@ const UserManagementPreview: React.FC<UserManagementPreviewProps> = ({
                   {user.name.charAt(0)}
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                   <h4 className="font-semibold text-gray-900 text-sm truncate">

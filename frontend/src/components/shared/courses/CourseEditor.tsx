@@ -40,6 +40,8 @@ import {
 import { Spinner, LoadingButton } from '@/components/shared/LoadingStates';
 import { useTranslation } from 'react-i18next';
 
+import { brandColors } from '@/theme/brand';
+
 interface CourseEditorProps {
   courseId: string;
   onSave?: (course: Course) => void;
@@ -699,22 +701,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#27AE60]/10 via-[#16A085]/10 to-[#2980B9]/10 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-[#27AE60]/20">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-gray-200 bg-gray-50/50">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <button
               onClick={() => navigate('/teacher/courses')}
-              className="p-2 bg-white/80 hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 rounded-lg transition-colors"
+              className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
               title={t('common.back_to_courses')}
             >
-              <ArrowLeft className="h-5 w-5 text-stone-700" />
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center text-stone-800">
-                <BookOpen className="h-5 w-5 mr-2 text-[#27AE60]" />
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center text-gray-900">
+                <BookOpen className="h-5 w-5 mr-2" style={{ color: brandColors.primaryHex }} />
                 {course?.title || t('courses.editor.edit_course')}
               </h2>
-              <p className="text-sm text-stone-600">
+              <p className="text-sm text-gray-600">
                 {t('courses.editor.update_course_details')}
               </p>
             </div>
@@ -722,27 +724,27 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Course Stats */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-stone-700">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
               {courseStats.totalStudents > 0 && (
                 <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-[#27AE60]" />
+                  <Users className="h-4 w-4 text-gray-400" />
                   <span>{courseStats.totalStudents} {t('common.students')}</span>
                 </div>
               )}
               {courseStats.completionRate > 0 && (
                 <div className="flex items-center gap-1">
-                  <Target className="h-4 w-4 text-[#16A085]" />
+                  <Target className="h-4 w-4 text-gray-400" />
                   <span>{courseStats.completionRate}% {t('common.completion')}</span>
                 </div>
               )}
               {courseStats.averageRating > 0 && (
                 <div className="flex items-center gap-1">
-                  <Zap className="h-4 w-4 text-[#2980B9]" />
+                  <Zap className="h-4 w-4 text-gray-400" />
                   <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
-                <BookOpen className="h-4 w-4 text-emerald-700" />
+                <BookOpen className="h-4 w-4 text-gray-400" />
                 <span>{courseStats.totalLessons} {t('common.lessons')}</span>
               </div>
             </div>
@@ -752,23 +754,23 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               {/* Course Status */}
               <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
                 course?.status === 'published' 
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                  : 'bg-amber-100 text-amber-800 border border-amber-200'
+                  ? 'bg-green-100 text-green-800 border border-green-200' 
+                  : 'bg-gray-100 text-gray-800 border border-gray-200'
               }`}>
                 {course?.status === 'published' ? t('common.published') : t('common.draft')}
               </div>
 
               {/* Save Indicator */}
               {isDirty && (
-                <div className="hidden sm:flex items-center text-xs bg-white/80 px-3 py-1.5 rounded-lg border border-stone-200">
+                <div className="hidden sm:flex items-center text-xs bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                   {isAutoSaving ? (
                     <>
-                      <Loader className="h-3.5 w-3.5 mr-1 animate-spin text-[#27AE60]" />
+                      <Loader className="h-3.5 w-3.5 mr-1 animate-spin text-gray-400" />
                       {t('common.saving')}...
                     </>
                   ) : lastSaved ? (
                     <>
-                      <CheckCircle className="h-3.5 w-3.5 mr-1 text-[#27AE60]" />
+                      <CheckCircle className="h-3.5 w-3.5 mr-1 text-green-500" />
                       {t('common.saved')} {lastSaved.toLocaleTimeString()}
                     </>
                   ) : (
@@ -784,7 +786,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/teacher/courses/${courseId}`)}
-                  className="inline-flex items-center px-3 py-1.5 border border-stone-200 text-xs font-medium rounded-lg text-stone-700 bg-white hover:border-[#27AE60]/60 hover:text-[#27AE60] transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
                   <Eye className="mr-1.5 h-3.5 w-3.5" />
                   {t('common.view')}
@@ -794,7 +796,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <button
                     onClick={handlePublish}
                     disabled={publishMutation.isPending}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-[#27AE60] hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white disabled:opacity-50 transition-colors"
+                    style={{ backgroundColor: brandColors.primaryHex }}
                   >
                     <Globe className="mr-1.5 h-3.5 w-3.5" />
                     {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
@@ -815,7 +818,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 {onCancel && (
                   <button
                     onClick={onCancel}
-                    className="inline-flex items-center px-3 py-1.5 border border-stone-200 text-xs font-medium rounded-lg text-stone-700 bg-white hover:border-rose-300 hover:text-rose-600 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
                     <X className="mr-1.5 h-3.5 w-3.5" />
                     {t('common.cancel')}
@@ -833,14 +836,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <nav className="flex space-x-4 sm:space-x-6 lg:space-x-8 overflow-x-auto">
             {editorTabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-[#27AE60] text-[#27AE60]'
-                      : 'border-transparent text-stone-600 hover:text-stone-800 hover:border-stone-300'
+                    isActive
+                      ? 'border-[#1e1b4b] text-[#1e1b4b]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <Icon className="h-4 w-4 inline mr-2" />
@@ -979,10 +983,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         {activeTab === 'lessons' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-stone-800">{t('common.lessons')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('common.lessons')}</h3>
               <button
                 onClick={handleAddLesson}
-                className="inline-flex items-center px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors shadow-sm"
+                className="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors shadow-sm"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 {t('lessons.add_lesson') || 'Add Lesson'}
@@ -1143,7 +1148,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <button
                     type="button"
                     onClick={handleAddObjective}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                    style={{ color: brandColors.primaryHex, backgroundColor: `${brandColors.primaryHex}10` }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {t('courses.creation.add_another_objective')}
@@ -1161,7 +1167,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowTags((v) => !v)}
-                  className="text-xs px-2 py-1 rounded-lg border border-stone-200 text-stone-700 hover:border-stone-300 hover:bg-stone-50"
+                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                 >
                   {showTags ? t('common.hide') : t('common.show')}
                 </button>
@@ -1177,9 +1183,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             key={tagName}
                             className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                             style={{
-                              backgroundColor: tag?.color ? `${tag.color}20` : '#3B82F620',
-                              color: tag?.color || '#3B82F6',
-                              border: `1px solid ${tag?.color || '#3B82F6'}40`
+                              backgroundColor: `${brandColors.primaryHex}10`,
+                              color: brandColors.primaryHex,
+                              border: `1px solid ${brandColors.primaryHex}30`
                             }}
                           >
                             {tagName}
@@ -1203,13 +1209,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       onChange={(e) => setNewTagInput(e.target.value)}
                       onKeyPress={handleTagKeyPress}
                       placeholder={t('courses.creation.add_tag_placeholder')}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                     <button
                       type="button"
                       onClick={handleAddTag}
                       disabled={!newTagInput.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -1343,41 +1350,41 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <div className="space-y-6">
             {/* Course Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
-                <div className="text-2xl font-bold text-blue-600">{courseStats.totalStudents}</div>
-                <div className="text-sm text-blue-700">{t('common.students')}</div>
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                <div className="text-2xl font-bold text-indigo-900">{courseStats.totalStudents}</div>
+                <div className="text-sm text-indigo-700">{t('common.students')}</div>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-4 border border-green-200">
-                <div className="text-2xl font-bold text-green-600">{courseStats.completionRate}%</div>
-                <div className="text-sm text-green-700">{t('common.completion_rate')}</div>
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                <div className="text-2xl font-bold text-indigo-900">{courseStats.completionRate}%</div>
+                <div className="text-sm text-indigo-700">{t('common.completion_rate')}</div>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200">
-                <div className="text-2xl font-bold text-purple-600">{courseStats.averageRating}</div>
-                <div className="text-sm text-purple-700">{t('common.average_rating')}</div>
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                <div className="text-2xl font-bold text-indigo-900">{courseStats.averageRating}</div>
+                <div className="text-sm text-indigo-700">{t('common.average_rating')}</div>
               </div>
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl p-4 border border-orange-200">
-                <div className="text-2xl font-bold text-orange-600">{courseStats.totalLessons}</div>
-                <div className="text-sm text-orange-700">{t('common.lessons')}</div>
+              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                <div className="text-2xl font-bold text-indigo-900">{courseStats.totalLessons}</div>
+                <div className="text-sm text-indigo-700">{t('common.lessons')}</div>
               </div>
             </div>
 
             {/* Lesson Analytics */}
             {courseStats.totalStudents > 0 ? (
-              <div className="bg-gradient-to-br from-stone-50 to-white rounded-xl p-6 border border-stone-200">
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <BarChart3 className="h-6 w-6 text-[#27AE60]" />
-                  <h3 className="text-lg font-semibold text-stone-800">Lesson Performance</h3>
+                  <BarChart3 className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
+                  <h3 className="text-lg font-semibold text-gray-900">Lesson Performance</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#27AE60] mb-1">
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-2xl font-bold mb-1" style={{ color: brandColors.primaryHex }}>
                       {statsData?.data?.analytics?.lessonStats?.reduce((sum: number, lesson: any) => sum + (lesson.views || 0), 0) || 0}
                     </div>
-                    <div className="text-sm text-stone-600">Total Views</div>
+                    <div className="text-sm text-gray-600">Total Views</div>
                   </div>
-                  <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#16A085] mb-1">
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-2xl font-bold mb-1" style={{ color: brandColors.primaryHex }}>
                       {statsData?.data?.analytics?.lessonStats?.length > 0
                         ? Math.round(
                             (statsData.data.analytics.lessonStats.reduce((sum: number, lesson: any) => sum + (lesson.completions || 0), 0) /
@@ -1385,48 +1392,48 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           ) || 0
                         : 0}%
                     </div>
-                    <div className="text-sm text-stone-600">Avg. Completion</div>
+                    <div className="text-sm text-gray-600">Avg. Completion</div>
                   </div>
-                  <div className="bg-white rounded-lg p-4 border border-stone-200">
-                    <div className="text-2xl font-bold text-[#2980B9] mb-1">
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-2xl font-bold mb-1" style={{ color: brandColors.primaryHex }}>
                       {statsData?.data?.analytics?.averageProgress ? Math.round(statsData.data.analytics.averageProgress) : 0}%
                     </div>
-                    <div className="text-sm text-stone-600">Avg. Progress</div>
+                    <div className="text-sm text-gray-600">Avg. Progress</div>
                   </div>
                 </div>
 
                 {/* Lesson-by-lesson breakdown */}
                 <div className="mt-6">
-                  <h4 className="text-md font-semibold text-stone-800 mb-3">Lesson Breakdown</h4>
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Lesson Breakdown</h4>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-stone-200">
-                      <thead className="bg-stone-50">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Lesson</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Views</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Completions</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Completion Rate</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lesson</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completions</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-stone-200">
+                      <tbody className="bg-white divide-y divide-gray-200">
                         {statsData?.data?.analytics?.lessonStats?.map((lesson: any) => (
                           <tr key={lesson.lessonId}>
-                            <td className="px-4 py-3 text-sm text-stone-900 truncate max-w-xs">
+                            <td className="px-4 py-3 text-sm text-gray-900 truncate max-w-xs">
                               {lesson.title}
                             </td>
-                            <td className="px-4 py-3 text-sm text-stone-500">
+                            <td className="px-4 py-3 text-sm text-gray-500">
                               {lesson.views || 0}
                             </td>
-                            <td className="px-4 py-3 text-sm text-stone-500">
+                            <td className="px-4 py-3 text-sm text-gray-500">
                               {lesson.completions || 0}
                             </td>
-                            <td className="px-4 py-3 text-sm text-stone-500">
+                            <td className="px-4 py-3 text-sm text-gray-500">
                               {lesson.completionRate || 0}%
                             </td>
                           </tr>
                         )) || (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-stone-500">
+                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
                               No lesson data available yet
                             </td>
                           </tr>
@@ -1437,10 +1444,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 bg-stone-50 rounded-xl border border-stone-200">
-                <BarChart3 className="h-12 w-12 text-stone-300 mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-stone-600">No analytics data yet</h3>
-                <p className="text-stone-500 text-sm mt-1">Analytics will appear here once students enroll and start learning.</p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-gray-600">No analytics data yet</h3>
+                <p className="text-gray-500 text-sm mt-1">Analytics will appear here once students enroll and start learning.</p>
               </div>
             )}
 
@@ -1520,14 +1527,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <button
             type="button"
             onClick={() => navigate('/teacher/courses')}
-            className="px-6 py-3 border border-stone-200 text-stone-700 font-medium rounded-xl hover:bg-stone-50 hover:border-[#27AE60]/50 hover:text-[#27AE60] transition-all"
+            className="px-6 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all"
           >
             {t('common.back_to_courses')}
           </button>
           <LoadingButton
             loading={updateMutation.isPending}
             onClick={handleSave}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-white font-medium rounded-xl hover:from-[#219150] hover:to-[#12876F] transition-all shadow-lg"
+            className="inline-flex items-center px-6 py-3 text-white font-medium rounded-xl transition-all shadow-lg"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Save className="h-5 w-5 mr-2" />
             {t('common.save_changes')}

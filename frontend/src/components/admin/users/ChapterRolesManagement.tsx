@@ -3,7 +3,7 @@
  * Admin interface for managing chapter-specific roles (FR7)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserCog, MapPin, Crown, Users, Search, Loader2, RefreshCw } from 'lucide-react';
 import { useNotification } from '@/context/NotificationContext';
 import chapterRolesApi, { ChapterRole, RegionalCoordinator } from '@/services/api/chapterRoles';
@@ -73,7 +73,9 @@ const ChapterRolesManagement: React.FC = () => {
           setRegionOptions(regions);
         }
       } catch (err) {
-        console.warn('Country/region fetch failed', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[ChapterRoles] Country/region fetch failed', err);
+        }
       }
     };
     fetchLocations();
@@ -118,7 +120,9 @@ const ChapterRolesManagement: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('Error loading chapter roles data:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[ChapterRoles] Error loading chapter roles data:', error);
+      }
       showNotification({
         type: 'error',
         title: 'Error',
@@ -167,7 +171,9 @@ const ChapterRolesManagement: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Error assigning role:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[ChapterRoles] Error assigning role:', error);
+      }
       showNotification({
         type: 'error',
         title: 'Error',
@@ -206,7 +212,9 @@ const ChapterRolesManagement: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Error removing role:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[ChapterRoles] Error removing role:', error);
+      }
       showNotification({
         type: 'error',
         title: 'Error',
@@ -318,7 +326,7 @@ const ChapterRolesManagement: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opacity-40"
-              style={{ 
+              style={{
                 '--tw-ring-color': brandColors.primaryHex,
                 borderColor: searchTerm ? brandColors.primaryHex : undefined
               } as React.CSSProperties}
@@ -362,15 +370,6 @@ const ChapterRolesManagement: React.FC = () => {
             style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           >
             Sort by {sortBy === 'chapter' ? 'Chapter' : 'User'}
-          </button>
-          <button
-            type="button"
-            onClick={loadData}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
-            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
           </button>
           <button
             onClick={() => setShowAssignForm(true)}
@@ -426,11 +425,11 @@ const ChapterRolesManagement: React.FC = () => {
         </div>
 
         <div className="p-6">
-          {chapterRoles.filter(r => r.role === 'chapter_admin').length === 0 ? (
+          {filteredChapterRoles.filter(r => r.role === 'chapter_admin').length === 0 ? (
             <p className="text-gray-500 text-center py-8">No chapter admins assigned yet</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {chapterRoles.filter(r => r.role === 'chapter_admin').map((admin) => (
+              {filteredChapterRoles.filter(r => r.role === 'chapter_admin').map((admin) => (
                 <div key={admin.id} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -607,9 +606,9 @@ const ChapterRolesManagement: React.FC = () => {
                     type="submit"
                     disabled={actionLoading === 'assign'}
                     className="px-4 py-2 text-white rounded-lg disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                    style={{ 
+                    style={{
                       backgroundColor: brandColors.primaryHex,
-                      '--tw-ring-color': brandColors.primaryHex 
+                      '--tw-ring-color': brandColors.primaryHex
                     } as React.CSSProperties}
                   >
                     {actionLoading === 'assign' ? 'Assigning...' : 'Assign Role'}

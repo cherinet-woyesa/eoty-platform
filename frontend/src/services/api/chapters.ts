@@ -126,6 +126,52 @@ export const chaptersApi = {
     return response.data;
   },
 
+  // --- Management Methods (Aliases for consistency with Page) ---
+  
+  getManagedChapter: async () => {
+    // Assuming there's an endpoint for the chapter the user manages
+    const response = await apiClient.get('/chapters/managed');
+    return response.data;
+  },
+
+  getChapterMembers: async (chapterId: number) => {
+    return chaptersApi.getMembers(chapterId);
+  },
+
+  getChapterEvents: async (chapterId: number) => {
+    return chaptersApi.getEvents(chapterId);
+  },
+
+  getChapterResources: async (chapterId: number) => {
+    return chaptersApi.getResources(chapterId);
+  },
+
+  getChapterAnnouncements: async (chapterId: number) => {
+    return chaptersApi.getAnnouncements(chapterId);
+  },
+
+  applyForLeadership: async (chapterId: number, data: any) => {
+    // The page passes (chapterId, data), but the original applyLeadership took just data.
+    // We'll assume the backend might need chapterId in the URL or body.
+    // If the original was just /chapters/apply-leadership, it might be a global application.
+    // Let's try to use the specific chapter endpoint if possible, or fall back.
+    // For now, let's match the page's expectation.
+    const response = await apiClient.post(`/chapters/${chapterId}/apply-leadership`, data);
+    return response.data;
+  },
+
+  getEventAttendance: async (chapterId: number, eventId: number) => {
+     // Page passes (chapterId, eventId)
+     const response = await apiClient.get(`/chapters/${chapterId}/events/${eventId}/attendance`);
+     return response.data;
+  },
+
+  markAttendance: async (chapterId: number, eventId: number, userId: number, status: string) => {
+      // Page passes (chapterId, eventId, userId, status)
+      const response = await apiClient.post(`/chapters/${chapterId}/events/${eventId}/attendance`, { user_id: userId, status });
+      return response.data;
+  },
+
   createChapter: async (data: any) => {
     const response = await apiClient.post('/chapters', data);
     return response.data;

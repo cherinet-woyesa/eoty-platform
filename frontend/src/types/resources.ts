@@ -6,6 +6,7 @@ export interface Resource {
   file_type: string;
   file_path: string;
   file_url?: string;
+  url?: string; // Legacy support
   file_size?: string;
   author?: string;
   category: string;
@@ -14,6 +15,7 @@ export interface Resource {
   tags: string[];
   is_public: boolean;
   requires_permission: boolean;
+  resource_scope?: 'platform_wide' | 'chapter_wide' | 'course_specific';
   uploaded_by: number;
   published_at?: string;
   created_at: string;

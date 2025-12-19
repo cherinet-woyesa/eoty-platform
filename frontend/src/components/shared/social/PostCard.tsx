@@ -40,6 +40,7 @@ interface PostCardProps {
   onCancelEdit?: () => void;
   onCommentCountChange?: (postId: string, newCount: number) => void;
   onStartEditing?: (post: Post) => void;
+  isAdmin?: boolean;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -56,7 +57,8 @@ const PostCard: React.FC<PostCardProps> = ({
   onSaveEdit,
   onCancelEdit,
   onCommentCountChange,
-  onStartEditing
+  onStartEditing,
+  isAdmin = false
 }) => {
   const [showPostMenu, setShowPostMenu] = useState<boolean>(false);
   const [showComments, setShowComments] = useState<boolean>(false);
@@ -71,15 +73,34 @@ const PostCard: React.FC<PostCardProps> = ({
     [post.authorProfilePicture, post.authorAvatar, post.author_avatar, post.author_profile_picture]
   );
 
-  const displayName = useMemo(
-    () =>
-      post.author_name ||
-      (post as any).authorName ||
-      (post as any).author_full_name ||
-      (post as any).authorFullName ||
-      'User',
-    [post.author_name]
-  );
+  const displayName = useMemo(() => {
+    const pickName = (obj: any): string => {
+      if (!obj) return '';
+      const direct = obj.author_name || obj.authorName || obj.display_name || obj.displayName || obj.full_name || obj.author_full_name || obj.authorFullName || obj.fullName || obj.name || '';
+      if (direct && String(direct).trim()) return String(direct).trim();
+      const fn = obj.first_name || obj.firstName || '';
+      const ln = obj.last_name || obj.lastName || '';
+      const combo = `${fn} ${ln}`.trim();
+      if (combo) return combo;
+      const afn = obj.author_first_name || obj.authorFirstName || '';
+      const aln = obj.author_last_name || obj.authorLastName || '';
+      const acombo = `${afn} ${aln}`.trim();
+      if (acombo) return acombo;
+      const email = obj.email || obj.user_email || '';
+      if (email && typeof email === 'string') {
+        const base = email.split('@')[0]?.replace(/[._-]+/g, ' ');
+        if (base) {
+          return base
+            .split(' ')
+            .map((s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s))
+            .join(' ');
+        }
+      }
+      return '';
+    };
+    const name = pickName(post) || pickName((post as any).author) || pickName((post as any).user);
+    return name || 'Member';
+  }, [post]);
 
   const formattedDate = useMemo(() => {
     const date = new Date(post.created_at);
@@ -115,7 +136,7 @@ const PostCard: React.FC<PostCardProps> = ({
             </span>
           </div>
         </div>
-        {showActions && post.author_id === currentUserId && (
+        {showActions && (post.author_id === currentUserId || isAdmin) && (
           <div className="relative flex items-center gap-2">
             <button
               onClick={() => onBookmark?.(post.id)}
@@ -132,17 +153,21 @@ const PostCard: React.FC<PostCardProps> = ({
               </button>
               {showPostMenu && (
                 <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-xl z-20 min-w-[160px] py-1">
-                  <button
-                    onClick={() => {
-                      onStartEditing?.(post);
-                      setShowPostMenu(false);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    Edit Post
-                  </button>
-                  <div className="h-px bg-gray-100 my-1" />
+                  {post.author_id === currentUserId && (
+                    <>
+                      <button
+                        onClick={() => {
+                          onStartEditing?.(post);
+                          setShowPostMenu(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        Edit Post
+                      </button>
+                      <div className="h-px bg-gray-100 my-1" />
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       onDelete?.(post.id);

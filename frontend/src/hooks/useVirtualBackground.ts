@@ -14,6 +14,7 @@ export const useVirtualBackground = (
 ) => {
   const [processedStream, setProcessedStream] = useState<MediaStream | null>(null);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -38,23 +39,35 @@ export const useVirtualBackground = (
 
   // Initialize MediaPipe Model
   useEffect(() => {
-    const selfieSegmentation = new SelfieSegmentation({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
-      },
-    });
+    let selfieSegmentation: SelfieSegmentation | null = null;
+    try {
+      selfieSegmentation = new SelfieSegmentation({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+        },
+      });
 
-    selfieSegmentation.setOptions({
-      modelSelection: 1, // 1 for landscape
-    });
+      selfieSegmentation.setOptions({
+        modelSelection: 1, // 1 for landscape
+      });
 
-    selfieSegmentation.onResults(onResults);
-    selfieSegmentationRef.current = selfieSegmentation;
-    setIsModelLoaded(true);
+      selfieSegmentation.onResults(onResults);
+      selfieSegmentationRef.current = selfieSegmentation;
+      setIsModelLoaded(true);
+      setError(null);
+    } catch (error: any) {
+      console.error("Failed to initialize SelfieSegmentation:", error);
+      setIsModelLoaded(false);
+      setError(error.message || "Failed to load virtual background model");
+    }
 
     return () => {
-      if (selfieSegmentationRef.current) {
-        selfieSegmentationRef.current.close();
+      if (selfieSegmentation) {
+        try {
+          selfieSegmentation.close();
+        } catch (e) {
+          console.error("Error closing SelfieSegmentation:", e);
+        }
       }
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
@@ -64,24 +77,32 @@ export const useVirtualBackground = (
 
   // Initialize Canvas and Video Element
   useEffect(() => {
-    if (!canvasRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1280;
-      canvas.height = 720;
-      canvasRef.current = canvas;
-      contextRef.current = canvas.getContext('2d');
-      
-      // Create stream from canvas once
-      const stream = canvas.captureStream(30);
-      setProcessedStream(stream);
-    }
+    try {
+      if (!canvasRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1280;
+        canvas.height = 720;
+        canvasRef.current = canvas;
+        contextRef.current = canvas.getContext('2d');
+        
+        // Create stream from canvas once
+        if (canvas.captureStream) {
+          const stream = canvas.captureStream(30);
+          setProcessedStream(stream);
+        } else {
+          console.warn("canvas.captureStream is not supported");
+        }
+      }
 
-    if (!videoElementRef.current) {
-      const video = document.createElement('video');
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      videoElementRef.current = video;
+      if (!videoElementRef.current) {
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        videoElementRef.current = video;
+      }
+    } catch (error) {
+      console.error("Error initializing virtual background canvas:", error);
     }
   }, []);
 
@@ -148,7 +169,14 @@ export const useVirtualBackground = (
     }
 
     if (selfieSegmentationRef.current) {
-      await selfieSegmentationRef.current.send({ image: videoElementRef.current });
+      try {
+        await selfieSegmentationRef.current.send({ image: videoElementRef.current });
+      } catch (error) {
+        console.error("SelfieSegmentation send error:", error);
+        // Continue loop even if segmentation fails, maybe fallback to normal video?
+        // For now, just try again next frame
+        requestRef.current = requestAnimationFrame(processFrame);
+      }
     }
   };
 
@@ -166,6 +194,7 @@ export const useVirtualBackground = (
 
   return {
     processedStream: options.enabled ? processedStream : sourceStream,
-    isModelLoaded
+    isModelLoaded,
+    error
   };
 };

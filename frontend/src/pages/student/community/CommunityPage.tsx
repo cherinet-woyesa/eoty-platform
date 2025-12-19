@@ -28,33 +28,30 @@ const CommunityPage: React.FC = () => {
           <nav className="flex border-b border-indigo-100 overflow-x-auto flex-shrink-0">
             <button
               onClick={() => setActiveTab('feed')}
-              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'feed'
+              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'feed'
                   ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Sparkles className="h-5 w-5" />
               <span>{t('community.tabs.feed')}</span>
             </button>
             <button
               onClick={() => setActiveTab('groups')}
-              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'groups'
+              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'groups'
                   ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <Users className="h-5 w-5" />
               <span>{t('community.tabs.groups')}</span>
             </button>
             <button
               onClick={() => setActiveTab('forums')}
-              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${
-                activeTab === 'forums'
+              className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === 'forums'
                   ? 'border-indigo-800 text-indigo-900 bg-indigo-50'
                   : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
-              }`}
+                }`}
             >
               <MessageSquare className="h-5 w-5" />
               <span>{t('community.tabs.forums')}</span>
@@ -64,13 +61,18 @@ const CommunityPage: React.FC = () => {
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'feed' && (
-              <div className="animate-in fade-in duration-300">
-                <CommunityHub variant="student" feedState={feed} showTabs={false} />
+              <div className="animate-in fade-in duration-300 p-4 sm:p-6">
+                <CommunityHub
+                  variant="student"
+                  feedState={feed}
+                  showTabs={false}
+                  disableLayoutPadding
+                />
               </div>
             )}
             {activeTab === 'groups' && (
               <div className="animate-in fade-in duration-300">
-                <StudyGroupsPage />
+                <StudyGroupsPage embedded />
               </div>
             )}
             {activeTab === 'forums' && (

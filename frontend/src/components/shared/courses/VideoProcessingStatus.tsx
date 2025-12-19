@@ -10,6 +10,7 @@ interface VideoProcessingStatusProps {
   isOpen: boolean;
   onClose: () => void;
   onProcessingComplete: () => void;
+  onViewLesson?: () => void; // New prop for viewing the lesson
   videoProvider?: 'mux' | 's3'; // Optional: specify video provider
 }
 
@@ -28,13 +29,14 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   isOpen,
   onClose,
   onProcessingComplete,
+  onViewLesson,
   videoProvider = 's3' // Default to S3 for backward compatibility
 }) => {
   const DEBUG = false;
   const [processingState, setProcessingState] = useState<ProcessingState>({
     status: 'queued',
     progress: 0,
-    currentStep: videoProvider === 'mux' ? 'Uploading to Mux...' : 'Initializing...',
+    currentStep: videoProvider === 'mux' ? 'Uploading...' : 'Initializing...',
     error: null,
     provider: videoProvider
   });
@@ -604,13 +606,9 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       // Show success notification
       // Visible success message handled by parent + modal UI; no console log
       
-      const timer = setTimeout(() => {
-        onClose();
-      }, 5000); // Close after 5 seconds
-      
-      return () => clearTimeout(timer);
+      // Removed auto-close to keep success message visible
     }
-  }, [processingState.status, onClose]);
+  }, [processingState.status]);
 
   const handleRetry = () => {
     setRetryCount(0);
@@ -633,7 +631,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       case 'queued':
         return <Clock className="h-8 w-8 text-yellow-500" />;
       case 'processing':
-        return <Loader className="h-8 w-8 text-blue-500 animate-spin" />;
+        return <Loader className="h-8 w-8 text-indigo-600 animate-spin" />;
       case 'completed':
         return <CheckCircle className="h-8 w-8 text-green-500" />;
       case 'failed':
@@ -648,13 +646,13 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     
     switch (processingState.status) {
       case 'queued':
-        return isMux ? 'Video queued for Mux upload' : 'Video queued for processing';
+        return 'Video queued for processing';
       case 'processing':
-        return isMux ? 'Processing video...' : 'Processing video...';
+        return 'Processing video...';
       case 'completed':
         return 'Video processing completed successfully!';
       case 'failed':
-        return isMux ? 'Mux processing failed' : 'Processing failed';
+        return 'Processing failed';
       default:
         return 'Unknown status';
     }
@@ -683,7 +681,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             <div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="h-2 rounded-full transition-all duration-300 bg-blue-600"
+                  className="h-2 rounded-full transition-all duration-300 bg-indigo-600"
                   style={{ width: `${processingState.progress}%` }}
                 />
               </div>
@@ -707,14 +705,6 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 relative">
-        {/* Minimize button */}
-        <button
-          onClick={() => setMinimized(true)}
-          className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 text-sm"
-          title="Continue in background"
-        >
-          Minimize
-        </button>
         {/* Simplified UI - Just show icon and message */}
         <div className="flex flex-col items-center text-center space-y-4">
           {getStatusIcon()}
@@ -733,7 +723,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
             <div className="w-full">
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="h-2 rounded-full transition-all duration-300 bg-blue-600"
+                  className="h-2 rounded-full transition-all duration-300 bg-indigo-600"
                   style={{ width: `${processingState.progress}%` }}
                 />
               </div>
@@ -761,12 +751,12 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
           )}
 
           {/* Simplified Action Buttons */}
-          <div className="flex justify-center space-x-3 w-full mt-4">
+          <div className="flex flex-col space-y-3 w-full mt-4">
             {processingState.status === 'failed' && (
-              <>
+              <div className="flex space-x-3 justify-center">
                 <button
                   onClick={handleRetry}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium"
                 >
                   Try Again
                 </button>
@@ -776,27 +766,35 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
                 >
                   Close
                 </button>
-              </>
+              </div>
             )}
             
             {processingState.status === 'completed' && (
-              <button
-                onClick={handleManualClose}
-                className="px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium text-lg"
-              >
-                Done
-              </button>
+              <div className="flex flex-col space-y-3 w-full">
+                {onViewLesson && (
+                  <button
+                    onClick={() => {
+                      onViewLesson();
+                      onClose();
+                    }}
+                    className="w-full px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  >
+                    View Lesson
+                  </button>
+                )}
+                <button
+                  onClick={handleManualClose}
+                  className="w-full px-8 py-3 bg-white border-2 border-indigo-600 text-indigo-700 rounded-xl hover:bg-indigo-50 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
             )}
             
             {(processingState.status === 'queued' || processingState.status === 'processing') && (
               <div className="flex flex-col items-center w-full">
-                <button
-                  onClick={() => setMinimized(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium mb-2"
-                >
-                  Continue in Background
-                </button>
-                <p className="text-xs text-gray-500">This will minimize progress to a small card</p>
+                {/* "Continue in Background" removed to keep modal visible as per user request */}
+                <p className="text-xs text-gray-500 mt-2">Please wait while your video is being processed...</p>
               </div>
             )}
           </div>

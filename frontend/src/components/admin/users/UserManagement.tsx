@@ -109,8 +109,6 @@ const UserManagement: React.FC = () => {
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -128,9 +126,10 @@ const UserManagement: React.FC = () => {
   const fetchUsers = useCallback(async (pageOverride?: number) => {
     const pageToLoad = typeof pageOverride === 'number' ? pageOverride : currentPage;
     try {
-      setLoading(users.length === 0);
-      setIsInitialLoading(users.length === 0);
-      setIsRefreshing(users.length > 0);
+      const isFirstLoad = users.length === 0;
+      setLoading(isFirstLoad);
+      setIsInitialLoading(isFirstLoad);
+      setIsRefreshing(!isFirstLoad);
       setError(null);
       const payload = await adminApi.getUsers({
         page: pageToLoad,
@@ -162,14 +161,16 @@ const UserManagement: React.FC = () => {
         throw new Error('Invalid response format');
       }
     } catch (err: any) {
-      console.error('Failed to fetch users:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to fetch users:', err);
+      }
       setError(err?.response?.data?.message || 'Failed to load users. Please try again.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
       setIsInitialLoading(false);
     }
-  }, [currentPage, itemsPerPage, roleFilter, searchTerm, sortBy, statusFilter, users.length]);
+  }, [currentPage, itemsPerPage, roleFilter, searchTerm, sortBy, statusFilter, chapterFilter, sortOrder]);
 
   // Fetch chapters
   const fetchChapters = useCallback(async () => {
@@ -182,14 +183,18 @@ const UserManagement: React.FC = () => {
           setNewUser(prev => ({ ...prev, chapter: response.data.chapters[0].id.toString() }));
         }
       } else {
-        console.warn('Failed to fetch chapters, using empty list');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[UserManagement] Failed to fetch chapters, using empty list');
+        }
         setChapters([]);
       }
     } catch (err) {
-      console.error('Error fetching chapters:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Error fetching chapters:', err);
+      }
       setChapters([]);
     }
-  }, [newUser.chapter]);
+  }, []); // Remove newUser.chapter dependency - chapters don't change based on form state
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -229,11 +234,15 @@ const UserManagement: React.FC = () => {
         inactive: inactivePayload.pagination?.total ?? inactivePayload.users.length ?? 0,
       });
     } catch (err) {
-      console.error('Failed to fetch counts', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to fetch counts', err);
+      }
     }
   }, [roleFilter, searchTerm, statusFilter, chapterFilter, sortBy, sortOrder]);
 
   // Debounce search/filters before firing fetch
+  // Note: fetchUsers and fetchCounts are NOT in dependencies to avoid infinite loop
+  // They are stable functions that don't need to trigger this effect
   useEffect(() => {
     const t = setTimeout(() => {
       setCurrentPage(1);
@@ -241,13 +250,16 @@ const UserManagement: React.FC = () => {
       fetchCounts();
     }, 350);
     return () => clearTimeout(t);
-  }, [searchTerm, roleFilter, statusFilter, timeFilter, sortBy, sortOrder, chapterFilter, itemsPerPage, fetchUsers, fetchCounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, roleFilter, statusFilter, timeFilter, sortBy, sortOrder, chapterFilter, itemsPerPage]);
 
+  // Initial load only
   useEffect(() => {
     fetchUsers();
     fetchChapters();
     fetchCounts();
-  }, [fetchUsers, fetchChapters, fetchCounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Server-paginated users
   const paginatedUsers = useMemo(() => users, [users]);
@@ -290,7 +302,9 @@ const UserManagement: React.FC = () => {
         message: 'User created successfully',
       });
     } catch (err: any) {
-      console.error('Failed to create user:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to create user:', err);
+      }
       showNotification({
         type: 'error',
         title: 'Error',
@@ -307,7 +321,9 @@ const UserManagement: React.FC = () => {
       await adminApi.updateUserRole(userId, newRole);
       await fetchUsers();
     } catch (err: any) {
-      console.error('Failed to update user role:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to update user role:', err);
+      }
       setError(err.response?.data?.message || 'Failed to update user role');
     } finally {
       setActionLoading(null);
@@ -320,7 +336,9 @@ const UserManagement: React.FC = () => {
       await adminApi.updateUserStatus(userId, !currentStatus);
       await fetchUsers();
     } catch (err: any) {
-      console.error('Failed to update user status:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to update user status:', err);
+      }
       setError(err.response?.data?.message || 'Failed to update user status');
     } finally {
       setActionLoading(null);
@@ -348,7 +366,9 @@ const UserManagement: React.FC = () => {
         message: 'User deleted successfully',
       });
     } catch (err: any) {
-      console.error('Failed to delete user:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to delete user:', err);
+      }
       showNotification({
         type: 'error',
         title: 'Error',
@@ -378,7 +398,9 @@ const UserManagement: React.FC = () => {
       setEditingUser(null);
       await fetchUsers();
     } catch (err: any) {
-      console.error('Failed to update user:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to update user:', err);
+      }
       setError(err.response?.data?.message || 'Failed to update user');
     } finally {
       setActionLoading(null);
@@ -392,8 +414,17 @@ const UserManagement: React.FC = () => {
 
   const handleBulkStatusChange = async (isActive: boolean) => {
     if (selectedUsers.length === 0) return;
-    const confirmed = window.confirm(`Are you sure you want to ${isActive ? 'activate' : 'deactivate'} ${selectedUsers.length} user(s)?`);
+
+    const confirmed = await confirm({
+      title: isActive ? 'Activate Users' : 'Deactivate Users',
+      message: `Are you sure you want to ${isActive ? 'activate' : 'deactivate'} ${selectedUsers.length} user(s)?`,
+      confirmLabel: isActive ? 'Activate' : 'Deactivate',
+      cancelLabel: 'Cancel',
+      variant: isActive ? 'default' : 'danger'
+    });
+
     if (!confirmed) return;
+
     setActionLoading('bulk');
     try {
       await Promise.all(
@@ -404,7 +435,9 @@ const UserManagement: React.FC = () => {
       setSelectedUsers([]);
       await fetchUsers();
     } catch (err: any) {
-      console.error('Failed to update users:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to bulk update users:', err);
+      }
       setError('Failed to update users');
     } finally {
       setActionLoading(null);
@@ -446,7 +479,9 @@ const UserManagement: React.FC = () => {
       URL.revokeObjectURL(url);
       setActionLoading(null);
     } catch (err) {
-      console.error('Failed to export CSV', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserManagement] Failed to export CSV', err);
+      }
       setError('Failed to export CSV. Please try again.');
       setActionLoading(null);
     }
@@ -468,15 +503,15 @@ const UserManagement: React.FC = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []);
 
-  const getTimeAgo = (date: string | Date) => {
+  const getTimeAgo = useCallback((date: string | Date) => {
     const now = new Date();
     const userDate = typeof date === 'string' ? new Date(date) : date;
     const diffInHours = Math.floor((now.getTime() - userDate.getTime()) / (1000 * 60 * 60));
@@ -485,9 +520,9 @@ const UserManagement: React.FC = () => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
     return formatDate(userDate.toString());
-  };
+  }, [formatDate]);
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = useCallback((role: string) => {
     switch (role) {
       case 'admin':
         return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -502,9 +537,9 @@ const UserManagement: React.FC = () => {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-  };
+  }, []);
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadge = useCallback((role: string) => {
     switch (role) {
       case 'admin':
         return 'Platform Admin';
@@ -519,7 +554,7 @@ const UserManagement: React.FC = () => {
       default:
         return role;
     }
-  };
+  }, []);
 
   if (loading && users.length === 0) {
     return (
@@ -568,6 +603,13 @@ const UserManagement: React.FC = () => {
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={actionLoading === 'export'}
+            className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50 disabled:opacity-50"
+          >
+            {actionLoading === 'export' ? 'Exporting...' : 'Export CSV'}
           </button>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -692,39 +734,6 @@ const UserManagement: React.FC = () => {
                   <LayoutGrid className="h-4 w-4" />
                 </button>
               </div>
-            </div>
-
-            {/* Actions row */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => fetchUsers()}
-                disabled={loading || isRefreshing}
-                className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40 disabled:opacity-50"
-                style={{
-                  borderColor: `${brandColors.primaryHex}40`,
-                  '--tw-ring-color': brandColors.primaryHex
-                } as React.CSSProperties}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
-              <button
-                onClick={exportCsv}
-                className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50"
-              >
-                Export CSV
-              </button>
-              <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-40"
-                style={{
-                  backgroundColor: brandColors.primaryHex,
-                  '--tw-ring-color': brandColors.primaryHex
-                } as React.CSSProperties}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                New User
-              </button>
             </div>
           </div>
         </div>
@@ -1282,70 +1291,6 @@ const UserManagement: React.FC = () => {
               Create First User
             </button>
           )}
-        </div>
-      )}
-
-      {/* User Details Modal */}
-      {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
-              <button
-                onClick={() => {
-                  setShowUserModal(false);
-                  setSelectedUser(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="flex items-center mb-6">
-                <div className="h-20 w-20 rounded-full flex items-center justify-center text-white font-bold text-2xl mr-4" style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}>
-                  {selectedUser.firstName.charAt(0)}{selectedUser.lastName.charAt(0)}
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</h4>
-                  <p className="text-gray-600 flex items-center">
-                    <Mail className="h-4 w-4 mr-1" />
-                    {selectedUser.email}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Role</p>
-                  <p className="text-base font-medium text-gray-900">{getRoleBadge(selectedUser.role)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Status</p>
-                  <p className={`text-base font-medium ${selectedUser.isActive ? '' : 'text-red-600'}`} style={selectedUser.isActive ? { color: brandColors.secondaryHex } : undefined}>
-                    {selectedUser.isActive ? 'Active' : 'Inactive'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Chapter</p>
-                  <p className="text-base font-medium text-gray-900 capitalize">
-                    {typeof selectedUser.chapter === 'string'
-                      ? selectedUser.chapter.replace(/-/g, ' ')
-                      : chapters.find(c => c.id === selectedUser.chapter)?.location || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Joined</p>
-                  <p className="text-base font-medium text-gray-900">{formatDate(selectedUser.createdAt)}</p>
-                </div>
-                {selectedUser.lastLogin && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Last Login</p>
-                    <p className="text-base font-medium text-gray-900">{getTimeAgo(selectedUser.lastLogin)}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

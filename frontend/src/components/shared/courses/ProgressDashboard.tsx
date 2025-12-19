@@ -8,7 +8,8 @@ import {
   Trophy,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 import { CourseProgress, UserProgressStats } from '@/services/api/progress';
 import { apiClient } from '@/services/api/apiClient';
@@ -335,65 +336,62 @@ const ProgressDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSortedCourses.length > 0 ? (
             filteredSortedCourses.map((course) => {
               const progressValue = Math.round(course.overall_progress || 0);
               return (
                 <div
                   key={course.course_id}
-                  className="border border-stone-200 rounded-lg p-4 hover:shadow-md transition-all duration-200"
+                  className="bg-white border border-stone-200 rounded-xl p-4 hover:shadow-md transition-all duration-200 flex flex-col h-full"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                    <div>
-                      <p className="font-semibold text-stone-800 text-base">{course.course_title}</p>
-                      <p className="text-sm text-stone-600">
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-stone-800 text-base line-clamp-2" title={course.course_title}>
+                        {course.course_title}
+                      </h3>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full bg-stone-100 ${progressPercentColor(progressValue)}`}>
+                        {progressValue}%
+                      </span>
+                    </div>
+                    
+                    <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden mb-3">
+                      <div
+                        className="h-1.5 rounded-full bg-brand-primary transition-all duration-500"
+                        style={{ width: `${Math.min(progressValue, 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="space-y-1 mb-4">
+                      <p className="text-xs text-stone-500 flex items-center gap-1.5">
+                        <CheckCircle className="h-3.5 w-3.5" />
                         {t('learning_progress.lessons_completed_label', {
                           completed: course.completed_lessons,
                           total: course.total_lessons
                         })}
                       </p>
-                      <p className="text-xs text-stone-500">
+                      <p className="text-xs text-stone-500 flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
                         {t('learning_progress.last_accessed', { date: formatDate(course.last_accessed) })}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-sm font-semibold ${progressPercentColor(progressValue)}`}>
-                        {progressValue}%
-                      </span>
-                    </div>
                   </div>
 
-                  <div className="w-full bg-stone-200 rounded-full h-2 overflow-hidden mb-3">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-[color:#1e1b4b] to-[color:#312e81] transition-all duration-500"
-                      style={{ width: `${Math.min(progressValue, 100)}%` }}
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-stone-100">
                     <Link
                       to={`/member/courses/${course.course_id}`}
-                      className="inline-flex items-center px-3 py-2 rounded-lg bg-[color:#1e1b4b] text-white text-sm font-semibold hover:bg-[color:#312e81] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{ boxShadow: `0 0 0 2px ${primary}33` }}
+                      className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-semibold hover:bg-brand-primary/90 transition-colors"
                     >
                       {course.overall_progress > 0
                         ? t('learning_progress.resume')
                         : t('learning_progress.start')}
                     </Link>
                     <Link
-                      to={`/member/courses/${course.course_id}`}
-                      className="inline-flex items-center px-3 py-2 rounded-lg border border-stone-200 text-sm font-semibold text-stone-700 hover:border-[color:#1e1b4b] hover:text-[color:#1e1b4b] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{ borderColor: primary, boxShadow: `0 0 0 1px ${primary}22` }}
-                    >
-                      {t('learning_progress.view_course')}
-                    </Link>
-                    <Link
                       to={getNextLessonLink(course)}
-                      className="inline-flex items-center px-3 py-2 rounded-lg border border-stone-200 text-sm font-semibold text-stone-700 hover:border-[color:#1e1b4b] hover:text-[color:#1e1b4b] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{ borderColor: primary, boxShadow: `0 0 0 1px ${primary}22` }}
+                      className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-stone-200 text-stone-600 hover:text-brand-primary hover:border-brand-primary transition-colors"
+                      title={nextLessonLabel(course)}
                     >
-                      {t('learning_progress.next_lesson_cta')} {nextLessonLabel(course)}
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>

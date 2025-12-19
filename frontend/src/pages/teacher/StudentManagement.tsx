@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { teacherApi } from '@/services/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { brandColors } from '@/theme/brand';
 
 interface Student {
   id: number;
@@ -136,87 +137,79 @@ const StudentManagement: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-2 p-2">
-      {/* Compact Header with Actions */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex gap-2">
+    <div className="max-w-7xl mx-auto space-y-6 p-6">
+      {/* Header with Actions */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">{t('student_management.overview')}</h2>
+          <p className="text-sm text-gray-500">{t('student_management.overview_subtitle')}</p>
+        </div>
+        <div className="flex gap-3">
           <button
             onClick={() => navigate('/teacher/students/invite')}
-            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all font-medium text-xs"
+            className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all font-medium text-sm shadow-sm"
           >
-            <Mail className="h-3 w-3 mr-1.5" />
+            <Mail className="h-4 w-4 mr-2" />
             {t('student_management.invite')}
           </button>
           <button
             onClick={fetchStudents}
-            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#16A085]/50 text-stone-700 hover:text-[#16A085] rounded-lg transition-all font-medium text-xs"
+            className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all font-medium text-sm shadow-sm"
           >
-            <RefreshCw className="h-3 w-3 mr-1.5" />
+            <RefreshCw className="h-4 w-4 mr-2" />
             {t('student_management.refresh')}
           </button>
         </div>
       </div>
 
-      {/* Compact Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#27AE60]/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#27AE60]/20 rounded-lg blur-md"></div>
-              <div className="relative p-1.5 bg-gradient-to-br from-[#27AE60]/10 to-[#16A085]/10 rounded-lg border border-[#27AE60]/30">
-                <Users className="h-4 w-4 text-[#27AE60]" />
-              </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}1A` }}>
+              <Users className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
             </div>
           </div>
-          <p className="text-xl font-bold text-stone-800">{stats.totalStudents}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.total_students')}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('student_management.stats.total_students')}</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#16A085]/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#16A085]/20 rounded-lg blur-md"></div>
-              <div className="relative p-1.5 bg-gradient-to-br from-[#16A085]/10 to-[#2980B9]/10 rounded-lg border border-[#16A085]/30">
-                <UserCheck className="h-4 w-4 text-[#16A085]" />
-              </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <UserCheck className="h-5 w-5 text-emerald-600" />
             </div>
           </div>
-          <p className="text-xl font-bold text-stone-800">{stats.activeStudents}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.active_students')}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.activeStudents}</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('student_management.stats.active_students')}</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#2980B9]/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#2980B9]/20 rounded-lg blur-md"></div>
-              <div className="relative p-1.5 bg-gradient-to-br from-[#2980B9]/10 to-[#27AE60]/10 rounded-lg border border-[#2980B9]/30">
-                <TrendingUp className="h-4 w-4 text-[#2980B9]" />
-              </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
             </div>
           </div>
-          <p className="text-xl font-bold text-stone-800">{stats.avgProgress}%</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.avg_progress')}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.avgProgress}%</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('student_management.stats.avg_progress')}</p>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-4 border border-stone-200 shadow-sm hover:shadow-md transition-all hover:border-[#FFD700]/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#FFD700]/20 rounded-lg blur-md"></div>
-              <div className="relative p-1.5 bg-gradient-to-br from-[#FFD700]/10 to-[#FFA500]/10 rounded-lg border border-[#FFD700]/30">
-                <BookOpen className="h-4 w-4 text-[#FFD700]" />
-              </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-amber-50 rounded-lg">
+              <BookOpen className="h-5 w-5 text-amber-600" />
             </div>
           </div>
-          <p className="text-xl font-bold text-stone-800">{stats.avgCourses}</p>
-          <p className="text-xs text-stone-600 mt-0.5 font-medium">{t('student_management.stats.avg_courses')}</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.avgCourses}</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('student_management.stats.avg_courses')}</p>
         </div>
       </div>
 
-      {/* Compact Filters */}
-      <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-3">
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder={t('student_management.search_placeholder')}
@@ -225,17 +218,19 @@ const StudentManagement: React.FC = () => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-sm text-stone-700 placeholder-stone-400 transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 text-sm text-gray-900 placeholder-gray-400 transition-all"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="px-2.5 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60]/50 focus:border-[#27AE60] text-xs text-stone-700"
+              className="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 text-sm text-gray-700"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             >
               <option value="all">{t('student_management.filters.all_status')}</option>
               <option value="active">{t('student_management.filters.active')}</option>
@@ -247,7 +242,7 @@ const StudentManagement: React.FC = () => {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50/80 border border-red-200/50 rounded-xl p-4 text-red-700 text-sm">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
           <p className="font-medium">{t('student_management.error.loading')}</p>
           <p className="mt-1">{error}</p>
           <button
@@ -259,20 +254,20 @@ const StudentManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Students Grid - Light cards */}
+      {/* Students Grid */}
       {!error && !loading && (
         <>
           {students.length === 0 ? (
-            <div className="bg-white/85 backdrop-blur-sm rounded-xl p-12 border border-slate-200/40 shadow-sm text-center">
-              <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 text-lg font-medium mb-2">{t('student_management.empty.no_students')}</p>
-              <p className="text-slate-500 text-sm mb-4">
+            <div className="bg-white rounded-xl p-12 border border-gray-200 shadow-sm text-center">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-900 text-lg font-medium mb-2">{t('student_management.empty.no_students')}</p>
+              <p className="text-gray-500 text-sm mb-4">
                 {searchTerm || statusFilter !== 'all' 
                   ? t('student_management.empty.adjust_criteria')
                   : t('student_management.empty.no_students_desc')}
               </p>
               {!searchTerm && statusFilter === 'all' && (
-                <div className="mt-6 space-y-2 text-sm text-slate-600">
+                <div className="mt-6 space-y-2 text-sm text-gray-600">
                   <p className="font-medium">{t('student_management.empty.how_to_see')}</p>
                   <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
                     <li>{t('student_management.empty.step_1')}</li>
@@ -287,37 +282,37 @@ const StudentManagement: React.FC = () => {
           {students.map((student) => (
             <div
               key={student.id}
-              className="bg-white/85 backdrop-blur-sm rounded-xl p-5 border border-slate-200/40 shadow-sm hover:shadow-md hover:border-slate-300/50 transition-all duration-200"
+              className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border border-slate-200/50">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
                     {student.profilePicture ? (
                       <img
                         src={student.profilePicture}
                         alt={`${student.firstName} ${student.lastName}`}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-slate-600 font-semibold text-lg">
+                      <span className="text-gray-500 font-semibold text-lg">
                         {student.firstName[0]}{student.lastName[0]}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900">
                       {student.firstName} {student.lastName}
                     </h3>
-                    <p className="text-sm text-slate-500">{student.email}</p>
+                    <p className="text-sm text-gray-500">{student.email}</p>
                   </div>
                 </div>
                 {student.isActive ? (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     <UserCheck className="h-3 w-3 mr-1" />
                     Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                     <UserX className="h-3 w-3 mr-1" />
                     Inactive
                   </span>
@@ -326,41 +321,41 @@ const StudentManagement: React.FC = () => {
 
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Enrolled Courses</span>
-                  <span className="font-semibold text-slate-700">{student.enrolledCourses}</span>
+                  <span className="text-gray-600">Enrolled Courses</span>
+                  <span className="font-semibold text-gray-900">{student.enrolledCourses}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Progress</span>
+                  <span className="text-gray-600">Progress</span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#27AE60] to-[#32E60F] transition-all duration-300"
-                        style={{ width: `${student.avgProgress}%` }}
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${student.avgProgress}%`, backgroundColor: brandColors.primaryHex }}
                       />
                     </div>
-                    <span className="font-semibold text-slate-700 w-10 text-right">{student.avgProgress}%</span>
+                    <span className="font-semibold text-gray-900 w-10 text-right">{student.avgProgress}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 flex items-center">
-                    <Clock className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-gray-600 flex items-center">
+                    <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
                     Last Active
                   </span>
-                  <span className="text-slate-500">{formatTimeAgo(student.lastActiveAt)}</span>
+                  <span className="text-gray-500">{formatTimeAgo(student.lastActiveAt)}</span>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-slate-200/50">
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
                 <button
                   onClick={() => handleViewDetails(student)}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200 text-sm font-medium"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 text-sm font-medium"
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
                 </button>
                 <button
                   onClick={() => navigate(`/teacher/students/${student.id}/message`)}
-                  className="px-3 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white hover:border-slate-400/50 transition-all duration-200"
+                  className="px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
                 >
                   <MessageSquare className="h-4 w-4" />
                 </button>
@@ -378,17 +373,17 @@ const StudentManagement: React.FC = () => {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
+            className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
           >
             Previous
           </button>
-          <span className="px-4 py-2 text-slate-600 text-sm">
+          <span className="px-4 py-2 text-gray-600 text-sm">
             Page {page} of {totalPages}
           </span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg border border-slate-300/50 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
+            className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
           >
             Next
           </button>
@@ -438,36 +433,36 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ student, onCl
   }, [student.id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-200/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
         {/* Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-200/50 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border border-slate-200/50">
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden">
               {student.profilePicture ? (
                 <img
                   src={student.profilePicture}
                   alt={`${student.firstName} ${student.lastName}`}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-slate-600 font-semibold text-lg">
+                <span className="text-gray-500 font-semibold text-lg">
                   {student.firstName[0]}{student.lastName[0]}
                 </span>
               )}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-700">
+              <h2 className="text-xl font-bold text-gray-900">
                 {student.firstName} {student.lastName}
               </h2>
-              <p className="text-sm text-slate-500">{student.email}</p>
+              <p className="text-sm text-gray-500">{student.email}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-slate-100/80 hover:bg-slate-200/80 transition-colors"
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
           >
-            <X className="h-5 w-5 text-slate-600" />
+            <X className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 
@@ -481,41 +476,41 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ student, onCl
             <div className="space-y-6">
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/40">
-                  <p className="text-sm text-slate-600 mb-1">Total Courses</p>
-                  <p className="text-2xl font-bold text-slate-700">{details.stats?.totalCourses || 0}</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-1">Total Courses</p>
+                  <p className="text-2xl font-bold text-gray-900">{details.stats?.totalCourses || 0}</p>
                 </div>
-                <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/40">
-                  <p className="text-sm text-slate-600 mb-1">Avg. Progress</p>
-                  <p className="text-2xl font-bold text-slate-700">{details.stats?.avgProgress || 0}%</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-1">Avg. Progress</p>
+                  <p className="text-2xl font-bold text-gray-900">{details.stats?.avgProgress || 0}%</p>
                 </div>
-                <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/40">
-                  <p className="text-sm text-slate-600 mb-1">Completed Lessons</p>
-                  <p className="text-2xl font-bold text-slate-700">{details.stats?.completedLessons || 0}</p>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-1">Completed Lessons</p>
+                  <p className="text-2xl font-bold text-gray-900">{details.stats?.completedLessons || 0}</p>
                 </div>
               </div>
 
               {/* Courses */}
               <div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">Enrolled Courses</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Enrolled Courses</h3>
                 <div className="space-y-3">
                   {details.courses?.map((course: any) => (
                     <div
                       key={course.id}
-                      className="bg-white/85 backdrop-blur-sm rounded-xl p-4 border border-slate-200/40 hover:shadow-md transition-shadow"
+                      className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-slate-700 mb-1">{course.title}</h4>
-                          <p className="text-sm text-slate-500 mb-3">{course.description}</p>
-                          <div className="flex items-center space-x-4 text-sm text-slate-600">
+                          <h4 className="font-semibold text-gray-900 mb-1">{course.title}</h4>
+                          <p className="text-sm text-gray-500 mb-3">{course.description}</p>
+                          <div className="flex items-center space-x-4 text-sm text-gray-600">
                             <span>Progress: {course.progress}%</span>
                             <span>Lessons: {course.completedLessons}</span>
                           </div>
-                          <div className="mt-2 w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="mt-2 w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-[#27AE60] to-[#32E60F] transition-all duration-300"
-                              style={{ width: `${course.progress}%` }}
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{ width: `${course.progress}%`, backgroundColor: brandColors.primaryHex }}
                             />
                           </div>
                         </div>
@@ -526,7 +521,7 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ student, onCl
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-gray-500">
               Failed to load student details
             </div>
           )}

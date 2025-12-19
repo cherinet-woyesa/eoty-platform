@@ -7,11 +7,8 @@ import {
   BookOpen,
   PlayCircle,
   Users,
-  Award,
   Star,
   Save,
-  Upload,
-  Eye,
   Edit3,
   Plus,
   X,
@@ -33,9 +30,13 @@ interface LandingSection {
   description: string;
 }
 
+interface LandingContentState {
+  [key: string]: any;
+}
+
 const LandingPageEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'how-it-works' | 'featured-courses' | 'resources' | 'videos' | 'blogs' | 'testimonials'>('hero');
-  const [landingContent, setLandingContent] = useState<any>({});
+  const [landingContent, setLandingContent] = useState<LandingContentState>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,7 @@ const LandingPageEditor: React.FC = () => {
   const [expandedVideo, setExpandedVideo] = useState<number | null>(null);
   const [uploadingVideoIndex, setUploadingVideoIndex] = useState<number | null>(null);
   // Track video source type per video index. Default to 'youtube'
-  const [videoSourceTypes, setVideoSourceTypes] = useState<{[key: number]: 'youtube' | 'upload'}>({});
+  const [videoSourceTypes, setVideoSourceTypes] = useState<{ [key: number]: 'youtube' | 'upload' }>({});
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
@@ -73,25 +74,25 @@ const LandingPageEditor: React.FC = () => {
       setUploadingVideoIndex(index);
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await adminApi.uploadLandingVideo(formData);
       console.log('[LandingPageEditor] Upload response:', response);
-      
+
       if (response.success) {
         setLandingContent(prev => {
-            const newVideos = [...(prev.videos || [])];
-            // Ensure the index exists
-            if (!newVideos[index]) {
-                console.error('[LandingPageEditor] Video index not found in state:', index);
-                alert('Error: Video index not found. Please refresh and try again.');
-                return prev;
-            }
-            newVideos[index] = { 
-                ...newVideos[index], 
-                videoUrl: response.data.videoUrl
-            };
-            console.log('[LandingPageEditor] State updated with URL:', response.data.videoUrl);
-            return { ...prev, videos: newVideos };
+          const newVideos = [...(prev.videos || [])];
+          // Ensure the index exists
+          if (!newVideos[index]) {
+            console.error('[LandingPageEditor] Video index not found in state:', index);
+            alert('Error: Video index not found. Please refresh and try again.');
+            return prev;
+          }
+          newVideos[index] = {
+            ...newVideos[index],
+            videoUrl: response.data.videoUrl
+          };
+          console.log('[LandingPageEditor] State updated with URL:', response.data.videoUrl);
+          return { ...prev, videos: newVideos };
         });
         alert('Video uploaded successfully!');
       } else {
@@ -129,11 +130,11 @@ const LandingPageEditor: React.FC = () => {
         coursesApi.getCourses(),
         landingApi.getFeaturedCourses()
       ]);
-      
+
       if (coursesRes.success) {
         setAllCourses(coursesRes.data.courses);
       }
-      
+
       if (featuredRes.success) {
         setFeaturedCourseIds(featuredRes.data.courses.map((c: any) => parseInt(c.id)));
       }
@@ -233,37 +234,43 @@ const LandingPageEditor: React.FC = () => {
       case 'hero':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Hero Section Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                  <input
-                    type="text"
-                    value={currentContent.badge || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      hero: { ...prev.hero, badge: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="e.g., For Ethiopian Orthodox Youths"
-                  />
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">Main Banner Configuration</h3>
+                <p className="text-sm text-gray-500 mt-1">Customize the primary visual and text users see first.</p>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge Text</label>
+                    <input
+                      type="text"
+                      value={currentContent.badge || ''}
+                      onChange={(e) => setLandingContent(prev => ({
+                        ...prev,
+                        hero: { ...prev.hero, badge: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+                      placeholder="e.g. Empowering EOTC Education"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Main Heading</label>
+                    <input
+                      type="text"
+                      value={currentContent.title || ''}
+                      onChange={(e) => setLandingContent(prev => ({
+                        ...prev,
+                        hero: { ...prev.hero, title: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+                      placeholder="e.g. Welcome to EOTY"
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      hero: { ...prev.hero, title: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Main title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title Gradient</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title Gradient Text (Optional)</label>
                   <input
                     type="text"
                     value={currentContent.titleGradient || ''}
@@ -271,12 +278,13 @@ const LandingPageEditor: React.FC = () => {
                       ...prev,
                       hero: { ...prev.hero, titleGradient: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Gradient text"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Text to be highlighted in gradient"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subheading / Description</label>
                   <textarea
                     value={currentContent.description || ''}
                     onChange={(e) => setLandingContent(prev => ({
@@ -284,15 +292,15 @@ const LandingPageEditor: React.FC = () => {
                       hero: { ...prev.hero, description: e.target.value }
                     }))}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Hero description"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+                    placeholder="Brief description below the main headline..."
                   />
                 </div>
-                <div className="space-y-4 border-t border-gray-200 pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-gray-900">Video Settings</h4>
-                  
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center space-x-2">
+
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Video & Visuals</h4>
+                  <div className="flex flex-col gap-4">
+                    <label className="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer w-fit">
                       <input
                         type="checkbox"
                         checked={currentContent.showVideo || false}
@@ -300,39 +308,40 @@ const LandingPageEditor: React.FC = () => {
                           ...prev,
                           hero: { ...prev.hero, showVideo: e.target.checked }
                         }))}
-                        className="rounded border-gray-300 text-[#1e1b4b] focus:ring-[#1e1b4b]"
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                       />
-                      <span className="text-sm text-gray-700">Show Video</span>
+                      <span className="text-sm text-gray-700">Show Video in Hero</span>
                     </label>
-                  </div>
 
-                  {currentContent.showVideo && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-100">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
-                        <input
-                          type="text"
-                          value={currentContent.videoUrl || ''}
-                          onChange={(e) => setLandingContent(prev => ({
-                            ...prev,
-                            hero: { ...prev.hero, videoUrl: e.target.value }
-                          }))}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
+                    {currentContent.showVideo && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Video Source URL (YouTube/MP4)</label>
+                          <input
+                            type="text"
+                            value={currentContent.videoUrl || ''}
+                            onChange={(e) => setLandingContent(prev => ({
+                              ...prev,
+                              hero: { ...prev.hero, videoUrl: e.target.value }
+                            }))}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="https://..."
+                          />
+                        </div>
+                        {/* Upload option could go here */}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('hero', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Hero Section'}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -342,53 +351,59 @@ const LandingPageEditor: React.FC = () => {
       case 'about':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">About/Mission Section</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                  <input
-                    type="text"
-                    value={currentContent.badge || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      about: { ...prev.about, badge: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="e.g., Our Mission"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={currentContent.title || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      about: { ...prev.about, title: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Section title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={currentContent.description || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      about: { ...prev.about, description: e.target.value }
-                    }))}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Section description"
-                  />
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">About & Mission</h3>
+                <p className="text-sm text-gray-500 mt-1">Define the core mission statement and key highlights.</p>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
+                    <input
+                      type="text"
+                      value={currentContent.badge || ''}
+                      onChange={(e) => setLandingContent(prev => ({
+                        ...prev,
+                        about: { ...prev.about, badge: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g. Our Mission"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                    <input
+                      type="text"
+                      value={currentContent.title || ''}
+                      onChange={(e) => setLandingContent(prev => ({
+                        ...prev,
+                        about: { ...prev.about, title: e.target.value }
+                      }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Section title"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={currentContent.description || ''}
+                      onChange={(e) => setLandingContent(prev => ({
+                        ...prev,
+                        about: { ...prev.about, description: e.target.value }
+                      }))}
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="Section description"
+                    />
+                  </div>
                 </div>
 
-                {/* Features Editor */}
-                <div className="mt-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-md font-medium text-gray-900">Features / Highlights</h4>
+                {/* Features List */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium text-gray-900">Key Features / Highlights</h4>
                     <button
                       onClick={() => {
                         const newFeatures = [...(currentContent.features || []), { icon: 'Target', title: '', description: '' }];
@@ -397,132 +412,119 @@ const LandingPageEditor: React.FC = () => {
                           about: { ...prev.about, features: newFeatures }
                         }));
                       }}
-                      className="text-sm text-[#1e1b4b] hover:text-[#312e81] font-medium flex items-center gap-1"
+                      className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
                     >
-                      <Plus className="h-3 w-3" /> Add Feature
+                      <Plus className="h-4 w-4" /> Add Feature
                     </button>
                   </div>
+
                   <div className="space-y-4">
-                    {(currentContent.features || []).map((feature: any, index: number) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
+                    {currentContent.features?.map((feature: any, index: number) => (
+                      <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 relative group">
                         <button
                           onClick={() => {
-                            const newFeatures = [...(currentContent.features || [])];
-                            newFeatures.splice(index, 1);
+                            const newFeatures = currentContent.features.filter((_: any, i: number) => i !== index);
                             setLandingContent(prev => ({
                               ...prev,
                               about: { ...prev.about, features: newFeatures }
                             }));
                           }}
-                          className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                          className="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1"
                         >
                           <X className="h-4 w-4" />
                         </button>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Icon</label>
-                            <select
-                              value={feature.icon || 'Target'}
-                              onChange={(e) => {
-                                const newFeatures = [...(currentContent.features || [])];
-                                newFeatures[index] = { ...feature, icon: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  about: { ...prev.about, features: newFeatures }
-                                }));
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            >
-                              <option value="Target">Target</option>
-                              <option value="Users">Members</option>
-                              <option value="Award">Award</option>
-                              <option value="BookOpen">BookOpen</option>
-                              <option value="Star">Star</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Title</label>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Feature Title</label>
                             <input
                               type="text"
-                              value={feature.title || ''}
+                              value={feature.title}
                               onChange={(e) => {
-                                const newFeatures = [...(currentContent.features || [])];
-                                newFeatures[index] = { ...feature, title: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  about: { ...prev.about, features: newFeatures }
-                                }));
+                                const newFeatures = [...currentContent.features];
+                                newFeatures[index].title = e.target.value;
+                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
                               }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
+                              placeholder="Feature Title"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Icon Name (Lucide)</label>
+                            <input
+                              type="text"
+                              value={feature.icon}
+                              onChange={(e) => {
+                                const newFeatures = [...currentContent.features];
+                                newFeatures[index].icon = e.target.value;
+                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
+                              }}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
+                              placeholder="e.g. Target, Users, Book"
                             />
                           </div>
                           <div className="md:col-span-2">
                             <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
                             <textarea
-                              value={feature.description || ''}
+                              value={feature.description}
                               onChange={(e) => {
-                                const newFeatures = [...(currentContent.features || [])];
-                                newFeatures[index] = { ...feature, description: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  about: { ...prev.about, features: newFeatures }
-                                }));
+                                const newFeatures = [...currentContent.features];
+                                newFeatures[index].description = e.target.value;
+                                setLandingContent(prev => ({ ...prev, about: { ...prev.about, features: newFeatures } }));
                               }}
                               rows={2}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
+                              placeholder="Feature description..."
                             />
                           </div>
                         </div>
                       </div>
                     ))}
+                    {(!currentContent.features || currentContent.features.length === 0) && (
+                      <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                        No features added yet.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('about', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save About Section'}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
           </div>
         );
 
+
       case 'how-it-works':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">How It Works Section</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                    <input
-                      type="text"
-                      value={currentContent.badge || ''}
-                      onChange={(e) => setLandingContent(prev => ({
-                        ...prev,
-                        howItWorks: { ...prev.howItWorks, badge: e.target.value }
-                      }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={currentContent.title || ''}
-                      onChange={(e) => setLandingContent(prev => ({
-                        ...prev,
-                        howItWorks: { ...prev.howItWorks, title: e.target.value }
-                      }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    />
-                  </div>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">How It Works</h3>
+                <p className="text-sm text-gray-500 mt-1">Explain the process to users step-by-step.</p>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={currentContent.title || ''}
+                    onChange={(e) => setLandingContent(prev => ({
+                      ...prev,
+                      'how-it-works': { ...prev['how-it-works'], title: e.target.value }
+                    }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. How It Works"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -530,246 +532,104 @@ const LandingPageEditor: React.FC = () => {
                     value={currentContent.description || ''}
                     onChange={(e) => setLandingContent(prev => ({
                       ...prev,
-                      howItWorks: { ...prev.howItWorks, description: e.target.value }
+                      'how-it-works': { ...prev['how-it-works'], description: e.target.value }
                     }))}
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Brief overview..."
                   />
                 </div>
 
                 {/* Steps Editor */}
-                <div className="mt-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">Process Steps</h4>
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium text-gray-900">Process Steps</h4>
+                    <button
+                      onClick={() => {
+                        const newSteps = [...(currentContent.steps || []), { title: '', description: '', icon: 'Check' }];
+                        setLandingContent(prev => ({
+                          ...prev,
+                          'how-it-works': { ...prev['how-it-works'], steps: newSteps }
+                        }));
+                      }}
+                      className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                    >
+                      <Plus className="h-4 w-4" /> Add Step
+                    </button>
+                  </div>
+
                   <div className="space-y-4">
-                    {(currentContent.steps || []).map((step: any, index: number) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <div className="grid grid-cols-12 gap-4 mb-3">
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-500">Step #</label>
-                            <input
-                              type="text"
-                              value={step.step}
-                              onChange={(e) => {
-                                const newSteps = [...(currentContent.steps || [])];
-                                newSteps[index] = { ...step, step: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  howItWorks: { ...prev.howItWorks, steps: newSteps }
-                                }));
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                            />
+                    {currentContent.steps?.map((step: any, index: number) => (
+                      <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200 relative group">
+                        <button
+                          onClick={() => {
+                            const newSteps = currentContent.steps.filter((_: any, i: number) => i !== index);
+                            setLandingContent(prev => ({
+                              ...prev,
+                              'how-it-works': { ...prev['how-it-works'], steps: newSteps }
+                            }));
+                          }}
+                          className="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                              {index + 1}
+                            </div>
                           </div>
-                          <div className="col-span-3">
-                            <label className="block text-xs font-medium text-gray-500">Icon</label>
-                            <select
-                              value={step.icon || 'User'}
-                              onChange={(e) => {
-                                const newSteps = [...(currentContent.steps || [])];
-                                newSteps[index] = { ...step, icon: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  howItWorks: { ...prev.howItWorks, steps: newSteps }
-                                }));
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            >
-                              <option value="User">Member</option>
-                              <option value="BookOpen">BookOpen</option>
-                              <option value="PlayCircle">PlayCircle</option>
-                              <option value="Award">Award</option>
-                            </select>
-                          </div>
-                          <div className="col-span-3">
-                            <label className="block text-xs font-medium text-gray-500">Title</label>
-                            <input
-                              type="text"
-                              value={step.title}
-                              onChange={(e) => {
-                                const newSteps = [...(currentContent.steps || [])];
-                                newSteps[index] = { ...step, title: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  howItWorks: { ...prev.howItWorks, steps: newSteps }
-                                }));
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                            />
-                          </div>
-                          <div className="col-span-4">
-                            <label className="block text-xs font-medium text-gray-500">Description</label>
-                            <input
-                              type="text"
-                              value={step.description}
-                              onChange={(e) => {
-                                const newSteps = [...(currentContent.steps || [])];
-                                newSteps[index] = { ...step, description: e.target.value };
-                                setLandingContent(prev => ({
-                                  ...prev,
-                                  howItWorks: { ...prev.howItWorks, steps: newSteps }
-                                }));
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                            />
+                          <div className="flex-1 grid grid-cols-1 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Step Title</label>
+                              <input
+                                type="text"
+                                value={step.title}
+                                onChange={(e) => {
+                                  const newSteps = [...currentContent.steps];
+                                  newSteps[index].title = e.target.value;
+                                  setLandingContent(prev => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
+                                }}
+                                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Step Title"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                              <textarea
+                                value={step.description}
+                                onChange={(e) => {
+                                  const newSteps = [...currentContent.steps];
+                                  newSteps[index].description = e.target.value;
+                                  setLandingContent(prev => ({ ...prev, 'how-it-works': { ...prev['how-it-works'], steps: newSteps } }));
+                                }}
+                                rows={2}
+                                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Description..."
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))}
+                    {(!currentContent.steps || currentContent.steps.length === 0) && (
+                      <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                        No steps added yet.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
-                  onClick={() => handleSaveSection('howItWorks', currentContent)}
+                  onClick={() => handleSaveSection('how-it-works', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save How It Works'}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'testimonials':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Testimonials</h3>
-                <button
-                  onClick={() => setEditingTestimonial({})}
-                  className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Testimonial
-                </button>
-              </div>
-
-              {editingTestimonial && (
-                <div className="mb-8 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">
-                    {editingTestimonial.id ? 'Edit Testimonial' : 'New Testimonial'}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Author Name</label>
-                      <input
-                        type="text"
-                        value={editingTestimonial.name || ''}
-                        onChange={(e) => setEditingTestimonial({ ...editingTestimonial, name: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Role/Title</label>
-                      <input
-                        type="text"
-                        value={editingTestimonial.role || ''}
-                        onChange={(e) => setEditingTestimonial({ ...editingTestimonial, role: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                        placeholder="e.g. Student, Parent"
-                      />
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Review Text</label>
-                    <textarea
-                      value={editingTestimonial.content || ''}
-                      onChange={(e) => setEditingTestimonial({ ...editingTestimonial, content: e.target.value })}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={editingTestimonial.rating || 5}
-                        onChange={(e) => setEditingTestimonial({ ...editingTestimonial, rating: parseInt(e.target.value) })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setEditingTestimonial(null)}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          setSaving(true);
-                          const res = await landingApi.saveTestimonial(editingTestimonial);
-                          if (res.success) {
-                            fetchTestimonials();
-                            setEditingTestimonial(null);
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          setError('Failed to save testimonial');
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                      disabled={saving}
-                      className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors disabled:opacity-50"
-                    >
-                      {saving ? 'Saving...' : 'Save Testimonial'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {testimonials.map((testimonial) => (
-                  <div key={testimonial.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow relative group">
-                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded p-1">
-                      <button
-                        onClick={() => setEditingTestimonial(testimonial)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Are you sure you want to delete this testimonial?')) {
-                            try {
-                              await landingApi.deleteTestimonial(testimonial.id);
-                              fetchTestimonials();
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }
-                        }}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                        {testimonial.name?.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{testimonial.name}</h4>
-                        <p className="text-xs text-gray-500">{testimonial.role}</p>
-                      </div>
-                    </div>
-                    <div className="flex text-yellow-400 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < testimonial.rating ? 'fill-current' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-3">{testimonial.content}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
@@ -778,80 +638,69 @@ const LandingPageEditor: React.FC = () => {
       case 'featured-courses':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Courses</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Select courses to display on the landing page. These will be prioritized over the default popular courses.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto p-2">
-                {allCourses.map(course => {
-                  const courseId = parseInt(course.id);
-                  const isSelected = featuredCourseIds.includes(courseId);
-                  return (
-                    <div 
-                      key={course.id} 
-                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'border-[#1e1b4b] bg-[#1e1b4b]/5 ring-1 ring-[#1e1b4b]' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => {
-                        setFeaturedCourseIds(prev => {
-                          if (prev.includes(courseId)) {
-                            return prev.filter(pid => pid !== courseId);
-                          } else {
-                            return [...prev, courseId];
-                          }
-                        });
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-1 h-5 w-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                          isSelected
-                            ? 'bg-[#1e1b4b] border-[#1e1b4b]'
-                            : 'border-gray-300 bg-white'
-                        }`}>
-                          {isSelected && <Check className="h-3 w-3 text-white" />}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 line-clamp-1">{course.title}</h4>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {course.student_count || 0} students • {course.rating || 0} ★
-                          </p>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              course.is_published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {course.is_published ? 'Published' : 'Draft'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">Featured Courses</h3>
+                <p className="text-sm text-gray-500 mt-1">Select which courses appear on the landing page.</p>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={currentContent.title || ''}
+                    onChange={(e) => setLandingContent(prev => ({
+                      ...prev,
+                      'featured-courses': { ...prev['featured-courses'], title: e.target.value }
+                    }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. Popular Courses"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Courses</label>
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 max-h-96 overflow-y-auto space-y-2">
+                    {loading && <div className="text-center py-4">Loading courses...</div>}
+                    {!loading && allCourses.map((course) => (
+                      <label key={course.id} className="flex items-center space-x-3 p-2 hover:bg-white rounded-md transition-colors cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={featuredCourseIds.includes(parseInt(course.id))}
+                          onChange={(e) => {
+                            const newIds = e.target.checked
+                              ? [...featuredCourseIds, parseInt(course.id)]
+                              : featuredCourseIds.filter(id => id !== parseInt(course.id));
+                            setFeaturedCourseIds(newIds);
+                            // Also update content state if needed for strict saving
+                            setLandingContent(prev => ({
+                              ...prev,
+                              'featured-courses': { ...prev['featured-courses'], courseIds: newIds }
+                            }));
+                          }}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{course.title}</div>
+                          <div className="text-xs text-gray-500">{course.instructor?.name || 'Unknown Instructor'}</div>
+                        </div>
+                        {featuredCourseIds.includes(parseInt(course.id)) && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Selected</span>}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Selected courses will be displayed in the order they were added or by default sorting.</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
-                  onClick={async () => {
-                    try {
-                      setSaving(true);
-                      await adminApi.updateFeaturedCourses(featuredCourseIds);
-                      // Show success toast/message
-                    } catch (err) {
-                      console.error(err);
-                      setError('Failed to save featured courses');
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
+                  onClick={() => handleSaveSection('featured-courses', { ...currentContent, courseIds: featuredCourseIds })}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Featured Courses'}
+                  {saving ? 'Saving...' : 'Save Selection'}
                 </button>
               </div>
             </div>
@@ -861,33 +710,23 @@ const LandingPageEditor: React.FC = () => {
       case 'resources':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Resources Section</h3>
-              <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">Resources Section</h3>
+                <p className="text-sm text-gray-500 mt-1">Manage downloadable resources and materials.</p>
+              </div>
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                  <input
-                    type="text"
-                    value={currentContent.badge || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      resources: { ...prev.resources, badge: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="e.g., Resources"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
                   <input
                     type="text"
                     value={currentContent.title || ''}
                     onChange={(e) => setLandingContent(prev => ({
                       ...prev,
-                      resources: { ...prev.resources, title: e.target.value }
+                      'resources': { ...prev['resources'], title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Section title"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. Free Resources"
                   />
                 </div>
                 <div>
@@ -896,22 +735,22 @@ const LandingPageEditor: React.FC = () => {
                     value={currentContent.description || ''}
                     onChange={(e) => setLandingContent(prev => ({
                       ...prev,
-                      resources: { ...prev.resources, description: e.target.value }
+                      'resources': { ...prev['resources'], description: e.target.value }
                     }))}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                    placeholder="Section description"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Section description..."
                   />
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('resources', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Resources Section'}
+                  {saving ? 'Saving...' : 'Save Resources'}
                 </button>
               </div>
             </div>
@@ -921,248 +760,47 @@ const LandingPageEditor: React.FC = () => {
       case 'videos':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">Video Section</h3>
+                <p className="text-sm text-gray-500 mt-1">Manage featured videos and tutorials.</p>
+              </div>
+              <div className="p-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Video Section</h3>
-                  <p className="text-sm text-gray-600">Manage the videos displayed on the landing page.</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={currentContent.title || ''}
+                    onChange={(e) => setLandingContent(prev => ({
+                      ...prev,
+                      'videos': { ...prev['videos'], title: e.target.value }
+                    }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. Latest Videos"
+                  />
                 </div>
-                <button
-                  onClick={() => {
-                    const newVideos = [...(Array.isArray(currentContent) ? currentContent : []), { title: '', description: '', thumbnail: '', videoUrl: '' }];
-                    setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                    setExpandedVideo(newVideos.length);
-                  }}
-                  className="bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] transition-colors flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Video
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={currentContent.description || ''}
+                    onChange={(e) => setLandingContent(prev => ({
+                      ...prev,
+                      'videos': { ...prev['videos'], description: e.target.value }
+                    }))}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Section description..."
+                  />
+                </div>
               </div>
-              
-              <div className="space-y-4">
-                {(Array.isArray(currentContent) ? currentContent : []).map((video: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg bg-white overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div 
-                      className="flex items-center justify-between p-4 cursor-pointer bg-gray-50/50 hover:bg-gray-50"
-                      onClick={() => setExpandedVideo(expandedVideo === index ? null : index)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                          {video.thumbnail ? (
-                            <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-gray-400">
-                              <PlayCircle className="h-5 w-5" />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{video.title || 'Untitled Video'}</h4>
-                          <p className="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-xs">{video.videoUrl || 'No URL set'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Are you sure you want to remove this video?')) {
-                              const newVideos = [...currentContent];
-                              newVideos.splice(index, 1);
-                              setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                            }
-                          }}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                        {expandedVideo === index ? (
-                          <ChevronUp className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                    
-                    {expandedVideo === index && (
-                      <div className="p-4 border-t border-gray-100 bg-white animate-in slide-in-from-top-2 duration-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                            <input
-                              type="text"
-                              value={video.title || ''}
-                              onChange={(e) => {
-                                const newVideos = [...currentContent];
-                                newVideos[index] = { ...video, title: e.target.value };
-                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                              placeholder="Video Title"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Video Source</label>
-                            <div className="flex space-x-4 mb-2">
-                              <button
-                                onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'youtube' }))}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                  (videoSourceTypes[index] || 'youtube') === 'youtube'
-                                    ? 'bg-[#1e1b4b] text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                              >
-                                YouTube Link
-                              </button>
-                              <button
-                                onClick={() => setVideoSourceTypes(prev => ({ ...prev, [index]: 'upload' }))}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                  videoSourceTypes[index] === 'upload'
-                                    ? 'bg-[#1e1b4b] text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                              >
-                                Upload Video
-                              </button>
-                            </div>
-
-                            {(videoSourceTypes[index] || 'youtube') === 'youtube' ? (
-                              <>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
-                                <input
-                                  type="text"
-                                  value={video.videoUrl || ''}
-                                  onChange={(e) => {
-                                    const newVideos = [...currentContent];
-                                    newVideos[index] = { ...video, videoUrl: e.target.value };
-                                    setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                                  }}
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                                  placeholder="https://youtube.com/..."
-                                />
-                              </>
-                            ) : (
-                              <>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Video</label>
-                                <div className="flex items-center space-x-4">
-                                  <input
-                                    type="file"
-                                    accept="video/*"
-                                    onChange={(e) => handleVideoUpload(e, index)}
-                                    disabled={uploadingVideoIndex === index}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#1e1b4b]/10 file:text-[#1e1b4b] hover:file:bg-[#1e1b4b]/20 disabled:opacity-50"
-                                  />
-                                  {uploadingVideoIndex === index && (
-                                    <div className="flex items-center text-sm text-[#1e1b4b]">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#1e1b4b] mr-2"></div>
-                                      Uploading...
-                                    </div>
-                                  )}
-                                </div>
-                                {video.videoUrl && !video.videoUrl.includes('youtube') && (
-                                  <p className="text-xs text-gray-500 mt-1">Current video: {video.videoUrl}</p>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea
-                              value={video.description || ''}
-                              onChange={(e) => {
-                                const newVideos = [...currentContent];
-                                newVideos[index] = { ...video, description: e.target.value };
-                                setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                              }}
-                              rows={2}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                              placeholder="Brief description of the video content"
-                            />
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
-                            <div className="flex gap-4">
-                              <input
-                                type="text"
-                                value={video.thumbnail || ''}
-                                onChange={(e) => {
-                                  const newVideos = [...currentContent];
-                                  newVideos[index] = { ...video, thumbnail: e.target.value };
-                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                                }}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                                placeholder="https://source.unsplash.com/..."
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                              <input
-                                type="text"
-                                value={video.duration || ''}
-                                onChange={(e) => {
-                                  const newVideos = [...currentContent];
-                                  newVideos[index] = { ...video, duration: e.target.value };
-                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                                placeholder="e.g. 10:00"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                              <input
-                                type="text"
-                                value={video.category || ''}
-                                onChange={(e) => {
-                                  const newVideos = [...currentContent];
-                                  newVideos[index] = { ...video, category: e.target.value };
-                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                                placeholder="e.g. Teaching"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
-                              <input
-                                type="text"
-                                value={video.author || ''}
-                                onChange={(e) => {
-                                  const newVideos = [...currentContent];
-                                  newVideos[index] = { ...video, author: e.target.value };
-                                  setLandingContent(prev => ({ ...prev, videos: newVideos }));
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                                placeholder="e.g. Deacon Yared"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {(Array.isArray(currentContent) ? currentContent : []).length === 0 && (
-                  <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <PlayCircle className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                    <p className="font-medium">No videos added yet</p>
-                    <p className="text-sm mt-1">Click "Add Video" to start building your video gallery.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex justify-end">
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('videos', currentContent)}
-                  disabled={saving || uploadingVideoIndex !== null}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  disabled={saving}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : (uploadingVideoIndex !== null ? 'Uploading Video...' : 'Save Video Section')}
+                  {saving ? 'Saving...' : 'Save Videos'}
                 </button>
               </div>
             </div>
@@ -1172,31 +810,23 @@ const LandingPageEditor: React.FC = () => {
       case 'blogs':
         return (
           <div className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Blogs/News Section</h3>
-              <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-lg font-semibold text-gray-900">Blogs & Articles</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure the blog highlights section.</p>
+              </div>
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge</label>
-                  <input
-                    type="text"
-                    value={currentContent.badge || ''}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, badge: e.target.value }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
                   <input
                     type="text"
                     value={currentContent.title || ''}
                     onChange={(e) => setLandingContent(prev => ({
                       ...prev,
-                      blogs: { ...prev.blogs, title: e.target.value }
+                      'blogs': { ...prev['blogs'], title: e.target.value }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="e.g. Latest News"
                   />
                 </div>
                 <div>
@@ -1205,40 +835,188 @@ const LandingPageEditor: React.FC = () => {
                     value={currentContent.description || ''}
                     onChange={(e) => setLandingContent(prev => ({
                       ...prev,
-                      blogs: { ...prev.blogs, description: e.target.value }
+                      'blogs': { ...prev['blogs'], description: e.target.value }
                     }))}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of Posts to Show</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={currentContent.count || 3}
-                    onChange={(e) => setLandingContent(prev => ({
-                      ...prev,
-                      blogs: { ...prev.blogs, count: parseInt(e.target.value) }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e1b4b] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Section description..."
                   />
                 </div>
               </div>
-              <div className="mt-6 flex justify-end">
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   onClick={() => handleSaveSection('blogs', currentContent)}
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#1e1b4b] to-[#cfa15a] text-white px-6 py-2 rounded-lg hover:from-[#1e1b4b]/90 hover:to-[#cfa15a]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   <Save className="h-4 w-4" />
-                  {saving ? 'Saving...' : 'Save Blogs Section'}
+                  {saving ? 'Saving...' : 'Save Blogs'}
                 </button>
               </div>
             </div>
           </div>
         );
+
+      case 'testimonials':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Testimonials</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage user reviews and success stories.</p>
+                </div>
+                <button
+                  onClick={() => setEditingTestimonial({})}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
+                >
+                  <Plus className="h-4 w-4" /> Add Testimonial
+                </button>
+              </div>
+
+              <div className="p-6">
+                {editingTestimonial && (
+                  <div className="mb-8 bg-gray-50 border border-gray-200 rounded-lg p-5 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {editingTestimonial.id ? 'Edit Testimonial' : 'New Testimonial'}
+                      </h4>
+                      <button onClick={() => setEditingTestimonial(null)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Author Name</label>
+                        <input
+                          type="text"
+                          value={editingTestimonial.name || ''}
+                          onChange={(e) => setEditingTestimonial({ ...editingTestimonial, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 text-sm"
+                          placeholder="e.g. John Doe"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Role/Title</label>
+                        <input
+                          type="text"
+                          value={editingTestimonial.role || ''}
+                          onChange={(e) => setEditingTestimonial({ ...editingTestimonial, role: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 text-sm"
+                          placeholder="e.g. Student"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Review Text</label>
+                      <textarea
+                        value={editingTestimonial.content || ''}
+                        onChange={(e) => setEditingTestimonial({ ...editingTestimonial, content: e.target.value })}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 text-sm"
+                        placeholder="What did they say?"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="w-1/3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                        <select
+                          value={editingTestimonial.rating || 5}
+                          onChange={(e) => setEditingTestimonial({ ...editingTestimonial, rating: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 text-sm"
+                        >
+                          {[1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r} Stars</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingTestimonial(null)}
+                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              setSaving(true);
+                              const res = await landingApi.saveTestimonial(editingTestimonial);
+                              if (res.success) {
+                                if (fetchTestimonials) fetchTestimonials();
+                                setEditingTestimonial(null);
+                              }
+                            } catch (err) {
+                              console.error(err);
+                              setError('Failed to save testimonial');
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          disabled={saving}
+                          className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {saving ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(testimonials || []).map((t: any) => (
+                    <div key={t.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow relative bg-gray-50/30">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                            {t.name?.[0] || 'U'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                            <div className="text-xs text-gray-500">{t.role}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setEditingTestimonial(t)}
+                            className="text-gray-400 hover:text-indigo-600 p-1"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm('Delete testimonial?')) {
+                                await landingApi.deleteTestimonial(t.id);
+                                if (fetchTestimonials) fetchTestimonials();
+                              }
+                            }}
+                            className="text-gray-400 hover:text-red-600 p-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 italic line-clamp-3">"{t.content}"</p>
+                      <div className="mt-2 text-yellow-400 text-xs">
+                        {"★".repeat(t.rating || 5)}{"☆".repeat(5 - (t.rating || 5))}
+                      </div>
+                    </div>
+                  ))}
+                  {(!testimonials || testimonials.length === 0) && (
+                    <div className="col-span-full py-8 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                      No testimonials yet. Add one to build trust!
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+
+
+
+
+
+
+
 
       default:
         return (
@@ -1300,48 +1078,51 @@ const LandingPageEditor: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 overflow-hidden flex h-[calc(100vh-8rem)]">
+      <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] flex bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Sidebar Navigation */}
-        <div className="w-64 border-r border-gray-200 flex-shrink-0 bg-gray-50/50 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-              Page Sections
-            </h2>
-            <nav className="space-y-1">
-              {sections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveTab(section.id as any)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                    activeTab === section.id
-                      ? 'bg-[#1e1b4b]/10 text-[#1e1b4b]'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        <div className="w-72 border-r border-gray-200 flex-shrink-0 bg-slate-50 flex flex-col">
+          <div className="p-5 border-b border-gray-200">
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Page Sections</div>
+            <p className="text-sm text-gray-500">Select a section to edit</p>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveTab(section.id as any)}
+                className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${activeTab === section.id
+                  ? 'bg-white shadow-sm border border-gray-200 text-indigo-600'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
-                >
-                  <span className={`${activeTab === section.id ? 'text-[#1e1b4b]' : 'text-gray-400'}`}>
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`${activeTab === section.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'}`}>
                     {section.icon}
                   </span>
-                  <div className="text-left">
-                    <span className="block">{section.label}</span>
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
+                  <span>{section.label}</span>
+                </div>
+                {activeTab === section.id && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto bg-white">
-          <div className="p-6 max-w-4xl mx-auto animate-in fade-in duration-300">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {sections.find(s => s.id === activeTab)?.label}
-              </h2>
-              <p className="text-gray-500 mt-1">
-                {sections.find(s => s.id === activeTab)?.description}
-              </p>
+        <div className="flex-1 overflow-y-auto bg-gray-50/30">
+          <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {sections.find(s => s.id === activeTab)?.label}
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  {sections.find(s => s.id === activeTab)?.description}
+                </p>
+              </div>
+
+              {/* Context Action Button (e.g. Preview Section) - Placeholder */}
             </div>
-            
+
             {/* Error Display */}
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
@@ -1352,13 +1133,13 @@ const LandingPageEditor: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleRefresh}
-                    className="text-sm font-medium px-3 py-1.5 rounded-lg border"
+                    className="text-sm font-medium px-3 py-1.5 rounded-lg border hover:bg-white transition-colors"
                     style={{ color: brandColors.primaryHex, borderColor: brandColors.primaryHex }}
                   >
                     Retry
                   </button>
-                  <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
-                    ×
+                  <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800 p-1">
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>

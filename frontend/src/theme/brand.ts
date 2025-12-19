@@ -9,6 +9,10 @@ export const brandColors = {
   secondaryBorderHex: '#1e1b4b',
   textOnPrimary: '#ffffff',
   textOnAccent: '#1c2753',
+  // Aliases for easier usage
+  primary: '#1e1b4b',
+  secondary: '#cfa15a',
+  accent: '#312e81',
 };
 
 export const brandButtons = {

@@ -153,19 +153,17 @@ const LearningPathsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-stone-200 p-5 space-y-4">
-                <div className="h-4 bg-stone-200 rounded w-1/3" />
-                <div className="h-3 bg-stone-200 rounded w-2/3" />
-                <div className="h-2 bg-stone-200 rounded w-full" />
-                <div className="h-2 bg-stone-200 rounded w-5/6" />
-                <div className="h-10 bg-stone-200 rounded" />
-              </div>
-            ))}
-          </div>
+      <div className="w-full space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="bg-white rounded-xl border border-stone-200 p-5 space-y-4">
+              <div className="h-4 bg-stone-200 rounded w-1/3" />
+              <div className="h-3 bg-stone-200 rounded w-2/3" />
+              <div className="h-2 bg-stone-200 rounded w-full" />
+              <div className="h-2 bg-stone-200 rounded w-5/6" />
+              <div className="h-10 bg-stone-200 rounded" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -173,19 +171,17 @@ const LearningPathsPage: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50">
-        <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center justify-center min-h-96">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600 text-lg mb-4">{t('learning_paths.load_failed')}</p>
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
-              >
-                {t('common.try_again')}
-              </button>
-            </div>
+      <div className="w-full space-y-4 sm:space-y-6">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 text-lg mb-4">{t('learning_paths.load_failed')}</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 rounded-lg bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors font-semibold shadow-sm"
+            >
+              {t('common.try_again')}
+            </button>
           </div>
         </div>
       </div>
@@ -299,42 +295,37 @@ const LearningPathsPage: React.FC = () => {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPaths.map((path) => (
             <div
               key={path.id}
-              className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all"
+              className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col h-full"
             >
               {/* Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-[color:#1e1b4b]" />
-                      <span className={`px-2 py-1 rounded text-xs font-semibold border ${getDifficultyColor(path.difficulty)}`}>
-                        {t(`learning_paths.${path.difficulty}`)}
-                      </span>
-                      {path.is_enrolled && (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-[color:rgba(30,27,75,0.05)] text-[color:#1e1b4b] border border-[color:rgba(30,27,75,0.15)]">
-                          {t('learning_paths.enrolled_label')}
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">{path.title}</h2>
-                    <p className="text-gray-500 text-sm">{path.description}</p>
-                  </div>
+              <div className="p-4 border-b border-gray-100 flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getDifficultyColor(path.difficulty)}`}>
+                    {t(`learning_paths.${path.difficulty}`)}
+                  </span>
+                  {path.is_enrolled && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-brand-primary/5 text-brand-primary border border-brand-primary/20">
+                      {t('learning_paths.enrolled_label')}
+                    </span>
+                  )}
                 </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2" title={path.title}>{path.title}</h2>
+                <p className="text-gray-500 text-xs line-clamp-2 mb-3" title={path.description}>{path.description}</p>
 
                 {/* Progress Bar */}
                 {path.is_enrolled && path.progress > 0 && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <div className="mt-auto">
+                    <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
                       <span>{t('learning_paths.progress_label')}</span>
                       <span>{Math.round(path.progress)}%</span>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
                       <div
-                        className="bg-gray-900 h-2 rounded-full transition-all"
+                        className="bg-gray-900 h-1.5 rounded-full transition-all"
                         style={{ width: `${path.progress}%` }}
                       />
                     </div>
@@ -342,84 +333,37 @@ const LearningPathsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Course List */}
-              <div className="p-6">
-                {path.courses.length > 0 ? (
-                  <div className="space-y-3 mb-4">
-                    {path.courses.map((course) => (
-                      <div
-                        key={course.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[color:rgba(30,27,75,0.25)] transition-colors"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[color:rgba(30,27,75,0.08)] text-[color:#1e1b4b] flex items-center justify-center text-sm font-semibold">
-                          {course.order}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900 text-sm">{course.title}</h3>
-                            {course.is_completed ? (
-                              <CheckCircle className="h-4 w-4 text-[color:#1e1b4b] flex-shrink-0" />
-                            ) : course.is_locked ? (
-                              <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            ) : (
-                              <Unlock className="h-4 w-4 text-gray-600 flex-shrink-0" />
-                            )}
-                          </div>
-                          {course.progress > 0 && !course.is_completed && (
-                            <div className="w-full bg-gray-100 rounded-full h-1 mt-1">
-                              <div
-                                className="h-1 rounded-full"
-                                style={{ width: `${course.progress}%`, background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">{t('learning_paths.courses_will_appear')}</p>
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {path.estimated_duration}h
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {path.student_count} {t('learning_paths.enrolled_label')}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      {path.rating}
-                    </span>
-                  </div>
-                  {path.is_enrolled ? (
-                    <Link
-                      to={`/member/all-courses?tab=enrolled`}
-                      className="px-4 py-2 text-white rounded-lg transition-all font-semibold text-sm flex items-center gap-1"
-                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-                    >
-                      {t('learning_paths.continue_btn')}
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => handleEnroll(path.id)}
-                      className="px-4 py-2 text-white rounded-lg transition-all font-semibold text-sm flex items-center gap-1 disabled:opacity-60"
-                      style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-                    >
-                      {t('learning_paths.start_path')}
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  )}
+              {/* Footer */}
+              <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 text-[10px] text-gray-500 font-medium">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {path.estimated_duration}h
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="h-3 w-3" />
+                    {path.courses.length}
+                  </span>
                 </div>
+                {path.is_enrolled ? (
+                  <Link
+                    to={`/member/all-courses?tab=enrolled`}
+                    className="px-3 py-1.5 text-white rounded-lg transition-all font-semibold text-xs flex items-center gap-1"
+                    style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                  >
+                    {t('learning_paths.continue_btn')}
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleEnroll(path.id)}
+                    className="px-3 py-1.5 text-white rounded-lg transition-all font-semibold text-xs flex items-center gap-1 disabled:opacity-60"
+                    style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+                  >
+                    {t('learning_paths.start_path')}
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -41,7 +41,7 @@ interface CommunityFeedState {
   metrics?: CommunityMetrics;
 }
 
-type CommunityVariant = 'default' | 'teacher' | 'student';
+type CommunityVariant = 'default' | 'teacher' | 'student' | 'admin';
 
 interface CommunityHubProps {
   viewMode?: 'feed' | 'my-posts' | 'trending';
@@ -187,6 +187,13 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
           ctaLabel: t('community.hero.cta_share'),
           ctaDescription: t('community.hero.cta_hint_student')
         };
+      case 'admin':
+        return {
+          title: t('community.hero.admin_title', { name: firstName }),
+          subtitle: t('community.hero.admin_subtitle'),
+          ctaLabel: t('community.hero.cta_announce'),
+          ctaDescription: t('community.hero.cta_hint_admin')
+        };
       default:
         return {
           title: t('community.hero.default_title'),
@@ -240,6 +247,13 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
           setSortBy('most_liked');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+      });
+    } else if (variant === 'admin') {
+      base.push({
+        label: t('community.actions.moderation_queue'),
+        description: t('community.actions.moderation_queue_desc'),
+        icon: AlertCircle,
+        onClick: () => navigate('/admin/moderation')
       });
     } else {
       base.push({
@@ -455,6 +469,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
             posts={filteredPosts}
             isLoading={loading}
             currentUserId={user?.id}
+            isAdmin={user?.role === 'admin'}
             onLike={handleLike}
             onDelete={handleDelete}
             onEdit={handleStartEdit}
@@ -542,45 +557,64 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
                 {heroContent.ctaLabel}
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 w-full lg:w-auto">
-              {[{
-                label: t('community.metrics.total_posts'),
-                value: metrics.totalPosts,
-                icon: MessageSquare,
-                accent: 'from-[#1e1b4b] to-[#312e81]'
-              }, {
-                label: t('community.metrics.weekly_posts'),
-                value: metrics.weeklyPosts,
-                icon: Activity,
-                accent: 'from-[#1e1b4b] to-[#312e81]'
-              }, {
-                label: t('community.metrics.contributors'),
-                value: metrics.activeContributors,
-                icon: Users,
-                accent: 'from-[#cfa15a] to-[#d8b26d]'
-              }, {
-                label: t('community.metrics.reactions'),
-                value: metrics.totalReactions,
-                icon: Sparkles,
-                accent: 'from-[#1e1b4b] to-[#312e81]'
-              }].map(card => (
-                <div
-                  key={card.label}
-                  className="bg-white/90 border border-white/80 rounded-2xl px-4 py-5 shadow-sm flex flex-col gap-3"
-                >
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-white`}>
-                    <card.icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-2xl font-bold text-[#1e1b4b]">{card.value}</span>
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">{card.label}</span>
+            <div className="flex flex-col lg:flex-row gap-6 w-full lg:w-auto">
+              {/* Trending Now */}
+              <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-4 shadow-sm w-full lg:w-72">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-bold text-[#1e1b4b] uppercase tracking-wide">{t('community.sidebar.trending_now')}</h2>
+                  <TrendingUp className="w-3.5 h-3.5 text-[#cfa15a]" />
                 </div>
-              ))}
+                <div className="space-y-2">
+                  {trendingPosts.length > 0 ? trendingPosts.slice(0, 2).map(post => (
+                    <div key={post.id} className="p-2 rounded-lg bg-white/50 border border-white/60 hover:bg-white transition cursor-pointer group">
+                      <p className="text-xs text-slate-700 mb-1.5 line-clamp-1 group-hover:text-[#1e1b4b] transition-colors font-medium">{truncateText(post.content, 40)}</p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500">
+                        <span className="truncate max-w-[80px]">{post.author_name}</span>
+                        <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                          <Sparkles className="w-2.5 h-2.5 text-[#cfa15a]" />
+                          {post.likes + post.comments + post.shares}
+                        </span>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-xs text-slate-500 italic">{t('community.sidebar.trending_empty')}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Top Contributors */}
+              <div className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-2xl p-4 shadow-sm w-full lg:w-72">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-bold text-[#1e1b4b] uppercase tracking-wide">{t('community.sidebar.top_contributors')}</h2>
+                  <Star className="w-3.5 h-3.5 text-[#cfa15a]" />
+                </div>
+                <div className="space-y-2">
+                  {topContributors.length > 0 ? topContributors.slice(0, 2).map(contributor => (
+                    <div key={contributor.id} className="flex items-center justify-between p-2 rounded-lg bg-white/50 border border-white/60 hover:bg-white transition-colors">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#1e1b4b]/5 flex items-center justify-center text-[10px] font-bold text-[#1e1b4b]">
+                          {contributor.name.charAt(0)}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-xs font-semibold text-slate-800 truncate max-w-[100px]">{contributor.name}</p>
+                          <p className="text-[10px] text-slate-500">{contributor.posts} posts</p>
+                        </div>
+                      </div>
+                      <div className="p-1 rounded-md bg-[#cfa15a]/10">
+                        <Bookmark className="w-3 h-3 text-[#cfa15a]" />
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-xs text-slate-500 italic">{t('community.sidebar.contributors_empty')}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <div className="flex flex-col xl:flex-row gap-8 items-start">
-          <div className="w-full max-w-3xl space-y-6 flex-1">
+        <div className="flex flex-col gap-8">
+          <div className="w-full max-w-none mx-auto space-y-6">
             {renderSearchBar()}
 
             {/* Filters */}
@@ -641,6 +675,7 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
               posts={filteredPosts}
               isLoading={loading}
               currentUserId={user?.id}
+              isAdmin={user?.role === 'admin'}
               onLike={handleLike}
               onDelete={handleDelete}
               onEdit={handleStartEdit}
@@ -655,86 +690,6 @@ const CommunityHub: React.FC<CommunityHubProps> = ({
               onCancelEdit={handleCancelEdit}
             />
           </div>
-
-          {/* Desktop Sidebar (Sticky) */}
-          <aside className="hidden xl:block w-80 pt-4 sticky top-6">
-            <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent pr-2 pb-4">
-              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.quick_actions')}</h2>
-                  <ArrowUpRight className="w-4 h-4 text-slate-400" />
-                </div>
-                <div className="space-y-3">
-                  {quickActions.map(action => (
-                    <button
-                      key={action.label}
-                      onClick={action.onClick}
-                      className="w-full flex items-start gap-3 text-left px-3 py-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/40 hover:bg-[#1e1b4b]/5 transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-white transition-colors">
-                        <action.icon className="w-5 h-5 text-[#1e1b4b]" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1e1b4b] transition-colors">{action.label}</p>
-                        <p className="text-xs text-slate-500">{action.description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.trending_now')}</h2>
-                  <TrendingUp className="w-4 h-4 text-[#cfa15a]" />
-                </div>
-                <div className="space-y-3">
-                  {trendingPosts.length > 0 ? trendingPosts.map(post => (
-                    <div key={post.id} className="p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition cursor-pointer group">
-                      <p className="text-sm text-slate-700 mb-2 line-clamp-2 group-hover:text-[#1e1b4b] transition-colors">{truncateText(post.content)}</p>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span className="font-medium">{post.author_name}</span>
-                        <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full">
-                          <Sparkles className="w-3 h-3 text-[#cfa15a]" />
-                          {post.likes + post.comments + post.shares}
-                        </span>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-slate-500">{t('community.sidebar.trending_empty')}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Top Contributors */}
-              <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{t('community.sidebar.top_contributors')}</h2>
-                  <Star className="w-4 h-4 text-[#cfa15a]" />
-                </div>
-                <div className="space-y-3">
-                  {topContributors.length > 0 ? topContributors.map(contributor => (
-                    <div key={contributor.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-[#1e1b4b]/20 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#1e1b4b]/5 flex items-center justify-center text-xs font-bold text-[#1e1b4b]">
-                          {contributor.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800">{contributor.name}</p>
-                          <p className="text-xs text-slate-500">{contributor.posts} posts • {contributor.reactions} reactions</p>
-                        </div>
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-[#cfa15a]/10">
-                        <Bookmark className="w-4 h-4 text-[#cfa15a]" />
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-slate-500">{t('community.sidebar.contributors_empty')}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       </div>
 

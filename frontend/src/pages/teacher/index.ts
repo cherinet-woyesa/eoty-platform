@@ -10,5 +10,6 @@ export { default as Assignments } from './Assignments';
 export { default as TeacherCoursesPage } from './TeacherCoursesPage';
 export { default as TeacherStudentsPage } from './TeacherStudentsPage';
 export { default as TeacherContentPage } from './TeacherContentPage';
+export { default as TeacherResourcePage } from './TeacherResourcePage';
 export { default as TeacherCommunityPage } from './TeacherCommunityPage';
 

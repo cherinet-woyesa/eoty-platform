@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { assignmentsApi } from '@/services/api/assignments';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { brandColors } from '@/theme/brand';
 
 interface Assignment {
   id: number;
@@ -135,7 +136,7 @@ const AssignmentDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen">
         <div className="flex items-center justify-center min-h-80">
           <LoadingSpinner size="lg" text="Loading assignment..." variant="logo" />
         </div>
@@ -145,15 +146,15 @@ const AssignmentDetail: React.FC = () => {
 
   if (!assignment) {
     return (
-      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        <div className="max-w-md mx-auto bg-white rounded-2xl border border-stone-200 p-8 shadow-sm text-center">
+      <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen">
+        <div className="max-w-md mx-auto bg-white rounded-2xl border border-gray-200 p-8 shadow-sm text-center">
           <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-          <p className="text-stone-700 font-medium mb-2">
+          <p className="text-gray-700 font-medium mb-2">
             {error || 'Assignment not found or you do not have access.'}
           </p>
           <button
             onClick={() => navigate('/teacher/assignments')}
-            className="mt-3 inline-flex items-center px-4 py-2 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-sm text-stone-700"
+            className="mt-3 inline-flex items-center px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 text-sm text-gray-700"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to assignments
@@ -166,21 +167,30 @@ const AssignmentDetail: React.FC = () => {
   const gradedCount = submissions.filter((s) => s.status === 'graded').length;
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-      <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-xl p-6 border border-[#27AE60]/25 shadow-lg">
+    <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-100 min-h-screen">
+      <div 
+        className="rounded-xl p-6 border shadow-lg"
+        style={{ 
+          background: `linear-gradient(to right, ${brandColors.primaryHex}15, ${brandColors.accentHex}15)`,
+          borderColor: `${brandColors.primaryHex}25`
+        }}
+      >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#27AE60]/30 rounded-lg blur-md"></div>
-              <div className="relative p-3 bg-gradient-to-br from-[#27AE60]/20 to-[#16A085]/20 rounded-lg border border-[#27AE60]/30">
-                <FileText className="h-6 w-6 text-[#27AE60]" />
+              <div className="absolute inset-0 rounded-lg blur-md" style={{ backgroundColor: `${brandColors.primaryHex}30` }}></div>
+              <div className="relative p-3 rounded-lg border" style={{ 
+                background: `linear-gradient(to bottom right, ${brandColors.primaryHex}20, ${brandColors.accentHex}20)`,
+                borderColor: `${brandColors.primaryHex}30`
+              }}>
+                <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
               </div>
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-stone-800 mb-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
                 {assignment.title}
               </h1>
-              <p className="text-stone-600 text-sm">
+              <p className="text-gray-600 text-sm">
                 {assignment.course_title || 'Unassigned course'} •{' '}
                 {assignment.status === 'published'
                   ? 'Published'
@@ -193,7 +203,8 @@ const AssignmentDetail: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/teacher/assignments')}
-              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-stone-200 hover:border-[#27AE60]/50 text-stone-700 hover:text-[#27AE60] rounded-lg transition-all text-sm font-semibold"
+              className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm hover:bg-white border border-gray-200 text-gray-700 rounded-lg transition-all text-sm font-semibold"
+              style={{ '--tw-hover-border-color': `${brandColors.primaryHex}50`, '--tw-hover-text-color': brandColors.primaryHex } as React.CSSProperties}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -202,7 +213,8 @@ const AssignmentDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={handlePublish}
-                className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center px-4 py-2 text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <CheckCircle className="h-4 w-4 mr-1.5" />
                 Publish
@@ -210,7 +222,8 @@ const AssignmentDetail: React.FC = () => {
             )}
             <Link
               to={`/teacher/assignments/${assignment.id}/edit`}
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 rounded-lg transition-all shadow-md hover:shadow-lg text-sm font-semibold"
+              className="inline-flex items-center px-4 py-2 text-white rounded-lg transition-all shadow-md hover:shadow-lg text-sm font-semibold"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               <Pencil className="h-4 w-4 mr-1.5" />
               Edit
@@ -221,38 +234,38 @@ const AssignmentDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white/95 rounded-2xl border border-stone-200 shadow-sm p-5">
-            <h2 className="text-sm font-semibold text-stone-800 mb-3 flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-[#27AE60]" />
+          <div className="bg-white/95 rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <BookOpen className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               Assignment details
             </h2>
-            <p className="text-sm text-stone-700 whitespace-pre-line mb-3">
+            <p className="text-sm text-gray-700 whitespace-pre-line mb-3">
               {assignment.description || 'No description provided.'}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2 text-stone-600">
+              <div className="flex items-center gap-2 text-gray-600">
                 <Calendar className="h-4 w-4" />
                 <span>Due:</span>
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-gray-800">
                   {assignment.due_date ? formatDate(assignment.due_date) : 'No due date'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-stone-600">
+              <div className="flex items-center gap-2 text-gray-600">
                 <CheckCircle className="h-4 w-4 text-amber-500" />
                 <span>Max points:</span>
-                <span className="font-medium text-stone-800">{assignment.max_points}</span>
+                <span className="font-medium text-gray-800">{assignment.max_points}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/95 rounded-2xl border border-stone-200 shadow-sm p-5">
-            <h2 className="text-sm font-semibold text-stone-800 mb-3 flex items-center gap-2">
-              <User className="h-4 w-4 text-[#27AE60]" />
+          <div className="bg-white/95 rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <User className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               Submissions ({submissions.length})
             </h2>
 
             {submissions.length === 0 ? (
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-gray-500">
                 No submissions yet. Once students submit, you’ll see them here for grading.
               </p>
             ) : (
@@ -262,21 +275,21 @@ const AssignmentDetail: React.FC = () => {
                   return (
                     <div
                       key={s.id}
-                      className="border border-stone-200 rounded-xl px-3 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                      className="border border-gray-200 rounded-xl px-3 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                     >
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <p className="text-sm font-semibold text-stone-800">
+                            <p className="text-sm font-semibold text-gray-800">
                               {s.first_name} {s.last_name}
                             </p>
-                            <p className="text-xs text-stone-500">{s.email}</p>
+                            <p className="text-xs text-gray-500">{s.email}</p>
                           </div>
-                          <div className="text-xs text-stone-500 text-right">
+                          <div className="text-xs text-gray-500 text-right">
                             {s.submitted_at ? `Submitted ${formatDate(s.submitted_at)}` : 'Not submitted'}
                           </div>
                         </div>
-                        <div className="mt-2 text-xs text-stone-600">
+                        <div className="mt-2 text-xs text-gray-600">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full ${
                               s.status === 'graded'
@@ -291,7 +304,7 @@ const AssignmentDetail: React.FC = () => {
                         </div>
                         {/* Render submitted content (text + optional attachment) */}
                         {s.content && (
-                          <div className="mt-2 text-sm text-stone-700">
+                          <div className="mt-2 text-sm text-gray-700">
                             {(() => {
                               try {
                                 const parsed = JSON.parse(s.content as string);
@@ -299,14 +312,15 @@ const AssignmentDetail: React.FC = () => {
                                 const attachment = parsed?.attachment || null;
                                 return (
                                   <div className="space-y-2">
-                                    {text && <div className="text-sm text-stone-700 whitespace-pre-line">{text}</div>}
+                                    {text && <div className="text-sm text-gray-700 whitespace-pre-line">{text}</div>}
                                     {attachment && attachment.url && (
                                       <div>
                                         <a
                                           href={attachment.url}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="inline-flex items-center gap-2 text-sm text-[#27AE60] hover:underline"
+                                          className="inline-flex items-center gap-2 text-sm hover:underline"
+                                          style={{ color: brandColors.primaryHex }}
                                         >
                                           <FileText className="h-4 w-4" />
                                           <span>{attachment.filename || 'Attachment'}</span>
@@ -317,7 +331,7 @@ const AssignmentDetail: React.FC = () => {
                                 );
                               } catch (e) {
                                 // Not JSON, render raw string
-                                return <div className="text-sm text-stone-700 whitespace-pre-line">{s.content}</div>;
+                                return <div className="text-sm text-gray-700 whitespace-pre-line">{s.content}</div>;
                               }
                             })()}
                           </div>
@@ -336,19 +350,20 @@ const AssignmentDetail: React.FC = () => {
                                   setGradeValue(e.target.value === '' ? '' : Number(e.target.value))
                                 }
                                 placeholder="Score"
-                                className="w-24 px-2 py-1.5 rounded-lg border border-stone-300 bg-stone-50 text-xs"
+                                className="w-24 px-2 py-1.5 rounded-lg border border-gray-300 bg-gray-50 text-xs"
                               />
                               <button
                                 type="button"
                                 onClick={() => saveGrade(s.id)}
-                                className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                                className="inline-flex items-center px-3 py-1.5 rounded-lg text-white text-xs font-semibold"
+                                style={{ backgroundColor: brandColors.primaryHex }}
                               >
                                 Save
                               </button>
                               <button
                                 type="button"
                                 onClick={cancelGrading}
-                                className="inline-flex items-center px-2 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-600 hover:bg-stone-50"
+                                className="inline-flex items-center px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50"
                               >
                                 Cancel
                               </button>
@@ -357,7 +372,7 @@ const AssignmentDetail: React.FC = () => {
                               value={feedbackValue}
                               onChange={(e) => setFeedbackValue(e.target.value)}
                               placeholder="Optional feedback for the student"
-                              className="w-full px-2 py-1.5 rounded-lg border border-stone-200 bg-stone-50 text-xs"
+                              className="w-full px-2 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs"
                               rows={2}
                             />
                           </div>
@@ -365,7 +380,7 @@ const AssignmentDetail: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => startGrading(s)}
-                            className="inline-flex items-center px-3 py-1.5 rounded-lg border border-stone-200 text-xs text-stone-700 bg-white hover:bg-stone-50 font-semibold"
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 bg-white hover:bg-gray-50 font-semibold"
                           >
                             <CheckCircle className="h-3.5 w-3.5 mr-1 text-emerald-500" />
                             {s.status === 'graded' ? 'Edit grade' : 'Grade'}
@@ -381,9 +396,9 @@ const AssignmentDetail: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white/95 rounded-2xl border border-stone-200 shadow-sm p-5">
-            <h2 className="text-sm font-semibold text-stone-800 mb-3">Grading overview</h2>
-            <div className="space-y-2 text-sm text-stone-700">
+          <div className="bg-white/95 rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-gray-800 mb-3">Grading overview</h2>
+            <div className="space-y-2 text-sm text-gray-700">
               <div className="flex items-center justify-between">
                 <span>Total submissions</span>
                 <span className="font-semibold">{submissions.length}</span>

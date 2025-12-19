@@ -25,12 +25,11 @@ const CoursesPage: React.FC = () => {
 
   const handleTabChange = (tab: CoursesTab) => {
     if (tab === activeTab) return;
-    setTabLoading(true);
+    // Removed artificial delay for better perceived performance
     setActiveTab(tab);
     const next = new URLSearchParams(searchParams);
     next.set('tab', tab);
     setSearchParams(next, { replace: true });
-    setTimeout(() => setTabLoading(false), 220);
   };
 
   const tabSkeleton = useMemo(() => (
@@ -111,21 +110,16 @@ const CoursesPage: React.FC = () => {
 
           {/* Tab Content */}
           <div className="bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 flex-1 overflow-y-auto">
-            {tabLoading ? (
-              tabSkeleton
-            ) : activeTab === 'enrolled' ? (
-              <div className="animate-in fade-in duration-300">
-                <StudentEnrolledCourses />
-              </div>
-            ) : activeTab === 'browse' ? (
-              <div className="animate-in fade-in duration-300">
-                <CourseCatalog />
-              </div>
-            ) : (
-              <div className="animate-in fade-in duration-300">
-                <BookmarksPage />
-              </div>
-            )}
+            {/* Render all tabs but hide inactive ones to preserve state and improve switching speed */}
+            <div className={activeTab === 'enrolled' ? 'block animate-in fade-in duration-300' : 'hidden'}>
+              <StudentEnrolledCourses />
+            </div>
+            <div className={activeTab === 'browse' ? 'block animate-in fade-in duration-300' : 'hidden'}>
+              <CourseCatalog />
+            </div>
+            <div className={activeTab === 'bookmarks' ? 'block animate-in fade-in duration-300' : 'hidden'}>
+              <BookmarksPage />
+            </div>
           </div>
         </div>
       </div>

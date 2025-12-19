@@ -1,5 +1,168 @@
 {
+  "send": "መልእክት ይላኩ",
+  "success": "መልእክት በተሳካ ሁኔታ ተልኳል!",
+  "admin": {
+    "chapter_roles": "የምዕራፍ ሚናዎች",
+    "permissions": "ፈቃዶች",
+    "dashboard": {
+      "title": "የአስተዳደር ዳሽቦርድ",
+      "welcome": "እንኳን ደህና መጡ",
+      "managing": "{{users}} ተጠቃሚዎችን በ {{courses}} ኮርሶች ላይ በማስተዳደር ላይ",
+      "access_denied": "መዳረሻ ተከልክሏል",
+      "access_denied_msg": "የአስተዳደር ዳሽቦርድን ለማየት ፈቃድ የለዎትም።",
+      "load_error": "ዳሽቦርድ መጫን አልተቻለም",
+      "load_error_msg": "የዳሽቦርድ ውሂብን በመጫን ላይ ሳለን ስህተት አጋጥሞናል።",
+      "try_again": "እንደገና ይሞክሩ",
+      "refresh": "አድስ",
+      "refreshing": "በማደስ ላይ...",
+      "synced": "ተመሳሰለ",
+      "updating": "በማዘመን ላይ...",
+      "quick_actions": "ፈጣን እርምጃዎች",
+      "metrics": {
+        "total_users": "ጠቅላላ ተጠቃሚዎች",
+        "active_users": "ንቁ ተጠቃሚዎች",
+        "active_courses": "ንቁ ኮርሶች",
+        "completed_lessons": "የተጠናቀቁ ትምህርቶች",
+        "new_registrations": "አዲስ ምዝገባዎች",
+        "flagged_content": "የተሰየመ ይዘት"
+      },
+      "actions": {
+        "manage_users": "ተጠቃሚዎችን ያስተዳድሩ",
+        "manage_courses": "ኮርሶችን ያስተዳድሩ",
+        "create_announcement": "ማስታወቂያ ይፍጠሩ",
+        "review_flagged": "የተሰየመ ይዘት ይገምግሙ"
+      },
+      "time": {
+        "never": "በጭራሽ",
+        "just_now": "አሁን ብቻ",
+        "minutes_ago": "ከ {{count}} ደቂቃዎች በፊት"
+      }
+    },
+    "users": {
+      "title": "የተጠቃሚ አስተዳደር",
+      "create_user": "ተጠቃሚ ይፍጠሩ",
+      "edit_user": "ተጠቃሚ ያስተካክሉ",
+      "delete_user": "ተጠቃሚ ይሰርዙ",
+      "search_placeholder": "ተጠቃሚዎችን ይፈልጉ...",
+      "filter_by_role": "በሚና ያጣሩ",
+      "filter_by_status": "በሁኔታ ያጣሩ",
+      "all_roles": "ሁሉም ሚናዎች",
+      "all_statuses": "ሁሉም ሁኔታዎች",
+      "active": "ንቁ",
+      "inactive": "ንቁ ያልሆነ",
+      "bulk_actions": "የጅምላ እርምጃዎች",
+      "select_all": "ሁሉንም ምረጥ",
+      "export_csv": "CSV ወደ ውጭ ላክ",
+      "user_created": "ተጠቃሚ በተሳካ ሁኔታ ተፈጥሯል",
+      "user_updated": "ተጠቃሚ በተሳካ ሁኔታ ተዘምኗል",
+      "user_deleted": "ተጠቃሚ በተሳካ ሁኔታ ተሰርዟል",
+      "delete_confirm_title": "ተጠቃሚ ሰርዝ",
+      "delete_confirm_body": "ይህን ተጠቃሚ መሰረዝ እርግጠኛ ነዎት? ይህ ድርጊት መልሰው ማግኘት አይችሉም።",
+      "delete_confirm_cta": "ሰርዝ",
+      "role_updated": "የተጠቃሚ ሚና በተሳካ ሁኔታ ተዘምኗል",
+      "status_updated": "የተጠቃሚ ሁኔታ በተሳካ ሁኔታ ተዘምኗል",
+      "bulk_activate_title": "ተጠቃሚዎችን አንቃ",
+      "bulk_deactivate_title": "ተጠቃሚዎችን አቦዝን",
+      "bulk_activate_message": "{{count}} ተጠቃሚ(ዎች)ን ማንቃት እርግጠኛ ነዎት?",
+      "bulk_deactivate_message": "{{count}} ተጠቃሚ(ዎች)ን ማቦዘን እርግጠኛ ነዎት?",
+      "activate": "አንቃ",
+      "deactivate": "አቦዝን",
+      "users_activated": "{{count}} ተጠቃሚ(ዎች) በተሳካ ሁኔታ ተነቅተዋል",
+      "users_deactivated": "{{count}} ተጠቃሚ(ዎች) በተሳካ ሁኔታ ተቦዝነዋል",
+      "error_fetch": "ተጠቃሚዎችን መጫን አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+      "error_create": "ተጠቃሚ መፍጠር አልተሳካም",
+      "error_update": "ተጠቃሚ ማዘመን አልተሳካም",
+      "error_delete": "ተጠቃሚ መሰረዝ አልተሳካም",
+      "error_export": "CSV ወደ ውጭ መላክ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+      "first_name": "የመጀመሪያ ስም",
+      "last_name": "የአባት ስም",
+      "email": "ኢሜይል",
+      "password": "የይለፍ ቃል",
+      "chapter": "ምዕራፍ",
+      "role": "ሚና",
+      "status": "ሁኔታ",
+      "created_at": "የተፈጠረበት",
+      "last_login": "የመጨረሻ መግቢያ",
+      "actions": "እርምጃዎች",
+      "edit": "አስተካክል",
+      "delete": "ሰርዝ",
+      "view": "ይመልከቱ",
+      "refresh": "አድስ",
+      "refreshing": "በማደስ ላይ...",
+      "new_user": "አዲስ ተጠቃሚ",
+      "exporting": "በመላክ ላይ...",
+      "total_users": "ጠቅላላ ተጠቃሚዎች",
+      "active_users": "ንቁ ተጠቃሚዎች",
+      "inactive_users": "ንቁ ያልሆኑ ተጠቃሚዎች",
+      "search_by_name_email": "በስም ወይም ኢሜይል ይፈልጉ...",
+      "all_chapters": "ሁሉም ምዕራፎች",
+      "filter_by_chapter": "በምዕራፍ ያጣሩ",
+      "table_view": "የሰንጠረዥ እይታ",
+      "grid_view": "የፍርግርግ እይታ",
+      "selected_count": "{{count}} ተጠቃሚ(ዎች) ተመርጠዋል",
+      "last_updated": "መጨረሻ የተዘመነው {{time}}",
+      "page_of": "ገጽ {{current}} ከ {{total}}",
+      "showing_results": "{{start}}-{{end}} ከ {{total}} ተጠቃሚዎች በማሳየት ላይ",
+      "no_users_found": "ምንም ተጠቃሚዎች አልተገኙም",
+      "loading": "ተጠቃሚዎችን በመጫን ላይ...",
+      "students": "ተማሪዎች",
+      "teachers": "መምህራን",
+      "chapter_admins": "የምዕራፍ አስተዳዳሪዎች",
+      "regional_coordinators": "የክልል አስተባባሪዎች",
+      "platform_admins": "የመድረክ አስተዳዳሪዎች",
+      "role_student": "ተማሪ",
+      "role_teacher": "መምህር",
+      "role_chapter_admin": "የምዕራፍ አስተዳዳሪ",
+      "role_regional_coordinator": "የክልል አስተባባሪ",
+      "role_admin": "የመድረክ አስተዳዳሪ",
+      "total": "ጠቅላላ",
+      "stats_summary": "{{total}} ጠቅላላ ተጠቃሚዎች • {{active}} ንቁ • {{inactive}} ንቁ ያልሆኑ"
+    },
+    "chapters": {
+      "title": "የምዕራፍ አስተዳደር",
+      "create_chapter": "ምዕራፍ ይፍጠሩ",
+      "edit_chapter": "ምዕራፍ ያስተካክሉ",
+      "delete_chapter": "ምዕራፍ ይሰርዙ",
+      "search_placeholder": "ምዕራፎችን ይፈልጉ...",
+      "filter_by_country": "በሀገር ያጣሩ",
+      "filter_by_region": "በክልል ያጣሩ",
+      "chapter_created": "ምዕራፍ በተሳካ ሁኔታ ተፈጥሯል",
+      "chapter_updated": "ምዕራፍ በተሳካ ሁኔታ ተዘምኗል",
+      "chapter_deleted": "ምዕራፍ በተሳካ ሁኔታ ተሰርዟል",
+      "confirm_delete": "ይህን ምዕራፍ መሰረዝ ይፈልጋሉ?",
+      "geolocation_preview": "የጂኦሎኬሽን ቅድመ እይታ",
+      "test_location": "ቦታ ይሞክሩ"
+    },
+    "roles": {
+      "title": "የምዕራፍ ሚናዎች",
+      "assign_role": "ሚና ይመድቡ",
+      "remove_role": "ሚና ያስወግዱ",
+      "role_assigned": "ሚና በተሳካ ሁኔታ ተመድቧል",
+      "role_removed": "ሚና በተሳካ ሁኔታ ተወግዷል",
+      "select_user": "ተጠቃሚ ይምረጡ",
+      "select_chapter": "ምዕራፍ ይምረጡ",
+      "select_role": "ሚና ይምረጡ",
+      "chapter_admin": "የምዕራፍ አስተዳዳሪ",
+      "chapter_leader": "የምዕራፍ መሪ",
+      "moderator": "ሞዴሬተር",
+      "regional_coordinator": "የክልል አስተባባሪ"
+    },
+    "permissions": {
+      "title": "ሚናዎች እና ፈቃዶች",
+      "manage_permissions": "ፈቃዶችን ያስተዳድሩ",
+      "permission_updated": "ፈቃድ በተሳካ ሁኔታ ተዘምኗል",
+      "categories": {
+        "users": "የተጠቃሚ አስተዳደር",
+        "content": "የይዘት አስተዳደር",
+        "chapters": "የምዕራፍ አስተዳደር",
+        "system": "የስርዓት አስተዳደር"
+      }
+    }
+  },
   "common": {
+    "next": "ቀጣይ",
+    "skip": "ዝለል",
+    "back": "ተመለስ",
     "success": "ተሳክቷል",
     "error": "ስህተት",
     "warning": "ማስጠንቀቂያ",
@@ -32,6 +195,15 @@
     "empty_body": "ጥሩ ዜና — በአሁኑ ጊዜ ለምልክት ያስፈልጉ አአ ነገሮች የሉም።",
     "check_again": "እንደገና በኋላ ይመልከቱ",
     "page_of": "ገጽ {{page}} ከ {{total}}"
+  },
+  "classroom": {
+    "overview": "አጠቃላይ እይታ",
+    "resources": "ግብዓቶች",
+    "discussion": "ውይይት",
+    "next_lesson": "ቀጣይ ትምህርት",
+    "previous_lesson": "ያለፈው ትምህርት",
+    "completed": "ተጠናቋል",
+    "locked": "ተቆልፏል"
   },
   "onboarding": {
     "step_of": "እርምጃ {{index}} ከ {{total}}",
@@ -91,7 +263,74 @@
     },
     "error": {
       "title": "የመጀመሪያ ስህተት",
-      "skip": "አሁን ዝም በል"
+      "skip": "ለጊዜው ይለፉ"
+    },
+    "flows": {
+      "student": {
+        "title": "አዲስ ተጠቃሚ መግቢያ",
+        "milestones": {
+          "0": "እንኳን ደህና መጡ እና ማዋቀር",
+          "1": "ግኝት",
+          "2": "ሁሉም ተዘጋጅቷል!"
+        },
+        "steps": {
+          "0": {
+            "title": "ወደ ኢኦተቤ መድረክ እንኳን በደህና መጡ",
+            "description": "እዚህ በመገኘትዎ ደስ ብሎናል። እስቲ እናዋቅርዎ።",
+            "content": "የእንኳን ደህና መጡ ቪዲዮ ወይም ጽሑፍ እዚህ ይገባል።"
+          },
+          "1": {
+            "title": "መገለጫዎን ያጠናቅቁ",
+            "description": "የመገለጫ ምስል ይስቀሉ እና ስለራስዎ ይፃፉ።",
+            "action_required": "ለመቀጠል መገለጫዎን ያዘምኑ።"
+          },
+          "2": {
+            "title": "ኮርሶችን ያስሱ",
+            "description": "የኮርሶች ቤተ-መጻሕፍታችንን ይመልከቱ።"
+          },
+          "3": {
+            "title": "ምዕራፍ ይቀላቀሉ",
+            "description": "ከአካባቢዎ ማህበረሰብ ጋር ይገናኙ።",
+            "action_required": "ከሌሎች ጋር ለመገናኘት ምዕራፍ ይቀላቀሉ።"
+          },
+          "4": {
+            "title": "ባጅዎን ይቀበሉ",
+            "description": "እንኳን ደስ አለዎት! መጀመሪያውን አጠናቀዋል።"
+          }
+        }
+      },
+      "teacher": {
+        "title": "የመምህር መግቢያ",
+        "steps": {
+          "0": {
+            "title": "እንኳን ደህና መጡ፣ መምህር!",
+            "description": "በመድረኩ ላይ ስላለው የመምህርነት ሚናዎ ይወቁ።",
+            "content": "<p>እንደ መምህር፣ ኮርሶችን መፍጠር እና ማስተዳደር፣ ከተማሪዎች ጋር መስተጋብር መፍጠር እና ለማህበረሰቡ አስተዋፅኦ ማድረግ ይችላሉ።</p>"
+          },
+          "1": {
+            "title": "የመጀመሪያ ኮርስዎን ይፍጠሩ",
+            "description": "ኮርስ እንዴት መፍጠር እና ማዋቀር እንደሚችሉ ይወቁ።",
+            "content": "<p>ኮርስ መፍጠር የኮርስ ዝርዝሮችን ማዘጋጀት፣ ትምህርቶችን ማከል እና ይዘትን ማደራጀትን ያካትታል።</p>",
+            "action_required": "ወደ ኮርስ መፍጠሪያ ገጽ ይሂዱ እና አማራጮችን ያስሱ።"
+          },
+          "2": {
+            "title": "ትምህርቶችን ወደ ኮርስዎ ያክሉ",
+            "description": "በኮርስዎ ውስጥ ትምህርቶችን እንዴት ማከል እና ማደራጀት እንደሚችሉ ይወቁ።",
+            "content": "<p>ትምህርቶች የኮርስዎ ግንባታዎች ናቸው። ለእያንዳንዱ ትምህርት ቪዲዮዎችን፣ ጥያቄዎችን እና ሀብቶችን ማከል ይችላሉ።</p>",
+            "action_required": "የትምህርት አፈጣጠር ሂደቱን ለመረዳት ትምህርት ለማከል ይሞክሩ።"
+          },
+          "3": {
+            "title": "የተማሪ ተሳትፎን ያስተዳድሩ",
+            "description": "ከተማሪዎች ጋር እንዴት መስተጋብር መፍጠር እና እድገታቸውን መከታተል እንደሚችሉ ይወቁ።",
+            "content": "<p>የተማሪ እድገትን ማየት፣ ለጥያቄዎች ምላሽ መስጠት እና በመድረኩ በኩል ግብረመልስ መስጠት ይችላሉ።</p>"
+          },
+          "4": {
+            "title": "የአስተዳዳሪ መሳሪያዎችን ይጠቀሙ",
+            "description": "ለመምህራን ያሉትን የአስተዳዳሪ መሳሪያዎች ያስሱ።",
+            "content": "<p>መምህራን የቁጥጥር መሳሪያዎችን፣ ትንታኔዎችን እና የይዘት አስተዳደር ባህሪያትን ማግኘት ይችላሉ።</p>"
+          }
+        }
+      }
     }
   },
   "courses": {
@@ -544,6 +783,9 @@
     }
   },
   "student": {
+    "complete_profile": "መገለጫዎን ያጠናቅቁ",
+    "profile_completion_msg": "መገለጫዎ {{percent}}% ተጠናቅቋል። ማዋቀሩን ለመጨረስ ፎቶ እና የህይወት ታሪክ ያክሉ።",
+    "update_profile": "መገለጫ ያዘምኑ",
     "title": "የተማሪ ዳሽቦርድ",
     "browse_courses": "ኮርሶችን ያስሱ",
     "spiritual_journeys": "መንፈሳዊ ጉዞዎች",
@@ -970,6 +1212,11 @@
       "delete_confirm_title": "ተጠቃሚን ማጥፋት?",
       "delete_confirm_body": "ይህንን ተጠቃሚ መሰረዝ እርግጠኛ ነዎት? ይህ እርምጃ ሊቀለበስ አይችልም።",
       "delete_confirm_cta": "ተጠቃሚን ሰርዝ"
+    },
+    "courses": {
+      "no_courses_yet": "እስካሁን ምንም ኮርሶች የሉም",
+      "no_courses_found": "ምንም ኮርሶች አልተገኙም",
+      "create_first_course_prompt": "ይዘትን ማስተዳደር ለመጀመር የመጀመሪያ ኮርስዎን ይፍጠሩ።"
     }
   },
   "course_details": {
@@ -1109,7 +1356,6 @@
     "error_load_courses": "ኮርሶችዎን መጫን አልተቻለም። ኮርስ ሳይመርጡ ተማሪ መጋበዝ ይችላሉ።",
     "error_send_invite": "ግብዣ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
   },
-
   "student_management": {
     "loading": "ተማሪዎችን በመጫን ላይ...",
     "invite": "ጋብዝ",
@@ -2452,6 +2698,7 @@
     "member": "አባል",
     "teacher_portal": "የመምህራን መግቢያ",
     "admin_panel": "የአስተዳዳሪ ፓነል",
+    "member_portal": "የአባላት መግቢያ",
     "revenue": "ገቢ",
     "admin": "አስተዳዳሪ",
     "teacher": "አስተማሪ",
@@ -2865,5 +3112,420 @@
     "confirm_hear": "ድምጹን መስማት ይችላሉ?",
     "finish": "መቅዳት ጀምር",
     "next": "ቀጣይ"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "እንኳን ወደ EOTY መድረክ በደህና መጡ",
+      "subtitle": "ወደ መንፈሳዊ እድገት እና የማህበረሰብ ግንኙነት ጉዞዎ እዚህ ይጀምራል።",
+      "benefits_title": "ምን ማድረግ ይችላሉ:",
+      "benefit_rewards": "ሽልማቶችን እና ባጆችን ያግኙ",
+      "benefit_badges": "መንፈሳዊ እድገትዎን ይከታተሉ",
+      "benefit_setup": "የመማሪያ መንገድዎን ያብጁ",
+      "benefit_quick": "ፈጣን እና ቀላል ዝግጅት",
+      "cta_start": "ጀምር",
+      "cta_later": "በኋላ"
+    },
+    "flows": {
+      "student": {
+        "steps": {
+          "1": {
+            "content": "እንኳን ወደ EOTY መድረክ በደህና መጡ! እስቲ እናዘጋጅዎ።"
+          },
+          "2": {
+            "content": "ከአካባቢዎ ማህበረሰብ ጋር ለመገናኘት ምዕራፍ ይቀላቀሉ።"
+          },
+          "3": {
+            "content": "ኮርሶችን ያስሱ እና የመማር ጉዞዎን ይጀምሩ።"
+          },
+          "4": {
+            "content": "ጨርሰዋል! ዳሽቦርድዎን ያስሱ።"
+          }
+        }
+      }
+    }
+  },
+  "chapters": {
+    "header": {
+      "title": "ምዕራፎች",
+      "subtitle": "የአካባቢዎን ማህበረሰብ ያግኙ እና ይቀላቀሉ"
+    },
+    "actions": {
+      "start": "ምዕራፍ ጀምር"
+    },
+    "tabs": {
+      "browse": "ምዕራፎችን ያስሱ",
+      "my": "የእኔ ምዕራፎች",
+      "manage": "ያስተዳድሩ"
+    },
+    "browse": {
+      "title": "ምዕራፎችን ያስሱ",
+      "subtitle": "በአካባቢዎ ወይም በፍላጎትዎ መሰረት ምዕራፎችን ያግኙ"
+    },
+    "adjust_filters": "ምዕራፍ ለማግኘት ማጣሪያዎችን ያስተካክሉ ወይም ይፈልጉ።",
+    "leaderboard_title": "የምዕራፍ ደረጃ ሰንጠረዥ",
+    "leaderboard_desc": "ምዕራፍዎ በተሳትፎ እና በትምህርት ከሌሎች ጋር እንዴት እንደሚወዳደር ይመልከቱ።",
+    "view_rankings": "ደረጃዎችን ይመልከቱ",
+    "about_membership": "ስለ አባልነት",
+    "join_multiple": "በክልሎች ውስጥ ለመገናኘት ብዙ ምዕራፎችን ይቀላቀሉ",
+    "set_primary": "ለግል የተበጀ ይዘት **ዋና ምዕራፍ** ያዘጋጁ",
+    "participate_events": "በአካባቢያዊ ክስተቶች እና ውይይቶች ላይ ይሳተፉ"
+  },
+  "resources": {
+    "search_placeholder": "ግብዓቶችን ይፈልጉ...",
+    "all_categories": "ሁሉም ምድቦች",
+    "join_chapter_hint": "የምዕራፍ ግብዓቶችን ለማየት ምዕራፍ ይቀላቀሉ።",
+    "no_resources_found": "ምንም ግብዓቶች አልተገኙም",
+    "join_chapter_desc": "የምዕራፍ ግብዓቶችን ለማየት ምዕራፍ ይቀላቀሉ።"
+  },
+  "enrolled_courses": {
+    "stats": {
+      "total": "ጠቅላላ ኮርሶች",
+      "in_progress": "በሂደት ላይ",
+      "completed": "ተጠናቅቋል",
+      "favorites": "ተወዳጆች",
+      "avg_progress": "አማካይ እድገት"
+    },
+    "empty_title": "ምንም ኮርሶች አልተገኙም",
+    "empty_no_enrollment": "እስካሁን በምንም ኮርሶች አልተመዘገቡም። ለመጀመር ካታሎጉን ያስሱ!",
+    "empty_no_match": "ከማጣሪያዎችዎ ጋር የሚዛመዱ ኮርሶች የሉም።",
+    "browse_catalog": "የኮርስ ካታሎግ ያስሱ",
+    "search_placeholder": "ኮርሶችዎን ይፈልጉ...",
+    "view_dense": "ጥብቅ እይታ",
+    "view_comfy": "ምቹ እይታ",
+    "sort": {
+      "last_accessed": "በቅርብ የተጎበኘ",
+      "progress": "እድገት",
+      "title": "ርዕስ"
+    },
+    "filter": {
+      "all": "ሁሉም",
+      "in_progress": "በሂደት ላይ",
+      "completed": "ተጠናቅቋል",
+      "favorites": "ተወዳጆች",
+      "clear": "ማጣሪያዎችን አጽዳ"
+    },
+    "next_lesson": "ቀጣይ ትምህርት",
+    "next_lesson_default": "ኮርስ ጀምር",
+    "rating_label": "የእርስዎ ደረጃ፦",
+    "rate_course": "ለኮርሱ ደረጃ ይስጡ",
+    "rating_placeholder": "ግምገማ ይጻፉ...",
+    "rating_submit": "ግምገማ ያስገቡ",
+    "unenroll": {
+      "title": "ምዝገባ ሰርዝ"
+    }
+  },
+  "help": {
+    "title": "የእርዳታ ማዕከል",
+    "subtitle": "መልሶችን፣ መመሪያዎችን እና ድጋፍን ያግኙ",
+    "searchPlaceholder": "እርዳታ ይፈልጉ...",
+    "allCategories": "ሁሉም ምድቦች",
+    "faqTitle": "ተደጋግመው የሚጠየቁ ጥያቄዎች",
+    "articlesTitle": "የእርዳታ ጽሑፎች",
+    "noFaqsFound": "ከፍለጋዎ ጋር የሚዛመዱ ጥያቄዎች አልተገኙም",
+    "quickActions": {
+      "contactSupport": {
+        "title": "ድጋፍን ያግኙ",
+        "description": "ከድጋፍ ቡድናችን እርዳታ ያግኙ"
+      },
+      "videoTutorials": {
+        "title": "የቪዲዮ መመሪያዎች",
+        "description": "ጠቃሚ የቪዲዮ መመሪያዎችን ይመልከቱ"
+      },
+      "communityForum": {
+        "title": "የማህበረሰብ መድረክ",
+        "description": "ማህበረሰቡን ይጠይቁ"
+      }
+    },
+    "categories": {
+      "all": "ሁሉም ምድቦች",
+      "gettingStarted": "መጀመር",
+      "progress": "እድገት",
+      "features": "ባህሪያት",
+      "studyGroups": "የጥናት ቡድኖች",
+      "technical": "ቴክኒካዊ",
+      "account": "መለያ"
+    },
+    "faqs": {
+      "q1": {
+        "question": "በኮርስ እንዴት እመዘገባለሁ?",
+        "answer": "በኮርስ ለመመዝገብ፣ ወደ ኮርሶች ማሰሻ ገጽ ይሂዱ፣ የሚፈልጉትን ኮርስ ያግኙ እና \"ይመዝገቡ\" የሚለውን ቁልፍ ይጫኑ።"
+      },
+      "q2": {
+        "question": "እድገቴን እንዴት መከታተል እችላለሁ?",
+        "answer": "ትምህርቶችን ሲያጠናቅቁ እድገትዎ በራስ-ሰር ይከታተላል።"
+      },
+      "q3": {
+        "question": "ትምህርቶችን ዕልባት ማድረግ እችላለሁ?",
+        "answer": "አዎ! ለኋላ ለማስቀመጥ የዕልባት ምልክቱን ይጫኑ።"
+      },
+      "q4": {
+        "question": "የጥናት ቡድኖች እንዴት ይሰራሉ?",
+        "answer": "የጥናት ቡድኖች ከሌሎች ተማሪዎች ጋር እንዲተባበሩ ያስችሉዎታል። የራስዎን ቡድን መፍጠር ወይም ያሉትን የህዝብ ቡድኖች መቀላቀል ይችላሉ።"
+      },
+      "q5": {
+        "question": "ቴክኒካዊ ችግሮች ካጋጠሙኝስ?",
+        "answer": "ቴክኒካዊ ችግሮች ካጋጠሙዎት፣ እባክዎ ከታች ያለውን የመገናኛ ቅጽ በመጠቀም ድጋፍን ያግኙ።"
+      },
+      "q6": {
+        "question": "የይለፍ ቃሌን እንዴት ዳግም ማስጀመር እችላለሁ?",
+        "answer": "የይለፍ ቃልዎን ዳግም ለማስጀመር፣ ወደ መግቢያ ገጽ ይሂዱ እና \"የይለፍ ቃል ረሱ\" የሚለውን ይጫኑ።"
+      },
+      "q7": {
+        "question": "የኮርስ ቁሳቁሶችን ማውረድ እችላለሁ?",
+        "answer": "የኮርስ ቁሳቁሶች መገኘት በኮርሱ ላይ ይወሰናል። አንዳንድ ኮርሶች ሊወርዱ የሚችሉ ግብዓቶችን ሊያቀርቡ ይችላሉ።"
+      },
+      "q8": {
+        "question": "ነጥቦች እና ስኬቶች እንዴት ይሰላሉ?",
+        "answer": "ትምህርቶችን፣ ጥያቄዎችን በማጠናቀቅ እና የጥናት ተከታታይነትን በመጠበቅ ነጥቦችን ያገኛሉ።"
+      }
+    },
+    "articles": {
+      "a1": {
+        "title": "የመጀመሪያ መመሪያ",
+        "content": "እንኳን ወደ EOTY መድረክ በደህና መጡ! ይህ መመሪያ የመማር ጉዞዎን ለመጀመር ይረዳዎታል..."
+      },
+      "a2": {
+        "title": "የቪዲዮ ማጫወቻውን እንዴት መጠቀም እንደሚቻል",
+        "content": "የቪዲዮ ማጫወቻውን እንዴት ማሰስ፣ የመልሶ ማጫወት ፍጥነትን ማስተካከል እና የግርጌ ጽሑፎችን መጠቀም እንደሚችሉ ይወቁ..."
+      },
+      "a3": {
+        "title": "እድገትዎን መረዳት",
+        "content": "የእድገት መለኪያዎችዎን እንዴት እንደሚተረጉሙ እና የመማር ጉዞዎን እንደሚከታተሉ ይወቁ..."
+      }
+    },
+    "contact": {
+      "title": "ድጋፍን ያግኙ",
+      "subtitle": "የሚፈልጉትን ማግኘት አልቻሉም?",
+      "subject": "ርዕሰ ጉዳይ",
+      "subjectPlaceholder": "ምን ልንረዳዎ እንችላለን?",
+      "message": "መልእክት",
+      "messagePlaceholder": "ችግርዎን ወይም ጥያቄዎን ይግለጹ...",
+      "cancel": "ሰርዝ",
+      "send": "መልእክት ላክ",
+      "sending": "በመላክ ላይ...",
+      "success": "ስላገኙን እናመሰግናለን! በቅርቡ ምላሽ እንሰጣለን።",
+      "error": "መልእክት መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
+    }
+  },
+  "ai_labeling": {
+    "title": "AI እና ሃይማኖት ስምምነት",
+    "subtitle": "የይዘት ኦርቶዶክስ እምነት ጋር ያለውን AI ምደባ ይገምግሙ እና ያስተካክሉ",
+    "refresh": "አድስ",
+    "tab_pending": "ግምገማ በመጠባበቅ ላይ",
+    "tab_recent": "የቅርብ ጊዜ ምደባ",
+    "language_all": "ሁሉም ቋንቋዎች",
+    "days_7": "ባለፉት 7 ቀናት",
+    "days_14": "ባለፉት 14 ቀናት",
+    "days_30": "ባለፉት 30 ቀናት",
+    "page_size": "ረድፎች:",
+    "error_load": "ንጥሎችን መጫን አልተቻለም",
+    "retry": "እንደገና ይሞክሩ",
+    "loading": "እየጫነ ነው...",
+    "empty_title": "ሁሉም ተጠናቅቋል!",
+    "empty_body": "በአሁኑ ጊዜ ለግምገማ የሚጠብቁ ምንም ንጥሎች የሉም።",
+    "check_again": "እንደገና ይፈትሹ",
+    "page_of": "ገጽ {{page}} ከ {{total}}",
+    "toast_item_action": "እርምጃው በተሳካ ሁኔታ ተከናውኗል",
+    "classification_complete": "ምደባ ተጠናቅቋል",
+    "classification_failed": "ምደባ አልተሳካም",
+    "label_submitted": "መለያ ተላከ",
+    "label_submit_failed": "መለያ መላክ አልተቻለም",
+    "moderation_failed": "ማስተዳደር አልተቻለም",
+    "id_label": "መለያ",
+    "priority": "ቅድሚያ",
+    "reason": "ምክንያት",
+    "ai_classifier": "AI መራጭ",
+    "running": "በሂደት ላይ...",
+    "run_check": "ፈትሽ",
+    "score": "የእምነት ደረጃ",
+    "verdict": "ውሳኔ",
+    "aligned": "ተስማሚ",
+    "ambiguous": "አሻሚ",
+    "not_aligned": "ያልተስማሚ",
+    "no_classification": "ምንም ምደባ የለም። {{note}}",
+    "note_review": "እባክዎን በእጅ ይገምግሙ።",
+    "note_run_check": "'ፈትሽ' የሚለውን ይጫኑ።",
+    "moderation_actions": "የአስተዳደር እርምጃዎች",
+    "notes_placeholder": "ማስታወሻዎችን ያክሉ...",
+    "saving": "በማስቀመጥ ላይ...",
+    "approve": "አጽድቅ",
+    "reject": "አትቀበል",
+    "escalate": "አሳልፍ",
+    "human_label": "የሰው መለያ",
+    "saving_label": "በማስቀመጥ ላይ...",
+    "submit_label": "መለያ ይላኩ",
+    "skip": "ለፍ"
+  },
+  "community": {
+    "title": "የማህበረሰብ ማዕከል",
+    "tabs": {
+      "feed": "ልጥፎች",
+      "groups": "የጥናት ቡድኖች",
+      "forums": "መድረኮች"
+    },
+    "hero": {
+      "teacher_title": "እንኳን ደህና መጡ፣ {{name}}!",
+      "teacher_subtitle": "ከተማሪዎችዎ እና ከመምህራን ጋር ይገናኙ።",
+      "cta_create": "ልጥፍ ይፍጠሩ",
+      "cta_hint_teacher": "ዝማኔዎችን ወይም መርጃዎችን ያጋሩ",
+      "student_title": "ሰላም፣ {{name}}!",
+      "student_subtitle": "በውይይቱ ይሳተፉ እና አብረው ይማሩ።",
+      "cta_share": "ሀሳብ ያጋሩ",
+      "cta_hint_student": "ጥያቄዎችን ይጠይቁ ወይም ግንዛቤዎችን ያጋሩ",
+      "admin_title": "የማህበረሰብ አስተዳደር",
+      "admin_subtitle": "የማህበረሰብ ግንኙነቶችን ያስተዳድሩ እና ይቆጣጠሩ።",
+      "cta_announce": "ማስታወቂያ ይለጥፉ",
+      "cta_hint_admin": "ኦፊሴላዊ ዝማኔ ያድርጉ",
+      "default_title": "ማህበረሰብ",
+      "default_subtitle": "ከማህበረሰቡ ጋር ይገናኙ።",
+      "cta_start": "መለጠፍ ይጀምሩ",
+      "cta_hint_default": "ለቡድኑ አንድ ነገር ያጋሩ",
+      "badge": "ማህበረሰብ"
+    },
+    "actions": {
+      "browse_forums": "መድረኮችን ያስሱ",
+      "browse_forums_desc": "በምድብ የተከፋፈሉ ውይይቶችን ያስሱ",
+      "refresh": "አድስ",
+      "refresh_desc": "ዝማኔዎችን ያግኙ",
+      "invite_chapter": "ቻፕተር ይጋብዙ",
+      "invite_chapter_desc": "አባላትን ወደ ቻፕተርዎ ያክሉ",
+      "explore_trending": "ተወዳጅን ያስሱ",
+      "explore_trending_desc": "ምን ታዋቂ እንደሆነ ይመልከቱ",
+      "view_achievements": "ስኬቶችን ይመልከቱ",
+      "view_achievements_desc": "እድገትዎን ያረጋግጡ",
+      "moderation_queue": "የአወያይ ወረፋ",
+      "moderation_queue_desc": "ሪፖርት የተደረጉ ይዘቶችን ይገምግሙ"
+    },
+    "feed": {
+      "search_placeholder": "ልጥፎችን፣ ፀሀፊዎችን ወይም ይዘቶችን ይፈልጉ...",
+      "share_thoughts": "ምን እያሰቡ ነው፣ {{name}}?"
+    },
+    "sidebar": {
+      "trending_now": "በአሁን ሰዓት ተወዳጅ",
+      "trending_empty": "ምንም ተወዳጅ ልጥፎች እስካሁን የሉም።",
+      "top_contributors": "ከፍተኛ አስተዋፅዖ አበርካቾች",
+      "contributors_empty": "እስካሁን ምንም አስተዋፅዖ አበርካቾች የሉም።"
+    },
+    "filters": {
+      "sort": "ቅደም ተከተል",
+      "type": "ዓይነት",
+      "newest": "አዲስ",
+      "most_liked": "በጣም የተወደዱ",
+      "most_commented": "ብዙ አስተያየት የተሰጠባቸው",
+      "all": "ሁሉም ልጥፎች",
+      "text": "ጽሑፍ",
+      "image": "ምስሎች",
+      "video": "ቪዲዮዎች",
+      "audio": "ድምፅ",
+      "article": "ጽሑፎች"
+    },
+    "groups": {
+      "title": "የጥናት ቡድኖች",
+      "subtitle": "ቡድኖችን ይቀላቀሉ እና አብረው ይማሩ።",
+      "create": "ቡድን ይፍጠሩ",
+      "my_groups": "የእኔ ቡድኖች",
+      "discover": "ያስሱ",
+      "search": "ቡድኖችን ይፈልጉ...",
+      "empty_mine_title": "እስካሁን ምንም ቡድን የለም",
+      "empty_mine_body": "እስካሁን ምንም የጥናት ቡድን አልተቀላቀሉም። አንዱን ይፍጠሩ ወይም ያሉትን ይቀላቀሉ!",
+      "created_body": "የጥናት ቡድን በተሳካ ሁኔታ ተፈጥሯል!",
+      "create_error": "የጥናት ቡድን መፍጠር አልተቻለም።",
+      "joined_body": "ቡድኑን በተሳካ ሁኔታ ተቀላቅለዋል!",
+      "join_error": "ቡድኑን መቀላቀል አልተቻለም።",
+      "left_body": "ከቡድኑ በተሳካ ሁኔታ ወጥተዋል።",
+      "leave_error": "ከቡድኑ መውጣት አልተቻለም።",
+      "leave_confirm_title": "ከቡድን ሊወጡ ነው?",
+      "leave_confirm_body": "{{name}} ን ለመተው እርግጠኛ ነዎት?",
+      "leave_confirm_cta": "ውጣ",
+      "deleted_body": "ቡድኑ በተሳካ ሁኔታ ተሰርዟል።",
+      "delete_error": "ቡድኑን መሰረዝ አልተቻለም።",
+      "delete_confirm_title": "ቡድን ይሰረዝ?",
+      "delete_confirm_body": "{{name}} ን ለመሰረዝ እርግጠኛ ነዎት? ይሄ ድርጊት አይመለስም።",
+      "loading": "ቡድኖችን በመጫን ላይ...",
+      "error": "ቡድኖችን መጫን አልተቻለም።",
+      "no_description": "ምንም መግለጫ የለም።",
+      "empty_public_title": "ምንም ቡድኖች አልተገኙም",
+      "empty_public_body": "ከፍለጋዎ ጋር የሚዛመዱ ምንም የህዝብ ቡድኖች አልተገኙም።",
+      "full": "ሞልቷል",
+      "join_open": "ቡድኑን ይቀላቀሉ"
+    },
+    "forums": {
+      "badge": "መድረኮች",
+      "header_title": "የውይይት መድረኮች",
+      "search": "ፈልግ",
+      "search_placeholder": "ውይይቶችን ይፈልጉ...",
+      "forum_label": "መድረክ",
+      "all_forums": "ሁሉም መድረኮች",
+      "sort_label": "ቅደም ተከተል",
+      "sort": {
+        "newest": "አዲስ",
+        "replies": "ብዙ ምላሽ የተሰጠባቸው",
+        "views": "ብዙ የተታዩ",
+        "pinned": "የተሰኩ"
+      },
+      "new": "አዲስ ውይይት",
+      "new_forum": "አዲስ መድረክ",
+      "new_topic_short": "አዲስ ርዕስ",
+      "new_forum_short": "መድረክ",
+      "clear_filters": "ማጣሪያዎችን ያጽዱ",
+      "stats": {
+        "total": "ጠቅላላ ውይይቶች",
+        "active_today": "ዛሬ ንቁ",
+        "forums": "መድረኮች",
+        "popular_tags": "ታዋቂ መለያዎች"
+      },
+      "tag_general": "ጠቅላላ",
+      "empty_title": "ምንም ውይይቶች አልተገኙም",
+      "empty_body": "ፍለጋዎን ወይም ማጣሪያዎችን ያስተካክሉ፣ ወይም አዲስ ውይይት ይጀምሩ።",
+      "create_success": "ውይይት በተሳካ ሁኔታ ተፈጥሯል!",
+      "create_failed_title": "መፍጠር አልተቻለም",
+      "create_failed_message": "ውይይት መፍጠር አልተቻለም።",
+      "like_success": "ውይይታ ተወዷል!",
+      "like_failed_title": "መውደድ አልተቻለም",
+      "like_failed_message": "ውይይቱን መውደድ አልተቻለም።",
+      "error_title": "መድረኮችን መጫን ስህተት",
+      "load_error": "ውይይቶችን መጫን አልተቻለም።",
+      "no_description": "ምንም ቅድመ እይታ የለም።",
+      "recently": "በቅርቡ",
+      "no_forum_error": "ምንም መድረክ አልተመረጠም።"
+    },
+    "discussion": {
+      "back": "ወደ ውይይቶች ተመለስ",
+      "not_found_title": "ውይይቱ አልተገኘም",
+      "not_found_body": "እየፈለጉት ያለው ውይይት የለም ወይም ተወግዷል።",
+      "return_community": "ወደ ማህበረሰብ ተመለስ",
+      "pinned": "የተሰካ",
+      "share": "አጋራ",
+      "report": "ሪፖርት አድርግ",
+      "reports": {
+        "title": "ውይይቱን ሪፖርት አድርግ",
+        "desc": "እባክዎ ምን እየተፈጠረ እንደሆነ እንዲያውቁ ያግዙን። የዚህ ልጥፍ ችግር ምንድነው?",
+        "placeholder": "ችግሩን ይግለጹ...",
+        "submit": "ሪፖርት ላክ",
+        "cancel": "ሰርዝ",
+        "success": "ለሪፖርትዎ እናመሰግናለን።",
+        "error": "ሪፖርት መላክ አልተቻለም"
+      },
+      "replies_count": "አስተያየቶች",
+      "replies_label": "ምላሾች",
+      "replying_to": "ለአስተያየት ምላሽ በመስጠት ላይ...",
+      "reply_placeholder": "ጥሩ ምላሽ ይጻፉ...",
+      "post_reply": "ምላሽ ይለጥፉ",
+      "posting": "በመለጠፍ ላይ...",
+      "related_topics": "ተዛማጅ ርዕሶች",
+      "no_related": "ምንም ተዛማጅ ርዕሶች አልተገኙም።",
+      "guidelines_title": "የማህበረሰብ መመሪያዎች",
+      "guidelines_items": {
+        "0": "ለሌሎች አክብሮት እና ደግነት ያሳዩ",
+        "1": "በርዕሱ ላይ ይቆዩ እና ትርጉም ያለው አስተዋጽኦ ያበርክቱ",
+        "2": "አይፈለጌ መልእክት ወይም እራስን ማስተዋወቅ አይፈቀድም",
+        "3": "ተገቢ ያልሆነ ይዘትን ሪፖርት ያድርጉ"
+      },
+      "copied": "ሊንኩ ወደ ቅንጥብ ሰሌዳ ተቀድቷል",
+      "copy_error": "ሊንኩን መቅዳት አልተቻለም",
+      "posted_success": "ምላሽዎ ተለጥፏል።",
+      "post_error": "ምላሽ መለጠፍ አልተቻለም",
+      "like_error": "ውይይቱን መውደድ አልተቻለም"
+    }
   }
 }

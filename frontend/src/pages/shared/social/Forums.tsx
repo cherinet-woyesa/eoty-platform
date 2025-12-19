@@ -45,6 +45,39 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
             const res = await forumApi.getTopics(String(forum.id), page, 20);
             const topics = res?.data?.topics || res?.topics || [];
             setHasMoreByForum(prev => ({ ...prev, [forumId]: topics.length === 20 }));
+            const deriveName = (entity: any): string => {
+              if (!entity) return '';
+              const pickName = (obj: any): string => {
+                if (!obj) return '';
+                const direct = obj.author_name || obj.authorName || obj.display_name || obj.displayName || obj.full_name || obj.fullName || obj.name || '';
+                if (direct && String(direct).trim()) return String(direct).trim();
+                const fn = obj.first_name || obj.firstName || obj.given_name || '';
+                const ln = obj.last_name || obj.lastName || obj.family_name || '';
+                const combo = `${fn} ${ln}`.trim();
+                if (combo) return combo;
+                const afn = obj.author_first_name || obj.authorFirstName || '';
+                const aln = obj.author_last_name || obj.authorLastName || '';
+                const acombo = `${afn} ${aln}`.trim();
+                if (acombo) return acombo;
+                const email = obj.email || obj.user_email || '';
+                if (email && typeof email === 'string') {
+                  const base = email.split('@')[0]?.replace(/[._-]+/g, ' ');
+                  if (base) {
+                    return base
+                      .split(' ')
+                      .map((s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s))
+                      .join(' ');
+                  }
+                }
+                return '';
+              };
+              return (
+                pickName(entity) ||
+                pickName(entity.author) ||
+                pickName(entity.user) ||
+                ''
+              );
+            };
             return topics.map((topic: any) => ({
               id: String(topic.id),
               title: topic.title,
@@ -65,9 +98,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
               views: topic.view_count || 0,
               likes: topic.like_count || topic.likes_count || 0,
               userLiked: topic.user_liked || false,
-              author: topic.author_name ||
-                (topic.author ? `${topic.author.first_name || ''} ${topic.author.last_name || ''}`.trim() : '') ||
-                'Anonymous'
+              author: deriveName(topic) || 'Member'
             }));
           })
         );
@@ -305,16 +336,16 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden xl:inline">{t('community.forums.new')}</span>
-                <span className="xl:hidden">New Topic</span>
+                <span className="xl:hidden">{t('community.forums.new_topic_short')}</span>
               </button>
               <button
                 onClick={() => setShowCreateForum(true)}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold shadow-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all whitespace-nowrap"
-                title="Create a new forum category"
+                title={t('community.forums.new_forum')}
               >
                 <MessageSquare className="h-4 w-4" />
-                <span className="hidden xl:inline">New Forum</span>
-                <span className="xl:hidden">Forum</span>
+                <span className="hidden xl:inline">{t('community.forums.new_forum')}</span>
+                <span className="xl:hidden">{t('community.forums.new_forum_short')}</span>
               </button>
             </div>
           </div>

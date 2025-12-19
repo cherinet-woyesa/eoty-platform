@@ -63,8 +63,10 @@ const QuickActions: React.FC = () => {
   ];
 
   const handleActionClick = useCallback((action: typeof actions[0]) => {
-    // Analytics tracking could be added here
-    console.log(`Admin quick action clicked: ${action.label}`);
+    // Action handling would be implemented here
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[QuickActions] Admin quick action clicked: ${action.label}`);
+    }
   }, []);
 
   return (
@@ -73,7 +75,7 @@ const QuickActions: React.FC = () => {
         <Zap className="h-5 w-5 mr-2 text-yellow-500" />
         Quick Actions
       </h3>
-      
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {actions.map((action, index) => (
           <Link

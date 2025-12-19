@@ -25,6 +25,7 @@ export interface AIChatInterfaceProps {
   onError?: (message: string) => void;
   onSlow?: (isSlow: boolean) => void;
   onMessageCountChange?: (count: number) => void;
+  showWelcomeMessage?: boolean;
 }
 
 export interface AIChatInterfaceHandle {
@@ -52,7 +53,8 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
     maxHeight = '600px',
     onError,
     onSlow,
-    onMessageCountChange
+    onMessageCountChange,
+    showWelcomeMessage = true
   }, ref) => {
   const [input, setInput] = useState<string>('');
   const [isUsingAudio, setIsUsingAudio] = useState<boolean>(false);
@@ -670,7 +672,7 @@ const AIChatInterface = forwardRef<AIChatInterfaceHandle, AIChatInterfaceProps>(
           </div>
         )}
 
-        {messages.length === 0 && (
+        {messages.length === 0 && showWelcomeMessage && (
           <div className="text-center py-6">
             <div className="p-3 rounded-2xl inline-block mb-3" style={{ background: `${brandColors.primaryHex}1A` }}>
               <Bot className="h-10 w-10" style={{ color: brandColors.primaryHex }} />

@@ -75,7 +75,40 @@ const TopicDetail: React.FC = () => {
     );
   }
 
-  const topicAuthor = (topic as any)?.author_name ?? (topic as any)?.authorName ?? 'Anonymous';
+  const deriveName = (entity: any): string => {
+    if (!entity) return '';
+    const pickName = (obj: any): string => {
+      if (!obj) return '';
+      const direct = obj.author_name || obj.authorName || obj.display_name || obj.displayName || obj.full_name || obj.fullName || obj.name || '';
+      if (direct && String(direct).trim()) return String(direct).trim();
+      const fn = obj.first_name || obj.firstName || obj.given_name || '';
+      const ln = obj.last_name || obj.lastName || obj.family_name || '';
+      const combo = `${fn} ${ln}`.trim();
+      if (combo) return combo;
+      const afn = obj.author_first_name || obj.authorFirstName || '';
+      const aln = obj.author_last_name || obj.authorLastName || '';
+      const acombo = `${afn} ${aln}`.trim();
+      if (acombo) return acombo;
+      const email = obj.email || obj.user_email || '';
+      if (email && typeof email === 'string') {
+        const base = email.split('@')[0]?.replace(/[._-]+/g, ' ');
+        if (base) {
+          return base
+            .split(' ')
+            .map((s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s))
+            .join(' ');
+        }
+      }
+      return '';
+    };
+    return (
+      pickName(entity) ||
+      pickName(entity.author) ||
+      pickName(entity.user) ||
+      ''
+    );
+  };
+  const topicAuthor = deriveName(topic) || 'Member';
   const topicUserLiked = Boolean((topic as any)?.user_liked ?? (topic as any)?.liked);
   const topicLikes = (topic as any)?.likes_count ?? (topic as any)?.likes ?? 0;
 
@@ -286,7 +319,7 @@ const TopicDetail: React.FC = () => {
           <div className="divide-y divide-stone-200">
             {replies.length > 0 ? (
               replies.map((reply) => {
-                const replyAuthor = (reply as any).author_name ?? (reply as any).authorName ?? 'Anonymous';
+                const replyAuthor = deriveName(reply) || 'Member';
                 const replyUserLiked = Boolean((reply as any).user_liked ?? (reply as any).liked);
                 const replyLikes = (reply as any).likes_count ?? (reply as any).like_count ?? (reply as any).likes ?? 0;
                 return (

@@ -131,7 +131,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
 
       {/* Navigation - Fills available space */}
       <div className="flex-1 overflow-y-auto py-4 bg-gradient-to-b from-white/40 to-transparent">
-        <nav className="space-y-2 px-2">
+        <nav className={`space-y-2 ${isCollapsed ? 'px-1' : 'px-2'}`}>
           {navigationItems.map((item) => {
             const active = isActive(item.href);
             const IconComponent = item.icon as React.ElementType;
@@ -140,7 +140,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
               <Link
                 key={item.name}
                 to={item.href}
-                className={`group flex items-center px-3 py-4 text-sm font-medium rounded-lg transition-all duration-200 ${active
+                className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-4 text-sm font-medium rounded-lg transition-all duration-200 ${active
                     ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
                   }`}
@@ -182,7 +182,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                 </h3>
               </div>
             )}
-            <nav className="space-y-1 px-2">
+            <nav className={`space-y-1 ${isCollapsed ? 'px-1' : 'px-2'}`}>
               {adminItems.map((item) => {
                 const active = isActive(item.href);
                 const IconComponent = item.icon as React.ElementType;
@@ -191,7 +191,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${active
+                    className={`group flex items-center ${isCollapsed ? 'justify-center px-1' : 'px-2'} py-2 text-sm font-medium rounded-lg transition-all duration-200 ${active
                         ? 'bg-gray-100 text-gray-700 shadow-sm border border-gray-200/50'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }`}

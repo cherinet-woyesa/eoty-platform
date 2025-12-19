@@ -1,8 +1,9 @@
 import React, { useState, Suspense } from 'react';
-import { BarChart2, Settings, ShieldIcon, Video, FileEdit, Book } from 'lucide-react';
+import { BarChart2, Settings, ShieldIcon, Video, FileEdit, Book, LifeBuoy } from 'lucide-react';
 import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
 import SystemConfigDashboard from './config/SystemConfigDashboard';
 import AdminActivityLogs from './AdminActivityLogs';
+import SupportTicketsTab from '@/components/admin/system/SupportTicketsTab';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Lazy load components
@@ -16,14 +17,14 @@ const PageLoader = () => (
 );
 
 const AdminSystemPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'landing' | 'knowledge'>('landing');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'config' | 'logs' | 'landing' | 'knowledge' | 'support'>('landing');
 
   return (
     <div className="w-full h-full">
       <div className="w-full space-y-4 p-3 sm:p-4 lg:p-6">
         {/* Tabs */}
         <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
-          <nav className="flex space-x-2 p-2 bg-white border-b border-slate-200">
+          <nav className="flex space-x-2 p-2 bg-white border-b border-slate-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('landing')}
               className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
@@ -79,6 +80,17 @@ const AdminSystemPage: React.FC = () => {
               <BarChart2 className="h-4 w-4" />
               <span className="text-sm">Analytics</span>
             </button>
+            <button
+              onClick={() => setActiveTab('support')}
+              className={`flex items-center justify-center gap-2 px-4 py-3 font-semibold transition-all border-b-2 whitespace-nowrap ${
+                activeTab === 'support'
+                  ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                  : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+              }`}
+            >
+              <LifeBuoy className="h-4 w-4" />
+              <span className="text-sm">Support Tickets</span>
+            </button>
           </nav>
 
           {/* Tab Content */}
@@ -96,6 +108,11 @@ const AdminSystemPage: React.FC = () => {
             {activeTab === 'logs' && (
               <div className="animate-in fade-in duration-300">
                 <AdminActivityLogs />
+              </div>
+            )}
+            {activeTab === 'support' && (
+              <div className="animate-in fade-in duration-300 h-full">
+                <SupportTicketsTab />
               </div>
             )}
             {activeTab === 'landing' && (

@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Globe,
   Calendar,
-  Megaphone
+  Megaphone,
+  MessageSquare
 } from 'lucide-react';
 
 export interface NavItem {
@@ -95,6 +96,16 @@ export const adminNavItems: NavItem[] = [
     section: 'primary',
   },
   {
+    name: 'nav.community',
+    href: '/admin/community',
+    icon: MessageSquare,
+    badge: null,
+    description: 'nav.community_desc',
+    color: 'text-[#9B59B6]',
+    requiredRole: 'chapter_admin',
+    section: 'primary',
+  },
+  {
     name: 'nav.ai_labeling',
     href: '/admin/ai-labeling',
     icon: Bot,
@@ -151,7 +162,7 @@ export const teacherNavItems: NavItem[] = [
   },
   {
     name: 'nav.courses',
-    href: '/teacher/all-courses',
+    href: '/teacher/courses',
     icon: BookOpen,
     badge: null,
     description: 'nav.courses_desc',

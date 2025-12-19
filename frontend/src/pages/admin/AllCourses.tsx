@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { coursesApi } from '@/services/api';
 import { apiClient } from '@/services/api/apiClient';
 import { brandColors } from '@/theme/brand';
-import { 
-  BookOpen, 
-  Search, 
+import {
+  BookOpen,
+  Search,
   RefreshCw,
   Plus,
   Eye,
@@ -26,6 +26,7 @@ import {
   Download
 } from 'lucide-react';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { Course } from '@/types/courses';
 
 interface CourseWithCreator extends Course {
@@ -37,7 +38,8 @@ const AllCourses: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+  const { confirm } = useConfirmDialog();
+
   // State
   const [courses, setCourses] = useState<CourseWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ const AllCourses: React.FC = () => {
       setLoading(true);
       setError(null);
       const pageToLoad = pageOverride ?? currentPage;
-      
+
       const response = await coursesApi.getCourses({
         page: pageToLoad,
         perPage: itemsPerPage,
@@ -92,14 +94,16 @@ const AllCourses: React.FC = () => {
             1,
             Math.ceil(
               ((paginationData.total ?? coursesData.length) || 1) /
-                (paginationData.limit ?? itemsPerPage)
+              (paginationData.limit ?? itemsPerPage)
             )
           ),
         page: paginationData.page ?? pageToLoad,
         limit: paginationData.limit ?? itemsPerPage,
       });
     } catch (err: any) {
-      console.error('Failed to fetch courses:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] Failed to fetch courses:', err);
+      }
       setError(err.response?.data?.message || 'Failed to load courses. Please try again.');
     } finally {
       setLoading(false);
@@ -123,18 +127,18 @@ const AllCourses: React.FC = () => {
   // Filtered and sorted courses
   const filteredAndSortedCourses = useMemo(() => {
     let filtered = courses.filter(course => {
-      const matchesSearch = 
+      const matchesSearch =
         course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = 
+
+      const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'published' && course.is_published) ||
         (statusFilter === 'draft' && !course.is_published);
-      
-      const matchesCategory = 
+
+      const matchesCategory =
         categoryFilter === 'all' || course.category === categoryFilter;
-      
+
       return matchesSearch && matchesStatus && matchesCategory;
     });
 
@@ -142,12 +146,12 @@ const AllCourses: React.FC = () => {
     filtered.sort((a, b) => {
       let aValue: any = a[sortBy];
       let bValue: any = b[sortBy];
-      
+
       if (sortBy === 'created_at') {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -177,7 +181,7 @@ const AllCourses: React.FC = () => {
   }, [courses, pagination.total]);
 
   // Handlers
-  const handleBulkPublish = async (publish: boolean) => {
+  const handleBulkPublish = useCallback(async (publish: boolean) => {
     if (selectedCourses.length === 0) return;
     setActionLoading('bulk');
     try {
@@ -188,18 +192,27 @@ const AllCourses: React.FC = () => {
       setSelectedCourses([]);
       await fetchCourses();
     } catch (err: any) {
-      console.error('Failed to update courses:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] Failed to update courses:', err);
+      }
       setError(err.response?.data?.message || 'Failed to update courses');
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [selectedCourses, fetchCourses]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedCourses.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedCourses.length} course(s)? This action cannot be undone.`)) {
-      return;
-    }
+
+    const confirmed = await confirm({
+      title: 'Delete Courses',
+      message: `Are you sure you want to delete ${selectedCourses.length} course(s)? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+
+    if (!confirmed) return;
+
     setActionLoading('bulk');
     try {
       await apiClient.post('/courses/bulk-action', {
@@ -209,30 +222,40 @@ const AllCourses: React.FC = () => {
       setSelectedCourses([]);
       await fetchCourses();
     } catch (err: any) {
-      console.error('Failed to delete courses:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] Failed to delete courses:', err);
+      }
       setError(err.response?.data?.message || 'Failed to delete courses');
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [selectedCourses, confirm, fetchCourses]);
 
-  const handleDeleteCourse = async (courseId: number) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteCourse = useCallback(async (courseId: number) => {
+    const confirmed = await confirm({
+      title: 'Delete Course',
+      message: 'Are you sure you want to delete this course? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+
+    if (!confirmed) return;
+
     setActionLoading(courseId.toString());
     try {
       await coursesApi.deleteCourse(courseId.toString());
       await fetchCourses();
     } catch (err: any) {
-      console.error('Failed to delete course:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] Failed to delete course:', err);
+      }
       setError(err.response?.data?.message || 'Failed to delete course');
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [confirm, fetchCourses]);
 
-  const handleTogglePublish = async (courseId: number, isPublished: boolean) => {
+  const handleTogglePublish = useCallback(async (courseId: number, isPublished: boolean) => {
     setActionLoading(courseId.toString());
     try {
       if (isPublished) {
@@ -242,38 +265,40 @@ const AllCourses: React.FC = () => {
       }
       await fetchCourses();
     } catch (err: any) {
-      console.error('Failed to toggle publish status:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] Failed to toggle publish status:', err);
+      }
       setError(err.response?.data?.message || 'Failed to update course status');
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [fetchCourses]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedCourses.length === paginatedCourses.length) {
       setSelectedCourses([]);
     } else {
       setSelectedCourses(paginatedCourses.map(c => c.id));
     }
-  };
+  }, [selectedCourses.length, paginatedCourses]);
 
   const handleSelectCourse = (courseId: number) => {
-    setSelectedCourses(prev => 
-      prev.includes(courseId) 
+    setSelectedCourses(prev =>
+      prev.includes(courseId)
         ? prev.filter(id => id !== courseId)
         : [...prev, courseId]
     );
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []);
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = useCallback((category: string) => {
     const colors: { [key: string]: string } = {
       faith: 'from-blue-500 to-blue-600',
       history: 'from-purple-500 to-purple-600',
@@ -283,9 +308,9 @@ const AllCourses: React.FC = () => {
       youth: 'from-pink-500 to-pink-600'
     };
     return colors[category] || 'from-gray-500 to-gray-600';
-  };
+  }, []);
 
-  const getCategoryLabel = (category: string) => {
+  const getCategoryLabel = useCallback((category: string) => {
     const labels: { [key: string]: string } = {
       faith: 'Faith & Doctrine',
       history: 'Church History',
@@ -295,9 +320,9 @@ const AllCourses: React.FC = () => {
       youth: 'Youth Ministry'
     };
     return labels[category] || category;
-  };
+  }, []);
 
-  const exportCsv = async () => {
+  const exportCsv = useCallback(async () => {
     try {
       setIsExporting(true);
       const response = await coursesApi.getCourses({
@@ -332,12 +357,14 @@ const AllCourses: React.FC = () => {
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('CSV export failed', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AllCourses] CSV export failed', err);
+      }
       setError('Failed to export CSV');
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [pagination.total, searchTerm, categoryFilter, statusFilter, sortBy, sortOrder]);
 
   if (loading && courses.length === 0) {
     return (
@@ -365,85 +392,85 @@ const AllCourses: React.FC = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 min-h-screen">
-        {/* Compact Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-stone-600">
-              {t('courses.counts', '{{total}} total courses • {{published}} published • {{draft}} drafts', {
-                total: stats.total,
-                published: stats.published,
-                draft: stats.draft
-              })}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={fetchCourses}
-              disabled={loading}
-              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
-              style={{ borderColor: `${brandColors.primaryHex}40` }}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-              {t('common.refresh', 'Refresh')}
-            </button>
-            <button
-              onClick={exportCsv}
-              disabled={isExporting}
-              className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
-              style={{ borderColor: `${brandColors.primaryHex}40` }}
-            >
-              <Download className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-              {isExporting ? t('common.exporting', 'Exporting...') : t('common.export_csv', 'Export CSV')}
-            </button>
-            <button
-              onClick={() => navigate('/admin/courses/create')}
-              className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
-              style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              {t('courses.new_course', 'New Course')}
-            </button>
-          </div>
+      {/* Compact Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-stone-600">
+            {t('courses.counts', '{{total}} total courses • {{published}} published • {{draft}} drafts', {
+              total: stats.total,
+              published: stats.published,
+              draft: stats.draft
+            })}
+          </span>
         </div>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchCourses}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+            style={{ borderColor: `${brandColors.primaryHex}40` }}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+            {t('common.refresh', 'Refresh')}
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={isExporting}
+            className="inline-flex items-center px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white text-stone-800 text-xs font-medium rounded-md transition-all border shadow-sm hover:shadow-md disabled:opacity-50"
+            style={{ borderColor: `${brandColors.primaryHex}40` }}
+          >
+            <Download className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
+            {isExporting ? t('common.exporting', 'Exporting...') : t('common.export_csv', 'Export CSV')}
+          </button>
+          <button
+            onClick={() => navigate('/admin/courses/create')}
+            className="inline-flex items-center px-3 py-1.5 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md hover:opacity-90"
+            style={{ background: `linear-gradient(to right, ${brandColors.primaryHex}, ${brandColors.secondaryHex})` }}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            {t('courses.new_course', 'New Course')}
+          </button>
+        </div>
+      </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
-            { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/20' },
-            { name: 'Drafts', value: stats.drafts, icon: Edit, textColor: 'text-[#F59E0B]', bgColor: 'bg-[#F59E0B]/10', borderColor: 'border-[#F59E0B]/25', glowColor: 'bg-[#F59E0B]/20' },
-            { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
-            { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#8B5CF6]', bgColor: 'bg-[#8B5CF6]/10', borderColor: 'border-[#8B5CF6]/25', glowColor: 'bg-[#8B5CF6]/20' },
-            { name: 'Avg. Rating', value: '4.8', icon: Eye, textColor: 'text-[#EC4899]', bgColor: 'bg-[#EC4899]/10', borderColor: 'border-[#EC4899]/25', glowColor: 'bg-[#EC4899]/20' },
-          ].map((stat, index) => (
-            <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <div 
-                  className={`relative ${stat.textColor}`}
-                  style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { color: brandColors.primaryHex } : undefined}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[
+          { name: 'Total Courses', value: stats.total, icon: BookOpen, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
+          { name: 'Published', value: stats.published, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/20' },
+          { name: 'Drafts', value: stats.draft, icon: Edit, textColor: 'text-[#F59E0B]', bgColor: 'bg-[#F59E0B]/10', borderColor: 'border-[#F59E0B]/25', glowColor: 'bg-[#F59E0B]/20' },
+          { name: 'Total Lessons', value: stats.totalLessons, icon: Video, textColor: '', bgColor: '', borderColor: '', glowColor: '' },
+          { name: 'Total Students', value: stats.totalStudents, icon: Users, textColor: 'text-[#8B5CF6]', bgColor: 'bg-[#8B5CF6]/10', borderColor: 'border-[#8B5CF6]/25', glowColor: 'bg-[#8B5CF6]/20' },
+          { name: 'Avg. Rating', value: '4.8', icon: Eye, textColor: 'text-[#EC4899]', bgColor: 'bg-[#EC4899]/10', borderColor: 'border-[#EC4899]/25', glowColor: 'bg-[#EC4899]/20' },
+        ].map((stat, index) => (
+          <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <div
+                className={`relative ${stat.textColor}`}
+                style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { color: brandColors.primaryHex } : undefined}
+              >
+                <div
+                  className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}
+                  style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}33` } : undefined}
+                ></div>
+                <div
+                  className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}
+                  style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}40` } : undefined}
                 >
-                  <div 
-                    className={`absolute inset-0 ${stat.glowColor} rounded-lg blur-md`}
-                    style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}33` } : undefined}
-                  ></div>
-                  <div 
-                    className={`relative p-2 ${stat.bgColor} rounded-lg border ${stat.borderColor}`}
-                    style={stat.name === 'Total Courses' || stat.name === 'Total Lessons' ? { backgroundColor: `${brandColors.primaryHex}1A`, borderColor: `${brandColors.primaryHex}40` } : undefined}
-                  >
-                    <stat.icon className="h-4 w-4" />
-                  </div>
+                  <stat.icon className="h-4 w-4" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-stone-800">
-                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
-              </p>
-              <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
             </div>
-          ))}
-        </div>
+            <p className="text-2xl font-bold text-stone-800">
+              {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+            </p>
+            <p className="text-xs text-stone-600 font-medium">{stat.name}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
+      {/* Search and Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -551,7 +578,7 @@ const AllCourses: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedCourses.length > 0 && (
-        <div 
+        <div
           className="rounded-lg p-4 flex items-center justify-between backdrop-blur-sm border"
           style={{
             background: `linear-gradient(to right, ${brandColors.primaryHex}1A, ${brandColors.accentHex}1A)`,
@@ -654,11 +681,10 @@ const AllCourses: React.FC = () => {
                           <button
                             onClick={() => handleTogglePublish(course.id, course.is_published)}
                             disabled={actionLoading === course.id.toString()}
-                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
-                              course.is_published
-                                ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
-                                : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
-                            }`}
+                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${course.is_published
+                              ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                              : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                              }`}
                           >
                             {course.is_published ? (
                               <CheckCircle className="h-3 w-3 mr-1" />
@@ -753,8 +779,8 @@ const AllCourses: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedCourses.map((course) => (
-                <div 
-                  key={course.id} 
+                <div
+                  key={course.id}
                   className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
                 >
                   <div className={`bg-gradient-to-r ${getCategoryColor(course.category || '')} p-4 text-white`}>
@@ -776,11 +802,10 @@ const AllCourses: React.FC = () => {
                         <button
                           onClick={() => handleTogglePublish(course.id, course.is_published)}
                           disabled={actionLoading === course.id.toString()}
-                          className={`w-full flex items-center justify-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${
-                            course.is_published
-                              ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
-                              : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
-                          }`}
+                          className={`w-full flex items-center justify-center px-2 py-1 rounded-md text-xs font-medium border transition-colors disabled:opacity-50 ${course.is_published
+                            ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                            }`}
                         >
                           {course.is_published ? (
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -843,11 +868,11 @@ const AllCourses: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-900 mb-2">
-            {courses.length === 0 ? 'No courses yet' : 'No courses found'}
+            {courses.length === 0 ? t('admin.courses.no_courses_yet') : t('admin.courses.no_courses_found')}
           </h3>
           <p className="text-gray-600 text-sm mb-4">
-            {courses.length === 0 
-              ? 'Create your first course to start managing content.'
+            {courses.length === 0
+              ? t('admin.courses.create_first_course_prompt')
               : 'Try adjusting your search or filter criteria.'}
           </p>
           {courses.length === 0 && (

@@ -43,7 +43,8 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
     <div>
       <div className="flex gap-2 mb-3">
         <input
-          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
           value={newItem}
           onChange={e => setNewItem(e.target.value)}
           placeholder={t('teacher_profile.subjects.placeholder', 'Add a subject (e.g. Liturgy, Bible Study, Church History)')}
@@ -64,11 +65,11 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((s, idx) => (
-          <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border group transition-colors"
-               style={{ backgroundColor: '#eef2ff', borderColor: brandColors.primaryHex }}>
+          <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border group transition-colors bg-gray-50"
+               style={{ borderColor: brandColors.primaryHex }}>
             <span className="text-sm font-medium" style={{ color: brandColors.primaryHex }}>{s}</span>
             <button
-              className="text-slate-400 hover:text-red-600 transition-colors p-0.5 rounded-full hover:bg-red-50"
+              className="text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded-full hover:bg-red-50"
               onClick={() => { const updated = items.filter((_, i) => i !== idx); setItems(updated); onSave(updated); }}
               aria-label={`Remove ${s}`}
             >
@@ -77,10 +78,10 @@ const SubjectEditor: React.FC<{ initial: string[]; onSave: (subjects: string[]) 
           </div>
         ))}
         {items.length === 0 && (
-          <p className="text-sm text-slate-500 italic w-full">{t('teacher_profile.subjects.no_subjects', 'No subjects added yet.')}</p>
+          <p className="text-sm text-gray-500 italic w-full">{t('teacher_profile.subjects.no_subjects', 'No subjects added yet.')}</p>
         )}
       </div>
-      <p className="text-xs text-slate-400 mt-2">{t('teacher_profile.subjects.max_subjects', 'Maximum 5 subjects.')}</p>
+      <p className="text-xs text-gray-400 mt-2">{t('teacher_profile.subjects.max_subjects', 'Maximum 5 subjects.')}</p>
     </div>
   );
 };
@@ -136,12 +137,13 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
   return (
     <div className="space-y-4">
       {days.map(day => (
-        <div key={day} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+        <div key={day} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-slate-800">{t(`teacher_profile.availability.days.${day}`, day)}</span>
+            <span className="font-semibold text-gray-800">{t(`teacher_profile.availability.days.${day}`, day)}</span>
             {activeDay !== day && (
               <button
-                className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md font-medium transition-colors"
+                className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors"
+                style={{ color: brandColors.primaryHex }}
                 onClick={() => {
                   setActiveDay(day);
                   setNewTimeStart('');
@@ -154,7 +156,7 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
           </div>
 
           {activeDay === day && (
-            <div className="mb-4 p-3 bg-white rounded-lg border border-blue-100 shadow-sm animate-in slide-in-from-top-2">
+            <div className="mb-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm animate-in slide-in-from-top-2">
               <div className="flex items-center gap-2 mb-2">
                 <input
                   type="time"
@@ -162,7 +164,7 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
                   value={newTimeStart}
                   onChange={e => setNewTimeStart(e.target.value)}
                 />
-                <span className="text-slate-400">-</span>
+                <span className="text-gray-400">-</span>
                 <input
                   type="time"
                   className="px-2 py-1 border rounded text-sm"
@@ -173,13 +175,14 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAddSlot(day)}
-                  className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-3 py-1 text-xs text-white rounded hover:opacity-90"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   {t('teacher_profile.availability.save', 'Save')}
                 </button>
                 <button
                   onClick={() => setActiveDay(null)}
-                  className="px-3 py-1 text-xs bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                  className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
                 >
                   {t('teacher_profile.availability.cancel', 'Cancel')}
                 </button>
@@ -189,11 +192,11 @@ const AvailabilityEditor: React.FC<{ initial: Record<string, string[]>; onSave: 
 
           <ul className="space-y-2">
             {(slots[day] || []).length === 0 && activeDay !== day && (
-              <li className="text-xs text-slate-400 italic">{t('teacher_profile.availability.no_availability', 'No availability set')}</li>
+              <li className="text-xs text-gray-400 italic">{t('teacher_profile.availability.no_availability', 'No availability set')}</li>
             )}
             {(slots[day] || []).map((s, idx) => (
-              <li key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-slate-100">
-                <span className="text-sm text-slate-700 font-medium">{s}</span>
+              <li key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">{s}</span>
                 <button
                   className="text-xs text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
                   onClick={() => removeSlot(day, idx)}
@@ -385,26 +388,26 @@ const DashboardView: React.FC<{
       {/* Left Column - Main Info */}
       <div className="lg:col-span-2 space-y-8">
         {/* Welcome Section */}
-        <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+        <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Award className="h-48 w-48 text-blue-600 transform translate-x-12 -translate-y-12" />
+            <Award className="h-48 w-48 transform translate-x-12 -translate-y-12" style={{ color: brandColors.primaryHex }} />
           </div>
           <div className="relative z-10 flex items-start gap-6">
             <div className="relative group">
-              <div className="h-24 w-24 rounded-full bg-slate-100 border-4 border-white shadow-md overflow-hidden flex-shrink-0">
+              <div className="h-24 w-24 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden flex-shrink-0">
                 {(previewAvatar || profile.profile_picture || user?.avatar) ? (
                   <img src={previewAvatar || profile.profile_picture || user?.avatar} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-blue-100 text-blue-600 text-2xl font-bold">
+                  <div className="h-full w-full flex items-center justify-center bg-gray-100 text-2xl font-bold" style={{ color: brandColors.primaryHex }}>
                     {user?.name?.charAt(0) || 'T'}
                   </div>
                 )}
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-slate-200 hover:bg-slate-50 transition-colors"
+                className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
               >
-                <Camera className="h-4 w-4 text-slate-600" />
+                <Camera className="h-4 w-4 text-gray-600" />
               </button>
               <input
                 type="file"
@@ -415,10 +418,10 @@ const DashboardView: React.FC<{
               />
             </div>
             <div className="pt-2">
-              <h1 className="text-3xl font-bold font-display text-slate-900">
+              <h1 className="text-3xl font-bold font-display text-gray-900">
                 {t('teacher_profile.welcome_back', 'Welcome back, {{name}}!', { name: user?.name?.split(' ')[0] })}
               </h1>
-              <p className="text-slate-600 mt-1 text-lg">
+              <p className="text-gray-600 mt-1 text-lg">
                 {t('teacher_profile.dashboard_subtitle', 'Manage your teaching profile and settings.')}
               </p>
             </div>
@@ -428,21 +431,21 @@ const DashboardView: React.FC<{
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map((stat, idx) => (
-            <div key={idx} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
-              <div className="p-3 rounded-full mb-3" style={{ backgroundColor: '#eef2ff' }}>
+            <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center text-center hover:shadow-md transition-shadow">
+              <div className="p-3 rounded-full mb-3 bg-gray-50">
                 <stat.icon className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
               </div>
-              <div className="text-2xl font-bold text-slate-900 font-mono mb-1">{stat.value}</div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{stat.label}</div>
+              <div className="text-2xl font-bold text-gray-900 font-mono mb-1">{stat.value}</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Profile Settings Section */}
-        <div id="bio-section" className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
-          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 p-6 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-600" />
+        <div id="bio-section" className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
+          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-100 p-6 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <User className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('teacher_profile.profile_details', 'Profile Details')}
             </h3>
           </div>
@@ -450,21 +453,22 @@ const DashboardView: React.FC<{
           <div className="p-6 space-y-8">
             {/* Bio */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.bio_label', 'Professional Bio')}</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">{t('teacher_profile.bio_label', 'Professional Bio')}</label>
               <textarea
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[120px]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all min-h-[120px]"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 placeholder={t('teacher_profile.bio_placeholder', 'Tell students about your teaching experience and methodology...')}
                 value={formData.bio}
                 onChange={(e) => updateField('bio', e.target.value)}
               />
-              <p className="text-xs text-slate-500 mt-2 text-right">
+              <p className="text-xs text-gray-500 mt-2 text-right">
                 {t('teacher_profile.bio_hint', 'Min 50 characters recommended.')}
               </p>
             </div>
 
             {/* Subjects */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.subjects_label', 'Subjects')}</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">{t('teacher_profile.subjects_label', 'Subjects')}</label>
               <SubjectEditor
                 initial={formData.subjects}
                 onSave={(subjects) => updateField('subjects', subjects)}
@@ -474,26 +478,28 @@ const DashboardView: React.FC<{
             {/* Social Links */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.social.linkedin', 'LinkedIn Profile')}</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">{t('teacher_profile.social.linkedin', 'LinkedIn Profile')}</label>
                 <div className="flex items-center">
-                  <span className="bg-slate-100 px-3 py-2 border border-slate-300 border-r-0 rounded-l-lg text-slate-500 text-sm">linkedin.com/in/</span>
+                  <span className="bg-gray-100 px-3 py-2 border border-gray-300 border-r-0 rounded-l-lg text-gray-500 text-sm">linkedin.com/in/</span>
                   <input
                     type="text"
                     value={formData.linkedin_url.replace('linkedin.com/in/', '')}
                     onChange={(e) => updateField('linkedin_url', `linkedin.com/in/${e.target.value}`)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-900 mb-2">{t('teacher_profile.social.website', 'Website')}</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">{t('teacher_profile.social.website', 'Website')}</label>
                 <div className="flex items-center">
-                  <span className="bg-slate-100 px-3 py-2 border border-slate-300 border-r-0 rounded-l-lg text-slate-500 text-sm">https://</span>
+                  <span className="bg-gray-100 px-3 py-2 border border-gray-300 border-r-0 rounded-l-lg text-gray-500 text-sm">https://</span>
                   <input
                     type="text"
                     value={formData.website_url.replace('https://', '')}
                     onChange={(e) => updateField('website_url', `https://${e.target.value}`)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent"
+                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   />
                 </div>
               </div>
@@ -501,7 +507,7 @@ const DashboardView: React.FC<{
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-100 bg-slate-50">
+          <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-100 bg-gray-50">
             <button
               onClick={handleSave}
               disabled={isSaving}
@@ -527,19 +533,20 @@ const DashboardView: React.FC<{
       {/* Right Column - Sidebar Widgets */}
       < div className="space-y-6" >
         {/* Onboarding Checklist */}
-        < div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" >
-          <h3 className="font-bold text-slate-900 mb-4">{t('teacher_profile.setup_progress', 'Setup Progress')}</h3>
+        < div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6" >
+          <h3 className="font-bold text-gray-900 mb-4">{t('teacher_profile.setup_progress', 'Setup Progress')}</h3>
           <div className="space-y-4">
             {checklist.map((item) => (
               <div key={item.id} className="flex items-center gap-3">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${item.isComplete ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 ${item.isComplete ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                   {item.isComplete ? <Check className="h-4 w-4" /> : <div className="h-2 w-2 bg-current rounded-full" />}
                 </div>
-                <div className="flex-1 text-sm font-medium text-slate-700">{item.label}</div>
+                <div className="flex-1 text-sm font-medium text-gray-700">{item.label}</div>
                 {!item.isComplete && (
                   <button
                     onClick={item.action}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    className="text-xs font-semibold hover:opacity-80"
+                    style={{ color: brandColors.primaryHex }}
                   >
                     Start
                   </button>
@@ -547,25 +554,25 @@ const DashboardView: React.FC<{
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-6 border-t border-slate-100">
+          <div className="mt-6 pt-6 border-t border-gray-100">
             <div className="flex justify-between text-xs mb-2">
-              <span className="font-semibold text-slate-600">Completion</span>
-              <span className="font-bold text-blue-600">{Math.round((checklist.filter(i => i.isComplete).length / checklist.length) * 100)}%</span>
+              <span className="font-semibold text-gray-600">Completion</span>
+              <span className="font-bold" style={{ color: brandColors.primaryHex }}>{Math.round((checklist.filter(i => i.isComplete).length / checklist.length) * 100)}%</span>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-600 rounded-full transition-all duration-1000"
-                style={{ width: `${(checklist.filter(i => i.isComplete).length / checklist.length) * 100}%` }}
+                className="h-full rounded-full transition-all duration-1000"
+                style={{ width: `${(checklist.filter(i => i.isComplete).length / checklist.length) * 100}%`, backgroundColor: brandColors.primaryHex }}
               />
             </div>
           </div>
         </div >
 
         {/* Regional Resources */}
-        < div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-xl shadow-md p-6 text-white relative overflow-hidden" >
+        < div className="rounded-xl shadow-md p-6 text-white relative overflow-hidden" style={{ backgroundColor: brandColors.primaryHex }}>
           <div className="relative z-10">
             <h3 className="font-bold text-lg mb-2">{t('teacher_profile.regional_resources.title', 'Regional Resources')}</h3>
-            <p className="text-blue-100 text-sm mb-4">{t('teacher_profile.regional_resources.description', 'Access guides and tools specific to your teaching region.')}</p>
+            <p className="text-white/80 text-sm mb-4">{t('teacher_profile.regional_resources.description', 'Access guides and tools specific to your teaching region.')}</p>
             <button className="w-full py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-sm font-semibold transition-colors">
               {t('teacher_profile.regional_resources.view_btn', 'View Resources')}
             </button>
@@ -682,32 +689,33 @@ const PayoutView: React.FC<{
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
       {/* Main Form */}
       <div className="lg:col-span-2 space-y-6">
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
           <section>
             <div className="flex items-center gap-4 mb-2">
               <button
                 type="button"
                 onClick={onCancel}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <ArrowLeft className="h-5 w-5 text-slate-600" />
+                <ArrowLeft className="h-5 w-5 text-gray-600" />
               </button>
               <div>
-                <h2 className="text-3xl font-bold text-slate-900">{t('teacher_profile.payout_setup.main_title')}</h2>
-                <p className="text-slate-600 text-lg">{t('teacher_profile.payout_setup.subtitle')}</p>
+                <h2 className="text-3xl font-bold text-gray-900">{t('teacher_profile.payout_setup.main_title')}</h2>
+                <p className="text-gray-600 text-lg">{t('teacher_profile.payout_setup.subtitle')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
               {/* Region Selector */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
                   {t('teacher_profile.payout_setup.region_label')}
                 </label>
                 <select
                   value={formData.payout_region}
                   onChange={e => setFormData({ ...formData, payout_region: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-slate-50"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all bg-gray-50"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   disabled={updatePayoutMutation.isPending}
                 >
                   {PAYOUT_REGIONS.map(region => (
@@ -720,7 +728,7 @@ const PayoutView: React.FC<{
 
               {/* Payout Method */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
                   {t('teacher_profile.payout_setup.method_label')}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -728,11 +736,12 @@ const PayoutView: React.FC<{
                     type="button"
                     onClick={() => setFormData({ ...formData, payout_method: 'bank' })}
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.payout_method === 'bank'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                      ? 'bg-gray-50'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
                       }`}
+                    style={formData.payout_method === 'bank' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
                   >
-                    <div className={`p-2 rounded-full ${formData.payout_method === 'bank' ? 'bg-white' : 'bg-slate-100'}`}>
+                    <div className={`p-2 rounded-full ${formData.payout_method === 'bank' ? 'bg-white' : 'bg-gray-100'}`}>
                       <CreditCard className="h-5 w-5" />
                     </div>
                     <div className="text-left">
@@ -746,11 +755,12 @@ const PayoutView: React.FC<{
                     type="button"
                     onClick={() => setFormData({ ...formData, payout_method: 'stripe' })}
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.payout_method === 'stripe'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                      ? 'bg-gray-50'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
                       }`}
+                    style={formData.payout_method === 'stripe' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
                   >
-                    <div className={`p-2 rounded-full ${formData.payout_method === 'stripe' ? 'bg-white' : 'bg-slate-100'}`}>
+                    <div className={`p-2 rounded-full ${formData.payout_method === 'stripe' ? 'bg-white' : 'bg-gray-100'}`}>
                       <CreditCard className="h-5 w-5" />
                     </div>
                     <div className="text-left">
@@ -764,11 +774,12 @@ const PayoutView: React.FC<{
                     type="button"
                     onClick={() => setFormData({ ...formData, payout_method: 'mobile_money' })}
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${formData.payout_method === 'mobile_money'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                      ? 'bg-gray-50'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
                       }`}
+                    style={formData.payout_method === 'mobile_money' ? { borderColor: brandColors.primaryHex, color: brandColors.primaryHex } : {}}
                   >
-                    <div className={`p-2 rounded-full ${formData.payout_method === 'mobile_money' ? 'bg-white' : 'bg-slate-100'}`}>
+                    <div className={`p-2 rounded-full ${formData.payout_method === 'mobile_money' ? 'bg-white' : 'bg-gray-100'}`}>
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div className="text-left">
@@ -782,7 +793,7 @@ const PayoutView: React.FC<{
 
               {/* Account / Phone Details */}
               <div className="md:col-span-2 space-y-4">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2 pt-4 border-t border-slate-100">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 pt-4 border-t border-gray-100">
                   <CreditCard className="h-4 w-4" />
                   {t('teacher_profile.payout_setup.account_details_title')}
                 </h3>
@@ -790,40 +801,43 @@ const PayoutView: React.FC<{
                 {formData.payout_method !== 'stripe' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                       {t('teacher_profile.payout_setup.account_holder_label')}
                     </label>
                     <input
                       type="text"
                       value={formData.account_holder}
                       onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder={t('teacher_profile.payout_setup.account_holder_placeholder', 'e.g. John Doe')}
                     />
                   </div>
                   {formData.payout_method === 'bank' && (
                     <div>
-                      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                      <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                         {t('teacher_profile.payout_setup.routing_number_label')}
                       </label>
                       <input
                         type="text"
                         value={formData.routing_number}
                         onChange={e => setFormData({ ...formData, routing_number: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                         placeholder={t('teacher_profile.payout_setup.routing_number_placeholder', 'Routing / Sort Code')}
                       />
                     </div>
                   )}
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                       {formData.payout_method === 'bank' ? t('teacher_profile.payout_setup.account_number_label') : t('teacher_profile.payout_setup.phone_number_label')}
                     </label>
                     <input
                       type="text"
                       value={formData.account_number}
                       onChange={e => setFormData({ ...formData, account_number: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder={formData.payout_method === 'bank' 
                         ? t('teacher_profile.payout_setup.account_number_placeholder', 'Account Number / IBAN') 
                         : t('teacher_profile.payout_setup.phone_number_placeholder', '+251...')}
@@ -835,13 +849,14 @@ const PayoutView: React.FC<{
                 {formData.payout_method === 'mobile_money' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                      <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                         {t('teacher_profile.payout_setup.mobile_money_provider_label', 'Mobile Money Provider')}
                       </label>
                       <select
                         value={formData.mobile_provider}
                         onChange={e => setFormData({ ...formData, mobile_provider: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-slate-50"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all bg-gray-50"
+                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       >
                         <option value="">{t('teacher_profile.payout_setup.select_provider', 'Select provider')}</option>
                         <option value="cbe_birr">{t('teacher_profile.payout_setup.provider_cbe_birr', 'CBE Birr')}</option>
@@ -854,44 +869,47 @@ const PayoutView: React.FC<{
 
               {/* Tax Details */}
               <div className="md:col-span-2 space-y-4">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2 pt-4 border-t border-slate-100">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 pt-4 border-t border-gray-100">
                   <FileText className="h-4 w-4" />
                   {t('teacher_profile.payout_setup.tax_information_title')}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                       {t('teacher_profile.payout_setup.tax_id_label')}
                     </label>
                     <input
                       type="text"
                       value={formData.tax_id}
                       onChange={e => setFormData({ ...formData, tax_id: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder={t('teacher_profile.payout_setup.tax_id_placeholder', 'SSN / TIN / National ID')}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                       {t('teacher_profile.payout_setup.dob_label')}
                     </label>
                     <input
                       type="date"
                       value={formData.dob}
                       onChange={e => setFormData({ ...formData, dob: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-xs font-semibold uppercase text-gray-500 mb-1">
                       {t('teacher_profile.payout_setup.billing_address_label')}
                     </label>
                     <input
                       type="text"
                       value={formData.address}
                       onChange={e => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                       placeholder={t('teacher_profile.payout_setup.address_placeholder', 'Full street address, City, State, Zip')}
                     />
                   </div>
@@ -899,16 +917,17 @@ const PayoutView: React.FC<{
               </div>
 
               {/* Agreement */}
-              <div className="md:col-span-2 pt-4 border-t border-slate-100">
-                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="md:col-span-2 pt-4 border-t border-gray-100">
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <input
                     type="checkbox"
                     id="tax_agree"
                     checked={formData.tax_agreed}
                     onChange={e => setFormData({ ...formData, tax_agreed: e.target.checked })}
-                    className="mt-1 h-4 w-4 text-[#1e1b4b] border-slate-300 rounded focus:ring-[#1e1b4b]"
+                    className="mt-1 h-4 w-4 border-gray-300 rounded"
+                    style={{ color: brandColors.primaryHex, '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   />
-                  <label htmlFor="tax_agree" className="text-sm text-slate-600">
+                  <label htmlFor="tax_agree" className="text-sm text-gray-600">
                     <span dangerouslySetInnerHTML={{ __html: t('teacher_profile.payout_setup.tax_agree_label') }} />
                   </label>
                 </div>
@@ -917,11 +936,11 @@ const PayoutView: React.FC<{
           </section>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100 mt-6">
+          <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-100 mt-6">
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 text-slate-600 font-medium hover:bg-slate-50 rounded-lg transition-colors"
+              className="px-6 py-2 text-gray-600 font-medium hover:bg-gray-50 rounded-lg transition-colors"
             >
               {t('teacher_profile.payout_setup.cancel_btn')}
             </button>
@@ -939,12 +958,12 @@ const PayoutView: React.FC<{
 
       {/* Summary Panel */}
       <div className="space-y-6">
-        <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-          <h3 className="font-bold text-slate-900 mb-4">{t('teacher_profile.payout_setup.payout_summary_title')}</h3>
+        <div className="bg-gray-50 rounded-xl border border-gray-200 p-6">
+          <h3 className="font-bold text-gray-900 mb-4">{t('teacher_profile.payout_setup.payout_summary_title')}</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-600">{t('teacher_profile.payout_setup.method_label')}</span>
-              <span className="font-medium text-slate-900 capitalize">
+              <span className="text-gray-600">{t('teacher_profile.payout_setup.method_label')}</span>
+              <span className="font-medium text-gray-900 capitalize">
                 {formData.payout_method === 'bank' 
                   ? t('teacher_profile.payout_setup.bank_transfer_method') 
                   : formData.payout_method === 'stripe' 
@@ -953,29 +972,29 @@ const PayoutView: React.FC<{
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">{t('teacher_profile.payout_setup.region_label')}</span>
-              <span className="font-medium text-slate-900">
+              <span className="text-gray-600">{t('teacher_profile.payout_setup.region_label')}</span>
+              <span className="font-medium text-gray-900">
                 {(PAYOUT_REGIONS.find(r => r.code === formData.payout_region) || PAYOUT_REGIONS[0]).defaultLabel}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">{t('teacher_profile.payout_setup.currency_label')}</span>
-              <span className="font-medium text-slate-900">
+              <span className="text-gray-600">{t('teacher_profile.payout_setup.currency_label')}</span>
+              <span className="font-medium text-gray-900">
                 {formData.payout_region === 'ET' ? t('teacher_profile.payout_setup.currency_etb') : t('teacher_profile.payout_setup.currency_usd')}
               </span>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h4 className="font-semibold text-slate-900 mb-2">{t('teacher_profile.payout_setup.transactional_terms_title')}</h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h4 className="font-semibold text-gray-900 mb-2">{t('teacher_profile.payout_setup.transactional_terms_title')}</h4>
+            <p className="text-xs text-gray-500 leading-relaxed">
               {t('teacher_profile.payout_setup.transactional_terms_description')}
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="font-bold text-slate-900 mb-2">{t('teacher_profile.payout_setup.next_steps_title')}</h3>
-          <p className="text-sm text-slate-600 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h3 className="font-bold text-gray-900 mb-2">{t('teacher_profile.payout_setup.next_steps_title')}</h3>
+          <p className="text-sm text-gray-600 mb-4">
             {t('teacher_profile.payout_setup.next_steps_description')}
           </p>
           <button
@@ -1078,19 +1097,19 @@ const VerificationView: React.FC<{
       key: 'national_id',
       title: 'National ID / Passport',
       description: 'Government-issued ID for identity verification.',
-      icon: <User className="h-6 w-6 text-blue-600" />
+      icon: <User className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
     },
     {
       key: 'teaching_cert',
       title: 'Teaching Certification',
       description: 'Valid teaching license or degree certificate.',
-      icon: <Award className="h-6 w-6 text-purple-600" />
+      icon: <Award className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
     },
     {
       key: 'tax_form',
       title: 'Tax Residency Form',
       description: 'Proof of tax residency for payout compliance.',
-      icon: <FileText className="h-6 w-6 text-orange-600" />
+      icon: <FileText className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
     }
   ];
 
@@ -1099,7 +1118,7 @@ const VerificationView: React.FC<{
       case 'VERIFIED': return 'bg-green-100 text-green-700 border-green-200';
       case 'PENDING': return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'REJECTED': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-slate-100 text-slate-500 border-slate-200';
+      default: return 'bg-gray-100 text-gray-500 border-gray-200';
     }
   };
 
@@ -1117,11 +1136,11 @@ const VerificationView: React.FC<{
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-display text-slate-900">{t('teacher_documents.title', 'Verification Documents')}</h1>
-          <p className="text-slate-600 mt-1 text-lg">{t('teacher_documents.subtitle', 'Upload required documents to verify your teacher status and unlock all platform features.')}</p>
+          <h1 className="text-3xl font-bold font-display text-gray-900">{t('teacher_documents.title', 'Verification Documents')}</h1>
+          <p className="text-gray-600 mt-1 text-lg">{t('teacher_documents.subtitle', 'Upload required documents to verify your teacher status and unlock all platform features.')}</p>
         </div>
         <div className="flex gap-2">
-          <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold border border-blue-100">
+          <span className="px-3 py-1 rounded-full bg-gray-50 text-gray-700 text-sm font-semibold border border-gray-200" style={{ color: brandColors.primaryHex, backgroundColor: `${brandColors.primaryHex}10`, borderColor: `${brandColors.primaryHex}30` }}>
             {Object.values(profile.verification_docs || {}).filter(s => s === 'VERIFIED').length} / {docs.length} {t('teacher_documents.status.verified', 'Verified')}
           </span>
         </div>
@@ -1135,18 +1154,18 @@ const VerificationView: React.FC<{
           const uploadedDoc = uploadedDocuments?.find((d: any) => d.document_type === doc.key);
 
           return (
-            <div key={doc.key} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div key={doc.key} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
               <div className="p-6 flex-1">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 rounded-lg bg-slate-50">
+                  <div className="p-3 rounded-lg bg-gray-50">
                     {doc.icon}
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
                     {getStatusLabel(status)}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">{t(`teacher_documents.doc_types.${doc.key}.title`, doc.title)}</h3>
-                <p className="text-sm text-slate-600">{t(`teacher_documents.doc_types.${doc.key}.description`, doc.description)}</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{t(`teacher_documents.doc_types.${doc.key}.title`, doc.title)}</h3>
+                <p className="text-sm text-gray-600">{t(`teacher_documents.doc_types.${doc.key}.description`, doc.description)}</p>
                 
                 {/* View Link */}
                 {uploadedDoc && (
@@ -1155,7 +1174,8 @@ const VerificationView: React.FC<{
                       href={uploadedDoc.file_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                      className="text-sm hover:underline flex items-center gap-1"
+                      style={{ color: brandColors.primaryHex }}
                     >
                       <FileText className="h-3 w-3" />
                       {t('common.view', 'View Document')}
@@ -1164,7 +1184,7 @@ const VerificationView: React.FC<{
                 )}
               </div>
 
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
                 {status === 'VERIFIED' ? (
                   <div className="flex items-center text-green-600 text-sm font-medium">
                     <Check className="h-4 w-4 mr-2" />
@@ -1172,7 +1192,7 @@ const VerificationView: React.FC<{
                   </div>
                 ) : (
                   <div className="w-full flex items-center gap-3">
-                    <label className="flex items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">
+                    <label className="flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
                       {uploadDocMutation.isPending ? (
                         <Clock className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
@@ -1190,7 +1210,8 @@ const VerificationView: React.FC<{
                       />
                     </label>
                     <button
-                      className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-600"
+                      className="px-4 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                       onClick={() => handleSaveUpload(doc.key)}
                       disabled={uploadDocMutation.isPending || !selectedFiles[doc.key]}
                     >
@@ -1208,16 +1229,16 @@ const VerificationView: React.FC<{
       </div>
 
       {/* FAQ / Help */}
-      <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 flex items-start gap-4">
+      <div className="rounded-xl p-6 border flex items-start gap-4" style={{ backgroundColor: `${brandColors.primaryHex}08`, borderColor: `${brandColors.primaryHex}20` }}>
         <div className="p-2 bg-white rounded-lg shadow-sm">
-          <HelpCircle className="h-6 w-6 text-blue-600" />
+          <HelpCircle className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
         </div>
         <div>
-          <h3 className="font-bold text-blue-900">{t('teacher_documents.help_title', 'Need help with verification?')}</h3>
-          <p className="text-blue-700 text-sm mt-1 mb-3">
+          <h3 className="font-bold" style={{ color: brandColors.primaryHex }}>{t('teacher_documents.help_title', 'Need help with verification?')}</h3>
+          <p className="text-sm mt-1 mb-3" style={{ color: `${brandColors.primaryHex}CC` }}>
             {t('teacher_documents.help_desc', 'Check our detailed guide on acceptable document formats and typical verification timelines.')}
           </p>
-          <a href="#" className="text-sm font-semibold text-blue-800 hover:underline">
+          <a href="#" className="text-sm font-semibold hover:underline" style={{ color: brandColors.primaryHex }}>
             {t('teacher_documents.help_link', 'Read Verification Guidelines')}
           </a>
         </div>
@@ -1263,20 +1284,20 @@ const StatisticsView: React.FC<{
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
         <div className="lg:col-span-3">
           <div className="flex items-center gap-4 mb-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.loading_title', 'Performance Statistics')}</h1>
-              <p className="text-slate-600 text-lg">{t('teacher_stats.loading_subtitle', 'Loading your teaching analytics...')}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('teacher_stats.loading_title', 'Performance Statistics')}</h1>
+              <p className="text-gray-600 text-lg">{t('teacher_stats.loading_subtitle', 'Loading your teaching analytics...')}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-slate-200 rounded w-1/2 mb-4"></div>
-                <div className="h-3 bg-slate-200 rounded w-full"></div>
+              <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="h-3 bg-gray-200 rounded w-full"></div>
               </div>
             ))}
           </div>
@@ -1290,12 +1311,12 @@ const StatisticsView: React.FC<{
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
         <div className="lg:col-span-3">
           <div className="flex items-center gap-4 mb-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
-              <p className="text-slate-600 text-lg">{t('teacher_stats.subtitle', 'View your teaching performance and student engagement')}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
+              <p className="text-gray-600 text-lg">{t('teacher_stats.subtitle', 'View your teaching performance and student engagement')}</p>
             </div>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
@@ -1323,13 +1344,13 @@ const StatisticsView: React.FC<{
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
-            <p className="text-slate-600 text-lg">{t('teacher_stats.subtitle', 'Comprehensive view of your teaching impact and student engagement')}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('teacher_stats.title', 'Performance Statistics')}</h1>
+            <p className="text-gray-600 text-lg">{t('teacher_stats.subtitle', 'Comprehensive view of your teaching impact and student engagement')}</p>
           </div>
         </div>
       </div>
@@ -1337,10 +1358,10 @@ const StatisticsView: React.FC<{
       {/* Overview Metrics */}
       <div className="lg:col-span-3">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BookOpen className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}15` }}>
+                <BookOpen className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               </div>
               <div className={`flex items-center text-sm font-medium ${(stats?.overview?.enrollmentGrowth ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -1352,16 +1373,16 @@ const StatisticsView: React.FC<{
                 {Math.abs(stats?.overview?.enrollmentGrowth ?? 0)}%
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
+            <div className="text-2xl font-bold text-gray-900 mb-1">
               {formatNumber(stats?.overview?.totalStudents ?? 0)}
             </div>
-            <div className="text-sm text-slate-600">{t('teacher_stats.total_students', 'Total Students')}</div>
-            <div className="text-xs text-slate-500 mt-2">
+            <div className="text-sm text-gray-600">{t('teacher_stats.total_students', 'Total Students')}</div>
+            <div className="text-xs text-gray-500 mt-2">
               {stats?.overview?.recentEnrollments ?? 0} {t('teacher_stats.new_this_month', 'new this month')}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Users className="h-5 w-5 text-green-600" />
@@ -1371,19 +1392,19 @@ const StatisticsView: React.FC<{
                 {t('teacher_stats.active_label', 'Active')}
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
+            <div className="text-2xl font-bold text-gray-900 mb-1">
               {formatNumber(stats?.engagement?.activeStudents ?? 0)}
             </div>
-            <div className="text-sm text-slate-600">{t('teacher_stats.active_students', 'Active Students')}</div>
-            <div className="text-xs text-slate-500 mt-2">
+            <div className="text-sm text-gray-600">{t('teacher_stats.active_students', 'Active Students')}</div>
+            <div className="text-xs text-gray-500 mt-2">
               {stats?.engagement?.weeklyEngagement ?? 0} {t('teacher_stats.engaged_this_week', 'engaged this week')}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Target className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColors.primaryHex}15` }}>
+                <Target className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               </div>
               <div className={`flex items-center text-sm font-medium ${(stats?.overview?.completionGrowth ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -1395,16 +1416,16 @@ const StatisticsView: React.FC<{
                 {Math.abs(stats?.overview?.completionGrowth ?? 0)}%
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
+            <div className="text-2xl font-bold text-gray-900 mb-1">
               {stats?.overview?.averageCompletionRate ?? 0}%
             </div>
-            <div className="text-sm text-slate-600">{t('teacher_stats.avg_completion', 'Avg. Completion')}</div>
-            <div className="text-xs text-slate-500 mt-2">
+            <div className="text-sm text-gray-600">{t('teacher_stats.avg_completion', 'Avg. Completion')}</div>
+            <div className="text-xs text-gray-500 mt-2">
               {stats?.overview?.totalEnrollments ?? 0} {t('teacher_stats.completed_courses', 'completed courses')}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Star className="h-5 w-5 text-yellow-600" />
@@ -1416,11 +1437,11 @@ const StatisticsView: React.FC<{
                 </div>
               )}
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
+            <div className="text-2xl font-bold text-gray-900 mb-1">
               {stats?.overview?.averageRating || 'N/A'}
             </div>
-            <div className="text-sm text-slate-600">{t('teacher_stats.avg_rating', 'Average Rating')}</div>
-            <div className="text-xs text-slate-500 mt-2">
+            <div className="text-sm text-gray-600">{t('teacher_stats.avg_rating', 'Average Rating')}</div>
+            <div className="text-xs text-gray-500 mt-2">
               {stats?.overview?.totalRatings ?? 0} {t('teacher_stats.total_reviews', 'total reviews')}
             </div>
           </div>
@@ -1430,10 +1451,10 @@ const StatisticsView: React.FC<{
       {/* Detailed Analytics */}
       <div className="lg:col-span-2 space-y-6">
         {/* Top Performing Courses */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Award className="h-5 w-5 text-blue-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Award className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('teacher_stats.top_courses.title', 'Top Performing Courses')}
             </h3>
           </div>
@@ -1441,14 +1462,14 @@ const StatisticsView: React.FC<{
             {(stats?.trends?.topCourses?.length ?? 0) > 0 ? (
               <div className="space-y-4">
                 {stats?.trends?.topCourses?.map((course: TeacherStats['trends']['topCourses'][0], index: number) => (
-                  <div key={course.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div key={course.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: `${brandColors.primaryHex}15`, color: brandColors.primaryHex }}>
                         {index + 1}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-slate-900">{course.title}</h4>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <h4 className="font-semibold text-gray-900">{course.title}</h4>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
                           <span>{course.studentCount} {t('teacher_stats.top_courses.students', 'students')}</span>
                           <span>{course.avgCompletion}% {t('teacher_stats.top_courses.completion', 'completion')}</span>
                           {course.avgRating && (
@@ -1464,8 +1485,8 @@ const StatisticsView: React.FC<{
                 )) ?? []}
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-500">
-                <BookOpen className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+              <div className="text-center py-8 text-gray-500">
+                <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                 <p>{t('teacher_stats.top_courses.no_data_desc', 'No courses yet. Create your first course to see performance metrics!')}</p>
               </div>
             )}
@@ -1473,10 +1494,10 @@ const StatisticsView: React.FC<{
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Activity className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('teacher_stats.recent_activity.title', 'Recent Activity (30 days)')}
             </h3>
           </div>
@@ -1484,20 +1505,25 @@ const StatisticsView: React.FC<{
             {(stats?.recentActivity?.length ?? 0) > 0 ? (
               <div className="space-y-3">
                 {stats?.recentActivity?.slice(0, 8).map((activity: TeacherStats['recentActivity'][0], index: number) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activity.type === 'enrollment' ? 'bg-blue-100' : 'bg-green-100'
-                      }`}>
+                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ 
+                        backgroundColor: activity.type === 'enrollment' ? `${brandColors.primaryHex}15` : '#dcfce7',
+                        color: activity.type === 'enrollment' ? brandColors.primaryHex : '#16a34a'
+                      }}
+                    >
                       {activity.type === 'enrollment' ? (
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4" />
                       ) : (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">
+                      <p className="text-sm font-medium text-gray-900">
                         {activity.description} {activity.type === 'enrollment' ? t('teacher_stats.recent_activity.enrolled_in', 'enrolled in') : t('teacher_stats.recent_activity.completed', 'completed')} {activity.courseTitle}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-gray-500">
                         {new Date(activity.date).toLocaleDateString()}
                       </p>
                     </div>
@@ -1505,8 +1531,8 @@ const StatisticsView: React.FC<{
                 )) ?? []}
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-500">
-                <Activity className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+              <div className="text-center py-8 text-gray-500">
+                <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                 <p>{t('teacher_stats.recent_activity.no_data_desc', 'No recent activity. Student enrollments and completions will appear here.')}</p>
               </div>
             )}
@@ -1517,9 +1543,9 @@ const StatisticsView: React.FC<{
       {/* Sidebar Stats */}
       <div className="space-y-6">
         {/* Engagement Metrics */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <Play className="h-4 w-4 text-purple-600" />
               {t('teacher_stats.engagement.title', 'Engagement')}
             </h3>
@@ -1527,32 +1553,32 @@ const StatisticsView: React.FC<{
           <div className="p-4 space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.engagement.watch_time', 'Watch Time')}</span>
-                <span className="font-semibold text-slate-900">{formatTime(stats?.engagement?.totalWatchTime ?? 0)}</span>
+                <span className="text-gray-600">{t('teacher_stats.engagement.watch_time', 'Watch Time')}</span>
+                <span className="font-semibold text-gray-900">{formatTime(stats?.engagement?.totalWatchTime ?? 0)}</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.watch_time_desc', 'Total time students spent watching')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.engagement.watch_time_desc', 'Total time students spent watching')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.engagement.lesson_completion', 'Lesson Completion')}</span>
-                <span className="font-semibold text-slate-900">{stats?.engagement?.averageLessonCompletion ?? 0}%</span>
+                <span className="text-gray-600">{t('teacher_stats.engagement.lesson_completion', 'Lesson Completion')}</span>
+                <span className="font-semibold text-gray-900">{stats?.engagement?.averageLessonCompletion ?? 0}%</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.lesson_completion_desc', 'Average progress per lesson')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.engagement.lesson_completion_desc', 'Average progress per lesson')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.engagement.completed_lessons', 'Completed Lessons')}</span>
-                <span className="font-semibold text-slate-900">{formatNumber(stats?.engagement?.completedLessons ?? 0)}</span>
+                <span className="text-gray-600">{t('teacher_stats.engagement.completed_lessons', 'Completed Lessons')}</span>
+                <span className="font-semibold text-gray-900">{formatNumber(stats?.engagement?.completedLessons ?? 0)}</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.engagement.completed_lessons_desc', 'Total lessons finished')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.engagement.completed_lessons_desc', 'Total lessons finished')}</div>
             </div>
           </div>
         </div>
 
         {/* Earnings */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-600" />
               {t('teacher_stats.earnings.title', 'Earnings')}
             </h3>
@@ -1560,33 +1586,33 @@ const StatisticsView: React.FC<{
           <div className="p-4 space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.earnings.total', 'Total Earnings')}</span>
-                <span className="font-semibold text-slate-900">${(stats?.earnings?.totalEarnings ?? 0).toFixed(2)}</span>
+                <span className="text-gray-600">{t('teacher_stats.earnings.total', 'Total Earnings')}</span>
+                <span className="font-semibold text-gray-900">${(stats?.earnings?.totalEarnings ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.total_desc', 'All-time earnings')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.earnings.total_desc', 'All-time earnings')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.earnings.this_month', 'This Month')}</span>
-                <span className="font-semibold text-slate-900">${(stats?.earnings?.monthlyEarnings ?? 0).toFixed(2)}</span>
+                <span className="text-gray-600">{t('teacher_stats.earnings.this_month', 'This Month')}</span>
+                <span className="font-semibold text-gray-900">${(stats?.earnings?.monthlyEarnings ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.this_month_desc', 'Current month earnings')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.earnings.this_month_desc', 'Current month earnings')}</div>
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{t('teacher_stats.earnings.pending', 'Pending')}</span>
-                <span className="font-semibold text-slate-900">${(stats?.earnings?.pendingPayments ?? 0).toFixed(2)}</span>
+                <span className="text-gray-600">{t('teacher_stats.earnings.pending', 'Pending')}</span>
+                <span className="font-semibold text-gray-900">${(stats?.earnings?.pendingPayments ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-xs text-slate-500">{t('teacher_stats.earnings.pending_desc', 'Awaiting payout')}</div>
+              <div className="text-xs text-gray-500">{t('teacher_stats.earnings.pending_desc', 'Awaiting payout')}</div>
             </div>
           </div>
         </div>
 
         {/* Monthly Trends */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Calendar className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               {t('teacher_stats.trends.title', 'Monthly Trends')}
             </h3>
           </div>
@@ -1595,18 +1621,18 @@ const StatisticsView: React.FC<{
               <div className="space-y-3">
                 {stats?.trends?.monthlyActivity?.slice(0, 3).map((month: TeacherStats['trends']['monthlyActivity'][0], index: number) => (
                   <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-gray-600">
                       {new Date(month.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </span>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-slate-900">{month.enrollments} {t('teacher_stats.trends.enrollments', 'enrollments')}</div>
+                      <div className="text-sm font-semibold text-gray-900">{month.enrollments} {t('teacher_stats.trends.enrollments', 'enrollments')}</div>
                       <div className="text-xs text-green-600">{month.completions} {t('teacher_stats.trends.completed', 'completed')}</div>
                     </div>
                   </div>
                 )) ?? []}
               </div>
             ) : (
-              <div className="text-center py-4 text-slate-500 text-sm">
+              <div className="text-center py-4 text-gray-500 text-sm">
                 {t('teacher_stats.trends.no_data', 'No enrollment data yet')}
               </div>
             )}
@@ -1706,13 +1732,13 @@ const SecurityView: React.FC<{
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('teacher_security.title', 'Account Security')}</h1>
-            <p className="text-slate-600 text-lg">{t('teacher_security.subtitle', 'Manage your password and account security settings')}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('teacher_security.title', 'Account Security')}</h1>
+            <p className="text-gray-600 text-lg">{t('teacher_security.subtitle', 'Manage your password and account security settings')}</p>
           </div>
         </div>
       </div>
@@ -1720,26 +1746,27 @@ const SecurityView: React.FC<{
       {/* Main Content */}
       <div className="lg:col-span-2 space-y-6">
         {/* Change Password */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Shield className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('teacher_security.change_password_title', 'Change Password')}
             </h3>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {t('teacher_security.change_password_description', 'Regularly update your password to keep your account secure')}
             </p>
           </div>
           <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('teacher_security.current_password_label', 'Current Password')} *
               </label>
               <input
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                 placeholder={t('teacher_security.current_password_placeholder', 'Enter your current password')}
                 required
               />
@@ -1747,32 +1774,34 @@ const SecurityView: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('teacher_security.new_password_label', 'New Password')} *
                 </label>
                 <input
                   type="password"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   placeholder={t('teacher_security.new_password_placeholder', 'Enter new password')}
                   minLength={8}
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {t('teacher_security.password_length_hint', 'Must be at least 8 characters long')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('teacher_security.confirm_password_label', 'Confirm New Password')} *
                 </label>
                 <input
                   type="password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-offset-0 focus:border-transparent transition-all"
+                  style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
                   placeholder={t('teacher_security.confirm_password_placeholder', 'Confirm new password')}
                   minLength={8}
                   required
@@ -1784,7 +1813,8 @@ const SecurityView: React.FC<{
               <button
                 type="submit"
                 disabled={changePasswordMutation.isPending}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center gap-2"
+                className="px-6 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                style={{ backgroundColor: brandColors.primaryHex }}
               >
                 {changePasswordMutation.isPending ? (
                   <>
@@ -1803,46 +1833,46 @@ const SecurityView: React.FC<{
         </div>
 
         {/* Security Settings */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Settings className="h-5 w-5 text-gray-600" />
               {t('teacher_security.security_settings_title', 'Security Settings')}
             </h3>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {t('teacher_security.security_settings_description', 'Additional security options for your account')}
             </p>
           </div>
           <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">{t('teacher_security.two_factor_auth_title', 'Two-Factor Authentication')}</h4>
-                <p className="text-sm text-slate-600">{t('teacher_security.two_factor_auth_description', 'Add an extra layer of security to your account')}</p>
+                <h4 className="font-medium text-gray-900">{t('teacher_security.two_factor_auth_title', 'Two-Factor Authentication')}</h4>
+                <p className="text-sm text-gray-600">{t('teacher_security.two_factor_auth_description', 'Add an extra layer of security to your account')}</p>
               </div>
-              <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+              <button className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 {t('teacher_security.coming_soon', 'Coming Soon')}
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">{t('teacher_security.login_notifications_title', 'Login Notifications')}</h4>
-                <p className="text-sm text-slate-600">{t('teacher_security.login_notifications_description', 'Get notified of new logins to your account')}</p>
+                <h4 className="font-medium text-gray-900">{t('teacher_security.login_notifications_title', 'Login Notifications')}</h4>
+                <p className="text-sm text-gray-600">{t('teacher_security.login_notifications_description', 'Get notified of new logins to your account')}</p>
               </div>
               <div className="flex items-center">
-                <div className="w-10 h-5 bg-slate-300 rounded-full relative">
+                <div className="w-10 h-5 bg-gray-300 rounded-full relative">
                   <div className="w-4 h-4 bg-white rounded-full absolute left-0.5 top-0.5 transition-transform"></div>
                 </div>
-                <span className="ml-2 text-sm text-slate-600">{t('teacher_security.coming_soon', 'Coming Soon')}</span>
+                <span className="ml-2 text-sm text-gray-600">{t('teacher_security.coming_soon', 'Coming Soon')}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <h4 className="font-medium text-slate-900">{t('teacher_security.session_management_title', 'Session Management')}</h4>
-                <p className="text-sm text-slate-600">{t('teacher_security.session_management_description', 'View and manage your active sessions')}</p>
+                <h4 className="font-medium text-gray-900">{t('teacher_security.session_management_title', 'Session Management')}</h4>
+                <p className="text-sm text-gray-600">{t('teacher_security.session_management_description', 'View and manage your active sessions')}</p>
               </div>
-              <button className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+              <button className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 {t('teacher_security.view_sessions_btn', 'View Sessions')}
               </button>
             </div>
@@ -1926,28 +1956,28 @@ const SecurityView: React.FC<{
         </div>
 
         {/* Account Information */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-              <User className="h-4 w-4 text-blue-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <User className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               {t('teacher_security.account_info_title', 'Account Information')}
             </h3>
           </div>
           <div className="p-4 space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">{t('teacher_security.account_created', 'Account Created')}</span>
-              <span className="font-medium text-slate-900">
+              <span className="text-gray-600">{t('teacher_security.account_created', 'Account Created')}</span>
+              <span className="font-medium text-gray-900">
                 {new Date().toLocaleDateString()} {/* Placeholder - should come from user data */}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">{t('teacher_security.last_login', 'Last Login')}</span>
-              <span className="font-medium text-slate-900">
+              <span className="text-gray-600">{t('teacher_security.last_login', 'Last Login')}</span>
+              <span className="font-medium text-gray-900">
                 {t('teacher_security.today', 'Today')} {/* Placeholder */}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">{t('teacher_security.account_status', 'Account Status')}</span>
+              <span className="text-gray-600">{t('teacher_security.account_status', 'Account Status')}</span>
               <span className="font-medium text-green-600">{t('teacher_security.status_active', 'Active')}</span>
             </div>
           </div>
@@ -2032,21 +2062,21 @@ const NotificationsView: React.FC<{
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
         <div className="lg:col-span-3">
           <div className="flex items-center gap-4 mb-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Notification Preferences</h1>
-              <p className="text-slate-600 text-lg">Loading your preferences...</p>
+              <h1 className="text-3xl font-bold text-gray-900">Notification Preferences</h1>
+              <p className="text-gray-600 text-lg">Loading your preferences...</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-3/4 mb-4"></div>
+              <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
                 <div className="space-y-3">
-                  <div className="h-3 bg-slate-200 rounded w-full"></div>
-                  <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
               </div>
             ))}
@@ -2063,13 +2093,13 @@ const NotificationsView: React.FC<{
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">{t('notifications.title', 'Notification Preferences')}</h1>
-            <p className="text-slate-600 text-lg">{t('notifications.subtitle', 'Customize how and when you receive notifications')}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('notifications.title', 'Notification Preferences')}</h1>
+            <p className="text-gray-600 text-lg">{t('notifications.subtitle', 'Customize how and when you receive notifications')}</p>
           </div>
         </div>
       </div>
@@ -2077,13 +2107,13 @@ const NotificationsView: React.FC<{
       {/* Main Content */}
       <div className="lg:col-span-2 space-y-6">
         {/* Email Notifications */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-blue-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Mail className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('notifications.email.title', 'Email Notifications')}
             </h3>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {t('notifications.email.subtitle', 'Choose which emails you\'d like to receive')}
             </p>
           </div>
@@ -2123,14 +2153,15 @@ const NotificationsView: React.FC<{
                     type="checkbox"
                     checked={preferences[option.key as keyof typeof preferences]}
                     onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
-                    className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-slate-300 rounded"
+                    className="h-4 w-4 border-gray-300 rounded focus:ring-opacity-50"
+                    style={{ accentColor: brandColors.primaryHex }}
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor={option.key} className="font-medium text-slate-700">
+                  <label htmlFor={option.key} className="font-medium text-gray-700">
                     {option.label}
                   </label>
-                  <p className="text-slate-500">{option.description}</p>
+                  <p className="text-gray-500">{option.description}</p>
                 </div>
               </div>
             ))}
@@ -2138,13 +2169,13 @@ const NotificationsView: React.FC<{
         </div>
 
         {/* Push Notifications */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Bell className="h-5 w-5 text-purple-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Bell className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('notifications.push.title', 'Push Notifications')}
             </h3>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {t('notifications.push.subtitle', 'Receive real-time updates while using the platform')}
             </p>
           </div>
@@ -2179,14 +2210,15 @@ const NotificationsView: React.FC<{
                     type="checkbox"
                     checked={preferences[option.key as keyof typeof preferences]}
                     onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
-                    className="focus:ring-purple-500 h-4 w-4 text-purple-600 border-slate-300 rounded"
+                    className="h-4 w-4 border-gray-300 rounded focus:ring-opacity-50"
+                    style={{ accentColor: brandColors.primaryHex }}
                   />
                 </div>
                 <div className="ml-3 text-sm">
-                  <label htmlFor={option.key} className="font-medium text-slate-700">
+                  <label htmlFor={option.key} className="font-medium text-gray-700">
                     {option.label}
                   </label>
-                  <p className="text-slate-500">{option.description}</p>
+                  <p className="text-gray-500">{option.description}</p>
                 </div>
               </div>
             ))}
@@ -2196,13 +2228,13 @@ const NotificationsView: React.FC<{
 
       {/* Sidebar - Privacy */}
       <div className="space-y-6">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-600" />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Shield className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
               {t('notifications.privacy.title', 'Communication & Privacy')}
             </h3>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {t('notifications.privacy.subtitle', 'Manage how others interact with you')}
             </p>
           </div>
@@ -2230,7 +2262,7 @@ const NotificationsView: React.FC<{
               }
             ].map((option) => (
               <div key={option.key} className="flex items-center justify-between">
-                <label htmlFor={option.key} className="text-sm font-medium text-slate-700">
+                <label htmlFor={option.key} className="text-sm font-medium text-gray-700">
                   {option.label}
                 </label>
                 <div className="flex items-center h-5">
@@ -2240,17 +2272,19 @@ const NotificationsView: React.FC<{
                     type="checkbox"
                     checked={preferences[option.key as keyof typeof preferences]}
                     onChange={(e) => handlePreferenceChange(option.key, e.target.checked)}
-                    className="focus:ring-green-500 h-4 w-4 text-green-600 border-slate-300 rounded"
+                    className="h-4 w-4 border-gray-300 rounded focus:ring-opacity-50"
+                    style={{ accentColor: brandColors.primaryHex }}
                   />
                 </div>
               </div>
             ))}
           </div>
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
             <button
               onClick={handleSaveAll}
               disabled={updatePreferencesMutation.isPending}
-              className="w-full px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              className="w-full px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               {updatePreferencesMutation.isPending ? t('common.saving', 'Saving...') : t('notifications.save_changes', 'Save Changes')}
             </button>
@@ -2355,7 +2389,8 @@ const TeacherProfile: React.FC = () => {
           </p>
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['teacher-profile'] })}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             {t('common.try_again', 'Try Again')}
           </button>
@@ -2365,11 +2400,11 @@ const TeacherProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Horizontal Navigation Tabs */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2 flex overflow-x-auto no-scrollbar">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-2 flex overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const isActive = activeView === tab.id;
             const Icon = tab.icon;
@@ -2378,11 +2413,17 @@ const TeacherProfile: React.FC = () => {
                 key={tab.id}
                 onClick={() => setActiveView(tab.id as any)}
                 className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive
-                  ? 'bg-blue-50 text-blue-700 shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
+                style={isActive ? { 
+                  backgroundColor: `${brandColors.primaryHex}10`, 
+                  color: brandColors.primaryHex 
+                } : {}}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? '' : 'text-gray-400'}`} 
+                      style={isActive ? { color: brandColors.primaryHex } : {}}
+                />
                 {tab.label}
               </button>
             );

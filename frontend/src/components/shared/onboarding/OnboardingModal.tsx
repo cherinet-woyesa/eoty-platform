@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Play, Check, SkipForward, Award } from 'lucide-react';
 import { useOnboarding } from '@/context/OnboardingContext';
+import { useAuth } from '@/context/AuthContext';
 import type { OnboardingStep } from '@/services/api/onboarding';
 import { onboardingApi } from '@/services/api/onboarding';
 import CompletionRewards from './CompletionRewards';
@@ -14,11 +15,14 @@ interface OnboardingModalProps {
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { flow, progress, completeStep, skipStep, milestones = [] } = useOnboarding();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [rewards, setRewards] = useState<any[]>([]);
+
+  const userType = user?.role === 'teacher' ? 'teacher' : 'student';
 
   // Auto-resume: Set current step from progress (REQUIREMENT: Auto-resume)
   useEffect(() => {
@@ -114,17 +118,26 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
   const renderStepContent = () => {
     if (!currentStep) return null;
 
+    // Translation keys for dynamic content
+    const stepKey = `onboarding.flows.${userType}.steps.${currentStepIndex}`;
+    const stepTitle = t(`${stepKey}.title`, { defaultValue: currentStep.title });
+    const stepDescription = t(`${stepKey}.description`, { defaultValue: currentStep.description });
+    const stepContent = t(`${stepKey}.content`, { defaultValue: currentStep.content });
+    const stepActionRequired = currentStep.action_required 
+      ? t(`${stepKey}.action_required`, { defaultValue: currentStep.action_required })
+      : null;
+
     return (
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900">{currentStep.title}</h3>
+          <h3 className="text-xl font-bold text-gray-900">{stepTitle}</h3>
           <span className="text-sm text-gray-500">
             {t('onboarding.step_of', { index: currentStepIndex + 1, total: steps.length })}
           </span>
         </div>
 
-        {currentStep.description && (
-          <p className="text-gray-600 mb-4">{currentStep.description}</p>
+        {stepDescription && (
+          <p className="text-gray-600 mb-4">{stepDescription}</p>
         )}
 
         {currentStep.video_url && (
@@ -163,17 +176,17 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
           </div>
         )}
 
-        {currentStep.content && (
+        {stepContent && (
           <div 
             className="prose max-w-none mb-6"
-            dangerouslySetInnerHTML={{ __html: currentStep.content }}
+            dangerouslySetInnerHTML={{ __html: stepContent }}
           />
         )}
 
-        {currentStep.action_required && (
+        {stepActionRequired && (
           <div className="rounded-lg p-4 mb-6" style={{ background: `rgba(30,27,75,0.07)`, border: `1px solid rgba(30,27,75,0.15)` }}>
             <h4 className="font-medium text-[color:#1e1b4b] mb-2">{t('onboarding.required_action')}</h4>
-            <p className="text-[color:#312e81]">{currentStep.action_required}</p>
+            <p className="text-[color:#312e81]">{stepActionRequired}</p>
           </div>
         )}
 
@@ -215,7 +228,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900 tracking-tight">
-                {flow.name || t('onboarding.title_fallback')}
+                {t(`onboarding.flows.${userType}.title`, { defaultValue: flow.name || t('onboarding.title_fallback', { context: userType }) })}
               </h2>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500 font-medium">
@@ -255,7 +268,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
           {steps.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500">
               <div className="w-8 h-8 border-2 border-[color:#1e1b4b] border-t-transparent rounded-full animate-spin mb-2"></div>
-              <p>{t('onboarding.loading_journey')}</p>
+              <p>{t('onboarding.loading_journey', { context: userType })}</p>
             </div>
           ) : (
             /* Show completion rewards if onboarding is complete */
@@ -266,9 +279,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                   <Award className="h-24 w-24 text-yellow-500 relative z-10 drop-shadow-lg" />
                 </div>
                 
-                <h3 className="text-3xl font-bold text-gray-900 mb-3">{t('onboarding.completed_title')}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 mb-3">{t('onboarding.completed_title', { context: userType })}</h3>
                 <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
-                  {t('onboarding.completed_subtitle')}
+                  {t('onboarding.completed_subtitle', { context: userType })}
                 </p>
                 
                 <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100 w-full max-w-lg">
@@ -285,7 +298,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                   className="px-8 py-3 text-white rounded-xl transition-all duration-200 text-base font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   style={{ background: `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
                 >
-                  {t('onboarding.enter_dashboard')}
+                  {t('onboarding.enter_dashboard', { context: userType })}
                 </button>
               </div>
             ) : (
@@ -298,7 +311,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         {!(progress && progress.progress >= 100) && milestones && milestones.length > 0 && (
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
             <div className="flex items-center justify-center gap-4 flex-wrap">
-              {milestones.map((milestone) => (
+              {milestones.map((milestone, index) => (
                 <div
                   key={milestone.id}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 cursor-default select-none ${
@@ -314,7 +327,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                   ) : (
                     <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                   )}
-                  <span>{milestone.name}</span>
+                  <span>{t(`onboarding.flows.${userType}.milestones.${index}`, { defaultValue: milestone.name })}</span>
                 </div>
               ))}
             </div>

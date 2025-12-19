@@ -47,7 +47,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
             <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-white">Member Portal</h1>
+            <h1 className="text-sm font-bold text-white">{t('nav.member_portal', 'Member Portal')}</h1>
           </div>
         )}
         <button
@@ -67,7 +67,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
 
       {/* Navigation - Fills available space */}
       <div className="flex-1 overflow-y-auto py-4 bg-gradient-to-b from-white/40 to-transparent">
-        <nav className="space-y-2 px-2 h-full flex flex-col">
+        <nav className={`space-y-2 ${isCollapsed ? 'px-1' : 'px-2'} h-full flex flex-col`}>
           {navigationItems.map((item) => {
             const active = isActive(item.href);
             const IconComponent = item.icon as React.ElementType;
@@ -76,7 +76,7 @@ const StudentSidebar: React.FC<StudentSidebarProps> = ({
               <Link
                 key={item.name}
                 to={item.href}
-                className={`group flex items-center px-3 py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
+                className={`group flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-3'} py-4 text-sm font-medium rounded-lg transition-all duration-200 ${
                   active
                     ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'

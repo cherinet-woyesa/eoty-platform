@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   BookOpen, Award, MessageCircle, Activity, Brain, Target, Clock, Star,
   Settings, Search, Users, FileText, Video, Download, Bell, HelpCircle,
@@ -32,6 +33,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   recentActions = [],
   pinnedActions = []
 }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'learning' | 'community' | 'tools' | 'resources'>('all');
@@ -342,11 +344,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         <div className="flex items-center space-x-3">
           <div className="flex items-center">
             <Star className="h-5 w-5 mr-2 text-yellow-500" />
-            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.quickActions.title')}</h3>
           </div>
           <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
             <Zap className="h-3 w-3" />
-            <span>Press keys for quick access</span>
+            <span>{t('dashboard.quickActions.pressKeys')}</span>
           </div>
         </div>
         
@@ -356,7 +358,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search actions..."
+              placeholder={t('dashboard.quickActions.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40 lg:w-48"

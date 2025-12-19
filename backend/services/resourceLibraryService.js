@@ -30,7 +30,7 @@ class ResourceLibraryService {
       let query = db('resources');
 
       // Step 1: Published date filter (required for all resources)
-      query = query.where(function() {
+      query = query.where(function () {
         this.where('published_at', '<=', new Date())
           .orWhereNull('published_at');
       });
@@ -40,7 +40,7 @@ class ResourceLibraryService {
         const searchTerm = filters.search.trim();
         console.log('🔍 Applying search filter:', searchTerm);
 
-        query = query.where(function() {
+        query = query.where(function () {
           this.where('title', 'ilike', `%${searchTerm}%`)
             .orWhere('description', 'ilike', `%${searchTerm}%`)
             .orWhere('author', 'ilike', `%${searchTerm}%`);
@@ -96,11 +96,12 @@ class ResourceLibraryService {
       // Role-based access control (REQUIREMENT: Prevents unauthorized access)
       const userId = filters.userId;
       const userRole = filters.userRole;
-      
+
       if (userRole !== 'admin') {
-        query = query.where(function() {
+        query = query.where(function () {
           this.where('is_public', true)
-            .orWhere('chapter_id', filters.chapterId);
+            .orWhere('chapter_id', filters.chapterId)
+            .orWhere('author', String(userId)); // Include resources uploaded by the user
         });
       }
 
@@ -165,39 +166,39 @@ class ResourceLibraryService {
     try {
       // Check if topic column exists
       const hasTopic = await db.schema.hasColumn('resources', 'topic');
-      
+
       const [tags, types, topics, authors, categories, languages] = await Promise.all([
         // Get all unique tags
         db('resources')
           .select('tags')
           .whereNotNull('tags'),
-        
+
         // Get all unique file types
         db('resources')
           .distinct('file_type')
           .whereNotNull('file_type')
           .pluck('file_type'),
-        
+
         // Get all unique topics (only if column exists)
-        hasTopic 
+        hasTopic
           ? db('resources')
-              .distinct('topic')
-              .whereNotNull('topic')
-              .pluck('topic')
+            .distinct('topic')
+            .whereNotNull('topic')
+            .pluck('topic')
           : Promise.resolve([]),
-        
+
         // Get all unique authors
         db('resources')
           .distinct('author')
           .whereNotNull('author')
           .pluck('author'),
-        
+
         // Get all unique categories
         db('resources')
           .distinct('category')
           .whereNotNull('category')
           .pluck('category'),
-        
+
         // Get all unique languages
         db('resources')
           .distinct('language')
@@ -344,7 +345,7 @@ class ResourceLibraryService {
       if (existingSummary && existingSummary.admin_validated) {
         const keyPoints = typeof existingSummary.key_points === 'string' ? JSON.parse(existingSummary.key_points) : existingSummary.key_points;
         const spiritualInsights = existingSummary.spiritual_insights ? existingSummary.spiritual_insights.split('\\n') : [];
-        
+
         return {
           ...existingSummary,
           key_points: keyPoints,
@@ -362,7 +363,7 @@ class ResourceLibraryService {
       // Enforce word limit (REQUIREMENT: < 250 words)
       const wordCount = summaryData.wordCount || this.countWords(summaryData.summary);
       const meetsWordLimit = wordCount < 250;
-      
+
       if (!meetsWordLimit) {
         // Truncate summary to meet requirement
         const words = summaryData.summary.split(' ');
@@ -441,7 +442,7 @@ class ResourceLibraryService {
   // Extract keywords from text
   extractKeywords(text) {
     if (!text) return [];
-    
+
     return text.toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
@@ -703,7 +704,7 @@ class ResourceLibraryService {
       // Generate safe filename
       const fileExtension = originalFilename.split('.').pop()?.toLowerCase();
       const safeFileName = `resource_${Date.now()}_${originalFilename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
+
       // Upload to cloud storage
       const uploadResult = await cloudStorageService.uploadVideo(
         fileBuffer,

@@ -11,21 +11,23 @@ import LayoutSelector from './LayoutSelector';
 import CompositorPreview from './CompositorPreview';
 import SourceControlIndicators from './SourceControlIndicators';
 import KeyboardShortcuts from './KeyboardShortcuts';
-import NotificationContainer, { type Notification } from './NotificationContainer';
+import type { Notification } from './NotificationContainer';
 import { AudioLevelIndicators } from './AudioLevelIndicators';
 import type { LayoutType } from '@/types/VideoCompositor';
 import type { AudioLevelData } from '@/utils/AudioMixer';
 import {
-  Video, Circle, Square, Pause, Play,
+  Circle, Square, Pause, Play,
   Upload, RotateCcw, Camera,
   CheckCircle, Loader, AlertCircle,
-  Settings, Cloud,
+  Cloud,
   Mic, MicOff, VideoIcon, Timer,
   Zap, Download,
-  Lightbulb, Sparkles, Star,
-  Monitor, Save, FolderOpen, Scissors,
-  FileText, Clock, Keyboard
+  Lightbulb, Star,
+  Monitor, Save, Scissors,
+  FileText, Clock, Keyboard, Trash2
 } from 'lucide-react';
+
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 interface VideoRecorderProps {
   onRecordingComplete?: (videoUrl: string) => void;
@@ -318,7 +320,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     closeCamera,
     recordingSources,
     currentLayout,
-    setLayout,
     changeLayout,
     startScreenShare,
     stopScreenShare,
@@ -335,7 +336,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // NEW: Compositor properties (Task 3.1)
     compositorInstance,
     isCompositing,
-    compositorLayout,
     performanceMetrics,
     // NEW: Enhanced features
     recordingStats,
@@ -355,6 +355,9 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     options
   } = useVideoRecorder();
 
+  // Confirm dialog
+  const { confirm } = useConfirmDialog();
+
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const recordedVideoRef = useRef<HTMLVideoElement>(null);
@@ -365,7 +368,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -396,11 +399,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [recordingTips, setRecordingTips] = useState<string[]>([]);
   const [autoStopTimer, setAutoStopTimer] = useState<number>(0);
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showAdvancedSettings] = useState(false);
   
   // Session management state
-  const [savedSessions, setSavedSessions] = useState<string[]>([]);
-  const [showSessionMenu, setShowSessionMenu] = useState(false);
+  const [, setSavedSessions] = useState<string[]>([]);
+  const [, setShowSessionMenu] = useState(false);
   
   // NEW: UI state for integrated components (Task 7.1)
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
@@ -411,11 +414,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showAudioLevels, setShowAudioLevels] = useState(false);
   
   // NEW: Loading states (Task 7.2)
-  const [isInitializingCompositor, setIsInitializingCompositor] = useState(false);
+  const [isInitializingCompositor] = useState(false);
   const [layoutChangeNotification, setLayoutChangeNotification] = useState<string | null>(null);
   
   // NEW: Notification system (Task 7.3)
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [, setNotifications] = useState<Notification[]>([]);
 
   // NEW: Integrated Features State
   const [showTimelineEditor, setShowTimelineEditor] = useState(false);
@@ -1192,8 +1195,15 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     setErrorMessage(null);
   };
 
-  const handleDeleteRecording = () => {
-    if (confirm('Are you sure you want to delete this recording?')) {
+  const handleDeleteRecording = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Recording?',
+      message: 'Are you sure you want to delete this recording?',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    });
+
+    if (confirmed) {
       handleReset();
     }
   };
@@ -1768,6 +1778,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <KeyboardShortcuts
             isRecording={isRecording}
             isPaused={isPaused}
+            onStartRecording={handleStartRecording}
+            onStopRecording={handleStopRecording}
             onPauseResume={() => isPaused ? resumeRecording() : pauseRecording()}
             onToggleScreen={() => isScreenSharing ? handleStopScreenShare() : handleStartScreenShare()}
             onCycleLayout={cycleLayout}
@@ -1892,6 +1904,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 </>
               )}
               <button 
+                onClick={handleDeleteRecording}
+                className="px-3 py-2 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 transition-colors flex items-center space-x-2 text-sm"
+                title="Delete Recording"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete</span>
+              </button>
+              <button 
                 onClick={handleReset}
                 className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm"
               >
@@ -1923,6 +1943,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             </h3>
             {activeTab === 'record' && recordedVideo && (
               <div className="flex items-center space-x-2">
+                <button 
+                  onClick={handleDeleteRecording}
+                  className="px-3 py-2 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 transition-colors flex items-center space-x-2 text-sm"
+                  title="Delete Recording"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete</span>
+                </button>
                 <button
                   onClick={() => {
                     setShowPreview(true);

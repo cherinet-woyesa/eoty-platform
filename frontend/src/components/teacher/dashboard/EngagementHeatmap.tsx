@@ -112,13 +112,13 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
   };
 
   const getHeatColor = (watchCount: number, maxCount: number): string => {
-    if (maxCount === 0) return 'bg-slate-200';
+    if (maxCount === 0) return 'bg-gray-200';
     const intensity = watchCount / maxCount;
     if (intensity >= 0.8) return 'bg-blue-700';
     if (intensity >= 0.6) return 'bg-blue-500';
     if (intensity >= 0.4) return 'bg-cyan-400';
     if (intensity >= 0.2) return 'bg-sky-200';
-    return 'bg-slate-200';
+    return 'bg-gray-200';
   };
 
   const timeMarkers = duration
@@ -128,13 +128,13 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
   const emptyState = segmentData.length === 0;
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${className}`}>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-slate-700 flex items-center mb-2">
+        <h3 className="text-lg font-semibold text-gray-700 flex items-center mb-2">
           <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
           {t('analytics.engagement_heatmap', 'Engagement Heatmap')}
         </h3>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-gray-600">
           {t(
             'analytics.engagement_heatmap_desc',
             'Visual representation of where viewers watch most in your video'
@@ -145,7 +145,7 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
       {isLoading && <div className="h-8 bg-gray-100 rounded-lg animate-pulse mb-4" />}
 
       {!isLoading && emptyState && (
-        <div className="text-center py-6 text-sm text-slate-600">
+        <div className="text-center py-6 text-sm text-gray-600">
           {t('analytics.no_heatmap_data', 'No heatmap data available yet.')}
         </div>
       )}
@@ -162,7 +162,7 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
                 return (
                   <div
                     key={index}
-                    className={`flex-1 h-6 sm:h-8 ${color} rounded-sm transition-all duration-200 hover:opacity-80 cursor-pointer border border-slate-300/30`}
+                    className={`flex-1 h-6 sm:h-8 ${color} rounded-sm transition-all duration-200 hover:opacity-80 cursor-pointer border border-gray-300/30`}
                     title={`${formatTime(segment.startTime)} - ${formatTime(
                       segment.endTime
                     )}: ${segment.watchCount} ${t('analytics.viewers', 'views')} (${pct}% ${t(
@@ -174,7 +174,7 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
               })}
             </div>
 
-            <div className="flex justify-between text-xs text-slate-500 mt-2">
+            <div className="flex justify-between text-xs text-gray-500 mt-2">
               {timeMarkers.map((tm, idx) => (
                 <span key={idx}>{formatTime(tm)}</span>
               ))}
@@ -184,45 +184,45 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-700/10 to-blue-500/10 rounded-lg p-4 border border-blue-200/60">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">
+                <span className="text-sm text-gray-600">
                   {t('analytics.peak_engagement', 'Peak Engagement')}
                 </span>
                 <TrendingUp className="h-4 w-4 text-blue-600" />
               </div>
-              <div className="text-lg font-bold text-slate-800">
+              <div className="text-lg font-bold text-gray-900">
                 {formatTime(metrics.peakSegment.startTime)}
               </div>
-              <div className="text-xs text-slate-600 mt-1">
+              <div className="text-xs text-gray-600 mt-1">
                 {metrics.peakSegment.watchCount} {t('analytics.viewers', 'viewers')}
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-sky-200/40 to-cyan-200/30 rounded-lg p-4 border border-sky-200/60">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">
+                <span className="text-sm text-gray-600">
                   {t('analytics.average_engagement', 'Average Engagement')}
                 </span>
                 <Clock className="h-4 w-4 text-sky-700" />
               </div>
-              <div className="text-lg font-bold text-slate-800">
+              <div className="text-lg font-bold text-gray-900">
                 {metrics.avgWatchCount.toFixed(1)} {t('analytics.viewers', 'viewers')}
               </div>
-              <div className="text-xs text-slate-600 mt-1">
+              <div className="text-xs text-gray-600 mt-1">
                 {t('analytics.per_segment', 'Per segment')}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-200/70 to-slate-300/50 rounded-lg p-4 border border-slate-300/70">
+            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg p-4 border border-gray-300/70">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">
+                <span className="text-sm text-gray-600">
                   {t('analytics.low_engagement', 'Low Engagement')}
                 </span>
-                <TrendingDown className="h-4 w-4 text-slate-500" />
+                <TrendingDown className="h-4 w-4 text-gray-500" />
               </div>
-              <div className="text-lg font-bold text-slate-800">
+              <div className="text-lg font-bold text-gray-900">
                 {formatTime(metrics.lowSegment.startTime)}
               </div>
-              <div className="text-xs text-slate-600 mt-1">
+              <div className="text-xs text-gray-600 mt-1">
                 {metrics.lowSegment.watchCount} {t('analytics.viewers', 'viewers')}
               </div>
             </div>
@@ -252,12 +252,12 @@ const EngagementHeatmap: React.FC<EngagementHeatmapProps> = ({
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between text-xs text-slate-600">
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between text-xs text-gray-600">
               <span>{t('common.legend', 'Legend')}:</span>
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-1">
-                  <div className="w-4 h-4 bg-slate-200 rounded"></div>
+                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
                   <span>{t('common.low', 'Low')}</span>
                 </div>
                 <div className="flex items-center space-x-1">

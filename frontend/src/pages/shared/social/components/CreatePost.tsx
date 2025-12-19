@@ -157,7 +157,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onFocus={() => setIsExpanded(true)}
-              placeholder={t('community.share_thoughts', { name: user?.firstName || 'friend' })}
+              placeholder={t('community.feed.share_thoughts', { name: user?.firstName || 'friend' })}
               className="w-full h-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[color:#1e1b4b] focus:bg-white resize-none transition-all duration-200 text-gray-700 placeholder-gray-400"
               style={{ minHeight: isExpanded ? '120px' : '48px' }}
             />

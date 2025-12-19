@@ -107,13 +107,13 @@ const DiscussionCard: React.FC<Props> = ({ discussion, onClick, onTagClick, onLi
         <div className="flex items-center gap-3 pr-16">
           {/* Author Avatar */}
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#1e1b4b] to-[#312e81] text-white flex items-center justify-center text-sm font-bold shadow-sm">
-            {discussion.author ? discussion.author.charAt(0).toUpperCase() : '?'}
+            {discussion.author ? discussion.author.charAt(0).toUpperCase() : 'M'}
           </div>
           
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-slate-900 text-sm">
-                {discussion.author || 'Anonymous'}
+                {discussion.author || 'Member'}
               </span>
               <span className="text-slate-300">•</span>
               <span className="text-xs text-slate-500">{discussion.lastActivity}</span>

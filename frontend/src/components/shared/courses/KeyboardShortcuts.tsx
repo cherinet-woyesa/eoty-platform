@@ -7,6 +7,8 @@ import type { LayoutType } from '@/types/VideoCompositor';
 interface KeyboardShortcutsProps {
   isRecording: boolean;
   isPaused: boolean;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
   onPauseResume: () => void;
   onToggleScreen: () => void;
   onCycleLayout: () => void;
@@ -23,6 +25,8 @@ interface ShortcutHint {
 const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
   isRecording,
   isPaused,
+  onStartRecording,
+  onStopRecording,
   onPauseResume,
   onToggleScreen,
   onCycleLayout,
@@ -62,6 +66,22 @@ const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
         }
         break;
 
+      case 'r': // R - Start Recording
+        if (!isRecording) {
+          event.preventDefault();
+          onStartRecording();
+        }
+        break;
+
+      case 'escape': // Esc - Stop Recording
+        if (isRecording) {
+          event.preventDefault();
+          onStopRecording();
+        }
+        break;
+
+      /* 
+      // Removed less important shortcuts per user request
       case 's': // S - Toggle screen share
         event.preventDefault();
         onToggleScreen();
@@ -71,19 +91,7 @@ const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
         event.preventDefault();
         onCycleLayout();
         break;
-
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-        // Number keys - Direct layout selection
-        event.preventDefault();
-        const layout = layoutMap[key];
-        if (layout) {
-          onSelectLayout(layout);
-        }
-        break;
+      */
 
       default:
         // No action for other keys
@@ -92,6 +100,8 @@ const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
   }, [
     isRecording,
     disabled,
+    onStartRecording,
+    onStopRecording,
     onPauseResume,
     onToggleScreen,
     onCycleLayout,
@@ -111,49 +121,36 @@ const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
   // Shortcut hints
   const shortcuts: ShortcutHint[] = [
     {
+      key: 'R',
+      description: 'Start Recording',
+      condition: !isRecording ? 'visible' : 'hidden'
+    },
+    {
       key: 'Space',
-      description: isPaused ? 'Resume recording' : 'Pause recording',
-      condition: isRecording ? undefined : 'Only during recording'
+      description: isPaused ? 'Resume Recording' : 'Pause Recording',
+      condition: isRecording ? 'visible' : 'hidden'
     },
     {
-      key: 'S',
-      description: 'Toggle screen sharing'
-    },
-    {
-      key: 'L',
-      description: 'Cycle through layouts'
-    },
-    {
-      key: '1',
-      description: 'Picture-in-Picture layout'
-    },
-    {
-      key: '2',
-      description: 'Side-by-Side layout'
-    },
-    {
-      key: '3',
-      description: 'Presentation layout'
-    },
-    {
-      key: '4',
-      description: 'Screen-Only layout'
-    },
-    {
-      key: '5',
-      description: 'Camera-Only layout'
+      key: 'Esc',
+      description: 'Stop Recording',
+      condition: isRecording ? 'visible' : 'hidden'
     }
   ];
+
+  // Filter visible shortcuts
+  const visibleShortcuts = shortcuts.filter(s => s.condition !== 'hidden');
+
+  if (visibleShortcuts.length === 0) return null;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
       <div className="flex items-center gap-2 mb-3">
-        <Keyboard className="h-5 w-5 text-blue-600" />
+        <Keyboard className="h-5 w-5 text-indigo-600" />
         <h4 className="font-semibold text-gray-900">Keyboard Shortcuts</h4>
       </div>
       
       <div className="space-y-2">
-        {shortcuts.map((shortcut, index) => (
+        {visibleShortcuts.map((shortcut, index) => (
           <div
             key={index}
             className="flex items-center justify-between text-sm"
@@ -164,12 +161,6 @@ const KeyboardShortcuts: FC<KeyboardShortcutsProps> = ({
               </kbd>
               <span className="text-gray-600">{shortcut.description}</span>
             </div>
-            
-            {shortcut.condition && (
-              <span className="text-xs text-gray-400 italic">
-                {shortcut.condition}
-              </span>
-            )}
           </div>
         ))}
       </div>

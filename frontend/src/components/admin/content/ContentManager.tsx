@@ -60,7 +60,7 @@ const ContentManager: React.FC = () => {
     },
     individual: {}
   });
-  const [chapters, setChapters] = useState<{id: number, name: string, location: string}[]>([]);
+  const [chapters, setChapters] = useState<{ id: number, name: string, location: string }[]>([]);
   const [showUnifiedUpload, setShowUnifiedUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUploads, setSelectedUploads] = useState<number[]>([]);
@@ -137,7 +137,7 @@ const ContentManager: React.FC = () => {
     try {
       if (!background) setLoading(true);
       setError(null);
-      console.log('Fetching uploads with status filter:', statusFilter, 'page:', page);
+      // console.log('Fetching uploads with status filter:', statusFilter, 'page:', page);
 
       const response = await adminApi.getUploadQueue(
         statusFilter !== '' ? statusFilter : undefined,
@@ -145,10 +145,10 @@ const ContentManager: React.FC = () => {
         page,
         pagination.limit
       );
-      console.log('Upload queue response:', response);
+      // console.log('Upload queue response:', response);
 
       if (response.success && response.data) {
-        console.log('Setting uploads:', response.data.uploads?.length || 0, 'items');
+        // console.log('Setting uploads:', response.data.uploads?.length || 0, 'items');
         setUploads(response.data.uploads || []);
         if (response.data.pagination) {
           setPagination(prev => ({
@@ -159,11 +159,11 @@ const ContentManager: React.FC = () => {
           }));
         }
       } else {
-        console.warn('Upload response not successful:', response);
+        // console.warn('Upload response not successful:', response);
         setUploads([]);
       }
     } catch (err: any) {
-      console.error('Failed to fetch uploads:', err);
+      // console.error('Failed to fetch uploads:', err);
       console.error('Error details:', err.response?.data || err.message);
       if (!background) {
         setError(`Failed to load content uploads: ${err.response?.data?.message || err.message}`);
@@ -188,7 +188,7 @@ const ContentManager: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Error fetching chapters:', err);
+        // console.error('Error fetching chapters:', err);
       }
     };
     fetchChapters();
@@ -215,7 +215,7 @@ const ContentManager: React.FC = () => {
 
         successCount++;
       } catch (err: any) {
-        console.error(`Failed to upload ${file.name}:`, err);
+        // console.error(`Failed to upload ${file.name}:`, err);
         const errorMsg = err.response?.data?.message || err.message || 'Upload failed';
         results.push(`✗ ${file.name}: ${errorMsg}`);
         errorCount++;
@@ -253,7 +253,7 @@ const ContentManager: React.FC = () => {
   // Handle approve/reject actions
   const handleApprove = async (uploadId: number, action: 'approve' | 'reject', rejectionReason?: string) => {
     try {
-      console.log('Handling approve/reject:', { uploadId, action, rejectionReason });
+      // console.log('Handling approve/reject:', { uploadId, action, rejectionReason });
       const response = await adminApi.approveContent(uploadId, action, rejectionReason);
       if (response.success) {
         setSuccessMessage(`Content ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
@@ -261,7 +261,7 @@ const ContentManager: React.FC = () => {
         setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (err: any) {
-      console.error('Approval action failed:', err);
+      // console.error('Approval action failed:', err);
       setError(`Failed to ${action} content: ${err.response?.data?.message || err.message}`);
     }
   };
@@ -285,7 +285,7 @@ const ContentManager: React.FC = () => {
         setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (err: any) {
-      console.error('Delete action failed:', err);
+      // console.error('Delete action failed:', err);
       setError(`Failed to delete content: ${err.response?.data?.message || err.message}`);
     }
   };
@@ -309,7 +309,7 @@ const ContentManager: React.FC = () => {
         }));
       }
     } catch (err: any) {
-      console.error('Preview failed:', err);
+      // console.error('Preview failed:', err);
       setError('Failed to load preview');
     } finally {
       setLoadingPreview(null);
@@ -375,77 +375,75 @@ const ContentManager: React.FC = () => {
 
   return (
     <div className="w-full space-y-6 p-6 bg-gray-50 min-h-screen">
-        {/* Action Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-               {/* Left side empty or for filters later */}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowUnifiedUpload(true)}
-                  className="inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg transition-all shadow-sm hover:shadow-md hover:opacity-90"
-                  style={{ backgroundColor: brandColors.primaryHex }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Upload Files
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => fetchUploads()}
-                  disabled={loading}
-                  className="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-all border border-gray-300 disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-              </div>
-            </div>
+      {/* Action Bar */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* Left side empty or for filters later */}
           </div>
-        </div>
 
-        {/* Stats Grid - Removed as per request */}
-        
-        {/* Debug Info - Removed as per request */}
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search uploads..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowUnifiedUpload(true)}
+                className="inline-flex items-center px-4 py-2.5 bg-indigo-900 text-white font-semibold rounded-lg border border-indigo-800 hover:bg-indigo-800 transition-all shadow-md hover:shadow-lg"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Upload Files
+              </button>
             </div>
             <div className="flex gap-2">
-              {['', 'pending', 'approved', 'rejected'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    statusFilter === status
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                  }`}
-                >
-                  {status === '' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => fetchUploads()}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-all border border-gray-300 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Stats Grid - Removed as per request */}
+
+      {/* Debug Info - Removed as per request */}
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search uploads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {['', 'pending', 'approved', 'rejected'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${statusFilter === status
+                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+              >
+                {status === '' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Unified Upload Form */}
       {showUnifiedUpload && (

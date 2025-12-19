@@ -27,6 +27,8 @@ const teacherService = {
 
     const updateData = {
       ...restOfProfileData,
+      linkedin_url,
+      website_url,
       updated_at: knex.fn.now(),
     };
 

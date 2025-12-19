@@ -35,7 +35,7 @@ async function getSystemAlerts() {
       });
     });
   } catch (err) {
-    console.warn('content_quotas table may not exist:', err.message);
+    // Silently handle missing content_quotas table - may not exist in all deployments
   }
 
   // Check for unresolved flags

@@ -14,9 +14,46 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ isOpen, onClose }) => {
   const [scrollSpeed, setScrollSpeed] = useState(1); // 1-10
   const [fontSize, setFontSize] = useState(24); // px
   const [isEditing, setIsEditing] = useState(true);
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // Relative to default position
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle Dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragStartRef.current.x,
+          y: e.clientY - dragStartRef.current.y
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   // Load saved script from local storage
   useEffect(() => {
@@ -28,7 +65,11 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ isOpen, onClose }) => {
 
   // Save script to local storage
   useEffect(() => {
-    localStorage.setItem('teleprompter_script', text);
+    try {
+      localStorage.setItem('teleprompter_script', text);
+    } catch (error) {
+      console.warn('Failed to save teleprompter script to localStorage:', error);
+    }
   }, [text]);
 
   // Handle scrolling
@@ -63,16 +104,26 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-4 right-4 z-50 w-80 bg-black/80 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col text-white overflow-hidden transition-all duration-300 h-[500px]">
+    <div 
+      className="absolute top-4 right-4 z-50 w-80 bg-black/80 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col text-white overflow-hidden transition-shadow duration-300 h-[500px]"
+      style={{ 
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-white/10 bg-black/40 cursor-move">
-        <div className="flex items-center gap-2">
+      <div 
+        className="flex items-center justify-between p-3 border-b border-white/10 bg-black/40 cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center gap-2 pointer-events-none">
           <AlignLeft className="h-4 w-4 text-sky-400" />
           <span className="font-medium text-sm">{t('teleprompter.title', 'Teleprompter')}</span>
         </div>
         <button 
           onClick={onClose}
           className="p-1 hover:bg-white/10 rounded-full transition-colors"
+          onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking close
         >
           <X className="h-4 w-4" />
         </button>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { aiApi } from '@/services/api/ai';
 import { CheckCircle, XCircle, HelpCircle, Play, SkipForward, Save, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 interface LabelingItem {
   id: number;
@@ -66,7 +67,7 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
       onUpdateItem(item.id, { classifier: res.data });
       onSuccess(t('ai_labeling.classification_complete'));
     } catch (err) {
-      console.error('Classification failed', err);
+      // console.error('Classification failed', err);
       onError(t('ai_labeling.classification_failed'));
     } finally {
       setClassifying(false);
@@ -76,16 +77,16 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      await aiApi.submitFaithLabel({ 
-        sessionId: item.session_id || 'admin', 
-        text: displayText, 
-        label: selectedLabel, 
-        notes 
+      await aiApi.submitFaithLabel({
+        sessionId: item.session_id || 'admin',
+        text: displayText,
+        label: selectedLabel,
+        notes
       });
       onSuccess(t('ai_labeling.label_submitted'));
       onRemoveItem(item.id);
     } catch (err) {
-      console.error('Submit label failed', err);
+      // console.error('Submit label failed', err);
       onError(t('ai_labeling.label_submit_failed'));
     } finally {
       setSubmitting(false);
@@ -98,7 +99,7 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
     try {
       await onModerate(action, moderationNotes);
     } catch (err) {
-      console.error('Moderation action failed', err);
+      // console.error('Moderation action failed', err);
       onError(t('ai_labeling.moderation_failed'));
     } finally {
       setModeratingAction(null);
@@ -138,7 +139,7 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
 
       {/* Actions Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Left: Classifier */}
         <div className="border-r md:border-r-0 md:border-r border-gray-100 pr-0 md:pr-6">
           <div className="flex items-center justify-between mb-2">
@@ -154,7 +155,7 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
               </button>
             )}
           </div>
-          
+
           {classifierScore !== undefined ? (
             <div className="bg-slate-50 rounded p-3 text-sm">
               <div className="flex justify-between mb-1">
@@ -218,7 +219,7 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
           ) : (
             <>
               <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('ai_labeling.human_label')}</h4>
-              
+
               <div className="flex space-x-2 mb-4">
                 {LABELS.map((l) => {
                   const Icon = l.icon;
@@ -227,11 +228,10 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
                     <button
                       key={l.value}
                       onClick={() => setSelectedLabel(l.value)}
-                      className={`flex-1 flex flex-col items-center justify-center p-2 rounded border transition-all ${
-                        isSelected 
-                          ? `${l.bg} ${l.color} border-current ring-1 ring-current` 
+                      className={`flex-1 flex flex-col items-center justify-center p-2 rounded border transition-all ${isSelected
+                          ? `${l.bg} ${l.color} border-current ring-1 ring-current`
                           : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <Icon size={16} className="mb-1" />
                       <span className="text-xs font-medium">{t(`ai_labeling.${l.labelKey}`)}</span>
@@ -253,7 +253,8 @@ export default function LabelingItemCard({ item, onUpdateItem, onRemoveItem, onE
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex-1 flex items-center justify-center space-x-2 text-white py-2 rounded transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   <Save size={16} />
                   <span>{submitting ? t('ai_labeling.saving_label') : t('ai_labeling.submit_label')}</span>

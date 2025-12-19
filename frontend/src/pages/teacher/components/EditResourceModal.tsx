@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Save, Loader } from 'lucide-react';
 import { type Resource } from '@/types/resources';
 import { resourcesApi } from '@/services/api/resources';
+import { brandColors } from '@/theme/brand';
 
 interface EditResourceModalProps {
   resource: Resource;
@@ -51,9 +52,9 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between p-4 border-b border-stone-200">
-          <h3 className="text-lg font-bold text-stone-800">Edit Resource</h3>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800">Edit Resource</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -66,22 +67,24 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
           )}
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Category</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[color:#1e1b4b] focus:border-[color:#1e1b4b]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             >
               <option value="">Select Category</option>
               <option value="document">Document</option>
@@ -93,12 +96,13 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none"
+              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             />
           </div>
 
@@ -106,14 +110,15 @@ const EditResourceModal: React.FC<EditResourceModalProps> = ({ resource, isOpen,
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#219150] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50"
+              style={{ backgroundColor: brandColors.primaryHex }}
             >
               {loading ? <Loader className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Changes

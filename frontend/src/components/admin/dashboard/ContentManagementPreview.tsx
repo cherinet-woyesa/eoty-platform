@@ -21,9 +21,9 @@ interface ContentManagementPreviewProps {
   compact?: boolean;
 }
 
-const ContentManagementPreview: React.FC<ContentManagementPreviewProps> = ({ 
-  content = [], 
-  compact = false 
+const ContentManagementPreview: React.FC<ContentManagementPreviewProps> = ({
+  content = [],
+  compact = false
 }) => {
   const getContentIcon = (type: string) => {
     switch (type) {
@@ -73,7 +73,10 @@ const ContentManagementPreview: React.FC<ContentManagementPreviewProps> = ({
   };
 
   const handleContentAction = useCallback((contentId: string, action: string) => {
-    console.log(`Action ${action} on content ${contentId}`);
+    // Action handling would be implemented here
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ContentManagementPreview] Action ${action} on content ${contentId}`);
+    }
   }, []);
 
   const pendingContent = content.filter(item => item.status === 'pending' || item.reviewStatus === 'pending');
@@ -93,7 +96,7 @@ const ContentManagementPreview: React.FC<ContentManagementPreviewProps> = ({
             Manage All
           </Link>
         </div>
-        
+
         {/* Pending Alerts */}
         {pendingContent.length > 0 && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -222,7 +225,7 @@ const ContentManagementPreview: React.FC<ContentManagementPreviewProps> = ({
                   {getContentIcon(item.type)}
                 </div>
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                   <h4 className="font-semibold text-gray-900 text-sm truncate">

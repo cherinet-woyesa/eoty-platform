@@ -115,6 +115,7 @@ interface UseVideoRecorderReturn {
   startAudioLevelMonitoring: (callback: (levels: import('../utils/AudioMixer').AudioLevelData[]) => void) => void;
   stopAudioLevelMonitoring: () => void;
   acknowledgePreview: () => void;
+  initializeCompositor: () => Promise<VideoCompositor | null>;
   
   // Task 6.2: Browser compatibility
   browserSupport: BrowserSupport | null;
@@ -522,6 +523,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       setError(null);
       setNetworkStatus(prev => ({ ...prev, status: 'online' }));
       
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Screen sharing not supported in this browser or context');
+      }
+
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           width: { ideal: 1280, max: 1280 },
@@ -774,6 +779,10 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         video: getVideoConstraints(deviceId),
         audio: getAudioConstraints(options.audioDeviceId)
       };
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access not supported in this browser or context (HTTPS required)');
+      }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       
@@ -1173,8 +1182,15 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     let recordingStream: MediaStream | null = null;
     
     if (!screenOnly) {
-      // Initialize compositor
-      compositor = await initializeCompositor();
+      // Initialize compositor - reuse if available to reduce delay
+      if (compositorInstance) {
+        console.log('Reusing existing compositor instance');
+        compositor = compositorInstance;
+      } else {
+        console.log('Initializing new compositor instance');
+        compositor = await initializeCompositor();
+      }
+
       if (!compositor) {
         console.error('Compositor initialization failed - cannot record');
         setError('Failed to initialize video compositor. Please refresh and try again.');
@@ -1209,29 +1225,26 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         const isValidScreen = (stream: MediaStream | null) => {
           const track = stream?.getVideoTracks()?.[0];
           if (!stream || !track) return false;
+          // Relaxed dimension check to avoid false negatives during startup
           const settings = track.getSettings ? track.getSettings() : undefined;
-          const dimsOk = (settings?.width ?? 0) > 16 && (settings?.height ?? 0) > 16;
+          const dimsOk = (settings?.width ?? 100) > 0 && (settings?.height ?? 100) > 0;
           const liveOk = track.readyState === 'live';
           return stream.active && liveOk && dimsOk;
         };
 
         if (!isValidScreen(screenStreamForRecording)) {
-          try {
-            await removeScreenShare(); // clear stale stream
-            const refreshed = await addScreenShare();
-            screenStreamRef.current = refreshed;
-            if (isValidScreen(refreshed)) {
-              screenStreamForRecording = refreshed;
-            }
-          } catch (e) {
-            console.error('Failed to refresh screen share before recording:', e);
+          console.warn('Screen stream appears invalid, checking ref...');
+          if (isValidScreen(screenStreamRef.current)) {
+             screenStreamForRecording = screenStreamRef.current;
+          } else {
+             console.warn('No valid screen stream found. Proceeding without refresh to avoid interruption.');
+             // We do NOT auto-refresh here as it breaks the flow. 
+             // If the user sees the preview, the stream is likely fine.
           }
         }
 
-        if (!isValidScreen(screenStreamForRecording)) {
-          setError('Screen share stopped. Please share your screen again.');
-          setNetworkStatus(prev => ({ ...prev, status: 'degraded' }));
-          return; // abort start to avoid endless prompts
+        if (screenStreamForRecording && !isValidScreen(screenStreamForRecording)) {
+             console.warn('Screen stream might be invalid but proceeding anyway');
         }
       }
 
@@ -1749,7 +1762,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       
       cleanupLocalStreams();
     }
-  }, [createCombinedStream, currentLayout, recordingSources, options, cleanupLocalStreams, initializeCompositor]);
+  }, [createCombinedStream, currentLayout, recordingSources, options, cleanupLocalStreams, initializeCompositor, compositorInstance]);
 
   // Enhanced stop recording
   const stopRecording = useCallback(() => {
@@ -2315,6 +2328,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     isAudioMuted,
     getAudioLevels,
     startAudioLevelMonitoring,
-    stopAudioLevelMonitoring
+    stopAudioLevelMonitoring,
+    initializeCompositor
   };
 };

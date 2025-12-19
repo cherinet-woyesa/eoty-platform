@@ -159,27 +159,18 @@ const Achievements: React.FC = () => {
 
   return (
     <div className="w-full space-y-6">
-      {/* Header + Stats */}
+      {/* Stats & Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-[color:#1e1b4b]" />
-              {t('learning_page.achievements_tab')}
-            </h1>
-            <p className="text-sm text-gray-600">{t('achievements.subtitle')}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white shadow-sm disabled:opacity-60"
-              style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-            >
-              <RefreshCcw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              {isFetching ? t('achievements.refreshing') : t('achievements.refresh')}
-            </button>
-          </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white shadow-sm disabled:opacity-60"
+            style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
+          >
+            <RefreshCcw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            {isFetching ? t('achievements.refreshing') : t('achievements.refresh')}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
