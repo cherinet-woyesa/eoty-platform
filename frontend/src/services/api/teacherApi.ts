@@ -124,7 +124,7 @@ const teacherApi = {
   },
 
   changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }): Promise<ApiResponse<any>> => {
-    return api.put('/auth/change-password', data);
+    return api.post('/auth/change-password', data);
   },
 
   deleteAccount: (): Promise<ApiResponse<any>> => {
