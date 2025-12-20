@@ -40,6 +40,19 @@ const writeCache = <T,>(key: string, data: T) => {
   }
 };
 
+const fetchWithRetry = async <T,>(fn: () => Promise<T>, retries = 1, delayMs = 250): Promise<T> => {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt >= retries) throw error;
+      attempt += 1;
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+};
+
 const SectionSkeleton: React.FC<{ cards?: number }> = ({ cards = 3 }) => (
   <section className="py-16 sm:py-20 bg-white/70">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,9 +86,9 @@ const Landing: React.FC = () => {
   const [landingContent, setLandingContent] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const location = useLocation();
 
@@ -104,9 +117,9 @@ const Landing: React.FC = () => {
     const fetchAll = async () => {
       try {
         const [contentRes, coursesRes, testimonialsRes] = await Promise.allSettled([
-          landingApi.getContent(),
-          landingApi.getFeaturedCourses(),
-          landingApi.getTestimonials()
+          fetchWithRetry(() => landingApi.getContent(), 2, 300),
+          fetchWithRetry(() => landingApi.getFeaturedCourses(), 2, 300),
+          fetchWithRetry(() => landingApi.getTestimonials(), 2, 300)
         ]);
 
         if (!isCancelled && contentRes.status === 'fulfilled' && contentRes.value.success && contentRes.value.data) {
@@ -153,10 +166,21 @@ const Landing: React.FC = () => {
     return () => clearTimeout(timer);
   }, [location.hash]);
 
+  // Respect prefers-reduced-motion for animations
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    updateMotionPreference();
+    mediaQuery.addEventListener('change', updateMotionPreference);
+    return () => mediaQuery.removeEventListener('change', updateMotionPreference);
+  }, []);
+
   // (featured courses & testimonials now fetched in parallel above)
 
   // Intersection Observer for animations and active section
   useEffect(() => {
+    if (loading) return;
+
     const observerOptions = {
       root: null,
       rootMargin: '-20% 0px -20% 0px', // Adjusted for better active section detection
@@ -166,177 +190,30 @@ const Landing: React.FC = () => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const sectionId = entry.target.getAttribute('data-section-id');
-        if (sectionId) {
-          if (entry.isIntersecting) {
-            setVisibleSections((prev: Set<string>) => new Set([...prev, sectionId]));
-            setActiveSection(sectionId);
-          }
-        }
+        if (!sectionId || !entry.isIntersecting) return;
+
+        setVisibleSections((prev: Set<string>) => {
+          if (prev.has(sectionId)) return prev;
+          const next = new Set(prev);
+          next.add(sectionId);
+          return next;
+        });
+
+        setActiveSection((prev) => (prev === sectionId ? prev : sectionId));
       });
     }, observerOptions);
 
-    Object.values(sectionRefs.current).forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-    
-    // Also observe hero
-    if (heroRef.current) observer.observe(heroRef.current);
+    const observed = [
+      heroRef.current,
+      ...Object.values(sectionRefs.current)
+    ].filter(Boolean) as HTMLElement[];
+
+    observed.forEach((ref) => observer.observe(ref));
 
     return () => observer.disconnect();
-  }, [featuredCourses, testimonials, landingContent]); // Re-run when content loads
+  }, [loading]); // Start observing once content is ready
 
-  // Three.js Particle Network Effect (deferred, desktop-only)
-  useEffect(() => {
-    if (loading) return;
-    if (!canvasRef.current || typeof window === 'undefined') return;
-    const isMobile = window.innerWidth < 1024;
-    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const lowCore = typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
-    if (isMobile || reducedMotion || lowCore) {
-      canvasRef.current.style.display = 'none';
-      return;
-    }
-
-    let cleanup: (() => void) | null = null;
-    let cancelled = false;
-
-    const schedule = (cb: () => void) => {
-      const idle = (window as any).requestIdleCallback;
-      if (idle) {
-        return idle(cb, { timeout: 800 });
-      }
-      return window.setTimeout(cb, 300);
-    };
-    const cancelSchedule = (id: any) => {
-      const cancelIdle = (window as any).cancelIdleCallback;
-      if (cancelIdle) {
-        cancelIdle(id);
-      } else {
-        clearTimeout(id);
-      }
-    };
-
-    const jobId = schedule(async () => {
-      if (cancelled || !canvasRef.current) return;
-      const THREE = await import('three');
-      if (!canvasRef.current || cancelled) return;
-
-      const canvas = canvasRef.current;
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
-      const particleCount = 80;
-      const particleOpacity = 0.4;
-
-      const particlesGeometry = new THREE.BufferGeometry();
-      const posArray = new Float32Array(particleCount * 3);
-      for (let i = 0; i < particleCount * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 15;
-      }
-      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-      const material = new THREE.PointsMaterial({
-        size: 0.03,
-        color: 0x4f46e5,
-        transparent: true,
-        opacity: particleOpacity,
-        blending: THREE.AdditiveBlending
-      });
-      const particlesMesh = new THREE.Points(particlesGeometry, material);
-      scene.add(particlesMesh);
-
-      const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0xC07A1A,
-        transparent: true,
-        opacity: 0.12
-      });
-      const linesGeometry = new THREE.BufferGeometry();
-      const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
-      scene.add(linesMesh);
-
-      camera.position.z = 4;
-
-      let mouseX = 0;
-      let mouseY = 0;
-      let lastMove = 0;
-      let animationFrameId: number | null = null;
-
-      const animate = () => {
-        animationFrameId = requestAnimationFrame(animate);
-        particlesMesh.rotation.y += 0.00035;
-        particlesMesh.rotation.x += 0.00012;
-        linesMesh.rotation.y += 0.00035;
-        linesMesh.rotation.x += 0.00012;
-        particlesMesh.rotation.y += mouseX * 0.0003;
-        particlesMesh.rotation.x += mouseY * 0.0003;
-        linesMesh.rotation.y += mouseX * 0.0003;
-        linesMesh.rotation.x += mouseY * 0.0003;
-        renderer.render(scene, camera);
-      };
-
-      const start = () => {
-        if (animationFrameId === null) {
-          animationFrameId = requestAnimationFrame(animate);
-        }
-      };
-      const stop = () => {
-        if (animationFrameId !== null) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
-        }
-      };
-
-      start();
-
-      const handleResize = () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      };
-
-      const handleMouseMove = (event: MouseEvent) => {
-        const now = performance.now();
-        if (now - lastMove < 50) return; // throttle
-        lastMove = now;
-        mouseX = event.clientX - window.innerWidth / 2;
-        mouseY = event.clientY - window.innerHeight / 2;
-      };
-
-      const handleVisibility = () => {
-        if (document.visibilityState === 'hidden') {
-          stop();
-        } else {
-          start();
-        }
-      };
-
-      window.addEventListener('resize', handleResize);
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('visibilitychange', handleVisibility);
-
-      cleanup = () => {
-        window.removeEventListener('resize', handleResize);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('visibilitychange', handleVisibility);
-        stop();
-        particlesGeometry.dispose();
-        material.dispose();
-        linesGeometry.dispose();
-        lineMaterial.dispose();
-        renderer.dispose();
-      };
-    });
-
-    return () => {
-      cancelled = true;
-      cancelSchedule(jobId);
-      if (cleanup) cleanup();
-    };
-  }, [loading]);
+  // Lightweight CSS gradient background - no heavy dependencies needed
 
   return (
     <div className="relative min-h-screen bg-gray-50 overflow-x-hidden font-sans">
@@ -354,29 +231,40 @@ const Landing: React.FC = () => {
           {error} We’ll continue with default content; refresh to retry.
         </div>
       )}
-      {/* 3D Background Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full pointer-events-none z-0 opacity-60"
-      />
+      {/* Lightweight CSS Gradient Background */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/40 via-purple-50/30 to-amber-50/40" />
+        <div
+          className={`absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl ${
+            prefersReducedMotion ? '' : 'animate-float'
+          }`}
+          style={prefersReducedMotion ? undefined : { animationDuration: '15s' }}
+        />
+        <div
+          className={`absolute bottom-0 right-1/4 w-80 h-80 bg-gradient-to-br from-amber-200/20 to-orange-200/20 rounded-full blur-3xl ${
+            prefersReducedMotion ? '' : 'animate-float'
+          }`}
+          style={prefersReducedMotion ? undefined : { animationDuration: '20s', animationDelay: '5s' }}
+        />
+      </div>
 
       {/* Content */}
       <div className="relative z-10">
         <Header activeSection={activeSection} onScrollToSection={scrollToSection} />
-        <Hero 
-          ref={heroRef} 
-          landingContent={landingContent} 
+        <Hero
+          ref={heroRef}
+          landingContent={landingContent}
           onExplore={() => scrollToSection('featured-courses')}
         />
-        
+
         <div className="relative bg-white/80 backdrop-blur-lg shadow-xl rounded-t-[3rem] -mt-20 pt-0 pb-10 border-t border-white/50 overflow-hidden">
           <Suspense fallback={<SectionSkeleton cards={3} />}>
             {loading ? (
               <SectionSkeleton cards={3} />
             ) : (
-              <VideoSection 
+              <VideoSection
                 ref={(el) => (sectionRefs.current['video-section'] = el)}
-                landingContent={landingContent} 
+                landingContent={landingContent}
               />
             )}
           </Suspense>
@@ -385,60 +273,60 @@ const Landing: React.FC = () => {
             {loading ? (
               <SectionSkeleton cards={3} />
             ) : (
-              <About 
+              <About
                 ref={(el) => (sectionRefs.current['about'] = el)}
                 landingContent={landingContent}
                 visibleSections={visibleSections}
               />
             )}
           </Suspense>
-          
+
           <Suspense fallback={<SectionSkeleton cards={3} />}>
             {loading ? (
               <SectionSkeleton cards={3} />
             ) : (
-              <FeaturedCourses 
+              <FeaturedCourses
                 ref={(el) => (sectionRefs.current['featured-courses'] = el)}
                 featuredCourses={featuredCourses}
                 visibleSections={visibleSections}
               />
             )}
           </Suspense>
-          
+
           <Suspense fallback={<SectionSkeleton cards={4} />}>
             {loading ? (
               <SectionSkeleton cards={4} />
             ) : (
-              <HowItWorks 
+              <HowItWorks
                 ref={(el) => (sectionRefs.current['how-it-works'] = el)}
                 landingContent={landingContent}
                 visibleSections={visibleSections}
               />
             )}
           </Suspense>
-          
+
           <Suspense fallback={<SectionSkeleton cards={3} />}>
             {loading ? (
               <SectionSkeleton cards={3} />
             ) : (
-              <Testimonials 
+              <Testimonials
                 ref={(el) => (sectionRefs.current['testimonials'] = el)}
                 testimonials={testimonials}
                 visibleSections={visibleSections}
               />
             )}
           </Suspense>
-          
+
           <Suspense fallback={<SectionSkeleton cards={2} />}>
             {loading ? (
               <SectionSkeleton cards={2} />
             ) : (
-              <DonationSection 
+              <DonationSection
                 ref={(el: HTMLDivElement | null) => (sectionRefs.current['donation-section'] = el)}
               />
             )}
           </Suspense>
-          
+
           <Footer />
         </div>
       </div>

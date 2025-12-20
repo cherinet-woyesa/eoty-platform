@@ -13,6 +13,7 @@ interface HeroProps {
 const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onExplore }, ref) => {
   const { isAuthenticated, getRoleDashboard } = useAuth();
   const { t } = useTranslation();
+  const isReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const handleStartClick = (e: React.MouseEvent) => {
     if (onStart) {
       e.preventDefault();
@@ -27,13 +28,18 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
   };
 
   return (
-    <section ref={ref} id="hero" data-section-id="hero" className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center pt-24 pb-14 sm:pt-24 sm:pb-16 z-10 overflow-hidden">
+    <section
+      ref={ref}
+      id="hero"
+      data-section-id="hero"
+      className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center pt-24 pb-14 sm:pt-24 sm:pb-16 z-10 overflow-hidden"
+    >
       {/* Background Image with Warm Sepia Overlay */}
       <div className="absolute inset-0 z-0">
         <img
           src="/eoc.jpg"
           alt="Background"
-          loading="lazy"
+          loading="eager"
           decoding="async"
           fetchpriority="high"
           sizes="100vw"
@@ -42,11 +48,14 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
           className="w-full h-full object-cover"
           style={{ filter: 'sepia(0.45) saturate(1.15) brightness(0.95)' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-[#3b2b1b]/65 to-black/75 mix-blend-multiply" />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/65 via-[#3b2b1b]/65 to-black/75 mix-blend-multiply"
+          style={isReducedMotion ? undefined : { transition: 'opacity 700ms ease' }}
+        />
       </div>
 
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-        <div className="space-y-6 sm:space-y-8 animate-fade-in">
+        <div className={`space-y-6 sm:space-y-8 ${isReducedMotion ? '' : 'animate-fade-in'}`}>
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg mx-auto">
             <span className="relative flex h-2 w-2">

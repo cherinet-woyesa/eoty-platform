@@ -83,6 +83,13 @@ const teacherService = {
     try {
       fileUrl = await gcsService.uploadFile(file, folder, targetBucket);
     } catch (e) {
+      console.error('GCS Upload failed:', e);
+
+      // If in production/Cloud Run, do not fallback to local FS as it is likely read-only
+      if (process.env.NODE_ENV === 'production' || process.env.K_SERVICE) {
+         throw new Error('Failed to upload document to storage service. Please contact support.');
+      }
+
       // Fallback to local filesystem if GCS is not available
       const uploadsDir = path.join(__dirname, '..', 'uploads');
       const safeName = `${documentType}-${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;

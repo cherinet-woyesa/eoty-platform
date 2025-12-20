@@ -2803,11 +2803,6 @@
       }
     },
     "push": {
-      "title": "Push Notifications",
-      "subtitle": "Receive real-time updates while using the platform",
-      "types": {
-        "course_activity": {
-    "push": {
       "title": "የግፊት ማሳወቂያዎች",
       "subtitle": "መድረኩን በሚጠቀሙበት ጊዜ ቅጽበታዊ ዝማኔዎችን ይቀበሉ",
       "types": {
@@ -2858,6 +2853,12 @@
     "community": "ማህበረሰብ",
     "community_desc": "ከመማሪያ ማህበረሰቡ ጋር ይሳተፉ",
     "chapters": "ምዕራፎች",
+    "assignments": "ምደባዎች",
+    "analytics": "ትንታኔ",
+    "teacher": "አስተማሪ",
+    "members": "አባላት",
+    "my_chapters": "የእኔ ምዕራፎች",
+    "my_members": "የእኔ አባላት",
     "chapters_desc": "የማህበረሰብ ምዕራፎችን ያስሱ እና ያስተዳድሩ",
     "learning": "ትምህርት",
     "learning_desc": "የትምህርት ጉዞዎን እና ሂደትዎን ይከታተሉ",
@@ -3332,6 +3333,17 @@
       "my": "የእኔ ምዕራፎች",
       "manage": "ያስተዳድሩ"
     },
+    "manage": {
+      "member_management": {
+        "title": "የአባላት አስተዳደር"
+      },
+      "assignments": {
+        "title": "ተግባራት"
+      },
+      "analytics": {
+        "title": "ትንተና"
+      }
+    },
     "browse": {
       "title": "ምዕራፎችን ያስሱ",
       "subtitle": "በአካባቢዎ ወይም በፍላጎትዎ መሰረት ምዕራፎችን ያግኙ"
@@ -3772,16 +3784,18 @@
     }
   },
   "teacher_analytics": {
-    "title": "ትንተና",
+    "title": "የአፈጻጸም ትንታኔ",
     "subtitle": "የእርስዎን የማስተማር አፈጻጸም እና የተማሪዎች ተሳትፎ ይከታተሉ",
     "loading": "ትንተና በመጫን ላይ...",
     "metrics": {
+      "total_students": "ጠቅላላ ተማሪዎች",
       "total_views": "ጠቅላላ እይታዎች",
       "watch_time": "የመመልከቻ ጊዜ",
       "engagement_rate": "የተሳትፎ መጠን",
       "completion_rate": "የማጠናቀቂያ መጠን",
       "avg_rating": "አማካይ ደረጃ",
-      "active_students": "ንቁ ተማሪዎች"
+      "active_students": "ንቁ ተማሪዎች",
+      "avg_quiz_score": "አማካይ የፈተና ውጤት"
     },
     "trends": {
       "title": "አዝማሚያዎች",
@@ -3801,25 +3815,25 @@
     }
   },
   "assignments": {
-    "title": "ተግባራት",
-    "overview": "የተግባራት አጠቃላይ እይታ",
-    "manage_description": "የተማሪዎች ተግባራት ያስተዳድሩ እና ይመዝኑ",
-    "create_assignment": "ተግባር ይፍጠሩ",
+    "title": "ምደባዎች",
+    "overview": "የምደባዎች አጠቃላይ እይታ",
+    "manage_description": "የተማሪዎች ምደባዎችን ያስተዳድሩ እና ይመዝኑ",
+    "create_assignment": "አዲስ ምደባ ይፍጠሩ",
     "stats": {
-      "total_assignments": "ጠቅላላ ተግባራት",
-      "pending_grading": "በመመዘን ላይ",
+      "total_assignments": "ጠቅላላ ምደባዎች",
+      "pending_grading": "ለማረም በመጠባበቅ ላይ",
       "average_score": "አማካይ ውጤት",
-      "total_submissions": "ጠቅላላ ማስገባቶች"
+      "total_submissions": "ጠቅላላ የተሰጡ ምደባዎች"
     },
-    "search_placeholder": "ተግባራት ይፈልጉ...",
+    "search_placeholder": "ምደባዎችን ይፈልጉ...",
     "filters": {
       "all_status": "ሁሉም ሁኔታ",
       "due_date_earliest": "የማስረከቢያ ቀን (ቀደም ያለ)"
     },
     "empty": {
-      "no_assignments": "ምንም ተግባራት አልተገኙም",
-      "no_assignments_yet": "እስካሁን ምንም ተግባራት አልፈጠሩም",
-      "create_first": "የመጀመሪያ ተግባርዎን ይፍጠሩ"
+      "no_assignments": "ምንም ምደባዎች የሉም",
+      "no_assignments_yet": "እስካሁን ምንም ምደባዎች አልተፈጠሩም።",
+      "create_first": "የመጀመሪያ ምደባዎን ይፍጠሩ"
     }
   },
   "admin_system": {
@@ -3907,8 +3921,7 @@
       },
       "empty": "ምንም ቲኬቶች አልተገኙም"
     }
-  }
-}},
+  },
   "student_courses": {
     "enrolled_badge": "የተመዘገቡ",
     "students_label": "ተማሪዎች",
@@ -3922,7 +3935,13 @@
     "browse_courses_btn": "ኮርሶችን ያስሱ",
     "no_enrolled": "እስካሁን በምንም ኮርስ አልተመዘገቡም።",
     "no_courses_found": "ምንም ኮርሶች አልተገኙም።",
+    "no_description": "ምንም መግለጫ የለም",
     "start_journey_desc": "የኮርስ ካታሎግን በማሰስ ይጀምሩ።",
-    "adjust_filters_prompt": "ፍለጋዎን ወይም ማጣሪያዎችዎን ለማስተካከል ይሞክሩ።"
+    "adjust_filters_prompt": "ፍለጋዎን ወይም ማጣሪያዎችዎን ለማስተካከል ይሞክሩ።",
+    "search_placeholder": "ኮርሶችን ይፈልጉ...",
+    "all_categories": "ሁሉም ምድቦች",
+    "all_levels": "ሁሉም ደረጃዎች",
+    "title_column": "ርዕስ",
+    "by": "በ"
   }
-}}
+} 
