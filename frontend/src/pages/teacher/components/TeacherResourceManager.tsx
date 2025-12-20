@@ -15,9 +15,17 @@ const EditResourceModal = lazy(() => import('./EditResourceModal'));
 
 interface TeacherResourceManagerProps {
   lessonId?: string;
+  hideAttachedList?: boolean;
+  hideHeader?: boolean;
+  onAttach?: () => void;
 }
 
-const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonId }) => {
+const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ 
+  lessonId, 
+  hideAttachedList = false,
+  hideHeader = false,
+  onAttach
+}) => {
   const { t } = useTranslation();
   // const { user } = useAuth();
   const [view, setView] = useState<'list' | 'upload'>('list');
@@ -96,6 +104,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
     try {
       await apiClient.post('/resources/attach-to-lesson', { resourceId, lessonId: parseInt(lessonId) });
       await loadAttachedResources();
+      if (onAttach) onAttach();
     } catch (error) {
       console.error('Failed to attach resource:', error);
     } finally {
@@ -162,6 +171,7 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Header & Actions */}
+      {!hideHeader && (
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -183,9 +193,10 @@ const TeacherResourceManager: React.FC<TeacherResourceManagerProps> = ({ lessonI
           {t('teacher_content.resources.upload_new', 'Upload New')}
         </button>
       </div>
+      )}
 
       {/* Attached Resources (Only if lessonId is present) */}
-      {lessonId && (
+      {lessonId && !hideAttachedList && (
         <AttachedResourcesList
           lessonId={lessonId}
           attachedResources={attachedResources}

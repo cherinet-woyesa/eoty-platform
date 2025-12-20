@@ -1202,10 +1202,33 @@ export class VideoCompositor {
             const needsLetterboxing = Math.abs(sourceAspect - targetAspect) > 0.01;
             
             if (needsLetterboxing) {
-              // 1. Draw black background (Clean look)
+              // 1. Draw Blurred Background (Fill space)
               this.ctx.save();
-              this.ctx.fillStyle = '#000000';
-              this.ctx.fillRect(layout.x, layout.y, layout.width, layout.height);
+              this.ctx.beginPath();
+              this.ctx.rect(layout.x, layout.y, layout.width, layout.height);
+              this.ctx.clip();
+              
+              // Apply blur and darken
+              this.ctx.filter = 'blur(40px) brightness(0.6)';
+              
+              // Calculate cover dimensions for background
+              let coverW = layout.width;
+              let coverH = layout.height;
+              let coverX = layout.x;
+              let coverY = layout.y;
+              
+              if (sourceAspect > targetAspect) {
+                 // Source is wider, fit height, crop width
+                 coverW = layout.height * sourceAspect;
+                 coverX = layout.x + (layout.width - coverW) / 2;
+              } else {
+                 // Source is taller, fit width, crop height
+                 coverH = layout.width / sourceAspect;
+                 coverY = layout.y + (layout.height - coverH) / 2;
+              }
+              
+              // Draw background
+              this.ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, coverX, coverY, coverW, coverH);
               this.ctx.restore();
 
               // 2. Draw main content (Contain)
@@ -1215,20 +1238,25 @@ export class VideoCompositor {
               let drawY = layout.y;
 
               if (sourceAspect > targetAspect) {
-                // Letterbox (black bars top/bottom)
+                // Letterbox (bars top/bottom)
                 drawHeight = layout.width / sourceAspect;
                 drawY = layout.y + (layout.height - drawHeight) / 2;
               } else {
-                // Pillarbox (black bars left/right)
+                // Pillarbox (bars left/right)
                 drawWidth = layout.height * sourceAspect;
                 drawX = layout.x + (layout.width - drawWidth) / 2;
               }
 
+              // Draw main content with shadow to separate from background
+              this.ctx.save();
+              this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+              this.ctx.shadowBlur = 20;
               this.ctx.drawImage(
                 video,
                 0, 0, video.videoWidth, video.videoHeight,
                 drawX, drawY, drawWidth, drawHeight
               );
+              this.ctx.restore();
             } else {
               // Aspect ratios match closely, just draw normally
               this.ctx.drawImage(

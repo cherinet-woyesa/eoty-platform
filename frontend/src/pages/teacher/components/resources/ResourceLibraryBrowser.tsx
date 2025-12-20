@@ -119,9 +119,8 @@ const ResourceLibraryBrowser: React.FC<ResourceLibraryBrowserProps> = ({
                   key={resource.id}
                   className={`group relative bg-white rounded-xl border transition-all duration-200 flex flex-col ${attached
                       ? 'border-emerald-200 ring-1 ring-emerald-100 shadow-sm'
-                      : 'border-gray-200 hover:shadow-lg hover:-translate-y-0.5'
+                      : 'border-gray-300 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5'
                     }`}
-                  style={!attached ? { borderColor: 'transparent', boxShadow: `0 0 0 1px ${brandColors.primaryHex}20` } : {}}
                 >
                   <div className="p-5 flex-1">
                     <div className="flex items-start justify-between gap-3 mb-4">

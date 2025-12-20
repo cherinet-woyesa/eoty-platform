@@ -1399,6 +1399,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   }, [recordingSources.screen, t]);
 
+  const handleScreenBgRef = useCallback((el: HTMLVideoElement | null) => {
+    // Attach stream if element exists
+    if (el && recordingSources.screen) {
+      // Only update if different to avoid interrupting playback
+      if (el.srcObject !== recordingSources.screen) {
+        el.srcObject = recordingSources.screen;
+        el.play().catch(() => {});
+      }
+    }
+  }, [recordingSources.screen]);
+
   // NEW: Enhanced preview rendering with slide support
   const renderPreview = () => {
     // 1. Playback Mode (Recorded Video or Uploaded File)
@@ -1572,10 +1583,20 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (hasScreen && (!hasCamera || currentLayout === 'screen-only')) {
       return (
         <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
+          {/* Blurred Background */}
+          <div className="absolute inset-0 z-0">
+             <video
+                ref={handleScreenBgRef}
+                autoPlay muted playsInline
+                className="w-full h-full object-cover filter blur-lg opacity-50 scale-110"
+             />
+          </div>
+          
+          {/* Main Content */}
           <video
             ref={handleScreenRef}
             autoPlay muted playsInline
-            className="w-full h-full object-contain"
+            className="relative z-10 w-full h-full object-contain"
           />
           {renderRecordingStats()}
         </div>

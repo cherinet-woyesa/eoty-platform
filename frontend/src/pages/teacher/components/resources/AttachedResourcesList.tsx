@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link as LinkIcon, X, FileText, Image as ImageIcon, Video as VideoIcon, Music } from 'lucide-react';
 import type { Resource } from '@/types/resources';
+import type { TFunction } from 'i18next';
 
 interface AttachedResourcesListProps {
   lessonId?: string;
   attachedResources: Resource[];
   handleDetachResource: (resourceId: number) => void;
-  t: (key: string, defaultVal?: string) => string;
+  t: TFunction;
 }
 
 const AttachedResourcesList: React.FC<AttachedResourcesListProps> = ({
@@ -34,7 +35,7 @@ const AttachedResourcesList: React.FC<AttachedResourcesListProps> = ({
       {attachedResources.length === 0 ? (
         <div className="text-center py-8 border-2 border-dashed border-emerald-200/50 rounded-xl bg-white/50">
           <p className="text-sm text-emerald-600/70 italic">{t('teacher_content.resources.no_attached', 'No resources attached to this lesson yet.')}</p>
-          <p className="text-xs text-emerald-500 mt-1">{t('teacher_content.resources.attach_hint', 'Select resources from the library below to attach them.')}</p>
+          <p className="text-xs text-emerald-500 mt-1">{t('teacher_content.resources.attach_hint', 'Select resources from the library to attach them.')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
