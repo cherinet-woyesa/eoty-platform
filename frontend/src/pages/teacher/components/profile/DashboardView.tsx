@@ -347,7 +347,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, profile, onNavigate
                     className="text-xs font-semibold hover:opacity-80"
                     style={{ color: brandColors.primaryHex }}
                   >
-                    Start
+                    {t('common.start', 'Start')}
                   </button>
                 )}
               </div>
@@ -355,7 +355,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, profile, onNavigate
           </div>
           <div className="mt-6 pt-6 border-t border-gray-100">
             <div className="flex justify-between text-xs mb-2">
-              <span className="font-semibold text-gray-600">Completion</span>
+              <span className="font-semibold text-gray-600">{t('common.completion', 'Completion')}</span>
               <span className="font-bold" style={{ color: brandColors.primaryHex }}>{Math.round((checklist.filter(i => i.isComplete).length / checklist.length) * 100)}%</span>
             </div>
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">

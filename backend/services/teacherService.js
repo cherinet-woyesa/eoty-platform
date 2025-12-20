@@ -23,12 +23,22 @@ const teacherService = {
   },
 
   async updateProfileByUserId(userId, profileData) {
-    const { onboardingStatus, verificationDocs, payoutRegion, payoutMethod, payoutDetails, taxStatus, linkedin_url, website_url, ...restOfProfileData } = profileData;
+    const { 
+      onboardingStatus, 
+      verificationDocs, 
+      payoutRegion, 
+      payoutMethod, 
+      payoutDetails, 
+      taxStatus, 
+      linkedin_url, 
+      website_url, 
+      availability,
+      ...restOfProfileData 
+    } = profileData;
 
     const updateData = {
       ...restOfProfileData,
-      linkedin_url,
-      website_url,
+      // linkedin_url and website_url are stored in social_media_links
       updated_at: knex.fn.now(),
     };
 

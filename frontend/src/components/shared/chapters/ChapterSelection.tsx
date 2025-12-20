@@ -9,6 +9,7 @@ import { Search, MapPin, Users, X, Star, Compass, AlertCircle } from 'lucide-rea
 import { chaptersApi, type Chapter, type UserChapter } from '@/services/api/chapters';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { brandColors } from '@/theme/brand';
 
 interface ChapterSelectionProps {
   onChapterSelected?: (chapter: Chapter) => void;
@@ -569,7 +570,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
                                 onClick={() => handleSetPrimary(chapter.id)}
                                 disabled={primaryId === chapter.id}
                                 className="flex-1 px-2 py-2 text-xs sm:text-sm text-white rounded-lg transition-colors whitespace-nowrap font-medium disabled:opacity-60"
-                                style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
+                                style={{ backgroundColor: brandColors.primaryHex }}
                               >
                                 {primaryId === chapter.id ? t('common.updating') || 'Updating...' : t('chapters.set_primary')}
                               </button>
@@ -577,7 +578,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
                             <button
                               onClick={() => onChapterSelected?.(chapter)}
                               className="flex-1 px-3 py-2 text-sm text-white rounded-lg transition-colors font-medium"
-                              style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
+                              style={{ backgroundColor: brandColors.primaryHex }}
                             >
                               {t('chapters.view')}
                             </button>
@@ -604,7 +605,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
                         onClick={() => handleJoinChapter(chapter)}
                         disabled={joiningId === chapter.id}
                         className="flex-1 px-4 py-2 text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-60"
-                        style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover))' }}
+                        style={{ backgroundColor: brandColors.primaryHex }}
                       >
                         <Users className="h-4 w-4" />
                         {joiningId === chapter.id ? t('common.loading') || 'Loading...' : t('chapters.join')}

@@ -451,6 +451,8 @@
     "preview": "Preview"
   },
   "common": {
+    "overview": "Overview",
+    "search_lessons": "Search lessons...",
     "next": "Next",
     "skip": "Skip",
     "back": "Back",
@@ -1481,7 +1483,8 @@
     },
     "browse": {
       "title": "Explore Chapters",
-      "subtitle": "Find and join communities that resonate with you."
+      "subtitle": "Find and join communities that resonate with you.",
+      "start_chapter_btn": "Start a Chapter"
     },
     "search_placeholder": "Search chapters by name, location, or topic...",
     "all_countries": "All Countries",
@@ -2431,6 +2434,8 @@
     "error_send_invite": "Failed to send invitation. Please try again."
   },
   "student_management": {
+    "overview": "Assignments Overview",
+    "overview_subtitle": "Manage and grade student assignments",
     "loading": "Loading members...",
     "invite": "Invite",
     "refresh": "Refresh",
@@ -3445,6 +3450,7 @@
     },
     "admin": "Admin",
     "teacher": "Teacher",
+    "all_students": "All Students",
     "profile": "Profile",
     "users": "Users",
     "forums": "Forums",
@@ -4051,38 +4057,6 @@
         "different_tags": "Source and target tags must be different"
       }
     }
-  },
-  "nav": {
-    "dashboard": "Dashboard",
-    "teacher": "Teacher",
-    "all_students": "All Students",
-    "admin": "Admin",
-    "member": "Member",
-    "courses": "Courses",
-    "users": "Users",
-    "forums": "Forums",
-    "achievements": "Achievements",
-    "ai_assistant": "AI Assistant",
-    "analytics": "Analytics",
-    "settings": "Settings",
-    "course_details": "Course Details",
-    "user_profile": "User Profile",
-    "dashboard_desc": "Overview and key metrics",
-    "users_access_desc": "Manage users and permissions",
-    "content_desc": "Manage courses and content",
-    "communications_desc": "Announcements and messaging",
-    "community_desc": "Forums and discussions",
-    "ai_labeling_desc": "AI content labeling and moderation",
-    "system_desc": "System configuration and settings",
-    "courses_desc": "Your courses and lessons",
-    "students_desc": "Manage your students",
-    "resources_desc": "Teaching materials and resources",
-    "content": "Content",
-    "users_access": "Users & Access",
-    "communications": "Communications",
-    "students": "Students",
-    "system": "System",
-    "ai_labeling": "AI Labeling"
   },
   "courses": {
     "creation": {

@@ -222,7 +222,9 @@
     "try_again": "እንደገና ይሞክሩ",
     "try_again_description": "እባክዎ እንደገና ይሞክሩ ወይም ችግሩ ከቀጠለ ድጋፍን ያነጋግሩ።",
     "quick_actions": "ፈጣን እርምጃዎች",
-    "cancel": "ይቅር"
+    "cancel": "ይቅር",
+    "start": "ጀምር",
+    "completion": "ማጠናቀቂያ"
   },
   "ai_labeling": {
     "title": "አአ ምልክት መስጠት",
@@ -653,6 +655,18 @@
     }
   },
   "common": {
+    "pagination": "ገጽ {{page}} ከ {{total}}",
+    "public": "ይፋዊ",
+    "edit": "አርትዕ",
+    "delete": "ሰርዝ",
+    "save_changes": "ለውጦችን አስቀምጥ",
+    "saving": "በማስቀመጥ ላይ...",
+    "loading_dashboard": "ዳሽቦርድ በመጫን ላይ...",
+    "error_loading_data": "ውሂብ መጫን አልተቻለም",
+    "try_again_description": "እባክዎ እንደገና ይሞክሩ ወይም ችግሩ ከቀጠለ ድጋፍን ያነጋግሩ።",
+    "quick_actions": "ፈጣን እርምጃዎች",
+    "overview": "አጠቃላይ እይታ",
+    "search_lessons": "ትምህርቶችን ይፈልጉ...",
     "next": "ቀጣይ",
     "skip": "ዝለል",
     "back": "ተመለስ",
@@ -1485,6 +1499,8 @@
     "error_send_invite": "ግብዣ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
   },
   "student_management": {
+    "overview": "የምደባዎች አጠቃላይ እይታ",
+    "overview_subtitle": "የተማሪ ምደባዎችን ያስተዳድሩ እና ውጤት ይስጡ",
     "loading": "ተማሪዎችን በመጫን ላይ...",
     "invite": "ጋብዝ",
     "refresh": "አድስ",
@@ -1574,6 +1590,10 @@
       "view_events": "ክስተቶችን ይመልከቱ"
     }
   },
+  "teacher": {
+    "resources_title": "የግብዓት አስተዳደር",
+    "resources_subtitle": "የማስተማሪያ ግብዓቶችን ይስቀሉ እና ያስተዳድሩ"
+  },
   "teacher_content": {
     "title": "የይዘት ስቱዲዮ",
     "subtitle_create": "ይዘት ይፍጠሩ እና ያስተዳድሩ",
@@ -1589,6 +1609,12 @@
     },
     "loading_studio": "ስቱዲዮን በመጫን ላይ...",
     "resources": {
+      "filter_all": "ሁሉም ግብዓቶች",
+      "filter_mine": "የእኔ ግብዓቶች",
+      "items": "እቃዎች",
+      "empty_title": "ቤተ-መጽሐፍት ባዶ ነው",
+      "empty_desc": "ግብዓቶችን በመስቀል ቤተ-መጽሐፍትዎን ይፍጠሩ እና ማዕከሎችን ከተማሪዎች ጋር ያጋሩ።",
+      "upload_first": "መጀመሪያ ግብዓት ይስቀሉ",
       "upload_new_title": "አዲስ ግብዓት ይስቀሉ",
       "upload_new_description": "ፋይሎችን ወደ ቤተ-መጽሐፍትዎ ያስገቡ ወይም ቀጥተኛ ከዚህ ትምህርት ጋር ያገናኙ",
       "back_to_library": "ወደ ቤተ-መጽሐፍት ተመለስ",
@@ -1632,6 +1658,18 @@
     }
   },
   "teacher_profile": {
+    "subjects_label": "ርዕሰ ጉዳዮች",
+    "setup_progress": "የማዋቀር ሂደት",
+    "regional_resources": {
+      "title": "ክልላዊ ግብዓቶች",
+      "description": "ለማስተማር ክልልዎ የተወሰኑ መመሪያዎችን እና መሳሪያዎችን ያግኙ።",
+      "view_btn": "ግብዓቶችን ይመልከቱ"
+    },
+    "subjects": {
+      "placeholder": "ርዕሰ ጉዳይ ያክሉ (ለምሳሌ ሂሳብ)",
+      "no_subjects": "እስካሁን ምንም ርዕሰ ጉዳዮች አልተጨመሩም።",
+      "max_subjects": "ከፍተኛ 5 ርዕሰ ጉዳዮች።"
+    },
     "title": "የአስተማሪ መገለጫ",
     "subtitle": "የግል መረጃዎን እና የማስተማር ምስክርነቶችን ያስተዳድሩ",
     "welcome_label": "እንኳን በደህና መጡ",
@@ -1747,6 +1785,8 @@
     }
   },
   "teacher_profile.payout_setup": {
+    "later_btn": "በኋላ አድርግ",
+    "saving_btn": "በማስቀመጥ ላይ...",
     "main_title": "የክፍያ ማቀናበር",
     "subtitle": "ገቢዎትን ለመቀበል የክፍያ ዘዴ ያዘጋጁ።",
     "payout_details_title": "የክፍያ ዝርዝሮች",
@@ -2113,7 +2153,8 @@
     },
     "browse": {
       "title": "ምዕራፍ ፈልግ",
-      "subtitle": "ለክስተቶችና ውይይቶች በአካባቢ ማህበረሰብ ይቀላቀሉ."
+      "subtitle": "ለክስተቶችና ውይይቶች በአካባቢ ማህበረሰብ ይቀላቀሉ.",
+      "start_chapter_btn": "ምዕራፍ ጀምር"
     },
     "my": {
       "title": "የኔ ምዕራፎች",
@@ -2722,41 +2763,41 @@
     "confirm_delete_placeholder": "ለማረጋገጥ DELETE ብለው ይተይቡ",
     "cancel": "ይቅር",
     "confirm_delete_btn": "መሰረዝን ያረጋግጡ",
-    "deleting": "Deleting...",
-    "account_info_title": "Account Information",
-    "account_created": "Account Created",
-    "last_login": "Last Login",
-    "today": "Today",
-    "account_status": "Account Status",
-    "status_active": "Active"
+    "deleting": "በመሰረዝ ላይ...",
+    "account_info_title": "የመለያ መረጃ",
+    "account_created": "መለያ የተፈጠረበት",
+    "last_login": "የመጨረሻ መግቢያ",
+    "today": "ዛሬ",
+    "account_status": "የመለያ ሁኔታ",
+    "status_active": "ንቁ"
   },
   "notifications": {
     "preferences_updated": "የማሳወቂያ ምርጫዎች ተቀይረዋል",
     "preferences_update_failed": "ምርጫዎችን መቀመጥ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
-    "title": "Notification Preferences",
-    "subtitle": "Customize how and when you receive notifications",
+    "title": "የማሳወቂያ ምርጫዎች",
+    "subtitle": "ማሳወቂያዎችን እንዴት እና መቼ እንደሚቀበሉ ያብጁ",
     "email": {
-      "title": "Email Notifications",
-      "subtitle": "Choose which emails you'd like to receive",
+      "title": "የኢሜይል ማሳወቂያዎች",
+      "subtitle": "የትኞቹን ኢሜይሎች መቀበል እንደሚፈልጉ ይምረጡ",
       "types": {
         "course_updates": {
-          "label": "Course Updates",
-          "description": "Notifications about your course performance and student activity"
+          "label": "የኮርስ ዝማኔዎች",
+          "description": "ስለ ኮርስ አፈጻጸምዎ እና የተማሪ እንቅስቃሴ ማሳወቂያዎች"
         },
         "student_messages": {
-          "label": "Student Messages",
-          "description": "Direct messages from students enrolled in your courses"
+          "label": "የተማሪ መልዕክቶች",
+          "description": "በኮርሶችዎ ከተመዘገቡ ተማሪዎች የሚላኩ ቀጥተኛ መልዕክቶች"
         },
         "forum_replies": {
-          "label": "Forum Replies",
-          "description": "Replies to your forum posts and discussions"
+          "label": "የመድረክ ምላሾች",
+          "description": "ለመድረክ ልጥፎችዎ እና ውይይቶችዎ የሚሰጡ ምላሾች"
         },
         "weekly_digest": {
-          "label": "Weekly Digest",
-          "description": "Weekly summary of your teaching activity and platform updates"
+          "label": "ሳምንታዊ ማጠቃለያ",
+          "description": "የማስተማር እንቅስቃሴዎ እና የመድረክ ዝማኔዎች ሳምንታዊ ማጠቃለያ"
         },
         "marketing": {
-          "label": "Marketing & Promotions",
+          "label": "ግብይት እና ማስተዋወቂያዎች",
           "description": "Special offers, platform updates, and promotional content"
         }
       }
@@ -2766,35 +2807,40 @@
       "subtitle": "Receive real-time updates while using the platform",
       "types": {
         "course_activity": {
-          "label": "Course Activity",
-          "description": "New enrollments, reviews, and course completions"
+    "push": {
+      "title": "የግፊት ማሳወቂያዎች",
+      "subtitle": "መድረኩን በሚጠቀሙበት ጊዜ ቅጽበታዊ ዝማኔዎችን ይቀበሉ",
+      "types": {
+        "course_activity": {
+          "label": "የኮርስ እንቅስቃሴ",
+          "description": "አዲስ ምዝገባዎች፣ ግምገማዎች እና የኮርስ ማጠናቀቂያዎች"
         },
         "student_engagement": {
-          "label": "Student Engagement",
-          "description": "Comments, questions, and discussion participation"
+          "label": "የተማሪ ተሳትፎ",
+          "description": "አስተያየቶች፣ ጥያቄዎች እና የውይይት ተሳትፎ"
         },
         "forum_activity": {
-          "label": "Forum Activity",
-          "description": "New topics and replies in followed discussions"
+          "label": "የመድረክ እንቅስቃሴ",
+          "description": "በተከታተሏቸው ውይይቶች ውስጥ አዲስ ርዕሶች እና ምላሾች"
         },
         "system_updates": {
-          "label": "System Updates",
-          "description": "Important platform announcements and maintenance alerts"
+          "label": "የስርዓት ዝማኔዎች",
+          "description": "አስፈላጊ የመድረክ ማስታወቂያዎች እና የጥገና ማንቂያዎች"
         }
       }
     },
     "privacy": {
-      "title": "Communication & Privacy",
-      "subtitle": "Manage how others interact with you",
+      "title": "ግንኙነት እና ግላዊነት",
+      "subtitle": "ሌሎች ከእርስዎ ጋር እንዴት እንደሚገናኙ ያስተዳድሩ",
       "types": {
-        "student_messages": "Allow students to message me",
-        "course_invitations": "Allow course invitations",
-        "public_profile": "Public Profile visibility",
-        "online_status": "Show online status",
-        "analytics": "Allow analytics tracking"
+        "student_messages": "ተማሪዎች መልዕክት እንዲልኩልኝ ፍቀድ",
+        "course_invitations": "የኮርስ ግብዣዎችን ፍቀድ",
+        "public_profile": "የህዝብ መገለጫ ታይነት",
+        "online_status": "የመስመር ላይ ሁኔታን አሳይ",
+        "analytics": "የትንታኔ ክትትልን ፍቀድ"
       }
     },
-    "save_changes": "Save Changes"
+    "save_changes": "ለውጦችን አስቀምጥ"
   },
   "nav": {
     "dashboard": "ዳሽቦርድ",
@@ -2830,6 +2876,7 @@
     "revenue": "ገቢ",
     "admin": "አስተዳዳሪ",
     "teacher": "አስተማሪ",
+    "all_students": "ሁሉም ተማሪዎች",
     "profile": "መገለጫ",
     "users": "ተጠቃሚዎች",
     "forums": "መድረኮች",
@@ -3656,38 +3703,7 @@
       "like_error": "ውይይቱን መውደድ አልተቻለም"
     }
   },
-  "nav": {
-    "dashboard": "ዳሽቦርድ",
-    "teacher": "መምህር",
-    "all_students": "ሁሉም ተማሪዎች",
-    "admin": "አስተዳዳሪ",
-    "member": "አባል",
-    "courses": "ኮርሶች",
-    "users": "ተጠቃሚዎች",
-    "forums": "መድረኮች",
-    "achievements": "ስኬቶች",
-    "ai_assistant": "AI ረዳት",
-    "analytics": "ትንተና",
-    "settings": "ቅንብሮች",
-    "course_details": "የኮርስ ዝርዝሮች",
-    "user_profile": "የተጠቃሚ መገለጫ",
-    "dashboard_desc": "አጠቃላይ እይታ እና ቁልፍ መለኪያዎች",
-    "users_access_desc": "ተጠቃሚዎችን እና ፈቃዶችን ያስተዳድሩ",
-    "content_desc": "ኮርሶችን እና ይዘትን ያስተዳድሩ",
-    "communications_desc": "ማስታወቂያዎች እና መልእክቶች",
-    "community_desc": "መድረኮች እና ውይይቶች",
-    "ai_labeling_desc": "AI ይዘት መለያ እና ቁጥጥር",
-    "system_desc": "የስርዓት ውቅር እና ቅንብሮች",
-    "courses_desc": "የእርስዎ ኮርሶች እና ትምህርቶች",
-    "students_desc": "ተማሪዎችዎን ያስተዳድሩ",
-    "resources_desc": "የማስተማሪያ ቁሳቁሶች እና ግብዓቶች",
-    "content": "ይዘት",
-    "users_access": "ተጠቃሚዎች እና መዳረሻ",
-    "communications": "ግንኙነቶች",
-    "students": "ተማሪዎች",
-    "system": "ስርዓት",
-    "ai_labeling": "AI መለያ"
-  },
+
   "courses": {
     "creation": {
       "create_course_title": "አዲስ ኮርስ ይፍጠሩ",
@@ -3891,5 +3907,21 @@
       },
       "empty": "ምንም ቲኬቶች አልተገኙም"
     }
+  },
+  "student_courses": {
+    "enrolled_badge": "የተመዘገቡ",
+    "students_label": "ተማሪዎች",
+    "lessons_label": "ትምህርቶች",
+    "preview_btn": "ቅድመ እይታ",
+    "manage_btn": "ያስተዳድሩ",
+    "beginner": "ጀማሪ",
+    "intermediate": "መካከለኛ",
+    "advanced": "ከፍተኛ",
+    "my_courses": "የእኔ ኮርሶች",
+    "browse_courses_btn": "ኮርሶችን ያስሱ",
+    "no_enrolled": "እስካሁን በምንም ኮርስ አልተመዘገቡም።",
+    "no_courses_found": "ምንም ኮርሶች አልተገኙም።",
+    "start_journey_desc": "የኮርስ ካታሎግን በማሰስ ይጀምሩ።",
+    "adjust_filters_prompt": "ፍለጋዎን ወይም ማጣሪያዎችዎን ለማስተካከል ይሞክሩ።"
   }
 }
