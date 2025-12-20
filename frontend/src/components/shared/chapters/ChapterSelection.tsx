@@ -46,29 +46,6 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
     const [primaryId, setPrimaryId] = useState<number | null>(null);
     const [hasTriedNearby, setHasTriedNearby] = useState(false);
 
-    useEffect(() => {
-      fetchChapters();
-      fetchUserChapters();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters]);
-
-    // Debounce search to reduce API chatter
-    useEffect(() => {
-      const t = setTimeout(() => {
-        fetchChapters();
-      }, 350);
-      return () => clearTimeout(t);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm]);
-
-    // Refetch when nearby params change
-    useEffect(() => {
-      if (useNearby && coords) {
-        fetchChapters();
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [useNearby, coords, distanceKm]);
-
     const hydrateFacets = (list: Chapter[]) => {
       const countries = new Set<string>();
       const regions = new Set<string>();
@@ -83,7 +60,7 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
       setFacetCities(Array.from(cities).sort());
     };
 
-    const fetchChapters = async () => {
+    const fetchChapters = useCallback(async () => {
       try {
         setIsLoading(true);
         setError(null);
@@ -128,9 +105,9 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [useNearby, coords, distanceKm, searchTerm, filters, clearError]);
 
-    const fetchUserChapters = async () => {
+    const fetchUserChapters = useCallback(async () => {
       try {
         const response = await chaptersApi.getUserChapters();
         if (response.success) {
@@ -139,7 +116,19 @@ const ChapterSelection: React.FC<ChapterSelectionProps> = React.memo(
       } catch (err) {
         console.error('Failed to fetch user chapters:', err);
       }
-    };
+    }, []);
+
+    useEffect(() => {
+      fetchUserChapters();
+    }, [fetchUserChapters]);
+
+    // Debounce search and handle other updates
+    useEffect(() => {
+      const t = setTimeout(() => {
+        fetchChapters();
+      }, 350);
+      return () => clearTimeout(t);
+    }, [fetchChapters]);
 
     const handleJoinChapter = async (chapter: Chapter) => {
       try {

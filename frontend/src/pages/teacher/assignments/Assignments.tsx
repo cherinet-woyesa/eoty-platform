@@ -6,6 +6,7 @@ import {
   Loader2, RefreshCw, SortAsc, SortDesc
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { assignmentsApi, type TeacherAssignment } from '@/services/api/assignments';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { brandColors } from '@/theme/brand';
@@ -31,6 +32,7 @@ interface AssignmentStats {
 }
 
 const Assignments: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,8 +196,8 @@ const Assignments: React.FC = () => {
       {/* Header with Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Assignments Overview</h2>
-          <p className="text-sm text-gray-500">Manage and grade student assignments</p>
+          <h2 className="text-lg font-semibold text-gray-900">{t('assignments.overview', 'Assignments Overview')}</h2>
+          <p className="text-sm text-gray-500">{t('assignments.manage_desc', 'Manage and grade student assignments')}</p>
         </div>
         <Link
           to="/teacher/assignments/create"
@@ -203,7 +205,7 @@ const Assignments: React.FC = () => {
           style={{ backgroundColor: brandColors.primaryHex }}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Assignment
+          {t('assignments.create', 'Create Assignment')}
         </Link>
       </div>
 
@@ -216,7 +218,7 @@ const Assignments: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.totalAssignments}</p>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Total Assignments</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('assignments.total', 'Total Assignments')}</p>
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
@@ -226,7 +228,7 @@ const Assignments: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.pendingGrading}</p>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Pending Grading</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('assignments.pending_grading', 'Pending Grading')}</p>
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
@@ -236,7 +238,7 @@ const Assignments: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.averageScore}%</p>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Average Score</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('assignments.average_score', 'Average Score')}</p>
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
@@ -246,7 +248,7 @@ const Assignments: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.totalSubmissions}</p>
-          <p className="text-sm text-gray-500 mt-1 font-medium">Total Submissions</p>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{t('assignments.total_submissions', 'Total Submissions')}</p>
         </div>
       </div>
 
@@ -257,7 +259,7 @@ const Assignments: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search assignments..."
+              placeholder={t('assignments.search_placeholder', 'Search assignments...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-900"
@@ -271,10 +273,10 @@ const Assignments: React.FC = () => {
               className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-700"
               style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             >
-              <option value="all">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="closed">Closed</option>
+              <option value="all">{t('assignments.all_status', 'All Status')}</option>
+              <option value="draft">{t('assignments.status.draft', 'Draft')}</option>
+              <option value="published">{t('assignments.status.published', 'Published')}</option>
+              <option value="closed">{t('assignments.status.closed', 'Closed')}</option>
             </select>
             <select
               value={`${sortBy}-${sortOrder}`}
@@ -286,12 +288,12 @@ const Assignments: React.FC = () => {
               className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 text-gray-700"
               style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
             >
-              <option value="dueDate-desc">Due Date (Latest)</option>
-              <option value="dueDate-asc">Due Date (Earliest)</option>
-              <option value="createdAt-desc">Created (Newest)</option>
-              <option value="createdAt-asc">Created (Oldest)</option>
-              <option value="title-asc">Title (A-Z)</option>
-              <option value="title-desc">Title (Z-A)</option>
+              <option value="dueDate-desc">{t('assignments.due_date_latest', 'Due Date (Latest)')}</option>
+              <option value="dueDate-asc">{t('assignments.due_date_earliest', 'Due Date (Earliest)')}</option>
+              <option value="createdAt-desc">{t('assignments.created_newest', 'Created (Newest)')}</option>
+              <option value="createdAt-asc">{t('assignments.created_oldest', 'Created (Oldest)')}</option>
+              <option value="title-asc">{t('assignments.title_az', 'Title (A-Z)')}</option>
+              <option value="title-desc">{t('assignments.title_za', 'Title (Z-A)')}</option>
             </select>
           </div>
         </div>
@@ -395,11 +397,11 @@ const Assignments: React.FC = () => {
         ) : (
           <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
             <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No assignments found</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('assignments.no_assignments', 'No assignments found')}</h3>
             <p className="text-gray-500 mb-6">
               {searchTerm || statusFilter !== 'all'
-                ? 'Try adjusting your search or filters'
-                : "You haven't created any assignments yet"}
+                ? t('assignments.no_results_filter', 'Try adjusting your search or filters')
+                : t('assignments.no_assignments_desc', "You haven't created any assignments yet")}
             </p>
             {!searchTerm && statusFilter === 'all' && (
               <Link
@@ -408,7 +410,7 @@ const Assignments: React.FC = () => {
                 style={{ backgroundColor: brandColors.primaryHex }}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Assignment
+                {t('assignments.create_first', 'Create Your First Assignment')}
               </Link>
             )}
         </div>

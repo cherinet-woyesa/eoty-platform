@@ -203,10 +203,10 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
   ];
 
   const chartTypeOptions = [
-    { value: 'views', label: t('analytics.views'), icon: Eye },
-    { value: 'engagement', label: t('analytics.engagement'), icon: TrendingUp },
-    { value: 'completion', label: t('analytics.completion'), icon: Target },
-    { value: 'watchTime', label: t('analytics.watch_time'), icon: Clock }
+    { value: 'views', label: t('analytics.metrics.views'), icon: Eye },
+    { value: 'engagement', label: t('analytics.metrics.engagement'), icon: TrendingUp },
+    { value: 'completion', label: t('analytics.metrics.completion'), icon: Target },
+    { value: 'watchTime', label: t('analytics.metrics.watch_time'), icon: Clock }
   ];
 
   const viewModeOptions = [
@@ -221,7 +221,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
     
     const metrics = [
       {
-        title: t('analytics.total_views'),
+        title: t('analytics.metrics.total_views'),
         value: analytics.summary.totalViews,
         formattedValue: formatNumber(analytics.summary.totalViews),
         change: previousAnalytics ? calculateTrend(analytics.summary.totalViews, previousAnalytics.totalViews) : { value: 0, trend: 'up' as const },
@@ -230,7 +230,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
         description: t('analytics.total_views_description')
       },
       {
-        title: t('analytics.unique_viewers'),
+        title: t('analytics.metrics.unique_viewers'),
         value: analytics.summary.uniqueViewers,
         formattedValue: formatNumber(analytics.summary.uniqueViewers),
         change: previousAnalytics ? calculateTrend(analytics.summary.uniqueViewers, previousAnalytics.uniqueViewers) : { value: 0, trend: 'up' as const },
@@ -239,7 +239,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
         description: t('analytics.unique_viewers_description')
       },
       {
-        title: t('analytics.avg_watch_time'),
+        title: t('analytics.metrics.avg_watch_time'),
         value: analytics.summary.averageWatchTime,
         formattedValue: formatDuration(analytics.summary.averageWatchTime),
         change: previousAnalytics ? calculateTrend(analytics.summary.averageWatchTime, previousAnalytics.averageWatchTime) : { value: 0, trend: 'up' as const },
@@ -434,10 +434,10 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                   <Award className="h-5 w-5 mr-2 text-yellow-600" />
-                  {t('analytics.top_performing_lessons')}
+                  {t('analytics.top_performing_lessons', 'Top Performing Lessons')}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {t('analytics.most_viewed_engaging_lessons')}
+                  {t('analytics.most_viewed_engaging_lessons', 'Most viewed and engaging lessons')}
                 </p>
               </div>
               
@@ -446,7 +446,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder={t('common.search_lessons')}
+                  placeholder={t('common.search_lessons', 'Search lessons...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent w-full lg:w-64"
@@ -470,22 +470,22 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('common.lesson')}
+                      {t('common.lesson', 'Lesson')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('common.course')}
+                      {t('common.course', 'Course')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('common.views')}
+                      {t('common.views', 'Views')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('analytics.watch_time')}
+                      {t('analytics.metrics.watch_time', 'Watch Time')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('common.completion')}
+                      {t('common.completion', 'Completion')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t('common.actions')}
+                      {t('common.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -680,7 +680,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
               <TrendingUp className="h-5 w-5 mr-2" style={{ color: brandColors.primaryHex }} />
-              Engagement Heatmap
+              {t('analytics.engagement_heatmap', 'Engagement Heatmap')}
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               {selectedLesson && analytics?.topPerformingLessons.find(l => l.lessonId.toString() === selectedLesson)?.lessonTitle}
@@ -701,7 +701,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
             />
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p>Select a lesson to view engagement heatmap</p>
+              <p>{t('analytics.select_lesson_heatmap', 'Select a lesson to view engagement heatmap')}</p>
             </div>
           )}
         </div>

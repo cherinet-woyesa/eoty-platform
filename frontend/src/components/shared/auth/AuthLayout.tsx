@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { Heart, Sparkles, Shield } from 'lucide-react';
 import { brandColors } from '@/theme/brand';
 import Header from '@/components/shared/Landing/Header';
+import LanguageSelector from '@/components/common/LanguageSelector';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  footerText?: string;
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle }) => {
@@ -20,6 +22,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden relative">
+      {/* Inline language selector for auth pages (ensures visibility even when nav is minimal) */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSelector textColor="text-white" />
+      </div>
       {/* Background Image with Overlay - Same as Landing Page */}
       <div 
         className="fixed inset-0 z-0"

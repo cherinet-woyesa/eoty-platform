@@ -666,6 +666,17 @@
     "try_again_description": "እባክዎ እንደገና ይሞክሩ ወይም ችግሩ ከቀጠለ ድጋፍን ያነጋግሩ።",
     "quick_actions": "ፈጣን እርምጃዎች",
     "overview": "አጠቃላይ እይታ",
+    "lessons": "ትምህርቶች",
+    "lesson": "ትምህርት",
+    "course": "ኮርስ",
+    "views": "እይታዎች",
+    "actions": "እርምጃዎች",
+    "last_7_days": "ያለፉት 7 ቀናት",
+    "last_30_days": "ያለፉት 30 ቀናት",
+    "last_90_days": "ያለፉት 90 ቀናት",
+    "last_year": "ያለፈው ዓመት",
+    "duration_hours_minutes": "{{hours}} ሰዓት {{minutes}} ደቂቃ",
+    "duration_minutes": "{{minutes}} ደቂቃ",
     "search_lessons": "ትምህርቶችን ይፈልጉ...",
     "next": "ቀጣይ",
     "skip": "ዝለል",
@@ -1499,7 +1510,7 @@
     "error_send_invite": "ግብዣ መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
   },
   "student_management": {
-    "overview": "የምደባዎች አጠቃላይ እይታ",
+    "overview": "የተማሪዎች አጠቃላይ እይታ",
     "overview_subtitle": "የተማሪ ምደባዎችን ያስተዳድሩ እና ውጤት ይስጡ",
     "loading": "ተማሪዎችን በመጫን ላይ...",
     "invite": "ጋብዝ",
@@ -2841,6 +2852,7 @@
     "dashboard": "ዳሽቦርድ",
     "dashboard_desc": "የመድረክ አጠቃላይ እይታ እና መለኪያዎች",
     "courses": "ኮርሶች",
+    "all-courses": "ሁሉም ኮርሶች",
     "courses_desc": "ኮርሶችን ያስሱ እና ያስተዳድሩ",
     "students": "ተማሪዎች",
     "students_desc": "የተማሪ መገለጫዎችን ይመልከቱ እና ያስተዳድሩ",
@@ -2856,6 +2868,7 @@
     "assignments": "ምደባዎች",
     "analytics": "ትንታኔ",
     "teacher": "አስተማሪ",
+    "all-students": "ሁሉም ተማሪዎች",
     "members": "አባላት",
     "my_chapters": "የእኔ ምዕራፎች",
     "my_members": "የእኔ አባላት",
@@ -3304,39 +3317,166 @@
     "flows": {
       "student": {
         "steps": {
+          "0": {
+            "title": "ወደ መንፈሳዊ ጉዞዎ እንኳን በደህና መጡ",
+            "description": "በEOTY መድረክ የእምነት፣ የመማር እና የማህበረሰብ ጉዞ ይጀምሩ።",
+            "content": "እንኳን ደህና መጡ! የEOTY መድረክ በኢትዮጵያ ኦርቶዶክስ ተዋህዶ እምነት ለማደግ የተዘጋጀ የእርስዎ ቦታ ነው። እዚህ ትክክለኛ ትምህርቶችን ያገኛሉ፣ ከሌሎች ወጣቶች ጋር ይገናኛሉ፣ እና ለእርስዎ የተዘጋጁ መንፈሳዊ ግብዓቶችን ያገኛሉ።"
+          },
           "1": {
-            "content": "እንኳን ወደ EOTY መድረክ በደህና መጡ! እስቲ እናዘጋጅዎ።"
+            "title": "የግል ዳሽቦርድዎ",
+            "description": "ለመማር እና ለመገናኘት የእርስዎ ማዕከላዊ ቦታ።",
+            "content": "ይህ የእርስዎ መነሻ ነው። የመጨረሻውን ትምህርትዎን በፍጥነት ይቀጥሉ፣ የሚመጡ ክስተቶችን ይመልከቱ፣ እና መንፈሳዊ ስኬቶችዎን ይከታተሉ። የሚፈልጉት ሁሉ በአቅራቢያዎ ነው።",
+            "action_required": "መገለጫዎን ያዘምኑ"
           },
           "2": {
-            "content": "ከአካባቢዎ ማህበረሰብ ጋር ለመገናኘት ምዕራፍ ይቀላቀሉ።"
+            "title": "ከእምነት ጋር የተጣጣሙ ኮርሶችን ያግኙ",
+            "description": "ግንዛቤዎን ለማሳደግ የተዘጋጁ የኮርሶች ዝርዝር ያስሱ።",
+            "content": "ከመጽሐፍ ቅዱስ ጥናት እስከ ስርዓተ ቅዳሴ ትምህርት ድረስ ያለውን ሰፊ የኮርስ ዝርዝራችንን ያስሱ። ለጉዞዎ ትክክለኛውን መነሻ ለማግኘት በርዕስ ወይም በደረጃ ያጣሩ።"
           },
           "3": {
-            "content": "ኮርሶችን ያስሱ እና የመማር ጉዞዎን ይጀምሩ።"
+            "title": "በህብረት ይገናኙ",
+            "description": "ደህንነቱ የተጠበቀ እና ደጋፊ የሆነ የእኩዮች ማህበረሰብ ይቀላቀሉ።",
+            "content": "በዚህ ጉዞ ላይ ብቻዎን አይደሉም። ጥያቄዎችን ለመጠየቅ፣ አስተያየቶችን ለመለዋወጥ እና ከሌሎች ወጣቶች ጋር ዘላቂ ጓደኝነት ለመፍጠር የምዕራፍዎን መድረክ ይቀላቀሉ።",
+            "action_required": "ምዕራፍ ይቀላቀሉ"
           },
           "4": {
-            "content": "ጨርሰዋል! ዳሽቦርድዎን ያስሱ።"
+            "title": "የግብዓት ቤተ-መጽሐፍትን ያስሱ",
+            "description": "የተትረፈረፈ ትክክለኛ መንፈሳዊ ቁሳቁሶችን ያግኙ።",
+            "content": "ወደ መጽሐፍት፣ ጽሑፎች እና የመልቲሚዲያ ግብዓቶች ቤተ-መጽሐፍታችን ይግቡ። የጥናት ቁሳቁሶችን ወይም ዕለታዊ መነሳሳትን ቢፈልጉ፣ እዚህ ያገኙታል።"
           }
         }
       }
+    },
+    "step_of": "ደረጃ {{index}} ከ {{total}}",
+    "required_action": "የሚያስፈልግ እርምጃ",
+    "skip": "ለማለፍ",
+    "video_not_supported": "ቪዲዮው አይደገፍም",
+    "play_video": "ቪዲዮ አጫውት",
+    "click_to_play": "ለማጫወት ጠቅ ያድርጉ",
+    "profile_update": "መገለጫዎን ያዘምኑ",
+    "join_chapter": "ምዕራፍ ይቀላቀሉ"
+  },
+  "analytics": {
+    "top_performing_lessons": "ከፍተኛ አፈጻጸም ያላቸው ትምህርቶች",
+    "most_viewed_engaging_lessons": "በጣም የታዩ እና አሳታፊ ትምህርቶች",
+    "recent_activity_trends": "የቅርብ ጊዜ እንቅስቃሴ አዝማሚያዎች",
+    "daily_video_views": "ዕለታዊ የቪዲዮ እይታዎች በጊዜ ሂደት",
+    "trends": "አዝማሚያዎች",
+    "audience": "ተመልካቾች",
+    "total_views_description": "በሁሉም ቪዲዮዎችዎ ላይ ያሉ ጠቅላላ እይታዎች",
+    "unique_viewers_description": "ይዘትዎን የተመለከቱ የተለዩ ተማሪዎች ብዛት",
+    "avg_watch_time_description": "ተማሪዎች ቪዲዮዎችዎን በመመልከት የሚያሳልፉት አማካይ ጊዜ",
+    "failed_to_load_video_analytics": "የቪዲዮ ትንታኔዎችን መጫን አልተቻለም",
+    "no_video_views": "እስካሁን ምንም የቪዲዮ እይታዎች የሉም",
+    "viewers": "ተመልካቾች",
+    "audience_insights": "የተመልካች ግንዛቤዎች",
+    "average_view_duration": "አማካይ የእይታ ቆይታ",
+    "peak_viewing_hours": "ከፍተኛ የእይታ ሰዓታት",
+    "returning_viewers": "ተመላሽ ተመልካቾች",
+    "performance_tips": "የአፈጻጸም ምክሮች",
+    "tip_optimal_length": "ቪዲዮዎችዎን ከ10-15 ደቂቃዎች ያቆዩ",
+    "tip_engagement_hooks": "በመጀመሪያዎቹ 30 ሰከንዶች ውስጥ አሳታፊ ጥያቄዎችን ይጠቀሙ",
+    "tip_visual_aids": "ለተወሳሰቡ ፅንሰ-ሀሳቦች ምስላዊ መርጃዎችን ይጠቀሙ",
+    "engagement_heatmap": "የተሳትፎ ሙቀት ካርታ",
+    "select_lesson_heatmap": "የተሳትፎ ሙቀት ካርታን ለማየት ትምህርት ይምረጡ",
+    "analytics_will_appear": "አባላት ቪዲዮዎችዎን ማየት ሲጀምሩ ትንታኔዎች እዚህ ይታያሉ",
+    "no_recent_activity": "ምንም የቅርብ ጊዜ እንቅስቃሴ የለም",
+    "metrics": {
+      "views": "እይታዎች",
+      "engagement": "ተሳትፎ",
+      "completion": "ማጠናቀቂያ",
+      "watch_time": "የእይታ ጊዜ",
+      "total_views": "ጠቅላላ እይታዎች",
+      "unique_viewers": "ልዩ ተመልካቾች",
+      "avg_watch_time": "አማካይ የእይታ ጊዜ",
+      "completion_rate": "የማጠናቀቂያ መጠን"
+    },
+    "chart": {
+      "start": "ጅምር",
+      "mid": "መካከለኛ",
+      "current": "ወቅታዊ"
+    }
+  },
+  "assignments": {
+    "overview": "የምደባዎች አጠቃላይ እይታ",
+    "manage_desc": "የተማሪ ምደባዎችን ያስተዳድሩ እና ውጤት ይስጡ",
+    "create": "ምደባ ይፍጠሩ",
+    "create_first": "የመጀመሪያ ምደባዎን ይፍጠሩ",
+    "total": "ጠቅላላ ምደባዎች",
+    "pending_grading": "ውጤት በመጠባበቅ ላይ",
+    "average_score": "አማካይ ውጤት",
+    "total_submissions": "ጠቅላላ ማስረከቦች",
+    "search_placeholder": "ምደባዎችን ይፈልጉ...",
+    "all_status": "ሁሉም ሁኔታዎች",
+    "due_date_earliest": "የማስረከቢያ ቀን (የመጀመሪያው)",
+    "due_date_latest": "የማስረከቢያ ቀን (የመጨረሻው)",
+    "created_newest": "የተፈጠረበት (አዲስ)",
+    "created_oldest": "የተፈጠረበት (የድሮ)",
+    "title_az": "ርዕስ (ከሀ-ፐ)",
+    "title_za": "ርዕስ (ከፐ-ሀ)",
+    "no_assignments": "ምንም ምደባዎች አልተገኙም",
+    "no_results_filter": "እባክዎ ፍለጋዎን ወይም ማጣሪያዎን ያስተካክሉ",
+    "no_assignments_desc": "እስካሁን ምንም ምደባዎች አልፈጠሩም",
+    "last_30_days": "ያለፉት 30 ቀናት",
+    "export": "ወደ ውጭ ላክ",
+    "status": {
+      "published": "ታትሟል",
+      "draft": "ረቂቅ",
+      "closed": "ተዘግቷል"
     }
   },
   "chapters": {
+    "title": "ምዕራፎች",
+    "description": "ከአካባቢ ማህበረሰቦች ጋር ይገናኙ፣ በክስተቶች ይሳተፉ እና አብረው ያድጉ",
     "header": {
       "title": "ምዕራፎች",
-      "subtitle": "የአካባቢዎን ማህበረሰብ ያግኙ እና ይቀላቀሉ"
+      "subtitle": "ከአካባቢ ማህበረሰቦች ጋር ይገናኙ፣ በክስተቶች ይሳተፉ እና አብረው ያድጉ"
     },
+    "search_placeholder": "ምዕራፎችን በስም፣ በቦታ ወይም በርዕስ ይፈልጉ...",
+    "all_countries": "ሁሉም ሀገሮች",
+    "all_regions": "ሁሉም ክልሎች",
+    "all_cities": "ሁሉም ከተሞች",
+    "near_me": "በአቅራቢያዬ",
+    "km": "ኪ.ሜ",
+    "filters": {
+      "all_countries": "ሁሉም ሀገሮች",
+      "all_regions": "ሁሉም ክልሎች",
+      "all_cities": "ሁሉም ከተሞች",
+      "near_me": "በአቅራቢያዬ"
+    },
+    "status": {
+      "member": "አባል",
+      "pending": "በመጠባበቅ ላይ",
+      "primary": "ዋና"
+    },
+    "view": "ይመልከቱ",
+    "join": "ይቀላቀሉ",
+    "leave": "ይውጡ",
+    "cancel_request": "ጥያቄ ይሰርዙ",
+    "no_results": "ምንም ምዕራፎች አልተገኙም",
+    "no_results_nearby": "በአቅራቢያዎ ምንም ምዕራፎች አልተገኙም",
+    "expand_radius": "የፍለጋ ክልል ያሰፉ",
+    "clear_filters": "ማጣሪያዎችን ያጽዱ",
+    "try_near_me": "በአቅራቢያዬ ይሞክሩ",
+    "km": "ኪ.ሜ",
     "actions": {
       "start": "ምዕራፍ ጀምር"
     },
     "tabs": {
       "browse": "ምዕራፎችን ያስሱ",
       "my": "የእኔ ምዕራፎች",
+      "my_chapters": "የእኔ ምዕራፎች",
       "manage": "ያስተዳድሩ"
     },
     "manage": {
       "member_management": {
         "title": "የአባላት አስተዳደር",
-        "description": "የክፍልዎን አባላት ያስተዳድሩ፣ አዲስ ተማሪዎችን ይጋብዙ እና ተሳትፎን ይቆጣጠሩ።"
+        "description": "የክፍልዎን አባላት ያስተዳድሩ፣ አዲስ ተማሪዎችን ይጋብዙ እና ተሳትፎን ይቆጣጠሩ።",
+        "no_members": "ምንም አባላት አልተገኙም"
+      },
+      "members": {
+        "title": "አባላት",
+        "no_members": "ምንም አባላት አልተገኙም"
       },
       "my_members": {
         "title": "የእኔ አባላት"
@@ -3350,7 +3490,8 @@
     },
     "browse": {
       "title": "ምዕራፎችን ያስሱ",
-      "subtitle": "በአካባቢዎ ወይም በፍላጎትዎ መሰረት ምዕራፎችን ያግኙ"
+      "subtitle": "በአካባቢዎ ወይም በፍላጎትዎ መሰረት ምዕራፎችን ያግኙ",
+      "start_chapter_btn": "ምዕራፍ ጀምር"
     },
     "adjust_filters": "ምዕራፍ ለማግኘት ማጣሪያዎችን ያስተካክሉ ወይም ይፈልጉ።",
     "leaderboard_title": "የምዕራፍ ደረጃ ሰንጠረዥ",
@@ -3827,28 +3968,7 @@
     },
     "last_updated": "መጨረሻ የዘመነው"
   },
-  "assignments": {
-    "title": "ምደባዎች",
-    "overview": "የምደባዎች አጠቃላይ እይታ",
-    "manage_description": "የተማሪዎች ምደባዎችን ያስተዳድሩ እና ይመዝኑ",
-    "create_assignment": "አዲስ ምደባ ይፍጠሩ",
-    "stats": {
-      "total_assignments": "ጠቅላላ ምደባዎች",
-      "pending_grading": "ለማረም በመጠባበቅ ላይ",
-      "average_score": "አማካይ ውጤት",
-      "total_submissions": "ጠቅላላ የተሰጡ ምደባዎች"
-    },
-    "search_placeholder": "ምደባዎችን ይፈልጉ...",
-    "filters": {
-      "all_status": "ሁሉም ሁኔታ",
-      "due_date_earliest": "የማስረከቢያ ቀን (ቀደም ያለ)"
-    },
-    "empty": {
-      "no_assignments": "ምንም ምደባዎች የሉም",
-      "no_assignments_yet": "እስካሁን ምንም ምደባዎች አልተፈጠሩም።",
-      "create_first": "የመጀመሪያ ምደባዎን ይፍጠሩ"
-    }
-  },
+
   "admin_system": {
     "landing_page": {
       "title": "የመግቢያ ገጽ አርታዒ",
@@ -3956,5 +4076,29 @@
     "all_levels": "ሁሉም ደረጃዎች",
     "title_column": "ርዕስ",
     "by": "በ"
+  },
+  "member": {
+    "learning": {
+      "title": "የእኔ ትምህርት",
+      "subtitle": "እድገትዎን፣ ምደባዎችዎን እና ስኬቶችዎን ይከታተሉ",
+      "tabs": {
+        "progress": "እድገት",
+        "assignments": "ምደባዎች",
+        "studyPaths": "የጥናት መንገዶች",
+        "achievements": "ስኬቶች"
+      }
+    }
+  },
+  "teacher_students": {
+    "member_management": "የአባላት አስተዳደር",
+    "manage_members_desc": "የክፍል አባላትን ያስተዳድሩ፣ አዲስ ተማሪዎችን ይጋብዙ እና ተሳትፎን ይቆጣጠሩ።",
+    "my_members": "የእኔ አባላት",
+    "assignments": "ምደባዎች",
+    "analytics": "ትንታኔ",
+    "tabs": {
+      "members": "አባላት",
+      "assignments": "ምደባዎች",
+      "analytics": "ትንታኔ"
+    }
   }
 } 

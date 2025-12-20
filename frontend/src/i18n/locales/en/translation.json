@@ -1481,6 +1481,12 @@
       "my": "My Chapters",
       "manage": "Manage Chapter"
     },
+    "manage": {
+      "members": {
+        "title": "Members",
+        "no_members": "No members found"
+      }
+    },
     "browse": {
       "title": "Explore Chapters",
       "subtitle": "Find and join communities that resonate with you.",
@@ -3183,7 +3189,12 @@
     "manage_members_desc": "Manage your class members, invite new students, and oversee participation.",
     "my_members": "My Members",
     "assignments": "Assignments",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "tabs": {
+      "members": "Members",
+      "assignments": "Assignments",
+      "analytics": "Analytics"
+    }
   },
   "teacher_dashboard": {
     "welcome_header": "Welcome, {{name}}",
@@ -3450,6 +3461,7 @@
     },
     "admin": "Admin",
     "teacher": "Teacher",
+    "all-students": "All Students",
     "all_students": "All Students",
     "profile": "Profile",
     "users": "Users",
@@ -3805,17 +3817,30 @@
     "flows": {
       "student": {
         "steps": {
+          "0": {
+            "title": "Welcome to Your Spiritual Journey",
+            "description": "Embark on a path of faith, learning, and community with the EOTY Platform.",
+            "content": "Welcome! The EOTY Platform is your dedicated space to grow in the Ethiopian Orthodox Tewahedo faith. Here, you will find authentic teachings, connect with fellow youth, and access spiritual resources curated just for you."
+          },
           "1": {
-            "content": "Welcome to the EOTY Platform! Let's get you set up."
+            "title": "Your Personal Dashboard",
+            "description": "Your central hub for learning and connection.",
+            "content": "This is your home base. Quickly resume your last lesson, see upcoming events, and track your spiritual milestones. Everything you need is just a click away."
           },
           "2": {
-            "content": "Join a chapter to connect with your local community."
+            "title": "Discover Faith-Aligned Courses",
+            "description": "Explore a catalog of courses designed to deepen your understanding.",
+            "content": "Browse our extensive catalog of courses, from Bible studies to Liturgical education. Filter by topic or difficulty to find the perfect starting point for your journey."
           },
           "3": {
-            "content": "Browse courses and start your learning journey."
+            "title": "Connect in Fellowship",
+            "description": "Join a safe and supportive community of peers.",
+            "content": "You are not alone on this journey. Join your chapter's forum to ask questions, share reflections, and build lasting friendships with other youth members."
           },
           "4": {
-            "content": "You're all set! Explore your dashboard."
+            "title": "Explore the Resource Library",
+            "description": "Access a wealth of authentic spiritual materials.",
+            "content": "Dive into our library of books, articles, and multimedia resources. Whether you need study materials or daily inspiration, you'll find it here."
           }
         }
       }
@@ -4155,25 +4180,31 @@
     }
   },
   "assignments": {
-    "title": "Assignments",
     "overview": "Assignments Overview",
-    "manage_description": "Manage and grade student assignments",
-    "create_assignment": "Create Assignment",
-    "stats": {
-      "total_assignments": "Total Assignments",
-      "pending_grading": "Pending Grading",
-      "average_score": "Average Score",
-      "total_submissions": "Total Submissions"
-    },
+    "manage_desc": "Manage and grade student assignments",
+    "create": "Create Assignment",
+    "create_first": "Create Your First Assignment",
+    "total": "Total Assignments",
+    "pending_grading": "Pending Grading",
+    "average_score": "Average Score",
+    "total_submissions": "Total Submissions",
     "search_placeholder": "Search assignments...",
-    "filters": {
-      "all_status": "All Status",
-      "due_date_earliest": "Due Date (Earliest)"
-    },
-    "empty": {
-      "no_assignments": "No assignments found",
-      "no_assignments_yet": "You haven't created any assignments yet",
-      "create_first": "Create Your First Assignment"
+    "all_status": "All Status",
+    "due_date_earliest": "Due Date (Earliest)",
+    "due_date_latest": "Due Date (Latest)",
+    "created_newest": "Created (Newest)",
+    "created_oldest": "Created (Oldest)",
+    "title_az": "Title (A-Z)",
+    "title_za": "Title (Z-A)",
+    "no_assignments": "No assignments found",
+    "no_results_filter": "Please adjust your search or filter",
+    "no_assignments_desc": "You haven't created any assignments yet",
+    "last_30_days": "Last 30 Days",
+    "export": "Export",
+    "status": {
+      "published": "Published",
+      "draft": "Draft",
+      "closed": "Closed"
     }
   },
   "admin_system": {

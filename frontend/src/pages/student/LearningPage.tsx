@@ -38,9 +38,9 @@ const LearningPage: React.FC = () => {
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-stone-800 mb-1.5 flex items-center gap-2">
             <TrendingUp className="h-5 w-5" style={{ color: brandColors.primaryHex }} />
-            My Learning
+            {t('member.learning.title')}
           </h1>
-          <p className="text-stone-600 text-sm">Track your progress, assignments, and achievements</p>
+          <p className="text-stone-600 text-sm">{t('member.learning.subtitle')}</p>
         </div>
 
         {/* Tabs */}
@@ -59,7 +59,7 @@ const LearningPage: React.FC = () => {
               }}
             >
               <TrendingUp className="h-4 w-4" />
-              <span>Progress</span>
+              <span>{t('member.learning.tabs.progress')}</span>
             </button>
             <button
               onClick={() => handleTabChange('assignments')}
@@ -74,7 +74,7 @@ const LearningPage: React.FC = () => {
               }}
             >
               <CheckSquare className="h-4 w-4" />
-              <span>Assignments</span>
+              <span>{t('member.learning.tabs.assignments')}</span>
             </button>
             <button
               onClick={() => handleTabChange('paths')}
@@ -89,7 +89,7 @@ const LearningPage: React.FC = () => {
               }}
             >
               <Map className="h-4 w-4" />
-              <span>Study Paths</span>
+              <span>{t('member.learning.tabs.studyPaths')}</span>
             </button>
             <button
               onClick={() => handleTabChange('achievements')}
@@ -104,7 +104,7 @@ const LearningPage: React.FC = () => {
               }}
             >
               <Award className="h-4 w-4" />
-              <span>Achievements</span>
+              <span>{t('member.learning.tabs.achievements')}</span>
             </button>
           </nav>
 

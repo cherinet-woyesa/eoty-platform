@@ -308,7 +308,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         </div>
 
         {/* Footer with Milestones (only show if not complete) */}
-        {!(progress && progress.progress >= 100) && milestones && milestones.length > 0 && (
+        {/* {!(progress && progress.progress >= 100) && milestones && milestones.length > 0 && (
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
             <div className="flex items-center justify-center gap-4 flex-wrap">
               {milestones.map((milestone, index) => (
@@ -332,7 +332,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

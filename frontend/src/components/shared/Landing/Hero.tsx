@@ -1,3 +1,4 @@
+import type React from 'react';
 import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -41,7 +42,7 @@ const Hero = forwardRef<HTMLElement, HeroProps>(({ landingContent, onStart, onEx
           alt="Background"
           loading="eager"
           decoding="async"
-          fetchpriority="high"
+          fetchPriority="high"
           sizes="100vw"
           width={1920}
           height={1080}

@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
             </Link>
 
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="hidden xs:block">
+              <div className="block">
                 <LanguageSelector textColor={showTransparent ? 'text-white' : 'text-gray-700'} />
               </div>
               {!isAuthenticated ? (
