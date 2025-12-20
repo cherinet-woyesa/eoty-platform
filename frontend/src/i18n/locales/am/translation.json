@@ -3335,13 +3335,17 @@
     },
     "manage": {
       "member_management": {
-        "title": "የአባላት አስተዳደር"
+        "title": "የአባላት አስተዳደር",
+        "description": "የክፍልዎን አባላት ያስተዳድሩ፣ አዲስ ተማሪዎችን ይጋብዙ እና ተሳትፎን ይቆጣጠሩ።"
+      },
+      "my_members": {
+        "title": "የእኔ አባላት"
       },
       "assignments": {
-        "title": "ተግባራት"
+        "title": "ምደባዎች"
       },
       "analytics": {
-        "title": "ትንተና"
+        "title": "ትንታኔ"
       }
     },
     "browse": {
@@ -3790,7 +3794,9 @@
     "metrics": {
       "total_students": "ጠቅላላ ተማሪዎች",
       "total_views": "ጠቅላላ እይታዎች",
+      "unique_viewers": "ልዩ ተመልካቾች",
       "watch_time": "የመመልከቻ ጊዜ",
+      "avg_watch_time": "አማካይ የመመልከቻ ጊዜ",
       "engagement_rate": "የተሳትፎ መጠን",
       "completion_rate": "የማጠናቀቂያ መጠን",
       "avg_rating": "አማካይ ደረጃ",
@@ -3800,7 +3806,10 @@
     "trends": {
       "title": "አዝማሚያዎች",
       "views_over_time": "በጊዜ ሂደት እይታዎች",
-      "engagement_over_time": "በጊዜ ሂደት ተሳትፎ"
+      "engagement_over_time": "በጊዜ ሂደት ተሳትፎ",
+      "recent_activity": "የቅርብ ጊዜ እንቅስቃሴ አዝማሚያዎች",
+      "daily_views": "ዕለታዊ የቪዲዮ እይታዎች በጊዜ ሂደት",
+      "no_activity": "ምንም የቅርብ ጊዜ እንቅስቃሴ የለም"
     },
     "audience": {
       "title": "ታዳሚዎች",
@@ -3810,9 +3819,13 @@
     },
     "lessons": {
       "title": "ትምህርቶች",
-      "top_performing": "ከፍተኛ አፈጻጸም",
-      "needs_attention": "ትኩረት የሚፈልግ"
-    }
+      "top_performing": "ከፍተኛ አፈጻጸም ያላቸው ትምህርቶች",
+      "most_viewed": "ብዙ የታዩ እና ተሳትፎ ያላቸው ትምህርቶች",
+      "needs_attention": "ትኩረት የሚፈልግ",
+      "no_views": "እስካሁን ምንም የቪዲዮ እይታዎች የሉም",
+      "analytics_hint": "አባላት ቪዲዮዎችዎን ማየት ሲጀምሩ ትንታኔ እዚህ ይታያል"
+    },
+    "last_updated": "መጨረሻ የዘመነው"
   },
   "assignments": {
     "title": "ምደባዎች",
