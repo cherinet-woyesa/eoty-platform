@@ -123,6 +123,15 @@ const ResourceView: React.FC = () => {
     }
   }, [id, loadResource, loadNotes]);
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, []);
+
   // Memoized event handlers
   const handleNoteAnchor = useCallback((position: string, sectionTextParam?: string, sectionPositionParam?: number) => {
     setAnchorPoint(position);

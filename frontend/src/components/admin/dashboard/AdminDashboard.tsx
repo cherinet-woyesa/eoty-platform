@@ -7,6 +7,8 @@ import { apiClient } from '@/services/api/apiClient';
 import { Users, BookOpen, Video, AlertTriangle, TrendingUp, RefreshCw, Megaphone } from 'lucide-react';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import AnomalyAlerts from '@/components/admin/system/AnomalyAlerts';
+import { DateTimeDisplay } from '@/components/common/DateTimeDisplay';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CreateAnnouncementModal from './modals/CreateAnnouncementModal';
 
@@ -30,7 +32,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const prefetched = useRef<{ users: boolean; moderation: boolean }>({ users: false, moderation: false });
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
 
   const emptyStats: AdminStats = {
@@ -76,12 +77,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     refetchInterval: 60_000,
     retry: 2
   });
-
-  // Update time every minute
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   // WebSocket for live admin updates
   const dashboardWsUrl = user?.id ? `?type=dashboard&userId=${user.id}` : '';
@@ -166,22 +161,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
 
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(i18n.language, {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString(i18n.language, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const handleRetry = () => {
     refetch();
@@ -226,15 +206,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
   if (isLoading && stats.totalUsers === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4">
-        <div className="space-y-4">
-          <div className="h-20 bg-white/80 border border-stone-200 rounded-lg animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="h-28 bg-white/80 border border-stone-200 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </div>
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <LoadingSpinner variant="logo" size="xl" text={t('admin.dashboard.loading', 'Loading Dashboard...')} />
       </div>
     );
   }
@@ -275,12 +248,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 {isConnected && (
                   <div className="flex items-center space-x-2 text-emerald-600">
                     <div className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">Live</span>
+                    <span className="text-sm font-medium">{t('common.live', 'Live')}</span>
                   </div>
                 )}
               </div>
               <p className="text-stone-700 text-sm mt-1">
-                {t('admin.dashboard.welcome')}, <span className="font-semibold text-stone-800">{user?.firstName}</span>! {formatDate(currentTime)} • {formatTime(currentTime)}
+                {t('admin.dashboard.welcome')}, <span className="font-semibold text-stone-800">{user?.firstName}</span>! <DateTimeDisplay />
               </p>
               <p className="text-stone-600 text-xs">
                 {t('admin.dashboard.managing', { users: stats.totalUsers, courses: stats.activeCourses })}
@@ -308,8 +281,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
         {isError && stats.totalUsers > 0 && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
-            <span>{(error as Error)?.message || 'Some data may be out of date.'}</span>
-            <button onClick={handleRetry} className="text-red-700 underline text-sm">Retry</button>
+            <span>{(error as Error)?.message || t('admin.dashboard.sync_error', 'Some data may be out of date.')}</span>
+            <button onClick={handleRetry} className="text-red-700 underline text-sm">{t('common.retry', 'Retry')}</button>
           </div>
         )}
 
@@ -362,7 +335,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 </div>
                 {metric.isAlert && (
                   <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full border border-red-200">
-                    Action Required
+                    {t('admin.dashboard.action_required', 'Action Required')}
                   </span>
                 )}
               </div>

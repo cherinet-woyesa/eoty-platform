@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { authApi } from '@/services/api';
 import { onboardingApi } from '@/services/api/onboarding';
 import { setAuthToken } from '@/services/api/apiClient';
@@ -125,11 +125,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Controls when we actually show the full-screen splash; avoids flashing it for fast loads
   const [showInitialLoader, setShowInitialLoader] = useState(false);
   const [lastActivity, setLastActivity] = useState<Date>(new Date());
+  const lastActivityRef = useRef<Date>(new Date());
 
   // Activity tracker to detect inactivity
   useEffect(() => {
     const activities = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    const updateActivity = () => setLastActivity(new Date());
+    const updateActivity = () => {
+      lastActivityRef.current = new Date();
+    };
     
     activities.forEach(event => {
       document.addEventListener(event, updateActivity);
@@ -146,7 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkInactivity = setInterval(() => {
       const now = new Date();
-      const diff = now.getTime() - lastActivity.getTime();
+      const diff = now.getTime() - lastActivityRef.current.getTime();
       const hoursInactive = diff / (1000 * 60 * 60);
       
       if (hoursInactive > 24) {
@@ -156,7 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, 60000); // Check every minute
     
     return () => clearInterval(checkInactivity);
-  }, [lastActivity]);
+  }, []);
 
   // Load permissions from API (no caching)
   const loadPermissions = async (): Promise<void> => {
@@ -623,7 +626,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const value: AuthContextType = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value: AuthContextType = React.useMemo(() => ({
     user,
     token,
     permissions,
@@ -646,7 +650,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     handleOAuthLogin,
     updateUserPreferences,
     lastActivity
-  };
+  }), [
+    user,
+    token,
+    permissions,
+    login,
+    verify2FA,
+    register,
+    logout,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    isRoleOrHigher,
+    canAccessRoute,
+    getRoleDashboard,
+    refreshPermissions,
+    refreshUser,
+    isLoading,
+    loginWithGoogle,
+    handleOAuthLogin,
+    updateUserPreferences,
+    lastActivity
+  ]);
 
   // While auth is initializing, optionally show a friendly splash.
   // We wait a short delay before showing it to avoid flashing for very fast loads.

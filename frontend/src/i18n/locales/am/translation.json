@@ -157,6 +157,45 @@
         "chapters": "የምዕራፍ አስተዳደር",
         "system": "የስርዓት አስተዳደር"
       }
+    },
+    "courses": {
+      "no_courses_yet": "እስካሁን ምንም ኮርሶች የሉም",
+      "no_courses_found": "ምንም ኮርሶች አልተገኙም",
+      "create_first_course_prompt": "ይዘትን ማስተዳደር ለመጀመር የመጀመሪያ ኮርስዎን ይፍጠሩ።"
+    },
+    "system": {
+      "tags": {
+        "title": "ታግ ማስተዳደሪያ",
+        "new_tag": "አዲስ ታግ",
+        "merge_tags": "ታጎችን አዋህድ",
+        "edit_tag": "ታግ አርም",
+        "create_tag": "ታግ ፍጠር",
+        "save": "አስቀምጥ",
+        "cancel": "ይቅር",
+        "merge": "አዋህድ",
+        "delete": "አጥፋ",
+        "search_placeholder": "ታጎችን ፈልግ...",
+        "empty_message": "ምንም ታጎች አልተገኙም። ለመጀመር የመጀመሪያዎን ታግ ይፍጠሩ።",
+        "help_text": "ፊደላት፣ ቁጥሮች፣ ክፍት ቦታዎች ወይም ሰረዞች ብቻ (2-30 ቁምፊዎች)",
+        "errors": {
+          "name_min": "የታግ ስም ቢያንስ 2 ቁምፊዎች መሆን አለበት",
+          "name_max": "የታግ ስም ከ30 ቁምፊዎች ያነሰ መሆን አለበት",
+          "name_invalid": "የታግ ስም ፊደላት፣ ቁጥሮች፣ ክፍት ቦታዎች ወይም ሰረዞች ብቻ መሆን አለበት",
+          "validation_error": "እባክዎ ከማስቀመጥዎ በፊት ስህተቶቹን ያስተካክሉ"
+        }
+      },
+      "tabs": {
+        "categories": "ምድቦች",
+        "categories_desc": "የኮርስ ምድቦችን እና ተዋረዳዊ መዋቅሮችን ያስተዳድሩ",
+        "levels": "ደረጃዎች",
+        "levels_desc": "ለኮርሶች የችግር ደረጃዎችን ይግለጹ",
+        "durations": "የቆይታ ጊዜያት",
+        "durations_desc": "የኮርስ ጊዜ ክልሎችን ያስተዳድሩ",
+        "tags": "ታጎች",
+        "tags_desc": "የይዘት መፈለጊያ ታጎችን ያስተዳድሩ",
+        "chapters": "ምዕራፎች",
+        "chapters_desc": "ዓለም አቀፍ የምዕራፍ ውቅር"
+      }
     }
   },
   "common": {
@@ -1205,18 +1244,6 @@
       "am": "አማርኛ",
       "active": "ገቢር",
       "coming_soon": "በቅርቡ"
-    }
-  },
-  "admin": {
-    "users": {
-      "delete_confirm_title": "ተጠቃሚን ማጥፋት?",
-      "delete_confirm_body": "ይህንን ተጠቃሚ መሰረዝ እርግጠኛ ነዎት? ይህ እርምጃ ሊቀለበስ አይችልም።",
-      "delete_confirm_cta": "ተጠቃሚን ሰርዝ"
-    },
-    "courses": {
-      "no_courses_yet": "እስካሁን ምንም ኮርሶች የሉም",
-      "no_courses_found": "ምንም ኮርሶች አልተገኙም",
-      "create_first_course_prompt": "ይዘትን ማስተዳደር ለመጀመር የመጀመሪያ ኮርስዎን ይፍጠሩ።"
     }
   },
   "course_details": {
@@ -3526,6 +3553,226 @@
       "posted_success": "ምላሽዎ ተለጥፏል።",
       "post_error": "ምላሽ መለጠፍ አልተቻለም",
       "like_error": "ውይይቱን መውደድ አልተቻለም"
+    }
+  },
+  "nav": {
+    "dashboard": "ዳሽቦርድ",
+    "teacher": "መምህር",
+    "all_students": "ሁሉም ተማሪዎች",
+    "admin": "አስተዳዳሪ",
+    "member": "አባል",
+    "courses": "ኮርሶች",
+    "users": "ተጠቃሚዎች",
+    "forums": "መድረኮች",
+    "achievements": "ስኬቶች",
+    "ai_assistant": "AI ረዳት",
+    "analytics": "ትንተና",
+    "settings": "ቅንብሮች",
+    "course_details": "የኮርስ ዝርዝሮች",
+    "user_profile": "የተጠቃሚ መገለጫ"
+  },
+  "courses": {
+    "creation": {
+      "create_course_title": "አዲስ ኮርስ ይፍጠሩ",
+      "edit_course_title": "ኮርስ ያርትዑ",
+      "form_description": "አሳታፊ የመማሪያ ልምድ ለመፍጠር ከዚህ በታች ያሉትን ዝርዝሮች ይሙሉ",
+      "course_title": "የኮርስ ርዕስ",
+      "title_placeholder": "ለምሳሌ፣ የኢትዮጵያ ኦርቶዶክስ እምነት መግቢያ",
+      "course_description": "የኮርስ መግለጫ",
+      "description_placeholder": "ተማሪዎች በዚህ ኮርስ ውስጥ ምን እንደሚማሩ ይግለጹ...",
+      "description_too_short_warning": "መግለጫው ቢያንስ 5 ቁምፊዎች መሆን አለበት",
+      "category": "ምድብ",
+      "difficulty_level": "የችግር ደረጃ",
+      "language": "ቋንቋ",
+      "learning_objectives": "የመማሪያ ዓላማዎች",
+      "objective_placeholder": "ዓላማ {{number}}",
+      "add_another_objective": "ሌላ ዓላማ ያክሉ",
+      "additional_options": "ተጨማሪ አማራጮች",
+      "prerequisites": "ቅድመ ሁኔታዎች",
+      "prerequisites_placeholder": "ተማሪዎች ይህን ኮርስ ከመውሰዳቸው በፊት ምን ማወቅ አለባቸው?",
+      "tags": "መለያዎች",
+      "add_tag_placeholder": "መለያ ያክሉ",
+      "cover_image": "የሽፋን ምስል",
+      "cover_drop_label": "የሽፋን ምስል ይጎትቱ ወይም ለመስቀል ይጫኑ",
+      "cover_image_guidelines": "የሚመከር፡ 1200x630 JPG/PNG፣ ከ5MB በታች",
+      "certification_available": "የምስክር ወረቀት ይገኛል",
+      "save_draft": "ረቂቅ አስቀምጥ",
+      "creation_success": "ኮርስ በተሳካ ሁኔታ ተፈጥሯል!",
+      "update_success": "ኮርስ በተሳካ ሁኔታ ተዘምኗል!",
+      "course_ready": "የእርስዎ ኮርስ '{{title}}' ዝግጁ ነው!",
+      "course_updated": "የእርስዎ ኮርስ በተሳካ ሁኔታ ተዘምኗል",
+      "next_steps_description": "ቀጥሎ ምን ማድረግ ይፈልጋሉ?",
+      "view_my_courses": "የእኔን ኮርሶች ይመልከቱ",
+      "record_first_lesson": "የመጀመሪያ ትምህርት ይቅረጹ",
+      "view_course": "ኮርስ ይመልከቱ",
+      "cover_uploading": "የሽፋን ምስል በመስቀል ላይ...",
+      "cover_upload_success": "የሽፋን ምስል በተሳካ ሁኔታ ተስቅሏል",
+      "cover_upload_failed": "የሽፋን ምስል መስቀል አልተሳካም",
+      "draft_saved": "ረቂቅ በ {{time}} ተቀምጧል",
+      "draft_save_error": "ረቂቅ ማስቀመጥ አልተሳካም"
+    },
+    "categories": {
+      "faith": "እምነት እና ትምህርት",
+      "history": "የቤተክርስቲያን ታሪክ",
+      "spiritual": "መንፈሳዊ እድገት",
+      "bible": "የመጽሐፍ ቅዱስ ጥናት",
+      "liturgical": "የቅዳሴ ጥናቶች",
+      "youth": "የወጣቶች አገልግሎት"
+    },
+    "levels": {
+      "beginner": "ጀማሪ",
+      "intermediate": "መካከለኛ",
+      "advanced": "ከፍተኛ"
+    },
+    "errors": {
+      "title_required": "የኮርስ ርዕስ ያስፈልጋል",
+      "title_too_short": "ርዕሱ ቢያንስ 3 ቁምፊዎች መሆን አለበት",
+      "title_too_long": "ርዕሱ 60 ቁምፊዎች ወይም ያነሰ መሆን አለበት",
+      "description_required": "የኮርስ መግለጫ ያስፈልጋል",
+      "description_too_short": "መግለጫው ቢያንስ 5 ቁምፊዎች መሆን አለበት",
+      "category_required": "እባክዎ ምድብ ይምረጡ",
+      "objectives_required": "ቢያንስ አንድ የመማሪያ ዓላማ ያስፈልጋል",
+      "language_required": "እባክዎ ቋንቋ ይምረጡ",
+      "creation_failed": "ኮርስ መፍጠር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+      "invalid_image_type": "እባክዎ JPG፣ PNG ወይም WebP ምስል ይስቀሉ",
+      "image_too_large": "ምስሉ ከ5MB በታች መሆን አለበት"
+    }
+  },
+  "teacher_analytics": {
+    "title": "ትንተና",
+    "subtitle": "የእርስዎን የማስተማር አፈጻጸም እና የተማሪዎች ተሳትፎ ይከታተሉ",
+    "loading": "ትንተና በመጫን ላይ...",
+    "metrics": {
+      "total_views": "ጠቅላላ እይታዎች",
+      "watch_time": "የመመልከቻ ጊዜ",
+      "engagement_rate": "የተሳትፎ መጠን",
+      "completion_rate": "የማጠናቀቂያ መጠን",
+      "avg_rating": "አማካይ ደረጃ",
+      "active_students": "ንቁ ተማሪዎች"
+    },
+    "trends": {
+      "title": "አዝማሚያዎች",
+      "views_over_time": "በጊዜ ሂደት እይታዎች",
+      "engagement_over_time": "በጊዜ ሂደት ተሳትፎ"
+    },
+    "audience": {
+      "title": "ታዳሚዎች",
+      "demographics": "ስነ-ሕዝብ",
+      "locations": "ቦታዎች",
+      "devices": "መሳሪያዎች"
+    },
+    "lessons": {
+      "title": "ትምህርቶች",
+      "top_performing": "ከፍተኛ አፈጻጸም",
+      "needs_attention": "ትኩረት የሚፈልግ"
+    }
+  },
+  "assignments": {
+    "title": "ተግባራት",
+    "overview": "የተግባራት አጠቃላይ እይታ",
+    "manage_description": "የተማሪዎች ተግባራት ያስተዳድሩ እና ይመዝኑ",
+    "create_assignment": "ተግባር ይፍጠሩ",
+    "stats": {
+      "total_assignments": "ጠቅላላ ተግባራት",
+      "pending_grading": "በመመዘን ላይ",
+      "average_score": "አማካይ ውጤት",
+      "total_submissions": "ጠቅላላ ማስገባቶች"
+    },
+    "search_placeholder": "ተግባራት ይፈልጉ...",
+    "filters": {
+      "all_status": "ሁሉም ሁኔታ",
+      "due_date_earliest": "የማስረከቢያ ቀን (ቀደም ያለ)"
+    },
+    "empty": {
+      "no_assignments": "ምንም ተግባራት አልተገኙም",
+      "no_assignments_yet": "እስካሁን ምንም ተግባራት አልፈጠሩም",
+      "create_first": "የመጀመሪያ ተግባርዎን ይፍጠሩ"
+    }
+  },
+  "admin_system": {
+    "landing_page": {
+      "title": "የመግቢያ ገጽ አርታዒ",
+      "subtitle": "የመድረክዎን መግቢያ ገጽ ያበጁ",
+      "hero": {
+        "title": "የጀግና ክፍል",
+        "headline": "ርዕስ",
+        "subheadline": "ንዑስ ርዕስ",
+        "cta_text": "የድርጊት ጥሪ ጽሑፍ",
+        "background_image": "የበስተጀርባ ምስል"
+      },
+      "about": {
+        "title": "ስለ ክፍል",
+        "heading": "ርዕስ",
+        "description": "መግለጫ"
+      },
+      "features": {
+        "title": "ባህሪያት ክፍል",
+        "add_feature": "ባህሪ ያክሉ",
+        "feature_title": "የባህሪ ርዕስ",
+        "feature_description": "የባህሪ መግለጫ"
+      },
+      "testimonials": {
+        "title": "ምስክርነቶች",
+        "add_testimonial": "ምስክርነት ያክሉ",
+        "author_name": "የደራሲ ስም",
+        "author_role": "የደራሲ ሚና",
+        "quote": "ጥቅስ"
+      },
+      "save_changes": "ለውጦችን አስቀምጥ",
+      "saving": "በማስቀመጥ ላይ...",
+      "saved": "ለውጦች በተሳካ ሁኔታ ተቀምጠዋል"
+    },
+    "knowledge_base": {
+      "title": "የእውቀት መሠረት",
+      "subtitle": "የእገዛ ጽሑፎችን እና ሰነዶችን ያስተዳድሩ",
+      "add_article": "ጽሑፍ ያክሉ",
+      "search_articles": "ጽሑፎችን ይፈልጉ...",
+      "categories": {
+        "all": "ሁሉም ምድቦች",
+        "getting_started": "መጀመር",
+        "troubleshooting": "ችግር መፍታት",
+        "features": "ባህሪያት"
+      },
+      "empty": "ምንም ጽሑፎች አልተገኙም",
+      "create_first": "የመጀመሪያ ጽሑፍዎን ይፍጠሩ"
+    },
+    "activity_logs": {
+      "title": "የእንቅስቃሴ ምዝገባዎች",
+      "subtitle": "የስርዓት እንቅስቃሴ እና የተጠቃሚ ድርጊቶችን ይከታተሉ",
+      "filters": {
+        "all_actions": "ሁሉም ድርጊቶች",
+        "all_users": "ሁሉም ተጠቃሚዎች",
+        "date_range": "የቀን ክልል"
+      },
+      "actions": {
+        "login": "መግባት",
+        "logout": "መውጣት",
+        "create": "መፍጠር",
+        "update": "ማዘመን",
+        "delete": "መሰረዝ"
+      },
+      "status": {
+        "success": "ተሳክቷል",
+        "failed": "አልተሳካም"
+      }
+    },
+    "support_tickets": {
+      "title": "የድጋፍ ቲኬቶች",
+      "subtitle": "የተጠቃሚ ድጋፍ ጥያቄዎችን ያስተዳድሩ",
+      "create_ticket": "ቲኬት ይፍጠሩ",
+      "status": {
+        "open": "ክፍት",
+        "in_progress": "በሂደት ላይ",
+        "resolved": "ተፈትቷል",
+        "closed": "ተዘግቷል"
+      },
+      "priority": {
+        "low": "ዝቅተኛ",
+        "medium": "መካከለኛ",
+        "high": "ከፍተኛ",
+        "urgent": "አስቸኳይ"
+      },
+      "empty": "ምንም ቲኬቶች አልተገኙም"
     }
   }
 }

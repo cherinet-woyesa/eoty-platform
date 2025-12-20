@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Plus, MapPin, Video, Users } from 'lucide-react';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface Event {
   id: number;
@@ -28,7 +28,7 @@ const ChapterEventManagement: React.FC<ChapterEventManagementProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <LoadingSpinner size="lg" text={t('common.loading')} variant="logo" />;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden h-full flex flex-col">
@@ -57,18 +57,18 @@ const ChapterEventManagement: React.FC<ChapterEventManagementProps> = ({
                   {new Date(event.event_date).toLocaleDateString()}
                 </span>
               </div>
-              
+
               <p className="text-sm text-slate-500 line-clamp-2 mb-3">{event.description}</p>
-              
+
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <div className="flex items-center gap-2">
                   {event.is_online ? (
-                    <span className="flex items-center gap-1"><Video className="h-3 w-3" /> Online</span>
+                    <span className="flex items-center gap-1"><Video className="h-3 w-3" /> {t('chapters.manage.events.online', 'Online')}</span>
                   ) : (
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || 'In-person'}</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location || t('chapters.manage.events.in_person', 'In-person')}</span>
                   )}
                 </div>
-                
+
                 <button
                   onClick={() => onViewAttendance(event.id)}
                   className="flex items-center gap-1 text-slate-400 hover:text-brand-primary transition-colors"

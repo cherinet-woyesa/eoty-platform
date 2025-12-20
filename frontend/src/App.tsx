@@ -75,7 +75,7 @@ import AssignmentDetail from '@/pages/teacher/assignments/AssignmentDetail';
 import InviteStudent from '@/pages/teacher/InviteStudent';
 import TeacherCoursesPage from '@/pages/teacher/TeacherCoursesPage';
 import TeacherStudentsPage from '@/pages/teacher/TeacherStudentsPage';
-import TeacherContentPage from '@/pages/teacher/TeacherContentPage';
+const TeacherContentPage = lazy(() => import('@/pages/teacher/TeacherContentPage'));
 import TeacherCommunityPage from '@/pages/teacher/TeacherCommunityPage';
 import TeacherResourcePage from '@/pages/teacher/TeacherResourcePage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
@@ -148,11 +148,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // Only redirect authenticated users away from login/register pages
@@ -615,11 +611,22 @@ function AppContent() {
 
           {/* Consolidated Teacher Community Page - Discussions | Chapters | Achievements */}
           <Route
-            path="/teacher/community"
+            path="/teacher/community/*"
             element={
               <TeacherRoute>
                 <DashboardLayout>
                   <TeacherCommunityPage />
+                </DashboardLayout>
+              </TeacherRoute>
+            }
+          />
+
+          <Route
+            path="/teacher/chapters"
+            element={
+              <TeacherRoute>
+                <DashboardLayout>
+                  <ChaptersPage />
                 </DashboardLayout>
               </TeacherRoute>
             }

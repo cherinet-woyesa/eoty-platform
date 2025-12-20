@@ -3,35 +3,68 @@ import React, { useEffect, useState } from 'react';
 import type { AudioLevelData } from '@/utils/AudioMixer';
 
 interface AudioLevelIndicatorsProps {
-  audioLevels: AudioLevelData[];
+  isRecording: boolean;
+  isCompositing: boolean;
+  startMonitoring: (callback: (levels: AudioLevelData[]) => void) => void;
+  stopMonitoring: () => void;
   onVolumeChange?: (sourceId: string, volume: number) => void;
   onMuteToggle?: (sourceId: string, muted: boolean) => void;
   getMutedState?: (sourceId: string) => boolean;
   getVolume?: (sourceId: string) => number;
 }
 
-export const AudioLevelIndicators: React.FC<AudioLevelIndicatorsProps> = ({
-  audioLevels,
+export const AudioLevelIndicators: React.FC<AudioLevelIndicatorsProps> = React.memo(({
+  isRecording,
+  isCompositing,
+  startMonitoring,
+  stopMonitoring,
   onVolumeChange,
   onMuteToggle,
   getMutedState,
   getVolume
 }) => {
+  const [audioLevels, setAudioLevels] = useState<AudioLevelData[]>([]);
   const [mutedStates, setMutedStates] = useState<Record<string, boolean>>({});
   const [volumes, setVolumes] = useState<Record<string, number>>({});
 
+  // Manage audio level monitoring subscription
+  useEffect(() => {
+    if (isRecording && isCompositing) {
+      startMonitoring((levels) => {
+        setAudioLevels(levels);
+      });
+      return () => {
+        stopMonitoring();
+      };
+    } else {
+      setAudioLevels([]);
+    }
+  }, [isRecording, isCompositing, startMonitoring, stopMonitoring]);
+
+  // Track previous IDs to avoid unnecessary state updates
+  const prevIdsRef = React.useRef<string[]>([]);
+
   // Initialize muted states and volumes
   useEffect(() => {
-    const newMutedStates: Record<string, boolean> = {};
-    const newVolumes: Record<string, number> = {};
+    const currentIds = audioLevels.map(l => l.id).sort();
+    const prevIds = prevIdsRef.current;
     
-    audioLevels.forEach(level => {
-      newMutedStates[level.id] = getMutedState ? getMutedState(level.id) : false;
-      newVolumes[level.id] = getVolume ? getVolume(level.id) : 1.0;
-    });
-    
-    setMutedStates(newMutedStates);
-    setVolumes(newVolumes);
+    const hasChanged = currentIds.length !== prevIds.length || 
+                       !currentIds.every((id, index) => id === prevIds[index]);
+
+    if (hasChanged) {
+      const newMutedStates: Record<string, boolean> = {};
+      const newVolumes: Record<string, number> = {};
+      
+      audioLevels.forEach(level => {
+        newMutedStates[level.id] = getMutedState ? getMutedState(level.id) : false;
+        newVolumes[level.id] = getVolume ? getVolume(level.id) : 1.0;
+      });
+      
+      setMutedStates(newMutedStates);
+      setVolumes(newVolumes);
+      prevIdsRef.current = currentIds;
+    }
   }, [audioLevels, getMutedState, getVolume]);
 
   const handleMuteToggle = (sourceId: string) => {
@@ -80,7 +113,7 @@ export const AudioLevelIndicators: React.FC<AudioLevelIndicatorsProps> = ({
       ))}
     </div>
   );
-};
+});
 
 interface AudioLevelIndicatorProps {
   data: AudioLevelData;

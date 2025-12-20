@@ -1,4 +1,5 @@
 // frontend/src/components/courses/LayoutSelector.tsx
+import React from 'react';
 import type { FC } from 'react';
 import { 
   PictureInPicture, 
@@ -23,7 +24,7 @@ interface LayoutSelectorProps {
   isCompositing: boolean;
 }
 
-const LayoutSelector: FC<LayoutSelectorProps> = ({
+const LayoutSelector: FC<LayoutSelectorProps> = React.memo(({
   currentLayout,
   onLayoutChange,
   disabled = false,
@@ -89,6 +90,6 @@ const LayoutSelector: FC<LayoutSelectorProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default LayoutSelector;

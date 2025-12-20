@@ -28,6 +28,7 @@ import { brandButtons, brandColors } from '@/theme/brand';
 import ContactAdminModal from './modals/ContactAdminModal';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
 import EventDetailsModal from './modals/EventDetailsModal';
+import { DateTimeDisplay } from '@/components/common/DateTimeDisplay';
 
 // Skeleton loader components
 const DashboardSkeleton: React.FC = React.memo(() => (
@@ -82,7 +83,6 @@ const StudentDashboard: React.FC = () => {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const wsRefreshTimer = useRef<NodeJS.Timeout | null>(null);
@@ -233,12 +233,6 @@ const StudentDashboard: React.FC = () => {
     };
   }, [lastMessage, refetch]);
 
-  // Update time every minute with cleanup
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Transform enrolled courses from API to match CourseGrid interface
   const transformedCourses = useMemo(() => {
     if (!studentData?.enrolledCourses || !Array.isArray(studentData.enrolledCourses)) {
@@ -346,23 +340,6 @@ const StudentDashboard: React.FC = () => {
   }, [user]);
 
   // Enhanced stats with real-time updates and memoization
-  const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString(i18n.language, {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  }, [i18n.language]);
-
-  const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString(i18n.language, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }, [i18n.language]);
-
   const handleRetry = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -490,7 +467,7 @@ const StudentDashboard: React.FC = () => {
                   {t('student.welcome_message', { name: user?.firstName || t('common.student') })}
                 </h1>
                 <div className="flex flex-wrap gap-2 items-center text-sm sm:text-base text-[#2f3f82]/80 mt-2">
-                  <span>{formatDate(currentTime)} • {formatTime(currentTime)}</span>
+                  <span><DateTimeDisplay /></span>
                   {lastUpdated && (
                     <span className="text-xs text-stone-500">
                       {t('student.last_updated', { time: lastUpdated.toLocaleString(i18n.language) })}

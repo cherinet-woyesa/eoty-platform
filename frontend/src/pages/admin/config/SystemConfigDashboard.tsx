@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Layers,
   Target,
@@ -13,44 +14,44 @@ import LevelManagement from './LevelManagement';
 import DurationManagement from './DurationManagement';
 import TagManagement from './TagManagement';
 import ChapterManagement from './ChapterManagement';
-import { brandColors } from '@/theme/brand';
 
 export const SystemConfigDashboard = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'categories' | 'levels' | 'durations' | 'tags' | 'chapters'>('categories');
 
   const tabs = [
     {
       id: 'categories' as const,
-      label: 'Categories',
-      description: 'Manage course categories and hierarchical structures',
+      label: t('system.tabs.categories', 'Categories'),
+      description: t('system.tabs.categories_desc', 'Manage course categories and hierarchical structures'),
       icon: <Layers className="h-4 w-4" />,
       component: CategoryManagement
     },
     {
       id: 'levels' as const,
-      label: 'Levels',
-      description: 'Define difficulty levels for courses',
+      label: t('system.tabs.levels', 'Levels'),
+      description: t('system.tabs.levels_desc', 'Define difficulty levels for courses'),
       icon: <Target className="h-4 w-4" />,
       component: LevelManagement
     },
     {
       id: 'durations' as const,
-      label: 'Durations',
-      description: 'Configure standard course duration options',
+      label: t('system.tabs.durations', 'Durations'),
+      description: t('system.tabs.durations_desc', 'Configure standard course duration options'),
       icon: <Clock className="h-4 w-4" />,
       component: DurationManagement
     },
     {
       id: 'tags' as const,
-      label: 'Tags',
-      description: 'Manage content tags for improved discoverability',
+      label: t('system.tabs.tags', 'Tags'),
+      description: t('system.tabs.tags_desc', 'Manage content tags for improved discoverability'),
       icon: <Tag className="h-4 w-4" />,
       component: TagManagement
     },
     {
       id: 'chapters' as const,
-      label: 'Chapters',
-      description: 'Organize local chapters and jurisdictions',
+      label: t('system.tabs.chapters', 'Chapters'),
+      description: t('system.tabs.chapters_desc', 'Organize local chapters and jurisdictions'),
       icon: <BookOpen className="h-4 w-4" />,
       component: ChapterManagement
     }
@@ -67,13 +68,13 @@ export const SystemConfigDashboard = () => {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Settings className="w-6 h-6 text-indigo-600" />
-              Settings
+              {t('system.title', 'Settings')}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">Platform configuration</p>
+            <p className="text-sm text-gray-500 mt-1">{t('system.subtitle', 'Platform configuration')}</p>
           </div>
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
-              Taxonomies
+              {t('system.sidebar.taxonomies', 'Taxonomies')}
             </div>
             {tabs.map((tab) => (
               <button

@@ -7,7 +7,6 @@ import NotificationBell from './NotificationBell';
 import { Menu, X } from 'lucide-react';
 import LanguageSelector from '@/components/common/LanguageSelector';
 import BreadcrumbNav from './BreadcrumbNav';
-import QuickActions from './QuickActions';
 import { brandColors } from '@/theme/brand';
 
 interface HeaderProps {
@@ -35,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           {/* Left section - Mobile menu and breadcrumbs */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {/* Mobile menu button */}
-            <button 
+            <button
               onClick={onToggleSidebar || handleMobileMenuToggle}
               className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               aria-label="Toggle menu"
@@ -46,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 <Menu className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
               )}
             </button>
-            
+
             {/* Breadcrumb navigation - Hidden on mobile */}
             <div className="hidden md:block">
               <BreadcrumbNav />
@@ -58,19 +57,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
           {/* Right section - User actions */}
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-            {/* Quick Actions - Hidden on mobile */}
-            <div className="hidden lg:block">
-              <QuickActions />
-            </div>
-            
             {/* Language Selector */}
             <div className="hidden sm:block">
               <LanguageSelector />
             </div>
-            
+
             {/* Notifications */}
             <NotificationBell />
-            
+
             {/* User profile dropdown */}
             <UserMenu />
           </div>
@@ -85,7 +79,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       {/* Mobile menu overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/20 z-40" onClick={handleCloseMobileMenu}>
-          <div 
+          <div
             className="absolute top-14 left-0 right-0 bg-white border-t border-gray-200 shadow-lg animate-in slide-in-from-top-2"
             onClick={(e) => e.stopPropagation()}
           >
@@ -94,18 +88,12 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               <div>
                 <SearchBar />
               </div>
-              
-              {/* Mobile Quick Actions */}
-              <div className="border-t border-gray-200 pt-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{t('common.quick_actions')}</p>
-                <QuickActions />
-              </div>
-              
+
               {/* Language Selector */}
               <div className="border-t border-gray-200 pt-3">
                 <LanguageSelector />
               </div>
-              
+
               {/* User Info */}
               <div className="border-t border-gray-200 pt-3">
                 <p className="text-sm font-semibold text-gray-900">{user?.firstName} {user?.lastName}</p>

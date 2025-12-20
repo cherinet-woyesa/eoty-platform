@@ -62,7 +62,7 @@ gcloud run deploy $SERVICE_NAME `
     --set-env-vars "DB_HOST=/cloudsql/${PROJECT_ID}:${REGION}:eoty-platform-db" `
     --set-env-vars "DB_NAME=$($EnvVars['DB_NAME'])" `
     --set-env-vars "DB_USER=$($EnvVars['DB_USER'])" `
-    --set-env-vars "FRONTEND_URL=https://eoty-platform-i3a6sbef0-cherinet-woyesa-projects.vercel.app" `
+    --set-env-vars "FRONTEND_URL=https://www.eotcommunity.org" `
     --set-env-vars "API_BASE_URL=https://edu-platform-backend-317256520378.us-central1.run.app" `
     --set-env-vars "JWT_SECRET=$($EnvVars['JWT_SECRET'])" `
     --set-env-vars "SENDGRID_API_KEY=$($EnvVars['EMAIL_SERVICE_API_KEY'])" `

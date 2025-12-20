@@ -1,6 +1,7 @@
+import { Plus, Shuffle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Shuffle } from 'lucide-react';
 import { systemConfigApi } from '@/services/api/systemConfig';
 import { ConfigTable, StatusBadge, UsageBadge } from '@/components/admin/system/ConfigTable';
 import type { ConfigTableColumn } from '@/components/admin/system/ConfigTable';
@@ -11,7 +12,8 @@ import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import type { ContentTag, TagFormData } from '@/types/systemConfig';
 import { brandColors } from '@/theme/brand';
 
-export const TagManagement = () => {
+export const TagManagement: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
   const { confirm } = useConfirmDialog();
@@ -41,15 +43,15 @@ export const TagManagement = () => {
       setIsCreating(false);
       showNotification({
         type: 'success',
-        title: 'Success',
-        message: 'Tag created successfully',
+        title: t('common.success', 'Success'),
+        message: t('admin.system.tags.messages.create_success', 'Tag created successfully'),
       });
     },
     onError: (error: any) => {
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to create tag',
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.message || t('admin.system.tags.messages.create_error', 'Failed to create tag'),
       });
     },
   });
@@ -64,15 +66,15 @@ export const TagManagement = () => {
       setEditingTag(null);
       showNotification({
         type: 'success',
-        title: 'Success',
-        message: 'Tag updated successfully',
+        title: t('common.success', 'Success'),
+        message: t('admin.system.tags.messages.update_success', 'Tag updated successfully'),
       });
     },
     onError: (error: any) => {
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to update tag',
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.message || t('admin.system.tags.messages.update_error', 'Failed to update tag'),
       });
     },
   });
@@ -85,15 +87,15 @@ export const TagManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['system-config-metrics'] });
       showNotification({
         type: 'success',
-        title: 'Success',
-        message: 'Tag deleted successfully',
+        title: t('common.success', 'Success'),
+        message: t('admin.system.tags.messages.delete_success', 'Tag deleted successfully'),
       });
     },
     onError: (error: any) => {
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to delete tag',
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.message || t('admin.system.tags.messages.delete_error', 'Failed to delete tag'),
       });
     },
   });
@@ -109,22 +111,22 @@ export const TagManagement = () => {
       if (result.failed > 0) {
         showNotification({
           type: 'warning',
-          title: 'Partial Success',
-          message: `${result.successful} succeeded, ${result.failed} failed`,
+          title: t('admin.system.tags.messages.partial_success', 'Partial Success'),
+          message: t('admin.system.tags.messages.bulk_partial', '{{successful}} succeeded, {{failed}} failed', { successful: result.successful, failed: result.failed }),
         });
       } else {
         showNotification({
           type: 'success',
-          title: 'Success',
-          message: `${result.successful} tags updated successfully`,
+          title: t('common.success', 'Success'),
+          message: t('admin.system.tags.messages.bulk_success', '{{count}} tags updated successfully', { count: result.successful }),
         });
       }
     },
     onError: (error: any) => {
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.message || 'Bulk action failed',
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.message || t('admin.system.tags.messages.bulk_error', 'Bulk action failed'),
       });
     },
   });
@@ -140,15 +142,15 @@ export const TagManagement = () => {
       setMergeTargetId(null);
       showNotification({
         type: 'success',
-        title: 'Success',
-        message: 'Tags merged successfully',
+        title: t('common.success', 'Success'),
+        message: t('admin.system.tags.messages.merge_success', 'Tags merged successfully'),
       });
     },
     onError: (error: any) => {
       showNotification({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to merge tags',
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.message || t('admin.system.tags.messages.merge_error', 'Failed to merge tags'),
       });
     },
   });
@@ -182,15 +184,15 @@ export const TagManagement = () => {
     const errors: Record<string, string> = {};
 
     if (!formData.name || formData.name.trim().length < 2) {
-      errors.name = 'Tag name must be at least 2 characters';
+      errors.name = t('admin.system.tags.errors.name_min', 'Tag name must be at least 2 characters');
     } else if (formData.name.length > 30) {
-      errors.name = 'Tag name must be less than 30 characters';
-    } else if (!/^[a-zA-Z0-9-]+$/.test(formData.name)) {
-      errors.name = 'Tag name must be alphanumeric with hyphens only';
+      errors.name = t('admin.system.tags.errors.name_max', 'Tag name must be less than 30 characters');
+    } else if (!/^[\p{L}\p{N}\s-]+$/u.test(formData.name)) {
+      errors.name = t('admin.system.tags.errors.name_invalid', 'Tag name must be letters, numbers, spaces or hyphens only');
     }
 
     if (formData.category && formData.category.length > 50) {
-      errors.category = 'Category must be less than 50 characters';
+      errors.category = t('admin.system.tags.errors.category_max', 'Category must be less than 50 characters');
     }
 
     setFormErrors(errors);
@@ -204,8 +206,8 @@ export const TagManagement = () => {
     if (!validateForm()) {
       showNotification({
         type: 'error',
-        title: 'Validation Error',
-        message: 'Please fix the errors before saving',
+        title: t('admin.system.tags.errors.validation_title', 'Validation Error'),
+        message: t('admin.system.tags.errors.validation_error', 'Please fix the errors before saving'),
       });
       return;
     }
@@ -226,16 +228,16 @@ export const TagManagement = () => {
     if (tag.usage_count > 0) {
       showNotification({
         type: 'error',
-        title: 'Cannot Delete',
-        message: `This tag is used by ${tag.usage_count} course(s)`,
+        title: t('admin.system.tags.errors.cannot_delete_title', 'Cannot Delete'),
+        message: t('admin.system.tags.errors.cannot_delete_usage', 'This tag is used by {{count}} course(s)', { count: tag.usage_count }),
       });
       return;
     }
 
     const confirmed = await confirm({
-      title: 'Delete Tag',
-      message: `Are you sure you want to delete "${tag.name}"?`,
-      confirmLabel: 'Delete',
+      title: t('admin.system.tags.delete_confirm_title', 'Delete Tag'),
+      message: t('admin.system.tags.delete_confirm_message', 'Are you sure you want to delete "{{name}}"?', { name: tag.name }),
+      confirmLabel: t('admin.system.tags.delete', 'Delete'),
       variant: 'danger',
     });
 
@@ -262,8 +264,8 @@ export const TagManagement = () => {
       if (tagsWithUsage.length > 0) {
         showNotification({
           type: 'error',
-          title: 'Cannot Delete',
-          message: `${tagsWithUsage.length} selected tags are in use`,
+          title: t('admin.system.tags.errors.cannot_delete_title', 'Cannot Delete'),
+          message: t('admin.system.tags.errors.cannot_delete_bulk', '{{count}} selected tags are in use', { count: tagsWithUsage.length }),
         });
         throw new Error('Cannot delete tags in use');
       }
@@ -276,8 +278,8 @@ export const TagManagement = () => {
     if (!mergeSourceId || !mergeTargetId) {
       showNotification({
         type: 'error',
-        title: 'Validation Error',
-        message: 'Please select both source and target tags',
+        title: t('admin.system.tags.errors.validation_title', 'Validation Error'),
+        message: t('admin.system.tags.errors.select_both', 'Please select both source and target tags'),
       });
       return;
     }
@@ -285,8 +287,8 @@ export const TagManagement = () => {
     if (mergeSourceId === mergeTargetId) {
       showNotification({
         type: 'error',
-        title: 'Validation Error',
-        message: 'Source and target tags must be different',
+        title: t('admin.system.tags.errors.validation_title', 'Validation Error'),
+        message: t('admin.system.tags.errors.different_tags', 'Source and target tags must be different'),
       });
       return;
     }
@@ -295,9 +297,9 @@ export const TagManagement = () => {
     const targetTag = tags.find(t => t.id === mergeTargetId);
 
     const confirmed = await confirm({
-      title: 'Merge Tags',
-      message: `Are you sure you want to merge "${sourceTag?.name}" into "${targetTag?.name}"? This will reassign all courses from the source tag to the target tag and delete the source tag.`,
-      confirmLabel: 'Merge',
+      title: t('admin.system.tags.merge_confirm_title', 'Merge Tags'),
+      message: t('admin.system.tags.merge_confirm_message', 'Are you sure you want to merge "{{source}}" into "{{target}}"? This will reassign all courses from the source tag to the target tag and delete the source tag.', { source: sourceTag?.name, target: targetTag?.name }),
+      confirmLabel: t('admin.system.tags.merge', 'Merge'),
       variant: 'danger',
     });
 
@@ -324,14 +326,14 @@ export const TagManagement = () => {
   const columns: ConfigTableColumn[] = [
     {
       key: 'name',
-      label: 'Name',
+      label: t('admin.system.tags.columns.name', 'Name'),
       sortable: true,
       width: '25%',
       render: (value, row: ContentTag) => renderColorBadge(row.color, value),
     },
     {
       key: 'category',
-      label: 'Category',
+      label: t('admin.system.tags.columns.category', 'Category'),
       sortable: true,
       width: '20%',
       render: (value) => (
@@ -340,14 +342,14 @@ export const TagManagement = () => {
     },
     {
       key: 'usage_count',
-      label: 'Usage',
+      label: t('admin.system.tags.columns.usage', 'Usage'),
       sortable: true,
       width: '15%',
       render: (value) => <UsageBadge count={value} />,
     },
     {
       key: 'is_active',
-      label: 'Status',
+      label: t('admin.system.tags.columns.status', 'Status'),
       sortable: true,
       width: '15%',
       render: (value) => <StatusBadge active={value} />,
@@ -365,7 +367,7 @@ export const TagManagement = () => {
             style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Shuffle className="h-5 w-5 mr-2" />
-            Merge Tags
+            {t('admin.system.tags.merge_tags', 'Merge Tags')}
           </button>
           <button
             onClick={openCreateForm}
@@ -373,7 +375,7 @@ export const TagManagement = () => {
             style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Plus className="h-5 w-5 mr-2" />
-            New Tag
+            {t('admin.system.tags.new_tag', 'New Tag')}
           </button>
         </div>
 
@@ -401,8 +403,8 @@ export const TagManagement = () => {
           selectable
           selectedItems={selectedItems}
           onSelectionChange={setSelectedItems}
-          searchPlaceholder="Search tags..."
-          emptyMessage="No tags found. Create your first tag to get started."
+          searchPlaceholder={t('admin.system.tags.search_placeholder', 'Search tags...')}
+          emptyMessage={t('admin.system.tags.empty_message', 'No tags found. Create your first tag to get started.')}
         />
 
         {/* Create/Edit Modal */}
@@ -418,10 +420,10 @@ export const TagManagement = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-bold">
-                        {isCreating ? 'Create Tag' : 'Edit Tag'}
+                        {isCreating ? t('admin.system.tags.create_tag', 'Create Tag') : t('admin.system.tags.edit_tag', 'Edit Tag')}
                       </h2>
                       <p className="text-blue-100 mt-1">
-                        {isCreating ? 'Add a new content tag' : 'Update tag details'}
+                        {isCreating ? t('admin.system.tags.create_desc', 'Add a new content tag') : t('admin.system.tags.edit_desc', 'Update tag details')}
                       </p>
                     </div>
                     <button
@@ -438,7 +440,7 @@ export const TagManagement = () => {
                   {/* Name Field */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tag Name <span className="text-red-500">*</span>
+                      {t('admin.system.tags.form.name', 'Tag Name')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -452,14 +454,14 @@ export const TagManagement = () => {
                       <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
                     )}
                     <p className="mt-1 text-sm text-gray-500">
-                      Alphanumeric with hyphens only (2-30 characters)
+                      {t('admin.system.tags.help_text', 'Letters, numbers, spaces or hyphens only (2-30 characters)')}
                     </p>
                   </div>
 
                   {/* Category Field */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category
+                      {t('admin.system.tags.form.category', 'Category')}
                     </label>
                     <input
                       type="text"
@@ -480,7 +482,7 @@ export const TagManagement = () => {
                   {/* Color Field */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Color
+                      {t('admin.system.tags.form.color', 'Color')}
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -509,7 +511,7 @@ export const TagManagement = () => {
                       onClick={closeForm}
                       className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                       type="submit"
@@ -517,7 +519,7 @@ export const TagManagement = () => {
                       className="px-6 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: brandColors.primaryHex }}
                     >
-                      {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
+                      {createMutation.isPending || updateMutation.isPending ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
                     </button>
                   </div>
                 </form>
@@ -549,10 +551,10 @@ export const TagManagement = () => {
                   <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                       <Shuffle className="h-6 w-6" />
-                      Merge Tags
+                      {t('admin.system.tags.merge_tags', 'Merge Tags')}
                     </h2>
                     <p className="text-blue-100 mt-1">
-                      Combine two tags by reassigning all courses from source to target
+                      {t('admin.system.tags.merge_desc', 'Combine two tags by reassigning all courses from source to target')}
                     </p>
                   </div>
                   <button
@@ -573,62 +575,62 @@ export const TagManagement = () => {
                 {/* Source Tag Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Source Tag (will be deleted) <span className="text-red-500">*</span>
+                    {t('admin.system.tags.form.source_tag', 'Source Tag (will be deleted)')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={mergeSourceId || ''}
                     onChange={(e) => setMergeSourceId(e.target.value ? parseInt(e.target.value) : null)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select source tag...</option>
+                    <option value="">{t('admin.system.tags.form.select_source', 'Select source tag...')}</option>
                     {tags.map(tag => (
                       <option key={tag.id} value={tag.id}>
-                        {tag.name} ({tag.usage_count} courses)
+                        {tag.name} ({t('admin.system.tags.usage_count', '{{count}} courses', { count: tag.usage_count })})
                       </option>
                     ))}
                   </select>
                   <p className="mt-1 text-sm text-gray-500">
-                    All courses using this tag will be reassigned to the target tag
+                    {t('admin.system.tags.form.source_tag_help', 'All courses using this tag will be reassigned to the target tag')}
                   </p>
                 </div>
 
                 {/* Target Tag Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Target Tag (will receive courses) <span className="text-red-500">*</span>
+                    {t('admin.system.tags.form.target_tag', 'Target Tag (will receive courses)')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={mergeTargetId || ''}
                     onChange={(e) => setMergeTargetId(e.target.value ? parseInt(e.target.value) : null)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select target tag...</option>
+                    <option value="">{t('admin.system.tags.form.select_target', 'Select target tag...')}</option>
                     {tags
                       .filter(tag => tag.id !== mergeSourceId)
                       .map(tag => (
                         <option key={tag.id} value={tag.id}>
-                          {tag.name} ({tag.usage_count} courses)
+                          {tag.name} ({t('admin.system.tags.usage_count', '{{count}} courses', { count: tag.usage_count })})
                         </option>
                       ))}
                   </select>
                   <p className="mt-1 text-sm text-gray-500">
-                    This tag will keep all its courses plus those from the source tag
+                    {t('admin.system.tags.form.target_tag_help', 'This tag will keep all its courses plus those from the source tag')}
                   </p>
                 </div>
 
                 {/* Preview */}
                 {mergeSourceId && mergeTargetId && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">Merge Preview</h4>
+                    <h4 className="font-medium text-blue-900 mb-2">{t('admin.system.tags.preview_title', 'Merge Preview')}</h4>
                     <div className="text-sm text-blue-800 space-y-1">
                       <p>
-                        • Source: <span className="font-medium">{tags.find(t => t.id === mergeSourceId)?.name}</span> ({tags.find(t => t.id === mergeSourceId)?.usage_count} courses)
+                        • {t('admin.system.tags.preview_source', 'Source:')} <span className="font-medium">{tags.find(t => t.id === mergeSourceId)?.name}</span> ({t('admin.system.tags.usage_count', '{{count}} courses', { count: tags.find(t => t.id === mergeSourceId)?.usage_count || 0 })})
                       </p>
                       <p>
-                        • Target: <span className="font-medium">{tags.find(t => t.id === mergeTargetId)?.name}</span> ({tags.find(t => t.id === mergeTargetId)?.usage_count} courses)
+                        • {t('admin.system.tags.preview_target', 'Target:')} <span className="font-medium">{tags.find(t => t.id === mergeTargetId)?.name}</span> ({t('admin.system.tags.usage_count', '{{count}} courses', { count: tags.find(t => t.id === mergeTargetId)?.usage_count || 0 })})
                       </p>
                       <p className="pt-2 border-t border-blue-300">
-                        • Result: Target will have approximately {(tags.find(t => t.id === mergeSourceId)?.usage_count || 0) + (tags.find(t => t.id === mergeTargetId)?.usage_count || 0)} courses
+                        • {t('admin.system.tags.preview_result', 'Result:')} {t('admin.system.tags.preview_result_desc', 'Target will have approximately {{count}} courses', { count: (tags.find(t => t.id === mergeSourceId)?.usage_count || 0) + (tags.find(t => t.id === mergeTargetId)?.usage_count || 0) })}
                       </p>
                     </div>
                   </div>
@@ -641,8 +643,8 @@ export const TagManagement = () => {
                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <div className="text-sm text-yellow-800">
-                      <p className="font-medium">Warning: This action cannot be undone</p>
-                      <p className="mt-1">The source tag will be permanently deleted after merging.</p>
+                      <p className="font-medium">{t('admin.system.tags.merge_warning_title', 'Warning: This action cannot be undone')}</p>
+                      <p className="mt-1">{t('admin.system.tags.merge_warning_text', 'The source tag will be permanently deleted after merging.')}</p>
                     </div>
                   </div>
                 </div>
@@ -667,7 +669,7 @@ export const TagManagement = () => {
                     className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <Shuffle className="h-4 w-4" />
-                    {mergeTagsMutation.isPending ? 'Merging...' : 'Merge Tags'}
+                    {mergeTagsMutation.isPending ? t('admin.system.tags.merging', 'Merging...') : t('admin.system.tags.merge', 'Merge Tags')}
                   </button>
                 </div>
               </div>

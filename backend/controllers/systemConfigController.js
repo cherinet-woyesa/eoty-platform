@@ -199,7 +199,7 @@ async function createCategory(req, res) {
     });
   } catch (error) {
     console.error('Error creating category:', error);
-    
+
     // Check if it's a unique constraint violation
     if (error.code === '23505' || error.message?.includes('unique')) {
       return res.status(400).json({
@@ -208,7 +208,7 @@ async function createCategory(req, res) {
         errors: { name: 'Category name must be unique' }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to create category'
@@ -239,13 +239,13 @@ async function updateCategory(req, res) {
     // Update name and slug if name changed
     if (name && name !== before_state.name) {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      
+
       // Check if new slug already exists
       const existing = await db('course_categories')
         .where('slug', slug)
         .whereNot('id', id)
         .first();
-      
+
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -474,13 +474,13 @@ async function updateLevel(req, res) {
     // Update name and slug if name changed
     if (name && name !== before_state.name) {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      
+
       // Check if new slug already exists
       const existing = await db('course_levels')
         .where('slug', slug)
         .whereNot('id', id)
         .first();
-      
+
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -710,7 +710,7 @@ async function updateDuration(req, res) {
         .where('value', value)
         .whereNot('id', id)
         .first();
-      
+
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -891,22 +891,35 @@ async function createTag(req, res) {
       });
     }
 
-    // Get max display_order
-    const maxOrder = await db('content_tags').max('display_order as max').first();
-    const display_order = (maxOrder.max || 0) + 1;
+    // Check if display_order column exists
+    const hasDisplayOrder = await db.schema.hasColumn('content_tags', 'display_order');
+    let display_order = 0;
 
-    // Insert tag
-    const [result] = await db('content_tags').insert({
+    if (hasDisplayOrder) {
+      // Get max display_order only if column exists
+      const maxOrder = await db('content_tags').max('display_order as max').first();
+      display_order = (maxOrder.max || 0) + 1;
+    }
+
+    // Prepare insert data
+    const insertData = {
       name,
       category: category || null,
       color: color || '#3B82F6',
-      display_order,
       is_active: true,
       usage_count: 0,
       created_by: userId,
       created_at: new Date(),
       updated_at: new Date()
-    }).returning('id');
+    };
+
+    // Only add display_order if column exists
+    if (hasDisplayOrder) {
+      insertData.display_order = display_order;
+    }
+
+    // Insert tag
+    const [result] = await db('content_tags').insert(insertData).returning('id');
 
     const tagId = result.id || result;
     const tag = await db('content_tags').where('id', tagId).first();
@@ -931,7 +944,8 @@ async function createTag(req, res) {
     console.error('Error creating tag:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create tag'
+      message: 'Failed to create tag',
+      error: error.message
     });
   }
 }
@@ -963,7 +977,7 @@ async function updateTag(req, res) {
         .where('name', name)
         .whereNot('id', id)
         .first();
-      
+
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -1222,7 +1236,7 @@ async function getChapters(req, res) {
     }
 
     let query = db('chapters as c').select(selectClauses);
-    
+
     // Check if display_order column exists
     try {
       const hasDisplayOrder = await db.schema.hasColumn('chapters', 'display_order');
@@ -1278,9 +1292,9 @@ async function createChapter(req, res) {
     const existing = await db('chapters')
       .whereRaw('LOWER(name) = LOWER(?)', [name])
       .first();
-    
+
     console.log('Existing chapter check:', existing);
-    
+
     if (existing) {
       console.log('Chapter already exists, returning 400');
       return res.status(400).json({
@@ -1295,7 +1309,7 @@ async function createChapter(req, res) {
     const display_order = (maxOrder.max || 0) + 1;
 
     console.log('Inserting chapter into database...');
-    
+
     let geo = null;
     if (address || city || country || region) {
       try {
@@ -1322,7 +1336,7 @@ async function createChapter(req, res) {
       created_at: new Date(),
       updated_at: new Date()
     }).returning('id');
-    
+
     const chapterId = result.id || result;
     console.log('Chapter created with ID:', chapterId);
 
@@ -1346,7 +1360,7 @@ async function createChapter(req, res) {
     });
   } catch (error) {
     console.error('Error creating chapter:', error);
-    
+
     // Check if it's a unique constraint violation
     if (error.code === '23505' || error.message?.includes('unique')) {
       return res.status(400).json({
@@ -1355,7 +1369,7 @@ async function createChapter(req, res) {
         errors: { name: 'Chapter name must be unique' }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to create chapter'
@@ -1390,7 +1404,7 @@ async function updateChapter(req, res) {
         .where('name', name)
         .whereNot('id', id)
         .first();
-      
+
       if (existing) {
         return res.status(400).json({
           success: false,
@@ -1668,7 +1682,7 @@ async function bulkActionLevels(req, res) {
     if (action === 'deactivate') {
       const activeLevels = await db('course_levels').where('is_active', true);
       const remainingActive = activeLevels.filter(level => !ids.includes(level.id));
-      
+
       if (remainingActive.length === 0) {
         return res.status(400).json({
           success: false,

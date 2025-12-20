@@ -69,7 +69,7 @@ const CourseCatalog: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.get('/courses/catalog');
-      
+
       if (response.data.success) {
         setCourses(response.data.data.courses || []);
       }
@@ -119,8 +119,8 @@ const CourseCatalog: React.FC = () => {
       const ok = await confirm({
         title: t('student_courses.enroll_confirm_title'),
         message: t('student_courses.enroll_confirm_message', { title: title || t('student_courses.default_course_title') }),
-        confirmText: t('student_courses.enroll_confirm_cta'),
-        cancelText: t('common.cancel')
+        confirmLabel: t('student_courses.enroll_confirm_cta'),
+        cancelLabel: t('common.cancel')
       });
       if (!ok) return;
 
@@ -179,26 +179,26 @@ const CourseCatalog: React.FC = () => {
       const title = (course.title || '').toLowerCase();
       const description = (course.description || '').toLowerCase();
       const matchesSearch = !query || title.includes(query) || description.includes(query);
-      
+
       // Flexible category matching
       const courseCat = (course.category || '').toLowerCase();
       const filterCat = filterCategory.toLowerCase();
-      const matchesCategory = filterCategory === 'all' || 
-                              courseCat === filterCat ||
-                              courseCat.includes(filterCat) ||
-                              (filterCat === 'faith' && (courseCat.includes('doctrine') || courseCat.includes('faith'))) ||
-                              (filterCat === 'history' && courseCat.includes('history')) ||
-                              (filterCat === 'bible' && courseCat.includes('bible')) ||
-                              (filterCat === 'liturgical' && courseCat.includes('liturg')) ||
-                              (filterCat === 'youth' && courseCat.includes('youth'));
+      const matchesCategory = filterCategory === 'all' ||
+        courseCat === filterCat ||
+        courseCat.includes(filterCat) ||
+        (filterCat === 'faith' && (courseCat.includes('doctrine') || courseCat.includes('faith'))) ||
+        (filterCat === 'history' && courseCat.includes('history')) ||
+        (filterCat === 'bible' && courseCat.includes('bible')) ||
+        (filterCat === 'liturgical' && courseCat.includes('liturg')) ||
+        (filterCat === 'youth' && courseCat.includes('youth'));
 
       // Flexible level matching
       const courseLevel = (course.level || '').toLowerCase();
       const filterLvl = filterLevel.toLowerCase();
-      const matchesLevel = filterLevel === 'all' || 
-                           courseLevel === filterLvl ||
-                           courseLevel.includes(filterLvl);
-      
+      const matchesLevel = filterLevel === 'all' ||
+        courseLevel === filterLvl ||
+        courseLevel.includes(filterLvl);
+
       return matchesSearch && matchesCategory && matchesLevel && course.is_published;
     });
   }, [courses, debouncedSearch, filterCategory, filterLevel]);
@@ -235,9 +235,9 @@ const CourseCatalog: React.FC = () => {
       <div className={`relative h-32 ${!course.cover_image ? `bg-gradient-to-r ${getCategoryColor(course.category)}` : 'bg-stone-200'}`}>
         {course.cover_image && (
           <>
-            <img 
-              src={course.cover_image} 
-              alt={course.title} 
+            <img
+              src={course.cover_image}
+              alt={course.title}
               loading="lazy"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
@@ -245,7 +245,7 @@ const CourseCatalog: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           </>
         )}
-        
+
         <div className={`absolute inset-0 p-3 flex flex-col justify-end ${!course.cover_image ? 'text-white' : 'text-white'}`}>
           <h3 className="text-sm font-bold mb-0.5 line-clamp-2 drop-shadow-sm">{course.title}</h3>
           <p className="text-white/90 text-xs line-clamp-2 opacity-90 drop-shadow-sm">
@@ -383,13 +383,8 @@ const CourseCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full space-y-3 p-3">
-        <div className="h-10 bg-stone-200 rounded-lg animate-pulse w-1/3" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-44 bg-stone-200 rounded-xl animate-pulse" />
-          ))}
-        </div>
+      <div className="w-full flex items-center justify-center p-12 min-h-[400px]">
+        <LoadingSpinner variant="logo" size="xl" text={t('catalog.loading', 'Loading course catalog...')} />
       </div>
     );
   }
@@ -397,33 +392,33 @@ const CourseCatalog: React.FC = () => {
   return (
     <div className="w-full space-y-3 p-2">
       {inlineError}
-        {/* Compact Invitations Alert */}
-        {pendingInvitesCount > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-white/80 border border-emerald-200 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-100">
-                <Mail className="h-3 w-3 text-emerald-700" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-emerald-900">
-                  {t('student_courses.invites_count', { count: pendingInvitesCount })}
-                </p>
-                <p className="text-[10px] text-emerald-700/80">
-                  {t('student_courses.invites_message')}
-                </p>
-              </div>
+      {/* Compact Invitations Alert */}
+      {pendingInvitesCount > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-white/80 border border-emerald-200 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-emerald-100">
+              <Mail className="h-3 w-3 text-emerald-700" />
             </div>
-            <Link
-              to="/member/invitations"
-              className="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
-            >
-              {t('student_courses.view_invites')}
-            </Link>
+            <div>
+              <p className="text-xs font-semibold text-emerald-900">
+                {t('student_courses.invites_count', { count: pendingInvitesCount })}
+              </p>
+              <p className="text-[10px] text-emerald-700/80">
+                {t('student_courses.invites_message')}
+              </p>
+            </div>
           </div>
-        )}
+          <Link
+            to="/member/invitations"
+            className="inline-flex items-center self-start sm:self-auto px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 shadow-sm"
+          >
+            {t('student_courses.view_invites')}
+          </Link>
+        </div>
+      )}
 
-        {/* Compact Search and Filters */}
-        <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
+      {/* Compact Search and Filters */}
+      <div className="bg-white/90 backdrop-blur-md rounded-lg p-3 border border-stone-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -469,37 +464,37 @@ const CourseCatalog: React.FC = () => {
         </div>
       </div>
 
-        {/* Course Grid */}
-        {sortedCourses.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {visibleCourses.map(renderCourseCard)}
-            </div>
-            {canLoadMore && <div ref={sentinelRef} className="h-1" />}
-            {canLoadMore && (
-              <div className="flex items-center justify-center mt-4">
-                <button
-                  className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:border-[#1e1b4b]/40 hover:text-[#1e1b4b] transition-colors"
-                  onClick={() => setVisibleCount(v => v + 12)}
-                >
-                  {t('student_courses.load_more')}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-6 text-center">
-            <BookOpen className="h-10 w-10 text-stone-400 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-stone-800 mb-1">
-              {t('student_courses.no_courses_found')}
-            </h3>
-            <p className="text-stone-600 text-xs">
-              {t('student_courses.adjust_filters_prompt')}
-            </p>
+      {/* Course Grid */}
+      {sortedCourses.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {visibleCourses.map(renderCourseCard)}
           </div>
-        )}
-      </div>
-    
+          {canLoadMore && <div ref={sentinelRef} className="h-1" />}
+          {canLoadMore && (
+            <div className="flex items-center justify-center mt-4">
+              <button
+                className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:border-[#1e1b4b]/40 hover:text-[#1e1b4b] transition-colors"
+                onClick={() => setVisibleCount(v => v + 12)}
+              >
+                {t('student_courses.load_more')}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 p-6 text-center">
+          <BookOpen className="h-10 w-10 text-stone-400 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-stone-800 mb-1">
+            {t('student_courses.no_courses_found')}
+          </h3>
+          <p className="text-stone-600 text-xs">
+            {t('student_courses.adjust_filters_prompt')}
+          </p>
+        </div>
+      )}
+    </div>
+
   );
 };
 

@@ -27,6 +27,36 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
 }
 
+const getDefaultPermissions = (role: string): string[] => {
+  const permissionMap: { [key: string]: string[] } = {
+    user: [
+      'course:view', 'lesson:view', 'quiz:take', 
+      'discussion:view', 'discussion:create', 'user:edit_own'
+    ],
+    teacher: [
+      'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
+      'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
+      'video:upload', 'video:delete_own',
+      'quiz:take', 'quiz:create', 'quiz:edit_own',
+      'discussion:view', 'discussion:create',
+      'user:edit_own'
+    ],
+    chapter_admin: [
+      'course:view', 'course:create', 'course:edit_own', 'course:edit_any', 'course:delete_own', 'course:delete_any',
+      'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:edit_any', 'lesson:delete_own', 'lesson:delete_any',
+      'video:upload', 'video:delete_own', 'video:delete_any',
+      'quiz:take', 'quiz:create', 'quiz:edit_own', 'quiz:edit_any',
+      'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
+      'user:view', 'user:edit_own', 'user:edit_any',
+      'chapter:view', 'chapter:manage',
+      'analytics:view'
+    ],
+    admin: ['system:admin']
+  };
+
+    return permissionMap[role] || permissionMap.user;
+};
+
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -34,7 +64,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const { isAuthenticated, user: authUser } = useAuth(); // Get auth state and user
 
-  const loadUser = async () => {
+  const loadUser = React.useCallback(async () => {
     try {
       // Only load if authenticated (no localStorage check)
       if (!isAuthenticated) {
@@ -63,45 +93,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
-  const getDefaultPermissions = (role: string): string[] => {
-    const permissionMap: { [key: string]: string[] } = {
-      user: [
-        'course:view', 'lesson:view', 'quiz:take', 
-        'discussion:view', 'discussion:create', 'user:edit_own'
-      ],
-      teacher: [
-        'course:view', 'course:create', 'course:edit_own', 'course:delete_own',
-        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:delete_own',
-        'video:upload', 'video:delete_own',
-        'quiz:take', 'quiz:create', 'quiz:edit_own',
-        'discussion:view', 'discussion:create',
-        'user:edit_own'
-      ],
-      chapter_admin: [
-        'course:view', 'course:create', 'course:edit_own', 'course:edit_any', 'course:delete_own', 'course:delete_any',
-        'lesson:view', 'lesson:create', 'lesson:edit_own', 'lesson:edit_any', 'lesson:delete_own', 'lesson:delete_any',
-        'video:upload', 'video:delete_own', 'video:delete_any',
-        'quiz:take', 'quiz:create', 'quiz:edit_own', 'quiz:edit_any',
-        'discussion:view', 'discussion:create', 'discussion:moderate', 'discussion:delete_any',
-        'user:view', 'user:edit_own', 'user:edit_any',
-        'chapter:view', 'chapter:manage',
-        'analytics:view'
-      ],
-      admin: ['system:admin']
-    };
-
-      return permissionMap[role] || permissionMap.user;
-  };
-
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = React.useCallback((permission: string): boolean => {
     if (!user) return false;
     if (user.permissions.includes('system:admin')) return true;
     return user.permissions.includes(permission);
-  };
+  }, [user]);
 
-  const hasRole = (role: string | string[]): boolean => {
+  const hasRole = React.useCallback((role: string | string[]): boolean => {
     if (!user) return false;
     if (user.role === 'admin') return true;
     
@@ -109,11 +109,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return user.role === role;
     }
     return role.includes(user.role);
-  };
+  }, [user]);
 
-  const refreshUser = async () => {
+  const refreshUser = React.useCallback(async () => {
     await loadUser();
-  };
+  }, [loadUser]);
 
   // Load user when component mounts
   useEffect(() => {
@@ -136,8 +136,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated, authUser]);
 
+  const value = React.useMemo(() => ({
+    user,
+    loading,
+    hasPermission,
+    hasRole,
+    refreshUser
+  }), [user, loading, hasPermission, hasRole, refreshUser]);
+
   return (
-    <UserContext.Provider value={{ user, loading, hasPermission, hasRole, refreshUser }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

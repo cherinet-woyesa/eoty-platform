@@ -157,6 +157,45 @@
         "chapters": "Chapter Management",
         "system": "System Administration"
       }
+    },
+    "courses": {
+      "no_courses_yet": "No courses yet",
+      "no_courses_found": "No courses found",
+      "create_first_course_prompt": "Create your first course to start managing content."
+    },
+    "system": {
+      "tags": {
+        "title": "Tag Management",
+        "new_tag": "New Tag",
+        "merge_tags": "Merge Tags",
+        "edit_tag": "Edit Tag",
+        "create_tag": "Create Tag",
+        "save": "Save",
+        "cancel": "Cancel",
+        "merge": "Merge",
+        "delete": "Delete",
+        "search_placeholder": "Search tags...",
+        "empty_message": "No tags found. Create your first tag to get started.",
+        "help_text": "Letters, numbers, spaces or hyphens only (2-30 characters)",
+        "errors": {
+          "name_min": "Tag name must be at least 2 characters",
+          "name_max": "Tag name must be less than 30 characters",
+          "name_invalid": "Tag name must be letters, numbers, spaces or hyphens only",
+          "validation_error": "Please fix the errors before saving"
+        }
+      },
+      "tabs": {
+        "categories": "Categories",
+        "categories_desc": "Manage course categories and hierarchical structures",
+        "levels": "Levels",
+        "levels_desc": "Define difficulty levels for courses",
+        "durations": "Durations",
+        "durations_desc": "Manage course time ranges",
+        "tags": "Tags",
+        "tags_desc": "Manage content discovery tags",
+        "chapters": "Chapters",
+        "chapters_desc": "Global chapter configuration"
+      }
     }
   },
   "classroom": {
@@ -169,24 +208,53 @@
     "locked": "Locked"
   },
   "ai_labeling": {
-    "title": "AI Labeling",
-    "subtitle": "Review and label AI responses for alignment and safety",
-    "tab_pending": "Pending",
-    "tab_recent": "Assistant History",
-    "page_size": "Items per page",
-    "language_all": "All languages",
+    "title": "AI & Faith Consistency",
+    "subtitle": "Review and correct AI classification of content alignment with Orthodox Faith",
     "refresh": "Refresh",
+    "tab_pending": "Pending Review",
+    "tab_recent": "Recent Classification",
+    "language_all": "All Languages",
     "days_7": "Last 7 days",
     "days_14": "Last 14 days",
     "days_30": "Last 30 days",
-    "toast_item_action": "Item {{action}}",
+    "page_size": "Rows:",
     "error_load": "Failed to load items",
     "retry": "Retry",
-    "loading": "Loading labeling queue...",
-    "empty_title": "Nothing to review",
-    "empty_body": "Great news—no AI items need labeling right now.",
-    "check_again": "Check again later",
-    "page_of": "Page {{page}} of {{total}}"
+    "loading": "Loading items...",
+    "empty_title": "All Caught Up!",
+    "empty_body": "There are no items currently waiting for review (or matching your filters).",
+    "check_again": "Check Again",
+    "page_of": "Page {{page}} of {{total}}",
+    "toast_item_action": "Item {{action}}ed successfully",
+    "classification_complete": "Classification updated",
+    "classification_failed": "Classification failed",
+    "label_submitted": "Label submitted",
+    "label_submit_failed": "Failed to submit label",
+    "moderation_failed": "Moderation action failed",
+    "id_label": "ID",
+    "priority": "Priority",
+    "reason": "Reason",
+    "ai_classifier": "AI Classifier",
+    "running": "Running...",
+    "run_check": "Run Check",
+    "score": "Confidence Score",
+    "verdict": "Verdict",
+    "aligned": "Aligned",
+    "ambiguous": "Ambiguous",
+    "not_aligned": "Not Aligned",
+    "no_classification": "No classification data. {{note}}",
+    "note_review": "Please review manually.",
+    "note_run_check": "Click 'Run Check' to classify.",
+    "moderation_actions": "Moderation Actions",
+    "notes_placeholder": "Add optional notes or reasoning...",
+    "saving": "Saving...",
+    "approve": "Approve",
+    "reject": "Reject",
+    "escalate": "Escalate",
+    "human_label": "Human Labeling",
+    "saving_label": "Saving...",
+    "submit_label": "Submit Label",
+    "skip": "Skip"
   },
   "teacher_content": {
     "title": "Content Studio",
@@ -1381,6 +1449,8 @@
     }
   },
   "chapters": {
+    "title": "Chapters",
+    "description": "Connect with local communities, attend events, and grow together.",
     "header": {
       "title": "Chapters",
       "subtitle": "Connect with communities worldwide or start your own."
@@ -1576,6 +1646,11 @@
       "topics_label": "Topics (comma separated)",
       "topics_placeholder": "e.g. Technology, Arts, Science",
       "submit": "Submit Application"
+    },
+    "leaderboard": {
+      "title": "Chapter Leaderboard",
+      "description": "See how your chapter compares to others in engagement and learning.",
+      "view_rankings": "View Rankings"
     }
   },
   "community_hub": {
@@ -1583,9 +1658,7 @@
     "subtitle": "Connect, share, and learn with fellow members."
   },
   "community": {
-    "title": "Community",
-    "admin_title": "Community Administration",
-    "admin_subtitle": "Manage and moderate community interactions",
+    "title": "Community Hub",
     "subtitle": "Connect, collaborate, and grow together.",
     "tabs": {
       "feed": "Feed",
@@ -1594,142 +1667,177 @@
     },
     "hero": {
       "badge": "Community",
-      "student_title": "Share and connect",
-      "student_subtitle": "Share ideas, join groups, and start discussions with peers.",
-      "cta_share": "Share a post",
+      "student_title": "Hello, {{name}}!",
+      "student_subtitle": "Join the discussion and learn together.",
+      "cta_share": "Share Thoughts",
+      "cta_hint_student": "Ask questions or share insights",
       "admin_title": "Community Administration",
-      "admin_subtitle": "Monitor and moderate community discussions",
-      "cta_announce": "Create Announcement",
-      "cta_hint_admin": "Post an official announcement or update.",
-      "teacher_title": "Lead the conversation, {{name}}",
-      "teacher_subtitle": "Share updates, guide chapters, and spark discussions.",
-      "cta_create": "Start a discussion",
-      "cta_hint_teacher": "Create a prompt or update for your learners.",
-      "cta_hint_student": "Post an idea or question to get feedback.",
+      "admin_subtitle": "Manage and oversee community interactions.",
+      "cta_announce": "Make Announcement",
+      "cta_hint_admin": "Post an official update",
+      "teacher_title": "Welcome, {{name}}!",
+      "teacher_subtitle": "Connect with your students and fellow teachers.",
+      "cta_create": "Create Post",
+      "cta_hint_teacher": "Share updates or resources",
       "default_title": "Community",
-      "default_subtitle": "Share and connect",
-      "cta_start": "Share a post",
-      "cta_hint_default": "Share ideas, join groups, and start discussions with peers."
+      "default_subtitle": "Connect with the community.",
+      "cta_start": "Start Posting",
+      "cta_hint_default": "Share something with the group"
     },
     "actions": {
-      "browse_forums": "Browse forums",
-      "browse_forums_desc": "Find discussions by topic or chapter",
+      "browse_forums": "Browse Forums",
+      "browse_forums_desc": "Explore categorized discussions",
+      "refresh": "Refresh Feed",
+      "refresh_desc": "Get the latest updates",
+      "invite_chapter": "Invite Chapter",
+      "invite_chapter_desc": "Add members to your chapter",
+      "explore_trending": "Explore Trending",
+      "explore_trending_desc": "See what's popular",
+      "view_achievements": "View Achievements",
+      "view_achievements_desc": "Check your progress",
       "moderation_queue": "Moderation Queue",
       "moderation_queue_desc": "Review reported content",
-      "explore_trending": "Explore Trending",
-      "explore_trending_desc": "See what's popular right now",
-      "view_achievements": "View Achievements",
-      "view_achievements_desc": "Check your progress and badges",
-      "refresh": "Refresh feed",
-      "refresh_desc": "Reload posts and latest activity",
-      "invite_chapter": "Invite chapter members",
-      "invite_chapter_desc": "Share your chapter invite link",
       "join_group": "Join a study group",
       "join_group_desc": "Discover open groups to collaborate",
       "view_calendar": "View calendar",
       "view_calendar_desc": "Check upcoming events and sessions"
     },
-    "share_thoughts": "What's on your mind, {{name}}?",
     "metrics": {
       "total_posts": "Total posts",
       "weekly_posts": "Posts this week",
       "contributors": "Contributors",
       "reactions": "Reactions"
     },
-    "filters": {
-      "sort": "Sort",
-      "newest": "Newest",
-      "most_liked": "Most liked",
-      "most_commented": "Most commented",
-      "type": "Type",
-      "all": "All",
-      "text": "Text",
-      "image": "Image",
-      "video": "Video",
-      "audio": "Audio",
-      "article": "Article"
-    },
     "feed": {
-      "search_placeholder": "Search community posts",
-      "placeholder": "What's on your mind, {{name}}?",
-      "empty_title": "No posts yet",
-      "empty_body": "Be the first to share something inspiring!",
-      "empty_cta": "Start sharing"
+      "search_placeholder": "Search posts, authors, or content...",
+      "share_thoughts": "What's on your mind, {{name}}?"
     },
     "sidebar": {
-      "quick_actions": "Quick Actions",
       "trending_now": "Trending Now",
-      "trending_empty": "No trending posts yet. Start a discussion to inspire others!",
+      "trending_empty": "No trending posts yet.",
       "top_contributors": "Top Contributors",
-      "contributors_empty": "Be the first to contribute and encourage others to join the discussion.",
-      "latest_activity": "Latest activity",
-      "last_post_published": "Last post published {{date}}"
+      "contributors_empty": "No contributors yet."
+    },
+    "filters": {
+      "sort": "Sort By",
+      "type": "Type",
+      "newest": "Newest",
+      "most_liked": "Most Liked",
+      "most_commented": "Most Commented",
+      "all": "All Posts",
+      "text": "Text",
+      "image": "Images",
+      "video": "Videos",
+      "audio": "Audio",
+      "article": "Articles"
     },
     "groups": {
-      "title": "Study groups",
-      "subtitle": "Create or join groups to learn together.",
-      "create": "Create group",
-      "search": "Search groups",
-      "loading": "Loading study groups...",
-      "error": "Failed to load study groups. Please try again.",
-      "created_title": "Group created",
-      "created_body": "Your study group is now live",
-      "create_error": "Failed to create group",
-      "joined_title": "Joined group",
-      "joined_body": "You are now a member",
-      "join_error": "Failed to join group",
-      "left_title": "Left group",
-      "left_body": "You have left the study group",
-      "leave_error": "Failed to leave group",
-      "leave_confirm_title": "Leave group",
-      "leave_confirm_body": "Are you sure you want to leave \"{{name}}\"?",
-      "leave_confirm_cta": "Leave",
+      "title": "Study Groups",
+      "subtitle": "Join groups to collaborate and learn together.",
+      "create": "Create Group",
       "my_groups": "My Groups",
       "discover": "Discover",
-      "open_group": "Open Group",
-      "join_open": "Join group",
+      "search": "Search groups...",
+      "empty_mine_title": "No Groups Yet",
+      "empty_mine_body": "You haven't joined any study groups yet. Create one or discover existing groups!",
+      "created_body": "Study group created successfully!",
+      "create_error": "Failed to create study group.",
+      "joined_body": "Joined group successfully!",
+      "join_error": "Failed to join group.",
+      "left_body": "Left group successfully.",
+      "leave_error": "Failed to leave group.",
+      "leave_confirm_title": "Leave Group?",
+      "leave_confirm_body": "Are you sure you want to leave {{name}}?",
+      "leave_confirm_cta": "Leave",
+      "deleted_body": "Group deleted successfully.",
+      "delete_error": "Failed to delete group.",
+      "delete_confirm_title": "Delete Group?",
+      "delete_confirm_body": "Are you sure you want to delete {{name}}? This cannot be undone.",
+      "loading": "Loading groups...",
+      "error": "Failed to load groups.",
+      "no_description": "No description available.",
+      "empty_public_title": "No Groups Found",
+      "empty_public_body": "We couldn't find any public groups matching your criteria.",
       "full": "Full",
-      "members_count": "{{count}} members",
-      "no_description": "No description provided.",
-      "empty_mine_title": "No groups yet",
-      "empty_mine_body": "Create or join a group to start collaborating.",
-      "empty_public_title": "No public groups",
-      "empty_public_body": "Check back later or create your own study group."
+      "join_open": "Join Group"
     },
     "forums": {
-      "search": "Search forums",
+      "badge": "Forums",
+      "header_title": "Discussion Forums",
+      "search": "Search",
+      "search_placeholder": "Search discussions...",
+      "forum_label": "Forum",
+      "all_forums": "All Forums",
+      "sort_label": "Sort by",
       "sort": {
         "newest": "Newest",
-        "replies": "Most replies",
-        "views": "Most views",
-        "pinned": "Pinned first"
+        "replies": "Most Replies",
+        "views": "Most Views",
+        "pinned": "Pinned"
       },
-      "new": "New discussion",
-      "tag_general": "General",
-      "no_description": "No description provided",
-      "recently": "Recently",
-      "no_forum_error": "No forum available to post",
-      "load_error": "Unable to load discussions",
-      "badge": "Discussion Forums",
-      "header_title": "Community Forums",
-      "header_subtitle": "Join discussions, ask questions, and connect with fellow learners.",
-      "forum_label": "Forum:",
-      "all_forums": "All Forums",
-      "error_title": "Unable to Load Forums",
-      "create_failed_title": "Failed to Create Discussion",
-      "create_failed_message": "Unable to create your discussion. Please try again.",
-      "like_failed_title": "Like Failed",
-      "like_failed_message": "Unable to like this discussion. Please try again.",
+      "new": "New Discussion",
+      "new_forum": "New Forum",
+      "new_topic_short": "New Topic",
+      "new_forum_short": "Forum",
+      "clear_filters": "Clear Filters",
       "stats": {
-        "total": "Total discussions",
-        "mine": "My discussions",
-        "active_today": "Active today"
+        "total": "Total Discussions",
+        "active_today": "Active Today",
+        "forums": "Forums",
+        "popular_tags": "Popular Tags"
       },
-      "popular_tags": "Popular Tags",
-      "empty_title": "No discussions yet",
-      "empty_body": "Start the conversation! Create the first discussion in this forum.",
-      "filtering": "Filtering by: {{tag}}",
-      "clear_filters": "Clear filters"
+      "tag_general": "General",
+      "empty_title": "No discussions found",
+      "empty_body": "Try adjusting your search or Filters, or start a new discussion.",
+      "create_success": "Discussion created successfully!",
+      "create_failed_title": "Creation Failed",
+      "create_failed_message": "Could not create discussion.",
+      "like_success": "Liked discussion!",
+      "like_failed_title": "Like Failed",
+      "like_failed_message": "Could not like discussion.",
+      "error_title": "Error Loading Forums",
+      "load_error": "Unable to load discussions.",
+      "no_description": "No preview available.",
+      "recently": "Recently",
+      "no_forum_error": "No forum selected."
+    },
+    "discussion": {
+      "back": "Back to Discussions",
+      "not_found_title": "Discussion Not Found",
+      "not_found_body": "The discussion you're looking for doesn't exist or has been removed.",
+      "return_community": "Return to Community",
+      "pinned": "Pinned",
+      "share": "Share",
+      "report": "Report",
+      "reports": {
+        "title": "Report Discussion",
+        "desc": "Please help us understand what's going on. What's the issue with this post?",
+        "placeholder": "Describe the issue...",
+        "submit": "Submit Report",
+        "cancel": "Cancel",
+        "success": "Thank you for your report.",
+        "error": "Failed to submit report"
+      },
+      "replies_count": "Comments",
+      "replies_label": "Replies",
+      "replying_to": "Replying to a comment...",
+      "reply_placeholder": "Write a thoughtful reply...",
+      "post_reply": "Post Reply",
+      "posting": "Posting...",
+      "related_topics": "Related Topics",
+      "no_related": "No related topics found.",
+      "guidelines_title": "Community Guidelines",
+      "guidelines_items": {
+        "0": "Be respectful and kind to others",
+        "1": "Stay on topic and contribute meaningfully",
+        "2": "No spam or self-promotion",
+        "3": "Report inappropriate content"
+      },
+      "copied": "Link copied to clipboard",
+      "copy_error": "Failed to copy link",
+      "posted_success": "Your reply has been posted.",
+      "post_error": "Failed to post reply",
+      "like_error": "Could not like discussion"
     }
   },
   "student_courses": {
@@ -2959,56 +3067,6 @@
       "load_failed": "Failed to load course catalog. Please try again."
     }
   },
-  "admin": {
-    "users": {
-      "delete_confirm_title": "Delete user?",
-      "delete_confirm_body": "Are you sure you want to delete this user? This action cannot be undone.",
-      "delete_confirm_cta": "Delete user"
-    },
-    "chapter_roles": "Chapter Roles",
-    "permissions": "Permissions",
-    "dashboard": {
-      "title": "Admin Dashboard",
-      "welcome": "Welcome",
-      "managing": "Managing {{users}} users across {{courses}} courses",
-      "synced": "Synced",
-      "updating": "Updating…",
-      "refresh": "Refresh",
-      "refreshing": "Refreshing...",
-      "retry": "Retry",
-      "access_denied": "Access Denied",
-      "access_denied_msg": "You must be logged in as an admin to view this dashboard.",
-      "load_error": "Unable to Load Dashboard",
-      "load_error_msg": "Failed to load admin statistics",
-      "try_again": "Try Again",
-      "quick_actions": "Quick Actions",
-      "metrics": {
-        "total_users": "Total Users",
-        "active_users": "Active Users",
-        "active_courses": "Active Courses",
-        "completed_lessons": "Completed Lessons",
-        "new_registrations": "New This Week",
-        "flagged_content": "Flagged Content"
-      },
-      "actions": {
-        "manage_users": "Manage Users",
-        "manage_courses": "Manage Courses",
-        "review_flagged": "Review Flagged",
-        "create_announcement": "Create Announcement",
-        "create_event": "Create Event"
-      },
-      "time": {
-        "never": "Never",
-        "just_now": "Just now",
-        "minutes_ago": "{{count}}m ago"
-      }
-    },
-    "courses": {
-      "no_courses_yet": "No courses yet",
-      "no_courses_found": "No courses found",
-      "create_first_course_prompt": "Create your first course to start managing content."
-    }
-  },
   "communications": {
     "title": "Communications",
     "tabs": {
@@ -3741,119 +3799,8 @@
       }
     }
   },
-  "chapters": {
-    "title": "Chapters",
-    "description": "Connect with local communities, attend events, and grow together.",
-    "search_placeholder": "Search chapters...",
-    "all_countries": "All Countries",
-    "all_regions": "All Regions",
-    "all_cities": "All Cities",
-    "near_me": "Near Me",
-    "header": {
-      "title": "Chapters",
-      "subtitle": "Discover and join your local community"
-    },
-    "actions": {
-      "start": "Start Chapter"
-    },
-    "tabs": {
-      "browse": "Browse Chapters",
-      "my_chapters": "My Chapters",
-      "manage": "Manage Chapter"
-    },
-    "browse": {
-      "title": "Browse Chapters",
-      "subtitle": "Find chapters based on your location or interests",
-      "start_chapter_btn": "Start a Chapter"
-    },
-    "locating": "Locating...",
-    "km": "km",
-    "status": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "rejected": "Rejected"
-    },
-    "manage": {
-      "no_chapter": {
-        "title": "No Chapter Managed",
-        "subtitle": "You are not managing any chapter yet."
-      },
-      "apply_leadership_btn": "Apply for Leadership",
-      "member_management": {
-        "title": "Member Management",
-        "update_success": "Member status updated successfully"
-      },
-      "events_management": {
-        "create_modal_title": "Create Event",
-        "event_title_label": "Event Title",
-        "event_desc_label": "Description",
-        "event_date_label": "Date & Time",
-        "duration_label": "Duration (minutes)",
-        "is_online_label": "Is Online Event?",
-        "meeting_link_label": "Meeting Link",
-        "location_label": "Location",
-        "create_btn": "Create Event",
-        "success_msg": "Event created successfully",
-        "error_msg": "Failed to create event"
-      },
-      "resources_management": {
-        "add_modal_title": "Add Resource",
-        "resource_title_label": "Title",
-        "resource_url_label": "URL",
-        "resource_desc_label": "Description",
-        "add_btn": "Add Resource",
-        "success_msg": "Resource added successfully",
-        "error_msg": "Failed to add resource"
-      },
-      "announcements_management": {
-        "post_modal_title": "Post Announcement",
-        "title_label": "Title",
-        "content_label": "Content",
-        "pin_label": "Pin Announcement",
-        "post_btn": "Post",
-        "success_msg": "Announcement posted successfully",
-        "error_msg": "Failed to post announcement"
-      },
-      "attendance_modal": {
-        "title": "Attendance",
-        "message": "Mark attendance for this event",
-        "no_data": "No attendance data available",
-        "attended": "Attended",
-        "absent": "Absent"
-      },
-      "apply_leadership": {
-        "title": "Apply for Leadership",
-        "reason_label": "Reason",
-        "experience_label": "Experience",
-        "submit_btn": "Submit Application",
-        "success_msg": "Application submitted successfully",
-        "error_msg": "Failed to submit application"
-      },
-      "insights": {
-        "title": "Growth Insights",
-        "retention": "Member Retention",
-        "engagement": "Event Engagement"
-      }
-    },
-    "start": {
-      "title": "Start a Chapter",
-      "name_label": "Chapter Name",
-      "country_label": "Country",
-      "city_label": "City",
-      "desc_label": "Description",
-      "topics_label": "Topics",
-      "submit_btn": "Create Chapter",
-      "success_msg": "Chapter created successfully",
-      "error_msg": "Failed to create chapter"
-    },
-    "adjust_filters": "Adjust filters or search to find a chapter.",
-    "leaderboard_title": "Chapter Leaderboard",
-    "leaderboard_desc": "See how your chapter compares to others in engagement and learning.",
-    "view_rankings": "View Rankings",
-    "about_membership": "About Membership",
-    "join_multiple": "Join multiple chapters to connect across regions",
-    "set_primary": "Set a **Primary Chapter** for personalized content",
-    "participate_events": "Participate in local events and discussions"
+  "admin_system_placeholder": {
+    "temp": "placeholder"
   },
   "resources": {
     "search_placeholder": "Search resources...",
@@ -4035,225 +3982,278 @@
       "error": "Failed to send message. Please try again."
     }
   },
-  "ai_labeling": {
-    "title": "AI & Faith Consistency",
-    "subtitle": "Review and correct AI classification of content alignment with Orthodox Faith",
-    "refresh": "Refresh",
-    "tab_pending": "Pending Review",
-    "tab_recent": "Recent Classification",
-    "language_all": "All Languages",
-    "days_7": "Last 7 days",
-    "days_14": "Last 14 days",
-    "days_30": "Last 30 days",
-    "page_size": "Rows:",
-    "error_load": "Failed to load items",
-    "retry": "Retry",
-    "loading": "Loading items...",
-    "empty_title": "All Caught Up!",
-    "empty_body": "There are no items currently waiting for review (or matching your filters).",
-    "check_again": "Check Again",
-    "page_of": "Page {{page}} of {{total}}",
-    "toast_item_action": "Item {{action}}ed successfully",
-    "classification_complete": "Classification updated",
-    "classification_failed": "Classification failed",
-    "label_submitted": "Label submitted",
-    "label_submit_failed": "Failed to submit label",
-    "moderation_failed": "Moderation action failed",
-    "id_label": "ID",
-    "priority": "Priority",
-    "reason": "Reason",
-    "ai_classifier": "AI Classifier",
-    "running": "Running...",
-    "run_check": "Run Check",
-    "score": "Confidence Score",
-    "verdict": "Verdict",
-    "aligned": "Aligned",
-    "ambiguous": "Ambiguous",
-    "not_aligned": "Not Aligned",
-    "no_classification": "No classification data. {{note}}",
-    "note_review": "Please review manually.",
-    "note_run_check": "Click 'Run Check' to classify.",
-    "moderation_actions": "Moderation Actions",
-    "notes_placeholder": "Add optional notes or reasoning...",
-    "saving": "Saving...",
-    "approve": "Approve",
-    "reject": "Reject",
-    "escalate": "Escalate",
-    "human_label": "Human Labeling",
-    "saving_label": "Saving...",
-    "submit_label": "Submit Label",
-    "skip": "Skip"
+  "admin_system": {
+    "title": "System Settings",
+    "subtitle": "Global configuration and monitoring",
+    "tags": {
+      "title": "Tag Management",
+      "subtitle": "Organize and categorize content with shared tags",
+      "new_tag": "New Tag",
+      "edit_tag": "Edit Tag",
+      "merge_tags": "Merge Tags",
+      "merge_desc": "Combine two tags by reassigning all courses from source to target",
+      "create_tag": "Create Tag",
+      "create_desc": "Add a new content tag",
+      "edit_desc": "Update tag details",
+      "search_placeholder": "Search tags...",
+      "empty_message": "No tags found. Create your first tag to get started.",
+      "help_text": "Letters, numbers, spaces or hyphens only (2-30 characters)",
+      "usage_count": "{{count}} courses",
+      "merging": "Merging...",
+      "merge": "Merge",
+      "merge_confirm_title": "Merge Tags",
+      "merge_confirm_message": "Are you sure you want to merge \"{{source}}\" into \"{{target}}\"? This will reassign all courses from the source tag to the target tag and delete the source tag.",
+      "merge_warning_title": "Warning: This action cannot be undone",
+      "merge_warning_text": "The source tag will be permanently deleted after merging.",
+      "preview_title": "Merge Preview",
+      "preview_source": "Source:",
+      "preview_target": "Target:",
+      "preview_result": "Result:",
+      "preview_result_desc": "Target will have approximately {{count}} courses",
+      "columns": {
+        "name": "Name",
+        "category": "Category",
+        "usage": "Usage",
+        "status": "Status"
+      },
+      "form": {
+        "name": "Tag Name",
+        "category": "Category",
+        "color": "Color",
+        "source_tag": "Source Tag (will be deleted)",
+        "target_tag": "Target Tag (will receive courses)",
+        "source_tag_help": "All courses using this tag will be reassigned to the target tag",
+        "target_tag_help": "This tag will keep all its courses plus those from the source tag",
+        "select_source": "Select source tag...",
+        "select_target": "Select target tag..."
+      },
+      "errors": {
+        "cannot_delete_title": "Cannot Delete",
+        "cannot_delete_bulk": "{{count}} selected tags are in use",
+        "validation_title": "Validation Error",
+        "select_both": "Please select both source and target tags",
+        "different_tags": "Source and target tags must be different"
+      }
+    }
   },
-  "community": {
-    "title": "Community Hub",
-    "tabs": {
-      "feed": "Feed",
-      "groups": "Groups",
-      "forums": "Forums"
+  "nav": {
+    "dashboard": "Dashboard",
+    "teacher": "Teacher",
+    "all_students": "All Students",
+    "admin": "Admin",
+    "member": "Member",
+    "courses": "Courses",
+    "users": "Users",
+    "forums": "Forums",
+    "achievements": "Achievements",
+    "ai_assistant": "AI Assistant",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "course_details": "Course Details",
+    "user_profile": "User Profile"
+  },
+  "courses": {
+    "creation": {
+      "create_course_title": "Create New Course",
+      "edit_course_title": "Edit Course",
+      "form_description": "Fill in the details below to create an engaging learning experience",
+      "course_title": "Course Title",
+      "title_placeholder": "e.g., Introduction to Ethiopian Orthodox Faith",
+      "course_description": "Course Description",
+      "description_placeholder": "Describe what students will learn in this course...",
+      "description_too_short_warning": "Description should be at least 5 characters",
+      "category": "Category",
+      "difficulty_level": "Difficulty Level",
+      "language": "Language",
+      "learning_objectives": "Learning Objectives",
+      "objective_placeholder": "Objective {{number}}",
+      "add_another_objective": "Add Another Objective",
+      "additional_options": "Additional Options",
+      "prerequisites": "Prerequisites",
+      "prerequisites_placeholder": "What should students know before taking this course?",
+      "tags": "Tags",
+      "add_tag_placeholder": "Add a tag",
+      "cover_image": "Cover Image",
+      "cover_drop_label": "Drag cover image or click to upload",
+      "cover_image_guidelines": "Recommended: 1200x630 JPG/PNG, under 5MB",
+      "certification_available": "Certification Available",
+      "save_draft": "Save Draft",
+      "creation_success": "Course Created Successfully!",
+      "update_success": "Course Updated Successfully!",
+      "course_ready": "Your course '{{title}}' is ready!",
+      "course_updated": "Your course has been updated successfully",
+      "next_steps_description": "What would you like to do next?",
+      "view_my_courses": "View My Courses",
+      "record_first_lesson": "Record First Lesson",
+      "view_course": "View Course",
+      "cover_uploading": "Uploading cover image...",
+      "cover_upload_success": "Cover image uploaded successfully",
+      "cover_upload_failed": "Failed to upload cover image",
+      "draft_saved": "Draft saved at {{time}}",
+      "draft_save_error": "Failed to save draft"
     },
-    "hero": {
-      "teacher_title": "Welcome, {{name}}!",
-      "teacher_subtitle": "Connect with your students and fellow teachers.",
-      "cta_create": "Create Post",
-      "cta_hint_teacher": "Share updates or resources",
-      "student_title": "Hello, {{name}}!",
-      "student_subtitle": "Join the discussion and learn together.",
-      "cta_share": "Share Thoughts",
-      "cta_hint_student": "Ask questions or share insights",
-      "admin_title": "Community Administration",
-      "admin_subtitle": "Manage and oversee community interactions.",
-      "cta_announce": "Make Announcement",
-      "cta_hint_admin": "Post an official update",
-      "default_title": "Community",
-      "default_subtitle": "Connect with the community.",
-      "cta_start": "Start Posting",
-      "cta_hint_default": "Share something with the group",
-      "badge": "Community"
+    "categories": {
+      "faith": "Faith & Doctrine",
+      "history": "Church History",
+      "spiritual": "Spiritual Development",
+      "bible": "Bible Study",
+      "liturgical": "Liturgical Studies",
+      "youth": "Youth Ministry"
     },
-    "actions": {
-      "browse_forums": "Browse Forums",
-      "browse_forums_desc": "Explore categorized discussions",
-      "refresh": "Refresh Feed",
-      "refresh_desc": "Get the latest updates",
-      "invite_chapter": "Invite Chapter",
-      "invite_chapter_desc": "Add members to your chapter",
-      "explore_trending": "Explore Trending",
-      "explore_trending_desc": "See what's popular",
-      "view_achievements": "View Achievements",
-      "view_achievements_desc": "Check your progress",
-      "moderation_queue": "Moderation Queue",
-      "moderation_queue_desc": "Review reported content"
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
     },
-    "feed": {
-      "search_placeholder": "Search posts, authors, or content...",
-      "share_thoughts": "What's on your mind, {{name}}?"
+    "errors": {
+      "title_required": "Course title is required",
+      "title_too_short": "Title must be at least 3 characters",
+      "title_too_long": "Title must be 60 characters or less",
+      "description_required": "Course description is required",
+      "description_too_short": "Description must be at least 5 characters",
+      "category_required": "Please select a category",
+      "objectives_required": "At least one learning objective is required",
+      "language_required": "Please select a language",
+      "creation_failed": "Failed to create course. Please try again.",
+      "invalid_image_type": "Please upload a JPG, PNG, or WebP image",
+      "image_too_large": "Image must be under 5MB"
+    }
+  },
+  "teacher_analytics": {
+    "title": "Analytics",
+    "subtitle": "Track your teaching performance and student engagement",
+    "loading": "Loading analytics...",
+    "metrics": {
+      "total_views": "Total Views",
+      "watch_time": "Watch Time",
+      "engagement_rate": "Engagement Rate",
+      "completion_rate": "Completion Rate",
+      "avg_rating": "Average Rating",
+      "active_students": "Active Students"
     },
-    "sidebar": {
-      "trending_now": "Trending Now",
-      "trending_empty": "No trending posts yet.",
-      "top_contributors": "Top Contributors",
-      "contributors_empty": "No contributors yet."
+    "trends": {
+      "title": "Trends",
+      "views_over_time": "Views Over Time",
+      "engagement_over_time": "Engagement Over Time"
     },
+    "audience": {
+      "title": "Audience",
+      "demographics": "Demographics",
+      "locations": "Locations",
+      "devices": "Devices"
+    },
+    "lessons": {
+      "title": "Lessons",
+      "top_performing": "Top Performing",
+      "needs_attention": "Needs Attention"
+    }
+  },
+  "assignments": {
+    "title": "Assignments",
+    "overview": "Assignments Overview",
+    "manage_description": "Manage and grade student assignments",
+    "create_assignment": "Create Assignment",
+    "stats": {
+      "total_assignments": "Total Assignments",
+      "pending_grading": "Pending Grading",
+      "average_score": "Average Score",
+      "total_submissions": "Total Submissions"
+    },
+    "search_placeholder": "Search assignments...",
     "filters": {
-      "sort": "Sort By",
-      "type": "Type",
-      "newest": "Newest",
-      "most_liked": "Most Liked",
-      "most_commented": "Most Commented",
-      "all": "All Posts",
-      "text": "Text",
-      "image": "Images",
-      "video": "Videos",
-      "audio": "Audio",
-      "article": "Articles"
+      "all_status": "All Status",
+      "due_date_earliest": "Due Date (Earliest)"
     },
-    "groups": {
-      "title": "Study Groups",
-      "subtitle": "Join groups to collaborate and learn together.",
-      "create": "Create Group",
-      "my_groups": "My Groups",
-      "discover": "Discover",
-      "search": "Search groups...",
-      "empty_mine_title": "No Groups Yet",
-      "empty_mine_body": "You haven't joined any study groups yet. Create one or discover existing groups!",
-      "created_body": "Study group created successfully!",
-      "create_error": "Failed to create study group.",
-      "joined_body": "Joined group successfully!",
-      "join_error": "Failed to join group.",
-      "left_body": "Left group successfully.",
-      "leave_error": "Failed to leave group.",
-      "leave_confirm_title": "Leave Group?",
-      "leave_confirm_body": "Are you sure you want to leave {{name}}?",
-      "leave_confirm_cta": "Leave",
-      "deleted_body": "Group deleted successfully.",
-      "delete_error": "Failed to delete group.",
-      "delete_confirm_title": "Delete Group?",
-      "delete_confirm_body": "Are you sure you want to delete {{name}}? This cannot be undone.",
-      "loading": "Loading groups...",
-      "error": "Failed to load groups.",
-      "no_description": "No description available.",
-      "empty_public_title": "No Groups Found",
-      "empty_public_body": "We couldn't find any public groups matching your criteria.",
-      "full": "Full",
-      "join_open": "Join Group"
+    "empty": {
+      "no_assignments": "No assignments found",
+      "no_assignments_yet": "You haven't created any assignments yet",
+      "create_first": "Create Your First Assignment"
+    }
+  },
+  "admin_system": {
+    "landing_page": {
+      "title": "Landing Page Editor",
+      "subtitle": "Customize your platform's landing page",
+      "hero": {
+        "title": "Hero Section",
+        "headline": "Headline",
+        "subheadline": "Subheadline",
+        "cta_text": "Call to Action Text",
+        "background_image": "Background Image"
+      },
+      "about": {
+        "title": "About Section",
+        "heading": "Heading",
+        "description": "Description"
+      },
+      "features": {
+        "title": "Features Section",
+        "add_feature": "Add Feature",
+        "feature_title": "Feature Title",
+        "feature_description": "Feature Description"
+      },
+      "testimonials": {
+        "title": "Testimonials",
+        "add_testimonial": "Add Testimonial",
+        "author_name": "Author Name",
+        "author_role": "Author Role",
+        "quote": "Quote"
+      },
+      "save_changes": "Save Changes",
+      "saving": "Saving...",
+      "saved": "Changes saved successfully"
     },
-    "forums": {
-      "badge": "Forums",
-      "header_title": "Discussion Forums",
-      "search": "Search",
-      "search_placeholder": "Search discussions...",
-      "forum_label": "Forum",
-      "all_forums": "All Forums",
-      "sort_label": "Sort by",
-      "sort": {
-        "newest": "Newest",
-        "replies": "Most Replies",
-        "views": "Most Views",
-        "pinned": "Pinned"
+    "knowledge_base": {
+      "title": "Knowledge Base",
+      "subtitle": "Manage help articles and documentation",
+      "add_article": "Add Article",
+      "search_articles": "Search articles...",
+      "categories": {
+        "all": "All Categories",
+        "getting_started": "Getting Started",
+        "troubleshooting": "Troubleshooting",
+        "features": "Features"
       },
-      "new": "New Discussion",
-      "new_forum": "New Forum",
-      "new_topic_short": "New Topic",
-      "new_forum_short": "Forum",
-      "clear_filters": "Clear Filters",
-      "stats": {
-        "total": "Total Discussions",
-        "active_today": "Active Today",
-        "forums": "Forums",
-        "popular_tags": "Popular Tags"
-      },
-      "tag_general": "General",
-      "empty_title": "No discussions found",
-      "empty_body": "Try adjusting your search or Filters, or start a new discussion.",
-      "create_success": "Discussion created successfully!",
-      "create_failed_title": "Creation Failed",
-      "create_failed_message": "Could not create discussion.",
-      "like_success": "Liked discussion!",
-      "like_failed_title": "Like Failed",
-      "like_failed_message": "Could not like discussion.",
-      "error_title": "Error Loading Forums",
-      "load_error": "Unable to load discussions.",
-      "no_description": "No preview available.",
-      "recently": "Recently",
-      "no_forum_error": "No forum selected."
+      "empty": "No articles found",
+      "create_first": "Create your first article"
     },
-    "discussion": {
-      "back": "Back to Discussions",
-      "not_found_title": "Discussion Not Found",
-      "not_found_body": "The discussion you're looking for doesn't exist or has been removed.",
-      "return_community": "Return to Community",
-      "pinned": "Pinned",
-      "share": "Share",
-      "report": "Report",
-      "reports": {
-        "title": "Report Discussion",
-        "desc": "Please help us understand what's going on. What's the issue with this post?",
-        "placeholder": "Describe the issue...",
-        "submit": "Submit Report",
-        "cancel": "Cancel",
-        "success": "Thank you for your report.",
-        "error": "Failed to submit report"
+    "activity_logs": {
+      "title": "Activity Logs",
+      "subtitle": "Monitor system activity and user actions",
+      "filters": {
+        "all_actions": "All Actions",
+        "all_users": "All Users",
+        "date_range": "Date Range"
       },
-      "replies_count": "Comments",
-      "replies_label": "Replies",
-      "replying_to": "Replying to a comment...",
-      "reply_placeholder": "Write a thoughtful reply...",
-      "post_reply": "Post Reply",
-      "posting": "Posting...",
-      "related_topics": "Related Topics",
-      "no_related": "No related topics found.",
-      "guidelines_title": "Community Guidelines",
-      "guidelines_items": {
-        "0": "Be respectful and kind to others",
-        "1": "Stay on topic and contribute meaningfully",
-        "2": "No spam or self-promotion",
-        "3": "Report inappropriate content"
+      "actions": {
+        "login": "Login",
+        "logout": "Logout",
+        "create": "Create",
+        "update": "Update",
+        "delete": "Delete"
       },
-      "copied": "Link copied to clipboard",
-      "copy_error": "Failed to copy link",
-      "posted_success": "Your reply has been posted.",
-      "post_error": "Failed to post reply",
-      "like_error": "Could not like discussion"
+      "status": {
+        "success": "Success",
+        "failed": "Failed"
+      }
+    },
+    "support_tickets": {
+      "title": "Support Tickets",
+      "subtitle": "Manage user support requests",
+      "create_ticket": "Create Ticket",
+      "status": {
+        "open": "Open",
+        "in_progress": "In Progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "priority": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "urgent": "Urgent"
+      },
+      "empty": "No tickets found"
     }
   }
 }

@@ -1,5 +1,5 @@
 // frontend/src/components/courses/CompositorPreview.tsx
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import type { VideoCompositor } from '@/utils/VideoCompositor';
 import type { PerformanceMetrics } from '@/types/VideoCompositor';
@@ -10,7 +10,7 @@ interface CompositorPreviewProps {
   performanceMetrics: PerformanceMetrics | null;
 }
 
-const CompositorPreview: FC<CompositorPreviewProps> = ({
+const CompositorPreview: FC<CompositorPreviewProps> = React.memo(({
   compositor,
   isCompositing,
   performanceMetrics
@@ -152,6 +152,6 @@ const CompositorPreview: FC<CompositorPreviewProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default CompositorPreview;

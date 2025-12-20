@@ -558,21 +558,8 @@ const UserManagement: React.FC = () => {
 
   if (loading && users.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 p-4 space-y-4">
-        <div className="h-10 bg-white border border-stone-200 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="h-24 bg-white border border-stone-200 rounded-lg animate-pulse" />
-          ))}
-        </div>
-        <div className="bg-white rounded-xl border border-stone-200 p-4">
-          <div className="h-10 bg-gray-100 rounded-lg animate-pulse mb-3" />
-          <div className="grid gap-2">
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <div key={idx} className="h-12 bg-gray-100 rounded-md animate-pulse" />
-            ))}
-          </div>
-        </div>
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <LoadingSpinner variant="logo" size="xl" text={t('admin.users.loading', 'Loading members...')} />
       </div>
     );
   }
@@ -583,7 +570,12 @@ const UserManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm text-stone-600">
-            {stats.total} total users • {stats.active} active • {stats.inactive} inactive
+            {t('admin.users.summary', {
+              total: stats.total,
+              active: stats.active,
+              inactive: stats.inactive,
+              defaultValue: '{{total}} total users • {{active}} active • {{inactive}} inactive'
+            })}
           </span>
           {lastUpdated && (
             <span className="text-xs px-2 py-1 rounded-full border border-stone-200 bg-white text-stone-600">
@@ -602,14 +594,14 @@ const UserManagement: React.FC = () => {
             } as React.CSSProperties}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: brandColors.primaryHex }} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? t('common.refreshing', 'Refreshing...') : t('common.refresh', 'Refresh')}
           </button>
           <button
             onClick={exportCsv}
             disabled={actionLoading === 'export'}
             className="inline-flex items-center px-3 py-1.5 bg-white text-stone-800 text-xs font-medium rounded-md border border-stone-300 hover:bg-stone-50 disabled:opacity-50"
           >
-            {actionLoading === 'export' ? 'Exporting...' : 'Export CSV'}
+            {actionLoading === 'export' ? t('common.exporting', 'Exporting...') : t('common.export_csv', 'Export CSV')}
           </button>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -620,7 +612,7 @@ const UserManagement: React.FC = () => {
             } as React.CSSProperties}
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New User
+            {t('admin.users.new_user', 'New User')}
           </button>
         </div>
       </div>
@@ -628,9 +620,9 @@ const UserManagement: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { name: 'Total', value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
-          { name: 'Active', value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
-          { name: 'Inactive', value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
+          { name: t('common.total', 'Total'), value: stats.total, icon: Users, textColor: 'text-[#1F7A4C]', bgColor: 'bg-[#1F7A4C]/10', borderColor: 'border-[#1F7A4C]/25', glowColor: 'bg-[#1F7A4C]/15' },
+          { name: t('common.active', 'Active'), value: stats.active, icon: CheckCircle, textColor: 'text-[#0EA5E9]', bgColor: 'bg-[#0EA5E9]/10', borderColor: 'border-[#0EA5E9]/25', glowColor: 'bg-[#0EA5E9]/15' },
+          { name: t('common.inactive', 'Inactive'), value: stats.inactive, icon: XCircle, textColor: 'text-[#E53935]', bgColor: 'bg-[#E53935]/10', borderColor: 'border-[#E53935]/25', glowColor: 'bg-[#E53935]/15' },
         ].filter(stat => stat.value !== null && stat.value !== undefined).map((stat, index) => (
           <div key={index} className="bg-white/90 backdrop-blur-md rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-lg transition-all">
             <div className="flex items-center justify-between mb-2">
@@ -656,7 +648,7 @@ const UserManagement: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name or email..."
+                placeholder={t('admin.users.search_placeholder', 'Search by name or email...')}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -681,12 +673,12 @@ const UserManagement: React.FC = () => {
                 className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
                 style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
-                <option value="all">All Roles</option>
-                <option value="student">Students</option>
-                <option value="teacher">Teachers</option>
-                <option value="chapter_admin">Chapter Admins</option>
-                <option value="regional_coordinator">Regional Coordinators</option>
-                <option value="admin">Platform Admins</option>
+                <option value="all">{t('admin.users.roles.all', 'All Roles')}</option>
+                <option value="student">{t('admin.users.roles.student', 'Students')}</option>
+                <option value="teacher">{t('admin.users.roles.teacher', 'Teachers')}</option>
+                <option value="chapter_admin">{t('admin.users.roles.chapter_admin', 'Chapter Admins')}</option>
+                <option value="regional_coordinator">{t('admin.users.roles.regional_coordinator', 'Regional Coordinators')}</option>
+                <option value="admin">{t('admin.users.roles.admin', 'Platform Admins')}</option>
               </select>
 
               <select
@@ -698,9 +690,9 @@ const UserManagement: React.FC = () => {
                 className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
                 style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="all">{t('admin.users.status.all', 'All Status')}</option>
+                <option value="active">{t('admin.users.status.active', 'Active')}</option>
+                <option value="inactive">{t('admin.users.status.inactive', 'Inactive')}</option>
               </select>
 
               <select
@@ -712,7 +704,7 @@ const UserManagement: React.FC = () => {
                 className="px-4 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-white/90 backdrop-blur-sm"
                 style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
               >
-                <option value="all">All Chapters</option>
+                <option value="all">{t('admin.users.chapters.all', 'All Chapters')}</option>
                 {chapters.map((c) => (
                   <option key={c.id} value={c.id}>{c.name || c.location || `Chapter ${c.id}`}</option>
                 ))}

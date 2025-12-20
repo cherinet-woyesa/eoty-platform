@@ -20,6 +20,7 @@ export interface TeacherProfile {
     account_holder?: string;
     account_number?: string;
     routing_number?: string;
+    mobile_provider?: string;
     address?: string;
     dob?: string;
     tax_id?: string;
@@ -95,6 +96,10 @@ const teacherApi = {
     teacherProfile: TeacherProfile
   }>> => {
     return api.get('/teacher/profile');
+  },
+
+  getDocuments: (): Promise<ApiResponse<{ documents: any[] }>> => {
+    return api.get('/teacher/documents');
   },
 
   updateProfile: (data: Partial<TeacherProfile>): Promise<ApiResponse<{

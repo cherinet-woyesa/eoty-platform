@@ -1197,70 +1197,45 @@ export class VideoCompositor {
           if (video.videoWidth > 0 && video.videoHeight > 0) {
             const sourceAspect = video.videoWidth / video.videoHeight;
             const targetAspect = layout.width / layout.height;
-            const useCover = this.currentLayout?.type !== 'screen-only';
+            // NEW: Smart "Fit" strategy for screen sharing (No Blur)
+            // This ensures whole content is visible (no cropping) with clean black bars
+            const needsLetterboxing = Math.abs(sourceAspect - targetAspect) > 0.01;
+            
+            if (needsLetterboxing) {
+              // 1. Draw black background (Clean look)
+              this.ctx.save();
+              this.ctx.fillStyle = '#000000';
+              this.ctx.fillRect(layout.x, layout.y, layout.width, layout.height);
+              this.ctx.restore();
 
-            if (useCover) {
-              // Object-cover: crop source to fill destination completely
-              let sourceX = 0;
-              let sourceY = 0;
-              let sourceW = video.videoWidth;
-              let sourceH = video.videoHeight;
-              if (Math.abs(sourceAspect - targetAspect) > 0.01) {
-                if (sourceAspect > targetAspect) {
-                  sourceH = video.videoHeight;
-                  sourceW = sourceH * targetAspect;
-                  sourceX = (video.videoWidth - sourceW) / 2;
-                  sourceY = 0;
-                } else {
-                  sourceW = video.videoWidth;
-                  sourceH = sourceW / targetAspect;
-                  sourceX = 0;
-                  sourceY = (video.videoHeight - sourceH) / 2;
-                }
-              }
-              this.ctx.drawImage(
-                video,
-                sourceX, sourceY, sourceW, sourceH,
-                layout.x, layout.y, layout.width, layout.height
-              );
-              if (Math.random() < 0.05) {
-                console.debug('[Compositor Debug] screen draw cover', {
-                  sourceAspect: Number(sourceAspect.toFixed(3)),
-                  targetAspect: Number(targetAspect.toFixed(3)),
-                  video: `${video.videoWidth}x${video.videoHeight}`,
-                  layout: `${layout.width}x${layout.height}`,
-                  crop: { x: Math.round(sourceX), y: Math.round(sourceY), w: Math.round(sourceW), h: Math.round(sourceH) }
-                });
-              }
-            } else {
-              // Object-contain: letter/pillarbox to show whole screen
+              // 2. Draw main content (Contain)
               let drawWidth = layout.width;
               let drawHeight = layout.height;
               let drawX = layout.x;
               let drawY = layout.y;
-              if (Math.abs(sourceAspect - targetAspect) > 0.01) {
-                if (sourceAspect > targetAspect) {
-                  drawHeight = layout.width / sourceAspect;
-                  drawY = layout.y + (layout.height - drawHeight) / 2;
-                } else {
-                  drawWidth = layout.height * sourceAspect;
-                  drawX = layout.x + (layout.width - drawWidth) / 2;
-                }
+
+              if (sourceAspect > targetAspect) {
+                // Letterbox (black bars top/bottom)
+                drawHeight = layout.width / sourceAspect;
+                drawY = layout.y + (layout.height - drawHeight) / 2;
+              } else {
+                // Pillarbox (black bars left/right)
+                drawWidth = layout.height * sourceAspect;
+                drawX = layout.x + (layout.width - drawWidth) / 2;
               }
+
               this.ctx.drawImage(
                 video,
                 0, 0, video.videoWidth, video.videoHeight,
                 drawX, drawY, drawWidth, drawHeight
               );
-              if (Math.random() < 0.05) {
-                console.debug('[Compositor Debug] screen draw contain', {
-                  sourceAspect: Number(sourceAspect.toFixed(3)),
-                  targetAspect: Number(targetAspect.toFixed(3)),
-                  video: `${video.videoWidth}x${video.videoHeight}`,
-                  layout: `${layout.width}x${layout.height}`,
-                  dest: { x: Math.round(drawX), y: Math.round(drawY), w: Math.round(drawWidth), h: Math.round(drawHeight) }
-                });
-              }
+            } else {
+              // Aspect ratios match closely, just draw normally
+              this.ctx.drawImage(
+                video,
+                0, 0, video.videoWidth, video.videoHeight,
+                layout.x, layout.y, layout.width, layout.height
+              );
             }
           } else {
             // If screen dimensions are not ready, draw nothing to avoid visual flash or overlays

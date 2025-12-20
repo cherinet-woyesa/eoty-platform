@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FC } from 'react';
 import { useVideoRecorder } from '@/hooks/useVideoRecorder';
 import { coursesApi } from '@/services/api';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Mobile detection hook
 const useIsMobile = () => {
@@ -26,42 +27,45 @@ const useIsMobile = () => {
 
 // videoApi import removed - Mux uploads handled by MuxVideoUploader component
 import { dataCache } from '@/hooks/useRealTimeData';
-import { videoDraftStorage, type VideoDraft } from '@/utils/videoDraftStorage';
 import { formatErrorForDisplay } from '@/utils/errorHandler';
 import ErrorAlert from '@/components/common/ErrorAlert';
-import VideoTimelineEditor from './VideoTimelineEditor';
-import SimpleTrimEditor from './SimpleTrimEditor';
-// import SlideManager from './SlideManager';
-import Teleprompter from './Teleprompter';
+
+// Lazy load heavy components
+const SimpleTrimEditor = lazy(() => import('./SimpleTrimEditor'));
+const Teleprompter = lazy(() => import('./Teleprompter'));
+const MuxVideoUploader = lazy(() => import('./MuxVideoUploader'));
+const RecordingQualitySettings = lazy(() => import('./RecordingQualitySettings'));
+const RecordingPresetsManager = lazy(() => import('./RecordingPresetsManager'));
+const SuccessNotificationModal = lazy(() => import('./SuccessNotificationModal'));
+const VideoPreviewPlayer = lazy(() => import('./VideoPreviewPlayer'));
+
 import PreFlightCheck from './PreFlightCheck';
 // import { useVirtualBackground } from '@/hooks/useVirtualBackground';
 import VideoProcessingStatus from './VideoProcessingStatus';
-import SuccessNotificationModal from './SuccessNotificationModal';
 import LayoutSelector from './LayoutSelector';
 import CompositorPreview from './CompositorPreview';
 import SourceControlIndicators from './SourceControlIndicators';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import NotificationContainer, { type Notification } from './NotificationContainer';
 import { AudioLevelIndicators } from './AudioLevelIndicators';
-import MuxVideoUploader from './MuxVideoUploader';
-import RecordingQualitySettings from './RecordingQualitySettings';
-import RecordingPresetsManager from './RecordingPresetsManager';
-import VideoPreviewPlayer from './VideoPreviewPlayer';
+import LessonDetailsForm from './recorder/LessonDetailsForm';
+import PostRecordingActions from './recorder/PostRecordingActions';
+import RecordingControls from './recorder/RecordingControls';
+import RecordingStatusDisplay from './recorder/RecordingStatusDisplay';
 import { recordingPresetsApi, type RecordingPreset } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import type { LayoutType } from '@/types/VideoCompositor';
 import type { AudioLevelData } from '@/utils/AudioMixer';
 import {
-  Video, Circle, Square, Pause, Play,
-  Upload, RotateCcw, Camera,
-  CheckCircle, Loader, AlertCircle,
+  Upload, Camera,
+  CheckCircle, Loader,
   Settings, Cloud,
-  Mic, MicOff, VideoIcon, Timer,
-  Zap, Download,
-  Sparkles, Star,
-  Monitor, Save, FolderOpen, Scissors,
-  FileText, Clock, Keyboard, XCircle,
-  BookOpen, ArrowRight, AlignLeft, User
+  Mic, MicOff, VideoIcon,
+  Zap,
+  Sparkles,
+  Monitor,
+  AlignLeft,
+  Keyboard,
 } from 'lucide-react';
 
 interface VideoRecorderProps {
@@ -84,7 +88,6 @@ interface Course {
 // S3 upload helper functions removed - all uploads use Mux direct upload
 
 const VideoRecorder: FC<VideoRecorderProps> = ({
-  onRecordingComplete,
   onUploadComplete,
   courseId,
   lessonId,
@@ -113,7 +116,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     stream,
     initializeCamera,
     closeCamera,
-    setCameraStream,
     recordingSources,
     currentLayout,
     setLayout,
@@ -128,19 +130,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     recordingTime,
     setRecordingTime: setRecordingTimeState,
     saveSession,
-    loadSession,
-    getSavedSessions,
     // NEW: Compositor properties (Task 3.1)
     compositorInstance,
     isCompositing,
-    compositorLayout,
     performanceMetrics,
     // NEW: Enhanced features
     recordingStats,
     setRecordingStats,
-    exportSession,
-    // NEW: Slide integration
-    recordSlideChange,
     // NEW: Editing capabilities
     editRecording,
     // Task 8.2: Audio mixing controls
@@ -173,13 +169,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
 
-  const audioAnalyserRef = useRef<AnalyserNode | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Course/Lesson State
   const [courses, setCourses] = useState<Course[]>([]);
@@ -219,20 +210,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showPreFlight, setShowPreFlight] = useState(false);
 
   // Mux upload state - Mux is now the default and only upload method
-  const [useMuxUpload] = useState(true); // Always use Mux - no longer configurable
   const [showMuxUploader, setShowMuxUploader] = useState(false);
   const [muxUploadLessonId, setMuxUploadLessonId] = useState<string | null>(null);
-
-  // Session management state
-  const [savedSessions, setSavedSessions] = useState<string[]>([]);
-  const [showSessionMenu, setShowSessionMenu] = useState(false);
 
   // NEW: UI state for integrated components (Task 7.1)
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showCompositorPreview, setShowCompositorPreview] = useState(false);
 
   // Task 8.2: Audio level monitoring state
-  const [audioLevels, setAudioLevels] = useState<AudioLevelData[]>([]);
   const [showAudioLevels, setShowAudioLevels] = useState(false);
 
   // NEW: Loading states (Task 7.2)
@@ -283,27 +268,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   /*
   useEffect(() => {
     if (vbError && vbEnabled) {
-      setVbEnabled(false);
-      setVbMode('none');
-      setModalNotification({
-        isOpen: true,
-        type: 'error',
-        title: 'Virtual Background Error',
-        message: `Failed to enable virtual background: ${vbError}`,
-        autoCloseDelay: 5000
-      });
-    }
-  }, [vbError, vbEnabled]);
-  */
 
-  // Capture raw stream - COMMENTED OUT FOR NOW
-  /*
-  useEffect(() => {
-    if (isSettingStreamRef.current) {
-        isSettingStreamRef.current = false;
-        return;
-    }
-    if (recordingSources.camera) {
         if (!vbEnabled) {
              setRawCameraStream(recordingSources.camera);
         }
@@ -329,13 +294,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
   // NEW: Enhanced state for production features
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'countdown' | 'recording' | 'paused' | 'processing'>('idle');
-
-
-  // Auto-save drafts state
-  const [autoSaveDraftId, setAutoSaveDraftId] = useState<string | null>(null);
-  const [savedDrafts, setSavedDrafts] = useState<VideoDraft[]>([]);
-  const [showDraftsList, setShowDraftsList] = useState(false);
-  const [lastAutoSaveTime, setLastAutoSaveTime] = useState<number | null>(null);
 
   // Load default preset on mount
   const { data: defaultPreset } = useQuery<RecordingPreset | null>({
@@ -382,12 +340,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStatsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize sessions on component mount
-  useEffect(() => {
-    const sessions = getSavedSessions();
-    setSavedSessions(sessions);
-  }, [getSavedSessions]);
-
   // Enhanced cleanup - ONLY runs on actual component unmount
   useEffect(() => {
     return () => {
@@ -413,24 +365,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run on mount/unmount
-
-  // Recording tips
-  useEffect(() => {
-    const tips = [
-      "Ensure good lighting facing you",
-      "Use a quiet environment for clear audio",
-      "Look directly at the camera",
-      "Keep your background professional",
-      "Test your microphone before recording",
-      "Use a tripod or stable surface",
-      "Speak clearly and at a moderate pace",
-      "Close unnecessary applications before screen sharing",
-      "Check your internet connection for stable recording",
-      "Use the countdown timer to prepare",
-      "Enable screen sharing for presentation mode",
-      "Use the slide manager for structured content"
-    ];
-  }, []);
 
   // Update video elements when streams change - Enhanced for screen sharing
   useEffect(() => {
@@ -516,82 +450,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       }
     }
 
-    // Audio analysis setup
-    let micInterval: NodeJS.Timeout | null = null;
-
-    if (stream && enableAudio) {
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const audioCtx = new AudioContextClass();
-          // Check if stream has audio tracks before creating source
-          if (stream.getAudioTracks().length > 0) {
-            const source = audioCtx.createMediaStreamSource(stream);
-            const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-            audioAnalyserRef.current = analyser;
-            audioContextRef.current = audioCtx;
-
-            // Update mic level periodically
-            const updateMicLevel = () => {
-              if (audioAnalyserRef.current) {
-                const dataArray = new Uint8Array(audioAnalyserRef.current.frequencyBinCount);
-                audioAnalyserRef.current.getByteFrequencyData(dataArray);
-                // const average = dataArray.reduce((a, b) => a + b) / dataArray.length; // Unused
-              }
-            };
-
-            micInterval = setInterval(updateMicLevel, 100);
-          } else {
-            // No audio tracks, close context immediately
-            audioCtx.close().catch(() => {});
-          }
-        }
-      } catch (error) {
-        console.warn('Audio context setup failed:', error);
-      }
-    }
+    // Audio analysis setup removed as it was unused and causing performance overhead
 
     return () => {
-      if (micInterval) {
-        clearInterval(micInterval);
-      }
-      audioAnalyserRef.current = null;
-      if (audioContextRef.current) {
-        if (audioContextRef.current.state !== 'closed') {
-          audioContextRef.current.close().catch(() => { });
-        }
-        audioContextRef.current = null;
-      }
+      // Cleanup
     };
   }, [stream, recordingSources, enableAudio]);
 
   // NEW: Recording stats monitoring with performance alerts (Task 7.3)
+  // Interval removed as stats are now handled by the media recorder events in useVideoRecorder hook
   useEffect(() => {
-    if (isRecording && !isPaused) {
-      recordingStatsIntervalRef.current = setInterval(() => {
-        // Simulate recording stats (in real app, get from MediaRecorder)
-        setRecordingStats(prev => ({
-          ...prev,
-          fileSize: prev.fileSize + (1024 * 1024), // Simulate 1MB per second
-          bitrate: Math.random() * 2000000 + 1000000, // 1-3 Mbps
-          framesDropped: prev.framesDropped + (Math.random() > 0.9 ? 1 : 0),
-          networkQuality: Math.random() > 0.8 ? 'poor' : Math.random() > 0.5 ? 'fair' : 'good'
-        }));
-      }, 1000);
-    } else {
-      if (recordingStatsIntervalRef.current) {
-        clearInterval(recordingStatsIntervalRef.current);
-      }
-    }
-
     return () => {
       if (recordingStatsIntervalRef.current) {
         clearInterval(recordingStatsIntervalRef.current);
       }
     };
-  }, [isRecording, isPaused]);
+  }, []);
 
   // Show preview when video blob becomes available after recording stops
   useEffect(() => {
@@ -606,66 +480,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // The preview's onLoadedMetadata will call acknowledgePreview() to allow the hook to cleanup
     }
   }, [isRecording, videoBlob, recordedVideo, showPreview, showLessonForm, uploading]);
-  // Auto-save drafts during recording
-  useEffect(() => {
-    if (isRecording && videoBlob && videoBlob.size > 0) {
-      // Start auto-saving
-      const draftId = videoDraftStorage.startAutoSave(
-        () => videoBlob,
-        () => ({
-          title: lessonTitle || 'Untitled Recording',
-          description: lessonDescription,
-          courseId: selectedCourse,
-          lessonId: undefined,
-          duration: recordingTime,
-          quality: recordingQuality,
-          timestamp: Date.now(),
-          fileSize: videoBlob.size
-        }),
-        (savedId) => {
-          setLastAutoSaveTime(Date.now());
-          // Auto-saved draft
-        }
-      );
-      setAutoSaveDraftId(draftId);
-    } else {
-      // Stop auto-saving
-      videoDraftStorage.stopAutoSave();
-      setAutoSaveDraftId(null);
-    }
-
-    return () => {
-      videoDraftStorage.stopAutoSave();
-    };
-  }, [isRecording, videoBlob, recordingTime, lessonTitle, lessonDescription, selectedCourse, recordingQuality]);
-
-  // Load saved drafts on mount
-  useEffect(() => {
-    const loadDrafts = async () => {
-      try {
-        const drafts = await videoDraftStorage.getAllDrafts();
-        setSavedDrafts(drafts);
-      } catch (error) {
-        // Failed to load drafts
-      }
-    };
-    loadDrafts();
-  }, []);
-
-
-
-  // NEW: Slide management functions
-  const handleSlidesChange = (newSlides: any[]) => {
-    setCurrentSlides(newSlides);
-    // Slides updated
-  };
-
-  const handleSlideAdvance = (slideIndex: number) => {
-    setCurrentSlideIndex(slideIndex);
-    recordSlideChange(slideIndex);
-    // Advanced to slide
-  };
-
   // NEW: Enhanced video editing functions
   const handleEditComplete = async (editedBlob: Blob) => {
     try {
@@ -680,7 +494,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       const newVideoUrl = URL.createObjectURL(editedBlob);
 
       setSuccessMessage(t('record_video.edit_success', 'Video edited successfully! Ready to upload.'));
-      setShowTimelineEditor(false);
       setShowPreview(false);
       setShowLessonForm(true); // Go back to upload form after editing
       setRecordingStatus('idle');
@@ -755,34 +568,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     // Intentionally left blank
   }, []);
 
-  // NEW: Source loss handler (Task 7.3)
-  const handleSourceLossNotification = useCallback((sourceType: 'camera' | 'screen') => {
-    const title = sourceType === 'camera'
-      ? t('record_video.camera_lost', 'Camera Lost')
-      : t('record_video.screen_share_lost', 'Screen Share Lost');
-    const message = sourceType === 'camera'
-      ? t('record_video.camera_lost_message', 'Your camera connection was lost. Recording continues with remaining sources.')
-      : t('record_video.screen_share_lost_message', 'Screen sharing was stopped. Recording continues with camera only.');
 
-    addNotification(
-      'warning',
-      title,
-      message,
-      {
-        label: sourceType === 'camera'
-          ? t('record_video.reconnect_camera', 'Reconnect Camera')
-          : t('record_video.start_screen_share', 'Start Screen Share'),
-        onClick: () => {
-          if (sourceType === 'camera') {
-            initializeCamera();
-          } else {
-            handleStartScreenShare();
-          }
-        }
-      },
-      false // Don't auto-hide, let user dismiss
-    );
-  }, [addNotification, initializeCamera]);
 
   // NEW: Monitor performance metrics and show alerts (Task 7.3)
   useEffect(() => {
@@ -795,24 +581,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       // Frames dropped notification disabled per UX request
     }
   }, [performanceMetrics?.fps, performanceMetrics?.droppedFrames, isRecording, handlePerformanceDegradation, addNotification]);
-
-  // Task 8.2: Audio level monitoring effect
-  useEffect(() => {
-    if (isRecording && isCompositing && showAudioLevels) {
-      // Start monitoring audio levels
-      startAudioLevelMonitoring((levels) => {
-        setAudioLevels(levels);
-      });
-
-      return () => {
-        // Stop monitoring when recording stops or component unmounts
-        stopAudioLevelMonitoring();
-      };
-    } else {
-      // Clear audio levels when not recording
-      setAudioLevels([]);
-    }
-  }, [isRecording, isCompositing, showAudioLevels, startAudioLevelMonitoring, stopAudioLevelMonitoring]);
 
   // NEW: Layout change with feedback (Task 7.2)
   const handleLayoutChange = useCallback((layout: LayoutType) => {
@@ -1135,16 +903,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setUploadSuccess(false);
       setErrorMessage(null);
       setSuccessMessage(null);
-      const hasExistingStreams = recordingSources.camera || recordingSources.screen;
-      if (!hasExistingStreams) {
-        // No existing streams - initialize camera
-        // No existing streams - initializing camera
-        await initializeCamera();
-      } else {
-        // We have existing streams - reuse them
-        // Reusing existing streams for recording
-        // No action needed; existing sources will be used by startRecording()
-      }
 
       // Don't clear processing completion success message
       if (!persistentSuccessMessageRef.current) {
@@ -1160,8 +918,14 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       });
 
       if (!recordingSources.camera && !recordingSources.screen) {
-        shouldStartAfterInit.current = true;
-        await initializeCamera();
+        if (currentLayout === 'screen-only') {
+          // If screen-only layout is selected but no screen shared, start screen share
+          await handleStartScreenShare();
+          // Do NOT auto-start recording. User must click "Start Recording" again.
+        } else {
+          // Initialize camera but do NOT auto-start recording
+          await initializeCamera();
+        }
       } else {
         await startCountdownAndRecording();
       }
@@ -1242,28 +1006,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (currentSession && videoBlob) {
       const sessionId = Date.now().toString();
       saveSession(sessionId);
-      setSavedSessions(getSavedSessions());
       setSuccessMessage(t('record_video.session_saved', 'Recording session saved successfully'));
-    }
-  };
-
-  // NEW: Load saved session
-  const handleLoadSession = (sessionId: string) => {
-    const success = loadSession(sessionId);
-    if (success) {
-      setSuccessMessage(t('record_video.session_loaded', 'Session loaded successfully'));
-      setShowSessionMenu(false);
-      setShowPreview(true);
-    } else {
-      setErrorMessage(t('record_video.session_load_error', 'Failed to load session'));
-    }
-  };
-
-  // NEW: Export session
-  const handleExportSession = () => {
-    if (exportSession && currentSession) {
-      exportSession(currentSession);
-      setSuccessMessage(t('record_video.session_exported', 'Session exported successfully'));
     }
   };
 
@@ -1322,25 +1065,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handlePreviewPlay = () => {
-    if (recordedVideoRef.current) {
-      if (isPlaying) {
-        recordedVideoRef.current.pause();
-      } else {
-        recordedVideoRef.current.play().catch(() => {
-          setErrorMessage('Unable to play the preview video.');
-        });
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
 
-  const handleMuteToggle = () => {
-    if (recordedVideoRef.current) {
-      recordedVideoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
 
   // FIXED: Enhanced upload function with WebM header analysis and Mux support
   const handleUpload = async () => {
@@ -1413,7 +1138,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   };
 
   // NEW: Handle processing completion
-  const handleProcessingComplete = (transcodedVideoUrl?: string) => {
+  const handleProcessingComplete = useCallback((transcodedVideoUrl?: string) => {
     // Don't close the modal immediately - let the user see the success state and click "Done"
     // setShowProcessingStatus(false);
 
@@ -1445,7 +1170,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
     // Don't auto-reset - let user see the success message
     // They can manually reset or navigate away
-  };
+  }, [processingLessonId, onUploadComplete]);
 
   // NEW: Handle Mux upload completion
   const handleMuxUploadComplete = useCallback((lessonId: string) => {
@@ -1547,18 +1272,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   };
 
-  const handleDeleteRecording = async () => {
-    const confirmed = await confirm({
-      title: t('record_video.delete_recording_title', 'Delete Recording?'),
-      message: t('record_video.delete_recording_message', 'Are you sure you want to delete this recording?'),
-      confirmLabel: t('common.delete', 'Delete'),
-      variant: 'danger'
-    });
 
-    if (confirmed) {
-      handleReset();
-    }
-  };
 
   const downloadRecording = () => {
     if (videoBlob) {
@@ -1703,9 +1417,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             controls
             playsInline
             preload="metadata"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
             onLoadedMetadata={(e) => {
               const video = e.currentTarget;
               // Update duration state if needed, but avoid unnecessary re-renders
@@ -1756,12 +1467,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
 
     // 3. Live Recording Preview
-    // Helper to attach stream safely
-    const attachStream = (el: HTMLVideoElement | null, stream: MediaStream | null) => {
-      if (el && stream && el.srcObject !== stream) {
-        el.srcObject = stream;
-      }
-    };
 
     const hasCamera = !!recordingSources.camera;
     const hasScreen = !!recordingSources.screen;
@@ -1774,8 +1479,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 animate-pulse">
               <Camera className="h-6 w-6 text-slate-400" />
             </div>
-            <h3 className="text-base font-medium mb-1">{t('record_video.ready_to_record')}</h3>
-            <p className="text-slate-400 text-xs mb-4">{t('record_video.ready_to_record_desc')}</p>
+            <h3 className="text-base font-medium mb-1">{t('record_video.ready_to_record', 'Ready to Record')}</h3>
+            <p className="text-slate-400 text-xs mb-4">Click "Start Recording" to begin</p>
             {!enableAudio && (
               <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
                 <MicOff className="h-3 w-3 mr-1.5" />
@@ -1870,7 +1575,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <video
             ref={handleScreenRef}
             autoPlay muted playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           {renderRecordingStats()}
         </div>
@@ -2336,38 +2041,24 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           )}
 
           {/* Recording Status - Neon colors - Mobile optimized */}
-          {isRecording && activeTab === 'record' && (
-            <div className={`absolute flex items-center z-30 ${isMobile ? 'top-2 left-2 space-x-1.5 flex-wrap' : 'top-4 left-4 space-x-3'}`}>
-              <div className={`flex items-center bg-gradient-to-r from-[#FF6B35]/90 to-[#FF8C42]/90 text-white rounded-full shadow-lg backdrop-blur-sm border border-[#FF6B35]/30 ${isMobile ? 'space-x-1 px-2 py-0.5' : 'space-x-2 px-3 py-1'
-                }`}>
-                <div className={`bg-white rounded-full animate-pulse ${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'}`} />
-                <span className={`font-semibold ${isMobile ? 'text-xs' : ''}`}>REC</span>
-              </div>
-              <div className={`bg-black/70 backdrop-blur-sm text-white rounded-full border border-white/20 ${isMobile ? 'px-2 py-0.5' : 'px-3 py-1'
-                }`}>
-                <span className={`font-medium ${isMobile ? 'text-xs' : ''}`}>{formatTime(recordingTime)}</span>
-              </div>
-              {isPaused && (
-                <div className={`bg-gradient-to-r from-[#FFD700]/90 to-[#FFA500]/90 text-white rounded-full shadow-lg backdrop-blur-sm border border-[#FFD700]/30 ${isMobile ? 'px-2 py-0.5' : 'px-3 py-1'
-                  }`}>
-                  <span className={`font-semibold ${isMobile ? 'text-xs' : ''}`}>PAUSED</span>
-                </div>
-              )}
-              {autoStopTimer > 0 && (
-                <div className={`bg-gradient-to-r from-[#00D4FF]/90 to-[#00B8E6]/90 text-white rounded-full flex items-center shadow-lg backdrop-blur-sm border border-[#00D4FF]/30 ${isMobile ? 'space-x-0.5 px-2 py-0.5' : 'space-x-1 px-3 py-1'
-                  }`}>
-                  <Timer className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                  <span className={`font-medium ${isMobile ? 'text-xs' : ''}`}>Auto-stop: {autoStopTimer}m</span>
-                </div>
-              )}
-            </div>
-          )}
+          <RecordingStatusDisplay
+            isRecording={isRecording}
+            activeTab={activeTab}
+            isMobile={isMobile}
+            recordingTime={recordingTime}
+            formatTime={formatTime}
+            isPaused={isPaused}
+            autoStopTimer={autoStopTimer}
+          />
 
           {/* Task 8.2: Audio Level Indicators */}
-          {showAudioLevels && audioLevels.length > 0 && isRecording && (
+          {showAudioLevels && isRecording && (
             <div className="absolute bottom-4 right-4 z-30">
               <AudioLevelIndicators
-                audioLevels={audioLevels}
+                isRecording={isRecording}
+                isCompositing={isCompositing}
+                startMonitoring={startAudioLevelMonitoring}
+                stopMonitoring={stopAudioLevelMonitoring}
                 onVolumeChange={setAudioVolume}
                 onMuteToggle={setAudioMuted}
                 getMutedState={isAudioMuted}
@@ -2379,65 +2070,22 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
 
           {/* Recording Controls - Modern Floating Bar */}
-          {activeTab === 'record' && !recordedVideo && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30">
-              {!isRecording ? (
-                <div className="flex flex-col items-center space-y-2">
-                  <button
-                    onClick={handleStartRecording}
-                    disabled={!recordingSources.camera && !recordingSources.screen}
-                    className="group relative flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-md rounded-full border-2 border-white/30 hover:border-red-500 hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50 disabled:hover:border-white/30 disabled:hover:bg-white/10"
-                  >
-                    <div className="w-6 h-6 bg-red-600 rounded-full shadow-lg group-hover:scale-90 transition-transform duration-300"></div>
-                  </button>
-                  <span className="text-white/90 text-xs font-medium bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
-                    {t('record_video.start_recording')}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-3 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg transform transition-all hover:scale-105">
-                  {/* Pause/Resume */}
-                  <button
-                    onClick={isPaused ? resumeRecording : pauseRecording}
-                    className="group flex flex-col items-center space-y-0.5"
-                    title={isPaused ? "Resume" : "Pause"}
-                  >
-                    <div className={`p-2 rounded-full transition-all ${isPaused ? 'bg-green-500 hover:bg-green-600' : 'bg-white/10 hover:bg-white/20'}`}>
-                      {isPaused ? <Play className="h-4 w-4 text-white fill-current" /> : <Pause className="h-4 w-4 text-white fill-current" />}
-                    </div>
-                    <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">{isPaused ? 'Resume' : 'Pause'}</span>
-                  </button>
-
-                  {/* Stop Button (Main Action) */}
-                  <button
-                    onClick={handleStopRecording}
-                    disabled={recordingTime < 1 || isStoppingRef.current || !isRecording}
-                    className="group flex flex-col items-center space-y-0.5"
-                    title="Stop Recording"
-                  >
-                    <div className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg shadow-red-900/30 group-hover:scale-110">
-                      <Square className="h-4 w-4 fill-current" />
-                    </div>
-                    <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">Stop</span>
-                  </button>
-
-                  {/* Save Session (Advanced) */}
-                  {showAdvancedTools && (
-                    <button
-                      onClick={handleSaveSession}
-                      className="group flex flex-col items-center space-y-0.5"
-                      title="Save Session Draft"
-                    >
-                      <div className="p-2 rounded-full bg-indigo-600/80 hover:bg-indigo-600 text-white transition-all hover:scale-105">
-                        <Save className="h-4 w-4" />
-                      </div>
-                      <span className="text-[9px] font-medium text-white/70 uppercase tracking-wider">Save</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <RecordingControls
+            activeTab={activeTab}
+            recordedVideo={recordedVideo}
+            isRecording={isRecording}
+            handleStartRecording={handleStartRecording}
+            recordingSources={recordingSources as any}
+            t={t as any}
+            isPaused={isPaused}
+            resumeRecording={resumeRecording}
+            pauseRecording={pauseRecording}
+            handleStopRecording={handleStopRecording}
+            recordingTime={recordingTime}
+            isStopping={isStoppingRef.current}
+            showAdvancedTools={showAdvancedTools}
+            handleSaveSession={handleSaveSession}
+          />
 
 
         </div>
@@ -2541,93 +2189,46 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
 
         {/* Post-Recording Studio - Compact & Organized */}
-        {(recordedVideo || selectedFile) && !uploading && !uploadSuccess && !showLessonForm && showPreview && (
-          <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center space-x-4">
-                <h3 className="text-sm font-semibold text-slate-800 flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  Recording Ready
-                </h3>
-                <div className="h-4 w-px bg-slate-200"></div>
-                <div className="flex items-center space-x-3 text-xs text-slate-500">
-                  <span>{formatTime(recordingDuration)}</span>
-                  <span>•</span>
-                  <span>{videoBlob ? getFileSize(videoBlob.size) : 'Unknown'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 flex flex-wrap items-center gap-3">
-              {/* Primary Actions */}
-              <button
-                onClick={() => {
-                  setShowPreview(false);
-                  setShowLessonForm(true);
-                }}
-                className="flex-1 min-w-[140px] py-2 px-4 bg-indigo-900 text-white rounded-lg hover:bg-indigo-800 font-medium shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 text-sm"
-              >
-                <span>Continue to Upload</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-
-              {/* Secondary Actions Group */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Record Again Button - Moved here as requested */}
-                <button
-                  onClick={handleReset}
-                  className="py-2 px-3 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Record Again</span>
-                </button>
-
-                {activeTab === 'record' && videoBlob && (
-                  <button
-                    onClick={() => {
-                      setShowTimelineEditor(true);
-                      setShowPreview(false);
-                    }}
-                    className="py-2 px-3 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 hover:bg-amber-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
-                  >
-                    <Scissors className="h-4 w-4" />
-                    <span>Edit</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={downloadRecording}
-                  className="py-2 px-3 bg-slate-50 text-slate-700 rounded-lg border border-slate-100 hover:bg-slate-100 transition-all flex items-center space-x-1.5 text-sm font-medium"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Download</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <PostRecordingActions
+          recordedVideo={recordedVideo}
+          selectedFile={selectedFile}
+          uploading={uploading}
+          uploadSuccess={uploadSuccess}
+          showLessonForm={showLessonForm}
+          showPreview={showPreview}
+          recordingDuration={recordingDuration}
+          videoBlob={videoBlob}
+          activeTab={activeTab}
+          setShowPreview={setShowPreview}
+          setShowLessonForm={setShowLessonForm}
+          handleReset={handleReset}
+          setShowTimelineEditor={setShowTimelineEditor}
+          downloadRecording={downloadRecording}
+          formatTime={formatTime}
+        />
 
         {/* Enhanced Video Preview Modal */}
         {showEnhancedPreview && (recordedVideo || filePreview || videoBlob) && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="max-w-4xl w-full mx-auto">
-              <VideoPreviewPlayer
-                videoBlob={activeTab === 'record' ? videoBlob || null : null}
-                videoUrl={activeTab === 'record' ? recordedVideo : filePreview}
-                onUpload={() => {
-                  setShowEnhancedPreview(false);
-                  setShowPreview(false);
-                  setShowLessonForm(true);
-                }}
-                onEdit={activeTab === 'record' && videoBlob ? () => {
-                  setShowEnhancedPreview(false);
-                  setShowTimelineEditor(true);
-                  setShowPreview(false);
-                } : undefined}
-                onCancel={() => setShowEnhancedPreview(false)}
-                title={activeTab === 'record' ? 'Recorded Video' : selectedFile?.name || 'Video Preview'}
-                duration={recordingDuration}
-              />
+              <Suspense fallback={<LoadingSpinner />}>
+                <VideoPreviewPlayer
+                  videoBlob={activeTab === 'record' ? videoBlob || null : null}
+                  videoUrl={activeTab === 'record' ? recordedVideo : filePreview}
+                  onUpload={() => {
+                    setShowEnhancedPreview(false);
+                    setShowPreview(false);
+                    setShowLessonForm(true);
+                  }}
+                  onEdit={activeTab === 'record' && videoBlob ? () => {
+                    setShowEnhancedPreview(false);
+                    setShowPreview(false);
+                  } : undefined}
+                  onCancel={() => setShowEnhancedPreview(false)}
+                  title={activeTab === 'record' ? 'Recorded Video' : selectedFile?.name || 'Video Preview'}
+                  duration={recordingDuration}
+                />
+              </Suspense>
             </div>
           </div>
         )}
@@ -2644,253 +2245,56 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
                 Your lesson has been created. Now upload your video for optimized streaming.
               </p>
             </div>
-            <MuxVideoUploader
-              lessonId={muxUploadLessonId}
-              videoBlob={videoBlob || selectedFile || undefined}
-              onUploadComplete={handleMuxUploadComplete}
-              onError={handleMuxUploadError}
-              onCancel={handleMuxUploadCancel}
-            />
+            <Suspense fallback={<LoadingSpinner />}>
+              <MuxVideoUploader
+                lessonId={muxUploadLessonId}
+                videoBlob={videoBlob || selectedFile || undefined}
+                onUploadComplete={handleMuxUploadComplete}
+                onError={handleMuxUploadError}
+                onCancel={handleMuxUploadCancel}
+              />
+            </Suspense>
           </div>
         )}
 
         {/* Lesson Form - Light theme */}
         {showLessonForm && (
-          <div className="p-6 border-t border-slate-200/50 bg-white/85 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-semibold flex items-center space-x-2 text-slate-700">
-                  <Star className="h-5 w-5 text-[#FFD700]" />
-                  <span>
-                    {lessonId ? t('record_video.update_lesson') : t('record_video.create_new_lesson')}
-                  </span>
-                </h3>
-                {/* Mode indicator */}
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${lessonId
-                    ? 'bg-[#2980B9]/10 text-[#2980B9] border border-[#2980B9]/20'
-                    : 'bg-[#27AE60]/10 text-[#27AE60] border border-[#27AE60]/20'
-                  }`}>
-                  {lessonId ? `🎬 ${t('record_video.recording_mode')}` : `📝 ${t('record_video.new_lesson_mode')}`}
-                </div>
-              </div>
-              <p className="text-sm text-slate-600 hidden sm:block">
-                {lessonId
-                  ? 'This will replace the video for your existing lesson'
-                  : 'Create a new lesson with your recorded/uploaded video'
-                }
-              </p>
-            </div>
-
-            {/* Video Actions (Preview/Edit) - Only if video exists */}
-            {(recordedVideo || selectedFile) && (
-              <div className="flex items-center gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                    Video Ready
-                  </h4>
-                  <p className="text-xs text-slate-500">
-                    {recordingDuration > 0 ? `Duration: ${Math.floor(recordingDuration)}s` : 'Ready to upload'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setShowEnhancedPreview(true);
-                      // Don't hide form, just show preview modal
-                    }}
-                    className="px-3 py-2 border border-slate-300/50 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 flex items-center space-x-2 text-sm shadow-sm text-slate-700"
-                  >
-                    <Play className="h-4 w-4" />
-                    <span>Preview</span>
-                  </button>
-                  {activeTab === 'record' && (
-                    <>
-                      <button
-                        onClick={handleReset}
-                        className="px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-all duration-200 flex items-center space-x-2 text-sm"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        <span>Record Again</span>
-                      </button>
-                      <div className="relative group">
-                        <button
-                          onClick={() => {
-                            setShowTimelineEditor(true);
-                            // Don't hide form
-                          }}
-                          className="px-3 py-2 bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-all duration-200 flex items-center space-x-2 text-sm"
-                        >
-                          <Scissors className="h-4 w-4" />
-                          <span>Edit Video</span>
-                        </button>
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                          Trim your video to remove unwanted parts
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.select_course_required')}</label>
-                <div className="flex flex-col gap-2">
-                  <select
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm"
-                    disabled={uploading || isCreatingCourseLoading}
-                  >
-                    <option value="">{t('record_video.choose_course')}</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
-                  </select>
-                  {!isCreatingCourse && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCreatingCourse(true);
-                        setNewCourseTitle('');
-                      }}
-                      className="inline-flex items-center text-xs text-sky-700 hover:text-sky-900 self-start px-2 py-1 rounded-md hover:bg-sky-50 transition-colors"
-                      disabled={uploading}
-                    >
-                      <FileText className="h-3.5 w-3.5 mr-1" />
-                      {t('record_video.create_new_course_button')}
-                    </button>
-                  )}
-                  {isCreatingCourse && (
-                    <div className="mt-1 space-y-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
-                        {t('record_video.new_course_title')}
-                      </label>
-                      <input
-                        type="text"
-                        value={newCourseTitle}
-                        onChange={(e) => setNewCourseTitle(e.target.value)}
-                        placeholder={t('record_video.course_title_placeholder')}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:border-transparent"
-                        disabled={isCreatingCourseLoading}
-                      />
-                      <div className="flex gap-2 justify-end pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!isCreatingCourseLoading) {
-                              setIsCreatingCourse(false);
-                              setNewCourseTitle('');
-                            }
-                          }}
-                          className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-white"
-                          disabled={isCreatingCourseLoading}
-                        >
-                          {t('common.cancel')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCreateCourseInline}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-60 flex items-center"
-                          disabled={isCreatingCourseLoading || !newCourseTitle.trim()}
-                        >
-                          {isCreatingCourseLoading ? (
-                            <>
-                              <Loader className="h-3.5 w-3.5 mr-1 animate-spin" />
-                              {t('record_video.creating')}
-                            </>
-                          ) : (
-                            <>
-                              <BookOpen className="h-3.5 w-3.5 mr-1" />
-                              {t('record_video.create_and_select')}
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-slate-500">
-                        {t('record_video.create_course_help_text')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.lesson_title_required')}</label>
-                <input
-                  type="text"
-                  value={lessonTitle}
-                  onChange={(e) => setLessonTitle(e.target.value)}
-                  placeholder={t('record_video.enter_lesson_title')}
-                  className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm"
-                  disabled={uploading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-slate-700">{t('record_video.description_optional')}</label>
-                <textarea
-                  value={lessonDescription}
-                  onChange={(e) => setLessonDescription(e.target.value)}
-                  placeholder={t('record_video.brief_description')}
-                  rows={3}
-                  className="w-full p-3 border border-slate-300 rounded-xl bg-white/90 text-slate-700 focus:ring-2 focus:ring-[#4FC3F7]/50 focus:border-transparent shadow-sm"
-                  disabled={uploading}
-                />
-              </div>
-              <div className="flex space-x-3 pt-2">
-                {(recordedVideo || selectedFile) && activeTab !== 'record' && (
-                  <button
-                    onClick={handleReset}
-                    disabled={uploading}
-                    className="px-4 py-3 border border-slate-300/50 rounded-xl bg-white/90 backdrop-blur-sm hover:bg-white hover:border-slate-400/50 disabled:opacity-50 transition-all duration-200 flex items-center justify-center space-x-2 text-slate-700"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    <span>Upload New</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading || uploadSuccess || !selectedCourse || !lessonTitle.trim() || (!recordedVideo && !selectedFile)}
-                  className="flex-1 px-4 py-3 border border-transparent rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-md backdrop-blur-sm border border-emerald-500/40"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader className="h-4 w-4 animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : uploadSuccess ? (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Uploaded!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4" />
-                      <span>{lessonId ? t('record_video.update_lesson') : t('record_video.create_lesson')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Warning if no video */}
-              {(!recordedVideo && !selectedFile) && (
-                <p className="text-xs text-center text-amber-600 mt-2 flex items-center justify-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {t('record_video.record_or_upload_required')}
-                </p>
-              )}
-            </div>
-          </div>
+          <LessonDetailsForm
+            t={t as any}
+            lessonId={lessonId}
+            recordedVideo={recordedVideo}
+            selectedFile={selectedFile}
+            recordingDuration={recordingDuration}
+            activeTab={activeTab}
+            handleReset={handleReset}
+            setShowEnhancedPreview={setShowEnhancedPreview}
+            setShowTimelineEditor={setShowTimelineEditor}
+            selectedCourse={selectedCourse}
+            setSelectedCourse={setSelectedCourse}
+            uploading={uploading}
+            isCreatingCourseLoading={isCreatingCourseLoading}
+            courses={courses}
+            isCreatingCourse={isCreatingCourse}
+            setIsCreatingCourse={setIsCreatingCourse}
+            newCourseTitle={newCourseTitle}
+            setNewCourseTitle={setNewCourseTitle}
+            handleCreateCourseInline={handleCreateCourseInline}
+            lessonTitle={lessonTitle}
+            setLessonTitle={setLessonTitle}
+            lessonDescription={lessonDescription}
+            setLessonDescription={setLessonDescription}
+            handleUpload={handleUpload}
+            uploadSuccess={uploadSuccess}
+          />
         )}
 
         {/* NEW: Teleprompter Overlay */}
-        <Teleprompter 
-          isOpen={showTeleprompter} 
-          onClose={() => setShowTeleprompter(false)} 
-        />
+        <Suspense fallback={null}>
+          <Teleprompter 
+            isOpen={showTeleprompter} 
+            onClose={() => setShowTeleprompter(false)} 
+          />
+        </Suspense>
 
         {/* NEW: Pre-flight Check */}
         <PreFlightCheck
@@ -2903,16 +2307,18 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         {/* NEW: Simple Video Editor Modal */}
         {showTimelineEditor && videoBlob && recordedVideo && (
-          <SimpleTrimEditor
-            videoBlob={videoBlob}
-            videoUrl={recordedVideo}
-            onEditComplete={handleEditComplete}
-            onCancel={() => {
-              setShowTimelineEditor(false);
-              setShowPreview(false);
-              setShowLessonForm(true);
-            }}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"><LoadingSpinner color="white" /></div>}>
+            <SimpleTrimEditor
+              videoBlob={videoBlob}
+              videoUrl={recordedVideo}
+              onEditComplete={handleEditComplete}
+              onCancel={() => {
+                setShowTimelineEditor(false);
+                setShowPreview(false);
+                setShowLessonForm(true);
+              }}
+            />
+          </Suspense>
         )}
 
         {/* NEW: Video Processing Status */}
@@ -2936,33 +2342,37 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
         {/* Recording Presets Manager Modal (advanced only) */}
         {showAdvancedTools && (
-          <RecordingPresetsManager
-            currentSettings={{
-              quality: recordingQuality,
-              frameRate: frameRate,
-              bitrate: bitrate,
-              autoAdjustQuality: autoAdjustQuality,
-              videoDeviceId: recordingSources.camera?.getVideoTracks()[0]?.getSettings().deviceId,
-              audioDeviceId: recordingSources.microphone?.getAudioTracks()[0]?.getSettings().deviceId,
-              enableScreen: isScreenSharing,
-              layout: currentLayout
-            }}
-            onPresetSelect={() => { }}
-            onClose={() => setShowPresetsManager(false)}
-            isOpen={showPresetsManager}
-          />
+          <Suspense fallback={null}>
+            <RecordingPresetsManager
+              currentSettings={{
+                quality: recordingQuality,
+                frameRate: frameRate,
+                bitrate: bitrate,
+                autoAdjustQuality: autoAdjustQuality,
+                videoDeviceId: recordingSources.camera?.getVideoTracks()[0]?.getSettings().deviceId,
+                audioDeviceId: recordingSources.microphone?.getAudioTracks()[0]?.getSettings().deviceId,
+                enableScreen: isScreenSharing,
+                layout: currentLayout
+              }}
+              onPresetSelect={() => { }}
+              onClose={() => setShowPresetsManager(false)}
+              isOpen={showPresetsManager}
+            />
+          </Suspense>
         )}
 
         {/* Success/Progress Modal Notification */}
-        <SuccessNotificationModal
-          isOpen={modalNotification.isOpen}
-          type={modalNotification.type}
-          title={modalNotification.title}
-          message={modalNotification.message}
-          progress={modalNotification.progress}
-          autoCloseDelay={modalNotification.autoCloseDelay}
-          onClose={() => setModalNotification(prev => ({ ...prev, isOpen: false }))}
-        />
+        <Suspense fallback={null}>
+          <SuccessNotificationModal
+            isOpen={modalNotification.isOpen}
+            type={modalNotification.type}
+            title={modalNotification.title}
+            message={modalNotification.message}
+            progress={modalNotification.progress}
+            autoCloseDelay={modalNotification.autoCloseDelay}
+            onClose={() => setModalNotification(prev => ({ ...prev, isOpen: false }))}
+          />
+        </Suspense>
       </div>
     </>
   );

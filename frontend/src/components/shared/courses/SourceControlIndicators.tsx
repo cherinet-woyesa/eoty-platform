@@ -1,4 +1,5 @@
 // frontend/src/components/courses/SourceControlIndicators.tsx
+import React from 'react';
 import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, Monitor, Mic, MicOff } from 'lucide-react';
@@ -19,7 +20,7 @@ interface SourceControlIndicatorsProps {
   micLevel?: number;
 }
 
-const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
+const SourceControlIndicators: FC<SourceControlIndicatorsProps> = React.memo(({
   recordingSources,
   onToggleCamera,
   onToggleScreen,
@@ -145,6 +146,6 @@ const SourceControlIndicators: FC<SourceControlIndicatorsProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default SourceControlIndicators;

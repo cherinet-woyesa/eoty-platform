@@ -67,21 +67,7 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
   } | null>(null);
   const [loadingHeatmap, setLoadingHeatmap] = useState(false);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [timeframe, courseId]);
-
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        fetchAnalytics();
-      }, 300000); // Refresh every 5 minutes
-
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -104,7 +90,21 @@ const VideoAnalyticsDashboard: React.FC<VideoAnalyticsDashboardProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [timeframe, t]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics, courseId]);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        fetchAnalytics();
+      }, 300000); // Refresh every 5 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, fetchAnalytics]);
 
   const handleRefresh = () => {
     setRefreshing(true);

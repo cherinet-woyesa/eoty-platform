@@ -16,7 +16,7 @@ interface RecorderOptions {
   audioDeviceId?: string;
   resolution?: '480p' | '720p' | '1080p';
   screen?: boolean;
-  layout?: 'picture-in-picture' | 'side-by-side' | 'screen-only' | 'camera-only';
+  layout?: LayoutType;
   enableAudio?: boolean;
   quality?: 'high' | 'medium' | 'low';
   frameRate?: number;
@@ -527,19 +527,40 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
         throw new Error('Screen sharing not supported in this browser or context');
       }
 
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          width: { ideal: 1280, max: 1280 },
-          height: { ideal: 720, max: 720 },
-          frameRate: { ideal: 30, max: 30 },
-          cursor: 'always'
-        } as MediaTrackConstraints,
-        audio: options.enableAudio ? {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        } : false
-      });
+      // FIX: Window sharing often fails with audio constraints on Windows
+      // We try with audio first, if it fails, we fallback to video only
+      let screenStream: MediaStream;
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920, max: 1920 }, // Prefer higher res for screen
+            height: { ideal: 1080, max: 1080 },
+            frameRate: { ideal: 30, max: 30 },
+            cursor: 'always'
+          } as MediaTrackConstraints,
+          audio: options.enableAudio ? {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 44100
+          } : false
+        });
+      } catch (err: any) {
+        // If audio constraint caused failure (common with window sharing), retry without audio
+        if (options.enableAudio && (err.name === 'NotAllowedError' || err.name === 'OverconstrainedError' || err.message?.includes('audio'))) {
+          console.warn('Screen share with audio failed, retrying video only (likely window share limitation)', err);
+          screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              width: { ideal: 1920, max: 1920 },
+              height: { ideal: 1080, max: 1080 },
+              frameRate: { ideal: 30, max: 30 },
+              cursor: 'always'
+            } as MediaTrackConstraints,
+            audio: false // Disable audio for retry
+          });
+        } else {
+          throw err;
+        }
+      }
 
       // Track active screen streams for cleanup
       activeScreenStreams.add(screenStream);
@@ -824,7 +845,12 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
       
       // 1. Update layout if screen is present (fix for "start with both" issue)
       if (hasScreen) {
-        const newLayout = 'picture-in-picture';
+        // If we already have a layout preference, keep it, otherwise default to PiP
+        // Ensure we don't pass undefined to setCompositorLayout
+        const newLayout: LayoutType = (currentLayout === 'screen-only' || !currentLayout) 
+          ? 'picture-in-picture' 
+          : (currentLayout as LayoutType);
+          
         setCurrentLayout(newLayout);
         setCompositorLayout(newLayout);
         
@@ -1353,34 +1379,28 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
 
       // Ensure compositor sources are actually rendering frames before capture
       if (compositor) {
+        // Reduce wait times for faster start
         if (hasScreen) {
-          const screenReady = await compositor.waitForSourceReady('screen', 5000);
-          console.log('Screen source ready check before compositor start:', {
-            screenReady,
-            videoWidth: recordingSources.screen?.getVideoTracks()[0]?.getSettings().width,
-            videoHeight: recordingSources.screen?.getVideoTracks()[0]?.getSettings().height
-          });
+          // Don't block for full 5s, just check quickly
+          compositor.waitForSourceReady('screen', 1000).catch(e => console.warn('Screen ready check timeout (non-fatal)', e));
         }
         if (hasCamera) {
-          const cameraReady = await compositor.waitForSourceReady('camera', 3000);
-          console.log('Camera source ready check before compositor start:', { cameraReady });
+          compositor.waitForSourceReady('camera', 1000).catch(e => console.warn('Camera ready check timeout (non-fatal)', e));
         }
       }
       
-        // Give video elements time to initialize
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Give video elements time to initialize - reduced delay
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Additional wait to ensure video is actually playing
         let readyAttempts = 0;
-        const maxReadyAttempts = 10; // 1 second max wait
+        const maxReadyAttempts = 5; // Reduced attempts
         while (readyAttempts < maxReadyAttempts) {
           const canvas = compositor!.getCanvas();
           if (canvas && canvas.width > 0 && canvas.height > 0) {
-            // Canvas is ready, give a bit more time for video frames to start
-            await new Promise(resolve => setTimeout(resolve, 200));
             break;
           }
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 50));
           readyAttempts++;
         }
             

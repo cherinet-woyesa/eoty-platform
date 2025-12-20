@@ -17,6 +17,7 @@ import CreateAnnouncementModal from '@/components/admin/dashboard/modals/CreateA
 import CreateEventModal from '@/components/admin/dashboard/modals/CreateEventModal';
 import { useQuery } from '@tanstack/react-query';
 import { brandColors } from '@/theme/brand';
+import { DateTimeDisplay } from '@/components/common/DateTimeDisplay';
 
 // Types
 interface TeacherStats {
@@ -36,7 +37,6 @@ const TeacherDashboard: React.FC = () => {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [teacherData, setTeacherData] = useState<TeacherStats>({
     totalCourses: 0,
     totalStudentsEnrolled: 0,
@@ -124,14 +124,6 @@ const TeacherDashboard: React.FC = () => {
     setTeacherData(prev => updater(prev));
   }, []);
 
-  // Update time every minute
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Handle real-time dashboard updates with optimistic updates
   useEffect(() => {
     if (lastMessage && lastMessage.data) {
@@ -206,23 +198,6 @@ const TeacherDashboard: React.FC = () => {
       }
     }
   }, [lastMessage, refetch, optimisticUpdate]);
-
-  const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString(i18n.language, { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  }, [i18n.language]);
-
-  const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString(i18n.language, { 
-      weekday: 'long',
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  }, [i18n.language]);
 
   const handleRetry = useCallback(() => {
     refetch();
@@ -307,7 +282,7 @@ const TeacherDashboard: React.FC = () => {
                 )}
               </div>
               <p className="text-gray-600 text-sm mt-1">
-                {t('dashboard.teacher.welcome_back', { name: user?.firstName || t('dashboard.teacher.default_teacher_name') })}! {formatDate(currentTime)} • {formatTime(currentTime)}
+                {t('dashboard.teacher.welcome_back', { name: user?.firstName || t('dashboard.teacher.default_teacher_name') })}! <DateTimeDisplay />
               </p>
               <p className="text-gray-500 text-xs mt-1">
                 {t('dashboard.teacher.overview_summary', { students: teacherData.totalStudentsEnrolled, courses: teacherData.totalCourses })}

@@ -4,19 +4,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Clock, AlertTriangle, CheckCircle, XCircle, MapPin, Monitor, Smartphone, Tablet, Globe, Search, Filter, ShieldAlert } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, XCircle, MapPin, Monitor, Globe, Search, Filter, ShieldAlert } from 'lucide-react';
 import { activityApi, type ActivityLog, type AbnormalActivityAlert } from '@/services/api/activity';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface ActivityLogsProps {
-  userId?: number;
   showAlerts?: boolean;
 }
 
 const ActivityLogs: React.FC<ActivityLogsProps> = ({
-  userId,
   showAlerts = true
 }) => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [alerts, setAlerts] = useState<AbnormalActivityAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,13 +66,6 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
     }
   };
 
-  const getDeviceIcon = (deviceType: string) => {
-    switch (deviceType?.toLowerCase()) {
-      case 'mobile': return <Smartphone className="h-4 w-4" />;
-      case 'tablet': return <Tablet className="h-4 w-4" />;
-      default: return <Monitor className="h-4 w-4" />;
-    }
-  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -92,8 +86,8 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
               <ShieldAlert className="h-6 w-6 text-red-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Security Alerts</h3>
-              <p className="text-sm text-gray-500">Unusual activity detected needing attention.</p>
+              <h3 className="text-lg font-bold text-gray-900">{t('activity.alerts.title', 'Security Alerts')}</h3>
+              <p className="text-sm text-gray-500">{t('activity.alerts.subtitle', 'Unusual activity detected needing attention.')}</p>
             </div>
           </div>
           <div className="grid gap-3">
@@ -112,7 +106,7 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
                   </div>
                 </div>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/50 border border-current uppercase tracking-wider">
-                  {alert.severity}
+                  {t(`activity.severity.${alert.severity}`, alert.severity)}
                 </span>
               </div>
             ))}
@@ -124,8 +118,8 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Activity History</h2>
-            <p className="text-sm text-gray-500 mt-1">Audit trail of system access and actions</p>
+            <h2 className="text-xl font-bold text-gray-900">{t('activity.history.title', 'Activity History')}</h2>
+            <p className="text-sm text-gray-500 mt-1">{t('activity.history.subtitle', 'Audit trail of system access and actions')}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -139,10 +133,10 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
                 }}
                 className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
               >
-                <option value="all">All Activities</option>
-                <option value="login">Logins</option>
-                <option value="logout">Logouts</option>
-                <option value="failed_login">Failed Logins</option>
+                <option value="all">{t('activity.filters.all', 'All Activities')}</option>
+                <option value="login">{t('activity.filters.login', 'Logins')}</option>
+                <option value="logout">{t('activity.filters.logout', 'Logouts')}</option>
+                <option value="failed_login">{t('activity.filters.failed_login', 'Failed Logins')}</option>
               </select>
             </div>
           </div>
@@ -157,24 +151,23 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
 
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading records...</p>
+            <LoadingSpinner size="lg" text={t('common.loading_records', 'Loading records...')} />
           </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Search className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-            <p className="text-lg font-medium text-gray-900">No activity found</p>
-            <p>Try adjusting your filters.</p>
+            <p className="text-lg font-medium text-gray-900">{t('activity.history.empty_title', 'No activity found')}</p>
+            <p>{t('activity.history.empty_body', 'Try adjusting your filters.')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('activity.columns.activity', 'Activity')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('activity.columns.status', 'Status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('activity.columns.details', 'Details')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('activity.columns.date', 'Date')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -194,11 +187,11 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       {log.success ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Success
+                          {t('common.success', 'Success')}
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Failed
+                          {t('common.failed', 'Failed')}
                         </span>
                       )}
                     </td>
@@ -212,10 +205,10 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
                         )}
                         <div className="flex text-xs text-gray-500 gap-3">
                           {log.location && (
-                            <span className="flex items-center gap-1" title="Location"><MapPin className="h-3 w-3" /> {log.location}</span>
+                            <span className="flex items-center gap-1" title={t('activity.details.location', 'Location')}><MapPin className="h-3 w-3" /> {log.location}</span>
                           )}
                           {log.ip_address && (
-                            <span className="flex items-center gap-1" title="IP Address"><Globe className="h-3 w-3" /> {log.ip_address}</span>
+                            <span className="flex items-center gap-1" title={t('activity.details.ip_address', 'IP Address')}><Globe className="h-3 w-3" /> {log.ip_address}</span>
                           )}
                         </div>
                         <div className="flex text-xs text-gray-400 gap-3 mt-1">
@@ -247,14 +240,14 @@ const ActivityLogs: React.FC<ActivityLogsProps> = ({
               disabled={page === 0}
               className="px-4 py-2 border border-gray-200 rounded-l-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Previous
+              {t('common.previous', 'Previous')}
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={logs.length < pageSize}
               className="px-4 py-2 border-t border-b border-r border-gray-200 rounded-r-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
+              {t('common.next', 'Next')}
             </button>
           </div>
         </div>

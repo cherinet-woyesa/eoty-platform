@@ -167,11 +167,11 @@ const ChaptersPage: React.FC = () => {
     const awardBadgeMutation = useMutation({
         mutationFn: () => achievementsApi.awardBadge(selectedMemberId!, selectedBadgeId!),
         onSuccess: () => {
-            showNotification({ type: 'success', title: 'Success', message: 'Badge awarded successfully' });
+            showNotification({ type: 'success', title: t('common.success'), message: t('chapters.manage.badges.award_success', 'Badge awarded successfully') });
             setSelectedBadgeId(null);
             setSelectedMemberId(null);
         },
-        onError: () => showNotification({ type: 'error', title: 'Error', message: 'Failed to award badge' })
+        onError: () => showNotification({ type: 'error', title: t('common.error'), message: t('chapters.manage.badges.award_error', 'Failed to award badge') })
     });
 
     // --- Handlers ---
@@ -242,11 +242,10 @@ const ChaptersPage: React.FC = () => {
                     <nav className="flex border-b border-stone-200 flex-shrink-0 overflow-x-auto">
                         <button
                             onClick={() => setActiveTab('browse')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                                activeTab === 'browse'
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'browse'
                                     ? 'bg-stone-50'
                                     : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-                            }`}
+                                }`}
                             style={{
                                 borderColor: activeTab === 'browse' ? brandColors.primaryHex : 'transparent',
                                 color: activeTab === 'browse' ? brandColors.primaryHex : undefined
@@ -258,11 +257,10 @@ const ChaptersPage: React.FC = () => {
 
                         <button
                             onClick={() => setActiveTab('my-chapters')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                                activeTab === 'my-chapters'
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'my-chapters'
                                     ? 'bg-stone-50'
                                     : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-                            }`}
+                                }`}
                             style={{
                                 borderColor: activeTab === 'my-chapters' ? brandColors.primaryHex : 'transparent',
                                 color: activeTab === 'my-chapters' ? brandColors.primaryHex : undefined
@@ -275,11 +273,10 @@ const ChaptersPage: React.FC = () => {
                         {managedChapter && (
                             <button
                                 onClick={() => setActiveTab('manage')}
-                                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
-                                    activeTab === 'manage'
+                                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${activeTab === 'manage'
                                         ? 'bg-stone-50'
                                         : 'border-transparent text-stone-600 hover:text-stone-800 hover:bg-stone-50'
-                                }`}
+                                    }`}
                                 style={{
                                     borderColor: activeTab === 'manage' ? brandColors.primaryHex : 'transparent',
                                     color: activeTab === 'manage' ? brandColors.primaryHex : undefined
@@ -296,14 +293,14 @@ const ChaptersPage: React.FC = () => {
                         {activeTab === 'manage' && managedChapter && (
                             <div className="mb-6">
                                 <QuickStats
-                                        stats={{
-                                            total_members: membersData?.data?.members?.length || 0,
-                                            upcoming_events: eventsData?.data?.events?.length || 0,
-                                            active_discussions: 0,
-                                            resources_count: resourcesData?.data?.resources?.length || 0
-                                        }}
-                                    />
-                                </div>
+                                    stats={{
+                                        total_members: membersData?.data?.members?.length || 0,
+                                        upcoming_events: eventsData?.data?.events?.length || 0,
+                                        active_discussions: 0,
+                                        resources_count: resourcesData?.data?.resources?.length || 0
+                                    }}
+                                />
+                            </div>
                         )}
 
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -515,7 +512,9 @@ const ChaptersPage: React.FC = () => {
                                         </div>
                                         <div>
                                             <span className="text-sm font-bold text-stone-800 block">{record.first_name} {record.last_name}</span>
-                                            <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{record.joined_at ? new Date(record.joined_at).getFullYear() : 'New'} Member</span>
+                                            <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">
+                                                {record.joined_at ? new Date(record.joined_at).getFullYear() : t('common.new', 'New')} {t('chapters.member', 'Member')}
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">

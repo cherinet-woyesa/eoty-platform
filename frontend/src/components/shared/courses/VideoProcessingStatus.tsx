@@ -24,7 +24,7 @@ interface ProcessingState {
   playbackId?: string; // Mux playback ID
 }
 
-const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
+const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = React.memo(({
   lessonId,
   isOpen,
   onClose,
@@ -478,18 +478,22 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     }
   }, [lessonId, isOpen, onProcessingComplete]);
 
-  // Start polling if WebSocket fails
+  // Unified polling effect
   useEffect(() => {
-    if (usePolling && isOpen && lessonId) {
-      // Poll immediately, then every 3 seconds
+    if (isOpen && lessonId) {
+      // Determine interval: 3s if fallback mode, 5s otherwise
+      const intervalMs = usePolling ? 3000 : 5000;
+      
+      // Poll immediately
       pollMuxStatus();
-      pollingIntervalRef.current = setInterval(pollMuxStatus, 3000);
+      
+      // Set up interval
+      const id = setInterval(pollMuxStatus, intervalMs);
+      pollingIntervalRef.current = id;
 
       return () => {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
+        clearInterval(id);
+        pollingIntervalRef.current = null;
       };
     }
   }, [usePolling, isOpen, lessonId, pollMuxStatus]);
@@ -508,19 +512,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
         connectWebSocket();
       }
       
-      // Start polling immediately as a backup
-      // This ensures we get updates even if WebSocket fails
-      // Use a single polling interval to avoid duplicate requests
-      if (!pollingIntervalRef.current) {
-        pollMuxStatus(); // Poll immediately
-        pollingIntervalRef.current = setInterval(pollMuxStatus, 5000); // Poll every 5 seconds
-      }
-      
       return () => {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
         // Don't cleanup WebSocket here - let it stay connected
       };
     }
@@ -802,6 +794,6 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default VideoProcessingStatus;

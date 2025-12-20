@@ -14,7 +14,6 @@ import KeyboardShortcuts from './KeyboardShortcuts';
 import type { Notification } from './NotificationContainer';
 import { AudioLevelIndicators } from './AudioLevelIndicators';
 import type { LayoutType } from '@/types/VideoCompositor';
-import type { AudioLevelData } from '@/utils/AudioMixer';
 import {
   Circle, Square, Pause, Play,
   Upload, RotateCcw, Camera,
@@ -362,6 +361,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const recordedVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoBgRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Core UI State
@@ -410,7 +410,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   const [showCompositorPreview, setShowCompositorPreview] = useState(false);
   
   // Task 8.2: Audio level monitoring state
-  const [audioLevels, setAudioLevels] = useState<AudioLevelData[]>([]);
   const [showAudioLevels, setShowAudioLevels] = useState(false);
   
   // NEW: Loading states (Task 7.2)
@@ -499,6 +498,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (screenVideoRef.current && recordingSources.screen) {
       screenVideoRef.current.srcObject = recordingSources.screen;
       screenVideoRef.current.play().catch(() => {/* autoplay may be blocked */});
+    }
+
+    if (screenVideoBgRef.current && recordingSources.screen) {
+      screenVideoBgRef.current.srcObject = recordingSources.screen;
+      screenVideoBgRef.current.play().catch(() => {/* autoplay may be blocked */});
     }
     
     // Audio analysis setup
@@ -708,24 +712,6 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     }
   }, [performanceMetrics?.fps, performanceMetrics?.droppedFrames, isRecording, handlePerformanceDegradation, addNotification]);
 
-  // Task 8.2: Audio level monitoring effect
-  useEffect(() => {
-    if (isRecording && isCompositing && showAudioLevels) {
-      // Start monitoring audio levels
-      startAudioLevelMonitoring((levels) => {
-        setAudioLevels(levels);
-      });
-
-      return () => {
-        // Stop monitoring when recording stops or component unmounts
-        stopAudioLevelMonitoring();
-      };
-    } else {
-      // Clear audio levels when not recording
-      setAudioLevels([]);
-    }
-  }, [isRecording, isCompositing, showAudioLevels, startAudioLevelMonitoring, stopAudioLevelMonitoring]);
-
   // NEW: Layout change with feedback (Task 7.2)
   const handleLayoutChange = useCallback((layout: LayoutType) => {
     if (changeLayout) {
@@ -765,6 +751,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
   // NEW: Enhanced recording with multi-source support
   const startCountdownAndRecording = useCallback(async () => {
     try {
+      // Initialize compositor early if needed (during countdown)
+      if (isCompositing && compositorInstance) {
+        // Ensure sources are ready
+        if (recordingSources.screen) {
+          await compositorInstance.waitForSourceReady('screen', 2000).catch(() => {});
+        }
+        if (recordingSources.camera) {
+          await compositorInstance.waitForSourceReady('camera', 2000).catch(() => {});
+        }
+      }
+
       setRecordingStatus('countdown');
       setCountdown(3);
       
@@ -786,6 +783,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       });
       
       setRecordingStatus('recording');
+      // Start immediately after countdown
       await startRecording();
       
       // Start auto-stop timer if set
@@ -803,7 +801,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       setRecordingStatus('idle');
       resetRecording();
     }
-  }, [startRecording, resetRecording, autoStopTimer, isRecording]);
+  }, [startRecording, resetRecording, autoStopTimer, isRecording, isCompositing, compositorInstance, recordingSources]);
 
   useEffect(() => {
     if (shouldStartAfterInit.current && stream) {
@@ -888,8 +886,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       });
       
       if (!recordingSources.camera && !recordingSources.screen) {
-        shouldStartAfterInit.current = true;
-        await initializeCamera();
+        if (currentLayout === 'screen-only') {
+          // If screen-only layout is selected but no screen shared, start screen share
+          await handleStartScreenShare();
+          // Do NOT auto-start recording. User must click "Start Recording" again.
+          // shouldStartAfterInit.current = true; 
+        } else {
+          // Initialize camera but do NOT auto-start recording
+          // shouldStartAfterInit.current = true;
+          await initializeCamera();
+        }
       } else {
         await startCountdownAndRecording();
       }
@@ -1190,7 +1196,8 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (isRecording) {
       setSuccessMessage('Switched back to camera! Recording continues seamlessly.');
     } else {
-      setSuccessMessage('Screen sharing stopped. You are no longer sharing your screen.');
+      // Removed "Screen Sharing Stopped" message as requested
+      setSuccessMessage(null);
     }
     setErrorMessage(null);
   };
@@ -1320,15 +1327,16 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             
             {/* Screen Share Preview - Enhanced */}
             {recordingSources.screen && (
-              <div className={`screen-preview ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
+              <div className={`screen-preview absolute inset-0 overflow-hidden bg-black ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
+                {/* Main Content - Clean Fit */}
                 <video
                   ref={screenVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-full object-cover rounded-lg"
+                  className="relative w-full h-full object-contain z-10"
                 />
-                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg">
+                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg z-20">
                   <Monitor className="h-3 w-3" />
                   <span>Screen Sharing</span>
                 </div>
@@ -1659,10 +1667,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
         )}
         
         {/* Task 8.2: Audio Level Indicators */}
-        {showAudioLevels && audioLevels.length > 0 && isRecording && (
+        {showAudioLevels && isRecording && (
           <div className="absolute bottom-4 right-4 z-30">
             <AudioLevelIndicators
-              audioLevels={audioLevels}
+              isRecording={isRecording}
+              isCompositing={isCompositing}
+              startMonitoring={startAudioLevelMonitoring}
+              stopMonitoring={stopAudioLevelMonitoring}
               onVolumeChange={setAudioVolume}
               onMuteToggle={setAudioMuted}
               getMutedState={isAudioMuted}
@@ -1707,12 +1718,17 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
               <div className="text-center">
                 <button 
                   onClick={handleStartRecording} 
-                  disabled={countdown !== null || (!recordingSources.camera && !recordingSources.screen)}
+                  disabled={countdown !== null}
                   className="flex items-center space-x-3 px-8 py-4 bg-red-600 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 transition-all"
                 >
                   <Circle className="h-6 w-6" />
                   <span className="font-semibold">
-                    {countdown !== null ? `Starting...` : 'Start Recording'}
+                    {countdown !== null 
+                      ? 'Starting...' 
+                      : (!recordingSources.camera && !recordingSources.screen)
+                        ? 'Turn On Camera'
+                        : 'Start Recording'
+                    }
                   </span>
                 </button>
                 <p className="text-white text-sm mt-2 opacity-75">
