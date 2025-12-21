@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Users, Link, Copy, Check, Mail, MessageCircle } from 'lucide-react';
 
 interface ShareResourceModalProps {
@@ -16,6 +17,7 @@ const ShareResourceModal: React.FC<ShareResourceModalProps> = ({
   onClose,
   onShare
 }) => {
+  const { t } = useTranslation();
   const [shareMethod, setShareMethod] = useState('chapter');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [email, setEmail] = useState('');
@@ -56,161 +58,151 @@ const ShareResourceModal: React.FC<ShareResourceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-2xl border border-brand-soft/20 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Share Resource</h3>
+            <h3 className="text-xl font-bold text-gray-900">{t('resources.share_modal.title')}</h3>
             <button
               onClick={onClose}
-              className="p-1 rounded-md hover:bg-gray-100"
+              className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5" />
             </button>
           </div>
           
-          <div className="mb-6">
-            <p className="text-gray-700 font-medium">{resourceName}</p>
+          <div className="mb-6 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <p className="text-gray-700 font-medium line-clamp-2">{resourceName}</p>
           </div>
           
           <div className="space-y-6">
             {/* Share Method Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Share with
+                {t('resources.share_modal.share_with')}
               </label>
               <div className="space-y-2">
                 <div 
-                  className={`flex items-center p-3 rounded-lg border cursor-pointer ${
+                  className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
                     shareMethod === 'chapter' 
-                      ? 'border-blue-500 bg-blue-50' 
+                      ? 'border-brand-primary bg-brand-soft/10 shadow-sm' 
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
                   onClick={() => setShareMethod('chapter')}
                 >
-                  <Users className={`h-5 w-5 ${shareMethod === 'chapter' ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <Users className={`h-5 w-5 ${shareMethod === 'chapter' ? 'text-brand-primary' : 'text-gray-400'}`} />
                   <div className="ml-3">
-                    <div className="text-sm font-medium text-gray-900">Chapter Members</div>
-                    <div className="text-xs text-gray-500">Share with all members of your chapter</div>
+                    <div className="text-sm font-medium text-gray-900">{t('resources.share_modal.chapter_members')}</div>
+                    <div className="text-xs text-gray-500">{t('resources.share_modal.chapter_members_desc')}</div>
                   </div>
                   {shareMethod === 'chapter' && (
-                    <div className="ml-auto w-2 h-2 rounded-full bg-blue-500"></div>
+                    <div className="ml-auto w-2 h-2 rounded-full bg-brand-primary"></div>
                   )}
                 </div>
                 
                 <div 
-                  className={`flex items-center p-3 rounded-lg border cursor-pointer ${
-                    shareMethod === 'specific' 
-                      ? 'border-blue-500 bg-blue-50' 
+                  className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                    shareMethod === 'email' 
+                      ? 'border-brand-primary bg-brand-soft/10 shadow-sm' 
                       : 'border-gray-200 hover:bg-gray-50'
                   }`}
-                  onClick={() => setShareMethod('specific')}
+                  onClick={() => setShareMethod('email')}
                 >
-                  <Mail className={`h-5 w-5 ${shareMethod === 'specific' ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <Mail className={`h-5 w-5 ${shareMethod === 'email' ? 'text-brand-primary' : 'text-gray-400'}`} />
                   <div className="ml-3">
-                    <div className="text-sm font-medium text-gray-900">Specific People</div>
-                    <div className="text-xs text-gray-500">Share with specific email addresses</div>
+                    <div className="text-sm font-medium text-gray-900">{t('resources.share_modal.specific_people')}</div>
+                    <div className="text-xs text-gray-500">{t('resources.share_modal.specific_people_desc')}</div>
                   </div>
-                  {shareMethod === 'specific' && (
-                    <div className="ml-auto w-2 h-2 rounded-full bg-blue-500"></div>
+                  {shareMethod === 'email' && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-brand-primary"></div>
                   )}
                 </div>
               </div>
             </div>
-            
-            {/* Email Input for Specific Sharing */}
-            {shareMethod === 'specific' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipients
-                </label>
-                <div className="flex">
+
+            {/* Email Input */}
+            {shareMethod === 'email' && (
+              <div className="animate-fadeIn">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter email address"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddEmail()}
+                    placeholder={t('resources.share_modal.email_placeholder')}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
                   />
                   <button
                     onClick={handleAddEmail}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-r-md hover:bg-gray-200"
+                    disabled={!email || !email.includes('@')}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm font-medium transition-colors"
                   >
-                    Add
+                    {t('resources.share_modal.add')}
                   </button>
                 </div>
                 
                 {recipients.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {recipients.map((recipient, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <span className="text-sm text-gray-700">{recipient}</span>
+                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-soft/10 text-brand-primary border border-brand-soft/20">
+                        {recipient}
                         <button
                           onClick={() => handleRemoveEmail(index)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="ml-1.5 text-brand-primary hover:text-brand-primary-dark"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3" />
                         </button>
-                      </div>
+                      </span>
                     ))}
                   </div>
                 )}
               </div>
             )}
-            
+
             {/* Copy Link */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Or share via link
-              </label>
-              <div className="flex">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('resources.share_modal.copy_link')}
+                </label>
+                {copied && (
+                  <span className="text-xs text-green-600 flex items-center animate-fadeIn">
+                    <Check className="h-3 w-3 mr-1" />
+                    {t('resources.share_modal.copied')}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  value={shareableLink}
                   readOnly
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-sm"
+                  value={shareableLink}
+                  className="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500"
                 />
                 <button
                   onClick={handleCopyLink}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-r-md hover:bg-gray-200 flex items-center"
+                  className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+                  title={t('resources.share_modal.copy_link')}
                 >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4 text-green-500 mr-1" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </>
-                  )}
+                  <Copy className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </div>
-          
-          <div className="mt-6 flex space-x-3">
+
+          <div className="mt-8 flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
             >
-              Cancel
+              {t('resources.share_modal.cancel')}
             </button>
             <button
               onClick={handleShare}
-              disabled={isSharing || (shareMethod === 'specific' && recipients.length === 0)}
-              className="flex-1 flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={isSharing || (shareMethod === 'email' && recipients.length === 0)}
+              className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-sm transition-colors"
             >
-              {isSharing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Sharing...
-                </>
-              ) : (
-                'Share Resource'
-              )}
+              {isSharing ? t('resources.share_modal.sharing') : t('resources.share_modal.share_button')}
             </button>
           </div>
         </div>

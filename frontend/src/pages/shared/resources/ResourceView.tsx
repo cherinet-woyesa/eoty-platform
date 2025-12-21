@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { resourcesApi } from '@/services/api/resources';
 import type { Resource, UserNote, AISummary } from '@/types/resources';
 import DocumentViewer from '@/components/shared/resources/DocumentViewer';
@@ -15,13 +16,14 @@ import { useNotification } from '@/context/NotificationContext';
 // Memoized loading spinner
 const LoadingSpinner = React.memo(() => (
   <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
   </div>
 ));
 
 const ResourceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [resource, setResource] = useState<Resource | null>(null);
   const [notes, setNotes] = useState<UserNote[]>([]);
@@ -57,11 +59,11 @@ const ResourceView: React.FC = () => {
           setError(response.data.errorMessage);
         }
       } else {
-        setError('Failed to load resource');
+        setError(t('resources.error.load_failed'));
       }
     } catch (err: any) {
       console.error('Load resource error:', err);
-      const msg = err.response?.data?.message || 'Failed to load resource';
+      const msg = err.response?.data?.message || t('resources.error.load_failed');
       setError(msg);
 
       // If server explicitly forbids access, prompt the user to request access
@@ -105,11 +107,11 @@ const ResourceView: React.FC = () => {
           console.warn('Summary does not meet 98% relevance requirement');
         }
       } else {
-        setSummaryError('Failed to generate summary');
+        setSummaryError(t('resources.error.generic'));
       }
     } catch (err: any) {
       console.error('Load summary error:', err);
-      setSummaryError(err.response?.data?.message || 'Failed to generate summary');
+      setSummaryError(err.response?.data?.message || t('resources.error.generic'));
     } finally {
       setSummaryLoading(false);
     }
@@ -221,7 +223,7 @@ const ResourceView: React.FC = () => {
 
         showNotification({
           type: 'success',
-          title: 'Export Complete',
+          title: t('resources.export.complete'),
           message: `Export completed! File saved as: ${resource?.title || 'resource'}_export_${new Date().getTime()}.${fileExtension}`
         });
       } else {
@@ -236,7 +238,7 @@ const ResourceView: React.FC = () => {
       console.error('Export error:', err);
       showNotification({
         type: 'error',
-        title: 'Export Failed',
+        title: t('resources.export.failed'),
         message: 'Failed to export resource. Please try again.'
       });
     }
@@ -518,10 +520,10 @@ const ResourceView: React.FC = () => {
     
     return (
       <div className="p-6">
-        <p>Resource not found</p>
+        <p>{t('resources.error.not_found')}</p>
       </div>
     );
-  }, [resource]);
+  }, [resource, t]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -542,12 +544,13 @@ const ResourceView: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/resources')}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-brand-primary hover:bg-slate-100 rounded-lg transition-colors"
+            title={t('resources.actions.back')}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 truncate max-w-xl">{resource.title}</h1>
+            <h1 className="text-xl font-bold text-brand-primary truncate max-w-xl">{resource.title}</h1>
             <div className="flex items-center gap-3 text-sm text-slate-500">
               {resource.author && <span>{resource.author}</span>}
               {resource.author && resource.category && <span>•</span>}
@@ -558,8 +561,8 @@ const ResourceView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Share"
+            className="p-2 text-slate-500 hover:text-brand-primary hover:bg-brand-soft rounded-lg transition-colors"
+            title={t('resources.actions.share')}
           >
             <Share2 className="h-5 w-5" />
           </button>
@@ -581,7 +584,7 @@ const ResourceView: React.FC = () => {
                 <span className="font-medium">{requestStatusMessage}</span>
               </div>
               {!requestInProgress && (
-                <button onClick={() => { setRequestStatusMessage(null); }} className="text-xs text-amber-700 hover:text-amber-800 underline font-medium transition-colors">Dismiss</button>
+                <button onClick={() => { setRequestStatusMessage(null); }} className="text-xs text-amber-700 hover:text-amber-800 underline font-medium transition-colors">{t('resources.actions.dismiss')}</button>
               )}
             </div>
           )}
@@ -604,34 +607,34 @@ const ResourceView: React.FC = () => {
               onClick={() => setActiveTab('summary')}
               className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'summary'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-soft'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
               }`}
             >
               <Sparkles className="h-4 w-4" />
-              AI Summary
+              {t('resources.tabs.summary')}
             </button>
             <button
               onClick={() => setActiveTab('notes')}
               className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'notes'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-soft'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
               }`}
             >
               <MessageSquare className="h-4 w-4" />
-              Notes
+              {t('resources.tabs.notes')}
             </button>
             <button
               onClick={() => setActiveTab('export')}
               className={`flex-1 py-4 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
                 activeTab === 'export'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                  ? 'border-brand-primary text-brand-primary bg-brand-soft'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
               }`}
             >
               <Download className="h-4 w-4" />
-              Export
+              {t('resources.tabs.export')}
             </button>
           </div>
 
@@ -674,20 +677,20 @@ const ResourceView: React.FC = () => {
                         setShowNotesEditor(true);
                         setEditingNote(null);
                       }}
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary-dark text-white font-medium rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2"
                     >
                       <MessageSquare className="h-4 w-4" />
-                      Add New Note
+                      {t('resources.actions.add_note')}
                     </button>
 
                     {(notes.length > 0 || publicNotes.length > 0 || sharedNotes.length > 0) ? (
                       <div className="space-y-4">
                         {notes.map(note => (
-                          <div key={note.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                          <div key={note.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-brand-accent transition-colors">
                             <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{note.content}</p>
                             {note.section_anchor && (
-                              <p className="text-xs text-blue-600 font-medium mt-2 flex items-center gap-1">
-                                📍 Anchored to section
+                              <p className="text-xs text-brand-primary font-medium mt-2 flex items-center gap-1">
+                                📍 {t('resources.notes.anchored')}
                               </p>
                             )}
                             <p className="text-xs text-slate-400 mt-2">
@@ -696,9 +699,9 @@ const ResourceView: React.FC = () => {
                           </div>
                         ))}
                         {[...publicNotes, ...sharedNotes].map(note => (
-                          <div key={note.id} className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                          <div key={note.id} className="p-4 bg-brand-soft rounded-lg border border-brand-primary/20">
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                              <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-xs font-bold text-brand-primary">
                                 {note.first_name?.[0]}
                               </div>
                               <span className="text-xs font-medium text-slate-700">{note.first_name} {note.last_name}</span>
@@ -710,7 +713,7 @@ const ResourceView: React.FC = () => {
                     ) : (
                       <div className="text-center py-12 text-slate-400">
                         <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                        <p>No notes yet</p>
+                        <p>{t('resources.notes.empty')}</p>
                       </div>
                     )}
                   </>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Resource } from '@/types/resources';
 import { Image as ImageIcon, Download, Maximize2, Minimize2, Printer, Highlighter, MousePointer } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface DocumentViewerProps {
 }
 
 const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor, onExplainSelection }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -106,299 +108,102 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
     }
   }, [isFullscreen]);
 
-  // Handle print
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
-  // Enhanced note creation with selected text
+  // Handle adding note from selection
   const handleAddNoteFromSelection = useCallback(() => {
     if (selectedText && onNoteAnchor) {
-      const position = resource.file_type.includes('pdf')
-        ? `page-${currentPage}-selection`
-        : `section-selection-${selectionPosition?.start || 0}`;
-
-      onNoteAnchor(position, selectedText, selectionPosition?.start || currentPage);
-      // Clear selection after note creation
-      window.getSelection()?.removeAllRanges();
-      setSelectedText('');
-      setSelectionPosition(null);
+      // Create a snippet for context
+      const snippet = selectedText.length > 50 ? selectedText.substring(0, 50) + '...' : selectedText;
+      onNoteAnchor(`Selection: "${snippet}"`, selectedText, selectionPosition?.start);
     }
-  }, [selectedText, selectionPosition, currentPage, resource.file_type, onNoteAnchor]);
+  }, [selectedText, onNoteAnchor, selectionPosition]);
 
+  // Handle adding general note
+  const handleAddNote = useCallback(() => {
+    if (onNoteAnchor) {
+      onNoteAnchor('General Note');
+    }
+  }, [onNoteAnchor]);
+
+  // Handle highlighting
   const handleHighlightSelection = useCallback(() => {
-    if (selectedText && highlightMode) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-
-        // Create a highlight span
-        const highlightSpan = document.createElement('span');
-        highlightSpan.className = 'inline-highlight';
-        highlightSpan.style.backgroundColor = '#fef3c7'; // yellow-100
-        highlightSpan.style.borderRadius = '2px';
-        highlightSpan.style.padding = '1px 2px';
-        highlightSpan.dataset.highlightId = `highlight-${Date.now()}`;
-
-        try {
-          // Wrap the selected text with the highlight span
-          range.surroundContents(highlightSpan);
-
-          // Add to highlights list for management
-          const newHighlight = {
-            text: selectedText,
-            id: highlightSpan.dataset.highlightId!,
-            range: range // Store range for potential future use
-          };
-          setHighlights(prev => [...prev, newHighlight]);
-
-          // Clear selection after highlighting
-          window.getSelection()?.removeAllRanges();
-          setSelectedText('');
-          setSelectionPosition(null);
-        } catch (error) {
-          // surroundContents can fail if selection spans multiple elements
-          console.warn('Could not highlight selection inline, using fallback');
-          // Fallback to panel-based highlighting
-          const newHighlight = {
-            text: selectedText,
-            id: `highlight-${Date.now()}`,
-            range: range
-          };
-          setHighlights(prev => [...prev, newHighlight]);
-
-          // Clear selection
-          window.getSelection()?.removeAllRanges();
-          setSelectedText('');
-          setSelectionPosition(null);
-        }
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const text = selection.toString();
+      
+      if (text.trim().length > 0) {
+        const newHighlight = {
+          text,
+          id: Date.now().toString(),
+          range: range.cloneRange()
+        };
+        
+        setHighlights([...highlights, newHighlight]);
+        
+        // Clear selection
+        selection.removeAllRanges();
+        setSelectedText('');
+        setSelectionPosition(null);
       }
     }
-  }, [selectedText, highlightMode]);
-
-  const removeHighlight = useCallback((highlightId: string) => {
-    // Remove inline highlight from DOM
-    const highlightElement = document.querySelector(`[data-highlight-id="${highlightId}"]`);
-    if (highlightElement) {
-      // Move contents out of highlight and remove highlight element
-      const parent = highlightElement.parentNode;
-      if (parent) {
-        while (highlightElement.firstChild) {
-          parent.insertBefore(highlightElement.firstChild, highlightElement);
-        }
-        parent.removeChild(highlightElement);
-      }
-    }
-
-    // Remove from highlights list
-    setHighlights(prev => prev.filter(h => h.id !== highlightId));
-  }, []);
-
-  const clearAllHighlights = useCallback(() => {
-    // Remove all inline highlights
-    highlights.forEach(highlight => {
-      const highlightElement = document.querySelector(`[data-highlight-id="${highlight.id}"]`);
-      if (highlightElement) {
-        const parent = highlightElement.parentNode;
-        if (parent) {
-          while (highlightElement.firstChild) {
-            parent.insertBefore(highlightElement.firstChild, highlightElement);
-          }
-          parent.removeChild(highlightElement);
-        }
-      }
-    });
-
-    // Clear highlights list
-    setHighlights([]);
   }, [highlights]);
+
+  const removeHighlight = (id: string) => {
+    setHighlights(highlights.filter(h => h.id !== id));
+  };
+
+  const clearAllHighlights = () => {
+    setHighlights([]);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const handleDownload = () => {
     if (fileUrl) {
       const link = document.createElement('a');
       link.href = fileUrl;
-      link.download = resource.file_name || 'download';
-      link.target = '_blank';
+      link.download = resource.title || 'document';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } else {
-      console.error('No file URL available for download');
-      alert('Download failed: File URL not available');
     }
   };
-
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 25, 200));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 25, 50));
-  };
-
-  const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  };
-
-  const handleAddNote = useCallback(() => {
-    if (onNoteAnchor) {
-      // REQUIREMENT: Anchor notes to sections - provide section context
-      // For PDFs, this would be the current page number
-      // For text documents, this could be a line number or section
-      // For images, this could be coordinates
-      const position = resource.file_type.includes('pdf') 
-        ? `page-${currentPage}` 
-        : `general`;
-      
-      // REQUIREMENT: Provide section text and position for anchoring
-      const sectionText = resource.description?.substring(0, 200) || resource.title;
-      const sectionPosition = resource.file_type.includes('pdf') ? currentPage : 0;
-      
-      onNoteAnchor(position, sectionText, sectionPosition);
-    }
-  }, [onNoteAnchor, resource, currentPage]);
 
   const renderDocument = () => {
     if (loading) {
       return (
         <div className="flex flex-col items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <p>Loading document...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4"></div>
+          <p>{t('resources.loading')}</p>
         </div>
       );
     }
 
-    // Document content will be rendered here
-
-    // Determine document type and render appropriately
     if (resource.file_type.includes('pdf')) {
-      return renderPDFViewer();
-    } else if (resource.file_type.includes('image')) {
-      return renderImageViewer();
-    } else {
-      return renderTextViewer();
+      return (
+        <iframe
+          src={`${fileUrl}#toolbar=0`}
+          className="w-full h-full min-h-[600px] border-0"
+          title={resource.title}
+        />
+      );
     }
-  };
 
-  const renderPDFViewer = () => {
-    return (
-      <div className="flex flex-col h-full" ref={documentRef}>
-        {/* Enhanced PDF Controls */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 border-b flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            {/* PDF Navigation is handled by the native viewer in iframe, so we hide custom nav for now */}
-            <span className="text-sm font-medium text-gray-500">
-              Use PDF toolbar to navigate
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleAddNote}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors"
-              title="Add note to current page"
-            >
-              Add Note
-            </button>
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </button>
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm transition-colors"
-              title="Download resource"
-            >
-              <Download className="h-4 w-4" />
-              Download
-            </button>
-          </div>
-        </div>
-        
-        {/* PDF Content */}
-        <div className="flex-1 bg-gray-100 relative">
-          <iframe 
-            src={fileUrl} 
-            className="w-full h-full border-0"
-            title={resource.title}
+    if (resource.file_type.includes('image')) {
+      return (
+        <div className="flex items-center justify-center h-full bg-gray-100 p-4 overflow-auto">
+          <img
+            src={fileUrl}
+            alt={resource.title}
+            className="max-w-full max-h-full object-contain shadow-lg"
           />
-          {/* Overlay for note taking (simplified) */}
-          <div className="absolute bottom-4 right-4 bg-white/90 p-2 rounded shadow text-xs text-gray-500 pointer-events-none">
-            Viewing: {resource.file_name}
-          </div>
         </div>
-      </div>
-    );
-  };
+      );
+    }
 
-  const renderImageViewer = () => {
-    return (
-      <div className="flex flex-col h-full">
-        {/* Image Controls */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleZoomOut}
-              className="p-2 rounded-md hover:bg-gray-200"
-            >
-              -
-            </button>
-            <span className="text-sm">{zoomLevel}%</span>
-            <button
-              onClick={handleZoomIn}
-              className="p-2 rounded-md hover:bg-gray-200"
-            >
-              +
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleAddNote}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-            >
-              Add Note
-            </button>
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-            >
-              <Download className="h-4 w-4" />
-              Download
-            </button>
-          </div>
-        </div>
-        
-        {/* Image Content */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center">
-          <div 
-            className="bg-white p-4 rounded-lg shadow-md transition-transform duration-200"
-            style={{ 
-              transform: `scale(${zoomLevel / 100})`,
-              transformOrigin: 'center center'
-            }}
-          >
-            <img 
-              src={fileUrl} 
-              alt={resource.title}
-              className="max-w-full max-h-[80vh] object-contain"
-              onError={(e) => {
-                // Fallback if image fails to load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<div class="p-8 text-center text-red-500">Failed to load image</div>';
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    );
+    return renderTextViewer();
   };
 
   const renderTextViewer = () => {
@@ -411,13 +216,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
               onClick={() => setHighlightMode(!highlightMode)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
                 highlightMode
-                  ? 'bg-[#27AE60] text-white hover:bg-[#27AE60]/90'
-                  : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                  ? 'bg-brand-primary text-white hover:bg-brand-primary-dark'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              title={highlightMode ? "Exit highlight mode" : "Enter highlight mode"}
+              title={highlightMode ? t('resources.viewer.exit_highlight') : t('resources.viewer.highlight_mode')}
             >
               <Highlighter className="h-4 w-4" />
-              {highlightMode ? 'Exit Highlight' : 'Highlight Mode'}
+              {highlightMode ? t('resources.viewer.exit_highlight') : t('resources.viewer.highlight_mode')}
             </button>
           </div>
           
@@ -425,61 +230,61 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
             {selectedText && (
               <button
                 onClick={handleAddNoteFromSelection}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
-                title="Add note from selection"
+                className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dark text-sm transition-colors"
+                title={t('resources.viewer.note_from_selection')}
               >
                 <MousePointer className="h-4 w-4" />
-                📝 Note from Selection
+                {t('resources.viewer.note_from_selection')}
               </button>
             )}
             <button
               onClick={handleAddNote}
-              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#27AE60] to-[#16A085] text-stone-900 rounded-md hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-sm transition-colors"
-              title="Add note"
+              className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dark text-sm transition-colors"
+              title={t('resources.viewer.add_note')}
             >
-              📝 Add Note
+              📝 {t('resources.viewer.add_note')}
             </button>
             <button
               onClick={toggleFullscreen}
               className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={isFullscreen ? t('resources.viewer.exit_fullscreen') : t('resources.viewer.enter_fullscreen')}
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
             <button
               onClick={handlePrint}
               className="p-2 rounded-md hover:bg-gray-200 transition-colors"
-              title="Print document"
+              title={t('resources.viewer.print')}
             >
               <Printer className="h-4 w-4" />
             </button>
             <button
               onClick={handleDownload}
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm transition-colors"
-              title="Download resource"
+              title={t('resources.viewer.download')}
             >
               <Download className="h-4 w-4" />
-              Download
+              {t('resources.viewer.download')}
             </button>
           </div>
         </div>
         
         {/* Selection Toolbar */}
         {selectedText && (
-          <div className="px-4 py-3 bg-gradient-to-r from-[#27AE60]/10 to-[#16A085]/10 border-b border-[#27AE60]/20 flex items-center justify-between">
+          <div className="px-4 py-3 bg-brand-soft/10 border-b border-brand-soft/20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-[#27AE60] font-semibold">📝 Selected Text:</span>
-              <span className="text-sm text-stone-700 italic line-clamp-1 max-w-md">"{selectedText}"</span>
+              <span className="text-sm text-brand-primary font-semibold">📝 {t('resources.viewer.selected_text')}:</span>
+              <span className="text-sm text-gray-700 italic line-clamp-1 max-w-md">"{selectedText}"</span>
             </div>
             <div className="flex items-center gap-2">
               {highlightMode && (
                 <button
                   onClick={handleHighlightSelection}
                   className="flex items-center gap-1 px-3 py-1 bg-yellow-500 text-white text-xs rounded-md hover:bg-yellow-600 transition-colors"
-                  title="Highlight this text"
+                  title={t('resources.viewer.highlight')}
                 >
                   <Highlighter className="h-3 w-3" />
-                  Highlight
+                  {t('resources.viewer.highlight')}
                 </button>
               )}
               <button
@@ -488,9 +293,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
                   setSelectedText('');
                   setSelectionPosition(null);
                 }}
-                className="text-xs text-stone-600 hover:text-stone-800 font-medium"
+                className="text-xs text-gray-600 hover:text-gray-800 font-medium"
               >
-                ✕ Clear
+                ✕ {t('resources.viewer.clear')}
               </button>
             </div>
           </div>
@@ -502,17 +307,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-yellow-800 font-semibold flex items-center gap-2">
                 <Highlighter className="h-4 w-4" />
-                Text Highlights ({highlights.length})
+                {t('resources.viewer.text_highlights')} ({highlights.length})
               </span>
               <button
                 onClick={clearAllHighlights}
                 className="text-xs text-yellow-700 hover:text-yellow-800 font-medium px-2 py-1 bg-yellow-100 hover:bg-yellow-200 rounded"
               >
-                Clear All
+                {t('resources.viewer.clear_all')}
               </button>
             </div>
             <div className="text-xs text-yellow-700 mb-2">
-              💡 Highlights are applied directly to the text above
+              💡 {t('resources.viewer.highlights_info')}
             </div>
             <div className="space-y-2">
               {highlights.map((highlight) => (
@@ -522,7 +327,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
                   <button
                     onClick={() => removeHighlight(highlight.id)}
                     className="text-yellow-600 hover:text-yellow-800 text-xs px-1.5 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded"
-                    title="Remove this highlight"
+                    title={t('resources.viewer.remove_highlight')}
                   >
                     ✕
                   </button>
@@ -541,7 +346,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
           <h1 className="text-3xl font-bold mb-4">{resource.title}</h1>
 
           {resource.author && (
-            <p className="text-gray-600 mb-6">by {resource.author}</p>
+            <p className="text-gray-600 mb-6">{t('resources.viewer.by')} {resource.author}</p>
           )}
 
           {resource.description && (
@@ -557,17 +362,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
                   Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
                 </p>
 
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Introduction</h2>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">{t('resources.viewer.introduction')}</h2>
                 <p>
                   Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
                 </p>
 
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Main Content</h2>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">{t('resources.viewer.main_content')}</h2>
                 <p>
                   Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
                 </p>
 
-                <blockquote className="border-l-4 border-[#27AE60] pl-4 my-6 italic text-stone-700 bg-[#27AE60]/5 py-2 px-3 rounded-r-md">
+                <blockquote className="border-l-4 border-brand-primary pl-4 my-6 italic text-gray-700 bg-brand-soft/5 py-2 px-3 rounded-r-md">
                   "This is an important quote from the text that might be worth noting."
                 </blockquote>
 
@@ -575,7 +380,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
                   Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
                 </p>
 
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Conclusion</h2>
+                <h2 className="text-2xl font-semibold mt-8 mb-4">{t('resources.viewer.conclusion')}</h2>
                 <p>
                   Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
                 </p>
@@ -601,7 +406,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ resource, onNoteAnchor,
                 </span>
               )}
               <span>{resource.file_type.toUpperCase()}</span>
-              {resource.author && <span>by {resource.author}</span>}
+              {resource.author && <span>{t('resources.viewer.by')} {resource.author}</span>}
             </div>
           </div>
           

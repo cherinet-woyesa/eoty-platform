@@ -998,6 +998,16 @@
     "average_engagement": "Average Engagement",
     "low_engagement": "Low Engagement",
     "per_segment": "Per segment",
+    "metrics": {
+      "total_views": "Total Views",
+      "unique_viewers": "Unique Viewers",
+      "avg_watch_time": "Avg. Watch Time",
+      "views": "Views",
+      "engagement": "Engagement",
+      "completion": "Completion",
+      "watch_time": "Watch Time",
+      "completion_rate": "Completion Rate"
+    },
     "drop_off_points": "Potential Drop-off Points",
     "review_sections": "Consider reviewing these sections to improve engagement",
     "daily_video_views_over_time": "Daily video views over time",
@@ -1335,134 +1345,6 @@
         "fair": "Fair",
         "good": "Good",
         "strong": "Strong"
-      }
-    }
-  },
-  "onboarding": {
-    "step_of": "Step {{index}} of {{total}}",
-    "video_not_supported": "Your browser does not support the video tag.",
-    "play_video": "Play video walkthrough",
-    "click_to_play": "Click to play video walkthrough",
-    "required_action": "Required Action",
-    "finish": "Finish",
-    "title_fallback": "Welcome",
-    "loading_steps": "Loading steps...",
-    "loading_journey": "Loading your journey...",
-    "completed_title": "Journey Completed!",
-    "completed_subtitle": "You've successfully set up your profile. Here are your rewards and next steps.",
-    "enter_dashboard": "Enter Dashboard",
-    "rewards": {
-      "none_title": "No rewards yet",
-      "none_subtitle": "Complete more steps to earn rewards!",
-      "claimed": "Claimed",
-      "earned_on": "Earned {{date}}",
-      "claim_cta": "Claim Reward"
-    },
-    "analytics": {
-      "title": "Onboarding Analytics",
-      "completion_rate": "Completion Rate",
-      "seven_day": "7-Day Completion",
-      "total_users": "Total Users",
-      "total_completed": "Total Completed",
-      "target": "Target: 95% completion within {{days}} days",
-      "goal_met": "✓ Goal Achieved",
-      "goal_miss": "⚠ Below Target",
-      "summary": "{{completed}} of {{total}} users completed onboarding"
-    },
-    "help": {
-      "title": "Help & Resources",
-      "none": "No specific help content available.",
-      "error": "Unable to load help",
-      "error_generic": "An error occurred while fetching help content.",
-      "related_questions": "Related Questions"
-    },
-    "reminder": {
-      "title": "Continue Your Journey",
-      "skipped": "You have a few steps remaining to complete your profile setup.",
-      "aborted": "Don't miss out! Finish your onboarding to unlock all features.",
-      "generic": "Your journey awaits. Resume where you left off.",
-      "resume": "Resume Now"
-    },
-    "welcome": {
-      "title": "Welcome, {{name}}!",
-      "subtitle": "Ready to start your journey? Complete our quick guide to unlock all features.",
-      "benefits_title": "Unlock These Benefits",
-      "benefit_rewards": "Welcome Rewards",
-      "benefit_badges": "Achievement Badges",
-      "benefit_setup": "Personalized Setup",
-      "benefit_quick": "Quick 2-min Guide",
-      "cta_start": "Start Journey",
-      "cta_later": "Later"
-    },
-    "error": {
-      "title": "Onboarding Error",
-      "skip": "Skip for Now"
-    },
-    "flows": {
-      "student": {
-        "title": "New User Onboarding",
-        "milestones": {
-          "0": "Welcome & Setup",
-          "1": "Discovery",
-          "2": "All Set!"
-        },
-        "steps": {
-          "0": {
-            "title": "Welcome to EOTY Platform",
-            "description": "We are glad to have you here. Let's get you set up.",
-            "content": "Welcome video or text goes here."
-          },
-          "1": {
-            "title": "Complete Your Profile",
-            "description": "Upload a profile picture and set your bio.",
-            "action_required": "Update your profile to continue."
-          },
-          "2": {
-            "title": "Explore Courses",
-            "description": "Check out our library of courses."
-          },
-          "3": {
-            "title": "Join a Chapter",
-            "description": "Connect with your local community.",
-            "action_required": "Join a chapter to connect with others."
-          },
-          "4": {
-            "title": "Claim Your Badge",
-            "description": "Congratulations! You have completed the onboarding."
-          }
-        }
-      },
-      "teacher": {
-        "title": "Teacher Onboarding",
-        "steps": {
-          "0": {
-            "title": "Welcome, Teacher!",
-            "description": "Learn about your role as a teacher on the platform.",
-            "content": "<p>As a teacher, you can create and manage courses, interact with students, and contribute to the community.</p>"
-          },
-          "1": {
-            "title": "Create Your First Course",
-            "description": "Learn how to create and structure a course.",
-            "content": "<p>Creating a course involves setting up course details, adding lessons, and organizing content.</p>",
-            "action_required": "Navigate to the course creation page and explore the options."
-          },
-          "2": {
-            "title": "Add Lessons to Your Course",
-            "description": "Learn how to add and organize lessons within your course.",
-            "content": "<p>Lessons are the building blocks of your course. You can add videos, quizzes, and resources to each lesson.</p>",
-            "action_required": "Try adding a lesson to understand the lesson creation process."
-          },
-          "3": {
-            "title": "Manage Student Engagement",
-            "description": "Learn how to interact with students and track their progress.",
-            "content": "<p>You can view student progress, respond to questions, and provide feedback through the platform.</p>"
-          },
-          "4": {
-            "title": "Use Admin Tools",
-            "description": "Explore the admin tools available to teachers.",
-            "content": "<p>Teachers have access to moderation tools, analytics, and content management features.</p>"
-          }
-        }
       }
     }
   },
@@ -2336,6 +2218,7 @@
       "title": "Course Not Found",
       "description": "The course you're looking for doesn't exist or may have been removed."
     },
+    "no_lessons_found": "No lessons found",
     "no_content_title": "No Content Yet",
     "no_content_desc": "This lesson is empty. Record a video or upload a file to get started.",
     "record_video": "Record Video",
@@ -3803,6 +3686,54 @@
     "no_bookmarks_desc": "Save items to revisit them quickly."
   },
   "onboarding": {
+    "step_of": "Step {{index}} of {{total}}",
+    "video_not_supported": "Your browser does not support the video tag.",
+    "play_video": "Play video walkthrough",
+    "click_to_play": "Click to play video walkthrough",
+    "required_action": "Required Action",
+    "finish": "Finish",
+    "title_fallback": "Welcome",
+    "loading_steps": "Loading steps...",
+    "loading_journey": "Loading your journey...",
+    "completed_title": "Journey Completed!",
+    "completed_subtitle": "You've successfully set up your profile. Here are your rewards and next steps.",
+    "enter_dashboard": "Enter Dashboard",
+    "rewards": {
+      "none_title": "No rewards yet",
+      "none_subtitle": "Complete more steps to earn rewards!",
+      "claimed": "Claimed",
+      "earned_on": "Earned {{date}}",
+      "claim_cta": "Claim Reward"
+    },
+    "analytics": {
+      "title": "Onboarding Analytics",
+      "completion_rate": "Completion Rate",
+      "seven_day": "7-Day Completion",
+      "total_users": "Total Users",
+      "total_completed": "Total Completed",
+      "target": "Target: 95% completion within {{days}} days",
+      "goal_met": "✓ Goal Achieved",
+      "goal_miss": "⚠ Below Target",
+      "summary": "{{completed}} of {{total}} users completed onboarding"
+    },
+    "help": {
+      "title": "Help & Resources",
+      "none": "No specific help content available.",
+      "error": "Unable to load help",
+      "error_generic": "An error occurred while fetching help content.",
+      "related_questions": "Related Questions"
+    },
+    "reminder": {
+      "title": "Continue Your Journey",
+      "skipped": "You have a few steps remaining to complete your profile setup.",
+      "aborted": "Don't miss out! Finish your onboarding to unlock all features.",
+      "generic": "Your journey awaits. Resume where you left off.",
+      "resume": "Resume Now"
+    },
+    "error": {
+      "title": "Onboarding Error",
+      "skip": "Skip for Now"
+    },
     "welcome": {
       "title": "Welcome to EOTY Platform",
       "subtitle": "Your journey to spiritual growth and community connection starts here.",
@@ -3818,8 +3749,8 @@
       "student": {
         "steps": {
           "0": {
-            "title": "Welcome to Your Spiritual Journey",
-            "description": "Embark on a path of faith, learning, and community with the EOTY Platform.",
+            "title": "Welcome to EOTY Platform",
+            "description": "Visit the courses page and browse available courses.",
             "content": "Welcome! The EOTY Platform is your dedicated space to grow in the Ethiopian Orthodox Tewahedo faith. Here, you will find authentic teachings, connect with fellow youth, and access spiritual resources curated just for you."
           },
           "1": {
@@ -3850,6 +3781,15 @@
     "temp": "placeholder"
   },
   "resources": {
+    "ai_summary": {
+      "generating": "Generating summary...",
+      "generating_analyzing": "Analyzing content...",
+      "generating_long": "Taking longer than expected...",
+      "unavailable": "Summary Unavailable",
+      "retry": "Retry",
+      "no_summary": "No Summary Available",
+      "generate_prompt": "Generate a summary for this resource"
+    },
     "search_placeholder": "Search resources...",
     "all_categories": "All Categories",
     "join_chapter_hint": "Join a chapter to view chapter resources.",
@@ -4291,6 +4231,203 @@
         "urgent": "Urgent"
       },
       "empty": "No tickets found"
+    }
+  },
+  "resources": {
+    "title": "Resources",
+    "loading": "Loading resource...",
+    "error": {
+      "load_failed": "Failed to load resource",
+      "unsupported": "Unsupported file type",
+      "access_denied": "Access Denied",
+      "not_found": "Resource not found",
+      "generic": "An error occurred"
+    },
+    "actions": {
+      "share": "Share",
+      "download": "Download",
+      "request_access": "Request Access",
+      "back": "Back to Resources",
+      "dismiss": "Dismiss",
+      "add_note": "Add New Note",
+      "save_note": "Save Note",
+      "cancel": "Cancel"
+    },
+    "tabs": {
+      "summary": "AI Summary",
+      "notes": "Notes",
+      "export": "Export"
+    },
+    "ai_summary": {
+      "generating": "Generating AI summary...",
+      "unavailable": "AI Summary Unavailable",
+      "retry": "Retry",
+      "no_summary": "No Summary Available",
+      "generate_prompt": "Generate an AI summary to get insights from this resource.",
+      "generate_button": "Generate Summary",
+      "quality_metrics": "Quality Metrics",
+      "word_count": "Word Count",
+      "relevance": "Relevance",
+      "spiritual_insights": "Spiritual Insights",
+      "key_points": "Key Points"
+    },
+    "summary": {
+      "brief": "Brief",
+      "detailed": "Detailed",
+      "comprehensive": "Comprehensive",
+      "key_points": "Key Points",
+      "spiritual_insights": "Spiritual Insights",
+      "generated_by_ai": "Generated by AI"
+    },
+    "notes": {
+      "empty": "No notes yet",
+      "anchored": "Anchored to section",
+      "public": "Public",
+      "private": "Private",
+      "edit_note": "Edit Note",
+      "add_new_note": "Add New Note",
+      "anchored_to": "Note anchored to",
+      "note_content": "Note Content",
+      "placeholder": "Write your note here... Use Markdown formatting: **bold**, *italic*, - list items",
+      "markdown_support": "Supports Markdown: **bold**, *italic*, - lists, [links](url)",
+      "tags": "Tags",
+      "add_tag_placeholder": "Add a tag...",
+      "shared_with_chapter": "Shared with Chapter",
+      "private_note": "Private Note",
+      "visible_to_chapter": "Visible to all chapter members for collaborative learning",
+      "visible_to_you": "Only visible to you for personal reflection",
+      "saving": "Saving...",
+      "enter_url": "Enter URL:"
+    },
+    "viewer": {
+      "highlight_mode": "Highlight Mode",
+      "exit_highlight": "Exit Highlight",
+      "note_from_selection": "Note from Selection",
+      "add_note": "Add Note",
+      "download": "Download",
+      "selected_text": "Selected Text",
+      "highlight": "Highlight",
+      "clear": "Clear",
+      "text_highlights": "Text Highlights",
+      "clear_all": "Clear All",
+      "highlights_info": "Highlights are applied directly to the text above",
+      "remove_highlight": "Remove this highlight",
+      "by": "by",
+      "introduction": "Introduction",
+      "main_content": "Main Content",
+      "conclusion": "Conclusion",
+      "enter_fullscreen": "Enter fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "print": "Print document"
+    },
+    "export": {
+      "title": "Export & Share",
+      "subtitle": "Download content or share with your chapter",
+      "type_title": "Export Type",
+      "format_title": "Export Format",
+      "types": {
+        "combined": "Combined (Notes + Summary)",
+        "combined_desc": "Export both notes and AI summary",
+        "notes": "Notes Only",
+        "notes_desc": "Export personal and public notes",
+        "summary": "Summary Only",
+        "summary_desc": "Export AI-generated summary"
+      },
+      "formats": {
+        "pdf": "PDF Document",
+        "docx": "Word Document",
+        "txt": "Text File"
+      },
+      "button": "Export",
+      "exporting": "Exporting...",
+      "share_button": "Share with Chapter",
+      "complete": "Export Complete",
+      "failed": "Export Failed"
+    },
+    "lesson": {
+      "title": "Lesson Resources",
+      "empty": "No resources attached to this lesson",
+      "detach_confirm": "Are you sure you want to detach this resource from this lesson?",
+      "detach_success": "Resource detached successfully",
+      "detach_error": "Failed to detach resource",
+      "download_error": "Failed to download resource",
+      "load_error": "Failed to load resources",
+      "detach": "Detach",
+      "download": "Download",
+      "view": "View"
+    },
+    "card": {
+      "by": "By",
+      "more": "more"
+    },
+    "error_handler": {
+      "unsupported_title": "Unsupported File Type",
+      "unsupported_message": "This file type is not currently supported for viewing in the browser. You can download the file to view it on your device.",
+      "unauthorized_title": "Access Denied",
+      "unauthorized_message": "You do not have permission to access this resource. Please contact your administrator if you believe this is an error.",
+      "ai_failure_title": "AI Service Unavailable",
+      "ai_failure_message": "The AI summarization service is temporarily unavailable. Please try again later or contact support if the problem persists.",
+      "not_found_title": "Resource Not Found",
+      "not_found_message": "The resource you are looking for could not be found. It may have been removed or you may have an incorrect link.",
+      "generic_title": "Something Went Wrong",
+      "generic_message": "An unexpected error occurred while loading the resource. Please try again later.",
+      "actions": {
+        "download": "Download File",
+        "home": "Go Home",
+        "request_access": "Request Access",
+        "retry": "Retry",
+        "contact_support": "Contact Support"
+      }
+    },
+    "request_access": {
+      "title": "Request Access",
+      "description": "Send a request to the resource owner or administrator to request view access.",
+      "message_label": "Message",
+      "default_message": "Hi, I would like access to the resource '{{name}}'. Please grant view permission.",
+      "cancel": "Cancel",
+      "send": "Send Request",
+      "sending": "Sending...",
+      "error": "Failed to send request"
+    },
+    "attach_modal": {
+      "title": "Attach Resource to Lesson",
+      "select_course": "Select Course",
+      "select_lesson": "Select Lesson",
+      "search_placeholder": "Search courses...",
+      "no_courses": "No courses found",
+      "no_lessons": "No lessons found in this course",
+      "attach_button": "Attach Resource",
+      "attaching": "Attaching...",
+      "cancel": "Cancel",
+      "success": "Resource attached successfully",
+      "error": "Failed to attach resource",
+      "select_lesson_warning": "Please select a lesson first",
+      "load_courses_error": "Failed to load courses",
+      "load_lessons_error": "Failed to load lessons"
+    },
+    "share_modal": {
+      "title": "Share Resource",
+      "share_with": "Share with",
+      "chapter_members": "Chapter Members",
+      "chapter_members_desc": "Share with all members of your chapter",
+      "specific_people": "Specific People",
+      "specific_people_desc": "Share with specific email addresses",
+      "email_placeholder": "Enter email address",
+      "add": "Add",
+      "copy_link": "Copy Link",
+      "copied": "Copied!",
+      "share_button": "Share",
+      "sharing": "Sharing...",
+      "cancel": "Cancel"
+    },
+    "ai_fallback": {
+      "title": "AI Summary Temporarily Unavailable",
+      "description": "The AI summarization service is currently unavailable. This could be due to high demand or temporary maintenance.",
+      "alternatives": "Alternative Options",
+      "retry": "Retry",
+      "ask_ai": "Ask AI",
+      "manual_review": "Manual Review",
+      "footer": "You can also try searching for related resources or manually review the document content."
     }
   }
 }

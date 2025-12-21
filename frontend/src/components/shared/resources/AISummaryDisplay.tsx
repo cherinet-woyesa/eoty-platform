@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AISummary } from '@/types/resources';
 import { Brain, Lightbulb, BookOpen, RefreshCw, AlertCircle, CheckCircle, XCircle, TrendingUp, FileText, Target, Award } from 'lucide-react';
 
@@ -17,7 +18,26 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
   onRetry,
   onTypeChange
 }) => {
+  const { t } = useTranslation();
   const [summaryType, setSummaryType] = useState('brief');
+  const [loadingTime, setLoadingTime] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      setLoadingTime(0);
+      interval = setInterval(() => {
+        setLoadingTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const getLoadingMessage = () => {
+    if (loadingTime > 60) return t('resources.ai_summary.generating_long');
+    if (loadingTime > 30) return t('resources.ai_summary.generating_analyzing');
+    return t('resources.ai_summary.generating');
+  };
 
   const handleTypeChange = (type: string) => {
     setSummaryType(type);
@@ -56,9 +76,14 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-600">Generating AI summary...</span>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mb-4"></div>
+          <span className="text-gray-600 font-medium">{getLoadingMessage()}</span>
+          {loadingTime > 5 && (
+            <span className="text-xs text-gray-400 mt-2">
+              {loadingTime}s
+            </span>
+          )}
         </div>
       </div>
     );
@@ -70,7 +95,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
         <div className="flex items-start">
           <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">AI Summary Unavailable</h3>
+            <h3 className="text-sm font-medium text-red-800">{t('resources.ai_summary.unavailable')}</h3>
             <div className="mt-2 text-sm text-red-700">
               <p>{error}</p>
             </div>
@@ -80,7 +105,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
+                {t('resources.ai_summary.retry')}
               </button>
             </div>
           </div>
@@ -93,13 +118,13 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
     return (
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 text-center">
         <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Summary Available</h3>
-        <p className="text-gray-500 mb-4">Generate an AI summary to get insights from this resource.</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('resources.ai_summary.no_summary')}</h3>
+        <p className="text-gray-500 mb-4">{t('resources.ai_summary.generate_prompt')}</p>
         <button
           onClick={() => handleTypeChange('brief')}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand-primary hover:bg-brand-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
         >
-          Generate Summary
+          {t('resources.ai_summary.generate_button')}
         </button>
       </div>
     );
@@ -110,38 +135,38 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <Brain className="h-5 w-5 text-blue-500 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">AI Summary</h3>
+            <Brain className="h-5 w-5 text-brand-primary mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">{t('resources.tabs.summary')}</h3>
           </div>
           
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-500">
-              {summary.summary_type === 'brief' ? 'Brief Summary' : 'Detailed Summary'}
+              {summary.summary_type === 'brief' ? t('resources.summary.brief') : t('resources.summary.detailed')}
             </span>
             <select
               value={summaryType}
               onChange={(e) => handleTypeChange(e.target.value)}
-              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="text-sm border-gray-300 rounded-md focus:ring-brand-primary focus:border-brand-primary"
             >
-              <option value="brief">Brief</option>
-              <option value="detailed">Detailed</option>
+              <option value="brief">{t('resources.summary.brief')}</option>
+              <option value="detailed">{t('resources.summary.detailed')}</option>
             </select>
           </div>
         </div>
         
         <div className="mt-2 flex items-center gap-3 text-sm">
           <span className="text-gray-500">
-            Generated using {summary.model_used || 'AI'}
+            {t('resources.summary.generated_by_ai')}
           </span>
           {qualityMetrics && (
             <>
               <span className="text-gray-300">•</span>
               <span className={`font-medium ${qualityMetrics.meetsWordLimit ? 'text-green-600' : 'text-amber-600'}`}>
-                {qualityMetrics.wordCount} words
+                {qualityMetrics.wordCount} {t('resources.ai_summary.word_count')}
               </span>
               <span className="text-gray-300">•</span>
               <span className={`font-medium ${qualityMetrics.meetsRelevance ? 'text-green-600' : 'text-amber-600'}`}>
-                {(qualityMetrics.relevanceScore * 100).toFixed(1)}% relevance
+                {(qualityMetrics.relevanceScore * 100).toFixed(1)}% {t('resources.ai_summary.relevance')}
               </span>
             </>
           )}
@@ -152,7 +177,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
       {qualityMetrics && (
         <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-gray-700">Quality Score</span>
+            <span className="text-xs font-semibold text-gray-700">{t('resources.ai_summary.quality_metrics')}</span>
             <span className={`text-sm font-bold ${
               qualityMetrics.qualityScore >= 75 ? 'text-green-600' :
               qualityMetrics.qualityScore >= 50 ? 'text-amber-600' : 'text-red-600'
@@ -178,7 +203,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
               ) : (
                 <XCircle className="h-3.5 w-3.5" />
               )}
-              <span>Word Limit ({qualityMetrics.wordCount}/250)</span>
+              <span>{t('resources.ai_summary.word_count')} ({qualityMetrics.wordCount}/250)</span>
             </div>
             <div className={`flex items-center gap-1.5 text-xs ${
               qualityMetrics.meetsRelevance ? 'text-green-700' : 'text-amber-700'
@@ -188,7 +213,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
               ) : (
                 <XCircle className="h-3.5 w-3.5" />
               )}
-              <span>Relevance ({(qualityMetrics.relevanceScore * 100).toFixed(1)}%)</span>
+              <span>{t('resources.ai_summary.relevance')} ({(qualityMetrics.relevanceScore * 100).toFixed(1)}%)</span>
             </div>
             <div className={`flex items-center gap-1.5 text-xs ${
               qualityMetrics.hasKeyPoints ? 'text-green-700' : 'text-gray-500'
@@ -198,7 +223,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
               ) : (
                 <XCircle className="h-3.5 w-3.5" />
               )}
-              <span>Key Points</span>
+              <span>{t('resources.ai_summary.key_points')}</span>
             </div>
             <div className={`flex items-center gap-1.5 text-xs ${
               qualityMetrics.hasSpiritualInsights ? 'text-green-700' : 'text-gray-500'
@@ -208,7 +233,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
               ) : (
                 <XCircle className="h-3.5 w-3.5" />
               )}
-              <span>Spiritual Insights</span>
+              <span>{t('resources.ai_summary.spiritual_insights')}</span>
             </div>
           </div>
         </div>
@@ -222,13 +247,13 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
         {summary.key_points && summary.key_points.length > 0 && (
           <div className="mt-6">
             <div className="flex items-center mb-3">
-              <Lightbulb className="h-5 w-5 text-yellow-500 mr-2" />
-              <h4 className="text-md font-semibold text-gray-900">Key Points</h4>
+              <Lightbulb className="h-5 w-5 text-brand-accent mr-2" />
+              <h4 className="text-md font-semibold text-gray-900">{t('resources.ai_summary.key_points')}</h4>
             </div>
             <ul className="space-y-2">
               {summary.key_points.map((point, index) => (
                 <li key={index} className="flex items-start">
-                  <span className="flex-shrink-0 h-5 w-5 text-blue-500 mt-0.5">•</span>
+                  <span className="flex-shrink-0 h-5 w-5 text-brand-primary mt-0.5">•</span>
                   <span className="ml-2 text-gray-700">{point}</span>
                 </li>
               ))}
@@ -240,7 +265,7 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
           <div className="mt-6">
             <div className="flex items-center mb-3">
               <BookOpen className="h-5 w-5 text-purple-500 mr-2" />
-              <h4 className="text-md font-semibold text-gray-900">Spiritual Insights</h4>
+              <h4 className="text-md font-semibold text-gray-900">{t('resources.ai_summary.spiritual_insights')}</h4>
             </div>
             <ul className="space-y-2">
               {summary.spiritual_insights.map((insight, index) => (
@@ -261,30 +286,24 @@ const AISummaryDisplay: React.FC<AISummaryDisplayProps> = ({
                   <div className="flex items-center gap-1.5">
                     <FileText className="h-4 w-4 text-gray-400" />
                     <span className="text-gray-600">
-                      <span className="font-semibold">{qualityMetrics.wordCount}</span> words
+                      <span className="font-semibold">{qualityMetrics.wordCount}</span> {t('resources.ai_summary.word_count')}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Target className="h-4 w-4 text-gray-400" />
                     <span className="text-gray-600">
-                      <span className="font-semibold">{(qualityMetrics.relevanceScore * 100).toFixed(1)}%</span> relevance
+                      <span className="font-semibold">{(qualityMetrics.relevanceScore * 100).toFixed(1)}%</span> {t('resources.ai_summary.relevance')}
                     </span>
                   </div>
-                  {qualityMetrics.qualityScore >= 75 && (
-                    <div className="flex items-center gap-1.5 text-green-600">
-                      <Award className="h-4 w-4" />
-                      <span className="font-medium">High Quality</span>
-                    </div>
-                  )}
                 </>
               )}
             </div>
             <button
               onClick={onRetry}
-              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary transition-colors"
             >
               <RefreshCw className="h-3 w-3 mr-1" />
-              Regenerate
+              {t('resources.ai_summary.retry')}
             </button>
           </div>
         </div>

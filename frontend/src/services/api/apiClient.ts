@@ -25,7 +25,7 @@ const mockDataStore = new Map<string, any>();
 // Enhanced axios instance with better error handling and performance optimizations
 export const apiClient = axios.create({
   baseURL: API_BASE,
-  timeout: 60000, // Increased timeout to 60 seconds for production (handles slow connections)
+  timeout: 120000, // Increased timeout to 120 seconds for AI operations
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

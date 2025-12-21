@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { AlertCircle, RefreshCw, MessageCircle, BookOpen, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { AlertCircle, RefreshCw, MessageCircle, BookOpen } from 'lucide-react';
 
 interface AIFallbackHandlerProps {
   resourceId: number;
@@ -14,6 +15,7 @@ const AIFallbackHandler: React.FC<AIFallbackHandlerProps> = ({
   onAskQuestion,
   onManualSummary
 }) => {
+  const { t } = useTranslation();
   const [isRetrying, setIsRetrying] = useState(false);
 
   const handleRetry = async () => {
@@ -28,54 +30,52 @@ const AIFallbackHandler: React.FC<AIFallbackHandlerProps> = ({
   };
 
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-sm">
       <div className="flex items-start">
-        <AlertCircle className="h-5 w-5 text-yellow-400 mt-0.5" />
-        <div className="ml-3">
-          <h3 className="text-sm font-medium text-yellow-800">AI Summary Temporarily Unavailable</h3>
+        <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+        <div className="ml-3 flex-1">
+          <h3 className="text-sm font-bold text-yellow-800">{t('resources.ai_fallback.title')}</h3>
           <div className="mt-2 text-sm text-yellow-700">
-            <p>
-              The AI summarization service is currently unavailable. This could be due to high demand or temporary maintenance.
-            </p>
+            <p>{t('resources.ai_fallback.description')}</p>
           </div>
           
           <div className="mt-4">
-            <h4 className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Alternative Options</h4>
+            <h4 className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">{t('resources.ai_fallback.alternatives')}</h4>
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
                 onClick={handleRetry}
                 disabled={isRetrying}
-                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-md hover:bg-yellow-100 disabled:opacity-50"
+                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-100 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {isRetrying ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-500 mb-1"></div>
                 ) : (
                   <RefreshCw className="h-5 w-5 text-yellow-600 mb-1" />
                 )}
-                <span className="text-xs font-medium text-yellow-700">Retry</span>
+                <span className="text-xs font-medium text-yellow-700">{t('resources.ai_fallback.retry')}</span>
               </button>
               
               <button
                 onClick={onAskQuestion}
-                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-md hover:bg-yellow-100"
+                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors shadow-sm"
               >
                 <MessageCircle className="h-5 w-5 text-yellow-600 mb-1" />
-                <span className="text-xs font-medium text-yellow-700">Ask AI</span>
+                <span className="text-xs font-medium text-yellow-700">{t('resources.ai_fallback.ask_ai')}</span>
               </button>
               
               <button
                 onClick={onManualSummary}
-                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-md hover:bg-yellow-100"
+                className="flex flex-col items-center justify-center p-3 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors shadow-sm"
               >
                 <BookOpen className="h-5 w-5 text-yellow-600 mb-1" />
-                <span className="text-xs font-medium text-yellow-700">Manual Review</span>
+                <span className="text-xs font-medium text-yellow-700">{t('resources.ai_fallback.manual_review')}</span>
               </button>
             </div>
           </div>
           
           <div className="mt-4">
-            <p className="text-xs text-yellow-600">
-              You can also try searching for related resources or manually review the document content.
+            <p className="text-xs text-yellow-600 italic">
+              {t('resources.ai_fallback.footer')}
             </p>
           </div>
         </div>

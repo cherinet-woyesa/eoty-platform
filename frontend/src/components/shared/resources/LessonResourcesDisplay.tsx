@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, File, FileSpreadsheet, FileImage, FileArchive, Link as LinkIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { FileText, Download, File, FileSpreadsheet, FileImage, FileArchive, Link as LinkIcon, Trash2, Eye } from 'lucide-react';
 import type { Resource } from '@/types/resources';
 import { useNotification } from '../../../context/NotificationContext';
 
@@ -29,6 +30,7 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
   lessonId,
   canManage = false
 }) => {
+  const { t } = useTranslation();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
@@ -52,14 +54,14 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
       }
     } catch (error) {
       console.error('Failed to load resources:', error);
-      showNotification({ title: 'Error', message: 'Failed to load resources', type: 'error' });
+      showNotification({ title: 'Error', message: t('resources.lesson.load_error'), type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDetach = async (resourceId: number) => {
-    if (!confirm('Are you sure you want to detach this resource from this lesson?')) {
+    if (!confirm(t('resources.lesson.detach_confirm'))) {
       return;
     }
 
@@ -75,14 +77,14 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
 
       const data = await response.json();
       if (data.success) {
-        showNotification({ title: 'Success', message: 'Resource detached successfully', type: 'success' });
+        showNotification({ title: 'Success', message: t('resources.lesson.detach_success'), type: 'success' });
         loadResources();
       } else {
-        showNotification({ title: 'Error', message: data.message || 'Failed to detach resource', type: 'error' });
+        showNotification({ title: 'Error', message: data.message || t('resources.lesson.detach_error'), type: 'error' });
       }
     } catch (error) {
       console.error('Failed to detach resource:', error);
-      showNotification({ title: 'Error', message: 'Failed to detach resource', type: 'error' });
+      showNotification({ title: 'Error', message: t('resources.lesson.detach_error'), type: 'error' });
     }
   };
 
@@ -99,110 +101,88 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = resource.title || 'resource';
+        a.download = resource.title;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+      } else {
+        showNotification({ title: 'Error', message: t('resources.lesson.download_error'), type: 'error' });
       }
     } catch (error) {
       console.error('Failed to download resource:', error);
-      showNotification({ title: 'Error', message: 'Failed to download resource', type: 'error' });
+      showNotification({ title: 'Error', message: t('resources.lesson.download_error'), type: 'error' });
     }
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        </div>
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
       </div>
     );
   }
 
   if (resources.length === 0) {
     return (
-      <div className="bg-gray-50 rounded-lg p-6 text-center">
-        <FileText className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-        <p className="text-gray-600">No resources attached to this lesson yet.</p>
+      <div className="text-center p-8 bg-gray-50 rounded-lg border border-gray-200">
+        <File className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-500">{t('resources.lesson.empty')}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        <FileText className="h-5 w-5" />
-        Lesson Resources
-      </h3>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {resources.map(resource => {
-          const FileIcon = getFileIcon(resource.file_type || 'file');
-          
+      <h3 className="text-lg font-semibold text-gray-900">{t('resources.lesson.title')}</h3>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {resources.map((resource) => {
+          const Icon = getFileIcon(resource.file_type);
           return (
             <div
               key={resource.id}
-              className="bg-white rounded-lg border border-gray-200 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden"
+              className="flex flex-col p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
             >
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileIcon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-gray-900 truncate">
-                      {resource.title}
-                    </h4>
-                    
-                    {resource.description && (
-                      <p className="mt-1 text-xs text-gray-600 line-clamp-2">
-                        {resource.description}
-                      </p>
-                    )}
-                    
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                      {resource.file_size && (
-                        <span>{formatFileSize(Number(resource.file_size))}</span>
-                      )}
-                    </div>
-                  </div>
+              <div className="flex items-start justify-between mb-3">
+                <div className="p-2 bg-brand-soft/10 rounded-lg">
+                  <Icon className="h-6 w-6 text-brand-primary" />
                 </div>
-
-                <div className="mt-4 flex gap-2">
+                {canManage && (
                   <button
-                    onClick={() => handleDownload(resource)}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                    onClick={() => handleDetach(resource.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title={t('resources.lesson.detach')}
                   >
-                    <Download className="h-4 w-4" />
-                    Download
+                    <Trash2 className="h-4 w-4" />
                   </button>
-                  
-                  {resource.file_url && (
-                    <a
-                      href={resource.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                    >
-                      <LinkIcon className="h-4 w-4" />
-                    </a>
-                  )}
+                )}
+              </div>
+              
+              <h4 className="font-medium text-gray-900 mb-1 line-clamp-1" title={resource.title}>
+                {resource.title}
+              </h4>
+              
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+                <span>{resource.file_type.toUpperCase()}</span>
+                <span>•</span>
+                <span>{formatFileSize(resource.file_size || 0)}</span>
+              </div>
 
-                  {canManage && (
-                    <button
-                      onClick={() => handleDetach(resource.id)}
-                      className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
+              <div className="mt-auto flex gap-2">
+                <button
+                  onClick={() => window.open(`/resources/${resource.id}`, '_blank')}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors"
+                >
+                  <Eye className="h-4 w-4" />
+                  {t('resources.lesson.view')}
+                </button>
+                <button
+                  onClick={() => handleDownload(resource)}
+                  className="flex items-center justify-center px-3 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dark transition-colors"
+                  title={t('resources.lesson.download')}
+                >
+                  <Download className="h-4 w-4" />
+                </button>
               </div>
             </div>
           );
@@ -211,5 +191,3 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
     </div>
   );
 };
-
-export default LessonResourcesDisplay;

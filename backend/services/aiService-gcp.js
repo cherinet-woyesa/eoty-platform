@@ -49,12 +49,12 @@ class AIService {
 
     // Performance optimization settings
     this.performanceSettings = {
-      maxResponseTimeMs: 30000, // Increased to 30s for debugging
+      maxResponseTimeMs: 90000, // Increased to 90s for production
       useStreaming: process.env.USE_STREAMING === 'true',
       enableCaching: process.env.ENABLE_CACHING !== 'false',
       maxCacheSize: parseInt(process.env.MAX_CACHE_SIZE) || 100,
       maxRetries: parseInt(process.env.AI_MAX_RETRIES) || 2,
-      timeoutMs: 30000, // Increased to 30s for debugging
+      timeoutMs: 90000, // Increased to 90s for production
       concurrentRequests: parseInt(process.env.AI_CONCURRENT_REQUESTS) || 5,
       accuracyThreshold: 0.4 // Lowered to 40% to prevent false positives on valid answers
     };
