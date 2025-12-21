@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { interactiveApi } from '@/services/api';
 import { brandColors } from '@/theme/brand';
+import { Loader, Plus, Trash2, BarChart2, CheckCircle, MessageSquare } from 'lucide-react';
+import PollCreator from './PollCreator';
+import PollVoter from './PollVoter';
 
 interface Poll {
   id: number;
