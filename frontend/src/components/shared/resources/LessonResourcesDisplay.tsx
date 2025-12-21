@@ -191,3 +191,5 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
     </div>
   );
 };
+
+export default LessonResourcesDisplay;
