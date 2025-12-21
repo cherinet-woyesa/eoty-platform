@@ -453,6 +453,37 @@ export const interactiveApi = {
     return response.data;
   },
 
+  // Poll methods
+  getLessonPolls: async (lessonId: string | number) => {
+    const response = await apiClient.get(`/interactive/lessons/${lessonId}/polls`);
+    return response.data;
+  },
+
+  createPoll: async (lessonId: string | number, data: any) => {
+    const response = await apiClient.post(`/interactive/lessons/${lessonId}/polls`, data);
+    return response.data;
+  },
+
+  getPoll: async (pollId: string | number) => {
+    const response = await apiClient.get(`/interactive/polls/${pollId}`);
+    return response.data;
+  },
+
+  deletePoll: async (pollId: string | number) => {
+    const response = await apiClient.delete(`/interactive/polls/${pollId}`);
+    return response.data;
+  },
+
+  deleteLessonPoll: async (lessonId: string | number, pollId: string | number) => {
+    const response = await apiClient.delete(`/interactive/lessons/${lessonId}/polls/${pollId}`);
+    return response.data;
+  },
+
+  submitPollVote: async (pollId: string | number, optionId: number) => {
+    const response = await apiClient.post(`/interactive/polls/${pollId}/vote`, { optionId });
+    return response.data;
+  },
+
   // Get quiz results after submission
   getQuizResults: async (attemptId: string) => {
     const response = await apiClient.get(`/interactive/quiz-attempts/${attemptId}/results`);
