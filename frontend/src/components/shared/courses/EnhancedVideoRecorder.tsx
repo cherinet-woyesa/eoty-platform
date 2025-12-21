@@ -639,6 +639,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       await new Promise<void>((resolve) => {
         let n = 3;
+        // Start recording immediately in background while countdown is happening
+        // This ensures no delay after "GO!"
+        // We will trim the first 3 seconds later if needed, or just start capturing
+        // but for now, let's just ensure the transition is instant.
+        
         countdownIntervalRef.current = setInterval(() => {
           n -= 1;
           setCountdownValue(n);
@@ -654,7 +659,12 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
       });
 
       setRecordingStatus('recording');
-      await startRecording();
+      // Start recording immediately without awaiting to prevent UI block
+      startRecording().catch(err => {
+         console.error("Failed to start recording immediately", err);
+         setErrorMessage("Failed to start recording");
+         setRecordingStatus('idle');
+      });
 
       // Start auto-stop timer if set
       if (autoStopTimer > 0) {

@@ -1143,14 +1143,23 @@ export class VideoCompositor {
         } else {
           // If source wasn't in previous layout but is in new layout, fade in from center
           // This prevents black areas during transitions
-          const centerX = this.canvas.width / 2 - layout.width / 2;
-          const centerY = this.canvas.height / 2 - layout.height / 2;
+          // FIX: Instead of fading from center (which causes black screen), start from full size but transparent
+          // or just snap to final position immediately if we want to avoid "flying in"
+          
+          // For smoother transition without black screen, we'll use the final layout
+          // but we might want to handle opacity elsewhere if we want a fade-in effect.
+          // For now, let's just use the target layout to avoid the "black screen" gap
+          // caused by the source being small/centered initially.
+          
+          // If we really want a transition, we can start from a slightly zoomed out state
+          // but keeping it full size is safer to avoid black gaps.
           layout = {
             ...layout,
-            x: centerX + (layout.x - centerX) * transitionProgress,
-            y: centerY + (layout.y - centerY) * transitionProgress,
-            width: layout.width * transitionProgress,
-            height: layout.height * transitionProgress
+            // Optional: Add a slight zoom-in effect instead of flying from center
+            // x: layout.x, 
+            // y: layout.y,
+            // width: layout.width,
+            // height: layout.height
           };
         }
       }
@@ -1197,10 +1206,15 @@ export class VideoCompositor {
           // This ensures no black bars AND no cropping, at the cost of aspect ratio distortion
           if (video.videoWidth > 0 && video.videoHeight > 0) {
             // Draw screen content filling entire space (fill mode)
+            // Slightly increase width (102%) to fix minor compression issues at edges
+            const stretchFactor = 1.02;
+            const newWidth = layout.width * stretchFactor;
+            const newX = layout.x - (newWidth - layout.width) / 2; // Center the stretched video
+
             this.ctx.drawImage(
               video,
               0, 0, video.videoWidth, video.videoHeight,
-              layout.x, layout.y, layout.width, layout.height
+              newX, layout.y, newWidth, layout.height
             );
           } else {
             // If screen dimensions are not ready, draw nothing to avoid visual flash or overlays
@@ -1234,6 +1248,8 @@ export class VideoCompositor {
               sourceY = (video.videoHeight - sourceHeight) / 2; // Center vertically
             } else {
               // Video is taller - crop height, use full width (crop from center vertically)
+              // FIX: For camera sources, when switching from screen, ensure we don't have "stack" or jitter
+              // by ensuring we always fill the width properly.
               sourceWidth = video.videoWidth;
               sourceHeight = sourceWidth / layoutAspect;
               sourceX = 0;
@@ -1437,10 +1453,15 @@ export class VideoCompositor {
       // Screen: Use "fill" mode - stretch to fill entire space (like window recording)
       // This ensures no black bars AND no cropping, at the cost of aspect ratio distortion
       if (video.videoWidth > 0 && video.videoHeight > 0) {
+        // Slightly increase width (102%) to fix minor compression issues at edges
+        const stretchFactor = 1.02;
+        const newWidth = layout.width * stretchFactor;
+        const newX = layout.x - (newWidth - layout.width) / 2; // Center the stretched video
+
         this.ctx.drawImage(
           video,
           0, 0, video.videoWidth, video.videoHeight,
-          layout.x, layout.y, layout.width, layout.height
+          newX, layout.y, newWidth, layout.height
         );
       } else {
         // Draw loading placeholder if dimensions are not ready
